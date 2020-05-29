@@ -29,11 +29,35 @@ TNN is currently deployed to support various products in Youtu Lab and Guangying
 
     * Kirin970：
 
-    <img src="doc/cn/imgs/970.jpg" width="512" alt=华为麒麟970平台 />
+        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        |---------------------------|--------------|--------------|
+        | Mobilenet_v1              | 88           |   12         |
+        | Mobilenet_v1_int8         | 55           |              |
+        | Mobilenet_v2              | 58           |   11         |
+        | Mobilenet_v2_int8         | 41           |              |
+        | squeezenet_v1.0           | 127          |   20         |
+        | squeezenet_v1.0_int8      | 82           |              |
 
     * Snapdragon 835：
 
-    <img src="doc/cn/imgs/835.jpg" width="512" alt=高通骁龙835平台 />
+        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        |---------------------------|--------------|--------------|
+        | Mobilenet_v1              | 94           |   16         |
+        | Mobilenet_v1_int8         | 62           |              |
+        | Mobilenet_v2              | 61           |   14         |
+        | Mobilenet_v2_int8         | 47           |              |
+        | squeezenet_v1.0           | 122          |   28         |
+        | squeezenet_v1.0_int8      | 93           |              |
+        
+    * Snapdragon 845：
+        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        |---------------------------|--------------|--------------|
+        | Mobilenet_v1              | 60           |   10         |
+        | Mobilenet_v1_int8         | 37           |              |
+        | Mobilenet_v2              | 39           |   8          |
+        | Mobilenet_v2_int8         | 28           |              |
+        | squeezenet_v1.0           | 74           |   14         |
+        | squeezenet_v1.0_int8      | 56           |              |
 
 ### Universal & Lightweight：
 
