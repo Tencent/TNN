@@ -2,12 +2,12 @@
 
 <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/user/resource/convert.png"/> 
 
-目前 TNN 支持业界主流的模型文件格式，包括ONNX、Pytorch、Tensorflow 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将Pytorch、Tensorflow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
+目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
 
 | 原始模型   | 转换工具        | 目标模型 |
 |------------|-----------------|----------|
-| Pytorch    | pytorch export  | ONNX     |
-| Tensorflow | tensorflow-onnx | ONNX     |
+| PyTorch    | pytorch export  | ONNX     |
+| TensorFlow | tensorflow-onnx | ONNX     |
 | Caffe      | caffe2onnx      | ONNX     |
 | ONNX       | onnx2tnn        | TNN      |
 
@@ -15,9 +15,9 @@
 
 # TNN 模型转换工具
 
-通过上面的模型转换的总体介绍，可以发现如果想将 Tensorflfow 模型转换成 TNN 模型需要最少两步，稍显麻烦，所以我们提供了 convert2tnn 工具。这个工具提供了集成的转换工具，可以将 Tensorflow、Caffe 和 ONNX 模型转换成 TNN 模型。由于 Pytorch 可以直接导出为 ONNX 模型，然后再将 ONNX 模型转换成 TNN模型，所以本工具不再提供对于Pytorch 模型的模型转换，
+通过上面的模型转换的总体介绍，可以发现如果想将 TensorFlow 模型转换成 TNN 模型需要最少两步，稍显麻烦，所以我们提供了 convert2tnn 工具。这个工具提供了集成的转换工具，可以将 TensorFlow、Caffe 和 ONNX 模型转换成 TNN 模型。由于 PyTorch 可以直接导出为 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型，所以本工具不再提供对于 PyTorch 模型的模型转换，
 
-大家可以使用 convert2tnn 工具对相关的模型直接进行转换，也可以基于后面文档的相关内容，先将对应的模型转换成 ONNX 模型，然后再将 ONNX转换成 TNN 模型.
+大家可以使用 convert2tnn 工具对相关的模型直接进行转换，也可以基于后面文档的相关内容，先将对应的模型转换成 ONNX 模型，然后再将 ONNX 转换成 TNN 模型.
 
 本文中提供了两种方式帮助大家使用 convert2tnn工具：
 - 通过 docker image 的方式使用 covnert2tnn 转换工具；
@@ -64,7 +64,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
-从上面的帮助信息中，我们可以得知，目前 convert2tnn 提供了 3 种模型格式的转换支持。假设我们这里想将 Tensorflow 模型转换成TNN 模型，我们输入下面的命令继续获得帮助信息：
+从上面的帮助信息中，我们可以得知，目前 convert2tnn 提供了 3 种模型格式的转换支持。假设我们这里想将 TensorFlow 模型转换成 TNN 模型，我们输入下面的命令继续获得帮助信息：
 
 ``` shell script
 docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
@@ -84,7 +84,7 @@ optional arguments:
   -optimize        optimize the model
   -half            optimize the model
 ```
-通过上面的输出，可以发现针对 tf 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
+通过上面的输出，可以发现针对 TF 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
 
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
@@ -95,14 +95,14 @@ optional arguments:
 - output_dir 参数：
     可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不适用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
 - optimize 参数（可选）
-    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议您去掉 “-opti mize” 参数进行重新尝试**。
+    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议您去掉 “-optimize” 参数进行重新尝试**。
 - v 参数（可选）
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 
 
-**当前convert2tnn 的模型只支持graphdef 模型，不支持checkpoint 以及 saved_model格式的文件，如果想将 checkpoint 或者 saved_model的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
+**当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
 
 下面我们通过一个例子来展示如何将 TF 模型转换到 TNN 模型，
 
@@ -112,7 +112,7 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converte
 
 由于 convert2tnn工具是部署在 docker 镜像中的，如果要进行模型的转换,需要先将模型传输到 docker 容器中。我们可以通过 docker run 的参数--volume 将包含模型的模型挂载到 docker 容器的某个路径下。上面的例子中是将执行shell 的当前目录（pwd）挂载到 docker 容器中的 "/workspace” 文件夹下面。当然了测试用到的test.pb 也**必须执行 shell 命令的当前路径下**。执行完成上面的命令后，convert2tnn 工具会将生成的 TNN 模型存放在 test.pb文件的同一级目录下，当然了生成的文件也就是在当前目录下。
 
-上面的文档中只是介绍了 Tensorflow 的模型的转换，其他模型的使用也是类似的，可以自行通过转换工具的帮助信息的提醒进行使用，我这里不在对这些转换命令进行详细的说明，只是简单的将这些转换命令列出来，你可以仿照着进行转换。
+上面的文档中只是介绍了 TensorFlow 的模型的转换，其他模型的使用也是类似的，可以自行通过转换工具的帮助信息的提醒进行使用，我这里不在对这些转换命令进行详细的说明，只是简单的将这些转换命令列出来，你可以仿照着进行转换。
 
 ``` shell script
 # convert onnx
@@ -123,9 +123,9 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
 ```
 
 ## Convert2tnn 手动安装
-如果你不想使用 docker 镜像的方式，也可以在自己的开发机上安装 convert2tnn的依赖工具，并根据相关的说明进行编译，也可以同样使用 convert2tnn工具机型模型转换。
+如果你不想使用 docker 镜像的方式，也可以在自己的开发机上安装 convert2tnn 的依赖工具，并根据相关的说明进行编译，也可以同样使用 convert2tnn 工具机型模型转换。
 
-convert2tnn 的完整环境搭建包含下面的所有的工具的安装和编译。如果你只想转换某一类的模型，你只需要安装转换对应模型转换的依赖工具。例如你只想转换 caffe 的模型，你就不需要安装 转换Tensorflow 模型依赖的工具。同理你需要转换 Tensorflow 的模型，就可以不用安装 Caffe 模型转换的依赖工具。但是 ONNX 模型依赖工具和安装和编译都是必须的。
+convert2tnn 的完整环境搭建包含下面的所有的工具的安装和编译。如果你只想转换某一类的模型，你只需要安装转换对应模型转换的依赖工具。例如你只想转换 caffe 的模型，你就不需要安装 转换 TensorFlow 模型依赖的工具。同理你需要转换 TensorFlow 的模型，就可以不用安装 Caffe 模型转换的依赖工具。但是 ONNX 模型依赖工具和安装和编译都是必须的。
 
 针对 Linux 系统下的环境配置，我使用 Centos 7.2 为例，Ubuntu 系统也可以适用，只要将相应的安装命令修改为 Ubuntu 上的对应命令即可。  
 
@@ -175,10 +175,10 @@ cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
 ./build.sh 
  ```
 
-#### 2. TensorFlow模型转换（可选）
+#### 2. TensorFlow 模型转换（可选）
 
 - tensorflow (version == 1.15.0)
-建议使用 tensorflow 1.15.0 的版本，目前 tensorflow 2.+ 的版本的兼容性不好， 不建议使用。
+建议使用 TensorFlow 1.15.0 的版本，目前 TensorFlow 2.+ 的版本的兼容性不好， 不建议使用。
 ```shell script
 pip3 install tensorflow==1.15.0
 ```
@@ -202,9 +202,9 @@ brew install protobuf
 
 Linux:
 
-对于 linux 系统，我们建议参考protobuf 的官方[README](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md)文档，直接从源码进行安装。  
+对于 linux 系统，我们建议参考 protobuf 的官方[README](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md)文档，直接从源码进行安装。  
 
-如果你使用的是Ubuntu 系统可以使用下面的指令进行安装：
+如果你使用的是 Ubuntu 系统可以使用下面的指令进行安装：
 ```shell script
 sudo apt-get install libprotobuf-dev protobuf-compiler
 ```
@@ -281,11 +281,11 @@ python3 converter.py onnx2tnn ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.
 
 - caffe2tnn
 
-caffe 格式转换
+Caffe 格式转换
 
-目前convert2tnn的工具目前只支持最新版本的 Caffe 的文件格式,所以如果想将 Caffe 模型转换为TNN 模型。需要先将老版本的 caffe 网络和模型转换为新版. caffe 自带了工具可以把老版本的
+目前 convert2tnn 的工具目前只支持最新版本的 Caffe 的文件格式,所以如果想将 Caffe 模型转换为 TNN 模型。需要先将老版本的 Caffe 网络和模型转换为新版. Caffe 自带了工具可以把老版本的
 
-caffe 网络和模型转换为新版本的格式. 具体的使用方式如下:
+Caffe 网络和模型转换为新版本的格式. 具体的使用方式如下:
 ```shell script
 upgrade_net_proto_text [老prototxt] [新prototxt]
 upgrade_net_proto_binary [老caffemodel] [新caffemodel]
@@ -327,7 +327,7 @@ python3 converter.py caffe2tnn ~/squeezenet/squeezenet.prototxt ~/squeezenet/squ
 ```
 - tensorflow2tnn
 
-当前convert2tnn 的模型只支持graphdef 模型，不支持checkpoint 以及 saved_model格式的文件，如果想将 checkpoint 或者 saved_model的模型进行转换，可以参看下面的tf2onnx的部分，自行进行转换。
+当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面的 tf2onnx 的部分，自行进行转换。
 
 ``` shell script
 python3 converter.py tf2tnn -h
@@ -354,7 +354,7 @@ python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0
 
 
 # 模型转换详细介绍
-convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 “模型转换介绍”中原理说明，你也可以先将原始模型转换成 ONNX，然后再将 ONNX 模型转换成 TNN 模型。我们提供了如何手动的将 Caffe、Pytorch、TensorFlow 模型转换成 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型的文档。如果你在使用 convert2tnn 转换工具遇到问题时，我们建议你了解下相关的内容，这有可能帮助你更加顺利的进行模型转换。
+convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 “模型转换介绍”中原理说明，你也可以先将原始模型转换成 ONNX，然后再将 ONNX 模型转换成 TNN 模型。我们提供了如何手动的将 Caffe、PyTorch、TensorFlow 模型转换成 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型的文档。如果你在使用 convert2tnn 转换工具遇到问题时，我们建议你了解下相关的内容，这有可能帮助你更加顺利的进行模型转换。
 
 - [onnx2tnn](onnx2tnn.md)
 - [pytorch2tnn](onnx2tnn.md)
