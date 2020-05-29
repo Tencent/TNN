@@ -127,60 +127,23 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 * 展示TNN基础接口的调用方法，快速在linux环境下运行模型。
 
 ### 编译
-* 参见[arm linux Readme文档](/examples/armlinux/Readme.md)
+* 修改build_aarch64.sh，需要配置编译选项：
+   CC=aarch64-linux-gnu-gcc
+   CXX=aarch64-linux-gnu-g++
+   TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+* 执行build_aarch64.sh
+   ./demo_arm_linux ../../../model/SqueezeNet/squeezenet_v1.1.rapidproto ../../../model/SqueezeNet/squeezenet_v1.1.rapidmodel 224 224
 
-### Init 函数流程
+### 函数流程
 
-1. 在 TNN_NS::ModelConfig 中指明模型文件路径，创建TNN_NS::TNN 实例。
-
-具体代码：
-
-    TNN_NS::ModelConfig model_config;
-    model_config.params.push_back(buffer);
-    model_config.params.push_back(model_file);
-    CHECK_TNN_STATUS(tnn_.Init(model_config));
-
-2. 在 TNN_NS::NetworkConfig 中指明设备类型等信息，创建TNN_NS::Instance 实例。
-
-具体代码:
-
-
-    TNN_NS::NetworkConfig config;
-    config.device_type = TNN_NS::DEVICE_ARM;
-    TNN_NS::Status error;
-    net_instance_      = tnn_.CreateInst(config, error);
-    CHECK_TNN_STATUS(error);
-
-3. 获取输入输出信息。
-
-具体代码
-
-    CHECK_TNN_STATUS(net_instance_->GetAllInputBlobs(input_blobs_));
-    CHECK_TNN_STATUS(net_instance_->GetAllOutputBlobs(output_blobs_));
-
-### Forward 函数流程
-
-1. 预处理及数据传入。
-
-具体代码:
-
-    TNN_NS::BlobConverter input_blob_convert(input_blobs_.begin()->second);
-    CHECK_TNN_STATUS(
-        input_blob_convert.ConvertFromMat(input_mat, input_convert_param_, nullptr));
-
-2. 前向计算。
-
-具体代码:
-
-    CHECK_TNN_STATUS( net_instance_->Forward());
-
-3. 数据传出及后处理。
-
-具体代码:
-
-    TNN_NS::BlobConverter output_blob_convert(output_blobs_.begin()->second);
-    CHECK_TNN_STATUS(
-        output_blob_convert.ConvertToMat(output_mat, output_convert_param_, nullptr));
+* 创建classifier
+      std::shared_ptr<ImageClassifier>  classifier = std::make_shared<ImageClassifier>();
+* 初始化classifier
+      CHECK_TNN_STATUS(classifier->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
+* 创建输入mat
+      auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw);
+* 执行classifier
+    CHECK_TNN_STATUS(classifier->Classify(input_mat, w, h, result));
 
 
 ## 四、NCNN 模型使用及接口介绍

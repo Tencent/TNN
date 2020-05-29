@@ -15,6 +15,7 @@
 #include "UltraFaceDetector.h"
 #include <sys/time.h>
 #include <cmath>
+#include <cstring>
 
 #define clip(x, y) (x < 0 ? 0 : (x > y ? y : x))
 
