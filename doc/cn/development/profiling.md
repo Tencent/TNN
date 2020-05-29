@@ -42,7 +42,7 @@
 
    首次运行先利用快捷键`Command + Shift + K`对工程进行清理，再执行快捷键`Command + R`运行。在界面上点击Run按钮，界面会显示model目录下所有模型的CPU和GPU耗时情况。iPhone7真机运行结果如下图。
 
-   <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "75%" height = "75%"/>
+   <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "50%" height = "50%"/>
    
    PS：
 
