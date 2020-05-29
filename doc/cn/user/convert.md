@@ -169,7 +169,7 @@ pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
 从的官网下载最新版本的 cmake，然后按照文档安装即可。建议使用最新版本的 cmake。
 
 ##### 编译
-onnx2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行既可以。
+onnx2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行就可以。
  ```shell script
 cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
 ./build.sh 
