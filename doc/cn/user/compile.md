@@ -37,8 +37,16 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer/
 #### NDK配置
   - 下载ndk版本(>=15c)  <https://developer.android.com/ndk/downloads>
   - 配置环境变量 `export ANDROID_NDK=<ndk_path>`
-
-### 2. 编译步骤
+### 2. 命令依赖
+centos:
+```shell script
+yum install attr.x86_64
+```
+ubuntu:
+```shell script
+sudo apt-get install attr
+```
+### 3. 编译步骤
 1）切换到脚本目录
 ```
 cd <path_to_tnn>/scripts
