@@ -1,0 +1,107 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#include "tnn/device/metal/acc/metal_common.h"
+#include "tnn/device/metal/acc/metal_layer_acc.h"
+#include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/data_type_utils.h"
+
+namespace TNN_NS {
+
+Status IsMetalShuffleLayerAccSupported(LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                                       const std::vector<Blob *> &outputs) {
+
+    auto layer_param = dynamic_cast<ShuffleLayerParam *>(param);
+    if (!layer_param || layer_param->group <= 0) {
+        LOGE("ShuffleLayerParam is nil\n");
+        return Status(RPDERR_LAYER_ERR, "ShuffleLayerParam is nil");
+    }
+    auto dims_input = inputs[0]->GetBlobDesc().dims;
+    if (dims_input[1] % layer_param->group != 0) {
+        LOGE("ShuffleLayerParam group is invalid\n");
+        return Status(RPDERR_LAYER_ERR, "ShuffleLayerParam group is invalid");
+    }
+
+    return RPD_OK;
+}
+
+DECLARE_METAL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
+
+Status MetalShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return MetalLayerAcc::Reshape(inputs, outputs);
+}
+
+Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
+                                                 const std::vector<Blob *> &outputs) {
+    Status status = IsMetalShuffleLayerAccSupported(param_, resource_, inputs, outputs);
+    if (status != RPD_OK) {
+        return status;
+    }
+    auto layer_param = dynamic_cast<ShuffleLayerParam *>(param_);
+
+    id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+    {
+        auto dims_input = inputs[0]->GetBlobDesc().dims;
+        MetalShuffleParams metal_params;
+
+        metal_params.input_size    = dims_input[2] * dims_input[3];
+        metal_params.input_channel = dims_input[1];
+        metal_params.input_slice   = UP_DIV(dims_input[1], 4);
+
+        metal_params.output_size  = dims_output[2] * dims_output[3];
+        metal_params.output_slice = UP_DIV(dims_output[1], 4);
+
+        metal_params.group             = layer_param->group;
+        metal_params.channel_per_group = dims_input[1] / metal_params.group;
+
+        metal_params.batch = dims_output[0];
+
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalShuffleParams)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+
+    return RPD_OK;
+}
+
+std::string MetalShuffleLayerAcc::KernelName() {
+    return "channel_shuffle";
+}
+
+Status MetalShuffleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
+                                        const std::vector<Blob *> &outputs,
+                                        MTLSize &size) {
+    return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
+}
+
+Status MetalShuffleLayerAcc::SetKernelEncoderParam(
+                                               id<MTLComputeCommandEncoder> encoder,
+                                               const std::vector<Blob *> &inputs,
+                                               const std::vector<Blob *> &outputs) {
+    return MetalLayerAcc::SetKernelEncoderParam(encoder, inputs, outputs);
+}
+
+Status MetalShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status status = IsMetalShuffleLayerAccSupported(param_, resource_, inputs, outputs);
+    if (status != RPD_OK) {
+        return status;
+    }
+    return MetalLayerAcc::Forward(inputs, outputs);
+}
+
+REGISTER_METAL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
+
+} // namespace TNN_NS

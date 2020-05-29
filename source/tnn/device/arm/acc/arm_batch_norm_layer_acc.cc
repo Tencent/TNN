@@ -1,0 +1,123 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
+#include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/arm_common.h"
+#include "tnn/device/arm/arm_context.h"
+#include "tnn/interpreter/raw_buffer.h"
+#include "tnn/utils/data_format_converter.h"
+#include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/half_utils.h"
+
+namespace TNN_NS {
+
+ArmBatchNormLayerAcc::~ArmBatchNormLayerAcc() {}
+
+Status ArmBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ArmLayerAcc::Reshape(inputs, outputs);
+    return allocateBufferParam(inputs, outputs);
+}
+
+Status ArmBatchNormLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
+                                                 const std::vector<Blob *> &outputs) {
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    BatchNormLayerResource *batch_norm_res = dynamic_cast<BatchNormLayerResource *>(resource_);
+    CHECK_PARAM_NULL(batch_norm_res);
+
+    RawBuffer scale_handle = batch_norm_res->scale_handle;
+    RawBuffer bias_handle  = batch_norm_res->bias_handle;
+
+    if (scale_handle.GetDataType() == DATA_TYPE_HALF)
+        scale_handle = ConvertHalfHandle(scale_handle);
+    if (bias_handle.GetDataType() == DATA_TYPE_HALF)
+        bias_handle = ConvertHalfHandle(bias_handle);
+
+    auto data_bytes_size = DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
+
+    shared_channel_ = (scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType()));
+
+    if (!buffer_scale_.GetBytesSize()) {
+        int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
+        RawBuffer temp_buffer(channel_count * data_bytes_size);
+        memcpy(temp_buffer.force_to<void *>(), scale_handle.force_to<void *>(), channel_count * data_bytes_size);
+        buffer_scale_ = temp_buffer;
+    }
+
+    if (!buffer_bias_.GetBytesSize()) {
+        int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
+        RawBuffer temp_buffer(channel_count * data_bytes_size);
+        if (bias_handle.force_to<void *>()) {
+            memcpy(temp_buffer.force_to<void *>(), bias_handle.force_to<void *>(), channel_count * data_bytes_size);
+        } else {
+            memset(temp_buffer.force_to<void *>(), 0, channel_count * data_bytes_size);
+        }
+        buffer_bias_ = temp_buffer;
+    }
+
+    return RPD_OK;
+}
+
+Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input       = inputs[0];
+    auto output      = outputs[0];
+    auto dims_input  = input->GetBlobDesc().dims;
+    auto dims_output = output->GetBlobDesc().dims;
+
+    auto input_width = dims_input[3], input_height = dims_input[2], ic = dims_input[1],
+         input_slice  = UP_DIV(dims_input[1], 4);
+    auto output_width = dims_output[3], output_height = dims_output[2], oc = dims_output[1],
+         output_slice = UP_DIV(dims_output[1], 4);
+
+    auto batch = dims_output[0];
+
+    float *input_orign  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    float *output_orign = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+
+    float *k_data = buffer_scale_.force_to<float *>();
+    float *b_data = buffer_bias_.force_to<float *>();
+
+    auto src_z_step = input_width * input_height * 4;
+    auto dst_z_step = output_width * output_height * 4;
+
+    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+        auto input_ptr  = input_orign + batch_idx * input_slice * 4 * input_width * input_height;
+        auto output_ptr = output_orign + batch_idx * output_slice * 4 * output_width * output_height;
+
+        if (!shared_channel_) {
+            for (int dz = 0; dz < output_slice; dz++) {
+                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
+                                Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
+                                    Float4::load(b_data + dz * 4));
+                }
+            }
+        } else {
+            for (int dz = 0; dz < output_slice; dz++) {
+                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
+                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+                }
+            }
+        }
+    }
+
+    return RPD_OK;
+}
+
+REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)
+
+}  // namespace TNN_NS

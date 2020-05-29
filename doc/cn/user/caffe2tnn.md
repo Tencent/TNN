@@ -1,0 +1,122 @@
+# Caffe 模型转换为 ONNX 模型
+
+要将 Caffe 模型转换为 TNN 模型，首先将 Caffe 模型转换为 ONNX 模型，然后再将ONNX 模型转换为 TNN 模型。
+
+将 Caffe 模型转换为ONNX，我们借助于 caffe2onnx 工具, 它可以直接将 Caffe 模型转换为 ONNX 模型。在下面的文档中，会简单的介绍如何使用 caffe2onnx进行转换，然后建议参考 [onnx2tnn](onnx2tnn.md) 的相关文档，再将 ONNX 模型转换为 TNN。
+
+
+## 1. 环境搭建(Mac and Linux)
+
+- 安装protobuf(version >= 3.4.0)  
+
+Macos:
+```shell script
+brew install protobuf
+```
+
+Linux:
+
+对于 linux 系统，我们建议参考protobuf 的官方[README](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md)文档，直接从源码进行安装。  
+
+如果你使用的是Ubuntu 系统可以使用下面的指令进行安装：
+```shell script
+sudo apt-get install libprotobuf-dev protobuf-compiler
+```
+
+- 安装python (version >=3.6)  
+
+Macos
+```shell script
+brew install python3
+```
+centos:
+```shell script
+yum install  python3 python3-devel
+```
+
+- onnx(version == 1.6.0)
+```shell script
+pip3 install onnx==1.6.0
+```
+
+- numpy(version >= 1.17.0)
+```shell script
+pip3 install numpy
+```
+
+## 2. caffe2onnx 工具使用
+- 进入工具目录
+``` shell script
+cd <tnn_root_path>/tools/caffe2onnx/
+```
+- caffe 格式转换
+
+目前 caffe2onnx 的工具目前只支持最新版本的 caffe 的格式,所以在使用 caffe2onnx
+工具之前需要将老版本的 caffe 网络和模型转换为新版. caffe 自带了工具可以把老版本的
+caffe 网络和模型转换为新版本的格式. 具体的使用方式如下:
+```shell script
+upgrade_net_proto_text [老prototxt] [新prototxt]
+upgrade_net_proto_binary [老caffemodel] [新caffemodel]
+```
+修改后的输入的格式如下所示:
+
+```text
+layer {
+  name: "data"
+  type: "input"
+  top: "data"
+  input_param { shape: { dim: 1 dim: 3 dim: 224 dim: 224 } }
+}
+```
+- caffe2onnx 工具的使用
+
+```shell script
+python3 convert2onnx.py ./test.prototxt ./test.caffemodel -o ./test.onnx
+```
+
+```text
+usage: convert2onnx.py [-h] [-o ONNX_FILE] proto_file caffe_model_file
+
+convert caffe model to onnx
+
+positional arguments:
+  proto_file        the path for prototxt file, the file name must end with
+                    .prototxt
+  caffe_model_file  the path for caffe model file, the file name must end with
+                    .caffemodel!
+
+optional arguments:
+  -h, --help        show this help message and exit
+  -o ONNX_FILE      the path for generate onnx file
+```
+
+## 3. caffe2onnx 支持的算子
+
+| Number | caffe layer            | onnx operator                                         |
+| ------ | ---------------------- | ----------------------------------------------------- |
+| 1      | BatchNorm              | BatchNormalization                                    |
+| 2      | BatchNorm + Scale      | BatchNormalization                                    |
+| 3      | Concat                 | Concat                                                |
+| 4      | Convolution            | Conv                                                  |
+| 5      | ConvolutionDepthwise   | Conv                                                  |
+| 6      | Deconvolution          | ConvTranspose                                         |
+| 7      | DetectionOutput        | DetectionOutput(customer defination)                  |
+| 8      | Dropout                | Dropout                                               |
+| 9      | Eltwise                | Mul/Add/Max                                           |
+| 10     | Flatten                | Reshape                                               |
+| 11     | InnerProduct           | Reshape + Gemm                                        |
+| 12     | LRN                    | LRN                                                   |
+| 13     | MaxUnPool              | MaxUnPool                                             |
+| 14     | PReLU                  | PRelu                                                 |
+| 15     | Permute                | Transpose                                             |
+| 16     | Pooling                | MaxPool/AveragePool/GlobalMaxPool/GlobalAveragePool   |
+| 17     | PriorBox               | PriorBox(customer defination)                         |
+| 18     | ReLU                   | Relu/LeakyRelu                                        |
+| 19     | ReLU6                  | Clip                                                  |
+| 20     | Reshape                | Reshape                                               |
+| 21     | Scale                  | Mul + Reshape                                         |
+| 22     | ShuffleChannel         | Reshape + Transpose + Reshape                         |
+| 23     | Sigmoid                | Sigmoid                                               |
+| 24     | Slice                  | Slice                                                 |
+| 25     | Softmax                | Softmax                                               |
+| 26     | Upsample               | Resize                                                |

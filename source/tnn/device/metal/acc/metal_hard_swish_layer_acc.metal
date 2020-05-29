@@ -1,0 +1,59 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// specific language governing permissions and limitations under the License.
+#include <metal_stdlib>
+#include "tnn/device/metal/acc/metal_common.metal"
+
+using namespace metal;
+kernel void hard_swish(const device ftype4 *src0                                    [[buffer(0)]],
+                                      const device ftype4 *src1                                    [[buffer(1)]],
+                                      device ftype4 *dst                                               [[buffer(2)]],
+                                      constant MetalHardSigmoidParams& params     [[buffer(3)]],
+                                      uint3 gid                                                             [[thread_position_in_grid]]) {
+    if (any(uint3(gid) >= uint3(params.output_size, params.output_slice, params.batch)))
+        return;
+    
+    const int index_size = (int)gid.y * params.input_size + (int)gid.x;
+    const int index = (int)gid.z * params.input_slice * params.input_size  + index_size;
+    
+    ftype4 data0;
+    if (params.broadcast_input0 == kBroadcastTypeChannel) {
+        data0 = src0[gid.y];
+    } else if (params.broadcast_input0 == kBroadcastTypeSingle) {
+        data0 = ftype4(src0[0].x);
+    } else if (params.broadcast_input0 == kBroadcastTypeHeightWidth) {
+        data0 = ftype4(src0[gid.x].x);
+    } else if (params.broadcast_input0 == kBroadcastTypeElement) {
+        data0 = ftype4(src0[index_size]);
+    } else {
+        data0 = src0[index];
+    }
+        
+    ftype4 data1;
+    if (params.broadcast_input1 == kBroadcastTypeChannel) {
+        data1 = src1[gid.y];
+    } else if (params.broadcast_input1 == kBroadcastTypeSingle) {
+        data1 = ftype4(src1[0].x);
+    } else if (params.broadcast_input1 == kBroadcastTypeHeightWidth) {
+        data1 = ftype4(src1[gid.x].x);
+    } else if (params.broadcast_input1 == kBroadcastTypeElement) {
+        data1 = ftype4(src1[index_size]);
+    } else {
+        data1 = src1[index];
+    }
+
+    int index_out = (int)gid.z * params.output_slice * params.output_size + (int)gid.y * params.output_size + (int)gid.x;
+    dst[index_out] = data0*clamp(data1*params.alpha + params.beta, 0, 1);
+}
+
+

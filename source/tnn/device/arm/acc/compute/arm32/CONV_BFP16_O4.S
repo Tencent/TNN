@@ -1,0 +1,312 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// specific language governing permissions and limitations under the License.
+#ifdef __arm__
+#ifndef __aarch64__
+
+#include "tnn/device/arm/acc/compute/asm_func_name.S"
+
+.text
+.align 5
+
+asm_function ConvBfp16O4
+//void ConvBfp16O4(bfp16_t* dst, const bfp16_t* src, const float* weight, 
+//                 int width, int src_w_step, int src_depth_quad, int src_depth_step, 
+//                 int fw, int fh, int dilate_x_step, int dilate_y_step)
+
+push {r4-r11, lr}
+
+//Auto Load:
+//r0:dst, r1:src, r2:weight, r3:width
+
+//Load from sp
+//r4:src_w_step, r5:src_depth_quad, r6: src_depth_step, r7:fw, r8:fh, r9:dilate_x_step, r10:dilate_y_step
+ldr r4, [sp, #36]
+ldr r5, [sp, #40]
+ldr r6, [sp, #44]
+ldr r7, [sp, #48]
+ldr r8, [sp, #52]
+ldr r9, [sp, #56]
+ldr r10, [sp, #60]
+
+vpush {q4-q7}
+
+//step multi by sizeof(bfp16)
+mov r12, #2
+mul r10, r12, r10
+mul r9, r12, r9
+mul r6, r12, r6
+mul r4, r12, r4
+
+//src_depth_step -> src_depth_step - fh*dilate_y_step
+mul r12, r8, r10
+sub r6, r6, r12
+
+//dilate_y_step -> dilate_y_step-fw*dilate_x_step
+mul r12, r7, r9
+sub r10, r10, r12
+
+L8:
+cmp r3, #7
+ble L4
+
+
+L8Loop:
+    vmov.i32 d6[0], r1
+    vmov.i32 d6[1], r2
+    vmov.i32 d7[0], r3
+    vmov.i32 d7[1], r5
+    mov r3, #8
+    mul r3, r4, r3
+    vmov.i32 q8,  #0
+    vmov.i32 q9,  #0
+    vmov.i32 q10, #0
+    vmov.i32 q11, #0
+    vmov.i32 q12, #0
+    vmov.i32 q13, #0
+    vmov.i32 q14, #0
+    vmov.i32 q15, #0
+    L8LoopZ:
+        mov r11, r8
+        L8LoopFY:
+            mov r12, r7
+            L8LoopFX:
+                vld1.32 {q4, q5}, [r2]!
+                vld1.32 {q6, q7}, [r2]!
+
+                vld1.32 {d0}, [r1], r4
+                vshll.u16  q0, d0, #16
+
+                vmla.f32 q8, q4, d0[0]
+
+                vld1.32 {d2}, [r1], r4
+                vshll.u16  q1, d2, #16
+
+                vmla.f32 q8, q5, d0[1]
+                vmla.f32 q9, q4, d2[0]
+                vmla.f32 q8, q6, d1[0]
+
+                vld1.32 {d4}, [r1], r4
+                vshll.u16  q2, d4, #16
+
+                vmla.f32 q8, q7, d1[1]
+                vmla.f32 q9, q5, d2[1]
+                vmla.f32 q10, q4, d4[0]
+
+                vld1.32 {d0}, [r1], r4
+                vshll.u16  q0, d0, #16
+
+                vmla.f32 q9, q6, d3[0]
+                vmla.f32 q11, q7, d1[1]
+                vmla.f32 q10, q5, d4[1]
+                vmla.f32 q11, q5, d0[1]
+                vmla.f32 q9, q7, d3[1]
+                vmla.f32 q11, q6, d1[0]
+                vmla.f32 q10, q6, d5[0]
+                vmla.f32 q11, q4, d0[0]
+
+                vld1.32 {d0}, [r1], r4
+                vshll.u16  q0, d0, #16
+
+                vmla.f32 q10, q7, d5[1]
+                vmla.f32 q12, q4, d0[0]
+
+                vld1.32 {d2}, [r1], r4
+                vshll.u16  q1, d2, #16
+
+                vmla.f32 q12, q5, d0[1]
+                vmla.f32 q13, q4, d2[0]
+                
+                vld1.32 {d4}, [r1], r4
+                vshll.u16  q2, d4, #16
+
+                vmla.f32 q12, q6, d1[0]
+                vmla.f32 q13, q5, d2[1]
+                vmla.f32 q12, q7, d1[1]
+                vmla.f32 q14, q4, d4[0]
+
+                vld1.32 {d0}, [r1], r4
+                vshll.u16  q0, d0, #16
+                vmla.f32 q13, q6, d3[0]
+                vmla.f32 q14, q5, d4[1]
+                vmla.f32 q15, q5, d0[1]
+                vmla.f32 q13, q7, d3[1]
+                vmla.f32 q15, q6, d1[0]
+                vmla.f32 q14, q6, d5[0]
+                vmla.f32 q15, q4, d0[0]
+                vmla.f32 q14, q7, d5[1]
+                vmla.f32 q15, q7, d1[1]
+
+                sub r1, r1, r3
+                subs r7, r7, #1
+                add r1, r1, r9
+                bne L8LoopFX
+            subs r8, r8, #1
+            mov r7, r12
+            add r1, r1, r10
+            bne L8LoopFY
+        subs r5, r5, #1
+        mov r8, r11
+        add r1, r1, r6
+        bne L8LoopZ
+    vmov.i32 r1, d6[0]
+    add r1, r1, r3
+    vmov.i32 r2, d6[1]
+    vmov.i32 r3, d7[0]
+    vmov.i32 r5, d7[1]
+    vshrn.u32  d16, q8, #16
+    vshrn.u32  d17, q9, #16
+    vshrn.u32  d18, q10, #16
+    vshrn.u32  d19, q11, #16
+    vst1.32 {q8, q9}, [r0]!
+    sub r3, r3, #8
+    cmp r3, #8
+    vshrn.u32  d24, q12, #16
+    vshrn.u32  d25, q13, #16
+    vshrn.u32  d26, q14, #16
+    vshrn.u32  d27, q15, #16
+    vst1.32 {q12, q13}, [r0]!
+    bge L8Loop
+
+L4:
+cmp r3, #3
+ble L1
+
+
+L4Loop:
+    vmov.i32 d30[0], r1
+    vmov.i32 d30[1], r2
+    vmov.i32 d31[0], r3
+    vmov.i32 d31[1], r5
+    mov r3, #4
+    mul r3, r4, r3
+    vmov.i32 q8, #0
+    vmov.i32 q9, #0
+    vmov.i32 q10, #0
+    vmov.i32 q11, #0
+    L4LoopZ:
+        mov r11, r8
+        L4LoopFY:
+            mov r12, r7
+            L4LoopFX:
+                vld1.32 {q4, q5}, [r2]!
+                vld1.32 {q6, q7}, [r2]!
+
+                vld1.32 {d0}, [r1], r4
+                vshll.u16  q0, d0, #16
+
+                vmla.f32 q8, q4, d0[0]
+
+                vld1.32 {d2}, [r1], r4
+                vshll.u16  q1, d2, #16
+
+                vmla.f32 q8, q5, d0[1]
+                vmla.f32 q9, q4, d2[0]
+                vmla.f32 q8, q6, d1[0]
+
+                vld1.32 {d4}, [r1], r4
+                vshll.u16  q2, d4, #16
+
+                vmla.f32 q8, q7, d1[1]
+                vmla.f32 q9, q5, d2[1]
+                vmla.f32 q10, q4, d4[0]
+
+                vld1.32 {d6}, [r1], r4
+                vshll.u16  q3, d6, #16
+
+                vmla.f32 q9, q6, d3[0]
+                vmla.f32 q11, q7, d7[1]
+                vmla.f32 q10, q5, d4[1]
+                vmla.f32 q11, q5, d6[1]
+                vmla.f32 q9, q7, d3[1]
+                vmla.f32 q11, q6, d7[0]
+                vmla.f32 q10, q6, d5[0]
+                vmla.f32 q11, q4, d6[0]
+                vmla.f32 q10, q7, d5[1]
+
+                sub r1, r1, r3
+                subs r7, r7, #1
+                add r1, r1, r9
+                bne L4LoopFX
+            subs r8, r8, #1
+            mov r7, r12
+            add r1, r1, r10
+            bne L4LoopFY
+        subs r5, r5, #1
+        mov r8, r11
+        add r1, r1, r6
+        bne L4LoopZ
+    vmov.i32 r1, d30[0]
+    add r1, r1, r3
+    vmov.i32 r2, d30[1]
+    vshrn.u32  d16, q8, #16
+    vshrn.u32  d17, q9, #16
+    vshrn.u32  d18, q10, #16
+    vshrn.u32  d19, q11, #16
+    vmov.i32 r3, d31[0]
+    vmov.i32 r5, d31[1]
+    sub r3, r3, #4
+    vst1.32 {q8, q9}, [r0]!
+
+
+L1:
+cmp r3, #0
+ble End
+
+L1Loop:
+    vmov.i32 d16[0], r1
+    vmov.i32 d16[1], r2
+    vmov.i32 d17[0], r5
+    vmov.i32 q0, #0
+    vmov.i32 q1, #0
+    L1LoopZ:
+        mov r11, r8
+        L1LoopFY:
+            mov r12, r7
+            L1LoopFX:
+                vld1.32 {d6}, [r1], r9
+                vshll.u16  q3, d6, #16
+                vld1.32 {q4, q5}, [r2]!
+                vmla.f32 q0, q4, d6[0]
+                vmla.f32 q1, q5, d6[1]
+                vld1.32 {q6, q7}, [r2]!
+                vmla.f32 q0, q6, d7[0]
+                vmla.f32 q1, q7, d7[1]
+                subs r7, r7, #1
+                bne L1LoopFX
+            subs r8, r8, #1
+            mov r7, r12
+            add r1, r1, r10
+            bne L1LoopFY
+        subs r5, r5, #1
+        mov r8, r11
+        add r1, r1, r6
+        bne L1LoopZ
+
+    vadd.f32 q0, q0, q1
+    vmov.i32 r1, d16[0]
+    vmov.i32 r2, d16[1]
+    vmov.i32 r5, d17[0]
+    add r1, r1, r4
+    vshrn.u32  d0, q0, #16
+    vst1.32 {d0}, [r0]!
+    subs r3, r3, #1
+    bne L1Loop
+
+End:
+
+vpop {q4-q7}
+pop {r4-r11, pc}
+
+#endif
+#endif

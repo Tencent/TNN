@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="upload_bg">#e517191c</color>
+    <color name="sdk_base_blue">#409eff</color>
+    <color name="sdk_base_blue_white">#007eff</color>
+    <color name="dlg_text">#444444</color>
+    <color name="gray_gap">#e0e0e0</color>
+    <color name="black_text">#333333</color>
+    <color name="dlg_no_btn_text">#888888</color>
+    <color name="sdk_guide_bg">#23262b</color>
+    <color name="btn_unable">#d3d3d3</color>
+    <color name="line_color">#555555</color>
+    <color name="grey_bg">#3b3b3b</color>
+    <color name="grey_text">#aaaaaa</color>
+    <color name="result_text">#666666</color>
+    <color name="white">#ffffff</color>
+    <color name="sdk_verify_bg">#222629</color>
+    <color name="button_color_press">#88527ddd</color>
+</resources>
