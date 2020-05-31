@@ -137,7 +137,7 @@ int ImportDataSet(DataSet& dataset, std::string folder_path) {
             std::string file_name = dirp->d_name;
             FileFormat format     = NOTSUPPORT;
             if (GetInputType(file_name, format)) {
-                char full_name[256];
+                char full_name[256 + 1];
                 snprintf(full_name, 256, "%s/%s", folder_path.c_str(), dirp->d_name);
                 dataset.file_list.push_back(std::make_pair(full_name, format));
                 printf("\timport: %s  type: %d\n", dirp->d_name, format);
