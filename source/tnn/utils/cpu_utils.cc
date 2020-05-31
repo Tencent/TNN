@@ -164,7 +164,7 @@ static int SetSchedAffinity(const std::vector<int>& cpuids) {
 #define TNN_CPU_SETSIZE 1024
 #define TNN_NCPUBITS (8 * sizeof(unsigned long))
     typedef struct {
-        unsigned long __bits[TNN_CPU_SETSIZE / __NCPUBITS];
+        unsigned long __bits[TNN_CPU_SETSIZE / TNN_NCPUBITS];
     } cpu_set_t;
 
 #define TNN_CPU_SET(cpu, cpusetp) ((cpusetp)->__bits[(cpu) / TNN_NCPUBITS] |= (1UL << ((cpu) % TNN_NCPUBITS)))
