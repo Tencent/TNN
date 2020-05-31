@@ -22,14 +22,14 @@ cd <path_to_tnn>/platforms/linux/
 |命令参数           |是否必须|带参数 |参数说明                                       |
 |:------------------|:------:|:-----:|:----------------------------------------------|
 |-h, --help         |        |       |输出命令提示。                                 |
-|-p, --proto        |&radic; |&radic;|指定rapidproto模型描述文件。                   |
-|-m, --model        |&radic; |&radic;|指定rapidmodel模型参数文件。                   |
-|-i, --input_path   |&radic; |&radic;|指定量化输入文件夹路径。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>会将此目录下面的所有文件作为输入。|
-|-b, --blob_method  |        |&radic;|指定feature map的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 2 KL方法|
-|-w, --weight_method|        |&radic;|指定weights的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 1 ADMM方法|
-|-n, --bias         |        |&radic;|预处理，仅对输入为图片时起作用。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|
-|-s, --scale        |        |&radic;|预处理，仅对输入为图片时起作用。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|
-|-c, --merge_channel|        |&radic;|在量化feature map的时候是否对所有通道一起计算，否则是各通道单独计算。|  
+|-p, --proto        |✅ |✅|指定rapidproto模型描述文件。                   |
+|-m, --model        |✅ |✅|指定rapidmodel模型参数文件。                   |
+|-i, --input_path   |✅ |✅|指定量化输入文件夹路径。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>会将此目录下面的所有文件作为输入。|
+|-b, --blob_method  |        |✅|指定feature map的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 2 KL方法|
+|-w, --weight_method|        |✅|指定weights的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 1 ADMM方法|
+|-n, --bias         |        |✅|预处理，仅对输入为图片时起作用。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|
+|-s, --scale        |        |✅|预处理，仅对输入为图片时起作用。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|
+|-c, --merge_channel|        |✅|在量化feature map的时候是否对所有通道一起计算，否则是各通道单独计算。|  
   
 ### 3. 量化输入   
 #### 3.1 输入数据的选取   
