@@ -161,15 +161,15 @@ static int SetSchedAffinity(const std::vector<int>& cpuids) {
     // cpu_set_t definition
     // ref
     // http://stackoverflow.com/questions/16319725/android-set-thread-affinity
-#define CPU_SETSIZE 1024
-#define __NCPUBITS (8 * sizeof(unsigned long))
+#define TNN_CPU_SETSIZE 1024
+#define TNN_NCPUBITS (8 * sizeof(unsigned long))
     typedef struct {
-        unsigned long __bits[CPU_SETSIZE / __NCPUBITS];
+        unsigned long __bits[TNN_CPU_SETSIZE / __NCPUBITS];
     } cpu_set_t;
 
-#define CPU_SET(cpu, cpusetp) ((cpusetp)->__bits[(cpu) / __NCPUBITS] |= (1UL << ((cpu) % __NCPUBITS)))
+#define TNN_CPU_SET(cpu, cpusetp) ((cpusetp)->__bits[(cpu) / TNN_NCPUBITS] |= (1UL << ((cpu) % TNN_NCPUBITS)))
 
-#define CPU_ZERO(cpusetp) memset((cpusetp), 0, sizeof(cpu_set_t))
+#define TNN_CPU_ZERO(cpusetp) memset((cpusetp), 0, sizeof(cpu_set_t))
 
     // set affinity for thread
 #ifdef __GLIBC__
@@ -182,9 +182,9 @@ static int SetSchedAffinity(const std::vector<int>& cpuids) {
 #endif
 #endif
     cpu_set_t mask;
-    CPU_ZERO(&mask);
+    TNN_CPU_ZERO(&mask);
     for (int i = 0; i < (int)cpuids.size(); i++) {
-        CPU_SET(cpuids[i], &mask);
+        TNN_CPU_SET(cpuids[i], &mask);
     }
 
     int syscallret = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
