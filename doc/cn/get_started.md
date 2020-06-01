@@ -1,6 +1,6 @@
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN.png"/>
+<div align=left ><img src="./../../TNN.png"/>
 
-# 从0开始跑通一个Demo 
+# 从0开始跑通一个Demo
 
 使用TNN非常简单，如果你有一个已经训练好的模型, 那么一般而言通过以下三个步骤就能完成模型在目标平台上的部署。
 1. 第一步是把训练好的模型转换成TNN的模型，为此我们提供了丰富的工具来帮助你完成这一步，无论你使用的是Tensorflow、Pytorch、或者Caffe，都可以轻松完成转换。
