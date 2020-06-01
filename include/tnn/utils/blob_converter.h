@@ -49,9 +49,8 @@ public:
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
 
-    //NOTE: use Mat(DeviceType, MatType, DimsVector, void*) instead
+    DEPRECATED("use Mat(DeviceType, MatType, DimsVector, void*) instead")
     Mat(DeviceType device_type, MatType mat_type, void* data) : Mat(device_type, mat_type, {1,0,0,0}, data) {};
-    DEPRECATED("use Mat(DeviceType, MatType, DimsVector, void*) instead");
     
 public:
     DeviceType GetDeviceType();
