@@ -67,44 +67,18 @@ TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， MET
 ### 步骤3. 输入设定
 
 ```cpp
-BlobMap input_blob_maps;
-instance->GetAllInputBlobs(input_blob_maps);
-
-for (auto iter : input_blob_maps) {
-    Blob* device_blob = iter.second;
-    BlobConverter blob_converter(device_blob);
-
-    MatType mat_type = N8UC4;
-    ...
-    
-    //img_data read from image
-    TNN_NS::Mat input_mat(DEVICE_ARM, mat_type, img_data);
-    Status ret = blob_converter.ConvertFromMat(input_mat, param, command_queue);
-}
-
+    auto status = instance->SetInputMat(input_mat, input_cvt_param);
 ```
 
-TNN输入设定首先需通过GetAllInputBlobs获取所有输入Blob，并设定Blob中数据。TNN提供了BlobConvert转换接口，方便输入数据设定。通过指定Mat的内存类型，内存布局以及内存地址，调用BlobConvert对应的ConvertFromMat接口即可自动将Mat中数据转换到Blob中。
+TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias相关转换参数。
 
 ### 步骤4. 输出获取
 
 ```cpp
-BlobMap output_blob_maps;
-instance->GetAllOutputBlobs(output_blob_maps);
-
-for (auto iter : output_blob_maps) {
-    Blob* device_blob = iter.second;
-    BlobConverter blob_converter(device_blob);
-
-    MatType mat_type = NCHW;
-    ...
-    //output_data store output result   
-    TNN_NS::Mat output_mat(DEVICE_ARM, mat_type, output_data);
-    Status ret = blob_converter.ConvertToMat(output_mat, param, command_queue);
-}
+    auto status = instance->GetOutputMat(output_mat);
 ```
-TNN输出获取首先需通过GetAllOutputBlobs获取所有输出Blob，并获取Blob中数据。TNN提供了BlobConvert转换接口，方便输出数据获取。通过指定Mat的内存类型，内存布局以及内存地址，调用BlobConvert对应的ConvertToMat接口即可自动将Blob中数据转换到Mat中。
 
+TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。
 
 ## 二、API详解
 
@@ -135,7 +109,7 @@ TNN输出获取首先需通过GetAllOutputBlobs获取所有输出Blob，并获�
 
 ### 2. core/common.h
 `DataType`：定义不同数据类型枚举值。  
-`DtaFormat`：定义Blob Data不同数据排布方式。  
+`DataFormat`：定义Blob Data不同数据排布方式。  
 `NetworkType`：定义不同网络构建类型，默认构建TNN网络，支持第三方库网络构建。  
 `DeviceType`：用于指定网络运行设备及加速方式。  
 `ModelType`：定义模型类型，TNN默认解析模型为TNN模型，同时支持其他第三方库模型格式传入。
@@ -344,6 +318,18 @@ public:
     // set threads run on cpu 
     virtual Status SetCpuNumThreads(int num_threads);
     ...
+
+    // set input Mat, if input_name is not set, take the first input as default
+    Status SetInputMat(std::shared_ptr<Mat> mat,
+                       MatConvertParam param,
+                       std::string input_name = "");
+    
+    // get output Mat, if output_name is not set, take the first output as default
+    Status GetOutputMat(std::shared_ptr<Mat>& mat,
+                        MatConvertParam param = MatConvertParam(),
+                        std::string output_name = "", 
+                        DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
+
 };
 ```
 
@@ -355,7 +341,8 @@ Instance接口说明：
 - `GetAllInputBlobs`和 `GetAllOutputBlobs`分别用于获取输入输出blob。  
 - `SetCpuNumThreads`可设置CPU线程并行数。
 - `Forward`为网络运行同步接口，`ForwardAsync`为网络运行异步接口。
-
+- `SetInputMat`用于设定输入Mat，其中MatConvertParam可设定转换参数，对于多输入网络，可用input_name区分。
+- `GetOutputMat`用于获取输出结果并保存在输出Mat中，其中MatConvertParam可设定转换参数，对于多输出网络，可用output_name区分，DeviceType可指定输出Mat Memory构建在CPU还是GPU，MatType可用于设定输出Mat数据排列方式。 
 
 ### 6. core/tnn.h
 
@@ -420,7 +407,7 @@ class PUBLIC Mat {
 public:
     ...
 
-    Mat(DeviceType device_type, MatType mat_type, void *data);
+    Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
     ...
 };
