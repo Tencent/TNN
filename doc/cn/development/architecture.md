@@ -8,7 +8,7 @@
 
 对模型解析相关接口进行了抽象，可支持多种模型格式解析和扩充，相关代码见source/tnn/interpreter模块。
 
- <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/model_reinterpreter.png"/>
+ <div align=left ><img src="./../imgs/model_reinterpreter.png"/>
 
 AbstractModelInterpreter定义了抽象的Interpret接口，不同的模型解析器解析不同类型模型。DefaultModelInterpreter相关的接口将相关结果存入NetStruture和NetResource结构中，部分第三方模型无法完成内部结构解析的有单独适配，如CoreMLModelInterpreter，以完成第三方库适配。
 
@@ -60,9 +60,9 @@ public:
 //@brief BaseLaye define the layer interface
 class BaseLayer {
 public:
-    
+
     ...
-    
+
     virtual Status Init(Context* context, LayerParam* param,
                         LayerResource* resource, std::vector<Blob*>& inputs,
                         std::vector<Blob*>& outputs,
@@ -77,7 +77,7 @@ public:
 
 Blob节点构建核心在于内存的分配和优化，主要分为blob内存循环复用，blob内存拼接与监控。
 
-<div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/blob_memory.png"/>
+<div align=left><img src="./../imgs/blob_memory.png"/>
 
 首先不同layer输出blob间内存会通过内部算法实现循环复用，不同blob间内存复用会优先选择尺寸接近的blob。
 
@@ -85,7 +85,7 @@ Blob节点构建核心在于内存的分配和优化，主要分为blob内存循
 
 ## 四、多平台加速算子实现
 
-<div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/device.png"/>
+<div align=left><img src="./../imgs/device.png"/>
 
 抽象AbstractDevice接口，用于隐藏不同Device实现细节。提供Device Memory 尺寸计算，Device Memory分配释放，内存CPU Memory与Device meomoy拷贝，Device Layer加速算子构建，以及Instance对应Device Context构建等接口。
 
@@ -124,14 +124,14 @@ class AbstractLayerAcc {
 public:
 
     ...
-    
+
     virtual Status Init(Context *context, LayerParam *param,
                         LayerResource *resource,
                         const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) = 0;
 
     ...
-    
+
     virtual Status Forward(const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs) = 0;
 };
@@ -143,7 +143,3 @@ public:
 ## 五、单元测试
 
 TNN 单元测试基于googletest构建，当前主要对Layer Acc以及blob converter构建了单元测试。单元测试以CPU Default实现为对齐基准，以监控不同平台加速算子实现，具体单元测试相关介绍可参见[单元测试](unit_test.md)
-
-
-
-

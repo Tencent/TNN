@@ -1,6 +1,6 @@
 # 模型转换介绍
 
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/user/resource/convert.png"/> 
+<div align=left ><img src="./resource/convert.png"/>
 
 目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
 
@@ -107,7 +107,7 @@ optional arguments:
 下面我们通过一个例子来展示如何将 TF 模型转换到 TNN 模型，
 
 ``` shell script
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize 
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize
 ```
 
 由于 convert2tnn工具是部署在 docker 镜像中的，如果要进行模型的转换,需要先将模型传输到 docker 容器中。我们可以通过 docker run 的参数--volume 将包含模型的模型挂载到 docker 容器的某个路径下。上面的例子中是将执行shell 的当前目录（pwd）挂载到 docker 容器中的 "/workspace” 文件夹下面。当然了测试用到的test.pb 也**必须执行 shell 命令的当前路径下**。执行完成上面的命令后，convert2tnn 工具会将生成的 TNN 模型存放在 test.pb文件的同一级目录下，当然了生成的文件也就是在当前目录下。
@@ -142,7 +142,7 @@ export http_proxy=http://{addr}:{port}
 export https_proxy=http://{addr}:{port}
 # 编译
 cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
-./build.sh 
+./build.sh
 ```
 
 - 安装python (version >=3.6)  
@@ -172,7 +172,7 @@ pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
 onnx2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行就可以。
  ```shell script
 cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
-./build.sh 
+./build.sh
  ```
 
 #### 2. TensorFlow 模型转换（可选）
@@ -276,7 +276,7 @@ optional arguments:
 ```
 示例：
 ```shell script
-python3 converter.py onnx2tnn ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx -optimize -v=v3.0 -o ~/mobilenetv3/ 
+python3 converter.py onnx2tnn ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx -optimize -v=v3.0 -o ~/mobilenetv3/
 ```
 
 - caffe2tnn
@@ -323,7 +323,7 @@ optional arguments:
 ```
 示例：
 ```shell script
-python3 converter.py caffe2tnn ~/squeezenet/squeezenet.prototxt ~/squeezenet/squeezenet.caffemodel -optimize -v=v1.0 -o ~/squeezenet/ 
+python3 converter.py caffe2tnn ~/squeezenet/squeezenet.prototxt ~/squeezenet/squeezenet.caffemodel -optimize -v=v1.0 -o ~/squeezenet/
 ```
 - tensorflow2tnn
 
