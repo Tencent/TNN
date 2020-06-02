@@ -197,6 +197,11 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         status = Status(RPDERR_MODEL_ERR, "bias_handle DataType is not supported");
         return mtl_buffer;
     }
+    if (total_byte_size < b_handle_size) {
+        LOGE("Error: Invalid model, buffer has wrong byte size\n");
+        status = Status(RPDERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
+        return mtl_buffer;
+    }
 
 #if TNN_METAL_FULL_PRECISION
     if (data_type == DATA_TYPE_FLOAT) {
@@ -229,7 +234,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         ConvertFromHalfToFloat((void *)data_fill_4, data_fp32_data, data_count_4);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_fp32_data
-                                         length:total_byte_size
+                                         length:data_count_4*sizeof(float)
                                         options:MTLResourceCPUCacheModeWriteCombined];
         delete[] data_fp32_data;
 
@@ -252,7 +257,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         ConvertFromFloatToHalf((float *)data_fill_4, (void *)data_fp16_data, data_count_4);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_fp16_data
-                                         length:total_byte_size
+                                         length:data_count_4*sizeof(uint16_t)
                                         options:MTLResourceCPUCacheModeWriteCombined];
         delete[] data_fp16_data;
 
