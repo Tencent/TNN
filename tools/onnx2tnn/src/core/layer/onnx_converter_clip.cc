@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
+#include <cmath>
+#include <cstdlib>
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
@@ -21,7 +23,7 @@ string OnnxOpConverterClip::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     double min = get_node_attr_f(node, "min", net_info, 1, -DBL_MAX);
     double max = get_node_attr_f(node, "max", net_info, 2, DBL_MAX);
-    if (fabs(min) <= DBL_EPSILON && fabs(max - 6) <= DBL_EPSILON) {
+    if (std::fabs(min) <= DBL_EPSILON && std::fabs(max - 6) <= DBL_EPSILON) {
         return "ReLU6";
     } else {
         return "Clip";
@@ -33,7 +35,7 @@ string OnnxOpConverterClip::TNNLayerParam(NodeProto &node,
     
     double min = get_node_attr_f(node, "min", net_info, 1, -DBL_MAX);
     double max = get_node_attr_f(node, "max", net_info, 2, DBL_MAX);
-    if (fabs(min) <= DBL_EPSILON && fabs(max - 6) <= DBL_EPSILON) {
+    if (std::fabs(min) <= DBL_EPSILON && std::fabs(max - 6) <= DBL_EPSILON) {
         return "";
     } else {
         ostringstream layer_param;
