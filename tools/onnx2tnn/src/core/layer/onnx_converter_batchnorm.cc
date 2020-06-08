@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <cmath>
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
@@ -64,7 +65,7 @@ int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
         const float* var_data   = get_tensor_proto_data(var);
 
         for (int j = 0; j < channels; j++) {
-            double sqrt_var = sqrt(double(var_data[j])+ epsilon);
+            double sqrt_var = std::sqrt(double(var_data[j])+ epsilon);
             bias[j] = double(beta_data[j]) - double(gamma_data[j])*double(mean_data[j])/sqrt_var;
             slope[j]  = double(gamma_data[j])/sqrt_var;
         }
