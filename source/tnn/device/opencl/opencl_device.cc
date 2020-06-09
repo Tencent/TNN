@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/opencl_device.h"
+
+#include "tnn/device/opencl/acc/opencl_cpu_adapter_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_context.h"
 #include "tnn/device/opencl/opencl_memory.h"
@@ -153,8 +155,9 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     auto& layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
+    } else {
+        return new OpenCLCpuAdapterAcc(type);
     }
-    return NULL;
 }
 
 Context* OpenCLDevice::CreateContext(int) {

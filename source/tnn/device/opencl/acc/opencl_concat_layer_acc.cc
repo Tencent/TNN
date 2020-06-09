@@ -54,17 +54,14 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     CHECK_PARAM_NULL(concat_param);
 
     axis_ = concat_param->axis;
-    if (axis_ != 1) {
-        LOGE("only support axis is 1 in concat now!\n");
-        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "only support axis is 1 in concat now!");
-    }
-
     do_image_concat_ = true;
-    for (size_t i = 0; i < inputs.size() - 1; ++i) {
-        int channel = inputs[i]->GetBlobDesc().dims[1];
-        if (channel % 4 != 0) {
-            do_image_concat_ = false;
-            break;
+    if (axis_ == 1) {
+        for (size_t i = 0; i < inputs.size() - 1; ++i) {
+            int channel = inputs[i]->GetBlobDesc().dims[1];
+            if (channel % 4 != 0) {
+                do_image_concat_ = false;
+                break;
+            }
         }
     }
 

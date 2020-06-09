@@ -435,6 +435,12 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     Blob *loc_blob   = inputs[0];
     Blob *conf_blob  = inputs[1];
     Blob *prior_blob = inputs[2];
+    auto loc_dims = loc_blob->GetBlobDesc().dims;
+    auto conf_dims = conf_blob->GetBlobDesc().dims;
+    auto prior_dims = prior_blob->GetBlobDesc().dims;
+    LOGE("the loc_lob: (%d, %d, %d, %d)\n", loc_dims[0], loc_dims[1], loc_dims[2], loc_dims[3]);
+    LOGE("the conf_lob: (%d, %d, %d, %d)\n", conf_dims[0], conf_dims[1], conf_dims[2], conf_dims[3]);
+    LOGE("the prior_lob: (%d, %d, %d, %d)\n", prior_dims[0], prior_dims[1], prior_dims[2], prior_dims[3]);
     const int num    = loc_blob->GetBlobDesc().dims[0];
     // get output blob
     Blob *output_blob = outputs[0];
