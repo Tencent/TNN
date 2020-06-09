@@ -315,12 +315,15 @@ struct MetalUpsampleParams {
 
 /** Concat Param Struct **/
 struct MetalConcatParams {
+    int input_width;
+    int input_height;
     int input_size;
     int input_channel_0;
     int input_slice_0;
     int input_channel_1;
     int input_slice_1;
     int input_channel_offset;
+    int output_width;
     int output_size;
     int output_channel;
     int output_slice;

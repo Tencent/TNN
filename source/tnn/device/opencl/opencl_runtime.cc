@@ -84,7 +84,7 @@ Status OpenCLRuntime::Init() {
     //only init once.
     if (!init_done_) {
         LOGD("Init OpenCL Runtime\n");
-        LOGE(
+        LOGI(
             "OpenCL version: CL_TARGET_OPENCL_VERSION %d   "
             "CL_HPP_TARGET_OPENCL_VERSION %d   CL_HPP_MINIMUM_OPENCL_VERSION "
             "%d\n",
@@ -154,7 +154,7 @@ Status OpenCLRuntime::Init() {
             context_ = std::shared_ptr<cl::Context>(new cl::Context({*device_}, nullptr, nullptr, nullptr, &err));
         }
 #else
-        LOGE("Create common opencl context\n");
+        LOGI("Create common opencl context\n");
         context_ = std::shared_ptr<cl::Context>(new cl::Context({*device_}, nullptr, nullptr, nullptr, &err));
 #endif
         if (err != CL_SUCCESS) {

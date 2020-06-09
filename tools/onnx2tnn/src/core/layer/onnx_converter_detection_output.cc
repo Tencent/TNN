@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include <fstream>
@@ -22,27 +22,24 @@
 
 DECLARE_OP_CONVERTER(DetectionOutput);
 
-string OnnxOpConverterDetectionOutput::TNNOpType(NodeProto &node,
-                                                      OnnxNetInfo &net_info) {
+string OnnxOpConverterDetectionOutput::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "DetectionOutput";
 }
 
-string OnnxOpConverterDetectionOutput::TNNLayerParam(
-    NodeProto &node, OnnxNetInfo &net_info) {
+string OnnxOpConverterDetectionOutput::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
 
-    int64_t num_classes         = get_node_attr_i(node, "num_classes");
-    int64_t share_location     = get_node_attr_i(node, "share_location");
-    int64_t background_label_id = get_node_attr_i(node, "background_label_id");
-    int64_t variance_encoded_in_target =
-        get_node_attr_i(node, "variance_encoded_in_target");
-    int64_t code_type = get_node_attr_i(node, "code_type");
-    int64_t keep_top_k = get_node_attr_i(node, "keep_top_k");
-    float_t confidence_threshold = get_node_attr_f(node, "confidence_threshold");
-    float_t nms_threshold       = get_node_attr_f(node, "nms_threshold");
-    int64_t top_k               = get_node_attr_i(node, "top_k");
-    float_t eta                 = get_node_attr_f(node, "eta");
+    int64_t num_classes                = get_node_attr_i(node, "num_classes");
+    int64_t share_location             = get_node_attr_i(node, "share_location");
+    int64_t background_label_id        = get_node_attr_i(node, "background_label_id");
+    int64_t variance_encoded_in_target = get_node_attr_i(node, "variance_encoded_in_target");
+    int64_t code_type                  = get_node_attr_i(node, "code_type");
+    int64_t keep_top_k                 = get_node_attr_i(node, "keep_top_k");
+    float confidence_threshold         = get_node_attr_f(node, "confidence_threshold");
+    float nms_threshold                = get_node_attr_f(node, "nms_threshold");
+    int64_t top_k                      = get_node_attr_i(node, "top_k");
+    float eta                          = get_node_attr_f(node, "eta");
 
     layer_param << num_classes << " ";
     layer_param << share_location << " ";
@@ -58,9 +55,7 @@ string OnnxOpConverterDetectionOutput::TNNLayerParam(
     return layer_param.str();
 }
 
-int OnnxOpConverterDetectionOutput::WriteTNNModel(serializer *net_writer,
-                                                       NodeProto &node,
-                                                       OnnxNetInfo &net_info) {
+int OnnxOpConverterDetectionOutput::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

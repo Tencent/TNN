@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <cmath>
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 

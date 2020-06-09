@@ -21,7 +21,9 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(Concat, LAYER_CONCAT);
 
-// directly copy in c4 mode, nc4hw4 format
+/*
+directly copy in c4 mode, nc4hw4 format
+*/
 template <typename T>
 int concat_channel_c4(Blob *output, const std::vector<Blob *> &inputs) {
     bool concat_c4     = true;
@@ -45,7 +47,9 @@ int concat_channel_c4(Blob *output, const std::vector<Blob *> &inputs) {
     return 0;
 }
 
-// need extra buf to pack and unpack, channel not align with 4
+/*
+need extra buf to pack and unpack, channel not align with 4, nc4hw4 format
+*/
 template <typename T>
 int concat_channel(Blob *output, const std::vector<Blob *> &inputs, T *unpack_buf) {
     auto dims_output   = output->GetBlobDesc().dims;
@@ -73,6 +77,9 @@ int concat_channel(Blob *output, const std::vector<Blob *> &inputs, T *unpack_bu
     return 0;
 }
 
+/*
+concat channel int8, nhwc format
+*/
 static int concat_channel_i8(Blob *output, const std::vector<Blob *> &inputs) {
     auto dims_output = output->GetBlobDesc().dims;
     int full_hw      = dims_output[2] * dims_output[3];
@@ -96,6 +103,35 @@ static int concat_channel_i8(Blob *output, const std::vector<Blob *> &inputs) {
     return 0;
 }
 
+/*
+concat common int8, nhwc format
+*/
+static int concat_common_i8(Blob *output, const std::vector<Blob *> &inputs, int axis) {
+    auto output_dims             = output->GetBlobDesc().dims;
+    DimsVector round_output_dims = {output_dims[0], output_dims[2], output_dims[3], ROUND_UP(output_dims[1], 4)};
+    auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis - 1);
+    auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis - 1);
+    auto *output_origin          = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+
+    for (int n = 0; n < slice_count; n++) {
+        auto output_ptr = output_origin + n * output_stride;
+        for (int b = 0; b < inputs.size(); b++) {
+            auto input                  = inputs[b];
+            auto input_dims             = input->GetBlobDesc().dims;
+            DimsVector round_input_dims = {input_dims[0], input_dims[2], input_dims[3], ROUND_UP(input_dims[1], 4)};
+            auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
+            auto input_ptr = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
+            memcpy(output_ptr, input_ptr, input_stride * sizeof(int8_t));
+            output_ptr += input_stride;
+        }
+    }
+
+    return 0;
+}
+
+/*
+concat channel common(float & bf16), nc4hw4 format
+*/
 template <typename T>
 static int concat_common(Blob *output, const std::vector<Blob *> &inputs, int axis) {
     auto output_dims             = output->GetBlobDesc().dims;
@@ -171,6 +207,8 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 concat_common<float>(outputs[0], inputs, concat_param->axis);
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
                 concat_common<bfp16_t>(outputs[0], inputs, concat_param->axis);
+            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+                concat_common_i8(outputs[0], inputs, concat_param->axis);
             } else {
                 return TNNERR_LAYER_ERR;
             }

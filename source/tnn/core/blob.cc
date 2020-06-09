@@ -13,16 +13,41 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/blob.h"
+#include "tnn/core/abstract_device.h"
+#include "tnn/memory_manager/blob_memory_size_info.h"
 
 namespace TNN_NS {
 
 Blob::Blob(BlobDesc desc) {
     desc_ = desc;
+    alloc_memory_ = false;
+}
+
+Blob::Blob(BlobDesc desc, bool alloc_memory) {
+    desc_ = desc;
+    alloc_memory_ = alloc_memory;
+    if(alloc_memory) {
+        auto device = GetDevice(desc.device_type);
+        if(device != NULL) {
+            BlobMemorySizeInfo size_info = device->Calculate(desc);
+            device->Allocate(&handle_.base, size_info);
+        }
+    }
+}
+
+Blob::~Blob() {
+    if(alloc_memory_ && handle_.base != NULL) {
+        auto device = GetDevice(desc_.device_type);
+        if(device != NULL) {
+            device->Free(handle_.base);
+        }
+    }
 }
 
 Blob::Blob(BlobDesc desc, BlobHandle handle) {
     desc_   = desc;
     handle_ = handle;
+    alloc_memory_ = false;
 }
 
 // Set the descriptor of the blob.
@@ -42,7 +67,14 @@ BlobHandle Blob::GetHandle() {
 
 // Set the handle of the blob.
 void Blob::SetHandle(BlobHandle handle) {
+    if(alloc_memory_) {
+        auto device = GetDevice(desc_.device_type);
+        if(device != NULL) {
+            device->Free(handle_.base);
+        }
+    }
     handle_ = handle;
+    alloc_memory_ = false;
 }
 
 }  // namespace TNN_NS
