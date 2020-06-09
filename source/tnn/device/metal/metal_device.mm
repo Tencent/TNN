@@ -20,7 +20,6 @@
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/device/metal/acc/metal_cpu_adapter_acc.h"
 
 namespace TNN_NS {
 
