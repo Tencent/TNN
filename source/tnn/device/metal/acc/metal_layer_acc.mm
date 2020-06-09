@@ -204,7 +204,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
     }
     if (total_byte_size < b_handle_size) {
         LOGE("Error: Invalid model, buffer has wrong byte size\n");
-        status = Status(RPDERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
+        status = Status(TNNERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
         return mtl_buffer;
     }
 
