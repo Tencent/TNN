@@ -37,7 +37,7 @@ private:
 Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    RETURN_ON_NEQ(status, RPD_OK);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
@@ -70,21 +70,21 @@ Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
             buffer_scale_ = temp_buffer;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: InnerProductLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerParam is nil");
     }
     if (!resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
     }
 
     Blob *input_blob  = inputs[0];
@@ -117,9 +117,9 @@ Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         NaiveFC((bfp16_t *)input_data, (bfp16_t *)output_data, weight_bf16.force_to<bfp16_t *>(), (float *)bias_data,
                 dims_input, dims_output);
     } else {
-        return Status(RPDERR_MODEL_ERR, "blob type is unsupported");
+        return Status(TNNERR_MODEL_ERR, "blob type is unsupported");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(InnerProduct, LAYER_INNER_PRODUCT);

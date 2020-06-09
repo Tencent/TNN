@@ -30,7 +30,7 @@ Status DivLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
         layer_param->weight_input_index = atoi(layer_cfg_arr[index++].c_str());
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DivLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -43,7 +43,7 @@ Status DivLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     deserializer.GetRaw(k);
     layer_res->element_handle = k;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DivLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -51,18 +51,18 @@ Status DivLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* 
     if (layer_param && layer_param->weight_input_index >= 0) {
         output_stream << layer_param->weight_input_index << " ";
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DivLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     EltwiseLayerResource* layer_res = dynamic_cast<EltwiseLayerResource*>(resource);
     if (nullptr == layer_res) {
         LOGE("invalid layer res to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer res to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer res to save");
     }
     serializer.PutRaw(layer_res->element_handle);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Div, LAYER_DIV);

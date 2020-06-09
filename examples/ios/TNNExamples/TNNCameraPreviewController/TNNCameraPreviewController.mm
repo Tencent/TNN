@@ -114,9 +114,9 @@ using namespace TNN_NS;
             auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.param"
                                                                ofType:nil];
 #else
-            auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.rapidmodel"
+            auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
                                                                ofType:@""];
-            auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.rapidproto"
+            auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
                                                                ofType:@""];
 #endif
         if (model_path.length <= 0 || proto_path.length <= 0) {
@@ -145,7 +145,7 @@ using namespace TNN_NS;
         detector_ = std::make_shared<UltraFaceDetector>(target_width, target_height, 1, 0.975, 0.23, 1);
         std::vector<int> nchw = {1, 3, target_height, target_width};
         status = detector_->Init(proto_content, model_content, library_path.UTF8String, units, nchw);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             self.label = [NSString stringWithFormat:@"%s", status.description().c_str()];
             [self updateLabel:self.label];
             NSLog(@"Error: %s", status.description().c_str());
@@ -189,7 +189,7 @@ using namespace TNN_NS;
     face_info = AdjustFaceInfoToOriginalSize(face_info, target_height, target_width,
                                              image_buffer_size.height, image_buffer_size.width);
     
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         self.label = [NSString stringWithUTF8String:status.description().c_str()];
         [self updateLabel:self.label];
         NSLog(@"Error: %s", status.description().c_str());

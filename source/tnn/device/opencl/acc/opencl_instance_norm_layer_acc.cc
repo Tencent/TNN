@@ -57,7 +57,7 @@ Status OpenCLInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Lay
                                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init InstanceNorm Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "InstanceNorm";
@@ -65,7 +65,7 @@ Status OpenCLInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Lay
     InstanceNormLayerResource *instnorm_resource = dynamic_cast<InstanceNormLayerResource *>(resource);
     if (instnorm_resource == nullptr) {
         LOGE("InstanceNormLayerResource is null!\n");
-        return Status(RPDERR_MODEL_ERR, "InstanceNormLayerResource is null");
+        return Status(TNNERR_MODEL_ERR, "InstanceNormLayerResource is null");
     }
 
     RawBuffer &scale_handle = instnorm_resource->scale_handle;
@@ -81,31 +81,31 @@ Status OpenCLInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Lay
     bool has_bias  = bias_handle.GetBytesSize() != 0;
     //convert scale
     ret = ConvertChannelWeights(scale_handle, ocl_k_, channels, true, share_channel_);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     //convert bias
     ret = ConvertChannelWeights(bias_handle, ocl_b_, channels, has_bias, share_channel_);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // allocate var and bias
     ret = AllocateImage(batch, channels);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     execute_units_.resize(2);
     ret = BuildVarBiasKernel(width);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
     //create execute unit
     ret = CreateExecuteUnit(execute_units_[1], "batch_norm", "BatchNormBatch");
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLInstanceNormLayerAcc::~OpenCLInstanceNormLayerAcc() {}
@@ -150,7 +150,7 @@ Status OpenCLInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     //input_height
     execute_units_[1].ocl_kernel.setArg(idx++, input_dims[2]);
     execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) {
@@ -168,7 +168,7 @@ Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) 
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image_var)
             delete image_var;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_var_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_var_->SetData(image_var, true);
@@ -179,16 +179,16 @@ Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) 
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image_bias)
             delete image_bias;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_bias_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_bias_->SetData(image_bias, true);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLInstanceNormLayerAcc::BuildVarBiasKernel(int width) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     while (1) {
         std::set<std::string> build_options;
         char temp_str[32];

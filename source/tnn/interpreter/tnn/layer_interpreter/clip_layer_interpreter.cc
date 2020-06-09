@@ -24,21 +24,21 @@ Status ClipLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_ind
 
     GET_FLOAT_2(p->min, p->max);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ClipLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ClipLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ClipLayerParam, "invalid clip param to save", param);
     output_stream << layer_param->min << " " << layer_param->max << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ClipLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Clip, LAYER_CLIP);

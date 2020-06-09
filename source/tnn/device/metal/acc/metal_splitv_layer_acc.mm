@@ -50,7 +50,7 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
     if (!layer_param || layer_param->axis != 1) {
         LOGE("SplitV do not support axis!=1 \n");
-        return Status(RPDERR_LAYER_ERR, "SplitV axis is not supported");
+        return Status(TNNERR_LAYER_ERR, "SplitV axis is not supported");
     }
 
     auto context_impl = context_->getMetalContextImpl();
@@ -58,12 +58,12 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto input = inputs[0];
 
     MetalBandwidth bandwidth;
-    Status status        = RPD_OK;
+    Status status        = TNN_OK;
     DataType data_type   = input->GetBlobDesc().data_type;
     string data_type_str = DataTypeUtils::GetDataTypeString(data_type);
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
         LOGE("MetalSplitVLayerAcc: DataType must be float or half\n");
-        return Status(RPDERR_LAYER_ERR, "MetalSplitVLayerAcc: DataType must be float or half");
+        return Status(TNNERR_LAYER_ERR, "MetalSplitVLayerAcc: DataType must be float or half");
     }
 
     int channel_offset = 0;
@@ -84,7 +84,7 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             status = [context_impl load:[NSString stringWithFormat:@"splitv_axis_1_common"]
                                 encoder:encoder
                               bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
             MTLSize threads = {(NSUInteger)output_height * output_width, (NSUInteger)output_slice, (NSUInteger)batch};
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
@@ -97,15 +97,15 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             [encoder setBytes:&channel_offset length:sizeof(channel_offset) atIndex:3];
             [encoder setBytes:&output_slice length:sizeof(output_slice) atIndex:4];
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         } while (0);
         [encoder endEncoding];
         [context_impl commit];
         TNN_PRINT_ENCODER(context_, encoder, this);
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
         channel_offset += output_channel;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_METAL_ACC(SplitV, LAYER_SPLITV);

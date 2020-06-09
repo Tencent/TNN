@@ -85,7 +85,7 @@ static Status ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int in
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 };
 
 template <class T>
@@ -114,7 +114,7 @@ static Status ConvertFromNCHWToNCHW4(T *src, T *dst, int num, int channel, int h
             }
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 };
 template <class T>
 static Status ConvertFromNCHWToNHWC4(T *src, T *dst, int num, int channel, int height, int width) {
@@ -137,7 +137,7 @@ static Status ConvertFromNCHWToNHWC4(T *src, T *dst, int num, int channel, int h
             }
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 };
 
 template <class T>
@@ -160,7 +160,7 @@ static Status ConvertFromNCHW4ToNCHW(T *src, T *dst, int num, int channel, int h
             }
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 };
 
 template <class T>
@@ -183,7 +183,7 @@ static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int h
             }
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 };
 
 Status DataFormatConverter::ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,

@@ -62,10 +62,10 @@ namespace ncnn {
         virtual Status InterpretResource(Deserializer &deserializer, std::shared_ptr<LayerInfo> info,                  \
                                          LayerResource **Resource);                                                    \
         virtual Status SaveProto(std::ofstream &output_stream, LayerParam *param) {                                    \
-            return RPDERR_LAYER_ERR;                                                                                   \
+            return TNNERR_LAYER_ERR;                                                                                   \
         }                                                                                                              \
         virtual Status SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {              \
-            return RPDERR_LAYER_ERR;                                                                                   \
+            return TNNERR_LAYER_ERR;                                                                                   \
         }                                                                                                              \
     }
 

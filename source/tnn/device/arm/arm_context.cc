@@ -20,30 +20,30 @@
 namespace TNN_NS {
 
 Status ArmContext::LoadLibrary(std::vector<std::string> path) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmContext::GetCommandQueue(void** command_queue) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmContext::OnInstanceForwardBegin() {
     Context::OnInstanceForwardBegin();
     OMP_SET_THREADS_(GetNumThreads());
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmContext::OnInstanceForwardEnd() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmContext::Synchronize() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmContext::SetNumThreads(int num_threads) {
     num_threads_ = MIN(MAX(num_threads, 1), OMP_CORES_);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 int ArmContext::GetNumThreads() {

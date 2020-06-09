@@ -27,7 +27,7 @@ BlobConverter::BlobConverter(Blob* blob) {
 
 Status BlobConverter::ConvertToMat(Mat& image, MatConvertParam param, void* command_queue) {
     if (!impl_) {
-        return Status(RPDERR_INIT_LAYER, "image converter is nil, check device type");
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
     }
 
     return impl_->ConvertToMat(image, param, command_queue);
@@ -35,7 +35,7 @@ Status BlobConverter::ConvertToMat(Mat& image, MatConvertParam param, void* comm
 
 Status BlobConverter::ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue) {
     if (!impl_) {
-        return Status(RPDERR_INIT_LAYER, "image converter is nil, check device type");
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
     }
 
     return impl_->ConvertToMatAsync(image, param, command_queue);
@@ -43,7 +43,7 @@ Status BlobConverter::ConvertToMatAsync(Mat& image, MatConvertParam param, void*
 
 Status BlobConverter::ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue) {
     if (!impl_) {
-        return Status(RPDERR_INIT_LAYER, "image converter is nil, check device type");
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
     }
 
     return impl_->ConvertFromMat(image, param, command_queue);
@@ -51,7 +51,7 @@ Status BlobConverter::ConvertFromMat(Mat& image, MatConvertParam param, void* co
 
 Status BlobConverter::ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue) {
     if (!impl_) {
-        return Status(RPDERR_INIT_LAYER, "image converter is nil, check device type");
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
     }
 
     return impl_->ConvertFromMatAsync(image, param, command_queue);

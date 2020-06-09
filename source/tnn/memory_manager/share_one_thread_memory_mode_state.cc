@@ -23,11 +23,11 @@ ShareOneThreadMemoryModeState::ShareOneThreadMemoryModeState() {
 Status ShareOneThreadMemoryModeState::GetStatus() {
     std::thread::id current_thread_id = std::this_thread::get_id();
     if (memory_allocated && (current_thread_id == init_thread_id_)) {
-        return RPD_OK;
+        return TNN_OK;
     } else if (!memory_allocated) {
-        return Status(RPDERR_FORWARD_MEM_NOT_SET, "memory is not set");
+        return Status(TNNERR_FORWARD_MEM_NOT_SET, "memory is not set");
     } else {
-        return Status(RPDERR_SHARED_MEMORY_FORWARD_NOT_SAME_THREAD, "memory canbe shared only in the same thread");
+        return Status(TNNERR_SHARED_MEMORY_FORWARD_NOT_SAME_THREAD, "memory canbe shared only in the same thread");
     }
 }
 

@@ -21,13 +21,13 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Pool, LAYER_POOLING);
 
 Status CpuPoolLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: PoolingLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: PoolingLayerParam is nil");
     }
 
     int stride_x   = param->strides[0];
@@ -61,7 +61,7 @@ Status CpuPoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                                     stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Pool, LAYER_POOLING);

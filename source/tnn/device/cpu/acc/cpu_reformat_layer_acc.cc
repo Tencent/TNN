@@ -64,7 +64,7 @@ Status CpuReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
         reformat_param->type = QUANT_ONLY;
     } else {
-        return Status(RPDERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
+        return Status(TNNERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
     }
     return CpuLayerAcc::Init(context, param, resource, inputs, outputs);
 }
@@ -78,9 +78,9 @@ Status CpuReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
         reformat_param->type = QUANT_ONLY;
     } else {
-        return Status(RPDERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
+        return Status(TNNERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -95,7 +95,7 @@ Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     } else if (param->dst_type == DATA_TYPE_INT8) {
         re = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
     } else {
-        return Status(RPDERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
+        return Status(TNNERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
     }
 
     if (param->type == DEQUANT_ONLY) {
@@ -105,7 +105,7 @@ Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         CPU_QUANT(reinterpret_cast<float *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
                   re->scale_handle.GetDataCount(), reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base), dims);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Reformat, LAYER_REFORMAT);

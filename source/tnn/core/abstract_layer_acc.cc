@@ -27,18 +27,18 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
      */
     for (auto blob : outputs) {
         Status ret = ResolveBlobDataFormat(blob);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
 
     for (auto blob : inputs) {
         Status ret = ResolveBlobDataFormat(blob);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #if TNN_PROFILE
@@ -117,13 +117,13 @@ Status AbstractLayerAcc::ResolveBlobDataFormat(Blob *blob) {
         ASSERT(support_list.size() > 0);
         desc.data_format = support_list[0];
         blob->SetBlobDesc(desc);
-        return RPD_OK;
+        return TNN_OK;
     } else {
         auto iter = std::find(support_list.begin(), support_list.end(), desc.data_format);
         if (iter != support_list.end()) {
-            return RPD_OK;
+            return TNN_OK;
         } else {
-            return Status(RPDERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "unsupported data format for device acc");
+            return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "unsupported data format for device acc");
         }
     }
 }

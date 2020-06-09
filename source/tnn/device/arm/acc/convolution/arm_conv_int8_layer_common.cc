@@ -54,7 +54,7 @@ Status ArmConvInt8LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
         const int group = conv_param->group;
         if (group != 1) {
             LOGE("GROUP NOT SUPPORTED NOW\n");
-            return Status(RPDERR_PARAM_ERR, "INT8 CONV GROUD > 1 NOT SUPPORT");
+            return Status(TNNERR_PARAM_ERR, "INT8 CONV GROUD > 1 NOT SUPPORT");
         }
         const int oc      = output_channel;
         const int ic      = inputs[0]->GetBlobDesc().dims[1];
@@ -74,7 +74,7 @@ Status ArmConvInt8LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
 
         buffer_weight_ = temp_buffer;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs,
@@ -103,7 +103,7 @@ Status ArmConvInt8LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
         buffer_bias_ = RawBuffer(ROUND_UP(dims_output[1], 4) * sizeof(int32_t));
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerCommon::allocateBufferScale(const std::vector<Blob *> &inputs,
@@ -139,7 +139,7 @@ Status ArmConvInt8LayerCommon::allocateBufferScale(const std::vector<Blob *> &in
         buffer_scale_ = temp_buffer;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &inputs,
@@ -176,8 +176,8 @@ Status ArmConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &in
         memset(temp_buffer.force_to<void *>(), 0, buffer_size);
         buffer_tmpout_ = temp_buffer;
     }
-    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), RPD_OK);
-    return RPD_OK;
+    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
+    return TNN_OK;
 }
 
 #define DEF_IMG2COL_VAL                                                                                                \
@@ -249,9 +249,9 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
 
 Status ArmConvInt8LayerCommon::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ArmLayerAcc::Reshape(inputs, outputs);
-    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), RPD_OK);
-    RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), RPD_OK);
-    RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), RPD_OK);
+    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
 
     // init base k_param_
     k_param_->scale   = buffer_scale_.force_to<float *>();
@@ -283,7 +283,7 @@ Status ArmConvInt8LayerCommon::Reshape(const std::vector<Blob *> &inputs, const 
     } else {
         im_col_func_ = nullptr;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -343,7 +343,7 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             ReluInt8(output_batch, output_batch, k_param_->ow * k_param_->oh * k_param_->oc_r4);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

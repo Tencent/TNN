@@ -37,7 +37,7 @@ namespace ncnn {
 
         layer_param->weight_data_size = GetInt(p, 0, 1); // PReLU resource byteSize
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status PReluLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -47,7 +47,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<PReluLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "PReLU layer param is nil: PreluLayerParam");
+            return Status(TNNERR_LAYER_ERR, "PReLU layer param is nil: PreluLayerParam");
         }
         
         layer_res->name = param->name;
@@ -56,7 +56,7 @@ namespace ncnn {
         deserializer.GetRawSimple(k, param->weight_data_size);
         layer_res->slope_handle = k;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namspace ncnn

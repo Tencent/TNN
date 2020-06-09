@@ -22,7 +22,7 @@ namespace TNN_NS {
 Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -43,7 +43,7 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         if (reformat_param->src_type == DATA_TYPE_BFP16 || reformat_param->dst_type == DATA_TYPE_BFP16) {
             LOGE("unsupport precision mode, please dont use precision = low for int8");
         }
-        return Status(RPDERR_MODEL_ERR, "unsupport precision mode");
+        return Status(TNNERR_MODEL_ERR, "unsupport precision mode");
     }
     return this->Reshape(inputs, outputs);
 }
@@ -82,7 +82,7 @@ Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &input
         scale_buffer_ = temp_buffer;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -100,7 +100,7 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
                     reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())), 
                     scale_buffer_.force_to<float *>(), dims[0], dims[1], dims[2] * dims[3]);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 ArmTypeLayerAccRegister<TypeLayerAccCreator<ArmReformatLayerAcc>> g_arm_reformat_layer_acc_register(LAYER_REFORMAT);

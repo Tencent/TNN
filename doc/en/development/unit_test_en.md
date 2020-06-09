@@ -1,12 +1,12 @@
 # Unit Test
 
-This document mainly introduces the purpose, usage, and precautions of the current unit test.
+This document mainly introduces the purpose, usage, and note of the unit test.
 
 ## Why Unit Test
 
 The current unit test has two purposes:
 
-1. Verify the correctness of the results of each OP on different platforms.
+1. Verify the correctness of each OPs' results on different platforms.
 2. Act as an OP performance testing tool to test OP performance without the need for constructing a whole new model.
 
 ## How Unit Test Works
@@ -27,7 +27,7 @@ If it is used for OP performance test, you need to turn on the TNN_BENCHMARK_ENA
     cmake -DTNN_UNIT_TEST_ENABLE = ON -DTNN_BENCHMARK_ENABLE = ON ../
 
 
-* Turn on the following options to compile TNN (For the compilation method. Please refer to [TNN Compilation Document](../user/compile_en.md))
+* Turn on the following options to compile TNN (For the compilation method. Please refer to [Compile TNN](../user/compile_en.md))
 * TNN_UNIT_TEST_ENABLE = ON
 * You need to enable TNN_BENCHMARK_ENABLE at the same time for OP performance test:
 * TNN_BENCHMARK_ENABLE = ON
@@ -51,6 +51,6 @@ An actual test example shows below:
     ./test/unit_test/unit_test -ic 1 -dt ARM -th 4 -ub 0
     
 
-## Precautions 
+## Note 
 
 In the unit test, many parameter combinations are generated through the GTEST WithParamInterface interface. If you need to change or customize the parameters, you can take a look at the INSTANTIATE_TEST_SUITE_P macro.

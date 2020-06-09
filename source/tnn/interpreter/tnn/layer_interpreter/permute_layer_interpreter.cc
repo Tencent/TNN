@@ -36,29 +36,29 @@ Status PermuteLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_
         layer_param->orders.push_back(v);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PermuteLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PermuteLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     PermuteLayerParam* layer_param = dynamic_cast<PermuteLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->orders.size() << " ";
     for (auto item : layer_param->orders)
         output_stream << item << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PermuteLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Permute, LAYER_PERMUTE);

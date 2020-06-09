@@ -134,7 +134,7 @@ typedef enum {
 ```cpp
 struct PUBLIC NetworkConfig {
     // device type default cpu 
-    DeviceType device_type = DEVICE_CPU;
+    DeviceType device_type = DEVICE_NAIVE;
 
     // device id default 0
     int device_id = 0;
@@ -156,7 +156,7 @@ struct PUBLIC NetworkConfig {
 };
 ```
 NetworkConfig参数说明：  
-- `device_type`: 默认为`DEVICE_CPU`, 不包含特定平台加速指令实现。   
+- `device_type`: 默认为`DEVICE_NAIVE`, 不包含特定平台加速指令实现。   
     * Android使用`DEVICE_ARM`、`DEVICE_OPENCL`加速。  
     * iOS使用`DEVICE_ARM`, `DEVICE_METAL`加速。  
 - `device_id`: 默认为0，多个设备支持通过device_id选择，移动端可不配置。  
@@ -192,17 +192,17 @@ ModelConfig参数说明：
 ```cpp
 enum StatusCode {
 
-    RPD_OK = 0x0,
+    TNN_OK = 0x0,
 
     // param errcode
-    RPDERR_PARAM_ERR        = 0x1000,
-    RPDERR_INVALID_NETCFG   = 0x1002,
+    TNNERR_PARAM_ERR        = 0x1000,
+    TNNERR_INVALID_NETCFG   = 0x1002,
     ...
 }
 
 class PUBLIC Status {
 public:
-    Status(int code = RPD_OK, std::string message = "OK");
+    Status(int code = TNN_OK, std::string message = "OK");
 
     Status &operator=(int code);
 
@@ -217,7 +217,7 @@ private:
     std::string message_;
 }
 ```
-当Status code不为RPD_OK，通过`description`接口可返回错误描述信息。
+当Status code不为TNN_OK，通过`description`接口可返回错误描述信息。
 
 ### 4. core/blob.h
 
@@ -225,7 +225,7 @@ private:
 // @brief BlobDesc blob data info
 struct PUBLIC BlobDesc {
     // deivce_type describes devie cpu, gpu, ...
-    DeviceType device_type = DEVICE_CPU;
+    DeviceType device_type = DEVICE_NAIVE;
     // data_type describes data precion fp32, in8, ...
     DataType data_type = DATA_TYPE_FLOAT;
     // data_format describes data order nchw, nhwc, ...

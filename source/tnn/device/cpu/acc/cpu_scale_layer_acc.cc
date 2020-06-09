@@ -21,13 +21,13 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Scale, LAYER_SCALE);
 
 Status CpuScaleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuScaleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
     }
 
     Blob *input_blob       = inputs[0];
@@ -51,7 +51,7 @@ Status CpuScaleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         }
         output_data[index] = result;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Scale, LAYER_SCALE);

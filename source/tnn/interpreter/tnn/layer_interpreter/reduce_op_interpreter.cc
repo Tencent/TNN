@@ -26,20 +26,20 @@ Status ReduceOpLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start
     layer_param->axis.clear();
     layer_param->axis.push_back(axis);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReduceOpLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
     auto *layer_param = dynamic_cast<ReduceLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->keep_dims << " ";
     ASSERT(layer_param->axis.size() == 1);
     output_stream << layer_param->axis[0] << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 }  // namespace TNN_NS
 

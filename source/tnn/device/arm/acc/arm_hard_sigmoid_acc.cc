@@ -22,13 +22,13 @@ public:
         auto layer_param = dynamic_cast<HardSigmoidLayerParam *>(param);
         if (!layer_param) {
             LOGE("Error: layer param is nil\n");
-            return Status(RPDERR_MODEL_ERR, "Error:  layer param is nil");
+            return Status(TNNERR_MODEL_ERR, "Error:  layer param is nil");
         }
         alpha_ = layer_param->alpha;
         beta_  = layer_param->beta;
         minV_  = -beta_ / alpha_;
         maxV_  = (1.0f - beta_) / alpha_;
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual Float4 operator()(const Float4 &v) {
         Float4 val = v;

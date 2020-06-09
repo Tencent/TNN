@@ -46,14 +46,14 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
                                        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init StrideSlice Acc \n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_  = false;
     op_name_         = "StrideSlice";
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param);
     if (layer_param == nullptr) {
         LOGE("StrideSliceLayerParam is null!\n");
-        return Status(RPDERR_MODEL_ERR, "StrideSliceLayerParam is null");
+        return Status(TNNERR_MODEL_ERR, "StrideSliceLayerParam is null");
     }
 
     begins_ = layer_param->begins;
@@ -88,7 +88,7 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         program_name = "copy";
         kernel_name  = "CopyImage";
         ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     } else if (type_ == STRIDE_SLICE_C4_UNITE) {
@@ -96,7 +96,7 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         program_name = "stride_slice";
         kernel_name  = "StrideSliceC4Unite";
         ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     } else {
@@ -104,18 +104,18 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         program_name = "image_to_buffer";
         kernel_name  = "ImageToNCHWBufferFLOAT";
         ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
         program_name = "stride_slice";
         kernel_name  = "StrideSliceC4Separate";
         ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLStrideSliceLayerAcc::~OpenCLStrideSliceLayerAcc() {}
@@ -205,7 +205,7 @@ Status OpenCLStrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
         // output_channel
         unit1.ocl_kernel.setArg(11, output_dims[1]);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(StrideSlice, LAYER_STRIDED_SLICE)

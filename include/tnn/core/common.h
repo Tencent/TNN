@@ -66,7 +66,7 @@ typedef enum {
 } NetworkType;
 
 typedef enum {
-    DEVICE_CPU    = 0x0000,
+    DEVICE_NAIVE    = 0x0000,
     DEVICE_X86    = 0x0010,
     DEVICE_ARM    = 0x0020,
     DEVICE_OPENCL = 0x1000,
@@ -103,7 +103,7 @@ using DimsVector = std::vector<int>;
 // device type, network type and share memory mode.
 struct PUBLIC NetworkConfig {
     // device type default cpu
-    DeviceType device_type = DEVICE_CPU;
+    DeviceType device_type = DEVICE_ARM;
 
     // device id default 0
     int device_id = 0;

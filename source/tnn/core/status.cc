@@ -22,13 +22,13 @@ namespace TNN_NS {
 
 std::string StatusGetDefaultMessage(int code) {
     switch (code) {
-        case RPDERR_INVALID_NETCFG:
+        case TNNERR_INVALID_NETCFG:
             return "invalid net config, proto or model is invalid";
-        case RPDERR_SET_CPU_AFFINITY:
+        case TNNERR_SET_CPU_AFFINITY:
             return "failed to set cpu affinity";
-        case RPDERR_DEVICE_NOT_SUPPORT:
+        case TNNERR_DEVICE_NOT_SUPPORT:
             return "device is nil or unsupported";
-        case RPDERR_DEVICE_CONTEXT_CREATE:
+        case TNNERR_DEVICE_CONTEXT_CREATE:
             return "context is nil or created failed";
         default:
             return "";
@@ -67,7 +67,7 @@ Status::operator int() {
 
 //status convert to bool operator
 Status::operator bool() {
-    return code_ == RPD_OK;
+    return code_ == TNN_OK;
 }
 
 //description with code(0x) and msg

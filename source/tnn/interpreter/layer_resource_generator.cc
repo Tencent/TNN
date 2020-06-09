@@ -30,7 +30,7 @@ Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource**
     if (layer_resource_generator_map.count(type) > 0) {
         auto generator = layer_resource_generator_map[type]->GenLayerResource(param, resource, inputs);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -65,7 +65,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
         }
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -103,7 +103,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
         }
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -121,7 +121,7 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
         layer_res->bias_handle  = RawBuffer(dims[1] * sizeof(float));
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -139,7 +139,7 @@ class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
         layer_res->bias_handle  = RawBuffer(dims[1] * sizeof(float));
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -156,7 +156,7 @@ class PReluLayerResourceGenerator : public LayerResourceGenerator {
         layer_res->slope_handle = RawBuffer(dims[1] * sizeof(float));
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -176,7 +176,7 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
         layer_res->bias_handle.SetDataType(DATA_TYPE_INT32);
 
         *resource = layer_res;
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -201,7 +201,7 @@ class BinaryLayerResourceGenerator : public LayerResourceGenerator {
             *resource = layer_res;
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 
@@ -229,7 +229,7 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
 
         *resource = layer_res;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 };
 

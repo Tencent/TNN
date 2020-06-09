@@ -30,11 +30,11 @@ Status ArmDetectionOutputLayerAcc::DoForward(const std::vector<Blob *> &inputs, 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         NaiveDetectionOutput(GetNchwBlobVector(nchw_blob_in), GetNchwBlobVector(nchw_blob_out), param);
     } else {
-        return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT data type");
+        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT data type");
     }
     PackOutputs(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(DetectionOutput, LAYER_DETECTION_OUTPUT)

@@ -1,4 +1,4 @@
-# Add Operator
+# Add a New Operator
 
 If the operator is not found in [Operator List](../user/support_en.md), you can add a new operator through the following steps.
 * [Add operator parser](#1)

@@ -58,7 +58,7 @@ Status MetalConvLayerWinograd::AllocateBufferWeight(const std::vector<Blob *> &i
     const int input_channel  = dims_input[1];
     const int output_channel = dims_output[1];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_weight_) {
         const int dst_unit = 2;
 
@@ -72,7 +72,7 @@ Status MetalConvLayerWinograd::AllocateBufferWeight(const std::vector<Blob *> &i
 
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("Error: DataType %d not support\n", data_type);
-            return Status(RPDERR_MODEL_ERR, "conv_res DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
         }
 
         //转float
@@ -193,7 +193,7 @@ Status MetalConvLayerWinograd::AllocateBufferParam(const std::vector<Blob *> &in
 #endif
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -207,13 +207,13 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
         encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
 
     do {
         { // transform
             status = [context_impl load:@"winograd_transform_source2_3_1" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
                         offset:(NSUInteger)input->GetHandle().bytes_offset
@@ -221,22 +221,22 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
             [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
             status = [context_impl dispatchEncoder:encoder threads:input_transform_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         }
         { // gemm
             status = [context_impl load:@"matmul4x4" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
 
             [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:0];
             [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:1];
             [encoder setBuffer:buffer_weight_ offset:0 atIndex:2];
             [encoder setBuffer:buffer_shape_ offset:0 atIndex:3];
             status = [context_impl dispatchEncoder:encoder threads:matmul_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         }
         { // transform
             status = [context_impl load:@"winograd_transform_dest2_3_1" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
 
             [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:0];
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
@@ -245,7 +245,7 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
             [encoder setBuffer:buffer_bias_ offset:0 atIndex:2];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
             status = [context_impl dispatchEncoder:encoder threads:output_transform_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         }
     } while (0);
 

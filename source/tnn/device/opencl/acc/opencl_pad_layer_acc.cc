@@ -23,7 +23,7 @@ Status OpenCLPadLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Pad Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "Pad";
@@ -31,7 +31,7 @@ Status OpenCLPadLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     PadLayerParam *pad_param = dynamic_cast<PadLayerParam *>(param);
     if (!pad_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     if (0 == pad_param->type) {
@@ -39,14 +39,14 @@ Status OpenCLPadLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     } else if (1 == pad_param->type) {
         ret = CreateExecuteUnit(execute_units_[0], "pad", "PadReflect");
     } else {
-        return Status(RPDERR_PARAM_ERR, "this pad type is not support yet!");
+        return Status(TNNERR_PARAM_ERR, "this pad type is not support yet!");
     }
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -54,7 +54,7 @@ Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     PadLayerParam *pad_param = dynamic_cast<PadLayerParam *>(param_);
     if (!pad_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     auto input_dims = inputs[0]->GetBlobDesc().dims;
@@ -67,7 +67,7 @@ Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[2]);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Pad, LAYER_PAD)

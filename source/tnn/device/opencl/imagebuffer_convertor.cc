@@ -32,16 +32,16 @@ Status ImageBufferConvertor::ConvertImageToBuffer(const OpenCLMemory *image, con
         kernel_name = "ArgImageToBuffer";
     } else {
         LOGE("not support such type !!! \n");
-        return Status(RPDERR_OPENCL_API_ERROR, "type not support");
+        return Status(TNNERR_OPENCL_API_ERROR, "type not support");
     }
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (image_to_buffer_unit_.ocl_kernel.get() == nullptr || image_to_buffer_kernelname_ != kernel_name) {
         image_to_buffer_kernelname_ = kernel_name;
         std::set<std::string> build_options;
 
         ret = CreateExecuteUnit(image_to_buffer_unit_, "image_to_buffer", kernel_name, build_options);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     image_to_buffer_unit_.global_work_size = {static_cast<uint32_t>(image_shape[0]),
@@ -81,14 +81,14 @@ Status ImageBufferConvertor::ConvertImageToBuffer(const OpenCLMemory *image, con
 
     ret = RunKernel(image_to_buffer_unit_.ocl_kernel, image_to_buffer_unit_.global_work_size,
                     image_to_buffer_unit_.local_work_size, opencl_command_queue_, "ConvertImageToBuffer");
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     if (need_wait) {
         //sync
         opencl_command_queue_->finish();
     }
     LOGD("end convertImageToBuffer !\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, const OpenCLBufferFormat type,
@@ -109,16 +109,16 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         kernel_name = "ArgBufferToImage";
     } else {
         LOGE("not support such type !!! \n");
-        return Status(RPDERR_OPENCL_API_ERROR, "type not support");
+        return Status(TNNERR_OPENCL_API_ERROR, "type not support");
     }
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (buffer_to_image_unit_.ocl_kernel.get() == nullptr || buffer_to_image_kernelname_ != kernel_name) {
         buffer_to_image_kernelname_ = kernel_name;
         std::set<std::string> build_options;
 
         ret = CreateExecuteUnit(buffer_to_image_unit_, "buffer_to_image", kernel_name, build_options);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     buffer_to_image_unit_.global_work_size = {static_cast<uint32_t>(image_shape[0]),
@@ -163,13 +163,13 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
 
     ret = RunKernel(buffer_to_image_unit_.ocl_kernel, buffer_to_image_unit_.global_work_size,
                     buffer_to_image_unit_.local_work_size, opencl_command_queue_, "ConvertBufferToImage");
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     if (need_wait) {
         opencl_command_queue_->finish();
     }
     LOGD("end ConvertBufferToImage !\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, const OpenCLBufferFormat type,
@@ -183,16 +183,16 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
         kernel_name = "ArgBufferToBuffer";
     } else {
         LOGE("not support such type !!! \n");
-        return Status(RPDERR_OPENCL_API_ERROR, "type not support");
+        return Status(TNNERR_OPENCL_API_ERROR, "type not support");
     }
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (buffer_to_buffer_unit_.ocl_kernel.get() == nullptr || buffer_to_buffer_kernelname_ != kernel_name) {
         buffer_to_buffer_kernelname_ = kernel_name;
         std::set<std::string> build_options;
 
         ret = CreateExecuteUnit(buffer_to_buffer_unit_, "buffer_to_buffer", kernel_name, build_options);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     if (type == CONV2D_FILTER) {
@@ -203,7 +203,7 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
         buffer_to_buffer_unit_.global_work_size.push_back(1);
     } else {
         LOGE("not support such type !!! \n");
-        return Status(RPDERR_OPENCL_API_ERROR, "type not support");
+        return Status(TNNERR_OPENCL_API_ERROR, "type not support");
     }
 
     uint32_t idx = 0;
@@ -226,7 +226,7 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
     } else {
         LOGE("not support such type !!! \n");
-        return Status(RPDERR_OPENCL_API_ERROR, "type not support");
+        return Status(TNNERR_OPENCL_API_ERROR, "type not support");
     }
 
     buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, GetOpenCLBuffer(output));
@@ -235,13 +235,13 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
 
     ret = RunKernel(buffer_to_buffer_unit_.ocl_kernel, buffer_to_buffer_unit_.global_work_size,
                     buffer_to_buffer_unit_.local_work_size, opencl_command_queue_, "ConvertBufferToBuffer");
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     if (need_wait) {
         opencl_command_queue_->finish();
     }
     LOGD("end ConvertBufferToBuffer !\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

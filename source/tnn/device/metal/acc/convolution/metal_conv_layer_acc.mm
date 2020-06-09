@@ -35,7 +35,7 @@ Status MetalConvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     }
 
     auto status = conv_acc_impl_->Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -80,7 +80,7 @@ Status MetalConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
         return conv_acc_impl_->Reshape(inputs, outputs);
     } else {
         LOGE("Error: conv_acc_impl_ is nil\n");
-        return Status(RPDERR_LAYER_ERR, "conv_acc_impl_ is nil");
+        return Status(TNNERR_LAYER_ERR, "conv_acc_impl_ is nil");
     }
 }
 
@@ -88,7 +88,7 @@ Status MetalConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     if (conv_acc_impl_) {
         return conv_acc_impl_->Forward(inputs, outputs);
     } else {
-        return Status(RPDERR_LAYER_ERR, "conv_acc_impl_ is nil");
+        return Status(TNNERR_LAYER_ERR, "conv_acc_impl_ is nil");
     }
 }
 

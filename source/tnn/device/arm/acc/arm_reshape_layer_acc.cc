@@ -24,7 +24,7 @@ DECLARE_ARM_ACC(Reshape, LAYER_RESHAPE);
 Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 2");
     }
 
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
@@ -58,14 +58,14 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                 UnpackC4(reinterpret_cast<bfp16_t *>(workspace), input_data, dims_input[2] * dims_input[3], dims_input[1]);
                 PackC4(output_data, reinterpret_cast<bfp16_t *>(workspace), dims_output[2] * dims_output[3], dims_output[1]);
             } else {
-                return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
+                return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
             }
         }
     } else {
-        return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT FOR nhwc/int8 fc, in todo list");
+        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR nhwc/int8 fc, in todo list");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Reshape, LAYER_RESHAPE);

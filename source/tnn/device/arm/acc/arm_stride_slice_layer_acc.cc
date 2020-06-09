@@ -25,7 +25,7 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: StrideSliceLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
     }
 
     Blob *input_blob  = inputs[0];
@@ -79,9 +79,9 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
             }
         }
     } else {
-        return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 StrideSlice, in todo list");
+        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 StrideSlice, in todo list");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE)

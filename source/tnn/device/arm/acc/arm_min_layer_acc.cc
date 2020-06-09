@@ -21,13 +21,13 @@ DECLARE_ARM_BINARY_ACC(Min);
 Status ArmMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = ArmBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     _Operator = [=](Float4 v1, Float4 v2, bool swap_flag) -> Float4 { return Float4::min(v1, v2); };
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 ArmMinLayerAcc::~ArmMinLayerAcc() {}

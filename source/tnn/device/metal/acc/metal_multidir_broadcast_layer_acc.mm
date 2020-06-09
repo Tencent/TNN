@@ -27,7 +27,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
 
@@ -58,7 +58,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (layer_res && !buffer_weight_) {
         const auto element_shape = layer_res->element_shape;
         buffer_weight_ =
@@ -108,7 +108,7 @@ Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
                 offset:(NSUInteger)output->GetHandle().bytes_offset
                atIndex:2];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalMultidirBroadcastLayerAcc::ComputeThreadSize(
@@ -118,7 +118,7 @@ Status MetalMultidirBroadcastLayerAcc::ComputeThreadSize(
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, true);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalMultidirBroadcastLayerAcc::Forward(const std::vector<Blob *> &inputs,
@@ -126,12 +126,12 @@ Status MetalMultidirBroadcastLayerAcc::Forward(const std::vector<Blob *> &inputs
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
 
     if (!((inputs.size() == 1 && buffer_weight_) || inputs.size() == 2)) {
         LOGE("Error: MetalMultidirBroadcastLayerAcc invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "MetalMultidirBroadcastLayerAcc invalid inputs count");
+        return Status(TNNERR_LAYER_ERR, "MetalMultidirBroadcastLayerAcc invalid inputs count");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

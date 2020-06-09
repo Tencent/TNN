@@ -21,14 +21,14 @@ namespace TNN_NS {
 Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, LayerResource *resource,
                                       const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (nullptr == conv_param) {
         LOGE("invalid deconv param!\n");
-        return Status(RPDERR_NULL_PARAM, "invalid deconv param");
+        return Status(TNNERR_NULL_PARAM, "invalid deconv param");
     }
 
     //interpreter deconv 2d param with name info.
@@ -50,31 +50,31 @@ Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, Layer
 
     if ((deconv_params_.group <= 0 || deconv_params_.input_channel % deconv_params_.group != 0)) {
         LOGE("invalid group size in DeConv layer!\n");
-        return Status(RPDERR_LAYER_ERR, "invalid group size in DeConv layer");
+        return Status(TNNERR_LAYER_ERR, "invalid group size in DeConv layer");
     }
 
     ConvLayerResource *deconv_resource = dynamic_cast<ConvLayerResource *>(resource);
     if (nullptr == deconv_resource) {
         LOGE("invalid deconv resource!\n");
-        return Status(RPDERR_NULL_PARAM, "invalid deconv resource");
+        return Status(TNNERR_NULL_PARAM, "invalid deconv resource");
     }
     // get weights
     if (deconv_resource->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
         //get float pointer from raw buffer.
         float *weights_data_ptr = deconv_resource->filter_handle.force_to<float *>();
         if (weights_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(weights_data_ptr);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         //if filter handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(deconv_resource->filter_handle);  // handle the memory
         if (float_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(float_data_ptr.get());
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     //convert bias
@@ -136,7 +136,7 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
 
     SetExtraKernelParameters(idx, inputs, outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
@@ -180,20 +180,20 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       (cl::size_type)bytes_size, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory falied");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, bytes_size,
                                                                               nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL Deconv  MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL Deconv  MemMap failed");
     }
     memcpy(weight_clbuffer_ptr, wdata_ptr, bytes_size);
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap falied");
     }
 
     // create ocl_weights_
@@ -215,7 +215,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);

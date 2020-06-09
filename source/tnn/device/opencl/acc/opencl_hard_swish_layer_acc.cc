@@ -44,7 +44,7 @@ Status OpenCLHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerR
     ExtendInputs(inputs);
 
     Status ret = OpenCLBinaryLayerAcc::Init(context, param, resource, inputs_extend_, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "HardSwish";
 
@@ -63,12 +63,12 @@ Status OpenCLHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerR
     }
     build_options.emplace(" -DOPERATOR=" + compute);
     ret = CreateExecuteUnit(execute_units_[0], "hard_swish", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLHardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -76,18 +76,18 @@ Status OpenCLHardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     HardSwishLayerParam *hs_param = dynamic_cast<HardSwishLayerParam *>(param_);
     if (!hs_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     ExtendInputs(inputs);
 
     Status ret = OpenCLBinaryLayerAcc::Reshape(inputs_extend_, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, hs_param->alpha);
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, hs_param->beta);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 void OpenCLHardSwishLayerAcc::ExtendInputs(const std::vector<Blob *> &inputs) {

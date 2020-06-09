@@ -92,7 +92,7 @@ namespace ncnn {
             layer_param->pad_type = 0;  // SAME
         } else if (pad_left == -234 && pad_top == -234 && pad_right == -234 && pad_bottom == -234) {
             // SAME LOWER
-            return Status(RPDERR_INVALID_NETCFG, "ncnn conv padding mode same_lower is not supported now");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn conv padding mode same_lower is not supported now");
         } else {
             layer_param->pad_type = -1;  // DEFAULT
         }
@@ -107,7 +107,7 @@ namespace ncnn {
         // weight_data_size
         layer_param->weight_data_size = weight_data_size;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -117,7 +117,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<ConvLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "conv layer param is nil: ConvLayerParam");
+            return Status(TNNERR_LAYER_ERR, "conv layer param is nil: ConvLayerParam");
         }
 
         RawBuffer weights;
@@ -146,7 +146,7 @@ namespace ncnn {
         //     bottom_blob_int8_scale = mb.load(1, 1)[0];
         // }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

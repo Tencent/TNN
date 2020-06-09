@@ -29,7 +29,7 @@ Status ScaleLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
     layer_param->num_axes  = atoi(layer_cfg_arr[index++].c_str());
     layer_param->bias_term = atoi(layer_cfg_arr[index++].c_str());
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -50,33 +50,33 @@ Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     layer_res->scale_handle = scale;
     layer_res->bias_handle  = bias;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ScaleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     ScaleLayerParam* layer_param = dynamic_cast<ScaleLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->axis << " ";
     output_stream << layer_param->num_axes << " ";
     output_stream << layer_param->bias_term << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     ScaleLayerParam* layer_param = dynamic_cast<ScaleLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     BatchNormLayerResource* layer_res = dynamic_cast<BatchNormLayerResource*>(resource);
     if (nullptr == layer_res) {
         LOGE("invalid layer res to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer res to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer res to save");
     }
 
     serializer.PutString(layer_param->name);
@@ -86,7 +86,7 @@ Status ScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* p
         serializer.PutRaw(layer_res->bias_handle);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Scale, LAYER_SCALE);

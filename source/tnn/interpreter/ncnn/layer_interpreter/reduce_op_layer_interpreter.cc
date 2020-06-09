@@ -48,12 +48,12 @@ namespace ncnn    {
         layer_param->axis.assign(axis.begin(),axis.end());
         layer_param->all_reduce = reduce_all;
         
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ReduceOpLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                        LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 } // namespace ncnn

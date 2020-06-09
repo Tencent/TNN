@@ -56,7 +56,7 @@ function run_x86() {
     fi
 
     mkdir -p $DUMP_DIR
-    ./test/TNNTest -dt=OPENCL -mp=$MODEL_DIR/test.rapidproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -op=$DUMP_DIR/dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT
+    ./test/TNNTest -dt=OPENCL -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -op=$DUMP_DIR/dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT
 }
 
 while [ "$1" != "" ]; do

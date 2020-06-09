@@ -50,7 +50,7 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     } else {
         ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     }
-    if (ret != RPD_OK)
+    if (ret != TNN_OK)
         return ret;
 
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
@@ -60,7 +60,7 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     }
 
     if (!conv_acc_impl_) {
-        return Status(RPDERR_NET_ERR, "Could not create conv impl_");
+        return Status(TNNERR_NET_ERR, "Could not create conv impl_");
     }
     return conv_acc_impl_->Init(context_, param_, resource_, inputs, outputs);
 }
@@ -123,7 +123,7 @@ Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     if (conv_acc_impl_) {
         return conv_acc_impl_->DoForward(inputs, outputs);
     } else {
-        return Status(RPDERR_CONTEXT_ERR, "conv_acc_impl_ is nil");
+        return Status(TNNERR_CONTEXT_ERR, "conv_acc_impl_ is nil");
     }
 }
 

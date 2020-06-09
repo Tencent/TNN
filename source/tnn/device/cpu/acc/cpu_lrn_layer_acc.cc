@@ -22,13 +22,13 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(LRN, LAYER_LRN);
 
 Status CpuLRNLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuLRNLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<LRNLayerParam *>(param_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: LRNLayerParam is empyt");
+        return Status(TNNERR_MODEL_ERR, "Error: LRNLayerParam is empyt");
     }
     float alpha = param->alpha;
     float beta  = param->beta;
@@ -49,7 +49,7 @@ Status CpuLRNLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     auto square_data = (float *)calloc(count, sizeof(float));
     if (square_data == nullptr) {
         LOGE("Error: calloc square data failed\n");
-        return Status(RPDERR_MODEL_ERR, "Error: calloc square data failed!");
+        return Status(TNNERR_MODEL_ERR, "Error: calloc square data failed!");
     }
     for (int n = 0; n < batch; ++n) {
         for (int c = 0; c < channel; ++c) {
@@ -83,7 +83,7 @@ Status CpuLRNLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     }
     free(square_data);
 
-    return RPD_OK;
+    return TNN_OK;
 }  // namespace TNN_NS
 
 REGISTER_CPU_ACC(LRN, LAYER_LRN);

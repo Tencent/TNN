@@ -45,7 +45,7 @@ namespace ncnn {
             ptr[0]                      = slope;
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ReLULayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -53,7 +53,7 @@ namespace ncnn {
         if (info->type == LAYER_PRELU) {
             auto param = std::dynamic_pointer_cast<PReluLayerParam>(info->param);
             if (!param) {
-                return Status(RPDERR_LAYER_ERR, "layer param is nil: PReluLayerParam");
+                return Status(TNNERR_LAYER_ERR, "layer param is nil: PReluLayerParam");
             }
 
             PReluLayerResource* layer_res = new PReluLayerResource();
@@ -67,7 +67,7 @@ namespace ncnn {
             layer_res->slope_handle = slope;
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

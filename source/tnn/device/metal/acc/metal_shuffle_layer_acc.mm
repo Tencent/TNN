@@ -25,15 +25,15 @@ Status IsMetalShuffleLayerAccSupported(LayerParam *param, LayerResource *resourc
     auto layer_param = dynamic_cast<ShuffleLayerParam *>(param);
     if (!layer_param || layer_param->group <= 0) {
         LOGE("ShuffleLayerParam is nil\n");
-        return Status(RPDERR_LAYER_ERR, "ShuffleLayerParam is nil");
+        return Status(TNNERR_LAYER_ERR, "ShuffleLayerParam is nil");
     }
     auto dims_input = inputs[0]->GetBlobDesc().dims;
     if (dims_input[1] % layer_param->group != 0) {
         LOGE("ShuffleLayerParam group is invalid\n");
-        return Status(RPDERR_LAYER_ERR, "ShuffleLayerParam group is invalid");
+        return Status(TNNERR_LAYER_ERR, "ShuffleLayerParam group is invalid");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 DECLARE_METAL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
@@ -45,7 +45,7 @@ Status MetalShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                  const std::vector<Blob *> &outputs) {
     Status status = IsMetalShuffleLayerAccSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     auto layer_param = dynamic_cast<ShuffleLayerParam *>(param_);
@@ -74,7 +74,7 @@ Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalShuffleLayerAcc::KernelName() {
@@ -96,7 +96,7 @@ Status MetalShuffleLayerAcc::SetKernelEncoderParam(
 
 Status MetalShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = IsMetalShuffleLayerAccSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     return MetalLayerAcc::Forward(inputs, outputs);

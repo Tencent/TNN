@@ -78,7 +78,7 @@ static inline void _min(float *dst, float *src, int channel, int plane_num) {
 Status ArmNormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 2");
     }
     auto layer_param = dynamic_cast<NormalizeLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
@@ -90,7 +90,7 @@ Status ArmNormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     // old tnn support scale the result of normalize and only norm2
     if ((p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0) {
         LOGE("Error: layer param is not supported now\n");
-        return Status(RPDERR_INST_ERR, "Error: layer param is not supported now");
+        return Status(TNNERR_INST_ERR, "Error: layer param is not supported now");
     }
 
     float epsilon      = layer_param->epsilon;
@@ -155,13 +155,13 @@ Status ArmNormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Normalize, LAYER_NORMALIZE);

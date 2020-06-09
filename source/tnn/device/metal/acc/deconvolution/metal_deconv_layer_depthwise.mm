@@ -35,7 +35,7 @@ Status MetalDeconvLayerDepthwise::AllocateBufferWeight(
     ConvLayerResource *layer_res =
         dynamic_cast<ConvLayerResource *>(resource_);
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
         int kh = layer_param->kernels[1];
@@ -59,7 +59,7 @@ Status MetalDeconvLayerDepthwise::ComputeThreadSize(
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDeconvLayerDepthwise::SetKernelEncoderParam(
@@ -73,7 +73,7 @@ Status MetalDeconvLayerDepthwise::SetKernelEncoderParam(
     [encoder setBuffer:buffer_bias_
                 offset:0
                atIndex:4];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDeconvLayerDepthwise::Forward(const std::vector<Blob *> &inputs,
@@ -83,7 +83,7 @@ Status MetalDeconvLayerDepthwise::Forward(const std::vector<Blob *> &inputs,
     auto dims_input              = input->GetBlobDesc().dims;
     if (!layer_param || dims_input[0] != 1 || layer_param->group != dims_input[1]) {
         LOGE("Error: batch size or group is not support\n");
-        return Status(RPDERR_LAYER_ERR, "batch size or group is not support");
+        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

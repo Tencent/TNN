@@ -28,28 +28,28 @@ Status ReorgLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
     layer_param->stride  = atoi(layer_cfg_arr[index++].c_str());
     layer_param->reverse = atoi(layer_cfg_arr[index++].c_str());
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReorgLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReorgLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     ReorgLayerParam* layer_param = dynamic_cast<ReorgLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->stride << " ";
     output_stream << layer_param->reverse << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReorgLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Reorg, LAYER_REORG);

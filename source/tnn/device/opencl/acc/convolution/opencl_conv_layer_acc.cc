@@ -49,7 +49,7 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     }
 
     if (conv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "this type conv acc is not implemented");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "this type conv acc is not implemented");
 
     return conv_acc_implement_->Init(context, conv_param, resource, inputs, outputs);
 }
@@ -58,14 +58,14 @@ OpenCLConvLayerAcc::~OpenCLConvLayerAcc() {}
 
 Status OpenCLConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (conv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_RESHAPE_ERROR, "this type conv acc is not implemented");
+        return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type conv acc is not implemented");
 
     return conv_acc_implement_->Reshape(inputs, outputs);
 }
 
 Status OpenCLConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (conv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_FORWARD_ERROR, "this type conv acc is not implemented");
+        return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "this type conv acc is not implemented");
 
     return conv_acc_implement_->Forward(inputs, outputs);
 }

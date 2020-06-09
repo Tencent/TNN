@@ -26,9 +26,9 @@ Status Conv3DLayer::InferOutputDataType() {
         output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
     } else {
         LOGE("Error: conv_resource is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Error: conv_resource is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: conv_resource is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Conv3DLayer::InferOutputShape() {
@@ -36,7 +36,7 @@ Status Conv3DLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
     if (input_blob->GetBlobDesc().data_format != DATA_FORMAT_NCDHW) {
         LOGE("Error: Conv3D layer only support NCDHW data format\n");
-        return Status(RPDERR_LAYER_ERR, "Error: Conv3D layer only support NCDHW data format");
+        return Status(TNNERR_LAYER_ERR, "Error: Conv3D layer only support NCDHW data format");
     }
 
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
@@ -97,7 +97,7 @@ Status Conv3DLayer::InferOutputShape() {
         {
             // to-do: deconv has full type, what's conv's full type?
             LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
-            return Status(RPDERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
+            return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
         }
 
         int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
@@ -131,16 +131,16 @@ Status Conv3DLayer::InferOutputShape() {
         conv_param->pads[5] = pad_back;
     } else {
         LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
-        return Status(RPDERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
+        return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
     }
 
     int group = conv_param->group;
     if (group == 0) {
-        return Status(RPDERR_INVALID_GROUP, "Error: invalid group param");
+        return Status(TNNERR_INVALID_GROUP, "Error: invalid group param");
     }
 
     if (height_out <= 0 || width_out <= 0) {
-        return Status(RPDERR_PARAM_ERR, "Error: invalid conv param, height_out or width_out is less than zero");
+        return Status(TNNERR_PARAM_ERR, "Error: invalid conv param, height_out or width_out is less than zero");
     }
 
     DimsVector output_dims;
@@ -152,7 +152,7 @@ Status Conv3DLayer::InferOutputShape() {
     output_blob->GetBlobDesc().dims        = output_dims;
     output_blob->GetBlobDesc().data_format = DATA_FORMAT_NCDHW;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Conv3D, LAYER_CONVOLUTION_3D);

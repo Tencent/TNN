@@ -39,9 +39,9 @@ Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
             Float4::save(output_data + n * 4, res);
         }
     } else {
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Sign, LAYER_SIGN);

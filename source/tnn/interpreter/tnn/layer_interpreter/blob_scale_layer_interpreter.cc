@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(BlobScale, LAYER_BLOB_SCALE);
 
 Status BlobScaleLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BlobScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -28,11 +28,11 @@ Status BlobScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
     GET_BUFFER_FOR_ATTR(layer_res, bias_handle, deserializer);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BlobScaleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BlobScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
@@ -41,7 +41,7 @@ Status BlobScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerPara
     serializer.PutRaw(layer_res->scale_handle);
     serializer.PutRaw(layer_res->bias_handle);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(BlobScale, LAYER_BLOB_SCALE);

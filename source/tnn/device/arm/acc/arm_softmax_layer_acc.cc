@@ -29,7 +29,7 @@ Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     } else if (in_data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 }
 
@@ -83,7 +83,7 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
         output_orign    = output_buffer.force_to<float *>();
         ConvertFromBFP16ToFloat(in_ptr, input_orign, count);
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 
     auto *max_value_ptr = max_value_buffer.force_to<float *>();
@@ -141,7 +141,7 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
         ConvertFromFloatToBFP16(output_orign, out_ptr, count);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Softmax, LAYER_SOFTMAX)

@@ -70,7 +70,7 @@ private:
     Mat(){};
 
 protected:
-    TNN_NS::DeviceType device_type_ = DEVICE_CPU;
+    TNN_NS::DeviceType device_type_ = DEVICE_NAIVE;
     TNN_NS::MatType mat_type_       = INVALID;
     void* data_                     = nullptr;
     DimsVector dims_ = {};

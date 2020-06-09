@@ -19,7 +19,7 @@ Status MetalLRNLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
     auto layer_param     = dynamic_cast<LRNLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
@@ -38,7 +38,7 @@ Status MetalLRNLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
                                             length:sizeof(MetalLRNParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalLRNLayerAcc::KernelName() {
@@ -62,7 +62,7 @@ Status MetalLRNLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_METAL_ACC(LRN, LAYER_LRN);

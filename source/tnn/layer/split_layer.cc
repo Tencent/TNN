@@ -31,7 +31,7 @@ Status SplitLayer::InferOutputShape() {
         output_blobs_[i]->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Split, LAYER_SPLITING);

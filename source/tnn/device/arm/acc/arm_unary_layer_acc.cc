@@ -24,7 +24,7 @@ ArmUnaryLayerAcc::~ArmUnaryLayerAcc() {}
 Status ArmUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
     return op_->Init(param);
@@ -44,7 +44,7 @@ Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -65,7 +65,7 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
         Float4::save(output_ptr + n * 4, (*op_)(Float4::load(input_ptr + n * 4)));
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

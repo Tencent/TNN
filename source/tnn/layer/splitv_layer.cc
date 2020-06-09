@@ -27,7 +27,7 @@ Status SplitVLayer::InferOutputDataType() {
 Status SplitVLayer::InferOutputShape() {
     auto layer_param = dynamic_cast<SplitVLayerParam*>(param_);
     if (!layer_param) {
-        return Status(RPDERR_PARAM_ERR, "SplitVLayer do not have valid param, please check node: " + layer_name_);
+        return Status(TNNERR_PARAM_ERR, "SplitVLayer do not have valid param, please check node: " + layer_name_);
     }
     Blob* input_blob = input_blobs_[0];
     auto input_dims  = input_blob->GetBlobDesc().dims;
@@ -45,12 +45,12 @@ Status SplitVLayer::InferOutputShape() {
             }
         } else {
             return Status(
-                RPDERR_PARAM_ERR,
+                TNNERR_PARAM_ERR,
                 "SplitVLayer has invalid param, slice size is zero, Input cannot be split evenly on select axis");
         }
     }
     if (layer_param->slices.size() != output_blobs_.size()) {
-        return Status(RPDERR_PARAM_ERR, "SplitVLayer has invalid param, slices size != output blobs size ");
+        return Status(TNNERR_PARAM_ERR, "SplitVLayer has invalid param, slices size != output blobs size ");
     }
 
     int size_sum = layer_param->slices[0];
@@ -59,7 +59,7 @@ Status SplitVLayer::InferOutputShape() {
     }
 
     if (size_sum != input_dims[layer_param->axis]) {
-        return Status(RPDERR_PARAM_ERR, "SplitVLayer has invalid slices");
+        return Status(TNNERR_PARAM_ERR, "SplitVLayer has invalid slices");
     }
 
     for (size_t i = 0; i < output_blobs_.size(); i++) {
@@ -68,7 +68,7 @@ Status SplitVLayer::InferOutputShape() {
         output_blobs_[i]->GetBlobDesc().dims = output_dims;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(SplitV, LAYER_SPLITV);

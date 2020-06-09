@@ -22,18 +22,18 @@ namespace TNN_NS {
 CpuReduceLayerAcc::~CpuReduceLayerAcc() {}
 
 Status CpuReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 2");
     }
     auto layer_param = dynamic_cast<ReduceLayerParam *>(param_);
     if (!layer_param || layer_param->axis.size() != 1) {
         LOGE("Error: layer param is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     Blob *input_blob  = inputs[0];
@@ -44,7 +44,7 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
     if (axis < 0 || axis >= input_dims.size()) {
         LOGE("Error: layer param axis is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param axis is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
     }
 
     int channels  = input_dims[axis];
@@ -64,13 +64,13 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         CalculateReduce(output_data, input_data, outer_dim, channels, inner_dim);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

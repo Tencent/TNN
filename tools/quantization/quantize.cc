@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
 
     Calibration calibration;
     Status status = calibration.Init(net_config, model_config);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         printf("calibration init falied!\n");
         return -1;
     }
@@ -295,13 +295,13 @@ int main(int argc, char* argv[]) {
     }
 
     status = calibration.RunCalibration(dataset);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         printf("calibration run falied!\n");
         return -1;
     }
-    status = calibration.Serialize("model_quantized.rapidproto",
-                                   "model_quantized.rapidmodel");
-    if (status != RPD_OK) {
+    status = calibration.Serialize("model_quantized.tnnproto",
+                                   "model_quantized.tnnmodel");
+    if (status != TNN_OK) {
         printf("calibration serialize falied!\n");
         return -1;
     }

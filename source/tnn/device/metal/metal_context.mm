@@ -46,17 +46,17 @@ MetalContext::~MetalContext() {
 
 Status MetalContext::GetCommandQueue(void **command_queue) {
     if (!metal_context_impl_) {
-        return Status(RPDERR_DEVICE_LIBRARY_LOAD, "metal context is nil");
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "metal context is nil");
     }
     if (command_queue) {
         *command_queue = (__bridge void *)metal_context_impl_.commandQueue;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalContext::LoadLibrary(std::vector<std::string> path) {
     if (path.size() <= 0) {
-        return Status(RPDERR_DEVICE_LIBRARY_LOAD, "library path is empty");
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "library path is empty");
     }
     return [metal_context_impl_ loadLibrary:[NSString stringWithUTF8String:path[0].c_str()]];
 }
@@ -74,9 +74,9 @@ TNNMMetalContextImpl *MetalContext::getMetalContextImpl() {
 Status MetalContext::Synchronize() {
     if (metal_context_impl_) {
         [metal_context_impl_ waitUntilCompleted:nullptr];
-        return RPD_OK;
+        return TNN_OK;
     } else {
-        return Status(RPDERR_INST_ERR, "metal context is nil");
+        return Status(TNNERR_INST_ERR, "metal context is nil");
     }
 }
 } // namespace TNN_NS
@@ -126,22 +126,22 @@ Status MetalContext::Synchronize() {
         [_commandBuffer enqueue];
     }
     //    NSLog(@"onInstanceForwardBegin: %p", _commandBuffer);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (Status)onInstanceForwardEnd {
     [self commit:YES];
     //    [self waitUntilCompleted];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (Status)onCommandBufferScheduled:(id<MTLCommandBuffer>)commandBuffer {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (Status)onCommandBufferCompletedFor:(id<MTLCommandBuffer>)commandBuffer {
     //    NSLog(@"ytfq final: %.6f ms", CACurrentMediaTime()*1000.0f);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (id<MTLComputeCommandEncoder>)encoder {
@@ -155,10 +155,10 @@ Status MetalContext::Synchronize() {
 - (Status)loadLibrary:(NSString *)path {
     auto library = [_device newLibraryWithFile:path error:nil];
     if (!library) {
-        return Status(RPDERR_DEVICE_LIBRARY_LOAD, "library load failed");
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "library load failed");
     }
     _library = library;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (Status)load:(NSString *)name
@@ -167,7 +167,7 @@ Status MetalContext::Synchronize() {
     id<MTLComputePipelineState> pipeline = [self pipelineWithName:name];
     if (!pipeline) {
         LOGE("Error: pipelineWithName nil: %s\n", name.UTF8String);
-        return Status(RPDERR_INST_ERR, "Error: pipelineWithName return nil");
+        return Status(TNNERR_INST_ERR, "Error: pipelineWithName return nil");
     }
     [encoder setComputePipelineState:pipeline];
 #if TNN_METAL_DEBUG || TNN_PROFILE
@@ -183,7 +183,7 @@ Status MetalContext::Synchronize() {
     }
 #endif
     bandwidth = {pipeline.threadExecutionWidth, pipeline.maxTotalThreadsPerThreadgroup, NO};
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (id<MTLComputePipelineState>)pipelineWithName:(NSString *)name {
@@ -235,7 +235,7 @@ Status MetalContext::Synchronize() {
         threadsPerGroup.height == 0 || threadsPerGroup.depth == 0) {
         LOGE("Error: dispatch error %td %td %td / %td %td %td\n", threads.width, threads.height, threads.depth,
              threadsPerGroup.width, threadsPerGroup.height, threadsPerGroup.depth);
-        return Status(RPDERR_INST_ERR, "dispatch threads or threadsPerGroup is invalid");
+        return Status(TNNERR_INST_ERR, "dispatch threads or threadsPerGroup is invalid");
     }
     threadsPerGroup.width  = MIN(threadsPerGroup.width, bandwidth.max_threads_per_group);
     threadsPerGroup.height = MIN(threadsPerGroup.height, bandwidth.max_threads_per_group);
@@ -261,7 +261,7 @@ Status MetalContext::Synchronize() {
          (int)threadsPerGroup.depth);
 #endif
     [encoder dispatchThreadgroups:groups threadsPerThreadgroup:threadsPerGroup];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 - (MTLSize)threadsPerGroupWithThreads:(MTLSize)t bandwidth:(TNN_NS::MetalBandwidth)bw {

@@ -43,19 +43,19 @@ Status PermuteLayer::InferOutputShape() {
     }
     if (permute_param->orders.size() != input_dims.size()) {
         LOGE("Permute param got wrong size.\n");
-        return Status(RPDERR_PARAM_ERR, "Permute param got wrong size");
+        return Status(TNNERR_PARAM_ERR, "Permute param got wrong size");
     }
 
     for (int i = 0; i < permute_param->orders.size(); ++i) {
         int order = permute_param->orders[i];
         if (order < 0 || order > input_dims.size() - 1) {
             LOGE("Permute param out of range.\n");
-            return Status(RPDERR_PARAM_ERR, "Permute param out of range");
+            return Status(TNNERR_PARAM_ERR, "Permute param out of range");
         }
         output_blob->GetBlobDesc().dims.push_back(input_dims[order]);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Permute, LAYER_PERMUTE);

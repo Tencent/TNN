@@ -64,7 +64,7 @@ Status ArmConvLayerDepthwiseS1::Reshape(const std::vector<Blob *> &inputs, const
             } else if (conv_param->kernels[1] == 5) {
                 SlideFunc_ = ConvDw5x5FloatSlideW;
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
         } else if (in_data_type == DATA_TYPE_BFP16) {
             if (conv_param->kernels[1] == 3) {
@@ -72,13 +72,13 @@ Status ArmConvLayerDepthwiseS1::Reshape(const std::vector<Blob *> &inputs, const
             } else if (conv_param->kernels[1] == 5) {
                 SlideFunc_ = ConvDw5x5Bfp16SlideW;
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
         } else {
-            return RPDERR_LAYER_ERR;
+            return TNNERR_LAYER_ERR;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -88,7 +88,7 @@ Status ArmConvLayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs, con
     } else if (in_data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 }
 
@@ -122,12 +122,12 @@ Status ArmConvLayerDepthwiseS1::Exec(const std::vector<Blob *> &inputs, const st
 
     if (!SlideFunc_) {
         LOGE("Error: ConvDw slide func is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Error: ConvDw slide func is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: ConvDw slide func is nil");
     }
 
     if (pad_t > conv_param->kernels[1]) {
         LOGE("ERROR: ConvDw pad_t must small than kernel_h\n");
-        return Status(RPDERR_LAYER_ERR, "ERROR: ConvDw pad_t must small than kernel_h");
+        return Status(TNNERR_LAYER_ERR, "ERROR: ConvDw pad_t must small than kernel_h");
     }
 
     auto work_space = reinterpret_cast<T *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
@@ -188,7 +188,7 @@ Status ArmConvLayerDepthwiseS1::Exec(const std::vector<Blob *> &inputs, const st
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

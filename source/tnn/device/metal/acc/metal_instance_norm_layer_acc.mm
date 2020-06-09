@@ -49,10 +49,10 @@ Status MetalInstanceNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> 
 
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: layer resource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer resource is nil");
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
@@ -65,14 +65,14 @@ Status MetalInstanceNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> 
 
     if (!buffer_scale_) {
         buffer_scale_ = AllocateMetalBufferFormRawBuffer1D(layer_res->scale_handle, dims_output[1], status);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
 
     if (!buffer_bias_) {
         buffer_bias_ = AllocateMetalBufferFormRawBuffer1D(layer_res->bias_handle, dims_output[1], status);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
@@ -81,14 +81,14 @@ Status MetalInstanceNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> 
     auto zero_buffer        = RawBuffer(total_channel);
     if (!buffer_scale_final_) {
         buffer_scale_final_ = AllocateMetalBufferFormRawBuffer1D(zero_buffer, total_channel, status);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
 
     if (!buffer_bias_final_) {
         buffer_bias_final_ = AllocateMetalBufferFormRawBuffer1D(zero_buffer, total_channel, status);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
@@ -99,7 +99,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
     auto context_impl = context_->getMetalContextImpl();
     if (!context_impl) {
         LOGE("context_impl is nil\n");
-        return Status(RPDERR_CONTEXT_ERR, "MetalInstanceNormLayerAcc context_impl is nil");
+        return Status(TNNERR_CONTEXT_ERR, "MetalInstanceNormLayerAcc context_impl is nil");
     }
 
     auto input  = inputs[0];
@@ -109,7 +109,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
     auto output_slice = UP_DIV(dims_output[1], 4);
     auto batch        = dims_output[0];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
 
     // stage 1, update scale and bias
@@ -117,7 +117,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
         auto encoder = [context_impl encoder];
         if (!encoder) {
             LOGE("encoder is nil\n");
-            return Status(RPDERR_CONTEXT_ERR, "instance_norm_var_bias encoder is nil");
+            return Status(TNNERR_CONTEXT_ERR, "instance_norm_var_bias encoder is nil");
         }
 
         if (param_) {
@@ -126,7 +126,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 
         do {
             status = [context_impl load:@"instance_norm" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
 
             LOGD("bandwidth.thread_execution_width: %d\n", (int)bandwidth.thread_execution_width);
             LOGD("bandwidth.max_threads_per_group: %d\n", (int)bandwidth.max_threads_per_group);
@@ -146,7 +146,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
             //            [encoder setThreadgroupMemoryLength:8*8*4*data_type_size atIndex:0];
             [encoder dispatchThreadgroups:{(NSUInteger)1, (NSUInteger)1, (NSUInteger)batch * output_slice}
                     threadsPerThreadgroup:{(NSUInteger)32, (NSUInteger)1, (NSUInteger)1}];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         } while (0);
 
         [encoder endEncoding];

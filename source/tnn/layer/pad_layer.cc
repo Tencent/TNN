@@ -28,7 +28,7 @@ Status PadLayer::InferOutputShape() {
     auto layer_param = dynamic_cast<PadLayerParam*>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
 
     Blob* input_blob  = input_blobs_[0];
@@ -38,7 +38,7 @@ Status PadLayer::InferOutputShape() {
     dims[2] += layer_param->pads[2] + layer_param->pads[3];
 
     output_blob->GetBlobDesc().dims = dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Pad, LAYER_PAD);

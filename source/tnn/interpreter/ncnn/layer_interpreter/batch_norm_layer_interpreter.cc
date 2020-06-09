@@ -37,7 +37,7 @@ namespace ncnn {
         layer_param->channels = GetInt(p, 0, 0);
         layer_param->eps      = GetFloat(p, 1, 0.0);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -47,7 +47,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<BatchNormLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "layer param is nil: BatchNormLayerParam");
+            return Status(TNNERR_LAYER_ERR, "layer param is nil: BatchNormLayerParam");
         }
 
         RawBuffer slope;
@@ -81,7 +81,7 @@ namespace ncnn {
         layer_res->scale_handle = k;
         layer_res->bias_handle  = b;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

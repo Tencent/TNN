@@ -25,11 +25,11 @@ MetalPReluLayerAcc::~MetalPReluLayerAcc() {}
 Status MetalPReluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     if (!layer_param) {
-        return Status(RPDERR_MODEL_ERR, "Error: PReluLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: PReluLayerParam is nil");
     }
     auto layer_res = dynamic_cast<PReluLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: PReluLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: PReluLayerResource is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -45,7 +45,7 @@ Status MetalPReluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_slope_) {
         buffer_slope_ = AllocateMetalBufferFormRawBuffer1D(layer_res->slope_handle, dims_output[1], status);
     }
@@ -67,11 +67,11 @@ Status MetalPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     auto output_width = dims_output[3], output_height = dims_output[2],
          output_slice = UP_DIV(dims_output[1], 4) * dims_output[0];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
     do {
         status = [context_impl load:@"prelu" encoder:encoder bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_slice, (NSUInteger)batch};
 
@@ -85,7 +85,7 @@ Status MetalPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
                    atIndex:1];
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

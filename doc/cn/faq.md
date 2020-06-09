@@ -16,7 +16,7 @@
 ### 如何支持tensorflow, caffe, mxnet模型？
 * 我们统一通过onnx中间格式支持各大训练框架，开源社区维护有很好的各大框架转换为onnx的工具
 * [tensorflow2onnx](https://github.com/onnx/tensorflow-onnx): typical usage: python -m tf2onnx.convert --inputs-as-nchw [输入tensor]:0   --graphdef [输入文件].pb  --inputs [输入tensor]:0  --outputs [输出tensor]:0  --opset 11 --output [输出文件].onnx
-* [caffe2onnx](../../tools/caffe2onnx/README.md)
+* [caffe2onnx](./user/caffe2tnn.md)
 * [Mxnet: export onnx model](https://mxnet.apache.org/api/python/docs/tutorials/deploy/export/onnx.html)
 * [Pytorch: EXPORTING A MODEL FROM PYTORCH TO ONNX](https://pytorch.org/tutorials/advanced/super_resolution_with_onnxruntime.html)
 

@@ -45,7 +45,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Concat Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Concat";
@@ -56,7 +56,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     axis_ = concat_param->axis;
     if (axis_ != 1) {
         LOGE("only support axis is 1 in concat now!\n");
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "only support axis is 1 in concat now!");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "only support axis is 1 in concat now!");
     }
 
     do_image_concat_ = true;
@@ -77,7 +77,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         for (size_t i = 0; i < execute_units_.size(); i++) {
             kernel_name = "CopyImage";
             ret         = CreateExecuteUnit(execute_units_[i], program_name, kernel_name);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 return ret;
             }
         }
@@ -88,7 +88,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         kernel_name              = "ConcatChannel";
         execute_units_.resize(1);
         ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     } else {
@@ -98,25 +98,25 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
             // Image to Buffer
             kernel_name = "CopyImageToBuffer";
             ret         = CreateExecuteUnit(execute_units_[2 * i], program_name, kernel_name);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 return ret;
             }
             // Merge Buffer to Buffer
             kernel_name = "CopyBuffer";
             ret         = CreateExecuteUnit(execute_units_[2 * i + 1], program_name, kernel_name);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 return ret;
             }
         }
         // Buffer to Image
         kernel_name = "CopyBufferToImage";
         ret         = CreateExecuteUnit(execute_units_[2 * inputs.size()], program_name, kernel_name);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLConcatLayerAcc::~OpenCLConcatLayerAcc() {}
@@ -162,7 +162,7 @@ Status OpenCLConcatLayerAcc::ReshapeImageConcat(const std::vector<Blob *> &input
         output_offset[axis_] += region[axis_];
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inputs,
@@ -247,7 +247,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
         unit.ocl_kernel.setArg(idx++, output_size - 1);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // every channel of two inputs can devided by 4.
@@ -275,7 +275,7 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
     // output channel
     execute_units_[0].ocl_kernel.setArg(idx++, output_dims[1]);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Concat, LAYER_CONCAT)

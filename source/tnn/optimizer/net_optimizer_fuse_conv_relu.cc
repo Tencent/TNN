@@ -38,19 +38,19 @@ namespace optimizer {
     }
 
     bool NetOptimizerFuseConvRelu::SupportDevice(DeviceType device) {
-        return device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_CPU;
+        return device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_NAIVE;
     }
 
     Status NetOptimizerFuseConvRelu::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(RPDERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
         if (count <= 1) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
@@ -80,7 +80,6 @@ namespace optimizer {
                     }
                 }
 
-                conv_param->activation_type = activation->second;
                 if (!is_input_of_others) {
                     conv_param->activation_type = activation->second;
                     layer_info_prev->outputs    = layer_info_current->outputs;
@@ -93,7 +92,7 @@ namespace optimizer {
         }
         structure->layers = layers_fused;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace optimizer

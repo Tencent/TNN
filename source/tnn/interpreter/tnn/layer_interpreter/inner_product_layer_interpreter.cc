@@ -30,7 +30,7 @@ Status InnerProductLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int s
     layer_param->transpose  = atoi(layer_cfg_arr[index++].c_str());
     layer_param->axis       = atoi(layer_cfg_arr[index++].c_str());
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InnerProductLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -54,14 +54,14 @@ Status InnerProductLayerInterpreter::InterpretResource(Deserializer& deserialize
         layer_res->scale_handle = scale;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InnerProductLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     InnerProductLayerParam* layer_param = dynamic_cast<InnerProductLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->num_output << " ";
@@ -69,19 +69,19 @@ Status InnerProductLayerInterpreter::SaveProto(std::ofstream& output_stream, Lay
     output_stream << layer_param->transpose << " ";
     output_stream << layer_param->axis << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InnerProductLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     InnerProductLayerParam* layer_param = dynamic_cast<InnerProductLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     InnerProductLayerResource* layer_res = dynamic_cast<InnerProductLayerResource*>(resource);
     if (nullptr == layer_res) {
         LOGE("invalid layer res to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer res to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer res to save");
     }
 
     serializer.PutString(layer_param->name);
@@ -92,7 +92,7 @@ Status InnerProductLayerInterpreter::SaveResource(Serializer& serializer, LayerP
         serializer.PutRaw(layer_res->scale_handle);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(InnerProduct, LAYER_INNER_PRODUCT);

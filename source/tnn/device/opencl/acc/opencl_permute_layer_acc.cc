@@ -35,7 +35,7 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Permute Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Permute";
@@ -45,7 +45,7 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     if (permute_param->orders.size() != 4) {
         LOGE("permute order size need to be 4!\n");
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "permute order size need to be 4!");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "permute order size need to be 4!");
     }
     dims_.resize(4);
     for (unsigned int i = 0; i < permute_param->orders.size(); ++i) {
@@ -57,7 +57,7 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // image->buffer
     {
         ret = CreateExecuteUnit(execute_units_[0], "copy", "CopyImageToBuffer");
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
         }
@@ -66,13 +66,13 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // buffer->image
     {
         ret = CreateExecuteUnit(execute_units_[1], "copy", "CopyBufferToImage");
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLPermuteLayerAcc::~OpenCLPermuteLayerAcc() {}
@@ -128,7 +128,7 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[1].ocl_kernel.setArg(idx++, std::max(size0, size1) - 1);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Permute, LAYER_PERMUTE)

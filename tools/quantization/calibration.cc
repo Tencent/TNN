@@ -112,26 +112,26 @@ Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config,
         dynamic_cast<DefaultModelInterpreter*>(
             CreateModelInterpreter(model_config.model_type));
     if (!interpreter) {
-        return Status(RPDERR_NET_ERR, "interpreter is nil");
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
     interpreter_ = std::shared_ptr<DefaultModelInterpreter>(interpreter);
 
     Status status = interpreter_->Interpret(model_config.params);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("interpret the model falied!\n");
-        return RPDERR_INVALID_MODEL;
+        return TNNERR_INVALID_MODEL;
     }
 
     instance_ = std::make_shared<Instance>(net_config, model_config);
     status    = instance_->Init(
         std::static_pointer_cast<AbstractModelInterpreter>(interpreter_),
         inputs_shape);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("create instance falied!\n");
-        return RPDERR_INST_ERR;
+        return TNNERR_INST_ERR;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 int Calibration::SetCalibrationParams(CalibrationParam params) {
@@ -157,24 +157,24 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     int ret = CalBlobScale(dataset);
     if (ret != 0) {
         LOGE("calcluate blob scale falied!\n");
-        return RPDERR_QUANTIZE_ERROR;
+        return TNNERR_QUANTIZE_ERROR;
     }
 
     // Quantize params
     ret = QuantizeParams();
     if (ret != 0) {
         LOGE("quantize params falied!\n");
-        return RPDERR_QUANTIZE_ERROR;
+        return TNNERR_QUANTIZE_ERROR;
     }
 
     // Merge Blob Scale of some layers
     ret = MergeBlobScale();
     if (ret != 0) {
         LOGE("merge blob scale falied!\n");
-        return RPDERR_QUANTIZE_ERROR;
+        return TNNERR_QUANTIZE_ERROR;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Calibration::Serialize(std::string proto_path, std::string model_path) {
@@ -182,17 +182,17 @@ Status Calibration::Serialize(std::string proto_path, std::string model_path) {
     NetResource* net_resource = interpreter_->GetNetResource();
     if (net_struct == nullptr || net_resource == nullptr) {
         LOGE("net struct or net resource is null\n");
-        return RPDERR_INVALID_MODEL;
+        return TNNERR_INVALID_MODEL;
     }
 
     TNN_NS::ModelPacker packer(net_struct, net_resource);
 
     Status status = packer.Pack(proto_path, model_path);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("pack the model falied!\n");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 int Calibration::CalBlobScale(DataSet& dataset) {
@@ -200,7 +200,7 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     NetResource* net_resource = interpreter_->GetNetResource();
 
     Status status = instance_->Reshape(dataset.input_shape);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("instance reshape falied!\n");
         return -1;
     }
@@ -283,7 +283,7 @@ int Calibration::InitFeatureMap() {
     // set input blob quantize method to MIN_MAX
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("instance get input blobs falied!\n");
         return -1;
     }
@@ -299,7 +299,7 @@ int Calibration::InitFeatureMap() {
 int Calibration::UpdateBlobRange(DataSet& dataset) {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("instance get input blobs falied!\n");
         return -1;
     }
@@ -324,7 +324,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
 
         status =
             file_reader.Read(input_blob, file_pack.first, file_pack.second);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
             continue;
         }
@@ -341,7 +341,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
 
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("instance get input blobs falied!\n");
         return -1;
     }
@@ -366,7 +366,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
 
         status =
             file_reader.Read(input_blob, file_pack.first, file_pack.second);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
             continue;
         }

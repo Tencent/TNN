@@ -23,18 +23,18 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Concat, LAYER_CONCAT);
 
 Status CpuConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ConcatLayerParam *>(param_);
     if (!param) {
         LOGE("Error: ConcatLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: ConcatLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: ConcatLayerParam is nil");
     }
     if (inputs.size() < 2) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
     auto input  = inputs[0];
     auto output = outputs[0];
@@ -43,7 +43,7 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     const int axis = param->axis;
     if (axis > dims.size() || axis < 0) {
         LOGE("Error: Concat layer param invalid\n");
-        return Status(RPDERR_PARAM_ERR, "Concat layer param invalid");
+        return Status(TNNERR_PARAM_ERR, "Concat layer param invalid");
     }
 
     int num_concats = 1;
@@ -72,7 +72,7 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         output_concat_axis_offset += input_concat_axis;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Concat, LAYER_CONCAT);

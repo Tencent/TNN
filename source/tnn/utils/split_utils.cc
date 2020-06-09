@@ -97,7 +97,7 @@ Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spl
     int step = 1;
 
     if (str[0] == 0) {
-        return RPD_OK;
+        return TNN_OK;
     }
     
     const int subs_length = 2048;
@@ -170,15 +170,15 @@ Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spl
     }
     
     free(subs);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SplitUtils::SplitParamList(const str_arr kv_pairs, str_dict &subs_dict, const char spliter[]) {
     for (int i = 0; i < kv_pairs.size(); i++) {
         str_arr kv;
         auto ret = SplitStr(kv_pairs[i].c_str(), kv, spliter, true, false);
-        if (ret != RPD_OK || kv.size() != 2) {
-            return Status(RPDERR_PARAM_ERR, "split param list failed");
+        if (ret != TNN_OK || kv.size() != 2) {
+            return Status(TNNERR_PARAM_ERR, "split param list failed");
         }
         int key = atoi(kv[0].c_str());
 
@@ -191,7 +191,7 @@ Status SplitUtils::SplitParamList(const str_arr kv_pairs, str_dict &subs_dict, c
         subs_dict[key] = value;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

@@ -1,4 +1,4 @@
-# ncnn interface and model usage documentation
+# NCNN Interface and Model Usage 
 
 ## ncnn model usage documentation
 

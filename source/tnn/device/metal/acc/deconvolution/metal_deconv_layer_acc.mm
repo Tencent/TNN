@@ -29,7 +29,7 @@ Status MetalDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     }
 
     auto status = deconv_acc_impl_->Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -54,7 +54,7 @@ Status MetalDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
         return deconv_acc_impl_->Reshape(inputs, outputs);
     } else {
         LOGE("Error: Deconv_acc_impl_ is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Deconv_acc_impl_ is nil");
+        return Status(TNNERR_LAYER_ERR, "Deconv_acc_impl_ is nil");
     }
 }
 
@@ -62,7 +62,7 @@ Status MetalDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     if (deconv_acc_impl_) {
         return deconv_acc_impl_->Forward(inputs, outputs);
     } else {
-        return Status(RPDERR_LAYER_ERR, "Deconv_acc_impl_ is nil");
+        return Status(TNNERR_LAYER_ERR, "Deconv_acc_impl_ is nil");
     }
 }
 

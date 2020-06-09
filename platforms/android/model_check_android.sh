@@ -15,7 +15,7 @@ DUMP_DIR=$WORK_DIR/dump_data_ocl
 ADB=adb
 
 check_model_list=(
-"test.rapidproto" \
+"test.tnnproto" \
                       )
 
 function usage() {
@@ -90,8 +90,8 @@ function run_android() {
     for check_model in ${check_model_list[*]}
     do
         model_name=${check_model%.*}
-        #$ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d ARM -p $ANDROID_DATA_DIR/"$model_name".rapidproto -m $ANDROID_DATA_DIR/"$model_name".rapidmodel >> $ANDROID_DIR/test_log.txt"
-        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d OPENCL -p $ANDROID_DATA_DIR/"$model_name".rapidproto -m $ANDROID_DATA_DIR/"$model_name".rapidmodel >> $ANDROID_DIR/test_log.txt"
+        #$ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d ARM -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
+        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d OPENCL -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
     done
     $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     $ADB pull $ANDROID_DIR/dump_data $DUMP_DIR

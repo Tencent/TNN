@@ -29,7 +29,7 @@ BlobMemorySizeInfo CpuDevice::Calculate(BlobDesc& desc) {
 Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     BlobDesc desc;
     desc.dims        = dims;
-    desc.device_type = DEVICE_CPU;
+    desc.device_type = DEVICE_NAIVE;
     if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST) {
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.data_format = DATA_FORMAT_NCHW;
@@ -37,7 +37,7 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         return Allocate(handle, size_info);
     } else {
         LOGE("CpuDevice dont support mat_type:%d", mat_type);
-        return Status(RPDERR_PARAM_ERR, "cpu dont support mat_type");
+        return Status(TNNERR_PARAM_ERR, "cpu dont support mat_type");
     }
 }
 
@@ -45,14 +45,14 @@ Status CpuDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
         *handle = malloc(GetBlobMemoryBytesSize(size_info));
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDevice::Free(void* handle) {
     if (handle) {
         free(handle);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue) {
@@ -61,7 +61,7 @@ Status CpuDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc&
 
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset,
            reinterpret_cast<char*>(src->base) + src->bytes_offset, size_in_bytes);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue) {
@@ -71,7 +71,7 @@ Status CpuDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDes
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset,
            reinterpret_cast<char*>(src->base) + src->bytes_offset, size_in_bytes);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 AbstractLayerAcc* CpuDevice::CreateLayerAcc(LayerType type) {
@@ -88,7 +88,7 @@ Context* CpuDevice::CreateContext(int device_id) {
 
 Status CpuDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& CpuDevice::GetLayerCreatorMap() {
@@ -96,6 +96,6 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& CpuDevice::GetLayerCreato
     return layer_creator_map;
 }
 
-TypeDeviceRegister<CpuDevice> g_cpu_device_register(DEVICE_CPU);
+TypeDeviceRegister<CpuDevice> g_cpu_device_register(DEVICE_NAIVE);
 
 }  // namespace TNN_NS

@@ -40,7 +40,7 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
 
     // AccImpl init first
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     if (1 == conv_params_.stride_x && 1 == conv_params_.stride_y) {
         stride_is_1_ = true;
@@ -53,7 +53,7 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     ret = AllocateWeightsBias(resource);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::set<std::string> build_options;
@@ -76,14 +76,14 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
     LOGD("conv1x1: use buffer: %s  run_3d: %s\n", use_buffer_ ? "Yes" : "No", run_3d_ndrange_ ? "Yes" : "No");
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLConvLayer1x1Acc::~OpenCLConvLayer1x1Acc() {}
@@ -136,7 +136,7 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
     // set value (output widht / 4)
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_dims[3], 4));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::vector<uint32_t> OpenCLConvLayer1x1Acc::Conv2d1x1LocalWS3D(std::vector<uint32_t> &gws,

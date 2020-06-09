@@ -42,7 +42,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
     if (context_)
         return context_->SetNumThreads(num_threads);
     else
-        return Status(RPDERR_CONTEXT_ERR, "context is nil");
+        return Status(TNNERR_CONTEXT_ERR, "context is nil");
 }
 
 /*
@@ -52,7 +52,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                             InputShapesMap inputs_shape) {
     _config                                      = net_config;
-    Status ret                                   = RPD_OK;
+    Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
@@ -61,21 +61,21 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     if (net_structure == NULL || net_resource == NULL) {
         LOGE("ERROR: network_ is nil, network_type may not support\n");
-        return Status(RPDERR_NULL_PARAM, "network_ is nil, network_type may not support");
+        return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
     }
 
     device_ = GetDevice(net_config.device_type);
     if (device_ == NULL) {
-        return RPDERR_DEVICE_NOT_SUPPORT;
+        return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
     context_ = device_->CreateContext(net_config.device_id);
     if (context_ == NULL) {
-        return RPDERR_DEVICE_CONTEXT_CREATE;
+        return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
@@ -85,24 +85,24 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * eg. fuse conv+bn, conv+relu.
      */
     ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
     blob_manager_ = new BlobManager(device_);
 
     ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
     ret = InitLayers(net_structure, net_resource);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
     ret = blob_manager_->AllocateBlobMemory();
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
@@ -120,13 +120,13 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
  *  4. Check the weights required.
  */
 Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         if (cur_layer == NULL) {
             LOGE("Error: CreateLayer failed, type:%d\n", type);
-            return Status(RPDERR_PARAM_ERR, "CreateLayer failed");
+            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
@@ -216,7 +216,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
 
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
         }
@@ -228,7 +228,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
 Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {
     memory_size = blob_manager_->GetAllBlobMemorySize();
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DefaultNetwork::SetForwardMemory(void *memory) {
@@ -237,7 +237,7 @@ Status DefaultNetwork::SetForwardMemory(void *memory) {
 
 Status DefaultNetwork::GetAllInputBlobs(BlobMap &blobs) {
     blob_manager_->GetAllInputBlobs(blobs);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -246,7 +246,7 @@ Status DefaultNetwork::GetAllInputBlobs(BlobMap &blobs) {
  */
 Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     blob_manager_->GetAllOutputBlobs(blobs);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -258,15 +258,15 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
             LOGE("DefaultNetwork reshape blob is empty\n");
-            return Status(RPDERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
         }
         blob->GetBlobDesc().dims = iter.second;
     }
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     for (auto cur_layer : layers_) {
         ret = cur_layer->Reshape();
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
@@ -291,7 +291,7 @@ Status DefaultNetwork::DeInit() {
         context_ = NULL;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 /*
  * CommandQueue is an abstract object.
@@ -303,15 +303,15 @@ Status DefaultNetwork::DeInit() {
  */
 Status DefaultNetwork::GetCommandQueue(void **command_queue) {
     if (context_ == NULL) {
-        return RPDERR_DEVICE_CONTEXT_CREATE;
+        return TNNERR_DEVICE_CONTEXT_CREATE;
     }
     return context_->GetCommandQueue(command_queue);
 }
 
 Status DefaultNetwork::Forward() {
-    Status result = RPD_OK;
+    Status result = TNN_OK;
     result        = blob_manager_->CheckBlobMemoryState();
-    if (result != RPD_OK) {
+    if (result != TNN_OK) {
         return result;
     }
 
@@ -335,7 +335,7 @@ Status DefaultNetwork::Forward() {
             }
 
             auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("dump blob failed\n");
                 return ret;
             }
@@ -344,7 +344,7 @@ Status DefaultNetwork::Forward() {
 
         result = layer->Forward();
         LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)result);
-        if (result != RPD_OK) {
+        if (result != TNN_OK) {
             LOGE("Forward error %s, exit\n", result.description().c_str());
             return result;
         }
@@ -363,7 +363,7 @@ Status DefaultNetwork::Forward() {
             }
 
             auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("dump blob failed\n");
                 return ret;
             }
@@ -379,9 +379,9 @@ Status DefaultNetwork::Forward() {
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status DefaultNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
-    Status result = RPD_OK;
+    Status result = TNN_OK;
     result        = blob_manager_->CheckBlobMemoryState();
-    if (result != RPD_OK) {
+    if (result != TNN_OK) {
         return result;
     }
 
@@ -396,7 +396,7 @@ Status DefaultNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobSta
             before(inputs, layer_info.get());
 
         result = layer->Forward();
-        if (result != RPD_OK) {
+        if (result != TNN_OK) {
             LOGE("Forward error %s, exit\n", result.description().c_str());
             return result;
         }
@@ -415,16 +415,16 @@ Status DefaultNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobSta
 // @brief tnn instance network infer, it will not wait
 // blob dump is not implement in this funciton.
 Status DefaultNetwork::ForwardAsync(Callback call_back) {
-    Status result = RPD_OK;
+    Status result = TNN_OK;
     result        = blob_manager_->CheckBlobMemoryState();
-    if (result != RPD_OK) {
+    if (result != TNN_OK) {
         return result;
     }
 
     context_->OnInstanceForwardBegin();
     for (auto layer : layers_) {
         result = layer->Forward();
-        if (result != RPD_OK) {
+        if (result != TNN_OK) {
             LOGE("Forward error %s, exit\n", result.description().c_str());
             return result;
         }

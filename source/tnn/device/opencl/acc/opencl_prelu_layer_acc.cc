@@ -45,7 +45,7 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init PRelu Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "PRelu";
@@ -56,14 +56,14 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     auto layer_param = dynamic_cast<PReluLayerParam *>(param);
     if (layer_param == nullptr) {
         LOGE("PReluLayerParam is null!\n");
-        return Status(RPDERR_MODEL_ERR, "PReluLayerParam is null");
+        return Status(TNNERR_MODEL_ERR, "PReluLayerParam is null");
     }
     share_channel_ = layer_param->channel_shared;
 
     auto layer_res = dynamic_cast<PReluLayerResource *>(resource);
     if (layer_res == nullptr) {
         LOGE("PReluLayerResource is null!\n");
-        return Status(RPDERR_MODEL_ERR, "PReluLayerResource is null");
+        return Status(TNNERR_MODEL_ERR, "PReluLayerResource is null");
     }
     RawBuffer &scope_handle = layer_res->slope_handle;
     DataType data_type      = scope_handle.GetDataType();
@@ -75,12 +75,12 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     if (run_3d_ndrange_)
         kernel_name = "PReluGS3D";
     ret = CreateExecuteUnit(execute_units_[0], "prelu", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLPReluLayerAcc::~OpenCLPReluLayerAcc() {}
@@ -102,7 +102,7 @@ Status OpenCLPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     }
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_scope_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #if TNN_PROFILE

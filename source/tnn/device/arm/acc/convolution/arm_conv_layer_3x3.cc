@@ -322,7 +322,7 @@ Status ArmConvLayer3x3::allocateBufferWeight(const std::vector<Blob *> &inputs, 
         buffer_weight_ = pack_weight;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayer3x3::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -339,7 +339,7 @@ Status ArmConvLayer3x3::Reshape(const std::vector<Blob *> &inputs, const std::ve
                 SrcTransformFunc_ = SrcTransformInOne6x6Float;
                 DstTransformFunc_ = DstTransformInOne6x4Float;
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
         } else if (in_data_type == DATA_TYPE_BFP16) {
             if (dst_unit_ == 2) {
@@ -349,13 +349,13 @@ Status ArmConvLayer3x3::Reshape(const std::vector<Blob *> &inputs, const std::ve
                 SrcTransformFunc_ = SrcTransformInOne6x6BFP16;
                 DstTransformFunc_ = DstTransformInOne6x4BFP16;
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
         } else {
-            return RPDERR_LAYER_ERR;
+            return TNNERR_LAYER_ERR;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -365,7 +365,7 @@ Status ArmConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     } else if (in_data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 }
 
@@ -406,7 +406,7 @@ Status ArmConvLayer3x3::Exec(const std::vector<Blob *> &inputs, const std::vecto
     memset(fake_bias, 0, fake_bias_size);
 
     if (DstTransformFunc_ == nullptr || SrcTransformFunc_ == nullptr) {
-        return RPDERR_COMMON_ERROR;
+        return TNNERR_COMMON_ERROR;
     }
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
@@ -546,7 +546,7 @@ Status ArmConvLayer3x3::Exec(const std::vector<Blob *> &inputs, const std::vecto
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

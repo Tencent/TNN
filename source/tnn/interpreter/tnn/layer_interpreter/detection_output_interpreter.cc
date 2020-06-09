@@ -40,11 +40,11 @@ Status DetectionOutputLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, in
     GET_INT_1(p->nms_param.top_k);
     GET_FLOAT_1(p->eta);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DetectionOutputLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **Resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DetectionOutputLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
@@ -61,12 +61,12 @@ Status DetectionOutputLayerInterpreter::SaveProto(std::ofstream &output_stream, 
     output_stream << layer_param->nms_param.top_k << " ";
     output_stream << layer_param->eta << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DetectionOutputLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param,
                                                      LayerResource *resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(DetectionOutput, LAYER_DETECTION_OUTPUT);

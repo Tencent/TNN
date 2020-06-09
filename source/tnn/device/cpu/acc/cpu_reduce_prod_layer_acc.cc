@@ -36,7 +36,7 @@ Status CpuReduceProdLayerAcc::CalculateReduce(float* output_data, float* input_d
         }
         output_data += inner_dim;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_REDUCE_ACC(ReduceProd, LAYER_REDUCE_PROD);

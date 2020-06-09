@@ -32,7 +32,7 @@ Status CpuReduceSumLayerAcc::CalculateReduce(float* output_data, float* input_da
         }
         output_data += inner_dim;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_REDUCE_ACC(ReduceSum, LAYER_REDUCE_SUM);

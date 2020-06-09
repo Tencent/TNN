@@ -46,7 +46,7 @@ SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::
         BlobMemorySizeInfo info;
         info.dims.push_back(forward_memory_size);
         status = device->Allocate(&new_shared_memory, info);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return SharedMemory();
         }
         for (int i = 0; i < shared_instances.size(); ++i) {

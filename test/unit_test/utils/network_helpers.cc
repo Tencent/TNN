@@ -23,12 +23,12 @@
 namespace TNN_NS {
 
 Status BlobHandleAllocate(Blob* blob, AbstractDevice* device) {
-    Status ret                   = RPD_OK;
+    Status ret                   = TNN_OK;
     BlobDesc desc                = blob->GetBlobDesc();
     BlobMemorySizeInfo size_info = device->Calculate(desc);
     void* data;
     ret = device->Allocate(&data, size_info);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
     BlobHandle handle;

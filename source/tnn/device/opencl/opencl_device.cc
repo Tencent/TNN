@@ -33,7 +33,7 @@ BlobMemorySizeInfo OpenCLDevice::Calculate(BlobDesc& desc) {
 Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     if (dims.size() != 4) {
         LOGE("invalid dim size: %d\n", (int)dims.size());
-        return Status(RPDERR_PARAM_ERR, "invalid dim size");
+        return Status(TNNERR_PARAM_ERR, "invalid dim size");
     }
 
     BlobDesc desc;
@@ -44,7 +44,7 @@ Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) 
         return Allocate(handle, size_info);
     } else {
         LOGE("opencl allocator not support this mat type: %d\n", mat_type);
-        return Status(RPDERR_PARAM_ERR, "not support this mat type");
+        return Status(TNNERR_PARAM_ERR, "not support this mat type");
     }
 }
 
@@ -63,9 +63,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
                               nullptr, &error);
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(RPDERR_OPENCL_API_ERROR, "OpenCL Allocate Image falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL Allocate Image falied");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 //release clImage
@@ -73,7 +73,7 @@ Status OpenCLDevice::Free(void* handle) {
     cl::Image2D* buffer = static_cast<cl::Image2D*>(handle);
     if (buffer != NULL)
         delete buffer;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 //Copy data from Cpu To Device, format is same.
@@ -81,7 +81,7 @@ Status OpenCLDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDe
     OpenCLRuntime* opencl_runtime          = OpenCLRuntime::GetInstance();
     cl::CommandQueue* opencl_command_queue = static_cast<cl::CommandQueue*>(command_queue);
     if (opencl_command_queue == nullptr)
-        return Status(RPDERR_DEVICE_INVALID_COMMAND_QUEUE, "command_queue is nullptr");
+        return Status(TNNERR_DEVICE_INVALID_COMMAND_QUEUE, "command_queue is nullptr");
 
     // Todo: convert src data type
     cl_int cl_ret;
@@ -93,14 +93,14 @@ Status OpenCLDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDe
         buffer, true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(desc.dims) * sizeof(float), nullptr, nullptr, &cl_ret);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
     memcpy(clbuffer_ptr, reinterpret_cast<char*>(src->base) + src->bytes_offset,
            DimsVectorUtils::Count(desc.dims) * sizeof(float));
     cl_ret = opencl_command_queue->enqueueUnmapMemObject(buffer, clbuffer_ptr);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     std::shared_ptr<OpenCLMemory> climage(new OpenCLMemory(TNN_CL_IMAGE));
@@ -115,7 +115,7 @@ Status OpenCLDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blob
     OpenCLRuntime* opencl_runtime          = OpenCLRuntime::GetInstance();
     cl::CommandQueue* opencl_command_queue = static_cast<cl::CommandQueue*>(command_queue);
     if (opencl_command_queue == nullptr)
-        return Status(RPDERR_DEVICE_INVALID_COMMAND_QUEUE, "command_queue is nullptr");
+        return Status(TNNERR_DEVICE_INVALID_COMMAND_QUEUE, "command_queue is nullptr");
 
     std::shared_ptr<OpenCLMemory> clbuffer(new OpenCLMemory(TNN_CL_BUFFER));
     cl::Buffer buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
@@ -127,7 +127,7 @@ Status OpenCLDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blob
 
     ImageBufferConvertor convertor(opencl_runtime, opencl_command_queue);
     Status ret = convertor.ConvertImageToBuffer(climage.get(), NCHW_BUFFER, desc.dims, clbuffer.get(), true);
-    if (ret != RPD_OK)
+    if (ret != TNN_OK)
         return ret;
 
     cl_int cl_ret;
@@ -135,17 +135,17 @@ Status OpenCLDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blob
         buffer, true, CL_MAP_READ, 0, DimsVectorUtils::Count(desc.dims) * sizeof(float), nullptr, nullptr, &cl_ret);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset, clbuffer_ptr,
            DimsVectorUtils::Count(desc.dims) * sizeof(float));
     cl_ret = opencl_command_queue->enqueueUnmapMemObject(buffer, clbuffer_ptr);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 //create layer acc with layer type
@@ -168,7 +168,7 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCre
 
 Status OpenCLDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 TypeDeviceRegister<OpenCLDevice> g_opencl_device_register(DEVICE_OPENCL);

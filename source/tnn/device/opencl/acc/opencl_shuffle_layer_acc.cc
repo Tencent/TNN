@@ -23,7 +23,7 @@ Status OpenCLShuffleLayerAcc::Init(Context *context, LayerParam *param, LayerRes
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init ShuffleChannel Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "ShuffleChannel";
@@ -31,12 +31,12 @@ Status OpenCLShuffleLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // create kernel
     std::string kernel_name = "ShuffleChannel";
     ret                     = CreateExecuteUnit(execute_units_[0], "shuffle", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -44,7 +44,7 @@ Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto shuffle_param = dynamic_cast<ShuffleLayerParam *>(param_);
     if (shuffle_param == nullptr) {
         LOGE("ShuffleChannelLayerParam is null!\n");
-        return Status(RPDERR_MODEL_ERR, "ShuffleChannelLayerParam is null!");
+        return Status(TNNERR_MODEL_ERR, "ShuffleChannelLayerParam is null!");
     }
 
     ASSERT(inputs.size() == 1);
@@ -53,7 +53,7 @@ Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     if (shuffle_param->group <= 0 || input_dims[1] % shuffle_param->group != 0) {
         LOGE("invalid group size in Shuffle layer!\n");
-        return Status(RPDERR_LAYER_ERR, "invalid group size in Shuffle layer!");
+        return Status(TNNERR_LAYER_ERR, "invalid group size in Shuffle layer!");
     }
 
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], outputs[0]->GetBlobDesc().dims);
@@ -64,7 +64,7 @@ Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     execute_units_[0].ocl_kernel.setArg(idx++, group_size);
     execute_units_[0].ocl_kernel.setArg(idx++, output_dims[1]); //output channel
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)

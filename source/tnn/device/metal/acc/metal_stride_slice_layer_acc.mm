@@ -27,21 +27,21 @@ Status IsMetalStrideSliceLayerAccSupported(LayerParam *param, LayerResource *res
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param);
     if (!layer_param) {
         LOGE("Error: StrideSliceLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
     }
 
     //    if (layer_param->begins[2] %4 !=0) {
     //        LOGE("Error: StrideSlice's begins channel must be 4x\n");
-    //        return Status(RPDERR_NET_ERR, "StrideSlice's begins channel must be 4x\n");
+    //        return Status(TNNERR_NET_ERR, "StrideSlice's begins channel must be 4x\n");
     //    }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 DECLARE_METAL_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
 Status MetalStrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = IsMetalStrideSliceLayerAccSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -52,7 +52,7 @@ Status MetalStrideSliceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
                                                      const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
     if (!layer_param) {
-        return Status(RPDERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -81,7 +81,7 @@ Status MetalStrideSliceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
                                             length:sizeof(MetalStrideSliceParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalStrideSliceLayerAcc::KernelName() {
@@ -97,7 +97,7 @@ Status MetalStrideSliceLayerAcc::SetKernelEncoderParam(
 
 Status MetalStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = IsMetalStrideSliceLayerAccSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
@@ -109,7 +109,7 @@ Status MetalStrideSliceLayerAcc::ComputeThreadSize(const std::vector<Blob *> &in
                                         MTLSize &size) {
        auto dims_output = outputs[0]->GetBlobDesc().dims;
        size = GetDefaultThreadSize(dims_output, false);
-       return RPD_OK;
+       return TNN_OK;
 }
 
 REGISTER_METAL_ACC(StrideSlice, LAYER_STRIDED_SLICE);

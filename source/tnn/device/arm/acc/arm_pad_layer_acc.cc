@@ -107,9 +107,9 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         }
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Pad, LAYER_PAD);

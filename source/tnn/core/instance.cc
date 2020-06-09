@@ -48,14 +48,14 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     network_ = NetworkImplManager::GetNetworkImpl(net_config_.network_type);
     if (!network_) {
         LOGE("ERROR: network_ is nil, network_type may not support\n");
-        return Status(RPDERR_NET_ERR, "network_ is nil, network_type may not support");
+        return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
     return network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
 }
 
 Status Instance::DeInit() {
     network_ = nullptr;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Instance::GetForwardMemorySize(int &memory_size) {
@@ -109,7 +109,7 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
     //get input blobs
     BlobMap input_blobs;
     auto status = network_->GetAllInputBlobs(input_blobs);
-    if (status != RPD_OK || input_blobs.size() <= 0) {
+    if (status != TNN_OK || input_blobs.size() <= 0) {
         LOGE("instance.GetAllInputBlobs Error: %s\n", status.description().c_str());
         return status;
     }
@@ -120,7 +120,7 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
     } else {
         if (input_blobs.find(input_name) == input_blobs.end()) {
             LOGE("instance dont have the input with name: %s\n", input_name.c_str());
-            return Status(RPDERR_MODEL_ERR, "instance dont have the input with name");
+            return Status(TNNERR_MODEL_ERR, "instance dont have the input with name");
         }
     }
     
@@ -141,12 +141,12 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
     status = blob_converter->ConvertFromMatAsync(*(mat.get()),
                                                  param,
                                                  command_queue);
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         LOGE("input_blob_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
         return status;
     }
     
-    return RPD_OK;
+    return TNN_OK;
 }
 
 //get output Mat
@@ -156,7 +156,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
     //get output blobs
     BlobMap output_blobs;
     auto status = network_->GetAllOutputBlobs(output_blobs);
-    if (status != RPD_OK || output_blobs.size() <= 0) {
+    if (status != TNN_OK || output_blobs.size() <= 0) {
         LOGE("instance.GetAllOutputBlobs Error: %s\n", status.description().c_str());
         return status;
     }
@@ -167,7 +167,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
     } else {
         if (output_blobs.find(output_name) == output_blobs.end()) {
             LOGE("instance dont have the output with name: %s\n", output_name.c_str());
-            return Status(RPDERR_MODEL_ERR, "instance dont have the output with name");
+            return Status(TNNERR_MODEL_ERR, "instance dont have the output with name");
         }
     }
     
@@ -175,7 +175,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
     if (output_mats_convert_status_.find(output_name) != output_mats_convert_status_.end() &&
         output_mats_.find(output_name) != output_mats_.end()) {
         mat = output_mats_[output_name];
-        return RPD_OK;
+        return TNN_OK;
     }
     
     //check if it has been allocated
@@ -204,7 +204,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
     status = blob_converter->ConvertToMat(*(mat.get()),
                                                  param,
                                                  command_queue);
-    if (status == TNN_NS::RPD_OK) {
+    if (status == TNN_NS::TNN_OK) {
         //set output mat convert status
         output_mats_convert_status_[output_name] = 1;
     } else {

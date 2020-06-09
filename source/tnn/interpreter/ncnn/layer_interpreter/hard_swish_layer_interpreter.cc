@@ -35,12 +35,12 @@ namespace ncnn {
         layer_param->alpha = GetFloat(p, 0, 0.2f);
         layer_param->beta  = GetFloat(p, 1, 0.5f);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status HardSwishLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                         LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

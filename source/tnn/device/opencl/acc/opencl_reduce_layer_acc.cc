@@ -21,12 +21,12 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Reduce Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     auto reduce_param = dynamic_cast<ReduceLayerParam *>(param);
     if (!reduce_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
@@ -48,12 +48,12 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     std::set<std::string> build_options = CreateBuildOptions();
 
     ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLReduceLayerAcc::~OpenCLReduceLayerAcc() {}
@@ -63,7 +63,7 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     auto reduce_param = dynamic_cast<ReduceLayerParam *>(param_);
     if (!reduce_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     ASSERT(inputs.size() == 1);
@@ -101,7 +101,7 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     execute_units_[0].ocl_kernel.setArg(idx++, cw4);
     execute_units_[0].ocl_kernel.setArg(idx++, axis_n);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

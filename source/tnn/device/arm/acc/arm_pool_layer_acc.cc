@@ -40,7 +40,7 @@ Status ArmPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
             corner_b_ > corner_t_;
         corner_b_--)
         ;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -114,7 +114,7 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Pooling, LAYER_POOLING)

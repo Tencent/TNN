@@ -24,7 +24,7 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(SoftMax, LAYER_SOFTMAX);
 
 Status CpuSoftMaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuSoftMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -32,7 +32,7 @@ Status CpuSoftMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 
     if (!params) {
         LOGE("Error: SoftmaxLayerParam is unsupported\n");
-        return Status(RPDERR_MODEL_ERR, "Error: SoftmaxLayerParam is unsupported");
+        return Status(TNNERR_MODEL_ERR, "Error: SoftmaxLayerParam is unsupported");
     }
 
     Blob *input_blob   = inputs[0];
@@ -93,7 +93,7 @@ Status CpuSoftMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     }
 
     delete[] temp;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(SoftMax, LAYER_SOFTMAX);

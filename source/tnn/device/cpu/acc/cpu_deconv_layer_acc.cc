@@ -36,19 +36,19 @@ CpuDeconvLayerAcc::~CpuDeconvLayerAcc() {}
 Status CpuDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("CpuDeconvLayerAcc dont support DATA_TYPE_INT8");
-        return Status(RPDERR_PARAM_ERR, "CpuDeconvLayerAcc dont support DATA_TYPE_INT8");
+        return Status(TNNERR_PARAM_ERR, "CpuDeconvLayerAcc dont support DATA_TYPE_INT8");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -57,7 +57,7 @@ Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -65,7 +65,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
     auto resource = dynamic_cast<ConvLayerResource *>(resource_);
     if (!param || !resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: DeconvLayerParam or DeconvLayerResource is empty");
+        return Status(TNNERR_MODEL_ERR, "Error: DeconvLayerParam or DeconvLayerResource is empty");
     }
 
     Blob *input_blob  = inputs[0];
@@ -176,9 +176,9 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         }
 
     } else {
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuDeconvLayerAcc>> g_cpu_deconv_layer_acc_register(LAYER_DECONVOLUTION);

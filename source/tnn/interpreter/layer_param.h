@@ -47,6 +47,10 @@ struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 0.f;
 };
+struct InstanceNormLayerParam : public LayerParam {
+    int channels = 0;
+    float eps    = 0.01f;
+};
 
 struct ConvLayerParam : public LayerParam {
     int pad_type = -1;
@@ -229,7 +233,9 @@ typedef enum {
     // broadcast channel x height x width
     BroadcastTypeElement = 3,
     // broadcast height x width
-    BroadcastTypeHeightWidth = 4
+    BroadcastTypeHeightWidth = 4,
+    // broadcast width
+    BroadcastTypeWidth = 5
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {

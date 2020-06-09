@@ -23,7 +23,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     LOGD("Init Binary Acc\n");
 
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
 
@@ -52,36 +52,36 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                 param_idx_ = 1;
 
             } else {
-                return Status(RPDERR_PARAM_ERR, "input dims is illegal");
+                return Status(TNNERR_PARAM_ERR, "input dims is illegal");
             }
 
         } else {
-            return Status(RPDERR_PARAM_ERR, "inputs size shound be 2 without binary resource");
+            return Status(TNNERR_PARAM_ERR, "inputs size shound be 2 without binary resource");
         }
     } else {
         auto param_dims = layer_res->element_shape;
         input_idx_      = 0;
         if (inputs.size() != 1) {
-            return Status(RPDERR_PARAM_ERR, "input size should be 1");
+            return Status(TNNERR_PARAM_ERR, "input size should be 1");
         }
 
         if (layer_res->element_handle.GetDataType() == DATA_TYPE_FLOAT) {
             float *data_ptr = layer_res->element_handle.force_to<float *>();
             ret             = ConvertParam(data_ptr, param_dims);
-            CHECK_RPD_OK(ret)
+            CHECK_TNN_OK(ret)
         } else {
             auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
             if (float_data_ptr == nullptr) {
-                return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "convert res to float falied");
+                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float falied");
             }
             ret = ConvertParam(float_data_ptr.get(), param_dims);
-            CHECK_RPD_OK(ret)
+            CHECK_TNN_OK(ret)
         }
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLBinaryLayerAcc::~OpenCLBinaryLayerAcc() {}
@@ -123,7 +123,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     // set output
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)outputs[0]->GetHandle().base));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerParam &param) {
@@ -155,21 +155,21 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
                               buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     param_buffer->SetData(&param_clbuffer);
     auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         param_clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
     memset(param_clbuffer_ptr, 0, buffer_size * sizeof(float));
     memcpy(param_clbuffer_ptr, param_data_ptr, param_size * sizeof(float));
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create binary_param_
@@ -184,7 +184,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     binary_params_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     binary_params_->SetData(image, true);

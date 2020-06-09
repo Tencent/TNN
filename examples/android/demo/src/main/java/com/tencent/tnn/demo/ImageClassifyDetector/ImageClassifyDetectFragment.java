@@ -56,8 +56,8 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "squeezenet_v1.1.rapidmodel",
-                "squeezenet_v1.1.rapidproto",
+                "squeezenet_v1.1.tnnmodel",
+                "squeezenet_v1.1.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {

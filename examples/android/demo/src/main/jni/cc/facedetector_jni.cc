@@ -29,8 +29,8 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     gDetector = std::make_shared<UltraFaceDetector>(width, height, 1, 0.7);
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.rapidproto");
-    modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.rapidmodel");
+    protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     TNN_NS::Status status;
@@ -40,7 +40,7 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     } else {
         gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU, nchw);
     }
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
         return -1;
     }
@@ -92,7 +92,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     TNN_NS::Status status = asyncRefDetector->Detect(rgbTNN, width, height, faceInfoList);
     delete [] yuvData;
     delete [] rgbaData;
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         LOGE("failed to detect %d", (int)status);
         return 0;
     }
@@ -156,7 +156,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     std::vector<FaceInfo> faceInfoList;
     TNN_NS::Status status = asyncRefDetector->Detect(input_mat, height, width, faceInfoList);
     AndroidBitmap_unlockPixels(env, imageSource);
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         LOGE("failed to detect %d", (int)status);
         return 0;
     }

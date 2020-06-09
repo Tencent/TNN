@@ -47,8 +47,8 @@ echo "$(dirname $0)"
 
 # download face-detector tnn model
 download_model \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.rapidproto" \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.rapidmodel" \
+  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnproto" \
+  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnmodel" \
   "face_detector"
 
 # download face-detector ncnn model
@@ -59,12 +59,12 @@ download_model \
 
 # download mobilenetv2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.rapidproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.rapidmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnmodel" \
     "mobilenet_v2"
 
 # download shufflenet_v2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.rapidproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.rapidmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnmodel" \
     "shufflenet_v2"

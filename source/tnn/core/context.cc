@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 // this function is called before forward by Network.
 Status Context::OnInstanceForwardBegin() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -28,7 +28,7 @@ Status Context::OnInstanceForwardBegin() {
  * Not implemented for this default context.
  */
 Status Context::SetNumThreads(int num_threads) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #if TNN_PROFILE

@@ -31,7 +31,7 @@ Status MemoryUnifyAssignStrategy::AssignAllBlobMemory(std::set<BlobMemory*>& blo
         BlobMemorySizeInfo size_info = iter->GetBlobMemorySizeInfo();
         blob_memory_start_offset += GetBlobMemoryBytesSize(size_info);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

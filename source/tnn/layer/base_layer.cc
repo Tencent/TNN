@@ -42,7 +42,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     resource_ = resource;
 
     auto status = InferOutputDataType();
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -50,14 +50,14 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
          output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
          output_blobs[0]->GetBlobDesc().dims[3]);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {
         if (item <= 0) {
             LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(RPDERR_LAYER_ERR, "layer output dims is invalid");
+            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
         }
     }
 
@@ -66,7 +66,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         return layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc of type(%d) is nil\n", type_);
-        return Status(RPDERR_LAYER_ERR, "layer acc is nil");
+        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 }
 
@@ -75,7 +75,7 @@ Status BaseLayer::InferOutputDataType() {
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BaseLayer::Reshape() {
@@ -84,7 +84,7 @@ Status BaseLayer::Reshape() {
     for (auto item : dims) {
         if (item <= 0) {
             LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(RPDERR_LAYER_ERR, "layer output dims is invalid");
+            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
         }
     }
 
@@ -92,7 +92,7 @@ Status BaseLayer::Reshape() {
         return layer_acc_->Reshape(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
-        return Status(RPDERR_LAYER_ERR, "layer acc is nil");
+        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 }
 
@@ -101,7 +101,7 @@ Status BaseLayer::Forward() {
         return layer_acc_->Forward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
-        return Status(RPDERR_LAYER_ERR, "layer acc is nil");
+        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 }
 
@@ -132,7 +132,7 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
     resource_     = resource;
 
     InferOutputShape();
-    return RPD_OK;
+    return TNN_OK;
 }
 #endif
 

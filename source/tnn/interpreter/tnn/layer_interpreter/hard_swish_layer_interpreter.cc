@@ -30,25 +30,25 @@ Status HardSwishLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
     if (index < layer_cfg_arr.size()) {
         layer_param->beta = static_cast<float>(atof(layer_cfg_arr[index++].c_str()));
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HardSwishLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HardSwishLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<HardSwishLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->alpha << " " << layer_param->beta << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HardSwishLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(HardSwish, LAYER_HARDSWISH);

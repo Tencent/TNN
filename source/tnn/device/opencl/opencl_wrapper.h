@@ -38,8 +38,8 @@
         LOGE("OpenCL ERROR CODE : %d \n", (int)error);                         \
     }
 
-#define CHECK_RPD_OK(error)                                                    \
-    if (error != RPD_OK) {                                                     \
+#define CHECK_TNN_OK(error)                                                    \
+    if (error != TNN_OK) {                                                     \
         LOGE("%s\n", error.description().c_str());                             \
         return error;                                                          \
     }

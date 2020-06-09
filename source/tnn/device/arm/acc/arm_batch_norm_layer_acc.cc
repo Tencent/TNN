@@ -68,7 +68,7 @@ Status ArmBatchNormLayerAcc::allocateBufferParam(const std::vector<Blob *> &inpu
         buffer_bias_ = temp_buffer;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -115,7 +115,7 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)

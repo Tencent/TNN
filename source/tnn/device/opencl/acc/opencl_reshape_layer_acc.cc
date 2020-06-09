@@ -22,7 +22,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Reshape Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Reshape";
@@ -31,7 +31,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // image->buffer
     {
         ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
         }
@@ -40,13 +40,13 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // buffer->image
     {
         ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLReshapeLayerAcc::~OpenCLReshapeLayerAcc() {}
@@ -84,7 +84,7 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)

@@ -24,7 +24,7 @@ Status MetalPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     auto pool_param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!pool_param || (pool_param->pool_type != 0 && pool_param->pool_type != 1)) {
         LOGE("Error: PoolingLayerParam pool_type unsupported\n");
-        return Status(RPDERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
+        return Status(TNNERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
     }
 
     return MetalLayerAcc::Reshape(inputs, outputs);
@@ -53,7 +53,7 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
                                             length:sizeof(MetalPoolParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalPoolingLayerAcc::KernelName() {
@@ -68,7 +68,7 @@ Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!param || (param->pool_type != 0 && param->pool_type != 1)) {
         LOGE("Error: PoolingLayerParam pool_type unsupported\n");
-        return Status(RPDERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
+        return Status(TNNERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
     }
     return MetalLayerAcc::Forward(inputs, outputs);
 }
@@ -85,7 +85,7 @@ Status MetalPoolingLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_METAL_ACC(Pooling, LAYER_POOLING);

@@ -29,7 +29,7 @@ std::vector<BlobDesc> CreateInputBlobsDesc(int batch, int channel, int input_siz
         input_desc.dims.push_back(channel);
         input_desc.dims.push_back(input_size);
         input_desc.dims.push_back(input_size);
-        input_desc.device_type = DEVICE_CPU;
+        input_desc.device_type = DEVICE_NAIVE;
         input_desc.data_type   = data_type;
         inputs_desc.push_back(input_desc);
     }
@@ -46,7 +46,7 @@ std::vector<BlobDesc> CreateInputBlobsDesc(int batch, int channel, int height, i
         input_desc.dims.push_back(channel);
         input_desc.dims.push_back(height);
         input_desc.dims.push_back(width);
-        input_desc.device_type = DEVICE_CPU;
+        input_desc.device_type = DEVICE_NAIVE;
         input_desc.data_type   = data_type;
         inputs_desc.push_back(input_desc);
     }
@@ -58,7 +58,7 @@ std::vector<BlobDesc> CreateOutputBlobsDesc(int blob_count, DataType data_type) 
     for (int i = 0; i < blob_count; ++i) {
         BlobDesc output_desc;
         output_desc.data_type   = data_type;
-        output_desc.device_type = DEVICE_CPU;
+        output_desc.device_type = DEVICE_NAIVE;
         outputs_desc.push_back(output_desc);
     }
     return outputs_desc;

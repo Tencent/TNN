@@ -72,10 +72,10 @@ using namespace TNN_NS;
                                                       ofType:nil];
 #else
     auto model_path =
-        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.rapidmodel"
+        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
                                         ofType:nil];
     auto proto_path =
-        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.rapidproto"
+        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
                                         ofType:nil];
 #endif
     if ( proto_path.length <= 0 || model_path.length <= 0 ) {
@@ -104,7 +104,7 @@ using namespace TNN_NS;
 
     UltraFaceDetector detector(target_width, target_height, 1, 0.95, 0.15);
     auto status = detector.Init(proto_content, model_content, library_path.UTF8String, units);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;
@@ -136,7 +136,7 @@ using namespace TNN_NS;
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
         status = detector.Detect(image_mat, target_height, target_width, face_info);
     }
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;

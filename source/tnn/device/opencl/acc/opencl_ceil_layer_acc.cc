@@ -22,11 +22,11 @@ Status OpenCLCeilLayerAcc::Init(Context *context, LayerParam *param, LayerResour
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Ceil Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "Ceil";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLCeilLayerAcc::CreateBuildOptions() {

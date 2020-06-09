@@ -68,7 +68,7 @@ Status ArmConvInt8LayerDepthwise::allocateBufferParam(const std::vector<Blob *> 
 
         buffer_weight_ = temp_buffer;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -127,7 +127,7 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
             ReluInt8(output_batch, output_batch, output_height * dst_y_step);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

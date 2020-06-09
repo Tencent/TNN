@@ -27,28 +27,28 @@ Status TNN::Init(ModelConfig& config) {
     impl_ = TNNImplManager::GetTNNImpl(config.model_type);
     if (!impl_) {
         LOGE("Error: not support mode type: %d\n", config.model_type);
-        return Status(RPDERR_NET_ERR, "not support mode type");
+        return Status(TNNERR_NET_ERR, "not support mode type");
     }
     return impl_->Init(config);
 }
 
 Status TNN::DeInit() {
     impl_ = nullptr;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status TNN::AddOutput(const std::string& layer_name, int output_index) {
     // todo for output index
     if (!impl_) {
         LOGE("Error: impl_ is nil\n");
-        return Status(RPDERR_NET_ERR, "tnn impl_ is nil");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
     }
     return impl_->AddOutput(layer_name, output_index);
 }
 
 std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
     if (!impl_) {
-        status = Status(RPDERR_NET_ERR, "tnn impl_ is nil");
+        status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
         return nullptr;
     }
 

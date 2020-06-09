@@ -39,7 +39,7 @@ Status MetalConvLayerDepthwise::AllocateBufferWeight(const std::vector<Blob *> &
     auto param  = dynamic_cast<ConvLayerParam *>(param_);
     auto resource = dynamic_cast<ConvLayerResource *>(resource_);
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = param->kernels[0];
         int kh = param->kernels[1];
@@ -72,7 +72,7 @@ Status MetalConvLayerDepthwise::AllocateBufferParam(const std::vector<Blob *> &i
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalConvLayerDepthwise::KernelName() {
@@ -90,7 +90,7 @@ Status MetalConvLayerDepthwise::SetKernelEncoderParam(
     [encoder setBuffer:buffer_bias_
                 offset:0
                atIndex:4];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayerDepthwise::ComputeThreadSize(const std::vector<Blob *> &inputs,
@@ -99,7 +99,7 @@ Status MetalConvLayerDepthwise::ComputeThreadSize(const std::vector<Blob *> &inp
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayerDepthwise::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

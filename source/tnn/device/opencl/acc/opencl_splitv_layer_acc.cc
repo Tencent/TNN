@@ -54,7 +54,7 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init SplitV Acc \n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "SplitV";
@@ -62,19 +62,19 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     auto layer_param = dynamic_cast<SplitVLayerParam *>(param);
     if (layer_param == nullptr) {
         LOGE("SplitVLayerParam is null!\n");
-        return Status(RPDERR_MODEL_ERR, "SplitVLayerParam is null");
+        return Status(TNNERR_MODEL_ERR, "SplitVLayerParam is null");
     }
 
     if (layer_param->axis != 1) {
         LOGE("axis=%d is not support in SplitV yet!\n", layer_param->axis);
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "the axis not support");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "the axis not support");
     }
 
     std::vector<int> slices = layer_param->slices;
 
     if (slices.size() != outputs.size()) {
         LOGE("invalid params in SplitV!\n");
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "invalid params in SplitV");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid params in SplitV");
     }
 
     int begin   = 0;
@@ -104,7 +104,7 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         // use buffer, convert image to buffer first.
         OpenCLExecuteUnit exec_unit;
         ret = CreateExecuteUnit(exec_unit, "image_to_buffer", "ImageToNCHWBufferFLOAT");
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
         execute_units_.push_back(exec_unit);
     }
     for (auto unit : splitv_units_) {
@@ -114,11 +114,11 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         } else {
             ret = CreateExecuteUnit(exec_unit, "copy", "CopyBufferToImage");
         }
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
         execute_units_.push_back(exec_unit);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLSplitVLayerAcc::~OpenCLSplitVLayerAcc() {}
@@ -144,7 +144,7 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             CHECK_CL_SUCCESS(cl_ret)
             if (nullptr != cl_buffer)
                 delete cl_buffer;
-            return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
         }
         buffer_.reset(cl_buffer);
 
@@ -209,7 +209,7 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         exec_unit_idx++;
         unit_idx++;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(SplitV, LAYER_SPLITV)

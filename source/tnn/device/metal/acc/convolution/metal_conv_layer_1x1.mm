@@ -45,7 +45,7 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
 
     if (group > 1 && (gic % 4 != 0) && (goc % 4 != 0)) {
         LOGD("convolution: channel per group must be 4x\n");
-        return Status(RPDERR_LAYER_ERR, "convolution: channel per group must be 4x");
+        return Status(TNNERR_LAYER_ERR, "convolution: channel per group must be 4x");
     }
     
     // buffer_param_
@@ -63,7 +63,7 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                             length:sizeof(MetalConvParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalConvLayer1x1::KernelName() {
@@ -79,7 +79,7 @@ Status MetalConvLayer1x1::ComputeThreadSize(const std::vector<Blob *> &inputs,
     auto slice_per_group = UP_DIV(dims_output[1], 4) / layer_param->group;
     slice_per_group = slice_per_group > 0 ? slice_per_group : 1;
     size = MTLSizeMake(dims_output[3]*dims_output[2], slice_per_group, dims_output[0]);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayer1x1::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

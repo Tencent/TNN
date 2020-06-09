@@ -108,16 +108,16 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
         }
     } else {
         LOGE("Error: invalid add type\n");
-        return Status(RPDERR_LAYER_ERR, "Error: Binary layer's unsupported broadcast type");
+        return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unsupported broadcast type");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -143,7 +143,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
@@ -175,7 +175,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -184,7 +184,7 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
     if (!layer_res && broadcast_.GetBytesSize() > 0) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
 
     std::vector<void *> input_ptrs;
@@ -241,7 +241,7 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

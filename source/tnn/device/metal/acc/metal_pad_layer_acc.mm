@@ -46,7 +46,7 @@ Status MetalPadLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
                                             length:sizeof(MetalPadParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalPadLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
@@ -54,7 +54,7 @@ Status MetalPadLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalPadLayerAcc::KernelName() {

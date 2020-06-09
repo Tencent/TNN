@@ -24,14 +24,14 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(HardSwish, LAYER_HARDSWISH);
 
 Status CpuHardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<HardSwishLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: HardSwishLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: HardSwishLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HardSwishLayerParam is nil");
     }
     const float alpha = layer_param->alpha;
     const float beta  = layer_param->beta;
@@ -93,9 +93,9 @@ Status CpuHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
             }
         }
     } else {
-        return Status(RPDERR_PARAM_ERR, "Error: CpuHardSwishLayerAcc datatype not support ");
+        return Status(TNNERR_PARAM_ERR, "Error: CpuHardSwishLayerAcc datatype not support ");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(HardSwish, LAYER_HARDSWISH);

@@ -48,7 +48,7 @@ Status MetalNormalizeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
                                             length:sizeof(MetalNormalizeParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalNormalizeLayerAcc::KernelName() {
@@ -88,7 +88,7 @@ Status MetalNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto mode           = dims_output[1] % 4;
 
     MetalBandwidth bandwidth;
-    Status status        = RPD_OK;
+    Status status        = TNN_OK;
     DataType data_type   = output->GetBlobDesc().data_type;
     string data_type_str = DataTypeUtils::GetDataTypeString(data_type);
 
@@ -107,17 +107,17 @@ Status MetalNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
             }
         } else {
             LOGE("MetalNormalizeLayerAcc do not support axis!=1\n");
-            status = Status(RPDERR_LAYER_ERR, "MetalNormalizeLayerAcc do not support axis!=1");
+            status = Status(TNNERR_LAYER_ERR, "MetalNormalizeLayerAcc do not support axis!=1");
         }
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads = {(NSUInteger)output_width * output_height, 1, (NSUInteger)batch};
 
         status = SetKernelEncoderParam(encoder, inputs, outputs);
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

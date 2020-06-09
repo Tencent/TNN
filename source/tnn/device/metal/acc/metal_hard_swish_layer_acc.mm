@@ -28,7 +28,7 @@ Status MetalHardSwishLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     auto layer_param = dynamic_cast<HardSwishLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: HardSwishLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "HardSwishLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "HardSwishLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -52,7 +52,7 @@ Status MetalHardSwishLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
                                             length:sizeof(MetalHardSigmoidParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalHardSwishLayerAcc::KernelName() {
@@ -77,7 +77,7 @@ Status MetalHardSwishLayerAcc::SetKernelEncoderParam(
                 offset:(NSUInteger)output->GetHandle().bytes_offset
                atIndex:2];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHardSwishLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,

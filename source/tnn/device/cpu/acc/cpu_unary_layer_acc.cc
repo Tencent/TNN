@@ -24,29 +24,29 @@ namespace TNN_NS {
 Status CpuUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto ret = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
     if (NULL == op_) {
         LOGE("Error: Unary layer init got null op\n");
-        return Status(RPDERR_LAYER_ERR, "Unary layer init got null op");
+        return Status(TNNERR_LAYER_ERR, "Unary layer init got null op");
     }
     return op_->Init(param);
 }
 
 Status CpuUnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "layer's inputs size must >= 1");
+        return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 1");
     }
 
     if (NULL == op_) {
         LOGE("Error: Unary layer got null op\n");
-        return Status(RPDERR_LAYER_ERR, "Unary layer got undefined op");
+        return Status(TNNERR_LAYER_ERR, "Unary layer got undefined op");
     }
 
     Blob *input_blob  = inputs[0];
@@ -60,13 +60,13 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS
