@@ -44,11 +44,11 @@ namespace ncnn {
         for (auto optimizer_name : optimizer_list) {
             auto optimizer = optimizer_map[optimizer_name];
             auto status    = optimizer->Optimize(structure, resource);
-            if (status != RPD_OK) {
+            if (status != TNN_OK) {
                 return status;
             }
         }
-        return RPD_OK;
+        return TNN_OK;
     }
 
     void NCNNOptimizerManager::RegisterNetOptimizer(NCNNOptimizer *optimizer) {

@@ -31,29 +31,29 @@ Status LRNLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
     layer_param->bias  = static_cast<float>(atof(layer_cfg_arr[index++].c_str()));
     layer_param->size  = atoi(layer_cfg_arr[index++].c_str());
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status LRNLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status LRNLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<LRNLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->alpha << " ";
     output_stream << layer_param->beta << " ";
     output_stream << layer_param->bias << " ";
     output_stream << layer_param->size << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status LRNLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(LRN, LAYER_LRN);

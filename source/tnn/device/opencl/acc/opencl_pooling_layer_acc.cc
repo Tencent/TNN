@@ -23,7 +23,7 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Pooling Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "Pooling";
@@ -31,7 +31,7 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     PoolingLayerParam *pooling_param = dynamic_cast<PoolingLayerParam *>(param);
     if (!pooling_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     if (pooling_param->pad_type == 1) {  // VALID Type
@@ -47,12 +47,12 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         build_options.emplace("-DPOOL_AVG");
     }
     ret = CreateExecuteUnit(execute_units_[0], "pooling", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -60,7 +60,7 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     PoolingLayerParam *pooling_param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!pooling_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     auto input  = inputs[0];
@@ -103,7 +103,7 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Pooling, LAYER_POOLING)

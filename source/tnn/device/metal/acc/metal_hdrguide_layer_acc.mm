@@ -58,10 +58,10 @@ Status MetalHDRGuideLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
 
     auto layer_res = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
@@ -71,22 +71,22 @@ Status MetalHDRGuideLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
     }
 
     status = AllocateBufferCCMWeight(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     status = AllocateBufferCCMBias(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     status = AllocateBufferSlopes(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     status = AllocateBufferShifts(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -98,10 +98,10 @@ Status MetalHDRGuideLayerAcc::AllocateBufferCCMWeight(const std::vector<Blob *> 
                                                       const std::vector<Blob *> &outputs) {
     auto layer_res = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_ccm_weight_) {
         int kw = 1;
         int kh = 1;
@@ -122,7 +122,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferCCMBias(const std::vector<Blob *> &i
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_res       = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
 
     if (!buffer_ccm_bias_) {
@@ -131,7 +131,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferCCMBias(const std::vector<Blob *> &i
 
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("Error: DataType %d not support\n", data_type);
-            return Status(RPDERR_MODEL_ERR, "k_handle DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "k_handle DataType is not supported");
         }
 
 #if TNN_METAL_FULL_PRECISION
@@ -204,7 +204,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferCCMBias(const std::vector<Blob *> &i
         }
 #endif
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHDRGuideLayerAcc::AllocateBufferSlopes(const std::vector<Blob *> &inputs,
@@ -212,7 +212,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferSlopes(const std::vector<Blob *> &in
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_res       = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
     if (!buffer_slopes_) {
         const float *slope_data  = layer_res->slopes_handle.force_to<float *>();
@@ -220,7 +220,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferSlopes(const std::vector<Blob *> &in
 
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("Error: DataType %d not support\n", data_type);
-            return Status(RPDERR_MODEL_ERR, "k_handle DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "k_handle DataType is not supported");
         }
 
 #if TNN_METAL_FULL_PRECISION
@@ -291,7 +291,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferSlopes(const std::vector<Blob *> &in
         }
 #endif
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHDRGuideLayerAcc::AllocateBufferShifts(const std::vector<Blob *> &inputs,
@@ -299,7 +299,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferShifts(const std::vector<Blob *> &in
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_res       = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
 
     if (!buffer_shifts_) {
@@ -308,7 +308,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferShifts(const std::vector<Blob *> &in
 
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("Error: DataType %d not support\n", data_type);
-            return Status(RPDERR_MODEL_ERR, "k_handle DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "k_handle DataType is not supported");
         }
 
 #if TNN_METAL_FULL_PRECISION
@@ -382,7 +382,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferShifts(const std::vector<Blob *> &in
 #endif
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHDRGuideLayerAcc::AllocateBufferProjection(const std::vector<Blob *> &inputs,
@@ -390,7 +390,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferProjection(const std::vector<Blob *>
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_res       = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: HDRGuideLayerResource is nil");
     }
 
     if (!buffer_projection_) {
@@ -400,7 +400,7 @@ Status MetalHDRGuideLayerAcc::AllocateBufferProjection(const std::vector<Blob *>
 
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("Error: DataType %d not support\n", data_type);
-            return Status(RPDERR_MODEL_ERR, "b_handle DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "b_handle DataType is not supported");
         }
 
 #if TNN_METAL_FULL_PRECISION
@@ -474,20 +474,20 @@ Status MetalHDRGuideLayerAcc::AllocateBufferProjection(const std::vector<Blob *>
 #endif
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto context_impl = context_->getMetalContextImpl();
     if (!context_impl) {
         LOGE("context_impl is nil\n");
-        return Status(RPDERR_CONTEXT_ERR, "MetalHDRGuideLayerAcc context_impl is nil");
+        return Status(TNNERR_CONTEXT_ERR, "MetalHDRGuideLayerAcc context_impl is nil");
     }
 
     auto encoder = [context_impl encoder];
     if (!encoder) {
         LOGE("encoder is nil\n");
-        return Status(RPDERR_CONTEXT_ERR, "MetalHDRGuideLayerAcc encoder is nil");
+        return Status(TNNERR_CONTEXT_ERR, "MetalHDRGuideLayerAcc encoder is nil");
     }
 
     if (param_) {
@@ -501,12 +501,12 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto output_width = dims_output[3], output_height = dims_output[2],
          output_slice = UP_DIV(dims_output[1], 4) * dims_output[0];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
 
     do {
         status = [context_impl load:@"hdr_guide" encoder:encoder bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads = {(NSUInteger)output_height * output_width, (NSUInteger)output_slice, 1};
 
@@ -524,7 +524,7 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
         [encoder setBuffer:buffer_projection_ offset:0 atIndex:7];
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

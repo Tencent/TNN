@@ -32,26 +32,26 @@ CoreMLNetwork::~CoreMLNetwork() {
 Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                            InputShapesMap inputs_shape) {
     if (@available(iOS 11.0, macOS 10.13, *)) {
-        Status ret = RPD_OK;
+        Status ret = TNN_OK;
 
         device_ = GetDevice(net_config.device_type);
         if (device_ == NULL) {
-            return RPDERR_DEVICE_NOT_SUPPORT;
+            return TNNERR_DEVICE_NOT_SUPPORT;
         }
 
         context_ = device_->CreateContext(net_config.device_id);
         if (context_ == NULL) {
-            return RPDERR_DEVICE_CONTEXT_CREATE;
+            return TNNERR_DEVICE_CONTEXT_CREATE;
         }
 
         ret = context_->LoadLibrary(net_config.library_path);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
 
         if (model_config.params.size() < 1) {
             LOGE("Error: ModelConfig.params[0] is not a directory of MLModel\n");
-            return Status(RPDERR_INST_ERR, "Error: ModelConfig.params[0] is not a directory of MLModel");
+            return Status(TNNERR_INST_ERR, "Error: ModelConfig.params[0] is not a directory of MLModel");
         }
 
         NSError *error = nil;
@@ -63,7 +63,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             [NSData dataWithContentsOfFile:[model_dir stringByAppendingPathComponent:@"model.espresso.shape"]];
         if (!data_net || !data_shape) {
             LOGE("Error: CoreML net or shape file is invalid\n");
-            return Status(RPDERR_INST_ERR, "CoreML net or shape file is invalid");
+            return Status(TNNERR_INST_ERR, "CoreML net or shape file is invalid");
         }
 
         coreml_net_ = [NSJSONSerialization JSONObjectWithData:data_net
@@ -71,59 +71,59 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
                                                         error:&error];
         if (error || !coreml_net_ || [coreml_net_[@"layers"] count] <= 0) {
             LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-            return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
+            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
         }
         coreml_shape_ = [NSJSONSerialization JSONObjectWithData:data_shape
                                                         options:NSJSONReadingAllowFragments
                                                           error:&error];
         if (error || !coreml_shape_ || [coreml_shape_[@"layer_shapes"] count] <= 0) {
             LOGE("Error: MLModel modelWithContentsOfURL failed: invalid shape file\n");
-            return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
+            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
         }
 
         coreml_model_ = [MLModel modelWithContentsOfURL:[NSURL fileURLWithPath:model_dir] error:&error];
 
         if (error || !coreml_model_) {
             LOGE("Error: MLModel modelWithContentsOfURL failed\n");
-            return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed");
+            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed");
         }
 
         return ret;
     } else {
-        return Status(RPDERR_INST_ERR, "CoreML only support iOS 11+");
+        return Status(TNNERR_INST_ERR, "CoreML only support iOS 11+");
     }
 }
 
 Status CoreMLNetwork::GetForwardMemorySize(int &memory_size) {
     memory_size = 0;
-    return Status(RPDERR_INST_ERR, "CoreML do not support GetForwardMemorySize");
+    return Status(TNNERR_INST_ERR, "CoreML do not support GetForwardMemorySize");
 }
 
 Status CoreMLNetwork::SetForwardMemory(void *memory) {
-    return Status(RPDERR_INST_ERR, "CoreML do not support SetForwardMemory");
+    return Status(TNNERR_INST_ERR, "CoreML do not support SetForwardMemory");
 }
 
 Status CoreMLNetwork::CheckCoreMLStatus() {
     if (!coreml_net_ || [coreml_net_[@"layers"] count] <= 0) {
         LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-        return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
+        return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
     }
     
     if (!coreml_shape_ || [coreml_shape_[@"layer_shapes"] count] <= 0) {
         LOGE("Error: MLModel modelWithContentsOfURL failed: invalid shape file\n");
-        return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
+        return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
     if (blob_input_map_.size() > 0) {
         blobs = blob_input_map_;
-        return RPD_OK;
+        return TNN_OK;
     }
     
     auto status = CheckCoreMLStatus();
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -167,17 +167,17 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
     }
 
     blobs = blob_input_map_;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     if (blob_output_map_.size() > 0) {
         blobs = blob_output_map_;
-        return RPD_OK;
+        return TNN_OK;
     }
     
     auto status = CheckCoreMLStatus();
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -222,21 +222,21 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     }
 
     blobs = blob_output_map_;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CoreMLNetwork::Reshape(const InputShapesMap &inputs) {
-    return Status(RPDERR_INST_ERR, "CoreML do not support Reshape");
+    return Status(TNNERR_INST_ERR, "CoreML do not support Reshape");
 }
 
 Status CoreMLNetwork::DeInit() {
     coreml_model_ = nil;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CoreMLNetwork::GetCommandQueue(void **command_queue) {
     if (context_ == NULL) {
-        return Status(RPDERR_DEVICE_CONTEXT_CREATE, "CoreML GetCommandQueue is nil");
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "CoreML GetCommandQueue is nil");
     }
     return context_->GetCommandQueue(command_queue);
 }
@@ -245,13 +245,13 @@ Status CoreMLNetwork::Forward() {
     if (@available(iOS 11.0, macOS 10.13, *)) {
         BlobMap blob_output_map;
         auto status = GetAllOutputBlobs(blob_output_map);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
 
         if (!coreml_net_ || [coreml_net_[@"layers"] count] <= 0) {
             LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-            return Status(RPDERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
+            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
         }
         NSArray *layeres      = coreml_net_[@"layers"];
         NSString *input_name  = layeres[0][@"bottom"];
@@ -285,9 +285,9 @@ Status CoreMLNetwork::Forward() {
         int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
 
         memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
-        return RPD_OK;
+        return TNN_OK;
     } else {
-        return Status(RPDERR_INST_ERR, "CoreML only support iOS 11+");
+        return Status(TNNERR_INST_ERR, "CoreML only support iOS 11+");
     }
 }
 

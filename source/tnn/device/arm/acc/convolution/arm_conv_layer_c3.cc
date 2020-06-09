@@ -59,7 +59,7 @@ Status ArmConvLayerC3::allocateBufferWeight(const std::vector<Blob *> &inputs, c
         ConvertWeightsFromOI3HWToOHW12((float *)src, (float *)dst, input_channel, output_channel,
                                        conv_param->kernels[1], conv_param->kernels[0]);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 template <typename T>
 void GemmSlidewC3(T *dst, const T *src, const float *weight, int width, int src_w_setup, int fw, int fh,
@@ -127,7 +127,7 @@ Status ArmConvLayerC3::Exec(const std::vector<Blob *> &inputs, const std::vector
 
             auto work_space_t = work_space + thread_id * workspace_per_thread / sizeof(T);
             memset(work_space_t, 0, workspace_per_thread);
-            int src_start_y = dy * conv_param->strides[1] - conv_param->pads[1];
+            int src_start_y = dy * conv_param->strides[1] - conv_param->pads[2];
             int sfy         = MAX(0, (UP_DIV(-src_start_y, conv_param->dialations[1])));
             int efy         = MIN(kernel_y, UP_DIV(k_param_->ih - src_start_y, conv_param->dialations[1]));
 
@@ -151,7 +151,7 @@ Status ArmConvLayerC3::Exec(const std::vector<Blob *> &inputs, const std::vector
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerC3::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -160,7 +160,7 @@ Status ArmConvLayerC3::DoForward(const std::vector<Blob *> &inputs, const std::v
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 }  // namespace TNN_NS

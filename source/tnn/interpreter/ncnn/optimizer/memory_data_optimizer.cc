@@ -56,13 +56,13 @@ namespace ncnn {
         if (it != op->inputs.end()) {
             op->inputs.erase(it);
         } else {
-            return Status(RPDERR_NET_ERR, "Error in convert_const_to_weights");
+            return Status(TNNERR_NET_ERR, "Error in convert_const_to_weights");
         }
 
         ConstLayerParam *const_param = dynamic_cast<ConstLayerParam *>(const_op->param.get());
 
         if (const_param == nullptr) {
-            return Status(RPDERR_NET_ERR, "Error: const param null.");
+            return Status(TNNERR_NET_ERR, "Error: const param null.");
         }
 
         RawBuffer weights;
@@ -71,7 +71,7 @@ namespace ncnn {
                 dynamic_cast<ConstLayerResource *>(net_resource->resource_map[const_op->name].get());
 
             if (const_res == nullptr) {
-                return Status(RPDERR_NET_ERR, "Error: const weights null.");
+                return Status(TNNERR_NET_ERR, "Error: const weights null.");
             }
 
             weights = const_res->weight_handle;
@@ -87,7 +87,7 @@ namespace ncnn {
                 weights.force_to<float *>()[i] = 1.0;
             }
 #else
-            return Status(RPDERR_NET_ERR, "Error: not found const weights.");
+            return Status(TNNERR_NET_ERR, "Error: not found const weights.");
 #endif
         }
 
@@ -96,19 +96,19 @@ namespace ncnn {
 
         net_resource->resource_map[op->name] = std::dynamic_pointer_cast<LayerResource>(ele_res);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status MemoryDataOptimizer::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(RPDERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
         if (count <= 1) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
@@ -143,7 +143,7 @@ namespace ncnn {
             for (auto in_name : cur_layer->inputs) {
                 if (const_layers.find(in_name) != const_layers.end()) {
                     auto status = convert_const_to_weights(cur_layer, const_layers[in_name], resource);
-                    if (status != RPD_OK) {
+                    if (status != TNN_OK) {
                         return status;
                     }
                     const_layers.erase(in_name);
@@ -152,12 +152,12 @@ namespace ncnn {
         }
 
         if (const_layers.size() != 0) {
-            return Status(RPDERR_NET_ERR, "Error: unfused const layer.");
+            return Status(TNNERR_NET_ERR, "Error: unfused const layer.");
         }
 
         structure->layers = layers_fused;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

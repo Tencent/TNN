@@ -50,13 +50,13 @@ bool BlobMemory::DecrementUseCount() {
 Status BlobMemory::AllocateHandle() {
     void* data = NULL;
     auto status = device_->Allocate(&data, size_info_);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     handle_.base         = data;
     handle_.bytes_offset = 0;
     need_release_memory_ = true;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 void BlobMemory::SetHandleFromExternal(BlobHandle handle) {

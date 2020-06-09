@@ -22,11 +22,11 @@ Status OpenCLReduceLogSumExpLayerAcc::Init(Context *context, LayerParam *param, 
                                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init ReduceLogSumExp Acc\n");
     Status ret = OpenCLReduceLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "ReduceLogSumExp";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLReduceLogSumExpLayerAcc::CreateBuildOptions() {

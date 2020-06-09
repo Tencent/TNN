@@ -20,7 +20,7 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Reshape, LAYER_RESHAPE);
 
 Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -33,7 +33,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         auto size_in_bytes = dims_input[0] * dims_input[1] * dims_input[2] * dims_input[3] * data_byte_size;
         memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Reshape, LAYER_RESHAPE);

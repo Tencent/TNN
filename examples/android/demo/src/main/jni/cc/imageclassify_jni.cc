@@ -17,8 +17,8 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     gDetector = std::make_shared<ImageClassifier>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.rapidproto");
-    modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.rapidmodel");
+    protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
     TNN_NS::Status status;
     gComputeUnitType = computeUnitType;
@@ -28,7 +28,7 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
         status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU);
     }
 
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
         return -1;
     }
@@ -68,7 +68,7 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
     TNN_NS::Status status = gDetector->Classify(input_mat, width, height, resultList[0]);
     AndroidBitmap_unlockPixels(env, imageSource);
 
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         return 0;
     }
     char temp[128] = "";

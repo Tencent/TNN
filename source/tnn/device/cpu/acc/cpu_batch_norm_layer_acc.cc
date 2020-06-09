@@ -21,13 +21,13 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(BatchNorm, LAYER_BATCH_NORM);
 
 Status CpuBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
     }
 
     auto input_blob        = inputs[0];
@@ -64,7 +64,7 @@ Status CpuBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(BatchNorm, LAYER_BATCH_NORM);

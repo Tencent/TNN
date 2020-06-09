@@ -31,12 +31,12 @@ OpenCLConvLayerAccImpl::OpenCLConvLayerAccImpl() {
 Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerResource *resource,
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (nullptr == conv_param) {
         LOGE("invalid conv param!\n");
-        return Status(RPDERR_NULL_PARAM, "invalid conv param");
+        return Status(TNNERR_NULL_PARAM, "invalid conv param");
     }
 
     // interpreter conv 2d param with name info.
@@ -58,7 +58,7 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
 
     if ((conv_params_.group <= 0 || conv_params_.input_channel % conv_params_.group != 0)) {
         LOGE("invalid group size in Conv layer!\n");
-        return Status(RPDERR_LAYER_ERR, "invalid group size in Conv layer");
+        return Status(TNNERR_LAYER_ERR, "invalid group size in Conv layer");
     }
 
     // depthwise kernel use 2d ndragne.
@@ -66,35 +66,35 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
         run_3d_ndrange_ = false;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLConvLayerAccImpl::~OpenCLConvLayerAccImpl() {}
 
 Status OpenCLConvLayerAccImpl::AllocateWeightsBias(LayerResource *resource) {
-    Status ret                       = RPD_OK;
+    Status ret                       = TNN_OK;
     ConvLayerResource *conv_resource = dynamic_cast<ConvLayerResource *>(resource);
     if (nullptr == conv_resource) {
         LOGE("invalid conv resource!\n");
-        return Status(RPDERR_NULL_PARAM, "invalid conv resource");
+        return Status(TNNERR_NULL_PARAM, "invalid conv resource");
     }
     // get weights
     if (conv_resource->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer.
         float *weights_data_ptr = conv_resource->filter_handle.force_to<float *>();
         if (weights_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(weights_data_ptr);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         // if filter handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(conv_resource->filter_handle);
         if (float_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(float_data_ptr.get());
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // convert bias
@@ -136,20 +136,20 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       DimsVectorUtils::Count(filter_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
     }
     weight_memory->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         buffer, true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(filter_shape) * sizeof(float), nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL Conv MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL Conv MemMap failed");
     }
     memcpy(weight_clbuffer_ptr, wdata_ptr, DimsVectorUtils::Count(filter_shape) * sizeof(float));
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap falied");
     }
 
     // create ocl_weights_
@@ -169,7 +169,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != weights_clbuffer)
                 delete weights_clbuffer;
-            return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
         }
         ocl_weights_->SetData(weights_clbuffer, true);
 
@@ -198,7 +198,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != image)
                 delete image;
-            return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
         }
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
         ocl_weights_->SetData(image, true);

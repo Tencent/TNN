@@ -29,25 +29,26 @@ string OnnxOpConverterGather::TNNOpType(NodeProto &node,
 string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
                                                OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
-    auto rpd_op_type = TNNOpType(node, net_info);
+    auto tnn_op_type = TNNOpType(node, net_info);
 
-    int64_t axis = get_node_attr_i(node, "axis");
+    int axis = (int)get_node_attr_i(node, "axis");
     auto indices = get_node_attr_ai(node, "indices", net_info, 1);
 
     ostringstream layer_param;
-    if (rpd_op_type == "StridedSlice") {
+    if (tnn_op_type == "StridedSlice") {
         int dimension = 4;
         std::vector<int64_t> all_starts, all_ends, all_steps;
         for (int ii = 0; ii < axis; ii++) {
             all_starts.push_back(0);
-            all_ends.push_back(1);
+            all_ends.push_back(0);
             all_steps.push_back(1);
         }
 
-        all_starts[axis] = indices[0];
-        all_ends[axis] = indices[0]+1;
+        all_starts.push_back(indices[0]);
+        all_ends.push_back(indices[0] + 1);
+        all_steps.push_back(1);
 
-        for (int ii = axis; ii < dimension; ii++) {
+        for (int ii = axis + 1; ii < dimension; ii++) {
             all_starts.push_back(0);
             all_ends.push_back(0);
             all_steps.push_back(1);

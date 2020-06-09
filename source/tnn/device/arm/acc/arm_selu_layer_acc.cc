@@ -23,7 +23,7 @@ public:
         CHECK_PARAM_NULL(layer_param);
         alpha_ = layer_param->alpha;
         gamma_ = layer_param->gamma;
-        return RPD_OK;
+        return TNN_OK;
     }
 
     virtual Float4 operator()(const Float4 &v) {

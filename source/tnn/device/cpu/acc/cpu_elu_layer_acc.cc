@@ -25,10 +25,10 @@ public:
         auto layer_param = dynamic_cast<EluLayerParam *>(param);
         if (!layer_param) {
             LOGE("Error: layer param is nil\n");
-            return Status(RPDERR_MODEL_ERR, "Error:  layer param is nil");
+            return Status(TNNERR_MODEL_ERR, "Error:  layer param is nil");
         }
         alpha_ = layer_param->alpha;
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual float operator()(float in) {
         float tmp = in;

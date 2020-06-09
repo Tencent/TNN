@@ -28,10 +28,10 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_CUDA;
     } else if ("X86" == device_type) {
         return DEVICE_X86;
-    } else if ("ARM" == device_type) {
-        return DEVICE_ARM;
+    } else if ("NAIVE" == device_type){
+        return DEVICE_NAIVE;
     } else {
-        return DEVICE_CPU;
+        return DEVICE_ARM;
     }
 }
 
@@ -77,7 +77,7 @@ int CompareData(const float* ref_data, const float* result_data, size_t n, float
     for (unsigned long long i = 0; i < n; i++) {
         float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
         float sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
-        if (fabs(diff / sum) > ep && fabs(diff) > 1e-5f) {
+        if (fabs(diff / sum) > ep && fabs(diff) > 1e-5f && fabs(result_data[i]) > 1e-4) {
             printf("ERROR AT %llu result %.6f ref %.6f\n", i, result_data[i], ref_data[i]);
             return -1;
         }
@@ -89,7 +89,7 @@ int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, f
     for (unsigned long long i = 0; i < n; i++) {
         float diff = static_cast<float>(fabs(float(result_data[i]) - float(ref_data[i])));
         float sum  = static_cast<float>(fabs(float(result_data[i])) + fabs(float(ref_data[i])));
-        if (fabs(diff / sum) > ep && fabs(diff) > 5e-2f) {
+        if (fabs(diff / sum) > ep && fabs(diff) > 5e-2f && fabs(float(result_data[i])) > 1e-4) {
             printf("ERROR AT %llu result %.6f ref %.6f\n", i, float(result_data[i]), float(ref_data[i]));
             return -1;
         }

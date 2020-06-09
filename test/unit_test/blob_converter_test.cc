@@ -35,10 +35,10 @@ void BlobConverterTest::SetUpTestCase() {
     if (FLAGS_lp.length() > 0) {
         config.library_path = {FLAGS_lp};
     }
-    TNN_NS::Status ret = TNN_NS::RPD_OK;
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     // cpu
-    cpu_ = GetDevice(DEVICE_CPU);
+    cpu_ = GetDevice(DEVICE_NAIVE);
     ASSERT(cpu_ != NULL);
 
     cpu_context_ = cpu_->CreateContext(0);
@@ -52,7 +52,7 @@ void BlobConverterTest::SetUpTestCase() {
     ASSERT(device_context_ != NULL);
 
     ret = device_context_->LoadLibrary(config.library_path);
-    ASSERT(ret == RPD_OK);
+    ASSERT(ret == TNN_OK);
 }
 
 void BlobConverterTest::TearDownTestCase() {
@@ -139,9 +139,9 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     // blob desc
     BlobDesc cpu_blob_desc, device_blob_desc;
     cpu_blob_desc.dims        = {batch, channel, input_size, input_size};
-    cpu_blob_desc.device_type = DEVICE_CPU;
+    cpu_blob_desc.device_type = DEVICE_NAIVE;
     cpu_blob_desc.data_type   = blob_data_type;
-    cpu_blob_desc.data_format = GetDefaultDataFormat(DEVICE_CPU);
+    cpu_blob_desc.data_format = GetDefaultDataFormat(DEVICE_NAIVE);
     Blob *cpu_blob, *device_blob;
 
     device_blob_desc             = cpu_blob_desc;
@@ -184,14 +184,14 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         from_mat_param.bias  = {bias, bias * 2, bias * 3, bias * 4};
     }
 
-    Mat mat_in(DEVICE_CPU, mat_type, dims, mat_in_data);
+    Mat mat_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
     cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
     device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
 
     MatConvertParam to_mat_param;
-    Mat mat_out_ref_nchw(DEVICE_CPU, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
+    Mat mat_out_ref_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
     cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
-    Mat mat_out_dev_nchw(DEVICE_CPU, NCHW_FLOAT, mat_out_dev_nchw_data);
+    Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, mat_out_dev_nchw_data);
     device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
     int cmp_result    = 0;
     float compare_eps = blob_data_type == DATA_TYPE_INT8 ? max_i8_diff + 0.01 : 0.01;
@@ -199,8 +199,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     cmp_result |= CompareData(static_cast<float*>(mat_out_ref_nchw_data), static_cast<float*>(mat_out_dev_nchw_data),
                               out_nchw_size, compare_eps);
 
-    Mat mat_out_ref(DEVICE_CPU, mat_type, dims, mat_out_ref_data);
-    Mat mat_out_dev(DEVICE_CPU, mat_type, dims, mat_out_dev_data);
+    Mat mat_out_ref(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data);
+    Mat mat_out_dev(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data);
     if (mat_type != NCHW_FLOAT && dev != DEVICE_ARM) {
         to_mat_param.scale = {scale, scale, scale, scale};
         to_mat_param.bias  = {bias, bias, bias, bias};

@@ -40,12 +40,12 @@ namespace ncnn {
         layer_param->beta  = GetFloat(p, 3, 0.75f);
         layer_param->bias  = GetFloat(p, 4, 1.f);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status LRNLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                   LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

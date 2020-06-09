@@ -23,7 +23,7 @@ Status OpenCLDivLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Div Acc\n");
     Status ret = OpenCLBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "Div";
 
@@ -37,12 +37,12 @@ Status OpenCLDivLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     }
     build_options.emplace(" -DOPERATOR=" + compute);
     ret = CreateExecuteUnit(execute_units_[0], "binary", kernel_name_, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLDivLayerAcc::~OpenCLDivLayerAcc() {}

@@ -40,7 +40,7 @@ namespace optimizer {
     }
 
     bool NetOptimizerInsertReformat::SupportDevice(DeviceType device) {
-        return device == DEVICE_ARM || device == DEVICE_CPU;
+        return device == DEVICE_ARM || device == DEVICE_NAIVE;
     }
 
     std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
@@ -59,13 +59,13 @@ namespace optimizer {
     Status NetOptimizerInsertReformat::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(RPDERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
         if (count <= 1) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         // only insert reformat before quantized layer now
@@ -73,7 +73,7 @@ namespace optimizer {
             return iter->param->quantized == true;
         });
         if (quantize_layer == layers_orig.end()) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
@@ -144,7 +144,7 @@ namespace optimizer {
         }
         structure->layers = layers_fused;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace optimizer

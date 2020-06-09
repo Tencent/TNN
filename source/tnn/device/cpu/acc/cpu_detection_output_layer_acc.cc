@@ -25,14 +25,14 @@ namespace TNN_NS {
 CpuDetectionOuputLayerAcc::~CpuDetectionOuputLayerAcc(){};
 
 Status CpuDetectionOuputLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuDetectionOuputLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     DetectionOutputLayerParam *param = dynamic_cast<DetectionOutputLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
     NaiveDetectionOutput(inputs, outputs, param);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuDetectionOuputLayerAcc>> g_cpu_detection_output_layer_acc_register(

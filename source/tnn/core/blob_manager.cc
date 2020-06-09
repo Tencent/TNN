@@ -47,7 +47,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
                          DataType input_data_type) {
     if (net_structure->blobs.empty()) {
         LOGE("net_structure blobs is empty\n");
-        return Status(RPDERR_PARAM_ERR, "net_structure blobs is empty");
+        return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");
     }
 
     net_structure_ = net_structure;
@@ -73,7 +73,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     // only supports dims >=4 .
     if (input_dims < 4) {
         LOGE("invalid input shape\n");
-        return Status(RPDERR_PARAM_ERR, "invalid input shape");
+        return Status(TNNERR_PARAM_ERR, "invalid input shape");
     }
 
     for (auto node_name : net_structure_->blobs) {
@@ -109,7 +109,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         output_blobs_[name] = blob;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -127,7 +127,7 @@ Status BlobManager::AllocateBlobMemory() {
         // todo. need refactor
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
         if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {
-            return Status(RPDERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
+            return Status(TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
         }
         int use_count           = 1;
         BlobMemory *blob_memory = NULL;
@@ -147,7 +147,7 @@ Status BlobManager::AllocateBlobMemory() {
             // ASSERT(current_blob->count() > 0);
             if (DimsVectorUtils::Count(current_blob->GetBlobDesc().dims) <= 0) {
                 LOGE("Got empty blob, name:%s\n", current_blob_name.c_str());
-                return Status(RPDERR_LAYER_ERR, "blob dims is invaid");
+                return Status(TNNERR_LAYER_ERR, "blob dims is invaid");
             }
 
             if (blob_memory_mapping_.find(current_blob) == blob_memory_mapping_.end()) {
@@ -176,14 +176,14 @@ Status BlobManager::AllocateBlobMemory() {
         }
     }
     
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     
     do {
         if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
             // The default strategy allocated the blob memory seperately.
             MemorySeperateAssignStrategy strategy;
             status = blob_memory_pool_->AssignAllBlobMemory(strategy);
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
             BindBlobMemory();
         } else if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
             // The share_on_thread strategy may share memory of different models-
@@ -191,10 +191,10 @@ Status BlobManager::AllocateBlobMemory() {
             int forward_memory_size   = blob_memory_pool_->GetAllBlobMemorySize();
             SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(forward_memory_size, init_thread_id_, device_,
                                                                             config_.device_id, this, status);
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
             MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
             status = blob_memory_pool_->AssignAllBlobMemory(strategy);
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
             BindBlobMemory();
         }
     } while (0);
@@ -238,7 +238,7 @@ Status BlobManager::DeInit() {
         delete memory_mode_state_;
         memory_mode_state_ = NULL;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 void BlobManager::OnSharedForwardMemoryChanged(void *memory) {
@@ -253,11 +253,11 @@ void BlobManager::OnSharedForwardMemoryChanged(void *memory) {
  */
 Status BlobManager::SetForwardMemory(void *memory) {
     if (config_.share_memory_mode != SHARE_MEMORY_MODE_SET_FROM_EXTERNAL) {
-        return Status(RPDERR_NOT_SUPPORT_SET_FORWARD_MEM, "set memory from external is unsupported");
+        return Status(TNNERR_NOT_SUPPORT_SET_FORWARD_MEM, "set memory from external is unsupported");
     }
     MemoryUnifyAssignStrategy strategy(memory);
     auto status = blob_memory_pool_->AssignAllBlobMemory(strategy);
-    if (status == RPD_OK) {
+    if (status == TNN_OK) {
         BindBlobMemory();
     }
     return status;
@@ -277,12 +277,12 @@ int BlobManager::GetAllBlobMemorySize() {
 
 Status BlobManager::GetAllInputBlobs(BlobMap &blobs) {
     blobs = input_blobs_;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BlobManager::GetAllOutputBlobs(BlobMap &blobs) {
     blobs = output_blobs_;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Blob *BlobManager::GetBlob(std::string name) {

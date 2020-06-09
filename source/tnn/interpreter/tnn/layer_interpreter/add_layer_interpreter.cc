@@ -23,25 +23,25 @@ DECLARE_LAYER_INTERPRETER(Add, LAYER_ADD);
 Status AddLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
     auto p = CreateLayerParam<MultidirBroadcastLayerParam>(param);
     GET_INT_1_OR_DEFAULT(p->weight_input_index, 1);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status AddLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
     auto layer_res = CreateLayerRes<EltwiseLayerResource>(resource);
     GET_BUFFER_FOR_ATTR(layer_res, element_handle, deserializer);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status AddLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, MultidirBroadcastLayerParam, "invalid layer param to save", param);
     output_stream << layer_param->weight_input_index << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status AddLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     CAST_OR_RET_ERROR(layer_res, EltwiseLayerResource, "invalid layer res to save", resource);
     serializer.PutRaw(layer_res->element_handle);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Add, LAYER_ADD);

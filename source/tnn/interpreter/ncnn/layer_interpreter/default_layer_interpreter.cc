@@ -35,12 +35,12 @@ namespace ncnn {
         *param                  = layer_param;
         type                    = ConvertNCNNLayerType(type_name);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status DefaultLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

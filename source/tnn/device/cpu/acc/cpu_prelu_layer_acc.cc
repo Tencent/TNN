@@ -21,20 +21,20 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(PRelu, LAYER_PRELU);
 
 Status CpuPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: PReluLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: PReluLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: PReluLayerParam is nil");
     }
 
     auto layer_res = dynamic_cast<PReluLayerResource *>(resource_);
     if (!layer_res) {
         LOGE("Error: PReluLayerResource is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: PReluLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: PReluLayerResource is nil");
     }
 
     const int slope_size     = layer_res->slope_handle.GetBytesSize();
@@ -47,7 +47,7 @@ Status CpuPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     const int channel_size = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
     if (0 == channel_size) {
         LOGE("Error: blob count is zero\n");
-        return Status(RPDERR_COMMON_ERROR, "Error: blob count is zero");
+        return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
 
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
@@ -76,7 +76,7 @@ Status CpuPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     } else {
         ASSERT(0);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(PRelu, LAYER_PRELU);

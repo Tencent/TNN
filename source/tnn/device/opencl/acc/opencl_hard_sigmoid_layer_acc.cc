@@ -23,7 +23,7 @@ Status OpenCLHardSigmoidLayerAcc::Init(Context *context, LayerParam *param, Laye
                                        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init HardSigmoid Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "HardSigmoid";
@@ -31,12 +31,12 @@ Status OpenCLHardSigmoidLayerAcc::Init(Context *context, LayerParam *param, Laye
     // create kernel
     std::string kernel_name = "HardSigmoid";
     ret                     = CreateExecuteUnit(execute_units_[0], "hard_sigmoid", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLHardSigmoidLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -44,7 +44,7 @@ Status OpenCLHardSigmoidLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     HardSigmoidLayerParam *hs_param = dynamic_cast<HardSigmoidLayerParam *>(param_);
     if (!hs_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
@@ -56,7 +56,7 @@ Status OpenCLHardSigmoidLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     execute_units_[0].ocl_kernel.setArg(idx++, hs_param->beta);
     execute_units_[0].ocl_kernel.setArg(idx++, min_value);
     execute_units_[0].ocl_kernel.setArg(idx++, max_value);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(HardSigmoid, LAYER_HARDSIGMOID)

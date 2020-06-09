@@ -3,40 +3,49 @@
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 ABI="arm64-v8a"
+STL="c++_static"
+SHARED_LIB="ON"
+PROFILING="OFF"
+CLEAN=""
+PUSH_MODEL=""
+DEVICE_TYPE=""
+MODEL_TYPE=TNN
+USE_NCNN_MODEL=0
+ADB=adb
 
 WORK_DIR=`pwd`
 BENCHMARK_MODEL_DIR=$WORK_DIR/../benchmark-model
 BUILD_DIR=build
-ANDROID_DIR=/data/local/tmp
+ANDROID_DIR=/data/local/tmp/tnn-benchmark
 ANDROID_DATA_DIR=$ANDROID_DIR/benchmark-model
+OUTPUT_LOG_FILE=benchmark_models_result.txt
 LOOP_COUNT=16
 WARM_UP_COUNT=8
-benchmark_opencl_list=("squeezenet_v1.0.onnx.opt.onnx.rapidproto" \
-                       "mobilenet_v1.onnx.opt.onnx.rapidproto" \
-                       "mobilenet_v2.onnx.opt.onnx.rapidproto" \
-                       "resnet50.onnx.opt.onnx.rapidproto" \
-                       "inception_v3.onnx.opt.onnx.rapidproto" \
-                       "shufflenet_v2_x0.5.onnx.opt.onnx.rapidproto" \
-                       "yolov3-tiny.onnx.rapidproto" \
-                    )
-benchmark_arm_list=("squeezenet_v1.0.onnx.opt.onnx.rapidproto" \
-                    "mobilenet_v1.onnx.opt.onnx.rapidproto" \
-                    "mobilenet_v2.onnx.opt.onnx.rapidproto" \
-                    "resnet50.onnx.opt.onnx.rapidproto" \
-                    "inception_v3.onnx.opt.onnx.rapidproto" \
-                    "quant_squeezenet_v1.0.rapidproto" \
-                    "quant_mobilenet_v1.rapidproto" \
-                    "quant_mobilenet_v2.rapidproto" \
-                    "quant_resnet50.rapidproto" \
-                    "quant_inception_v3.rapidproto" \
-                    "shufflenet_v2_x0.5.onnx.opt.onnx.rapidproto" \
-                    "yolov3-tiny.onnx.rapidproto" \
-                )
+
+benchmark_model_list=(
+#test.tnnproto \
+)
+
+function usage() {
+    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>"
+    echo "options:"
+    echo "        -32   Build 32 bit."
+    echo "        -c    Clean up build folders."
+    echo "        -b    build targets only"
+    echo "        -f    build profiling targets "
+    echo "        -d    run with specified device"
+    echo "        -t    CPU/GPU specify the platform to run"
+}
+
+function exit_with_msg() {
+    echo $1
+    exit 1
+}
 
 function clean_build() {
     echo $1 | grep "$BUILD_DIR\b" > /dev/null
     if [[ "$?" != "0" ]]; then
-        die "Warnning: $1 seems not to be a BUILD folder."
+        exit_with_msg "Warnning: $1 seems not to be a BUILD folder."
     fi
     rm -rf $1
     mkdir $1
@@ -52,7 +61,7 @@ function build_android_bench() {
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DANDROID_ABI="${ABI}" \
-          -DANDROID_STL=c++_static \
+          -DANDROID_STL=${STL}\
           -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_ARM_ENABLE:BOOL=ON \
@@ -60,38 +69,74 @@ function build_android_bench() {
           -DTNN_OPENMP_ENABLE:BOOL=ON \
           -DTNN_TEST_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
-          -DBUILD_FOR_ANDROID_COMMAND=true \
-          -DNATIVE_LIBRARY_OUTPUT=.
+          -DTNN_PROFILER_ENABLE:BOOL=${PROFILING} \
+          -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB \
+          -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
 
 function bench_android() {
     build_android_bench
-    adb shell "mkdir -p $ANDROID_DIR"
+
+    if [ $? != 0 ];then
+        exit_with_msg "build failed"
+    fi
+
+    if [ "" != "$BUILD_ONLY" ]; then
+        echo "build done!"
+        exit 0
+    fi
+
+    $ADB shell "mkdir -p $ANDROID_DIR"
     find . -name "*.so" | while read solib; do
-        adb push $solib  $ANDROID_DIR
+        $ADB push $solib  $ANDROID_DIR
     done
-    adb push test/TNNTest $ANDROID_DIR/TNNTest
-    adb shell chmod 0777 $ANDROID_DIR/TNNTest
+    $ADB push test/TNNTest $ANDROID_DIR/TNNTest
+    $ADB shell chmod 0777 $ANDROID_DIR/TNNTest
 
-    adb shell "mkdir -p $ANDROID_DIR/benchmark-model"
-    adb push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
+    $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
+    $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
 
-    adb shell "getprop ro.product.model > ${ANDROID_DIR}/benchmark_models_result.txt"
-    device=ARM
-    adb shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/benchmark_models_result.txt"
-    for benchmark_model in ${benchmark_arm_list[*]}
-    do
-        adb shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> benchmark_models_result.txt"
-    done
+    cd ${BENCHMARK_MODEL_DIR}
+    $ADB shell "getprop ro.product.model > ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
 
-    device=OPENCL
-    adb shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/benchmark_models_result.txt"
-    for benchmark_model in ${benchmark_opencl_list[*]}
-    do
-        adb shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> benchmark_models_result.txt"
-    done
-    adb pull $ANDROID_DIR/benchmark_models_result.txt ../benchmark_models_result.txt
+    if [ ${#benchmark_model_list[*]} == 0 ];then
+        benchmark_model_list=`ls *.tnnproto`
+    fi
+
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ];then
+        DEVICE_TYPE=""
+    fi
+
+    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
+        device=ARM
+        $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
+
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+        done
+    fi
+
+    if [ "ON" == $PROFILING ]; then
+        WARM_UP_COUNT=5
+        LOOP_COUNT=1
+    fi
+
+    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then
+        device=OPENCL
+        $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+        done
+    fi
+
+    $ADB shell "echo '' >> $ANDROID_DIR/$OUTPUT_LOG_FILE"
+    $ADB shell "date  >> $ANDROID_DIR/$OUTPUT_LOG_FILE"
+
+    $ADB pull $ANDROID_DIR/$OUTPUT_LOG_FILE ${WORK_DIR}/$OUTPUT_LOG_FILE
+    cat ${WORK_DIR}/$OUTPUT_LOG_FILE
 }
 
 while [ "$1" != "" ]; do
@@ -104,7 +149,30 @@ while [ "$1" != "" ]; do
             shift
             CLEAN="-c"
             ;;
+        -b)
+            shift
+            BUILD_ONLY="-b"
+            ;;
+        -f)
+            shift
+            PROFILING="ON"
+            ;;
+        -d)
+            shift
+            ADB="adb -s $1"
+            shift
+            ;;
+        -t)
+            shift
+            DEVICE_TYPE="$1"
+            shift
+            ;;
+        -n)
+            shift
+            MODEL_TYPE=NCNN
+            ;;
         *)
+            usage
             exit 1
     esac
 done

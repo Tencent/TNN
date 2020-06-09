@@ -48,12 +48,12 @@ namespace ncnn {
             type = LAYER_NOT_SUPPORT;
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status BinaryOpLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                        LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

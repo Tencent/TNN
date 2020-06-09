@@ -72,14 +72,14 @@ Status ArmDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
         int bytes_size = GetBlobMemoryBytesSize(size_info);
         *handle        = armMalloc(bytes_size + NEON_KERNEL_EXTRA_LOAD);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmDevice::Free(void *handle) {
     if (handle) {
         free(handle);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmDevice::CopyToDevice(BlobHandle *dst, const BlobHandle *src, BlobDesc &desc, void *command_queue) {
@@ -88,7 +88,7 @@ Status ArmDevice::CopyToDevice(BlobHandle *dst, const BlobHandle *src, BlobDesc 
 
     memcpy(GetBlobHandlePtr(*dst), GetBlobHandlePtr(*src), size_in_bytes);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobDesc &desc, void *command_queue) {
@@ -97,7 +97,7 @@ Status ArmDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobDes
 
     memcpy(GetBlobHandlePtr(*dst), GetBlobHandlePtr(*src), size_in_bytes);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 AbstractLayerAcc *ArmDevice::CreateLayerAcc(LayerType type) {
@@ -114,7 +114,7 @@ Context *ArmDevice::CreateContext(int device_id) {
 
 Status ArmDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::map<LayerType, std::shared_ptr<LayerAccCreator>> &ArmDevice::GetLayerCreatorMap() {

@@ -25,12 +25,12 @@ Status OpenCLNormalizeLayerAcc::Init(Context *context, LayerParam *param, LayerR
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Normalize Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Normalize";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -38,11 +38,11 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     auto norm_param = dynamic_cast<NormalizeLayerParam *>(param_);
     if (!norm_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
     if (norm_param->p != 1 && norm_param->p != 2) {
         LOGE("the param p=%d is not support yet\n", norm_param->p);
-        return Status(RPDERR_MODEL_ERR, "invalid param p");
+        return Status(TNNERR_MODEL_ERR, "invalid param p");
     }
 
     ASSERT(inputs.size() == 1);
@@ -63,7 +63,7 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     }
 
     Status ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
@@ -91,7 +91,7 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     execute_units_[0].ocl_kernel.setArg(idx++, norm_param->epsilon);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Normalize, LAYER_NORMALIZE)

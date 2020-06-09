@@ -23,7 +23,7 @@ Status ReformatLayer::InferOutputDataType() {
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = reinterpret_cast<ReformatLayerParam*>(param_)->dst_type;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReformatLayer::InferOutputShape() {
@@ -33,7 +33,7 @@ Status ReformatLayer::InferOutputShape() {
 
         output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Reformat, LAYER_REFORMAT);

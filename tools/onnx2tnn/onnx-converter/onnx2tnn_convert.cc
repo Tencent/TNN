@@ -103,12 +103,14 @@ int onnx2tnn_set_version(std::string file_path, std::string file_version)
 int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::string algo_version, std::string file_time, int data_type)
 {
     std::string onnx_model_name;
+    std::string onnx_suffix  = ".onnx";
     std::size_t sep_position = onnx_model_path.rfind('/');
-    if (sep_position != std::string::npos){
-       onnx_model_name = onnx_model_path.substr(sep_position + 1, onnx_model_path.size()-1);
+    if (sep_position != std::string::npos) {
+        onnx_model_name =
+            onnx_model_path.substr(sep_position + 1, onnx_model_path.size() - 1 - onnx_suffix.size() - sep_position);
     }
-    std::string tnn_proto = output_dir + "/" + onnx_model_name + ".rapidproto";
-    std::string tnn_model = output_dir + "/" + onnx_model_name + ".rapidmodel";
+    std::string tnn_proto = output_dir + "/" + onnx_model_name + ".tnnproto";
+    std::string tnn_model = output_dir + "/" + onnx_model_name + ".tnnmodel";
     Onnx2TNN converter(onnx_model_path, tnn_proto, tnn_model);
     int ret = converter.Convert((DataType)data_type);
     if(ret != 0) {

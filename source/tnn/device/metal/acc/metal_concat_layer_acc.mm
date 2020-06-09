@@ -22,7 +22,7 @@ namespace TNN_NS {
 Status MetalConcatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = isSupported(param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     return MetalLayerAcc::Init(context, param, resource, inputs, outputs);
@@ -34,23 +34,23 @@ Status MetalConcatLayerAcc::isSupported(LayerParam *param, LayerResource *resour
     auto layer_param = dynamic_cast<ConcatLayerParam *>(param);
     if (!layer_param || layer_param->axis != 1) {
         LOGE("Concat do not support axis!=1 \n");
-        return Status(RPDERR_LAYER_ERR, "Concat type is not supported");
+        return Status(TNNERR_LAYER_ERR, "Concat type is not supported");
     }
 
     if (inputs.size() < 2) {
         LOGE("Error: Concat's input blob number must >= 2\n");
-        return Status(RPDERR_NET_ERR, "Error: Concat's input blob number must >= 2\n");
+        return Status(TNNERR_NET_ERR, "Error: Concat's input blob number must >= 2\n");
     } else if (inputs.size() == 2) {
-        return RPD_OK;
+        return TNN_OK;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 MetalConcatLayerAcc::~MetalConcatLayerAcc() {}
 
 Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -106,17 +106,17 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
             [buffer_params addObject:param];
         } else {
             LOGE("Error: MetalConcatLayerAcc::AllocateBufferParam failed\n");
-            return Status(RPDERR_NET_ERR, "etalConcatLayerAcc::AllocateBufferParam failed");
+            return Status(TNNERR_NET_ERR, "etalConcatLayerAcc::AllocateBufferParam failed");
         }
     }
     buffer_input_params_ = buffer_params;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -149,7 +149,7 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             status = [context_impl load:[NSString stringWithFormat:@"concat_axis_1_common"]
                                 encoder:encoder
                               bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
 
             MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_slice, (NSUInteger)batch};
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_0->GetHandle().base
@@ -164,7 +164,7 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
 
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         } while (0);
 
         [encoder endEncoding];
@@ -188,7 +188,7 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                 status = [context_impl load:[NSString stringWithFormat:@"concat_axis_1_common_x"]
                                     encoder:encoder
                                   bandwidth:bandwidth];
-                BREAK_IF(status != RPD_OK);
+                BREAK_IF(status != TNN_OK);
 
                 MTLSize threads = {(NSUInteger)input_width * input_height, (NSUInteger)input_slice, (NSUInteger)batch};
 
@@ -201,13 +201,13 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                 [encoder setBuffer:buffer_input_params_[i] offset:0 atIndex:2];
 
                 status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-                BREAK_IF(status != RPD_OK);
+                BREAK_IF(status != TNN_OK);
             } while (0);
 
             [encoder endEncoding];
             [context_impl commit];
             TNN_PRINT_ENCODER(context_, encoder, this);
-            BREAK_IF(status != RPD_OK);
+            BREAK_IF(status != TNN_OK);
         }
     }
     return status;

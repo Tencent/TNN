@@ -95,8 +95,8 @@ using namespace TNN_NS;
     auto model_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.bin" ofType:nil];
     auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.param" ofType:nil];
 #else
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.rapidmodel" ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.rapidproto" ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.tnnmodel" ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/SqueezeNet/squeezenet_v1.1.tnnproto" ofType:nil];
 #endif
     if (model_path.length <= 0 || proto_path.length <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
@@ -123,7 +123,7 @@ using namespace TNN_NS;
 
     ImageClassifier classifier;
     auto status = classifier.Init(proto_content, model_content, path_library.UTF8String, units);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;
@@ -153,7 +153,7 @@ using namespace TNN_NS;
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
         status = classifier.Classify(image_mat, target_height, target_width, class_id);
     }
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }

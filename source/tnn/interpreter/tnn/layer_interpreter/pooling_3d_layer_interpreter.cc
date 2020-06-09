@@ -53,11 +53,11 @@ Status Pooling3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int inde
 
     GET_INT_2(p->pad_type, p->ceil_mode);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Pooling3DLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Pooling3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -88,11 +88,11 @@ Status Pooling3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerP
     output_stream << layer_param->pad_type << " ";
     output_stream << layer_param->ceil_mode << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Pooling3DLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Pooling3D, LAYER_POOLING_3D);

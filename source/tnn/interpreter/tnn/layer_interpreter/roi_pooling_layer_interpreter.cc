@@ -43,18 +43,18 @@ Status RoiPoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int sta
         layer_param->pooled_dims.push_back(pooled_d);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status RoiPoolingLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status RoiPoolingLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     RoiPoolingLayerParam* layer_param = dynamic_cast<RoiPoolingLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->pool_type << " ";
@@ -67,11 +67,11 @@ Status RoiPoolingLayerInterpreter::SaveProto(std::ofstream& output_stream, Layer
     for (auto item : layer_param->pooled_dims)
         output_stream << item << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status RoiPoolingLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(RoiPooling, LAYER_ROIPOOLING);

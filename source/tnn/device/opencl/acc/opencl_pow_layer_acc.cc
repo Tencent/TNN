@@ -23,7 +23,7 @@ Status OpenCLPowLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Pow Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "Pow";
@@ -31,12 +31,12 @@ Status OpenCLPowLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     // create kernel
     std::string kernel_name = "Power";
     ret                     = CreateExecuteUnit(execute_units_[0], "pow", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLPowLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -44,7 +44,7 @@ Status OpenCLPowLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     PowLayerParam *pow_param = dynamic_cast<PowLayerParam *>(param_);
     if (!pow_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
@@ -53,7 +53,7 @@ Status OpenCLPowLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     execute_units_[0].ocl_kernel.setArg(idx++, pow_param->scale);
     execute_units_[0].ocl_kernel.setArg(idx++, pow_param->shift);
     execute_units_[0].ocl_kernel.setArg(idx++, pow_param->exponent);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Pow, LAYER_POWER)

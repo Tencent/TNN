@@ -22,11 +22,11 @@ Status OpenCLTanLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Tan Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "Tan";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLTanLayerAcc::CreateBuildOptions() {

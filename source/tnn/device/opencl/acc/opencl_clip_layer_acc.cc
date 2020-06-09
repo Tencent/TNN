@@ -23,11 +23,11 @@ Status OpenCLClipLayerAcc::Init(Context *context, LayerParam *param, LayerResour
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Clip Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
-    op_name_        = "Clip";
+    op_name_ = "Clip";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
@@ -38,7 +38,7 @@ std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
         return build_options;
     }
 
-    std::string compute = "clamp(in,(FLOAT4)" + to_string(clip_param->min) + ",(FLOAT4)" + to_string(clip_param->max) + ")";
+    std::string compute = "clamp(in,(FLOAT4)(" + to_string(clip_param->min) + "f),(FLOAT4)(" + to_string(clip_param->max) + "f))";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }

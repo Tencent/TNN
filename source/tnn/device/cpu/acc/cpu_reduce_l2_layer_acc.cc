@@ -37,7 +37,7 @@ Status CpuReduceL2LayerAcc::CalculateReduce(float* output_data, float* input_dat
     for (int i = 0; i < output_size; ++i) {
         origin_output_data[i] = std::sqrt(origin_output_data[i]);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_REDUCE_ACC(ReduceL2, LAYER_REDUCE_L2);

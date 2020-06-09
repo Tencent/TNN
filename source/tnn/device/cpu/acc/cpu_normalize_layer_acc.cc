@@ -25,18 +25,18 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Normalize, LAYER_NORMALIZE);
 
 Status CpuNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 2");
     }
     auto layer_param = dynamic_cast<NormalizeLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is nil");
     }
 
     float epsilon = layer_param->epsilon;
@@ -49,7 +49,7 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     // old tnn support scale the result of normalize and only norm2
     if ((p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0) {
         LOGE("Error: layer param is not supported now\n");
-        return Status(RPDERR_INST_ERR, "Error: layer param is not supported now");
+        return Status(TNNERR_INST_ERR, "Error: layer param is not supported now");
     }
 
     Blob *input_blob  = inputs[0];
@@ -110,10 +110,10 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         delete[] denominator;
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Normalize, LAYER_NORMALIZE);

@@ -43,7 +43,7 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init HDRGuide Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "HDRGuide";
@@ -59,7 +59,7 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         shifts_handle.GetDataCount() != 12 || slopes_handle.GetDataCount() != 12 ||
         p_weight_handle.GetDataCount() != 3 || p_bias_handle.GetDataCount() != 1) {
         LOGE("Invalid data size of HDRGuide Param!\n");
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "Invalid data size of HDRGuide Param!");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "Invalid data size of HDRGuide Param!");
     }
 
     // get ccm weight
@@ -67,52 +67,52 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         float *weight_ptr = ccm_weight_handle.force_to<float *>();
         float *bias_ptr   = ccm_bias_handle.force_to<float *>();
         if (weight_ptr == nullptr || bias_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(ocl_ccm_, weight_ptr, bias_ptr, 3);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         auto weight_ptr = GetFloatFromRawBuffer(ccm_weight_handle);  // handle the memory
         auto bias_ptr   = GetFloatFromRawBuffer(ccm_bias_handle);    // handle the memory
         if (weight_ptr == nullptr || bias_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(ocl_ccm_, weight_ptr.get(), bias_ptr.get(), 3);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // get ocl_shifts_
     if (shifts_handle.GetDataType() == DATA_TYPE_FLOAT) {
         float *data_ptr = shifts_handle.force_to<float *>();
         if (data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertTrans(ocl_shifts_, data_ptr, 0);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         auto data_ptr = GetFloatFromRawBuffer(shifts_handle);  // handle the memory
         if (data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertTrans(ocl_shifts_, data_ptr.get(), 0);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // get ocl_slopes_
     if (slopes_handle.GetDataType() == DATA_TYPE_FLOAT) {
         float *data_ptr = slopes_handle.force_to<float *>();
         if (data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertTrans(ocl_slopes_, data_ptr, 1);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         auto data_ptr = GetFloatFromRawBuffer(slopes_handle);  // handle the memory
         if (data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertTrans(ocl_slopes_, data_ptr.get(), 1);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // get projection weight
@@ -120,29 +120,29 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         float *weight_ptr = p_weight_handle.force_to<float *>();
         float *bias_ptr   = p_bias_handle.force_to<float *>();
         if (weight_ptr == nullptr || bias_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(ocl_projection_, weight_ptr, bias_ptr, 1);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         auto weight_ptr = GetFloatFromRawBuffer(p_weight_handle);  // handle the memory
         auto bias_ptr   = GetFloatFromRawBuffer(p_bias_handle);    // handle the memory
         if (weight_ptr == nullptr || bias_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(ocl_projection_, weight_ptr.get(), bias_ptr.get(), 1);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // create kernel
     std::string kernel_name = "HdrGuide";
     ret                     = CreateExecuteUnit(execute_units_[0], "hdr_guide", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLHdrGuideLayerAcc::~OpenCLHdrGuideLayerAcc() {}
@@ -161,7 +161,7 @@ Status OpenCLHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_slopes_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_projection_->GetData()));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memory, float *weight, float *bias,
@@ -174,13 +174,13 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
                         buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     float *clbuffer_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret));
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
 
     for (int y = 0; y < pixel_count; ++y) {
@@ -194,7 +194,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuffer, clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create ocl_blob
@@ -209,7 +209,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_memory->SetData(image, true);
@@ -230,13 +230,13 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
                      nullptr, &ocl_ret);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     float *clbuf_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuf, true, CL_MAP_WRITE, 0, buf_size * sizeof(float), nullptr, nullptr, &ocl_ret));
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
 
     for (int y = 0; y < 4; ++y) {
@@ -250,7 +250,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
     ocl_ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuf, clbuf_ptr);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create ocl_blob
@@ -265,7 +265,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
         CHECK_CL_SUCCESS(ocl_ret)
         if (nullptr != img)
             delete img;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_blob.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_blob->SetData(img, true);

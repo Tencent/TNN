@@ -1,0 +1,114 @@
+---
+# 语言: None Cpp Java ObjC Protp
+Language:      Cpp
+#LLVM Google
+BasedOnStyle:  Google
+# 语言: None Cpp Java ObjC Protp
+# 访问说明符的偏移(public private)
+AccessModifierOffset: -4
+# 括号之后,水平对齐参数: Align DontAlign AlwaysBreak
+AlignAfterOpenBracket: Align
+# 连续的宏
+# AlignConsecutiveMacros: true
+# 连续的赋值时,对齐所有的等号
+AlignConsecutiveAssignments: true
+# 左对齐换行(使用反斜杠换行)的反斜杠
+AlignEscapedNewlines: Right
+# # 左对齐换行(使用反斜杠换行)的反斜杠
+# AlignEscapedNewlinesLeft: true
+# 水平对齐二元和三元表达式的操作数
+AlignOperands: true
+# 允许函数声明的所有参数在放在下一行
+AllowAllParametersOfDeclarationOnNextLine: false
+# AllowAllArgumentsOnNextLine: false
+# 允许短的块放在同一行
+AllowShortBlocksOnASingleLine : false
+# 允许短的case标签放在同一行
+AllowShortCaseLabelsOnASingleLine: false
+# 允许短的函数放在同一行: None, InlineOnly(定义在类中), Empty(空函数), Inline(定义在类中，空函数), All
+AllowShortFunctionsOnASingleLine: Empty
+# 是否允许短if单行 If true, if (a) return; 可以放到同一行
+AllowShortIfStatementsOnASingleLine: false
+# 允许短的循环保持在同一行
+AllowShortLoopsOnASingleLine: false
+# 总是在定义返回类型后换行(deprecated)
+AlwaysBreakAfterDefinitionReturnType: None
+# 每行字符的限制，0表示没有限制
+ColumnLimit: 120
+# 描述具有特殊意义的注释的正则表达式，它不应该被分割为多行或以其它方式改变
+CommentPragmas: '^ IWYU pragma:'
+#指针的*的挨着哪边
+PointerAlignment: Right
+#缩进宽度
+IndentWidth: 4
+# OC block后面的缩进
+ObjCBlockIndentWidth: 4
+#tab键盘的宽度
+TabWidth: 4
+Standard:        Cpp11
+UseTab:          Never
+CompactNamespaces: false
+# 命名空间的偏移
+NamespaceIndentation: Inner
+# 命名空间的末尾注释
+FixNamespaceComments: true
+# IndentPPDirectives: BeforeHash
+---
+# 语言: None Cpp Java ObjC Protp
+Language:      ObjC
+#LLVM Google
+BasedOnStyle:  LLVM
+# 访问说明符的偏移(public private)
+AccessModifierOffset: -4
+# 括号之后,水平对齐参数: Align DontAlign AlwaysBreak
+AlignAfterOpenBracket: Align
+# 连续的宏
+# AlignConsecutiveMacros: true
+# 连续的赋值时,对齐所有的等号
+AlignConsecutiveAssignments: true
+# 左对齐换行(使用反斜杠换行)的反斜杠
+AlignEscapedNewlines: Right
+# # 左对齐换行(使用反斜杠换行)的反斜杠
+# AlignEscapedNewlinesLeft: true
+# 水平对齐二元和三元表达式的操作数
+AlignOperands: true
+# 允许函数声明的所有参数在放在下一行
+AllowAllParametersOfDeclarationOnNextLine: false
+# AllowAllArgumentsOnNextLine: false
+# 允许短的块放在同一行
+AllowShortBlocksOnASingleLine : false
+# 允许短的case标签放在同一行
+AllowShortCaseLabelsOnASingleLine: false
+# 允许短的函数放在同一行: None, InlineOnly(定义在类中), Empty(空函数), Inline(定义在类中，空函数), All
+AllowShortFunctionsOnASingleLine: Empty
+# 是否允许短if单行 If true, if (a) return; 可以放到同一行
+AllowShortIfStatementsOnASingleLine: false
+# 允许短的循环保持在同一行
+AllowShortLoopsOnASingleLine: false
+# 总是在定义返回类型后换行(deprecated)
+AlwaysBreakAfterDefinitionReturnType: None
+# 每行字符的限制，0表示没有限制
+ColumnLimit: 120
+# 描述具有特殊意义的注释的正则表达式，它不应该被分割为多行或以其它方式改变
+CommentPragmas: '^ IWYU pragma:'
+#指针的*的挨着哪边
+PointerAlignment: Right
+#缩进宽度
+IndentWidth: 4
+# OC block后面的缩进
+ObjCBlockIndentWidth: 4
+#tab键盘的宽度
+TabWidth: 4
+Standard:        Cpp11
+UseTab:          Never
+CompactNamespaces: false
+# 命名空间的偏移
+NamespaceIndentation: Inner
+# 命名空间的末尾注释
+FixNamespaceComments: true
+# IndentPPDirectives: BeforeHash
+---
+Language: Proto
+#.proto文件不格式化
+DisableFormat: true
+...

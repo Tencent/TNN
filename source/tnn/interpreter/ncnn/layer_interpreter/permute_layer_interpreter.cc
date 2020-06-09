@@ -54,12 +54,12 @@ namespace ncnn {
         int order_type      = GetInt(p, 0, 0);
         layer_param->orders = order_type_map[order_type];
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status PermuteLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

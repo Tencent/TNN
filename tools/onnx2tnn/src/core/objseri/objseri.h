@@ -1,5 +1,5 @@
-#ifndef _RPD_SERILIZE_20160513_H_
-#define _RPD_SERILIZE_20160513_H_
+#ifndef _TNN_SERILIZE_20160513_H_
+#define _TNN_SERILIZE_20160513_H_
 #include "onnx2tnn_prefix.h"
 
 #include <fstream>
@@ -282,5 +282,5 @@ namespace parser{
     
 }
 
-#endif /* _RPD_SERILIZE_20160513_H_ */
+#endif /* _TNN_SERILIZE_20160513_H_ */
 

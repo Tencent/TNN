@@ -52,10 +52,10 @@ Status FileReader::Read(Blob* output_blob, const std::string file_path,
                         const FileFormat format) {
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
         LOGE("The blob data type is not support yet!\n");
-        return RPDERR_INVALID_INPUT;
+        return TNNERR_INVALID_INPUT;
     }
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (format == TEXT) {
         std::ifstream f_stream(file_path);
         int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
@@ -72,14 +72,14 @@ Status FileReader::Read(Blob* output_blob, const std::string file_path,
         unsigned char* img_data = stbi_load(file_path.c_str(), &w, &h, &c, 0);
         if (img_data == nullptr) {
             LOGE("load image data falied!\n");
-            return RPDERR_INVALID_INPUT;
+            return TNNERR_INVALID_INPUT;
         }
         ret = PreProcessImage(img_data, output_blob, w, h, c);
         stbi_image_free(img_data);
 
     } else {
         LOGE("The input format is not support yet!\n");
-        return RPDERR_INVALID_INPUT;
+        return TNNERR_INVALID_INPUT;
     }
 
     return ret;
@@ -103,7 +103,7 @@ Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob,
 
         if (blob_c != channel) {
             LOGE("input channel not match!\n");
-            return RPDERR_INVALID_INPUT;
+            return TNNERR_INVALID_INPUT;
         }
 
         if (blob_h != height || blob_w != width) {
@@ -118,7 +118,7 @@ Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob,
             if (ret == 0) {
                 free(img_resized);
                 LOGE("resize image falied!\n");
-                return RPDERR_INVALID_INPUT;
+                return TNNERR_INVALID_INPUT;
             }
             ProcessNHWC2NCHW(img_resized, data_ptr, blob_c, blob_h, blob_w,
                              bias_, scale_);
@@ -130,10 +130,10 @@ Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob,
 
     } else {
         LOGE("The blob data format is not support yet!\n");
-        return RPDERR_INVALID_INPUT;
+        return TNNERR_INVALID_INPUT;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

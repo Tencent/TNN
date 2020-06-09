@@ -23,7 +23,7 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init SoftMax Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "SoftMax";
@@ -31,7 +31,7 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     SoftmaxLayerParam *softmax_param = dynamic_cast<SoftmaxLayerParam *>(param);
     if (!softmax_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     // create kernel
@@ -42,15 +42,15 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         kernel_name = "SoftmaxHeight";
     } else {
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "invalid softmax axis");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid softmax axis");
     }
     ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -58,7 +58,7 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     SoftmaxLayerParam *softmax_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     if (!softmax_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     ASSERT(inputs.size() == 1);
@@ -101,10 +101,10 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, shape);
     } else {
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
-        return Status(RPDERR_OPENCL_ACC_RESHAPE_ERROR, "invalid softmax axis");
+        return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "invalid softmax axis");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Softmax, LAYER_SOFTMAX)

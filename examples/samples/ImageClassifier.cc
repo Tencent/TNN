@@ -38,16 +38,16 @@ int ImageClassifier::Classify(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
         input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
         input_cvt_param.bias  = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
         auto status = instance_->SetInputMat(image_mat, input_cvt_param);
-        RETURN_ON_NEQ(status, TNN_NS::RPD_OK);
+        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
         
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
-        RETURN_ON_NEQ(status, TNN_NS::RPD_OK);
+        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
         
         // step 3. get output mat
         std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
         status = instance_->GetOutputMat(output_mat_scores);
-        RETURN_ON_NEQ(status, TNN_NS::RPD_OK);
+        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
 #if TNN_SDK_ENABLE_BENCHMARK
         gettimeofday(&tv_end, NULL);

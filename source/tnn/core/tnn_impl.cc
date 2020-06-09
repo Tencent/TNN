@@ -23,12 +23,12 @@ TNNImpl::~TNNImpl() {
 }
 
 Status TNNImpl::DeInit() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status TNNImpl::Init(ModelConfig &config) {
     model_config_ = config;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> &TNNImplManager::GetTNNImplFactoryMap() {

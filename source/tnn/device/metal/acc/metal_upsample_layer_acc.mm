@@ -61,7 +61,7 @@ Status MetalUpsampleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
                                 length:sizeof(MetalUpsampleParams)
                                options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalUpsampleLayerAcc::SetKernelEncoderParam(
@@ -76,7 +76,7 @@ Status MetalUpsampleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalUpsampleLayerAcc::KernelName() {

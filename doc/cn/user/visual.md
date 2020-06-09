@@ -1,3 +1,5 @@
+# 模型可视化
+<div align=center ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/user/resource/tnn-netron.jpg" width = "75%" height = "75%"/>
 
 
 <div align=left ><img src="./resource/tnn-netron.jpg" width = "75%" height = "75%"/>

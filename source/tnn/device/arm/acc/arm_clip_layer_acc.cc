@@ -26,7 +26,7 @@ Status ArmClipLayerAcc::DoForward(const std::vector<Blob *> &input_blobs, const 
     auto layer_param = dynamic_cast<ClipLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is nil");
     }
 
     auto input_blob  = input_blobs[0];
@@ -46,12 +46,12 @@ Status ArmClipLayerAcc::DoForward(const std::vector<Blob *> &input_blobs, const 
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: ArmClipLayerAcc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: ArmClipLayerAcc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: ArmClipLayerAcc dont support datatype");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Clip, LAYER_CLIP);

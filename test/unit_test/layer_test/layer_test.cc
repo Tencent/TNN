@@ -37,10 +37,10 @@ void LayerTest::SetUpTestCase() {
     if (FLAGS_lp.length() > 0) {
         config.library_path = {FLAGS_lp};
     }
-    TNN_NS::Status ret = TNN_NS::RPD_OK;
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     // cpu
-    cpu_ = GetDevice(DEVICE_CPU);
+    cpu_ = GetDevice(DEVICE_NAIVE);
     if (!cpu_) {
       LOGE("Error: device cpu is null\n");
       ASSERT(0);
@@ -66,7 +66,7 @@ void LayerTest::SetUpTestCase() {
     }
 
     ret = device_context_->LoadLibrary(config.library_path);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
       LOGE("Error: library with path(%s) is null\n",
             config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
       ASSERT(0);
@@ -75,26 +75,26 @@ void LayerTest::SetUpTestCase() {
 
 void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
                     std::vector<BlobDesc>& outputs_desc) {
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     // Init cpu and device layer
     status = Init(type, param, resource, inputs_desc, outputs_desc);
-    if (status != RPD_OK) {
-        EXPECT_EQ((int)status, RPD_OK);
+    if (status != TNN_OK) {
+        EXPECT_EQ((int)status, TNN_OK);
         DeInit();
         return;
     }
 
     status = Reshape();
-    if (status != RPD_OK) {
-        EXPECT_EQ((int)status, RPD_OK);
+    if (status != TNN_OK) {
+        EXPECT_EQ((int)status, TNN_OK);
         DeInit();
         return;
     }
 
     // Run forward for both cpu and device layer
     status = Forward();
-    if (status != RPD_OK) {
-        EXPECT_EQ((int)status, RPD_OK);
+    if (status != TNN_OK) {
+        EXPECT_EQ((int)status, TNN_OK);
         DeInit();
         return;
     }
@@ -102,16 +102,16 @@ void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, 
 #ifndef TNN_UNIT_TEST_BENCHMARK
     // Compare the result for both cpu and device layer
     status = Compare();
-    if (status != RPD_OK) {
-        EXPECT_EQ((int)status, RPD_OK);
+    if (status != TNN_OK) {
+        EXPECT_EQ((int)status, TNN_OK);
         DeInit();
         return;
     }
 #endif
 
     status = DeInit();
-    if (status != RPD_OK) {
-        EXPECT_EQ((int)status, RPD_OK);
+    if (status != TNN_OK) {
+        EXPECT_EQ((int)status, TNN_OK);
         return;
     }
 }
@@ -119,28 +119,28 @@ void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, 
 Status LayerTest::Init(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
                        std::vector<BlobDesc>& outputs_desc) {
     param_        = param;
-    Status status = RPD_OK;
+    Status status = TNN_OK;
 
     status = CreateLayers(type);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = CreateInputBlobs(inputs_desc);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = CreateOutputBlobs(outputs_desc);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = InitLayers(type, param, resource, inputs_desc, outputs_desc);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = AllocateInputBlobs();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = InitInputBlobsDataRandom();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = AllocateOutputBlobs();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     return status;
 }
@@ -149,15 +149,15 @@ Status LayerTest::CreateLayers(LayerType type) {
     cpu_layer_ = CreateLayer(type);
     if (cpu_layer_ == NULL) {
         LOGE("Error: CreateLayer nil, type:%d\n", type);
-        return Status(RPDERR_CREATE_LAYER, "Error: CreateLayer nil, type");
+        return Status(TNNERR_CREATE_LAYER, "Error: CreateLayer nil, type");
     }
 
     device_layer_ = CreateLayer(type);
     if (device_layer_ == NULL) {
         LOGE("Error: CreateLayer nil, type:%d\n", type);
-        return Status(RPDERR_CREATE_LAYER, "Error: CreateLayer nil, type");
+        return Status(TNNERR_CREATE_LAYER, "Error: CreateLayer nil, type");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // Create the blob, but not allocate memory
@@ -186,7 +186,7 @@ Status LayerTest::CreateInputBlobs(std::vector<BlobDesc>& inputs_desc) {
         cpu_inputs_.push_back(cpu_input_blob);
         device_inputs_.push_back(device_input_blob);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -219,7 +219,7 @@ Status LayerTest::CreateOutputBlobs(std::vector<BlobDesc>& outputs_desc) {
         cpu_outputs_.push_back(cpu_output_blob);
         device_outputs_.push_back(device_output_blob);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -228,12 +228,12 @@ Status LayerTest::CreateOutputBlobs(std::vector<BlobDesc>& outputs_desc) {
 Status LayerTest::InitLayers(LayerType type, LayerParam* param, LayerResource* resource,
                              std::vector<BlobDesc>& inputs_desc, std::vector<BlobDesc>& outputs_desc) {
     Status status = cpu_layer_->Init(cpu_context_, param, resource, cpu_inputs_, cpu_outputs_, cpu_);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     device_context_->SetNumThreads(std::max(1, FLAGS_th));
     status = device_layer_->Init(device_context_, param, resource, device_inputs_, device_outputs_, device_);
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
-    return RPD_OK;
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
+    return TNN_OK;
 }
 
 /*
@@ -242,14 +242,14 @@ Status LayerTest::InitLayers(LayerType type, LayerParam* param, LayerResource* r
 Status LayerTest::AllocateInputBlobs() {
     for (auto cpu_input_blob : cpu_inputs_) {
         Status status = BlobHandleAllocate(cpu_input_blob, cpu_);
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
     }
 
     for (auto device_input_blob : device_inputs_) {
         Status status = BlobHandleAllocate(device_input_blob, device_);
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -276,7 +276,7 @@ Status LayerTest::InitInputBlobsDataRandom() {
             // the value is initialized as int8
             mat_type = RESERVED_INT8_TEST;
         }
-        TNN_NS::Mat source(DEVICE_CPU, mat_type, blob_desc.dims);
+        TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
         void* input_data = source.GetData();
         if (mat_type == NCHW_FLOAT) {
             if (ensure_input_positive_) {
@@ -308,18 +308,18 @@ Status LayerTest::InitInputBlobsDataRandom() {
         // CONVERT TO CPU BLOB
         BlobConverter blob_converter_cpu(cpu_input_blob);
         Status ret = blob_converter_cpu.ConvertFromMat(source, param, nullptr);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
         }
 
         // CONVERT TO DEVICE BLOB
         BlobConverter blob_converter(device_input_blob);
         ret = blob_converter.ConvertFromMat(source, param, command_queue);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -328,14 +328,14 @@ Status LayerTest::InitInputBlobsDataRandom() {
 Status LayerTest::AllocateOutputBlobs() {
     for (auto cpu_output_blob : cpu_outputs_) {
         Status status = BlobHandleAllocate(cpu_output_blob, cpu_);
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
     }
 
     for (auto device_output_blob : device_outputs_) {
         Status status = BlobHandleAllocate(device_output_blob, device_);
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -343,19 +343,19 @@ Status LayerTest::AllocateOutputBlobs() {
  */
 Status LayerTest::Reshape() {
     Status status = cpu_layer_->Reshape();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = device_layer_->Reshape();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status LayerTest::Forward() {
     Status status;
 #ifndef TNN_UNIT_TEST_BENCHMARK
     status = cpu_layer_->Forward();
-    EXPECT_EQ_OR_RETURN(status, RPD_OK);
+    EXPECT_EQ_OR_RETURN(status, TNN_OK);
 #endif
 
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
@@ -370,16 +370,16 @@ Status LayerTest::Forward() {
         gettimeofday(&time1, &zone);
 
         status = device_context_->OnInstanceForwardBegin();
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
         status = device_layer_->Forward();
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
         status = device_context_->OnInstanceForwardEnd();
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
         status = device_context_->Synchronize();
-        EXPECT_EQ_OR_RETURN(status, RPD_OK);
+        EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
         gettimeofday(&time2, &zone);
         float delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
@@ -389,7 +389,8 @@ Status LayerTest::Forward() {
     }
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
     auto profile_result = device_context_->FinishProfile();
-    profile_result->ShowProfilingData();
+    auto result_str = profile_result->GetProfilingData();
+    printf("%s", result_str.c_str());
 #endif
 
     /*
@@ -404,7 +405,7 @@ Status LayerTest::Forward() {
             GetCalcMflops(param_, cpu_layer_->GetInputBlobs(), cpu_layer_->GetOutputBlobs()) * FLAGS_ic / sum,
             GetCalcDramThrp(sum / (float)FLAGS_ic));
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 /*
@@ -430,16 +431,16 @@ Status LayerTest::Compare() {
         auto dims = cpu_output_blob->GetBlobDesc().dims;
         int count = DimsVectorUtils::Count(dims);
         // convert cpu blob to mat
-        TNN_NS::Mat cpu_mat(DEVICE_CPU, mat_type, dims);
+        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims);
         BlobConverter blob_converter_cpu(cpu_output_blob);
         blob_converter_cpu.ConvertToMat(cpu_mat, MatConvertParam(), nullptr);
 
         // convert dev blob to cpu mat nchw
-        TNN_NS::Mat dev_cpu_mat(DEVICE_CPU, mat_type, dims);
+        TNN_NS::Mat dev_cpu_mat(DEVICE_NAIVE, mat_type, dims);
         BlobConverter blob_converter_dev(device_output_blob);
 
         Status ret = blob_converter_dev.ConvertToMat(dev_cpu_mat, MatConvertParam(), command_queue);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
             return ret;
         }
@@ -475,7 +476,7 @@ Status LayerTest::Compare() {
         }
     }
     EXPECT_EQ(0, cmp_result);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status LayerTest::DeInit() {
@@ -508,7 +509,7 @@ Status LayerTest::DeInit() {
 
     delete cpu_layer_;
     delete device_layer_;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 void LayerTest::TearDownTestCase() {

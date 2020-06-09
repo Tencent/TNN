@@ -38,13 +38,13 @@ namespace optimizer {
             auto optimizer = optimizer_map[iter.second];
             if (optimizer->SupportDevice(device)) {
                 auto status = optimizer->Optimize(structure, resource);
-                if (status != RPD_OK) {
+                if (status != TNN_OK) {
                     return status;
                 }
             }
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     void NetOptimizerManager::RegisterNetOptimizer(NetOptimizer *optimizer, OptPriority prior) {

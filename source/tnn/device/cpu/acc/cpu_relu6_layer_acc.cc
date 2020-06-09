@@ -23,7 +23,7 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Relu6, LAYER_RELU6);
 
 Status CpuRelu6LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -46,7 +46,7 @@ Status CpuRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
             output_data[index] = std::min((int8_t)6, output_data[index]);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Relu6, LAYER_RELU6);

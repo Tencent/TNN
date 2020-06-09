@@ -90,13 +90,13 @@ ArmConvLayer1x1::~ArmConvLayer1x1() {}
 
 Status ArmConvLayer1x1::allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (!buffer_weight_.GetBytesSize()) {
-        RETURN_ON_NEQ(ArmConvLayerCommon::allocateBufferWeight(inputs, outputs), RPD_OK);
+        RETURN_ON_NEQ(ArmConvLayerCommon::allocateBufferWeight(inputs, outputs), TNN_OK);
         if (ARM_SGEMM_TILE_N == 8) {
             ConvertWeightsC4ToC8(buffer_weight_.force_to<float *>(), inputs[0]->GetBlobDesc().dims[1],
                                  outputs[0]->GetBlobDesc().dims[1]);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -105,7 +105,7 @@ Status ArmConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -172,7 +172,7 @@ Status ArmConvLayer1x1::Exec(const std::vector<Blob *> &inputs, const std::vecto
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

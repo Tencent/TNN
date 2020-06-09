@@ -87,11 +87,11 @@ Status ArmShuffleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
             shuffle_func(output_ptr, input_ptr, group_row, group_column, dims[1], area);
         } else {
-            return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
+            return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)

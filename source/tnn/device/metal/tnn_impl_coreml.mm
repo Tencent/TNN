@@ -22,11 +22,11 @@ Status TNNImplCoreML::Init(ModelConfig& config) {
 
 Status TNNImplCoreML::DeInit() {
 //    coreml_model_ = nil;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status TNNImplCoreML::AddOutput(const std::string& layer_name, int output_index) {
-    return Status(RPDERR_MODEL_ERR, "Error: CoreML do not support adding output");
+    return Status(TNNERR_MODEL_ERR, "Error: CoreML do not support adding output");
 }
 
 std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
@@ -35,7 +35,7 @@ std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(nullptr, inputs_shape);
 
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return nullptr;
     }
     return instance;

@@ -38,7 +38,7 @@ Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* in
     for (int i = 0; i < output_size; ++i) {
         origin_output_data[i] = std::log(origin_output_data[i]);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_REDUCE_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);

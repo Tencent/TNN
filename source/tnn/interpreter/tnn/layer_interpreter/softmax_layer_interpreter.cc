@@ -30,25 +30,25 @@ Status SoftmaxLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_
         layer_param->axis = atoi(layer_cfg_arr[index++].c_str());
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SoftmaxLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SoftmaxLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     SoftmaxLayerParam* layer_param = dynamic_cast<SoftmaxLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->axis << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SoftmaxLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Softmax, LAYER_SOFTMAX);

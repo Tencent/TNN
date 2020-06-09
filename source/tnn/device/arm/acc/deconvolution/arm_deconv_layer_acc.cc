@@ -45,7 +45,7 @@ Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     deconv_acc_impl_ = std::make_shared<ArmDeconvLayerCommon>();
 
     auto status = deconv_acc_impl_->Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -56,7 +56,7 @@ Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     }
 
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -83,7 +83,7 @@ Status ArmDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     if (deconv_acc_impl_) {
         return deconv_acc_impl_->Reshape(inputs, outputs);
     } else {
-        return Status(RPDERR_CONTEXT_ERR, "deconv_acc_impl_ is nil");
+        return Status(TNNERR_CONTEXT_ERR, "deconv_acc_impl_ is nil");
     }
 }
 
@@ -91,7 +91,7 @@ Status ArmDeconvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     if (deconv_acc_impl_) {
         return deconv_acc_impl_->DoForward(inputs, outputs);
     } else {
-        return Status(RPDERR_CONTEXT_ERR, "deconv_acc_impl_ is nil");
+        return Status(TNNERR_CONTEXT_ERR, "deconv_acc_impl_ is nil");
     }
 }
 

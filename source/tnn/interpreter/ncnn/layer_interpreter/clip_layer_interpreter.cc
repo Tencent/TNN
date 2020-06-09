@@ -36,12 +36,12 @@ namespace ncnn {
         layer_param->min = GetFloat(p, 0, 0.0);
         layer_param->max = GetFloat(p, 1, 0.0);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ClipLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                    LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

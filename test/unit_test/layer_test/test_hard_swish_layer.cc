@@ -59,7 +59,7 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     input_desc.dims.push_back(channel);
     input_desc.dims.push_back(input_size);
     input_desc.dims.push_back(input_size);
-    input_desc.device_type = DEVICE_CPU;
+    input_desc.device_type = DEVICE_NAIVE;
     input_desc.data_type   = data_type;
     for (int i = 0; i < input_count; ++i)
         inputs_desc.push_back(input_desc);
@@ -67,7 +67,7 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     std::vector<BlobDesc> outputs_desc;
     BlobDesc output_desc;
     output_desc.data_type   = data_type;
-    output_desc.device_type = DEVICE_CPU;
+    output_desc.device_type = DEVICE_NAIVE;
     outputs_desc.push_back(output_desc);
 
     // param

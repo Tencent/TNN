@@ -20,12 +20,12 @@ namespace TNN_NS {
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status AbstractNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
-    return RPD_OK;
+    return TNN_OK;
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #if TNN_PROFILE

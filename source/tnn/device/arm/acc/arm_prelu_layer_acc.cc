@@ -72,7 +72,7 @@ Status ArmPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     } else {
         ASSERT(0);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(PRelu, LAYER_PRELU)

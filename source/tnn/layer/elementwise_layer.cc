@@ -29,7 +29,7 @@ Status ElementwiseLayer::InferOutputShape() {
     }
 
     output_blobs_[0]->GetBlobDesc().dims = dims_output;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

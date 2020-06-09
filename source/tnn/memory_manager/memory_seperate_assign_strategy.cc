@@ -21,11 +21,11 @@ Status MemorySeperateAssignStrategy::AssignAllBlobMemory(std::set<BlobMemory*>& 
     typename std::set<BlobMemory*>::iterator iter;
     for (auto iter : blob_memory_library) {
         auto status = iter->AllocateHandle();
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

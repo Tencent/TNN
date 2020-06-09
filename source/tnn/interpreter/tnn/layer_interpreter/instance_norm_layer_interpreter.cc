@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 Status InstanceNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InstanceNormLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -33,18 +33,18 @@ Status InstanceNormLayerInterpreter::InterpretResource(Deserializer& deserialize
         instnorm_res->bias_handle = RawBuffer(scal_byte_size);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InstanceNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InstanceNormLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     CAST_OR_RET_ERROR(instnorm_res, InstanceNormLayerResource, "invalid layer res to save", resource);
     serializer.PutRaw(instnorm_res->scale_handle);
     serializer.PutRaw(instnorm_res->bias_handle);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(InstanceNorm, LAYER_INST_BATCH_NORM);

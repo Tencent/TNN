@@ -29,11 +29,11 @@ Status SplitVLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     p->slices.clear();
     GET_INT_N_INTO_VEC(p->slices, slice_count);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SplitVLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SplitVLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -45,11 +45,11 @@ Status SplitVLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
         output_stream << item << " ";
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status SplitVLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(SplitV, LAYER_SPLITV);

@@ -50,12 +50,12 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
             layer_param->dims.push_back(width);
             layer_param->dims.push_back(height);
         }
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status UpsampleLayerInterpreter::InterpretResource(
         Deserializer& deserializer, LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status UpsampleLayerInterpreter::SaveProto(std::ofstream& output_stream,
@@ -64,7 +64,7 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
             dynamic_cast<UpsampleLayerParam*>(param);
         if (nullptr == layer_param) {
             LOGE("invalid layer param to save\n");
-            return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+            return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
         }
 
         output_stream << layer_param->type << " ";
@@ -80,13 +80,13 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
             output_stream << layer_param->dims[0] << " ";
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status UpsampleLayerInterpreter::SaveResource(Serializer& serializer,
                                                   LayerParam* param,
                                                   LayerResource* resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 REGISTER_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);

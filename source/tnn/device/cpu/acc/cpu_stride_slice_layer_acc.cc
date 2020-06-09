@@ -22,14 +22,14 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
 Status CpuStrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: StrideSliceLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
     }
 
     Blob *input_blob  = inputs[0];
@@ -69,7 +69,7 @@ Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     } else {
         ASSERT(0);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(StrideSlice, LAYER_STRIDED_SLICE);

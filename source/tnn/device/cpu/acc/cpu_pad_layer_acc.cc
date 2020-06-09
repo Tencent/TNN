@@ -20,14 +20,14 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Pad, LAYER_PAD);
 
 Status CpuPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PadLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "Error: layer param is nil");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
     auto input_blob  = inputs[0];
     auto output_blob = outputs[0];
@@ -148,23 +148,23 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                                 input_data_ptr[(input_height - 1) * input_width + w];
                         } else {
                             LOGE("Error: Stuck in the wrong branch: type:%d\n", layer_param->type);
-                            return Status(RPDERR_PARAM_ERR, "Error: layer param is not supported");
+                            return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
                         }
                     }
                 }
             }
         } else {
             LOGE("Error: layer param is not supported: type:%d\n", layer_param->type);
-            return Status(RPDERR_PARAM_ERR, "Error: layer param is not supported");
+            return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Pad, LAYER_PAD);

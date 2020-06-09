@@ -34,7 +34,7 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
     deconv_type_ = CT_DECONV_COMMON;
 
     Status ret = OpenCLDeconvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::set<std::string> build_options;
@@ -45,12 +45,12 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
     }
     std::string kernel_name = "Deconv2D";
     ret                     = CreateExecuteUnit(execute_units_[0], "deconvolution", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLDeconvLayerCommonAcc::~OpenCLDeconvLayerCommonAcc() {}

@@ -83,7 +83,8 @@
                         __LINE__, ##__VA_ARGS__)
 #define LOGET(fmt, tag, ...)                                                                                           \
     __android_log_print(ANDROID_LOG_ERROR, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,         \
-                        __LINE__, ##__VA_ARGS__)
+                        __LINE__, ##__VA_ARGS__);                                                                      \
+    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define LOGDT(fmt, tag, ...)                                                                                           \
     fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
@@ -168,7 +169,7 @@
 #define CHECK_PARAM_NULL(param)                                                                                        \
     do {                                                                                                               \
         if (!param) {                                                                                                  \
-            return Status(RPDERR_PARAM_ERR, "Error: param is nil");                                                    \
+            return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
         }                                                                                                              \
     } while (0)
 

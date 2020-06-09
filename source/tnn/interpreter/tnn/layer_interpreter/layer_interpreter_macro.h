@@ -101,7 +101,7 @@
     do {                                                                                                               \
         if (nullptr == layer_res) {                                                                                    \
             LOGE(msg);                                                                                                 \
-            return Status(RPDERR_NULL_PARAM, msg);                                                                     \
+            return Status(TNNERR_NULL_PARAM, msg);                                                                     \
         }                                                                                                              \
     } while (0)
 

@@ -80,7 +80,7 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     mat_type_        = mat_type;
     void* data_alloc = nullptr;
     auto status      = device->Allocate(&data_alloc, mat_type, dims);
-    if (status == RPD_OK) {
+    if (status == TNN_OK) {
         data_alloc_ = std::shared_ptr<void>(data_alloc, [=](void* p) {
             auto device = GetDevice(device_type);
             if (device) {

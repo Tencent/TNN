@@ -33,7 +33,7 @@ Status StrideSliceLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int st
             begins.push_back(atoi(layer_cfg_arr[index].c_str()));
         } else {
             LOGE("StrideSliceLayerInterpreter param is invalid\n");
-            return Status(RPDERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
+            return Status(TNNERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
         }
     }
     std::reverse(begins.begin(), begins.end());
@@ -46,7 +46,7 @@ Status StrideSliceLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int st
             ends.push_back(atoi(layer_cfg_arr[index].c_str()));
         } else {
             LOGE("StrideSliceLayerInterpreter param is invalid\n");
-            return Status(RPDERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
+            return Status(TNNERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
         }
     }
     std::reverse(ends.begin(), ends.end());
@@ -59,23 +59,23 @@ Status StrideSliceLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int st
             strides.push_back(atoi(layer_cfg_arr[index].c_str()));
         } else {
             LOGE("StrideSliceLayerInterpreter param is invalid\n");
-            return Status(RPDERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
+            return Status(TNNERR_PARAM_ERR, "StrideSliceLayerInterpreter param is invalid");
         }
     }
     std::reverse(strides.begin(), strides.end());
     layer_param->strides = strides;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status StrideSliceLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status StrideSliceLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     auto begins = layer_param->begins;
     std::reverse(begins.begin(), begins.end());
@@ -97,11 +97,11 @@ Status StrideSliceLayerInterpreter::SaveProto(std::ofstream& output_stream, Laye
     for (int i = 0; i < strides.size(); i++) {
         output_stream << strides[i] << " ";
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status StrideSliceLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(StrideSlice, LAYER_STRIDED_SLICE);

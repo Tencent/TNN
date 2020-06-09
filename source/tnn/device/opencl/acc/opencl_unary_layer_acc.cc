@@ -22,7 +22,7 @@ Status OpenCLUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResou
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Unary Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_         = true;
     std::string kernel_name = "Unary";
@@ -30,7 +30,7 @@ Status OpenCLUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     std::set<std::string> build_options = CreateBuildOptions();
 
     ret = CreateExecuteUnit(execute_units_[0], "unary", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
@@ -47,7 +47,7 @@ Status OpenCLUnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

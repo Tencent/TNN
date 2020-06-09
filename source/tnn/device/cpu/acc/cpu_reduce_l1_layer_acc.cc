@@ -31,7 +31,7 @@ Status CpuReduceL1LayerAcc::CalculateReduce(float* output_data, float* input_dat
         }
         output_data += inner_dim;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_REDUCE_ACC(ReduceL1, LAYER_REDUCE_L1);

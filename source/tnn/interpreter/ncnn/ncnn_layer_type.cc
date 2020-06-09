@@ -51,6 +51,15 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"PReLU", LAYER_PRELU},
     {"Clip", LAYER_CLIP},
     {"Padding", LAYER_PAD},
+    {"SELU", LAYER_SELU},
+    {"DetectionOutput", LAYER_DETECTION_OUTPUT},
+    {"InstanceNorm", LAYER_INST_BATCH_NORM},
+    {"PriorBox", LAYER_PRIOR_BOX},
+    {"DetectionOutput", LAYER_DETECTION_OUTPUT},
+    {"Reorg", LAYER_REORG},
+    {"Normalize", LAYER_NORMALIZE},
+    {"RoiPooling", LAYER_ROIPOOLING},
+    {"Scale", LAYER_SCALE}
 };
 
 LayerType ConvertNCNNLayerType(std::string layer_type_str) {

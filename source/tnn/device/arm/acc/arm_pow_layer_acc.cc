@@ -41,12 +41,12 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
             Float4::save(output_data + n * 4, res);
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Pow, LAYER_POWER);

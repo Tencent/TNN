@@ -36,7 +36,7 @@ Status MetalConvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &inp
     const int input_channel      = dims_input[1];
     const int output_channel     = dims_output[1];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
         int kh = layer_param->kernels[1];
@@ -51,7 +51,7 @@ Status MetalConvLayerCommon::AllocateBufferBias(const std::vector<Blob *> &input
     auto layer_param = dynamic_cast<ConvLayerParam *>(param_);
     auto layer_res   = dynamic_cast<ConvLayerResource *>(resource_);
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     // buffer_bias_
     if (!buffer_bias_) {
         if (layer_param->bias) {
@@ -92,23 +92,23 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
                                             length:sizeof(MetalConvParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayerCommon::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = AllocateBufferWeight(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     status = AllocateBufferBias(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     status = AllocateBufferParam(inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalConvLayerCommon::KernelName() {
@@ -126,7 +126,7 @@ Status MetalConvLayerCommon::ComputeThreadSize(const std::vector<Blob *> &inputs
     auto output_slice_per_group = output_slice / layer_param->group;
     output_slice_per_group = output_slice_per_group > 0 ? output_slice_per_group : 1;
     size = MTLSizeMake(dims_output[3], dims_output[2], output_slice_per_group);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -141,7 +141,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     const int gic          = dims_input[1] / group;
     if (group > 1 && ((gic % 4 != 0) || (goc % 4 != 0))) {
         LOGD("convolution: channel per group must be 4x\n");
-        return Status(RPDERR_LAYER_ERR, "convolution: channel per group must be 4x");
+        return Status(TNNERR_LAYER_ERR, "convolution: channel per group must be 4x");
     }
     
     auto context_impl = context_->getMetalContextImpl();
@@ -157,16 +157,16 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     auto output_bytes = dims_output[3] * dims_output[2] * ROUND_UP(dims_output[1], 4) * data_byte_size;
     auto output_bytes_per_group = output_bytes / group;
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     
     do {
         MTLSize threads;
         status = ComputeThreadSize(inputs, outputs, threads);
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
         
         auto kernel_name = KernelName();
         if (kernel_name.length() <= 0) {
-            status = Status(RPDERR_LAYER_ERR, "empty kernel name");
+            status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             break;
         }
         
@@ -174,7 +174,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
         status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
                             encoder:encoder
                           bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
         
         for (int b = 0; b < batch; b++) {
             for (int g = 0; g < group; g++) {
@@ -192,7 +192,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
 
                 status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
-                if (status != RPD_OK) {
+                if (status != TNN_OK) {
                     [encoder endEncoding];
                     return status;
                 }
@@ -202,7 +202,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     
     [encoder endEncoding];
     
-    if (status == RPD_OK) {
+    if (status == TNN_OK) {
         [context_impl commit];
         TNN_PRINT_ENCODER(context_, encoder, this);
     }

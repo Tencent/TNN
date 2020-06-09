@@ -78,7 +78,7 @@ protected:
 protected:
     std::shared_ptr<TNN_NS::TNN> net_           = nullptr;
     std::shared_ptr<TNN_NS::Instance> instance_ = nullptr;
-    TNN_NS::DeviceType device_type_             = DEVICE_CPU;
+    TNN_NS::DeviceType device_type_             = DEVICE_ARM;
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,

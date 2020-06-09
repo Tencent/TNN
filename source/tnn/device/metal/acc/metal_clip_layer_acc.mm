@@ -27,7 +27,7 @@ Status MetalClipLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     auto layer_param = dynamic_cast<ClipLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: ClipLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "ClipLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "ClipLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -46,7 +46,7 @@ Status MetalClipLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                             length:sizeof(MetalClipParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalClipLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

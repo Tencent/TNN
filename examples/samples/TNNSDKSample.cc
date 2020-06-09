@@ -50,7 +50,7 @@ std::string BenchResult::Description() {
     std::ostringstream ostr;
     ostr << "min = " << min << "  max = " << max << "  avg = " << avg;
 
-    if (status != TNN_NS::RPD_OK) {
+    if (status != TNN_NS::TNN_OK) {
         ostr << "\nerror = " << status.description();
     }
     ostr << std::endl;
@@ -77,7 +77,7 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
-        if (status != TNN_NS::RPD_OK) {
+        if (status != TNN_NS::TNN_OK) {
             LOGE("instance.net init failed %d", (int)status);
             return status;
         }
@@ -103,7 +103,7 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
         network_config.library_path = {library_path};
         network_config.device_type  = device_type_;
         auto instance               = net_->CreateInst(network_config, status, shapeMap);
-        if (status != TNN_NS::RPD_OK || !instance) {
+        if (status != TNN_NS::TNN_OK || !instance) {
             // try device_arm
             if (units >= TNNComputeUnitsGPU) {
                 device_type_               = TNN_NS::DEVICE_ARM;

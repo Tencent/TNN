@@ -137,7 +137,7 @@ Status Pooling3DLayer::InferOutputShape() {
 
             if (rectify_height_out != height_out || rectify_width_out != width_out || rectify_depth_out != depth_out) {
                 LOGE("Error: Pooling3DLayer, maybe it is the case for global pooling\n");
-                return Status(RPDERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
+                return Status(TNNERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
             }
         }
 
@@ -165,7 +165,7 @@ Status Pooling3DLayer::InferOutputShape() {
             depth_out  = int(std::ceil(float(depth - kernel_d + 1) / float(stride_d)));
         } else {
             LOGE("Error: Pooling3DLayer, maybe it is the case for global pooling\n");
-            return Status(RPDERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
+            return Status(TNNERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
         }
 
         int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
@@ -199,7 +199,7 @@ Status Pooling3DLayer::InferOutputShape() {
     for (int i = 0; i < output_blobs_.size(); ++i) {
         output_blobs_[i]->GetBlobDesc().dims = output_dims;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Pooling3D, LAYER_POOLING_3D);

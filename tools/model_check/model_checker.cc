@@ -51,26 +51,26 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config,
                           InputShapesMap inputs_shape) {
     tnn_.reset(new TNN());
     Status status = tnn_->Init(model_config);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("tnn init falied: %s!\n", status.description().c_str());
-        return Status(RPDERR_NET_ERR, "tnn init falied");
+        return Status(TNNERR_NET_ERR, "tnn init falied");
     }
 
     NetworkConfig net_config_cpu;
     instance_cpu_ = tnn_->CreateInst(net_config_cpu, status);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("create cpu instance falied: %s\n", status.description().c_str());
-        return Status(RPDERR_INST_ERR, "create cpu instance falied");
+        return Status(TNNERR_INST_ERR, "create cpu instance falied");
     }
 
     instance_device_ = tnn_->CreateInst(net_config, status);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("create device instance falied: %s\n",
              status.description().c_str());
-        return Status(RPDERR_INST_ERR, "create device instance falied");
+        return Status(TNNERR_INST_ERR, "create device instance falied");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 int ModelChecker::SetModelCheckerParams(ModelCheckerParam params) {
@@ -81,26 +81,26 @@ int ModelChecker::SetModelCheckerParams(ModelCheckerParam params) {
 Status ModelChecker::RunModelChecker() {
     // feed instance input
     Status ret = FeedInputData();
-    if (ret != RPD_OK) {
-        return Status(RPDERR_COMMON_ERROR, "feed input data failed");
+    if (ret != TNN_OK) {
+        return Status(TNNERR_COMMON_ERROR, "feed input data failed");
     }
 
     // get ref output data
     ret = GetOutputRefData();
-    if (ret != RPD_OK) {
-        return Status(RPDERR_COMMON_ERROR, "get output reference data failed");
+    if (ret != TNN_OK) {
+        return Status(TNNERR_COMMON_ERROR, "get output reference data failed");
     }
 
     // get cpu instance blobs data
     ret = GetCpuBlobData();
-    if (ret != RPD_OK) {
-        return Status(RPDERR_COMMON_ERROR, "get cpu blob data failed");
+    if (ret != TNN_OK) {
+        return Status(TNNERR_COMMON_ERROR, "get cpu blob data failed");
     }
 
     // compare between cpu and device
     ret = CompareDeviceAndCpu();
-    if (ret != RPD_OK) {
-        return Status(RPDERR_COMMON_ERROR,
+    if (ret != TNN_OK) {
+        return Status(TNNERR_COMMON_ERROR,
                       "compare device and cpu data failed");
     }
 
@@ -119,14 +119,14 @@ Status ModelChecker::RunModelChecker() {
         }
     }
     if (check_pass) {
-        return RPD_OK;
+        return TNN_OK;
     } else {
         printf("failed layer count: %d    pass layer count: %d\n", failed_count,
                pass_count);
         if (!check_results.back().second) {
             printf("the last layer check falied!\n");
         }
-        return Status(RPDERR_COMMON_ERROR, "model check failed");
+        return Status(TNNERR_COMMON_ERROR, "model check failed");
     }
 }
 
@@ -146,9 +146,9 @@ Status ModelChecker::FeedInputData() {
         Status status =
             file_reader.Read(input_blob_cpu, input_name,
                              model_checker_params_.input_file.second);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", input_name.c_str());
-            return Status(RPDERR_COMMON_ERROR, "read input failed");
+            return Status(TNNERR_COMMON_ERROR, "read input failed");
         }
         generate_random_input = false;
     }
@@ -174,18 +174,18 @@ Status ModelChecker::FeedInputData() {
     for (auto item : input_blobs_device) {
         MatConvertParam param;
         BlobConverter blob_converter(item.second);
-        TNN_NS::Mat cpu_mat(DEVICE_CPU, NCHW_FLOAT,
+        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT,
                             input_blobs_cpu[item.first]->GetHandle().base);
         Status ret =
             blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("input blob_converter failed (%s)\n",
                  ret.description().c_str());
-            return Status(RPDERR_COMMON_ERROR, "run blob_converter failed");
+            return Status(TNNERR_COMMON_ERROR, "run blob_converter failed");
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelChecker::GetOutputRefData() {
@@ -196,7 +196,7 @@ Status ModelChecker::GetOutputRefData() {
             instance_device_->GetAllOutputBlobs(output_blobs_device);
             if (output_blobs_device.size() != 1) {
                 LOGE("output ref only support 1 output model!\n");
-                return Status(RPDERR_COMMON_ERROR, "not support");
+                return Status(TNNERR_COMMON_ERROR, "not support");
             }
 
             auto output_dims =
@@ -214,11 +214,11 @@ Status ModelChecker::GetOutputRefData() {
         } else {
             LOGE("invalid output reference file (%s)!\n",
                  output_file_name.c_str());
-            return Status(RPDERR_COMMON_ERROR, "invalid output ref file");
+            return Status(TNNERR_COMMON_ERROR, "invalid output ref file");
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelChecker::GetCpuBlobData() {
@@ -238,11 +238,11 @@ Status ModelChecker::GetCpuBlobData() {
             instance_cpu_->GetCommandQueue(&command_queue);
             MatConvertParam param;
             BlobConverter blob_converter(blob);
-            TNN_NS::Mat cpu_mat(DEVICE_CPU, NCHW_FLOAT,
+            TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT,
                                 cpu_blobdata_map[blob_name].get());
             Status ret =
                 blob_converter.ConvertToMat(cpu_mat, param, command_queue);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("cpu blob (name:%s) converte failed (%s)\n",
                      blob_name.c_str(), ret.description().c_str());
             }
@@ -276,11 +276,11 @@ Status ModelChecker::CompareDeviceAndCpu() {
             instance_device_->GetCommandQueue(&command_queue);
             MatConvertParam param;
             BlobConverter blob_converter(blob);
-            TNN_NS::Mat device_mat(DEVICE_CPU, NCHW_FLOAT,
+            TNN_NS::Mat device_mat(DEVICE_NAIVE, NCHW_FLOAT,
                                    device_mat_data.get());
             Status ret =
                 blob_converter.ConvertToMat(device_mat, param, command_queue);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("device blob (name:%s) converte failed (%s)\n",
                      blob_name.c_str(), ret.description().c_str());
             }

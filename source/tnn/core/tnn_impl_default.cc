@@ -28,13 +28,13 @@ TNNImplDefault::~TNNImplDefault() {}
 
 Status TNNImplDefault::Init(ModelConfig& config) {
     auto status = TNNImpl::Init(config);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     auto interpreter = CreateModelInterpreter(config.model_type);
     if (!interpreter) {
-        return Status(RPDERR_NET_ERR, "interpreter is nil");
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
     interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
     return interpreter_->Interpret(config.params);
@@ -42,32 +42,32 @@ Status TNNImplDefault::Init(ModelConfig& config) {
 
 Status TNNImplDefault::DeInit() {
     interpreter_ = nullptr;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status TNNImplDefault::AddOutput(const std::string& layer_name, int output_index) {
     if (!interpreter_) {
-        return Status(RPDERR_NET_ERR, "interpreter is nil");
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
 
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
     CHECK_PARAM_NULL(default_interpreter);
 
     default_interpreter->GetNetStructure()->outputs.insert(layer_name);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
                                                      InputShapesMap inputs_shape) {
     if (!interpreter_) {
-        status = Status(RPDERR_NET_ERR, "interpreter is nil");
+        status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
     }
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(interpreter_, inputs_shape);
 
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return nullptr;
     }
     return instance;

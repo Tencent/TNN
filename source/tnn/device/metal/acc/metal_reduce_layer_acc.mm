@@ -26,7 +26,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     auto layer_param     = dynamic_cast<ReduceLayerParam *>(param_);
     if (!layer_param || layer_param->axis.size() != 1) {
         LOGE("Error: layer param is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
@@ -48,7 +48,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
                                             length:sizeof(MetalReduceParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalReduceLayerAcc::KernelName() {
@@ -59,7 +59,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto layer_param = dynamic_cast<ReduceLayerParam *>(param_);
     if (!layer_param || layer_param->axis.size() != 1) {
         LOGE("Error: layer param is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     auto context_impl = context_->getMetalContextImpl();
@@ -78,7 +78,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto batch         = dims_output[0];
 
     MetalBandwidth bandwidth;
-    Status status        = RPD_OK;
+    Status status        = TNN_OK;
     DataType data_type   = output->GetBlobDesc().data_type;
     string data_type_str = DataTypeUtils::GetDataTypeString(data_type);
 
@@ -86,14 +86,14 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         auto kernel_name = KernelName();
         if (kernel_name.length() <= 0) {
             LOGE("Error: empty kernel name\n");
-            status = Status(RPDERR_LAYER_ERR, "empty kernel name");
+            status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             break;
         }
 
         status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
                             encoder:encoder
                             bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_channel, (NSUInteger)batch};
 
@@ -106,7 +106,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

@@ -46,7 +46,7 @@ namespace ncnn {
 
         // only supports nearest and bilinear now
         if (resize_type != 1 && resize_type != 2) {
-            return Status(RPDERR_INVALID_NETCFG, "Interp layer: unsupported resize_type");
+            return Status(TNNERR_INVALID_NETCFG, "Interp layer: unsupported resize_type");
         }
 
         layer_param->type          = resize_type;
@@ -58,12 +58,12 @@ namespace ncnn {
             layer_param->dims.push_back(output_height);
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status InterpLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                      LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

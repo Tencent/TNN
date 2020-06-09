@@ -41,7 +41,7 @@ Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResou
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Reorg Acc \n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Reorg";
@@ -49,7 +49,7 @@ Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     auto layer_param = dynamic_cast<ReorgLayerParam *>(param);
     if (layer_param == nullptr) {
         LOGE("ReorgLayerParam is null!\n");
-        return Status(RPDERR_MODEL_ERR, "ReorgLayerParam is null");
+        return Status(TNNERR_MODEL_ERR, "ReorgLayerParam is null");
     }
 
     reverse_ = layer_param->reverse;
@@ -60,25 +60,25 @@ Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     program_name = "image_to_buffer";
     kernel_name  = "ImageToNCHWBufferFLOAT";
     ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
     program_name = "reorg";
     kernel_name  = "Reorg";
     ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
     program_name = "buffer_to_image";
     kernel_name  = "NCHWBufferToImageFLOAT";
     ret          = CreateExecuteUnit(execute_units_[2], program_name, kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLReorgLayerAcc::~OpenCLReorgLayerAcc() {}
@@ -132,7 +132,7 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[1]));  // output channel
     unit2.ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Reorg, LAYER_REORG)

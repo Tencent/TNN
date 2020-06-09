@@ -17,23 +17,23 @@
 namespace TNN_NS {
 
 Status CpuContext::LoadLibrary(std::vector<std::string> path) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuContext::GetCommandQueue(void** command_queue) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuContext::OnInstanceForwardBegin() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuContext::OnInstanceForwardEnd() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuContext::Synchronize() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

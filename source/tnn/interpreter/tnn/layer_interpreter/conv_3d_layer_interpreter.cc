@@ -50,7 +50,7 @@ Status Conv3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     // activation
     GET_INT_1(p->activation_type);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Conv3DLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -68,7 +68,7 @@ Status Conv3DLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
         GET_BUFFER_FOR_ATTR(conv_3d_res, bias_handle, deserializer);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Conv3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -103,7 +103,7 @@ Status Conv3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
 
     output_stream << layer_param->activation_type << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status Conv3DLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
@@ -117,7 +117,7 @@ Status Conv3DLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
         serializer.PutRaw(conv_3d_res->bias_handle);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Conv3D, LAYER_CONVOLUTION_3D);

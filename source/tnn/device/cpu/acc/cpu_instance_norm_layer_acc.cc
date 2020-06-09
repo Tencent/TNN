@@ -22,14 +22,14 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 Status CpuInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
         LOGE("Error: layer resource is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer resource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer resource is nil");
     }
 
     Blob *input_blob  = inputs[0];
@@ -40,7 +40,7 @@ Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const
     int area     = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
     if (0 == area) {
         LOGE("Error: blob count is zero\n");
-        return Status(RPDERR_COMMON_ERROR, "Error: blob count is zero");
+        return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
 
     RawBuffer scale_handle = layer_res->scale_handle;
@@ -86,10 +86,10 @@ Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         }
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);

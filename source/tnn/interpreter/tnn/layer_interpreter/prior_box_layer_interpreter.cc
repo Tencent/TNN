@@ -70,18 +70,18 @@ Status PriorBoxLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start
     // get offset
     layer_param->offset = static_cast<float>(atof(layer_cfg_arr[index++].c_str()));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PriorBoxLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **Resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PriorBoxLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
     PriorBoxLayerParam *layer_param = dynamic_cast<PriorBoxLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     // write min_size
@@ -124,11 +124,11 @@ Status PriorBoxLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerPa
 
     // write offset
     output_stream << layer_param->offset << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PriorBoxLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(PriorBox, LAYER_PRIOR_BOX);

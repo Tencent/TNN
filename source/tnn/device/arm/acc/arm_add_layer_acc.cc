@@ -160,7 +160,7 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
                 bias_shape_[2] = dims[2];
                 bias_shape_[3] = dims[3];
             } else {
-                return Status(RPDERR_MODEL_ERR, "Error: unsupported broadcast type");
+                return Status(TNNERR_MODEL_ERR, "Error: unsupported broadcast type");
             }
             auto buffer_size = ROUND_UP(bias_shape_[1], 4) * bias_shape_[2] * bias_shape_[3] * sizeof(float);
             RawBuffer temp(buffer_size);
@@ -182,14 +182,14 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
             output_bias_ = temp;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
     if (!((inputs.size() == 1 && layer_res) || inputs.size() >= 2)) {
         LOGE("Error: ArmAddLayerAcc invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "ArmAddLayerAcc invalid inputs count");
+        return Status(TNNERR_LAYER_ERR, "ArmAddLayerAcc invalid inputs count");
     }
 
     std::vector<void *> input_ptrs;
@@ -217,7 +217,7 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 
     if (input_ptrs.size() < 2) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "Add layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "Add layer's inputs size must >= 2");
     }
 
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
@@ -236,7 +236,7 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         // only support inputs.size() == 2
         if (inputs.size() > 2) {
-            return Status(RPDERR_UNSUPPORT_NET, "INPUT > 2 NOT IMPLEMENT FOR INT8");
+            return Status(TNNERR_UNSUPPORT_NET, "INPUT > 2 NOT IMPLEMENT FOR INT8");
         }
         auto output_ptr   = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
         auto input0_ptr   = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
@@ -259,10 +259,10 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         }
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Add, LAYER_ADD)

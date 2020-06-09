@@ -66,7 +66,7 @@ namespace ncnn {
                 layer_param->begins = {woffset, hoffset, coffset, 0};
                 layer_param->ends   = {-woffset2, -hoffset2, -coffset2, 0};
             } else {
-                return Status(RPDERR_INVALID_NETCFG, "ncnn crop layer invalid dims.");
+                return Status(TNNERR_INVALID_NETCFG, "ncnn crop layer invalid dims.");
             }
         } else {
             std::reverse(layer_param->begins.begin(), layer_param->begins.end());
@@ -76,15 +76,15 @@ namespace ncnn {
         if (layer_param->begins.size() != 4 || layer_param->ends.size() != 4) {
             // TODO fully support crop layer.
             // onnx2ncnn failed to convert onnx slice layer now
-            return Status(RPDERR_INVALID_NETCFG, "ncnn crop layer not fully supported now");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn crop layer not fully supported now");
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status CropLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                    LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

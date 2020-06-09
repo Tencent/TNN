@@ -200,7 +200,7 @@ namespace test {
             std::string model_path;
             /*
              * TNN file names:
-             *  xxx.rpdproto  xxx.rpdmodel
+             *  xxx.tnnproto  xxx.tnnmodel
              * NCNN file names:
              *  xxx.param xxx.bin
              */
@@ -331,9 +331,9 @@ namespace test {
                 param.scale = std::vector<float>(blob_desc.dims[1], 1);
                 param.bias  = std::vector<float>(blob_desc.dims[1], 0);
             }
-            TNN_NS::Mat img(DEVICE_CPU, mat_type, img_data);
+            TNN_NS::Mat img(DEVICE_NAIVE, mat_type, img_data);
             Status ret = blob_converter.ConvertFromMat(img, param, command_queue);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
             }
             free(img_data);
@@ -379,9 +379,9 @@ namespace test {
 
             BlobConverter blob_converter(device_blob);
             void* img_data = malloc(size_in_bytes);
-            TNN_NS::Mat img(DEVICE_CPU, NCHW_FLOAT, img_data);
+            TNN_NS::Mat img(DEVICE_NAIVE, NCHW_FLOAT, img_data);
             Status ret = blob_converter.ConvertToMat(img, param, command_queue);
-            if (ret != RPD_OK) {
+            if (ret != TNN_OK) {
                 LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
             }
 

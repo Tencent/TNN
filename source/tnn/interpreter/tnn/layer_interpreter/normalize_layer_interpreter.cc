@@ -44,26 +44,26 @@ Status NormalizeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
     if (index < layer_cfg_arr.size()) {
         layer_param->p = atoi(layer_cfg_arr[index++].c_str());
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status NormalizeLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status NormalizeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<NormalizeLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->across_spatial << " " << layer_param->epsilon << " " << layer_param->channel_shared
                   << " " << layer_param->axis << " " << layer_param->p << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status NormalizeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Normalize, LAYER_NORMALIZE);

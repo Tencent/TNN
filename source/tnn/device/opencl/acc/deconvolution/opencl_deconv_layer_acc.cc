@@ -45,7 +45,7 @@ Status OpenCLDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     }
 
     if (deconv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "this type deconv is not implemented");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "this type deconv is not implemented");
 
     return deconv_acc_implement_->Init(context, conv_param, resource, inputs, outputs);
 }
@@ -54,14 +54,14 @@ OpenCLDeconvLayerAcc::~OpenCLDeconvLayerAcc() {}
 
 Status OpenCLDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (deconv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_RESHAPE_ERROR, "this type deconv is not implemented");
+        return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type deconv is not implemented");
 
     return deconv_acc_implement_->Reshape(inputs, outputs);
 }
 
 Status OpenCLDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (deconv_acc_implement_ == nullptr)
-        return Status(RPDERR_OPENCL_ACC_FORWARD_ERROR, "this type deconv is not implemented");
+        return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "this type deconv is not implemented");
 
     return deconv_acc_implement_->Forward(inputs, outputs);
 }

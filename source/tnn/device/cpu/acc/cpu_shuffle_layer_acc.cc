@@ -37,14 +37,14 @@ static int shuffle_cpu(float *output, const float *input, int group_row, int gro
 DECLARE_CPU_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
 
 Status CpuShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ShuffleLayerParam *>(param_);
     if (!param) {
         LOGE("Error: ShuffleLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
     }
 
     auto input  = inputs[0];
@@ -70,7 +70,7 @@ Status CpuShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
                     sp_sz);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);

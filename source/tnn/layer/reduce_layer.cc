@@ -22,7 +22,7 @@ Status ReduceLayer::InferOutputShape() {
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
     if (!layer_param || layer_param->axis.size() != 1) {
         LOGE("Error: layer param is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     Blob* input_blob  = input_blobs_[0];
@@ -34,12 +34,12 @@ Status ReduceLayer::InferOutputShape() {
     layer_param->axis[0] = axis;
     if (axis < 0 || axis >= dims.size()) {
         LOGE("Error: layer param axis is invalid\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param axis is invalid");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
     }
 
     dims[layer_param->axis[0]]      = 1;
     output_blob->GetBlobDesc().dims = dims;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 }  // namespace TNN_NS

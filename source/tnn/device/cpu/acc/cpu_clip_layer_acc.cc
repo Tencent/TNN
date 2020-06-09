@@ -25,11 +25,11 @@ public:
         auto layer_param = dynamic_cast<ClipLayerParam *>(param);
         if (!layer_param) {
             LOGE("Error: clip layer param is nil\n");
-            return Status(RPDERR_MODEL_ERR, "Error: clip layer param is nil");
+            return Status(TNNERR_MODEL_ERR, "Error: clip layer param is nil");
         }
         min_ = layer_param->min;
         max_ = layer_param->max;
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual float operator()(float in) {
         float tmp = std::min(max_, in);

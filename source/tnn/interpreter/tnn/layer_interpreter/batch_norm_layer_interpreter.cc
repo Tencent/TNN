@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(BatchNorm, LAYER_BATCH_NORM);
 
 Status BatchNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -33,18 +33,18 @@ Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, 
         batchnorm_res->bias_handle = RawBuffer(scal_byte_size);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BatchNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status BatchNormLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     CAST_OR_RET_ERROR(batchnorm_res, BatchNormLayerResource, "invalid layer res to save", resource);
     serializer.PutRaw(batchnorm_res->scale_handle);
     serializer.PutRaw(batchnorm_res->bias_handle);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(BatchNorm, LAYER_BATCH_NORM);

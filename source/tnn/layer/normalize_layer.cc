@@ -27,7 +27,7 @@ Status NormalizeLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
 
     output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Normalize, LAYER_NORMALIZE);

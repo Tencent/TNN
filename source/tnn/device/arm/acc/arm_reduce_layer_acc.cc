@@ -165,10 +165,10 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

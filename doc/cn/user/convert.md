@@ -1,4 +1,5 @@
-# 模型转换介绍
+# 模型转换
+## 模型转换介绍
 
 <div align=left ><img src="./resource/convert.png"/>
 
@@ -13,7 +14,7 @@
 
 目前 TNN 目前仅支持 CNN 等常用网络结构，RNN、GAN等网络结构正在逐步开发中。
 
-# TNN 模型转换工具
+## TNN 模型转换工具
 
 通过上面的模型转换的总体介绍，可以发现如果想将 TensorFlow 模型转换成 TNN 模型需要最少两步，稍显麻烦，所以我们提供了 convert2tnn 工具。这个工具提供了集成的转换工具，可以将 TensorFlow、Caffe 和 ONNX 模型转换成 TNN 模型。由于 PyTorch 可以直接导出为 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型，所以本工具不再提供对于 PyTorch 模型的模型转换，
 
@@ -23,10 +24,10 @@
 - 通过 docker image 的方式使用 covnert2tnn 转换工具；
 - 手动安装依赖工具和编译工具的方式使用 convert2tnn 转换工具；
 
-## Convert2tnn Docker (推荐)
+### Convert2tnn Docker (推荐)
 
 为了简化 convert2tnn转换工具的安装和编译步骤，目前 TNN 提供了 Dockerfile 文件以及 Docker image 的方式，你可以自己根据 Dockerfile 文件自己构建 docker 镜像，也可以从公司内部的 docker hub 上直接拉取已经构建好的镜像。你可以选择自己喜欢的方式获取 docker 的镜像。
-### 构建 docker 镜像
+#### 构建 docker 镜像
 ``` shell script
 cd <path-to-tnn>/tools/
 docker build -t tnn-convert:latest .
@@ -41,7 +42,7 @@ REPOSITORY          TAG                 IMAGE ID            CREATED             
 tnn-convert         latest              9e2a73fbfb3b        18 hours ago        2.53GB
 ```
 
-### convert2tnn 工具进行转换
+#### convert2tnn 工具进行转换
 
 首先验证下 docker 镜像能够正常使用，首先我们通过下面的命令来看下 convert2tnn 的帮助信息：
 
@@ -129,18 +130,18 @@ convert2tnn 的完整环境搭建包含下面的所有的工具的安装和编�
 
 针对 Linux 系统下的环境配置，我使用 Centos 7.2 为例，Ubuntu 系统也可以适用，只要将相应的安装命令修改为 Ubuntu 上的对应命令即可。  
 
-### 环境搭建及编译
-#### 1. ONNX模型转换工具搭建（必须）
+#### 环境搭建及编译
+##### 1. ONNX模型转换工具搭建（必须）
 
 - 安装protobuf(version >= 3.4.0)  
 Macos:
 ```shell script
 brew install protobuf
 ```
-# 设置代理（可选)
+## 设置代理（可选)
 export http_proxy=http://{addr}:{port}
 export https_proxy=http://{addr}:{port}
-# 编译
+## 编译
 cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
 ./build.sh
 ```
@@ -175,7 +176,7 @@ cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
 ./build.sh
  ```
 
-#### 2. TensorFlow 模型转换（可选）
+##### 2. TensorFlow 模型转换（可选）
 
 - tensorflow (version == 1.15.0)
 建议使用 TensorFlow 1.15.0 的版本，目前 TensorFlow 2.+ 的版本的兼容性不好， 不建议使用。
@@ -191,7 +192,7 @@ pip3 install tf2onnx
 ```shell script
 pip3 install onnxruntime
 ```
-#### 3. Caffe 模型转换（可选）
+##### 3. Caffe 模型转换（可选）
 
 - 安装protobuf(version >= 3.4.0)  
 
@@ -230,7 +231,7 @@ pip3 install onnx==1.6.0
 pip3 install numpy
 ```
 
-### convert2tnn 工具的使用
+#### convert2tnn 工具的使用
 配置后上面的环境依赖之后，就可以使用 convert2tnn 进行相应模型的转换
 
 ```shell script

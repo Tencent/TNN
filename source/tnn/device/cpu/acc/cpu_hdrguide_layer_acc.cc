@@ -20,13 +20,13 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(HdrGuide, LAYER_HDRGUIDE);
 
 Status CpuHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuHdrGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto resource = dynamic_cast<HdrGuideLayerResource *>(resource_);
     if (!resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: HdrGuideLayerResource is empty");
+        return Status(TNNERR_MODEL_ERR, "Error: HdrGuideLayerResource is empty");
     }
 
     Blob *input_blob         = inputs[0];
@@ -92,7 +92,7 @@ Status CpuHdrGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(HdrGuide, LAYER_HDRGUIDE);

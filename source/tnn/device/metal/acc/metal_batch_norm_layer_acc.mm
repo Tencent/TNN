@@ -51,10 +51,10 @@ Status MetalBatchNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
 
     auto layer_res = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: layer resource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer resource is nil");
     }
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     // buffer_param_
     {
         auto metal_params          = GetDefaultMetalParams(dims_input, dims_output);
@@ -66,7 +66,7 @@ Status MetalBatchNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
 
     if (!buffer_scale_) {
         buffer_scale_ = AllocateMetalBufferFormRawBuffer1D(layer_res->scale_handle, dims_output[1], status);
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             return status;
         }
     }
@@ -88,13 +88,13 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto context_impl = context_->getMetalContextImpl();
     if (!context_impl) {
         LOGE("context_impl is nil\n");
-        return Status(RPDERR_CONTEXT_ERR, "MetalBatchNormLayerAcc context_impl is nil");
+        return Status(TNNERR_CONTEXT_ERR, "MetalBatchNormLayerAcc context_impl is nil");
     }
 
     auto encoder = [context_impl encoder];
     if (!encoder) {
         LOGE("encoder is nil\n");
-        return Status(RPDERR_CONTEXT_ERR, "MetalBatchNormLayerAcc encoder is nil");
+        return Status(TNNERR_CONTEXT_ERR, "MetalBatchNormLayerAcc encoder is nil");
     }
 
     if (param_) {
@@ -109,12 +109,12 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto output_slice = UP_DIV(dims_output[1], 4);
     auto batch        = dims_output[0];
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
 
     do {
         status = [context_impl load:@"batch_norm" encoder:encoder bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads = {(NSUInteger)output_height * output_width, (NSUInteger)output_slice, (NSUInteger)batch};
 
@@ -129,7 +129,7 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
         [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

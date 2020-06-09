@@ -45,12 +45,12 @@ namespace ncnn {
         layer_param->type = GetInt(p, p.size()-2, 0);
         layer_param->pads = {pad_t,pad_b,pad_l,pad_r};
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status PadLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                   LayerResource** resource) {
-        return RPD_OK;                                    
+        return TNN_OK;                                    
     }
 
 } // namespace ncnn

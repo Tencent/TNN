@@ -22,11 +22,11 @@ Status OpenCLReduceLogSumLayerAcc::Init(Context *context, LayerParam *param, Lay
                                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init ReduceLogSum Acc\n");
     Status ret = OpenCLReduceLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "ReduceLogSum";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLReduceLogSumLayerAcc::CreateBuildOptions() {

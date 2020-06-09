@@ -30,9 +30,9 @@ Status ConvLayer::InferOutputDataType() {
         output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
     } else {
         LOGE("Error: conv_resource is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Error: conv_resource is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: conv_resource is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConvLayer::InferOutputShape() {
@@ -91,7 +91,7 @@ Status ConvLayer::InferOutputShape() {
         {
             // to-do: deconv has full type, what's conv's full type?
             LOGE("Error: ConvLayer dont support pad type: %d\n", pad_type);
-            return Status(RPDERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
+            return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
         }
 
         int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
@@ -115,18 +115,18 @@ Status ConvLayer::InferOutputShape() {
         conv_param->pads[3] = pad_down;
     } else {
         LOGE("Error: ConvLayer dont support pad type: %d\n", pad_type);
-        return Status(RPDERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
+        return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
 
     int group = conv_param->group;
     if (group == 0) {
         LOGE("Error: ConvLayer Error: invalid group param\n");
-        return Status(RPDERR_INVALID_GROUP, "ConvLayer Error: invalid group param");
+        return Status(TNNERR_INVALID_GROUP, "ConvLayer Error: invalid group param");
     }
 
     if (height_out <= 0 || width_out <= 0) {
         LOGE("Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
-        return Status(RPDERR_PARAM_ERR, "invalid conv param, height_out or width_out is less than zero");
+        return Status(TNNERR_PARAM_ERR, "invalid conv param, height_out or width_out is less than zero");
     }
 
     DimsVector output_dims;
@@ -136,7 +136,7 @@ Status ConvLayer::InferOutputShape() {
     output_dims.push_back(width_out);
     output_blob->GetBlobDesc().dims = output_dims;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Conv, LAYER_CONVOLUTION);
