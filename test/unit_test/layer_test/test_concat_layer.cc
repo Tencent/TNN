@@ -25,9 +25,9 @@ class ConcatLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
-                                            testing::Values(1),
+                                            testing::Values(1, 2, 3),
                                             // input cnt
-                                            testing::Values(2),
+                                            testing::Values(2, 3),
                                             // dtype
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT)));
 
@@ -52,7 +52,7 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     // param
     ConcatLayerParam param;
     param.name = "Concat";
-    param.axis = 1;
+    param.axis = axis;
 
     Run(LAYER_CONCAT, &param, nullptr, inputs_desc, outputs_desc);
 }

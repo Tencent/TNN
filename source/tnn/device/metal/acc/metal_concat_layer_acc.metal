@@ -130,3 +130,19 @@ kernel void concat_axis_1_common_x(const device ftype4 *src                     
 //        }
 //    }
 }
+
+kernel void concat_axis_23_common_x(const device ftype4 *src                          [[buffer(0)]],
+                                                            device ftype4 *dst                                        [[buffer(1)]],
+                                                            constant MetalConcatParams &params      [[buffer(2)]],
+                                                            constant int2 &offset_xy                              [[buffer(3)]],
+                                                            uint3 gid                                                       [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.input_width, params.input_height,
+                         params.input_slice_0*params.batch)))
+        return;
+    
+    int index_in = (int)gid.z*params.input_size + (int)gid.y*params.input_width + (int)gid.x;
+    auto data_in = src[index_in];
+    
+    int index_out = (int)gid.z*params.output_size + ((int)gid.y + offset_xy.y)*params.output_width + (int)gid.x + offset_xy.x;
+    dst[index_out] = data_in;
+}

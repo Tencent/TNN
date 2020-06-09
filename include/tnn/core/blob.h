@@ -52,8 +52,12 @@ public:
     //@brief create blob with blob descript
     explicit Blob(BlobDesc desc);
 
+    Blob(BlobDesc desc, bool alloc_memory);
+
     //@brief create Blob with blob descript and data handle
     Blob(BlobDesc desc, BlobHandle handle);
+
+    ~Blob();    
 
     //@brief retrun blob desc
     BlobDesc &GetBlobDesc();
@@ -72,6 +76,7 @@ public:
 private:
     BlobDesc desc_;
     BlobHandle handle_;
+    bool alloc_memory_;
 };
 
 // InputShapeMap input rereshape info

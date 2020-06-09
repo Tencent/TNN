@@ -22,8 +22,6 @@
 
 namespace TNN_NS {
 
-// Todo. refactor later.
-
 TypeModelInterpreterRegister<TypeModelInterpreterCreator<ModelInterpreter>> g_tnn_model_interpreter_register(
     MODEL_TYPE_TNN);
 
@@ -254,7 +252,7 @@ Status ModelInterpreter::InterpretModel(std::string model_content) {
     const auto model_length = model_content.length();
     if (model_length <= 0) {
 #ifdef BENCHMARK
-        LOGE("model content is empty, will generate random data\n");
+        LOGD("model content is empty, will generate random data\n");
         return TNN_OK;
 #else
         return Status(TNNERR_LOAD_MODEL, "model content is invalid");
