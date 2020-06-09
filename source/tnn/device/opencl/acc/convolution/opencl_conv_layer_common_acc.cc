@@ -34,10 +34,10 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     op_name_   = "Conv";
 
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     ret = AllocateWeightsBias(resource);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::set<std::string> build_options;
@@ -50,12 +50,12 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     if (run_3d_ndrange_)
         kernel_name = "Conv2DGS3D";
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLConvLayerCommonAcc::~OpenCLConvLayerCommonAcc() {}
@@ -114,7 +114,7 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

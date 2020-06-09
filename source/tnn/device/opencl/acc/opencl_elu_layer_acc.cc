@@ -23,11 +23,11 @@ Status OpenCLEluLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Elu Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
-    op_name_        = "Elu";
+    op_name_ = "Elu";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLEluLayerAcc::CreateBuildOptions() {
@@ -37,7 +37,7 @@ std::set<std::string> OpenCLEluLayerAcc::CreateBuildOptions() {
         LOGE("elu param is nil");
         return build_options;
     }
-    std::string compute = "select(in,(FLOAT)(" + to_string(elu_param->alpha) + ")*(exp(in)-(FLOAT)(1.0f)),in<0)";
+    std::string compute = "select(in,(FLOAT)(" + to_string(elu_param->alpha) + "f)*(exp(in)-(FLOAT)(1.0f)),in<0)";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }

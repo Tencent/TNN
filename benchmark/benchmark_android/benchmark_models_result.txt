@@ -1,7 +1,0 @@
-MIX
-
-benchmark device: ARM 
-
-
-benchmark device: OPENCL 
-

@@ -90,7 +90,7 @@ namespace ncnn {
         int output_h          = GetInt(p, 21, 0);
 
         if (output_h != 0 || output_w != 0) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn deconv with output hw is not supported now");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn deconv with output hw is not supported now");
         }
 
         // padding type
@@ -100,7 +100,7 @@ namespace ncnn {
             layer_param->pad_type = 3;
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status DeconvLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -110,7 +110,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<ConvLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "layer param is nil: ConvLayerParam");
+            return Status(TNNERR_LAYER_ERR, "layer param is nil: ConvLayerParam");
         }
 
         RawBuffer weights;
@@ -139,7 +139,7 @@ namespace ncnn {
         //     bottom_blob_int8_scale = mb.load(1, 1)[0];
         // }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

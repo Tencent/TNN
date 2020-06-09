@@ -130,13 +130,13 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
 DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: UpsampleLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: UpsampleLayerParam is nil");
     }
 
     Blob *input_blob  = inputs[0];
@@ -159,10 +159,10 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 
     } else {
         LOGE("Error: Upsample dont support resize type\n");
-        return Status(RPDERR_MODEL_ERR, "Error: Upsample dont support resize type");
+        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Upsample, LAYER_UPSAMPLE);

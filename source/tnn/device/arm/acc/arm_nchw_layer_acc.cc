@@ -33,11 +33,12 @@ Status ArmNchwLayerAcc::UnPackInputs(const std::vector<Blob *> &inputs) {
             UnpackC4(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
     for (int i = 0; i < outputs.size(); i++) {
-        auto out_dims = outputs[i]->GetBlobDesc().dims;
+        auto out_dims = nchw_blob_out[i]->GetBlobDesc().dims;
+        outputs[i]->GetBlobDesc().dims = out_dims;
         for (int n = 0; n < out_dims[0]; ++n) {
             auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
             auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 4);
@@ -46,12 +47,12 @@ Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
             PackC4(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmNchwLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ArmLayerAcc::Reshape(inputs, outputs);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmNchwLayerAcc::AllocConvertBuffer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -74,11 +75,11 @@ Status ArmNchwLayerAcc::AllocConvertBuffer(const std::vector<Blob *> &inputs, co
         nchw_blob_out.push_back(std::make_shared<Blob>(desc, handle));
     }
 
-    return RPD_OK; 
+    return TNN_OK; 
 }
 
 Status ArmNchwLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return Status(RPDERR_LAYER_ERR, "CALL ERROR: NCHW BASE TYPE, NOT IMPLEMENT");
+    return Status(TNNERR_LAYER_ERR, "CALL ERROR: NCHW BASE TYPE, NOT IMPLEMENT");
 }
 
 std::vector<Blob *> ArmNchwLayerAcc::GetNchwBlobVector(const std::vector<std::shared_ptr<Blob>> &blobs) {

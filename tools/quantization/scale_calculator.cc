@@ -55,7 +55,7 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel,
 
     // TO-DO: support different data_type and device_type
     if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT &&
-        blob->GetBlobDesc().device_type == DEVICE_CPU) {
+        blob->GetBlobDesc().device_type == DEVICE_NAIVE) {
         // TO-DO: support different data format, now only NCHW
         int channel = blob->GetBlobDesc().dims[1];
         int height  = blob->GetBlobDesc().dims[2];

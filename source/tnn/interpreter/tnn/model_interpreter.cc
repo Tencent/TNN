@@ -44,7 +44,7 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
 Status ModelInterpreter::Interpret(std::vector<std::string> params) {
     auto proto_content = params.size() > 0 ? params[0] : "";
     Status status = InterpretProto(proto_content);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     auto model_content = params.size() > 1 ? params[1] : "";
@@ -53,7 +53,7 @@ Status ModelInterpreter::Interpret(std::vector<std::string> params) {
 }
 
 Status ModelInterpreter::InterpretProto(std::string content) {
-    Status ret              = RPD_OK;
+    Status ret              = TNN_OK;
     NetStructure *structure = GetNetStructure();
     // NOTE??????
     structure->source_model_type = MODEL_TYPE_TNN;
@@ -76,22 +76,22 @@ Status ModelInterpreter::InterpretProto(std::string content) {
     str_arr cfg_arr;
     if (fill == 0) {
         delete[] proto_buffer;
-        return Status(RPDERR_INVALID_NETCFG, "proto content is empty");
+        return Status(TNNERR_INVALID_NETCFG, "proto content is empty");
     }
 
     ret = SplitUtils::SplitStr(proto_buffer, cfg_arr, ",", true, false);
     delete[] proto_buffer;
-    if (ret != RPD_OK) {
-        return Status(RPDERR_INVALID_NETCFG, "split proto error");
+    if (ret != TNN_OK) {
+        return Status(TNNERR_INVALID_NETCFG, "split proto error");
     }
     if (cfg_arr.empty() || cfg_arr.size() <= 5) {
-        return Status(RPDERR_INVALID_NETCFG, "content line <= 5");
+        return Status(TNNERR_INVALID_NETCFG, "content line <= 5");
     }
 
     {  // get magic number
         str_arr cfg_line0;
         ret = SplitUtils::SplitStr(cfg_arr[0].c_str(), cfg_line0, " ", true, false);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
         if (cfg_line0.size() >= 4) {
@@ -101,12 +101,12 @@ Status ModelInterpreter::InterpretProto(std::string content) {
 
     std::string inputs_content = cfg_arr[1];
     ret                        = InterpretInput(inputs_content);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
     std::string outputs_content = cfg_arr[3];
     ret                         = InterpretOutput(outputs_content);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         return ret;
     }
 
@@ -116,12 +116,12 @@ Status ModelInterpreter::InterpretProto(std::string content) {
             continue;
         }
         ret = InterpretLayer(layer_str);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
@@ -133,14 +133,14 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
      *  input0 1 3 384 128 : input1 1 3 64 64
      */
     Status ret = SplitUtils::SplitStr(inputs_content.c_str(), inputs_cfg_vec, ":", true, false);
-    if (ret != RPD_OK) {
-        return Status(RPDERR_INVALID_NETCFG, "split input line error");
+    if (ret != TNN_OK) {
+        return Status(TNNERR_INVALID_NETCFG, "split input line error");
     }
     for (int i = 0; i < inputs_cfg_vec.size(); i++) {
         str_arr input_cfg_vec;
         ret = SplitUtils::SplitStr(inputs_cfg_vec[i].c_str(), input_cfg_vec, " ", true, false);
-        if (ret != RPD_OK || input_cfg_vec.size() < input_layer_cfg_count) {
-            return Status(RPDERR_INVALID_NETCFG, "split input line error");
+        if (ret != TNN_OK || input_cfg_vec.size() < input_layer_cfg_count) {
+            return Status(TNNERR_INVALID_NETCFG, "split input line error");
         }
         DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
         // input_shape.set_name(input_cfg_vec[0]);
@@ -152,20 +152,20 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
             input_shape.push_back(atoi(input_cfg_vec[5].c_str()));
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelInterpreter::InterpretOutput(const std::string &outputs_content) {
     NetStructure *structure = GetNetStructure();
     str_arr output_cfg_vec;
     Status ret = SplitUtils::SplitStr(outputs_content.c_str(), output_cfg_vec, " ", true, false);
-    if (ret != RPD_OK || output_cfg_vec.size() <= 0) {
-        return Status(RPDERR_INVALID_NETCFG, "split output line error");
+    if (ret != TNN_OK || output_cfg_vec.size() <= 0) {
+        return Status(TNNERR_INVALID_NETCFG, "split output line error");
     }
     for (auto iter : output_cfg_vec) {
         structure->outputs.insert(iter);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
@@ -173,8 +173,8 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
     auto &layer_interpreter_map = GetLayerInterpreterMap();
     str_arr layer_cfg_arr;
     Status ret = SplitUtils::SplitStr(layer_str.c_str(), layer_cfg_arr, " ", true, true);
-    if (ret != RPD_OK || layer_cfg_arr.empty()) {
-        return Status(RPDERR_INVALID_NETCFG, "split layer info error");
+    if (ret != TNN_OK || layer_cfg_arr.empty()) {
+        return Status(TNNERR_INVALID_NETCFG, "split layer info error");
     }
 
     auto cur_layer = std::make_shared<LayerInfo>();
@@ -184,7 +184,7 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
     LayerType type       = GlobalConvertLayerType(type_str);
     if (type == LAYER_NOT_SUPPORT) {
         LOGE("Error: layer type %s is not supported.\n", layer_cfg_arr[0].c_str());
-        return Status(RPDERR_PARAM_ERR, "layer type is not supported");
+        return Status(TNNERR_PARAM_ERR, "layer type is not supported");
     }
     cur_layer->type     = type;
     cur_layer->type_str = type_str;
@@ -240,12 +240,12 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
 
     cur_layer->param = shared_ptr<LayerParam>(param);
 
-    if (ret != RPD_OK) {
-        return RPDERR_INVALID_NETCFG;
+    if (ret != TNN_OK) {
+        return TNNERR_INVALID_NETCFG;
     }
 
     structure->layers.push_back(cur_layer);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelInterpreter::InterpretModel(std::string model_content) {
@@ -255,9 +255,9 @@ Status ModelInterpreter::InterpretModel(std::string model_content) {
     if (model_length <= 0) {
 #ifdef BENCHMARK
         LOGE("model content is empty, will generate random data\n");
-        return RPD_OK;
+        return TNN_OK;
 #else
-        return Status(RPDERR_LOAD_MODEL, "model content is invalid");
+        return Status(TNNERR_LOAD_MODEL, "model content is invalid");
 #endif
     }
 
@@ -274,7 +274,7 @@ Status ModelInterpreter::InterpretModel(std::string model_content) {
     auto deserializer = GetDeserializer(content_stream);
     header.deserialize(*deserializer);
     if (header.layer_cnt_ <= 0 || header.layer_cnt_ >= 10000) {
-        return Status(RPDERR_INVALID_MODEL, "Error: model is illegal");
+        return Status(TNNERR_INVALID_MODEL, "Error: model is illegal");
     }
 
     auto &layer_interpreter_map = GetLayerInterpreterMap();
@@ -287,7 +287,7 @@ Status ModelInterpreter::InterpretModel(std::string model_content) {
         // refactor later, layer_interpreter NULL return error_code.
         if (layer_interpreter != NULL) {
             Status result = layer_interpreter->InterpretResource(*deserializer, &layer_resource);
-            if (result != RPD_OK) {
+            if (result != TNN_OK) {
                 return result;
             }
             net_resource->resource_map[ly_head.name_] = std::shared_ptr<LayerResource>(layer_resource);
@@ -296,17 +296,17 @@ Status ModelInterpreter::InterpretModel(std::string model_content) {
                 "Error: layer_interpreter nil name:%s type_from_str:%s "
                 "type:%d\n",
                 ly_head.name_.c_str(), ly_head.type_str_.c_str(), ly_head.type_);
-            return Status(RPDERR_LOAD_MODEL, "Error: layer_interpreter is nil");
+            return Status(TNNERR_LOAD_MODEL, "Error: layer_interpreter is nil");
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelInterpreter::RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter *interpreter) {
     std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map = GetLayerInterpreterMap();
     layer_interpreter_map[type] = std::shared_ptr<AbstractLayerInterpreter>(interpreter);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::GetLayerInterpreterMap() {

@@ -45,31 +45,31 @@ Status FlattenLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_
         layer_param->shape[3] = 1;
     } else {
         LOGE("flatten param axis unsupported");
-        return Status(RPDERR_PARAM_ERR, "flatten param axis unsupported");
+        return Status(TNNERR_PARAM_ERR, "flatten param axis unsupported");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status FlattenLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status FlattenLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     ReshapeLayerParam* layer_param = static_cast<ReshapeLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << layer_param->axis << " ";
     output_stream << layer_param->num_axes << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status FlattenLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Flatten, LAYER_FLATTEN);

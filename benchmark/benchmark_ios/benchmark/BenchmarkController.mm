@@ -71,7 +71,7 @@ struct BenchResult {
         ostringstream ostr;
         ostr << "min = " << min << "  max = " << max << "  avg = " <<avg;
         
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             ostr << "\nerror = "<<status.description();
         }
         ostr << std::endl;
@@ -232,7 +232,7 @@ struct BenchResult {
         }
         
         result.status = net.Init(config);
-        if (result.status != RPD_OK) {
+        if (result.status != TNN_OK) {
             NSLog(@"net.Init Error: %s", result.status.description().c_str());
             return result;
         }
@@ -247,7 +247,7 @@ struct BenchResult {
         network_config.library_path = {metallibPath};
         network_config.device_type =  device_type;
         instance = net.CreateInst(network_config, result.status);
-        if (result.status != RPD_OK || !instance) {
+        if (result.status != TNN_OK || !instance) {
             NSLog(@"net.CreateInst Error: %s", result.status.description().c_str());
             return result;
         }
@@ -256,7 +256,7 @@ struct BenchResult {
     //warm cpu, only used when benchmark
     for (int cc=0; cc<option.warm_count; cc++) {
         result.status = instance->Forward();
-        if (result.status != RPD_OK) {
+        if (result.status != TNN_OK) {
             NSLog(@"instance.Forward Error: %s", result.status.description().c_str());
             return result;
         }

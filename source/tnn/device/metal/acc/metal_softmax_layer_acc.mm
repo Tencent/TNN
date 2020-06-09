@@ -46,7 +46,7 @@ Status MetalSoftmaxLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
                                             length:sizeof(MetalSoftmaxParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalSoftmaxLayerAcc::KernelName() {
@@ -86,15 +86,15 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto mode           = output_dims[1] % 4;
 
     MetalBandwidth bandwidth;
-    Status status      = RPD_OK;
+    Status status      = TNN_OK;
     DataType data_type = output->GetBlobDesc().data_type;
 
     do {
         if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
             LOGE("data type(%d) is unsupported\n", data_type);
-            status = Status(RPDERR_LAYER_ERR, "data type is unsupported");
+            status = Status(TNNERR_LAYER_ERR, "data type is unsupported");
         }
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         MTLSize threads;
         if (layer_param->axis == 1) {
@@ -116,15 +116,15 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
             status  = [context_impl load:@"softmax_axis_2_common" encoder:encoder bandwidth:bandwidth];
         } else {
             LOGE("Softmax do not support axis!=1 \n");
-            status = Status(RPDERR_LAYER_ERR, "Softmax type is not supported");
+            status = Status(TNNERR_LAYER_ERR, "Softmax type is not supported");
         }
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         status = SetKernelEncoderParam(encoder, inputs, outputs);
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];

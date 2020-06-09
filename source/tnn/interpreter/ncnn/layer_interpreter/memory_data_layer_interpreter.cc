@@ -49,10 +49,10 @@ namespace ncnn {
         }
 
         if (layer_param->dims.size() == 0) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn MemoryData param error.");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn MemoryData param error.");
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status MemoryDataLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -62,7 +62,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<ConstLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "layer param is nil: ConstLayerParam");
+            return Status(TNNERR_LAYER_ERR, "layer param is nil: ConstLayerParam");
         }
 
         int data_count = 1;
@@ -75,7 +75,7 @@ namespace ncnn {
 
         layer_res->weight_handle = weight;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

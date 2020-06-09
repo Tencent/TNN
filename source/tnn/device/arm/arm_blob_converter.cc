@@ -307,14 +307,78 @@ void NCHWToBlob(const float *src, int8_t *dst, int channel, int hw, float *scale
     PackCAndQuant(dst, src, hw, channel, scale);
 }
 
+/*
+reverse channel in format nchw
+*/
+template <typename T>
+void NCHWChannelReverse(T *ptr, int channel, int hw) {
+    for (int c = 0; c < channel / 2; c++) {
+        auto offset0 = c * hw;
+        auto offset1 = (channel - 1 - c) * hw;
+        std::vector<T> tmp(ptr + offset0, ptr + offset0 + hw);
+        memcpy(ptr + offset0, ptr + offset1, hw * sizeof(T));
+        memcpy(ptr + offset1, tmp.data(), hw * sizeof(T));
+    }
+}
+
+/*
+reverse channel in format nhwc
+*/
+template <typename T>
+void NHWCChannelReverse(T *ptr, int channel, int hw) {
+    for (int i = 0; i < hw; i++) {
+        for (int c = 0; c < channel / 2; c++) {
+            std::swap(ptr[i * channel + c], ptr[i * channel + channel - 1 - c]);
+        }
+    }
+}
+
+/*
+reverse channel in format rgb uint8
+*/
+void RGBChannelReverse(uint8_t *ptr, int channel, int hw) {
+    int i = 0;
+#ifdef TNN_USE_NEON
+    for (; i + 15 < hw; i += 16) {
+        uint8x16x3_t v_u8 = vld3q_u8(ptr + i * 3);
+        uint8x16_t v_temp = v_u8.val[0];
+        v_u8.val[0]       = v_u8.val[2];
+        v_u8.val[2]       = v_temp;
+        vst3q_u8(ptr + i * 3, v_u8);
+    }
+#endif
+    for (; i < hw; i++) {
+        std::swap(ptr[i * channel], ptr[i * channel + 2]);
+    }
+}
+
+/*
+reverse channel in format rgba uint8, only reverse rgb
+*/
+void RGBAChannelReverse(uint8_t *ptr, int channel, int hw) {
+    int i = 0;
+#ifdef TNN_USE_NEON
+    for (; i + 15 < hw; i += 16) {
+        uint8x16x4_t v_u8 = vld4q_u8(ptr + i * 4);
+        uint8x16_t v_temp = v_u8.val[0];
+        v_u8.val[0]       = v_u8.val[2];
+        v_u8.val[2]       = v_temp;
+        vst4q_u8(ptr + i * 4, v_u8);
+    }
+#endif
+    for (; i < hw; i++) {
+        std::swap(ptr[i * channel], ptr[i * channel + 2]);
+    }
+}
+
 Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
     if (blob_ == nullptr) {
-        return Status(RPDERR_NULL_PARAM, "input/output blob is null");
+        return Status(TNNERR_NULL_PARAM, "input/output blob is null");
     }
-    auto desc    = blob_->GetBlobDesc();
-    auto dims    = desc.dims;
-    auto hw      = dims[2] * dims[3];
-    auto c_r4    = ROUND_UP(dims[1], 4);
+    auto desc       = blob_->GetBlobDesc();
+    auto dims       = desc.dims;
+    auto hw         = dims[2] * dims[3];
+    auto c_r4       = ROUND_UP(dims[1], 4);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     if (desc.data_type == DATA_TYPE_INT8) {
         if (fused_int8_scale.size() < c_r4) {
@@ -339,7 +403,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
                                reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw,
                                fused_int8_scale.data());
             } else {
-                return Status(RPDERR_PARAM_ERR, "convert type not support yet");
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
             }
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
@@ -352,21 +416,41 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
                                                         reinterpret_cast<int8_t *>(image.GetData()), dims[0], dims[1],
                                                         dims[2], dims[3]);
     } else {
-        return Status(RPDERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
-    return RPD_OK;
+
+    // reverse channel after convert if needed
+    if (param.reverse_channel) {
+        if (image.GetMatType() == NCHW_FLOAT) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<int8_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "reverse type not support yet");
+        }
+    }
+
+    return TNN_OK;
 }
 
 Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (blob_ == nullptr) {
-        return Status(RPDERR_NULL_PARAM, "input/output blob_ is null");
+        return Status(TNNERR_NULL_PARAM, "input/output blob_ is null");
     }
-    auto desc    = blob_->GetBlobDesc();
-    auto dims    = desc.dims;
-    auto hw      = dims[2] * dims[3];
+    auto desc       = blob_->GetBlobDesc();
+    auto dims       = desc.dims;
+    auto hw         = dims[2] * dims[3];
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
-    auto c_r4    = ROUND_UP(dims[1], 4);
+    auto c_r4       = ROUND_UP(dims[1], 4);
     if (desc.data_type == DATA_TYPE_INT8) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
@@ -381,6 +465,33 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
                 fused_int8_scale[i] = 0;
                 fused_int8_bias[i]  = 0;
             }
+        }
+    }
+
+    // reverse channel before convert if needed
+    if (param.reverse_channel) {
+        if (image.GetMatType() == N8UC3) {
+            for (int n = 0; n < dims[0]; n++) {
+                RGBChannelReverse(reinterpret_cast<uint8_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == N8UC4) {
+            for (int n = 0; n < dims[0]; n++) {
+                RGBAChannelReverse(reinterpret_cast<uint8_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == NCHW_FLOAT) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWChannelReverse(reinterpret_cast<int8_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "reverse type not support yet");
         }
     }
 
@@ -434,7 +545,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
                            reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
             }
         } else {
-            return Status(RPDERR_PARAM_ERR, "convert type not support yet");
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
         for (int n = 0; n < dims[0]; n++) {
@@ -446,7 +557,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
                                                         reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1], dims[2],
                                                         dims[3]);
     } else {
-        return Status(RPDERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
     return ret;
@@ -457,7 +568,7 @@ compatiable to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void *command_queue) {
     if (param.reverse_channel) {
-        return Status(RPDERR_COMMON_ERROR, "REVERT CHANNEL/format IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
+        return Status(TNNERR_COMMON_ERROR, "REVERT CHANNEL/format IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
     }
     return ConvertToMatAsync(image, param, command_queue);
 }
@@ -467,7 +578,7 @@ compatiable to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue) {
     if (param.reverse_channel) {
-        return Status(RPDERR_COMMON_ERROR, "REVERT CHANNEL IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
+        return Status(TNNERR_COMMON_ERROR, "REVERT CHANNEL IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
     }
     return ConvertFromMatAsync(image, param, command_queue);
 }

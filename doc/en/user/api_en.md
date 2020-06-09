@@ -1,4 +1,4 @@
-# API documentation
+# API Documentation
 
 ## I. API Interface Compatibility
 
@@ -33,151 +33,108 @@ All exposed interfaces of TNN are displayed and declared by PUBLIC macro, while 
 
 Compatibility of different API versions follows[Semantic Version 2.0.0](https://semver.org/lang/zh-CN/) rules.
 
-## II. the API directory structure
+## II. API Call
+
+### Introduction
+The API call mainly introduces the four steps: model analysis, network construction, input setting, and output acquisition. For detailed description, please refer to the API detailed explanation section.
+
+### Step1. Model analysis
+
+```cpp
+TNN tnn;
+TNN_NS::ModelConfig model_config;
+//proto file content saved to proto_buffer
+model_config.params.push_back(proto_buffer);
+//model file content saved to model_buffer
+model_config.params.push_back(model_buffer);
+tnn.Init(model_config);
+```
+
+TNN model analysis needs to configure the ModelConfig parameter, pass in the content of proto and model files, and call the TNN Init interface to complete the model analysis.
+
+### Step2. Network construction
+
+```cpp
+TNN_NS::NetworkConfig config;
+config.device_type = TNN_NS::DEVICE_ARM;
+TNN_NS::Status error;
+auto net_instance = tnn.CreateInst(config, error);
+```
+
+TNN network construction needs configure the NetworkConfig parameter，and device_type could be set as ARM, OPENCL, METAL or other acceleration method，the construction of the network is completed through CreateInst interface
+
+
+### Step3. Input
+
+```cpp
+    auto status = instance->SetInputMat(input_mat, input_cvt_param);
+```
+
+TNN input is set by SetInputMat interface.The data to be passed in is saved to input_mat. Scale and bias could be configured in input_cvt_param.
+
+### Step4. Output 
+
+```cpp
+    auto status = instance->GetOutputMat(output_mat);
+```
+
+TNN output is exported by ObtainingGetOutputMat interface. The result would be saved to output_mat in a specific format.
+
+## III. API Explanation
+
+### API directory structure 
 
 ```bash
 .
 └── tnn
     ├── core
-    │ ├── blob.h # responsible for data transmission
-    │ ├── common.h # define common structure
-    │ ├── instance.h # network instance
-    │ ├── macro.h # common macro definitions
-    │ ├── status.h # interface status
-    │ └── tnn.h # model parsing
+    │   ├── macro.h             # common macro definition
+    │   ├── common.h            # define common structure 
+    │   ├── status.h            # interface status
+    │   ├── blob.h              # data transfer
+    │   ├── instance.h          # netwrok instance
+    │   └── tnn.h               # model analysis
     ├── utils
-    │ ├── blob_converter.h # tools of blob input and output data
-    │ ├── cpu_utils.h # CPU performance optimization tool
-    │ ├── data_type_utils.h # network data type parsing tool
-    │ ├── dims_vector_utils.h # blob size calculation tool
-    │ └── half_utils.h # fp16 conversion tool
-    └── version.h # compile and build information
+    │   ├── bfp16_utils.h       # bfp16 conversion tool
+    │   ├── blob_converter.h    # blob input/output tool
+    │   ├── cpu_utils.h         # # CPU performance specific optimization tool
+    │   ├── data_type_utils.h   # network datatype analysis tool
+    │   ├── dims_vector_utils.h # blob size calculation tool
+    │   └── half_utils.h        # fp16 conversion too
+    └── version.h               # Compile and build information
 ```
 
+### 1. core/macro.h
+Provide different platform Log macros, different data types maximum and minimum macros, PUBLIC macro definition, and some data pack conversion and other macro definitions.
 
-## III. API introduction
-
-### 1. Model parsing
-
-> The first step is model parsing. The TNN class defined in tnn.h is responsible for model parsing.
-
-```cpp
-class PUBLIC TNN {
-public:
-    ...
-
-    Status Init (ModelConfig & config);
-
-    // denit tnn implement, release model interpreter.
-    Status DeInit ();
-
-    // add output to the model.
-    // if output_name of blob not found, then search output_index of layer.
-    Status AddOutput (const std :: string & output_name, int output_index = 0);
-    ...
-};
-```
-
-Common interfaces of TNN:
-- Init interface: Responsible for importing and parsing model data, which needs to be configured and passed into ModelConfig.
-- DeInit interface: Responsible for the release of tnn implementation, the default destructor can be automatically released.
-- AddOutput interface: Support adding model outputs; the model output can be defined arbitrarily as the output of any intermediate layer.
-
-> The TNN Init interface passed into ModelConfig is defined in the common.h header file.
-
-```cpp
-struct PUBLIC ModelConfig {
-
-    ModelType model_type = MODEL_TYPE_TNN;
-
-    // tnn model need two params: order is proto content, model content.
-    // ncnn need two: params: order is param content, bin content.
-    // openvino model need two params: order is xml content, model path.
-    // coreml model need one param: coreml model directory path.
-    // snpe model need one param: dlc model directory path.
-    // hiai model need two params: order is model name, model file path.
-    // atlas model need one param: config string.
-    std :: vector <std :: string> params;
-};
-```
-
-ModelConfig parameter description:
-- `model_type`: The current open source version of TNN only supports two model formats:` MODEL_TYPE_TNN` and `MODEL_TYPE_NCNN`.
-- `params`: The TNN model needs to pass in the content of the proto file and the path of the model file. The NCNN model needs to pass in the content of the param file and the path of the bin file.
-
-> model_type enumeration type ModelType is defined in common.h
+### 2. core/common.h
+`DataType`: Define enumeration values ​​for different datatypes.
+`DataFormat`: Define the different data arrangement methods of Blob Data.
+`NetworkType`: define different network construction types, build TNN network by default, also support third-party library network construction.
+`DeviceType`: Used to specify the device the network running on and the corresponding acceleration method.
+`ModelType`: define the model type, default is TNN model, also supports the import of other third-party library model formats.
 
 ```cpp
 typedef enum {
-    MODEL_TYPE_TNN = 0x0001,
-    MODEL_TYPE_NCNN = 0x0100,
-    ...
-} ModelType;
+    // default
+    SHARE_MEMORY_MODE_DEFAULT = 0,
+    // same thread tnn instance share blob memory
+    SHARE_MEMORY_MODE_SHARE_ONE_THREAD = 1,
+    // set blob memory from external, different thread share blob memory need
+    // synchronize
+    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2
+} ShareMemoryMode;
 ```
 
-All status codes are returned to the TNN interface. Among them, `Status` can display status codes and error messages.` Status` is defined in the status.h header file.
+`SHARED_MEMORY_MODE_DEFAULT`: only supports memory sharing between different blobs of the same instance.
+`SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: supports memory sharing of different instances of the same thread.
+`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: supports instance memory to be passed in from outside, the sharing mode is determined by the calling side, synchronization among threads needs to deal with synchronization issues, and memory allocation and release all require maintenance on the calling side.
+
 
 ```cpp
-enum StatusCode {
-
-    RPD_OK = 0x0,
-
-    // param errcode
-    RPDERR_PARAM_ERR = 0x1000,
-    RPDERR_INVALID_NETCFG = 0x1002,
-    ...
-}
-
-class PUBLIC Status {
-public:
-    Status (int code = RPD_OK, std :: string message = "OK");
-
-    Status & operator = (int code);
-
-    bool operator == (int code_);
-    bool operator! = (int code_);
-    operator int ();
-    operator bool ();
-    std :: string description ();
-
-private:
-    int code_;
-    std :: string message_;
-}
-```
-
-When the Status code is not RPD_OK, error description information can be returned through the `description` interface.
-
-### 2. Network instance construction
-
-> The second step of using TNN is to build a network instance. You can build a network instance through the TNN `CreateInst` interface.
-
-```cpp
-class PUBLIC TNN {
-public:
-    ...
-
-    // create tnn network instance with network config and inputs shape.
-    // if inputs shape not set, use default from model.
-    std :: shared_ptr <Instance> CreateInst (
-        NetworkConfig & config, Status & status,
-        InputShapesMap inputs_shape = InputShapesMap ());
-
-private:
-    std :: shared_ptr <TNNImpl> impl_;
-};
-```
-
-Need to configure and pass in NetworkConfig, this interface supports to re-initialize the network input size.
-
-NetworkConfig is defined in common.h:
-
-```cpp
-// @brief Config used to create tnn instance, config
-// device type, network type and share memory mode.
 struct PUBLIC NetworkConfig {
-    // device type default cpu
-    DeviceType device_type = DEVICE_CPU;
+    // device type default cpu 
+    DeviceType device_type = DEVICE_NAIVE;
 
     // device id default 0
     int device_id = 0;
@@ -192,152 +149,272 @@ struct PUBLIC NetworkConfig {
     ShareMemoryMode share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
 
     // dependent library path
-    std :: vector <std :: string> library_path;
+    std::vector<std::string> library_path = {}; 
+
+    // compute precision
+    Precision precision = PRECISION_HIGH;
 };
 ```
-
-
 NetworkConfig parameter description:
-- `device_type`: The default is DEVICE_CPU, which does not include platform-specific acceleration instructions.
-    * Android uses DEVICE_ARM, DEVICE_OPENCL for acceleration
-    * iOS uses DEVICE_ARM, DEVICE_OPENCL to accelerate.
-- `device_id`: The default is 0, which supports multiple devices selection by device_id, not mandatory for the mobile platform.
-- `data_format`: By default, tnn automatically selects a blob data format for acceleration. You can set a specific blob data format through this parameter
-- `network_type`: Support for building tnn custom networks and third-party networks. The current open source version only supports building tnn networks.
-- `share_memory_mode`: tnn instance memory sharing mode
-    * `SHARED_MEMORY_MODE_DEFAULT`: only supports memory sharing between different blobs of the same instance
-    * `SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: support memory sharing of different instances of the same thread
-    * `SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: support for instance memory to be passed in from outside, the sharing method is determined by the function caller, sharing among threads needs to dealwith synchronization issues, and memory allocation and release require maintenance on the caller.
-- `library_path`: support external dependent library loading, this parameter needs to be configured if the iOS metal kernel library is not placed in the app default path.
+-`device_type`: The default is `DEVICE_NAIVE`, which does not include platform-specific acceleration instructions.
+    * Android uses `DEVICE_ARM` and `DEVICE_OPENCL` to accelerate.
+    * iOS uses `DEVICE_ARM`, `DEVICE_METAL` to accelerate.
+-`device_id`: The default is 0, multiple devices support selection by device_id(not support on the mobile).
+-`data_format`: By default, tnn automatically selects the blob data arrangement method for acceleration. You can set a specific blob data arrangement for acceleration through this parameter.
+-`network_type`: Support for building tnn custom networks and third-party networks. The current open source version only supports building tnn networks.
+-`share_memory_mode`: tnn instance memory sharing mode.
+-`library_path`: support external dependent library loading, this parameter needs to be configured when the iOS metal kernel library is placed in the app non-default path.
 
-The NetworkConfig enumeration types: DeviceType, DataFormat, NetworkType, and ShareMemoryMode are all defined in common.h.
 
 ```cpp
-typedef enum {
-    // decided by device
-    DATA_FORMAT_AUTO = -1,
-    DATA_FORMAT_NCHW = 0,
-    DATA_FORMAT_NHWC = 1,
-    DATA_FORMAT_NHWC4 = 2,
-    DATA_FORMAT_NC4HW4 = 3,
-    DATA_FORMAT_NCDHW = 4,
-    DATA_FORMAT_NHC4W4 = 5,
-} DataFormat;
+struct PUBLIC ModelConfig {
 
-typedef enum {
-    NETWORK_TYPE_DEFAULT = 0,
-    ...
-} NetworkType;
+    ModelType model_type = MODEL_TYPE_TNN;
 
-typedef enum {
-    DEVICE_CPU = 0x0000,
-    DEVICE_X86 = 0x0010,
-    DEVICE_ARM = 0x0020,
-    DEVICE_OPENCL = 0x1000,
-    DEVICE_METAL = 0x1010,
-    ...
-} DeviceType;
-
-typedef enum {
-    // default
-    SHARE_MEMORY_MODE_DEFAULT = 0,
-    // same thread tnn instance share blob memory
-    SHARE_MEMORY_MODE_SHARE_ONE_THREAD = 1,
-    // set blob memory from external, different thread share blob memory need
-    // synchronize
-    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2
-} ShareMemoryMode;
-
-typedef enum {
-    MODEL_TYPE_TNN = 0x0001,
-    MODEL_TYPE_NCNN = 0x0100,
-    ...
-} ModelType;
+    // tnn model need two params: order is proto content, model content.
+    // ncnn need two: params: order is param content, bin content.
+    // openvino model need two params: order is xml content, model path.
+    // coreml model need one param: coreml model directory path.
+    // snpe model need one param: dlc model directory path.
+    // hiai model need two params: order is model name, model file path.
+    // atlas model need one param: config string.
+    std::vector<std::string> params;
+};
 ```
 
+ModelConfig parameters：  
+- `model_type`: The current open source version of TNN only supports two model formats, `MODEL_TYPE_TNN` and `MODEL_TYPE_NCNN`.
+- `params`: The TNN model needs to pass in the content of the proto file and the model file. The NCNN model needs to pass in the content of the param file and the path of the bin file.
 
-### 3. Network instance running
-
-> the third step of using TNN is network instance. Through the Instance interface, it could set the network input data, do the inference of the network, and obtain network output data.
-
-To set input data and get output data, you need to get network input and output blobs first. You can get all network input blobs through the `GetAllInputBlobs` interface, and you can get all network output blobs through the` GetAllOutputBlobs` interface.
+### 3. core/status.h
+`Status`is defined in status.h.
 
 ```cpp
-class PUBLIC Instance {
+enum StatusCode {
+
+    TNN_OK = 0x0,
+
+    // param errcode
+    TNNERR_PARAM_ERR        = 0x1000,
+    TNNERR_INVALID_NETCFG   = 0x1002,
+    ...
+}
+
+class PUBLIC Status {
+public:
+    Status(int code = TNN_OK, std::string message = "OK");
+
+    Status &operator=(int code);
+
+    bool operator==(int code_);
+    bool operator!=(int code_);
+    operator int();
+    operator bool();
+    std::string description();
+
+private:
+    int code_;
+    std::string message_;
+}
+```
+The error message will be returned in `description` interface when Status code is not equal to TNN_OK.
+
+### 4. core/blob.h
+
+```cpp
+// @brief BlobDesc blob data info
+struct PUBLIC BlobDesc {
+    // deivce_type describes devie cpu, gpu, ...
+    DeviceType device_type = DEVICE_NAIVE;
+    // data_type describes data precion fp32, in8, ...
+    DataType data_type = DATA_TYPE_FLOAT;
+    // data_format describes data order nchw, nhwc, ...
+    DataFormat data_format = DATA_FORMAT_AUTO;
+    // DimsVector describes data dims
+    DimsVector dims;
+    // name describes the blob name
+    std::string name;
+};
+
+struct PUBLIC BlobHandle {
+    void *base            = NULL;
+    uint64_t bytes_offset = 0;
+};
+
+// @brief Blob tnn data store and transfer interface.
+class PUBLIC Blob {
 public:
     ...
 
-    // get all input blobs
-    Status GetAllInputBlobs (BlobMap & blobs);
-
-    // get all output blobs
-    Status GetAllOutputBlobs (BlobMap & blobs);
+    //@brief create Blob with blob descript and data handle
+    Blob(BlobDesc desc, BlobHandle handle);
 
     ...
 };
-`` `
 
-The network runs through the `Forward` and` ForwardAsync` interfaces, `ForwardAsync` is an asynchronous interface.
+```
+
+Blob is composed of `BlobDesc` and `BlobHandle`, where `BlobDesc` describes Blob related structural information, and `BlobHandle` is used to read and store Blob data.
+
+`BlobDesc` contains `device_type`, `data_type`, `data_format`, `dims`, `name` information.
+
+The `dims` describes the blob dimension information, the dims storage size has nothing to do with data_format:
+-The dims size is 4, and the storage size corresponds to N, C, H, W.
+-The dims size is 5, and the storage size corresponds to N, C, D, H, and W.
+
+The current input and output data types and arrangements of blobs for different platforms are as follows:
+
+-`ARM`: CPU memory, NC4HW4.
+-`OPENCL`: GPU graphics memory (clImage), NHC4W4. Among which NH is clImage high, C4W4 is clImage wide.
+-`METAL`: GPU video memory (metal), NC4HW4.
+Among them, the last 4 represents pack 4 and C4 represents the last 1 bit 4 is packed by 4 Cs.
+
+### 5. core/instance.h
 
 ```cpp
 class PUBLIC Instance {
 public:
-    ...
+    Instance(NetworkConfig& net_config, ModelConfig& model_config);
+
+    ~Instance();
+
+    // init with model interpeter and inputs shape.
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape);
+
+    // deinit, release network
+    Status DeInit();
+
+    //  return memory bytes required for forward
+    Status GetForwardMemorySize(int& memory_size);
+
+    //  set memory to tnn instance. if success, return status code zero.
+    //  only instance created with SHARE_MEMORY_MODE_SET_FROM_EXTERNAL can be set from external.
+    //  the memory size need >=  GetForwardMemorySize().
+    //  releasing or otherwise using the memory for other purposes during the tnn network run 
+    //  will result in undefined behavior.
+    Status SetForwardMemory(void* memory);
+
+    // reshape instance with new input shapes
+    Status Reshape(const InputShapesMap& inputs);
 
     // get tnn command queue
-    Status GetCommandQueue (void ** command_queue);
+    Status GetCommandQueue(void** command_queue);
 
     // @brief tnn instance network infer, it will wait until all layer infer complete.
-    Status Forward ();
+    Status Forward();
 
     ...
 
     // tnn instance network infer async.
     // device gpu, all layer infer complete will call Callback.
-    Status ForwardAsync (Callback call_back);
+    Status ForwardAsync(Callback call_back);
 
     // get all input blobs
-    Status GetAllInputBlobs (BlobMap & blobs);
+    Status GetAllInputBlobs(BlobMap& blobs);
+
+    // get all output blobs
+    Status GetAllOutputBlobs(BlobMap& blobs);
+
+    // set threads run on cpu 
+    virtual Status SetCpuNumThreads(int num_threads);
+    ...
+
+    // set input Mat, if input_name is not set, take the first input as default
+    Status SetInputMat(std::shared_ptr<Mat> mat,
+                       MatConvertParam param,
+                       std::string input_name = "");
+    
+    // get output Mat, if output_name is not set, take the first output as default
+    Status GetOutputMat(std::shared_ptr<Mat>& mat,
+                        MatConvertParam param = MatConvertParam(),
+                        std::string output_name = "", 
+                        DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
+
+};
+```
+
+Instance interface instruction：  
+-The `Instance` and `Init` interfaces are normally called by the TNN CreateInst interface, used to generate Instance network instances.
+-`GetForwardMemorySize` can get the memory size required for all the blobs of Instance, `SetForwardMemory` is used to pass in external memory. For Instances built in `SHARE_MEMORY_MODE_SET_FROM_EXTERNAL` memory mode, the memory needs to be passed in from the outside, and the actual size of the incoming memory must not be less than the value returned by `GetForwardMemorySize`.
+-The `Reshape` interface supports resetting network input and output. The current implementation of `Reshape` does not reallocate memory, so the incoming size of `Reshape` must not be greater than the initial network size.
+-The `GetCommandQueue` interface supports obtaining the command queue corresponding to the network operation, and the same command queue message is executed sequentially.
+-`GetAllInputBlobs` and `GetAllOutputBlobs` are used to get input and output blobs respectively.
+-`SetCpuNumThreads` can set the number of parallel CPU threads.
+-`Forward` runs a synchronous interface for the network, and `ForwardAsync` runs an asynchronous interface for the network.
+-`SetInputMat` is used to set the input Mat, where MatConvertParam can set the conversion parameters. For multi-input networks, it can be distinguished by input_name.
+-`GetOutputMat` is used to obtain the output result and save it in the output Mat. Among them, MatConvertParam can set the conversion parameters. For multi-output networks, it can be distinguished by output_name. DeviceType can specify whether the output Mat Memory is built on the CPU or GPU. MatType is applied to set the output Mat data arrangement. 
+
+### 6. core/tnn.h
+
+```cpp
+class PUBLIC TNN {
+public:
+    ...
+
+    Status Init(ModelConfig& config);
+
+    // denit tnn implement, release model interpreter.
+    Status DeInit();
+
+    // add output to the model.
+    // if output_name of blob not found, then search output_index of layer.
+    Status AddOutput(const std::string& output_name, int output_index = 0);
+
+    // create tnn network instance with network config and inputs shape.
+    // if inputs shape not set, use default from model.
+    std::shared_ptr<Instance> CreateInst(
+        NetworkConfig& config, Status& status,
+        InputShapesMap inputs_shape = InputShapesMap());
 
     ...
 };
 ```
 
-data_format and data_type of input blobs may be different on different platforms, and setting and obtaining data for GPU blob need to write GPU related code. The API provides a simple tool BlobConverter for input blob data setting and output blob data acquisition, defined in blob_converter.h.
+TNN interface description:
+-Init interface: responsible for importing and parsing model data, need to configure and import ModelConfig.
+-DeInit interface: responsible for the release of tnn implement, the default destructor can be automatically released.
+-AddOutput interface: support to increase the model output, you can define any layer of network output as the model output.
+-CreateInst interface: responsible for network instance Instance construction.
 
+### 7. utils/bfp16\_utils.h
+The interface provides the cpu memory conversion tool between fp16 and fp32. 
+
+
+### 8. utils/blob\_convert.h
 ```cpp
 class PUBLIC BlobConverter {
 public:
-    explicit BlobConverter (Blob * blob);
-    virtual Status ConvertToMat (Mat & image, MatConvertParam param, void * command_queue);
-    virtual Status ConvertFromMat (Mat & image, MatConvertParam param, void * command_queue);
+    explicit BlobConverter(Blob* blob);
+    virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue);
+    virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue);
 
-    virtual Status ConvertToMatAsync (Mat & image, MatConvertParam param, void * command_queue);
-    virtual Status ConvertFromMatAsync (Mat & image, MatConvertParam param, void * command_queue);
+    virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue);
+    virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue);
 
 private:
-    Blob * blob_;
-    std :: shared_ptr <BlobConverterAcc> impl_ = nullptr;
+    Blob* blob_;
+    std::shared_ptr<BlobConverterAcc> impl_ = nullptr;
 };
 ```
 
-Through `ConvertToMat`, you can import blob data into Mat in Mat format, and` ConvertFromMat` can import Mat data into blob in blob format, and the corresponding `command_queue` of the interface can be obtained through the Instance `GetCommandQueue` interface.
+Through `ConvertToMat`, you can import blob data into Mat in Mat format, and `ConvertFromMat` can import Mat data into blob in blob format, and the command_queue can be obtained by the Instance `GetCommandQueue` interface.
 
 
-Mat is defined in blob_converter.h,
+Mat is defined in blob_converter.h，
 
 ```cpp
 class PUBLIC Mat {
 public:
     ...
 
-    Mat (DeviceType device_type, MatType mat_type, void * data);
-    Mat (DeviceType device_type, MatType mat_type, DimsVector shape_dims);
+    Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
+    Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
     ...
 };
 ```
 
-MatType supports commonly used CV input and output layouts, and `DeviceType` can be set to CPU and GPU.
+
+MatType supports common CV input and output layouts, and `DeviceType` can be set to CPU and GPU.
 
 ```cpp
 typedef enum {
@@ -351,115 +428,33 @@ typedef enum {
 } PUBLIC MatType;
 ```
 
-At the same time, it supports common pre-processing, post-processing, scale setting, bias settings and reverse channel reverse for bgr/rgb format.
+It also provides common pre-processing/post-processing: support setting scale/bias parameter and reverse channel adaptation bgr, rgb or other scenarios.
 
 ```cpp
 struct PUBLIC MatConvertParam {
-    std :: vector <float> scale = {1.0f, 1.0f, 1.0f, 1.0f};
-    std :: vector <float> bias = {0.0f, 0.0f, 0.0f, 0.0f};
+    std::vector<float> scale = {1.0f, 1.0f, 1.0f, 1.0f};
+    std::vector<float> bias = {0.0f, 0.0f, 0.0f, 0.0f};
     bool reverse_channel = false;
 };
 ```
 
-For detailed instructions, you can read the demo documentation.
+### 9. utils/cpu\_utils.h
+Provide tools that are related to CPU thread core binding and power saving mode setting.
 
-The input and output blob is defined in the blob.h header file
+### 10. utils/data\_type\_utils.h
+Provide DataType size and name conversion-related tools.
 
-```cpp
-// @brief BlobDesc blob data info
-struct PUBLIC BlobDesc {
-    // deivce_type describes devie cpu, gpu, ...
-    DeviceType device_type = DEVICE_CPU;
-    // data_type describes data precion fp32, in8, ...
-    DataType data_type = DATA_TYPE_FLOAT;
-    // data_format describes data order nchw, nhwc, ...
-    DataFormat data_format = DATA_FORMAT_AUTO;
-    // DimsVector describes data dims
-    DimsVector dims;
-    // name describes the blob name
-    std :: string name;
-};
+### 11. utils/dims\_vector\_utils.h
+Provide commonly-used blob dims calculation and comparison tools.
 
-struct PUBLIC BlobHandle {
-    void * base = NULL;
-    uint64_t bytes_offset = 0;
-};
+### 12. utils/half\_utils.h
+The interface provides CPU memory conversion tools between fp32 and fp16.
 
-// @brief Blob tnn data store and transfer interface.
-class PUBLIC Blob {
-public:
-    ...
-
-    // @ brief create Blob with blob descript and data handle
-    Blob (BlobDesc desc, BlobHandle handle);
-
-    ...
-};
-
-```
-
-Blob is currently mainly composed of `BlobDesc` and` BlobHandle`, where `BlobDesc` describes blob-related structural information, and` BlobHandle` is used to read and store blob data.
-
-`BlobDesc` is used to describe device_type, data_type, data_format, dims, name information.
-Where data_type is defined in the common.h header file
-
-```cpp
-typedef enum {
-    DATA_TYPE_FLOAT = 0,
-    DATA_TYPE_HALF = 1,
-    DATA_TYPE_INT8 = 2,
-    DATA_TYPE_INT32 = 3
-} DataType;
-```
-
-dims describes the blob dimension information, the dims storage has nothing to do with data_format:
-- The dims size is 4, and the storage corresponds to N, C, H, W.
-- The dims size is 5, and the storage corresponds to N, C, D, H, and W.
-
-The current input and output data types and format for different platforms are as follows:
-
-- `ARM`: CPU memory, NC4HW4.
-- `OPENCL`: GPU memory (clImage), NHC4W4. NH is the height of clImage, C4W4 is width of clImage.
-- `METAL`: GPU memory (metal), NC4HW4. The last 4 represents pack 4, and C4 represents packed by 4 channels.
-
-### 4. Other supplementary notes
-
-Supplementary explanations of Instance interface:
-
-```cpp
-class PUBLIC Instance {
-public:
-
-    ...
-
-    // return memory bytes required for forward
-    Status GetForwardMemorySize (int & memory_size);
-
-    // set memory to tnn instance. if success, return status code zero.
-    // only instance created with SHARE_MEMORY_MODE_SET_FROM_EXTERNAL can be set from external.
-    // the memory size need> = GetForwardMemorySize ().
-    // releasing or otherwise using the memory for other purposes during the tnn network run
-    // will result in undefined behavior.
-    Status SetForwardMemory (void * memory);
-
-    // reshape instance with new input shapes
-    Status Reshape (const InputShapesMap & inputs);
-    ...
-    // set threads run on cpu
-    virtual Status SetCpuNumThreads (int num_threads);
-    ...
-};
-```
+### 13 version.h
+Build version information.
 
 
-Some instructions about Instance:
-- TNN Instance supports a multi-thread setting, and the number of parallel CPU threads can be set through `SetCpuNumThreads`.
-- The TNN `Reshape` interface supports resetting network input and output. The current implementation of` Reshape` does not reallocate memory, so the size passed to `Reshape` must not be greater than the initial network size.
-- For Instances built in `SHARE_MEMORY_MODE_SET_FROM_EXTERNAL` memory mode, the required memory needs to be passed in through` SetForwardMemory`, the required memory size can be obtained through `GetForwardMemorySize`, and the actual size of the incoming memory should not be less than the value returned by` GetForwardMemorySize`.
 
-Additional notes on other `Utils` interfaces:
-- `half_utils.h`: the internal interface provides conversion tools between fp32 and fp16 for CPU memory.
-- `dims_vector_utils.h`: The internal interface provides common tools for blob dims calculation and comparison.
-- `data_type_utils.h`: the internal interface provides tools related to dataType size and name conversion.
-- `cpu_utils.h`: the internal interface provides tools related to CPU thread core binding and power saving mode setting.
-- `macro.h`: provide log macros for different platforms, macros for maximum and minimum values of different data types, PUBLIC macro definitions, and some macros for data pack conversion.
+
+
+

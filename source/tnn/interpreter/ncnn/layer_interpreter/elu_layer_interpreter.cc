@@ -34,12 +34,12 @@ namespace ncnn    {
         auto p = param_dict;
         layer_param->alpha = GetFloat(p, 0, 0.1f);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status EluLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                   LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 } // namespace ncnn

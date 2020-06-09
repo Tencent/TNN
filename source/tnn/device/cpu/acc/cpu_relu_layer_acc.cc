@@ -25,7 +25,7 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Relu, LAYER_RELU);
 
 Status CpuReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -52,7 +52,7 @@ Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
             output_data[index] = std::max((int8_t)0, input_data[index]);
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Relu, LAYER_RELU);

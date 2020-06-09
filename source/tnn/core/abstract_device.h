@@ -49,19 +49,19 @@ public:
     // @brief Allocates memory
     // @param size info blob size info to allocate
     // @param handle handle blob memory
-    // @return RPD_OK if free success, otherwise error code.
+    // @return TNN_OK if free success, otherwise error code.
     virtual Status Allocate(void** handle, BlobMemorySizeInfo& size_info) = 0;
 
     // @brief Releases memory resources associated by the handle.
-    // @return RPD_OK if free success, otherwise error code.
+    // @return TNN_OK if free success, otherwise error code.
     virtual Status Free(void* handle) = 0;
 
     // @brief Transfer memory from Host to Device
-    // @return RPD_OK if copy success, otherwise error code.
+    // @return TNN_OK if copy success, otherwise error code.
     virtual Status CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue) = 0;
 
     // @brief Transfer memory from Device to Host
-    // @return RPD_OK if copy success, otherwise error code.
+    // @return TNN_OK if copy success, otherwise error code.
     virtual Status CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue) = 0;
 
     // @brief CreateLayerAcc create different layer type acc

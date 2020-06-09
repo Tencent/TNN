@@ -26,9 +26,8 @@ namespace ncnn {
 
     class AbstractLayerInterpreter;
 
-    static const int layer_cfg_start_id   = 3;
+    static const int layer_cfg_start_id   = 2;
     static const int layer_param_start_id = 4;
-    static const int input_layer_id       = 2;
     static const int ncnn_magic_number    = 7767517;
 
     // @brief NCNNModelInterpreter used to interpreter ncnn model
@@ -45,6 +44,8 @@ namespace ncnn {
     private:
         Status InterpretProto(std::string content);
         Status InterpretModel(std::string model_content);
+        Status InterpretInput();
+
         Status FindOutputs();
         Status Convert(shared_ptr<LayerInfo> cur_layer, std::vector<std::shared_ptr<LayerInfo>> output_layers);
     };

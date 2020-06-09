@@ -18,9 +18,13 @@ def check_file_exist(file_path):
         print("the " + file_path + " does not exist! please make sure the file exist!")
         exit(-1)
 
+
 def parse_path(path: str):
     if path is None:
         return None
+    if path.endswith(".onnx") is False:
+        print("please make sure the onnx file path end with  \'.onnx\'")
+        exit(-1)
     if path.startswith("/"):
         return path
     elif path.startswith("./"):
@@ -31,19 +35,21 @@ def parse_path(path: str):
     else:
         return os.path.join(os.getcwd(), path)
 
+
 def do_optimize(onnx_net_path):
     try:
         import onnx2tnn.onnx_optimizer.onnx_optimizer as opt
     except ImportError:
-        os.system(sys.executable + " onnx_optimizer "+onnx_net_path)
+        os.system(sys.executable + " onnx_optimizer " + onnx_net_path)
         return
 
     import multiprocessing
     ctx = multiprocessing.get_context('spawn')
-    p   = ctx.Process(target=opt.onnx_optimizer, args=(onnx_net_path,))
+    p = ctx.Process(target=opt.onnx_optimizer, args=(onnx_net_path,))
     p.start()
     p.join()
     return
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -79,7 +85,7 @@ def main():
         output_dir = os.path.dirname(onnx_net_path)
     check_file_exist(onnx_net_path)
     check_file_exist(output_dir)
-    onnx_net_opt_path = onnx_net_path+'.opt.onnx'
+    onnx_net_opt_path = onnx_net_path[:-5] + '.opt.onnx'
     if algo_optimize == '0':
         onnx_net_opt_path = onnx_net_path
 
@@ -90,11 +96,11 @@ def main():
     print('algo_optimize ' + algo_optimize)
     print('onnx_net_opt_path ' + onnx_net_opt_path)
     if algo_optimize != '0':
-        print("1.----onnx_optimizer: "+onnx_net_path)
+        print("1.----onnx_optimizer: " + onnx_net_path)
         do_optimize(onnx_net_path)
 
     # os.access('/python/test.py',os.F_OK)
-    print("2.----onnx2tnn: "+onnx_net_opt_path)
+    print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
     status = 0
     try:
@@ -103,7 +109,8 @@ def main():
         status = -1
         traceback.print_exc()
 
-    print("3.----onnx2tnn status: "+str(status))
+    print("3.----onnx2tnn status: " + str(status))
+
 
 if __name__ == '__main__':
     main()

@@ -48,10 +48,10 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
             Float4::save(dst + i, Float4::max(Float4::load(src + i), vzero));
         }
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Relu, LAYER_RELU)

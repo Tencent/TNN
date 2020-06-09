@@ -47,7 +47,7 @@ namespace ncnn {
         char *str = const_cast<char *>(param[index].c_str());
 
         Status ret = SplitUtils::SplitStr(str, param_vec, ",", true, true);
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("split param list failed\n");
             return param_vec;
         }

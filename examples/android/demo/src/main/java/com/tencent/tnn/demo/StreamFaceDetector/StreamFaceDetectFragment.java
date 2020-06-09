@@ -69,8 +69,8 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "version-slim-320_simplified.rapidmodel",
-                "version-slim-320_simplified.rapidproto",
+                "version-slim-320_simplified.tnnmodel",
+                "version-slim-320_simplified.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {

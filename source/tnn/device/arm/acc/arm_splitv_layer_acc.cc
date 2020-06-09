@@ -128,7 +128,7 @@ static int splitv_channel_c4(Blob *input, const std::vector<Blob *> &outputs, Sp
 Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
     if (!layer_param || layer_param->slices.size() != outputs.size()) {
-        return Status(RPDERR_PARAM_ERR, "ArmSplitVLayerAcc has invalid param, slices size != output blobs size");
+        return Status(TNNERR_PARAM_ERR, "ArmSplitVLayerAcc has invalid param, slices size != output blobs size");
     }
 
     const int axis    = layer_param->axis;
@@ -157,13 +157,13 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         }
     } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc don't support datatype: %d\n", input_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(SplitV, LAYER_SPLITV);

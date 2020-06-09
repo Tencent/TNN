@@ -29,7 +29,7 @@ Status MetalHardSigmoidLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
     auto layer_param = dynamic_cast<HardSigmoidLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: HardSigmoidLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "HardSigmoidLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "HardSigmoidLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -49,7 +49,7 @@ Status MetalHardSigmoidLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
                                             length:sizeof(MetalHardSigmoidParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalHardSigmoidLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

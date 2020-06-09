@@ -51,6 +51,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     if output_dir is None:
         output_dir = os.path.dirname(tf_path)
     checker.check_file_exist(output_dir)
+    model_name = model_name[:-len(".pb")]
     onnx_path = os.path.join(output_dir, model_name + ".onnx")
     if tf2onnx(tf_path, input_names, output_names, onnx_path) is False:
         print("Oh No, tf2onnx failed")

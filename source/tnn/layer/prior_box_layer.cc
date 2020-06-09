@@ -47,7 +47,7 @@ Status PriorBoxLayer::InferOutputShape() {
     // a little trick. hack the prior box output
     output_dims.push_back(1);
     output_blob->GetBlobDesc().dims = output_dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(PriorBox, LAYER_PRIOR_BOX);

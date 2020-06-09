@@ -23,11 +23,11 @@ namespace TNN_NS {
 Status CopyToDevice(Blob* dst, Blob* src, void* command_queue) {
     DeviceType device_type = dst->GetBlobDesc().device_type;
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
 
     auto device = GetDevice(device_type);
     if (device == NULL) {
-        return RPDERR_DEVICE_NOT_SUPPORT;
+        return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
     BlobHandle src_handle = src->GetHandle();
@@ -36,23 +36,23 @@ Status CopyToDevice(Blob* dst, Blob* src, void* command_queue) {
 
     ret = device->CopyToDevice(&dst_handle, &src_handle, blob_desc, command_queue);
 
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGD("Copy blob to device failed\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CopyFromDevice(Blob* dst, Blob* src, void* command_queue) {
     DeviceType device_type = src->GetBlobDesc().device_type;
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
 
     auto device = GetDevice(device_type);
 
     if (device == NULL) {
-        return RPDERR_DEVICE_NOT_SUPPORT;
+        return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
     BlobHandle src_handle = src->GetHandle();
@@ -61,12 +61,12 @@ Status CopyFromDevice(Blob* dst, Blob* src, void* command_queue) {
 
     ret = device->CopyFromDevice(&dst_handle, &src_handle, blob_desc, command_queue);
 
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGD("Copy blob to device failed\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

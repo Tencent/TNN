@@ -25,12 +25,12 @@ public:
         auto layer_param = dynamic_cast<PowLayerParam *>(param);
         if (!layer_param) {
             LOGE("Error: pow layer param is nil\n");
-            return Status(RPDERR_MODEL_ERR, "Error: pow layer param is nil");
+            return Status(TNNERR_MODEL_ERR, "Error: pow layer param is nil");
         }
         scale_    = layer_param->scale;
         shift_    = layer_param->shift;
         exponent_ = layer_param->exponent;
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual float operator()(float in) {
         return pow(in * scale_ + shift_, exponent_);

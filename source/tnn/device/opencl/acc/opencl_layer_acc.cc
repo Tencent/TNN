@@ -29,7 +29,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     layer_name_  = param->name;
     ocl_context_ = dynamic_cast<OpenCLContext *>(context);
     if (ocl_context_ == nullptr) {
-        return Status(RPDERR_NULL_PARAM, "OpenCL Context Convert failed");
+        return Status(TNNERR_NULL_PARAM, "OpenCL Context Convert failed");
     }
     execute_units_.resize(1);
 
@@ -54,7 +54,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
     ConfigKernelStrategy();
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLLayerAcc::~OpenCLLayerAcc() {}
@@ -99,7 +99,7 @@ Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
 
 #endif
 
-    Status ret   = RPD_OK;
+    Status ret   = TNN_OK;
     int unit_idx = 0;
     for (auto execute_unit : execute_units_) {
 #if TNN_PROFILE
@@ -107,13 +107,13 @@ Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
         UpdateProfilingData(pdata.get(), execute_unit.global_work_size, execute_unit.local_work_size, unit_idx);
         ret = RunKernel(execute_unit.ocl_kernel, execute_unit.global_work_size, execute_unit.local_work_size,
                         ocl_context_->CommandQueue(), op_name_, pdata.get());
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
         ocl_context_->AddProfilingData(pdata);
 #else
 
         ret = RunKernel(execute_unit.ocl_kernel, execute_unit.global_work_size, execute_unit.local_work_size,
                         ocl_context_->CommandQueue(), op_name_);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
 
 #endif
         unit_idx++;
@@ -123,7 +123,7 @@ Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
         ocl_context_->CommandQueue()->flush();
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #if TNN_PROFILE
@@ -167,27 +167,27 @@ Status OpenCLLayerAcc::ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<O
                                              int output_channel, bool has_handle, bool share_channel, bool use_buffer) {
     // convert first check handle is null and handle data type is float or half,
     // then process with float pointer.
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (!has_handle) {
         ret = ConvertChannelWeights(nullptr, ocl_handle, output_channel, has_handle, share_channel, use_buffer);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else if (raw_handle.GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer
         float *handle_data_ptr = raw_handle.force_to<float *>();
         if (handle_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertChannelWeights(handle_data_ptr, ocl_handle, output_channel, has_handle, share_channel, use_buffer);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         // if handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(raw_handle);
         if (float_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertChannelWeights(float_data_ptr.get(), ocl_handle, output_channel, has_handle, share_channel,
                                     use_buffer);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     return ret;
@@ -206,13 +206,13 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
                                handle_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     float *handle_clbuffer_ptr = (float *)ocl_context_->CommandQueue()->enqueueMapBuffer(
         handle_clbuffer, true, CL_MAP_WRITE, 0, handle_size * sizeof(float), nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
     memset(handle_clbuffer_ptr, 0, handle_size * sizeof(float));
     if (has_handle) {
@@ -223,7 +223,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(handle_clbuffer, handle_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create ocl_handle_
@@ -239,7 +239,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
             CHECK_CL_SUCCESS(ret)
             if (nullptr != buffer)
                 delete buffer;
-            return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
         }
         ocl_handle->SetData(buffer, true);
 
@@ -263,7 +263,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
             CHECK_CL_SUCCESS(ret)
             if (nullptr != image)
                 delete image;
-            return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
         }
         ocl_handle.reset(new OpenCLMemory(TNN_CL_IMAGE));
         ocl_handle->SetData(image, true);

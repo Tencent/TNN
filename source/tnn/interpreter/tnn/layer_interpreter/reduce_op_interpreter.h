@@ -27,12 +27,12 @@ class ReduceOpLayerInterpreter : public AbstractLayerInterpreter {
 public:
     virtual Status InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam **param);
     virtual Status InterpretResource(Deserializer &deserializer, LayerResource **Resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status SaveProto(std::ofstream &output_stream, LayerParam *param);
     virtual Status SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual ~ReduceOpLayerInterpreter(){};
 };

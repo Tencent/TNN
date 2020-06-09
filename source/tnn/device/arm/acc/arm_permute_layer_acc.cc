@@ -46,7 +46,7 @@ Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                             output_data);
     }
     PackOutputs(outputs);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Permute, LAYER_PERMUTE);

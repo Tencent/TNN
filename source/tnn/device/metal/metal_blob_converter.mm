@@ -103,21 +103,21 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
                                          length:sizeof(MetalImageConverterParams)
                                         options:MTLResourceCPUCacheModeWriteCombined];
     if (!buffer_param_) {
-        return Status(RPDERR_INVALID_INPUT, "buffer param is nil");
+        return Status(TNNERR_INVALID_INPUT, "buffer param is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob,
                                                       void *command_queue) {
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
-        return Status(RPDERR_INST_ERR, "command queue is nil");
+        return Status(TNNERR_INST_ERR, "command queue is nil");
     }
 
     auto library = command_queue_impl.metalContextImpl.library;
     if (!library) {
-        return Status(RPDERR_INVALID_INPUT, "metal library is nil");
+        return Status(TNNERR_INVALID_INPUT, "metal library is nil");
     }
 
     auto mat_device_type  = mat->GetDeviceType();
@@ -162,16 +162,16 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
     }
 
     if (!func_process) {
-        return Status(RPDERR_INVALID_INPUT, "mat converter func not found");
+        return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
 
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(RPDERR_INVALID_INPUT, "mat converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void *command_queue) {
@@ -189,30 +189,30 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                                  int waitState) {
     auto mat_device_type = output_mat.GetDeviceType();
     auto mat_type        = output_mat.GetMatType();
-    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_CPU) &&
+    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
           (mat_type == N8UC4 || mat_type == NCHW_FLOAT))) {
-        return Status(RPDERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
+        return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
 
     auto dims               = blob_->GetBlobDesc().dims;
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
-        return Status(RPDERR_INST_ERR, "command queue is nil");
+        return Status(TNNERR_INST_ERR, "command queue is nil");
     }
 
     // check class type
     if (!input_blob || typeid(*input_blob) != typeid(Blob)) {
         LOGE("Error: input_blob is nil or not instance of Blob*\n");
-        return Status(RPDERR_INST_ERR, "input_blob is nil or not instance of Blob*");
+        return Status(TNNERR_INST_ERR, "input_blob is nil or not instance of Blob*");
     }
 
     auto status = AllocateBufferParam(param_, &output_mat, input_blob, false);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     status = AllocateComputePipeline(param_, &output_mat, input_blob, false, command_queue);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -228,7 +228,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         if (output_texture.height != dims[2] || output_texture.width != dims[3] ||
             (output_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
              output_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
-            return Status(RPDERR_INST_ERR, "output mat's texture is invalid, wrong size or pixel format");
+            return Status(TNNERR_INST_ERR, "output mat's texture is invalid, wrong size or pixel format");
         }
 
         command_buffer = [command_queue_impl commandBuffer];
@@ -258,7 +258,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         int count = DimsVectorUtils::Count(dims);
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
-        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_CPU) {
+        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE) {
             output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * sizeof(float)
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
@@ -304,7 +304,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
             memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * sizeof(float));
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue) {
@@ -322,31 +322,31 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                                                    int waitState) {
     auto mat_device_type = input_mat.GetDeviceType();
     auto mat_type        = input_mat.GetMatType();
-    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_CPU) &&
+    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
           (mat_type == N8UC4 || mat_type == NCHW_FLOAT))) {
         LOGE("GetDeviceType: %d GetMatType: %d\n", input_mat.GetDeviceType(), input_mat.GetMatType());
-        return Status(RPDERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
+        return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
 
     auto dims               = blob_->GetBlobDesc().dims;
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
-        return Status(RPDERR_INST_ERR, "command queue is nil");
+        return Status(TNNERR_INST_ERR, "command queue is nil");
     }
 
     // check class type
     if (!output_blob || typeid(*output_blob) != typeid(Blob)) {
         LOGE("Error: output_blob is nil or not instance of Blob*\n");
-        return Status(RPDERR_INST_ERR, "output_blob is nil or not instance of Blob*");
+        return Status(TNNERR_INST_ERR, "output_blob is nil or not instance of Blob*");
     }
 
     auto status = AllocateBufferParam(param_, &input_mat, output_blob, true);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
     status = AllocateComputePipeline(param_, &input_mat, output_blob, true, command_queue);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -360,14 +360,14 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             id<MTLTexture> input_texture = nil;
             if (mat_device_type == DEVICE_METAL) {
                 input_texture = (__bridge id<MTLTexture>)(input_mat.GetData());
-            } else if (mat_device_type == DEVICE_CPU || mat_device_type == DEVICE_ARM) {
-                return Status(RPDERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
+            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
+                return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
                 // now this will not work, disable first
                 TNN_NS::Mat image_mat_gpu(DEVICE_METAL, TNN_NS::N8UC4, dims);
                 input_texture = (__bridge id<MTLTexture>)image_mat_gpu.GetData();
                 if (!input_texture) {
                     LOGE("Error: newTextureWithDescriptor return nil\n");
-                    return Status(RPDERR_INST_ERR, "newTextureWithDescriptor return nil");
+                    return Status(TNNERR_INST_ERR, "newTextureWithDescriptor return nil");
                 }
 
                 [input_texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
@@ -382,7 +382,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             if (input_texture.height != dims[2] || input_texture.width != dims[3] ||
                 (input_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
                  input_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
-                return Status(RPDERR_INST_ERR, "input mat's texture is invalid, wrong size or pixel format");
+                return Status(TNNERR_INST_ERR, "input mat's texture is invalid, wrong size or pixel format");
             }
 
             auto command_buffer = [command_queue_impl commandBuffer];
@@ -405,14 +405,14 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             } else if (waitState == 2) {
                 [command_buffer waitUntilScheduled];
             }
-            return RPD_OK;
+            return TNN_OK;
         } else if (mat_type == NCHW_FLOAT) {
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
-            } else if (mat_device_type == DEVICE_CPU || mat_device_type == DEVICE_ARM) {
+            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
                 int count    = DimsVectorUtils::Count(dims);
                 input_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
                                                                       length:count * sizeof(float)
@@ -457,12 +457,12 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             } else if (waitState == 2) {
                 [command_buffer waitUntilScheduled];
             }
-            return RPD_OK;
+            return TNN_OK;
         } else {
             break;
         }
     } while (0);
-    return Status(RPDERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
+    return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
 }
 
 DECLARE_BLOB_CONVERTER_CREATER(Metal);

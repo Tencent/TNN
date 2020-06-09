@@ -43,29 +43,11 @@ def run(cmd_string, work_dir="", timeout=None, is_shell=True):
                            stderr=subprocess.PIPE,
                            shell=True,
                            bufsize=4096,
-                           cwd=work_dir)
-    # (stdout, stderr) = sub.communicate()
-    while True:
-        line = sub.stdout.readline()
-        if not line:
-            break
-        if line:
-            print(str(line.strip().decode('utf-8')))
-    while True:
-        line = sub.stderr.readline()
-        if not line:
-            break
-        if line:
-            print(str(line.strip().decode('utf-8')))
+                           cwd=work_dir,
+                           close_fds=True)
+    (stdout, stderr) = sub.communicate()
+    print(str(stdout.decode('utf-8')))
+    print(str(stderr.decode('utf-8')))
     rc = sub.poll()
     return rc
 
-    #
-    # while sub.poll() is None:
-    #     time.sleep(0.1)
-    #     if timeout:
-    #         if end_time <= datetime.datetime.now():
-    #             raise Exception("Timeout：%s" % cmd_string)
-    #
-    # result = sub.returncode
-    # return result

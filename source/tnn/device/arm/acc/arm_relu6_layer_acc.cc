@@ -39,7 +39,7 @@ namespace TNN_NS {
 //         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
 //     }
 
-//     return RPD_OK;
+//     return TNN_OK;
 // }
 
 // REGISTER_ARM_ACC(Relu6, LAYER_RELU6)

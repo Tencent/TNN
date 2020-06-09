@@ -43,7 +43,7 @@ Status UpsampleLayer::InferOutputShape() {
         height_out = int(round(height * layer_param->scales[1]));
     } else {
         LOGE("Error: unsupport upsample type:%d", layer_param->type);
-        return Status(RPDERR_PARAM_ERR, "unsupport upsample type");
+        return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
     }
 
     if (layer_param->dims.size() >= 2) {
@@ -53,7 +53,7 @@ Status UpsampleLayer::InferOutputShape() {
 
     if (width_out <=0 || height_out <=0) {
         LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
-        return Status(RPDERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+        return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
     }
 
     DimsVector output_dims;
@@ -63,7 +63,7 @@ Status UpsampleLayer::InferOutputShape() {
     output_dims.push_back(width_out);
 
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Upsample, LAYER_UPSAMPLE);

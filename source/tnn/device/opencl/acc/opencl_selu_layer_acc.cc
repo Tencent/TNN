@@ -23,7 +23,7 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Selu Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "Selu";
@@ -31,12 +31,12 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     // create kernel
     std::string kernel_name = "Selu";
     ret                     = CreateExecuteUnit(execute_units_[0], "selu", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLSeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -44,7 +44,7 @@ Status OpenCLSeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     SeluLayerParam *selu_param = dynamic_cast<SeluLayerParam *>(param_);
     if (!selu_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
     float factor1 = selu_param->alpha * selu_param->gamma;
     float factor2 = selu_param->gamma;
@@ -53,7 +53,7 @@ Status OpenCLSeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, factor1);
     execute_units_[0].ocl_kernel.setArg(idx++, factor2);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Selu, LAYER_SELU)

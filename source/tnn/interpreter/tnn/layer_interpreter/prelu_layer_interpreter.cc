@@ -32,7 +32,7 @@ Status PReluLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
     if (index < layer_cfg_arr.size()) {
         layer_param->has_filler = (atoi(layer_cfg_arr[index++].c_str()) == 1) ? 1 : 0;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PReluLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -44,28 +44,28 @@ Status PReluLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     RawBuffer k;
     deserializer.GetRaw(k);
     layer_res->slope_handle = k;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PReluLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<PReluLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->channel_shared << " " << layer_param->has_filler << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PReluLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     auto layer_res = dynamic_cast<PReluLayerResource*>(resource);
     if (nullptr == layer_res) {
         LOGE("invalid layer res to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer res to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer res to save");
     }
     serializer.PutString(layer_res->name);
     serializer.PutRaw(layer_res->slope_handle);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(PRelu, LAYER_PRELU);

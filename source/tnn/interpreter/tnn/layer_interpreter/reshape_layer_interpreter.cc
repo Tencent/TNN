@@ -28,7 +28,7 @@ Status ReshapeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
     GET_INT_1_OR_DEFAULT(top_blob_dim_size, -1);
     if (top_blob_dim_size == -1) {
         LOGE("Error: ReshapeLayerInterpreter: invalid layer param\n");
-        return Status(RPDERR_PARAM_ERR, "ReshapeLayerInterpreter: invalid layer param");
+        return Status(TNNERR_PARAM_ERR, "ReshapeLayerInterpreter: invalid layer param");
     }
 
     p->shape.clear();
@@ -36,11 +36,11 @@ Status ReshapeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
 
     GET_INT_1_OR_DEFAULT(p->reshape_type, 0);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReshapeLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReshapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -54,11 +54,11 @@ Status ReshapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPar
     }
     output_stream << layer_param->reshape_type << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ReshapeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Reshape, LAYER_RESHAPE);

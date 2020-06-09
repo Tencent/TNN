@@ -50,7 +50,7 @@ Status ConcatLayer::InferOutputShape() {
     const int axis = concat_param->axis;
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
         LOGE("Error: ConcatLayer axis(%d) is invalid\n", axis);
-        return Status(RPDERR_PARAM_ERR, "ConcatLayer axis is invalid");
+        return Status(TNNERR_PARAM_ERR, "ConcatLayer axis is invalid");
     }
 
     size_t i                = 0;
@@ -65,7 +65,7 @@ Status ConcatLayer::InferOutputShape() {
                 "concatenated with "
                 "axis=%d\n",
                 GetLayerName().c_str(), axis);
-            return Status(RPDERR_PARAM_ERR, "ConcatLayer's inputs can not be concatenated");
+            return Status(TNNERR_PARAM_ERR, "ConcatLayer's inputs can not be concatenated");
         }
         out_concat_dim_size += cur_shape[axis];
     }
@@ -74,7 +74,7 @@ Status ConcatLayer::InferOutputShape() {
 
     output_blob->GetBlobDesc().dims = last_shape;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Concat, LAYER_CONCAT);

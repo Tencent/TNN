@@ -26,7 +26,7 @@ Status MetalSeluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     auto layer_param = dynamic_cast<SeluLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: SeluLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "SeluLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "SeluLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -45,7 +45,7 @@ Status MetalSeluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                             length:sizeof(MetalSeluParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalSeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

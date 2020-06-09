@@ -92,7 +92,7 @@ Status OpenCLRuntime::Init() {
 
 #ifdef TNN_USE_OPENCL_WRAPPER
         if (false == OpenCLSymbols::GetInstance()->LoadOpenCLLibrary()) {
-            return Status(RPDERR_DEVICE_LIBRARY_LOAD, "load opencl library falied!");
+            return Status(TNNERR_DEVICE_LIBRARY_LOAD, "load opencl library falied!");
         }
 #endif  // TNN_USE_OPENCL_WRAPPER
 
@@ -100,7 +100,7 @@ Status OpenCLRuntime::Init() {
         cl::Platform::get(&platforms);
         if (platforms.size() <= 0) {
             LOGE("OpenCL Platform not found!\n");
-            return Status(RPDERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
+            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
         }
 
         LOGD("find %lu platforms\n", platforms.size());
@@ -124,7 +124,7 @@ Status OpenCLRuntime::Init() {
         //not found, return error code.
         if (devices.size() <= 0) {
             LOGE("OpenCL Device not found!\n");
-            return Status(RPDERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
+            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
         }
 
         device_                          = std::make_shared<cl::Device>();
@@ -159,7 +159,7 @@ Status OpenCLRuntime::Init() {
 #endif
         if (err != CL_SUCCESS) {
             LOGE("Context create failed! (ERROR CODE: %d)\n", err);
-            return Status(RPDERR_OPENCL_RUNTIME_ERROR, "Context create failed!");
+            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "Context create failed!");
         }
 
         //get cache size, compute units and frequency.
@@ -177,7 +177,7 @@ Status OpenCLRuntime::Init() {
         LOGD("OpenCLRuntime init done!\n");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLRuntime::~OpenCLRuntime() {
@@ -287,12 +287,12 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
         auto status = this->LoadProgram(program_name, &program);
         if (!status) {
             LOGE("load program (%s) failed!\n", program_name.c_str());
-            return Status(RPDERR_OPENCL_KERNELBUILD_ERROR, "load program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "load program falied");
         }
         status = this->BuildProgram(build_options_str, &program);
         if (!status) {
             LOGE("%s build failed!\n", program_name.c_str());
-            return Status(RPDERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
         }
         program_map_.emplace(build_program_key, program);
     }
@@ -302,9 +302,9 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     kernel = cl::Kernel(program, kernel_name.c_str(), &err);
     if (err != CL_SUCCESS) {
         LOGE("Kernel create failed! (ERROR CODE: %d)\n", err);
-        return Status(RPDERR_OPENCL_KERNELBUILD_ERROR, "create kernel falied");
+        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create kernel falied");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 //get gpu divce type

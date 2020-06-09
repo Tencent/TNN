@@ -22,20 +22,20 @@ CpuPermuteLayerAcc::~CpuPermuteLayerAcc(){};
 Status CpuPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");
+        return Status(TNNERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");
     }
     Blob *input_blob       = inputs[0];
     Blob *output_blob      = outputs[0];
@@ -49,7 +49,7 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         h = input_dims[2];
         w = input_dims[3];
     } else {
-        return Status(RPDERR_MODEL_ERR, "Error: TNN only suport [n, c, h, w]");
+        return Status(TNNERR_MODEL_ERR, "Error: TNN only suport [n, c, h, w]");
     }
     const int output_count = n * c * h * w;
 
@@ -72,7 +72,7 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
         NaivePermute<int8_t>(output_count, input_data, param->orders, input_step, output_step, num_dims, output_data);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuPermuteLayerAcc>> g_cpu_permute_layer_acc_register(LAYER_PERMUTE);

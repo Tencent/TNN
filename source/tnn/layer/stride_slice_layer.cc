@@ -28,7 +28,7 @@ Status StrideSliceLayer::InferOutputShape() {
     StrideSliceLayerParam* layer_param = dynamic_cast<StrideSliceLayerParam*>(param_);
     if (!layer_param) {
         LOGE("StrideSliceLayer param is nil\n");
-        return Status(RPDERR_PARAM_ERR, "StrideSliceLayer param is nil");
+        return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is nil");
     }
 
     Blob* input_blob  = input_blobs_[0];
@@ -40,7 +40,7 @@ Status StrideSliceLayer::InferOutputShape() {
     if (layer_param->begins.size() != input_dims.size() || layer_param->ends.size() != input_dims.size() ||
         layer_param->strides.size() != input_dims.size()) {
         LOGE("StrideSliceLayer param got wrong size\n");
-        return Status(RPDERR_PARAM_ERR, "StrideSliceLayer param got wrong size");
+        return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param got wrong size");
     }
 
     auto begins = layer_param->begins;
@@ -63,7 +63,7 @@ Status StrideSliceLayer::InferOutputShape() {
             ends[i] = sizes[i] + begins[i];
             if (ends[i] > input_dims[i]) {
                 LOGE("StrideSliceLayer param is invalid. Check NCNN Param\n");
-                return Status(RPDERR_PARAM_ERR, "StrideSliceLayer param is invalid. Check NCNN Param");
+                return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid. Check NCNN Param");
             }
         }
 
@@ -82,14 +82,14 @@ Status StrideSliceLayer::InferOutputShape() {
 
             if (sizes[i] <= 0) {
                 LOGE("StrideSliceLayer param is invalid\n");
-                return Status(RPDERR_PARAM_ERR, "StrideSliceLayer param is invalid");
+                return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid");
             }
         }
     }
 
     output_blob->GetBlobDesc().dims = sizes;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(StrideSlice, LAYER_STRIDED_SLICE);

@@ -22,11 +22,11 @@ Status OpenCLLogSigmoidLayerAcc::Init(Context *context, LayerParam *param, Layer
                                       const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init LogSigmoid Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "LogSigmoid";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLLogSigmoidLayerAcc::CreateBuildOptions() {

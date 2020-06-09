@@ -33,7 +33,7 @@ BlobMemorySizeInfo MetalDevice::Calculate(BlobDesc &desc) {
 
 Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     if (!handle) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -48,7 +48,7 @@ Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
         textureDescriptor.usage     = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
         id<MTLTexture> texture_rgba = [device newTextureWithDescriptor:textureDescriptor];
         *handle                     = (void *)CFBridgingRetain(texture_rgba);
-        return RPD_OK;
+        return TNN_OK;
     } else if (mat_type == NCHW_FLOAT) {
         BlobDesc desc;
         desc.data_type   = DATA_TYPE_FLOAT;
@@ -59,10 +59,10 @@ Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
         int size         = GetBlobMemoryBytesSize(size_info);
         auto buffer      = [device newBufferWithLength:size options:MTLResourceCPUCacheModeDefaultCache];
         *handle          = (void *)CFBridgingRetain(buffer);
-        return RPD_OK;
+        return TNN_OK;
     } else {
         LOGE("unsupport mat type: %d", mat_type);
-        return Status(RPDERR_PARAM_ERR, "unsupport mat type");
+        return Status(TNNERR_PARAM_ERR, "unsupport mat type");
     }
 }
 
@@ -77,21 +77,21 @@ Status MetalDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
 #endif
         *handle = (void *)CFBridgingRetain(buffer);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDevice::Free(void *handle) {
     if (handle) {
         CFBridgingRelease(handle);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDevice::CopyToDevice(BlobHandle *dst, const BlobHandle *src, BlobDesc &desc, void *command_queue) {
 
     if (!command_queue) {
         LOGD("command_queue is nil context\n");
-        return Status(RPDERR_CONTEXT_ERR, "Error: command_queue is nil context");
+        return Status(TNNERR_CONTEXT_ERR, "Error: command_queue is nil context");
     }
 
     auto size_info       = Calculate(desc);
@@ -101,13 +101,13 @@ Status MetalDevice::CopyToDevice(BlobHandle *dst, const BlobHandle *src, BlobDes
     uint64_t offset      = dst->bytes_offset;
     memcpy((char *)buffer.contents + offset, ((char *)src->base) + src->bytes_offset, size_in_bytes);
     //    LOGE("inputdata gpu: %.6f %.6f\n", ((float *)buffer.contents)[0], ((float *)buffer.contents)[1]);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobDesc &desc, void *command_queue) {
     if (!command_queue) {
         LOGD("command_queue is nil context\n");
-        return Status(RPDERR_CONTEXT_ERR, "Error: command_queue is nil context");
+        return Status(TNNERR_CONTEXT_ERR, "Error: command_queue is nil context");
     }
 
     auto size_info       = Calculate(desc);
@@ -118,7 +118,7 @@ Status MetalDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobD
     memcpy(((char *)dst->base) + dst->bytes_offset, (char *)buffer.contents + offset, size_in_bytes);
 
     //    LOGE("outputdata gpu: %.6f %.6f\n", ((float *)buffer.contents)[0], ((float *)buffer.contents)[1]);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
@@ -141,7 +141,7 @@ std::map<LayerType, LayerAccCreator *> &MetalDevice::GetLayerCreatorMap() {
 Status MetalDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
     std::map<LayerType, LayerAccCreator *> &layer_creator_map = GetLayerCreatorMap();
     layer_creator_map[type]                                   = creator;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 TypeDeviceRegister<MetalDevice> g_metal_device_register(DEVICE_METAL);

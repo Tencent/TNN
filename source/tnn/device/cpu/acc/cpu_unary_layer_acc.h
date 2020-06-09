@@ -33,7 +33,7 @@ typedef struct unary_operator {
 public:
     virtual Status Init(LayerParam *param = NULL) {
         param_ = param;
-        return RPD_OK;
+        return TNN_OK;
     }
     virtual float operator()(float in) {
         return in;

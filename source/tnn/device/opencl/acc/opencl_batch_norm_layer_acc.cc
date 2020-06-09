@@ -43,7 +43,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init BatchNorm Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;
     op_name_        = "BatchNorm";
@@ -54,7 +54,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
     BatchNormLayerResource *batchnorm_resource = dynamic_cast<BatchNormLayerResource *>(resource);
     if (batchnorm_resource == nullptr) {
         LOGE("BatchNormLayerResource is null!\n");
-        return Status(RPDERR_MODEL_ERR, "BatchNormLayerResource is null");
+        return Status(TNNERR_MODEL_ERR, "BatchNormLayerResource is null");
     }
 
     RawBuffer &scale_handle = batchnorm_resource->scale_handle;
@@ -65,21 +65,21 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
     bool has_bias  = bias_handle.GetBytesSize() != 0;
 
     ret = ConvertChannelWeights(scale_handle, ocl_k_, channels, true, share_channel_);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // get bias
     ret = ConvertChannelWeights(bias_handle, ocl_b_, channels, has_bias, share_channel_);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::string kernel_name = "BatchNormGS3D";
     ret                     = CreateExecuteUnit(execute_units_[0], "batch_norm", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLBatchNormLayerAcc::~OpenCLBatchNormLayerAcc() {}
@@ -93,7 +93,7 @@ Status OpenCLBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_k_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_b_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM)

@@ -33,7 +33,7 @@ Status FlattenLayer::InferOutputShape() {
 
     if ((reshape_param->shape.size() + reshape_param->axis) != input_blob->GetBlobDesc().dims.size()) {
         LOGE("flatten param size error\n");
-        return Status(RPDERR_PARAM_ERR, "flatten param size error");
+        return Status(TNNERR_PARAM_ERR, "flatten param size error");
     }
 
     output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
@@ -54,24 +54,24 @@ Status FlattenLayer::InferOutputShape() {
 
     // temporary fix reshpae init error
     if (infer_dim_count == 0 && infer_dim_pos == -1) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
     if (infer_dim_count != 1 || infer_dim_pos == -1) {
         LOGE("flatten param size error\n");
-        return Status(RPDERR_PARAM_ERR, "flatten param size error");
+        return Status(TNNERR_PARAM_ERR, "flatten param size error");
     }
 
     int in_cnt  = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims);
     int out_cnt = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
     if (0 == out_cnt) {
         LOGE("Error: blob count is zero\n");
-        return Status(RPDERR_COMMON_ERROR, "Error: blob count is zero");
+        return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
 
     output_blob->GetBlobDesc().dims[infer_dim_pos] = in_cnt / out_cnt;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Flatten, LAYER_FLATTEN);

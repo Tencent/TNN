@@ -43,14 +43,14 @@ Status ReorgLayer::InferOutputShape() {
 
     if (reverse) {
         if (channels % (stride * stride) != 0) {
-            return Status(RPDERR_LAYER_ERR, "Error: channel and parameter stride is not compatible");
+            return Status(TNNERR_LAYER_ERR, "Error: channel and parameter stride is not compatible");
         }
         reorged_channels = channels / (stride * stride);
         reorged_width    = width * stride;
         reorged_height   = height * stride;
     } else {
         if ((height % stride != 0) || (width % stride != 0)) {
-            return Status(RPDERR_LAYER_ERR, "Error: size and parameter stride is not compatible");
+            return Status(TNNERR_LAYER_ERR, "Error: size and parameter stride is not compatible");
         }
         reorged_channels = channels * stride * stride;
         reorged_height   = height / stride;
@@ -64,7 +64,7 @@ Status ReorgLayer::InferOutputShape() {
     output_dims.push_back(reorged_width);
 
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Reorg, LAYER_REORG);

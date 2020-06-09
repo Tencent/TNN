@@ -19,8 +19,8 @@
 |命令参数           |是否必须|带参数 |参数说明                                       |  
 |:------------------|:------:|:-----:|:-------------------------------------------|  
 |-h, --help         |        |       |输出命令提示。                                |  
-|-p, --proto        |&radic; |&radic;|指定rapidproto模型描述文件。                   |   
-|-m, --model        |&radic; |&radic;|指定rapidmodel模型参数文件。                   |  
+|-p, --proto        |&radic; |&radic;|指定tnnproto模型描述文件。                   |   
+|-m, --model        |&radic; |&radic;|指定tnnmodel模型参数文件。                   |  
 |-d, --device       |&radic; |&radic;|指定模型执行的平台，如OPENCL，ARM，METAL等。    |  
 |-i, --input        |        |&radic;|指定输入文件。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>如果不指定，则会使用 (-1, 1) 随机输入|  
 |-n, --bias         |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|  
@@ -31,7 +31,7 @@
 ## 四、执行脚本
 ### 1. Android
 #### 1.1 模型准备
-将待校验的模型的rapidproto和rapidmodel文件拷贝进`<path_to_tnn>/platforms/android/modles`，并改名为`test.rapidproto`和`test.rapidmodel`
+将待校验的模型的tnnproto和tnnmodel文件拷贝进`<path_to_tnn>/platforms/android/modles`，并改名为`test.tnnproto`和`test.tnnmodel`
 #### 1.2 执行脚本
 ```
 cd <path_to_tnn>/platforms/android/
@@ -45,7 +45,7 @@ cd <path_to_tnn>/platforms/linux/
 ```
 #### 2.2. 执行命令
 ```
-<path_to_tnn>/platforms/linux/build/model_check -p <path_to_rapidproto> -m <path_to_rapidmodel> -d <DEVICE>
+<path_to_tnn>/platforms/linux/build/model_check -p <path_to_tnnproto> -m <path_to_tnnmodel> -d <DEVICE>
 ```
 
 ## 五、工具限制

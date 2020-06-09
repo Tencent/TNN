@@ -45,11 +45,11 @@ namespace ncnn {
 
         SliceLayerParam *slice_param = dynamic_cast<SliceLayerParam *>(layer->param.get());
         if (slice_param == NULL) {
-            return Status(RPDERR_NET_ERR, "Error: slice param nil.");
+            return Status(TNNERR_NET_ERR, "Error: slice param nil.");
         }
 
         if (layer->outputs.size() != slice_param->slices.size()) {
-            return Status(RPDERR_NET_ERR, "Error: slice param error.");
+            return Status(TNNERR_NET_ERR, "Error: slice param error.");
         }
 
         std::vector<int> ones  = {1, 1, 1, 1};
@@ -86,21 +86,21 @@ namespace ncnn {
         }
 
         if (output_layers.size() != layer->outputs.size()) {
-            return Status(RPDERR_NET_ERR, "Error: expand slice fail.");
+            return Status(TNNERR_NET_ERR, "Error: expand slice fail.");
         }
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ExpandSliceOptimizer::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(RPDERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
         if (count <= 1) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
@@ -109,7 +109,7 @@ namespace ncnn {
             auto cur_layer = layers_orig[index];
             if (cur_layer->type == LAYER_SLICE) {
                 std::vector<std::shared_ptr<LayerInfo>> expanded_layers;
-                RETURN_ON_NEQ(expand_slice(cur_layer, expanded_layers), RPD_OK);
+                RETURN_ON_NEQ(expand_slice(cur_layer, expanded_layers), TNN_OK);
                 layers_fused.insert(layers_fused.end(), expanded_layers.begin(), expanded_layers.end());
             } else {
                 layers_fused.push_back(cur_layer);
@@ -118,7 +118,7 @@ namespace ncnn {
 
         structure->layers = layers_fused;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

@@ -25,7 +25,7 @@ DECLARE_ARM_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
 Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
-        return Status(RPDERR_MODEL_ERR, "Error: layer resource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: layer resource is nil");
     }
 
     auto desc    = outputs[0]->GetBlobDesc();
@@ -88,10 +88,10 @@ Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
         }
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", desc.data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);

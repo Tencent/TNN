@@ -54,13 +54,13 @@ Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, false);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!layer_param || layer_param->orders.size() < 4) {
-        return Status(RPDERR_PARAM_ERR, "PermuteLayerParam is nil");
+        return Status(TNNERR_PARAM_ERR, "PermuteLayerParam is nil");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

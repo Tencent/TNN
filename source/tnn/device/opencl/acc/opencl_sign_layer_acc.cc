@@ -22,11 +22,11 @@ Status OpenCLSignLayerAcc::Init(Context *context, LayerParam *param, LayerResour
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Sign Acc\n");
     Status ret = OpenCLUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "Sign";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::set<std::string> OpenCLSignLayerAcc::CreateBuildOptions() {

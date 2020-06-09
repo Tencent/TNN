@@ -24,7 +24,7 @@ typedef struct arm_unary_operator {
 public:
     virtual Status Init(LayerParam *param = nullptr) {
         param_ = param;
-        return RPD_OK;
+        return TNN_OK;
     }
 
     virtual Float4 operator()(const Float4 &v) {

@@ -35,7 +35,7 @@ ArmHardSwishLayerAcc::~ArmHardSwishLayerAcc() {}
 Status ArmHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = ArmBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -46,7 +46,7 @@ Status ArmHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         return dst;
     };
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmHardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -63,7 +63,7 @@ Status ArmHardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     } else {
         return ArmBinaryLayerAcc::DoForward(inputs, outputs);
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(HardSwish, LAYER_HARDSWISH);

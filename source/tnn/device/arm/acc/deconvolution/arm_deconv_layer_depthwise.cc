@@ -42,7 +42,7 @@ Status ArmDeconvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, con
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -143,7 +143,7 @@ Status ArmDeconvLayerDepthwise::Exec(const std::vector<Blob *> &inputs, const st
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

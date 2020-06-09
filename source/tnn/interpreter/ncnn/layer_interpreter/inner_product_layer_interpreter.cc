@@ -49,7 +49,7 @@ namespace ncnn {
         layer_param->axis             = 1;  // Default axies is w in ncnn;
         layer_param->weight_data_size = weight_data_size;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status InnerProductLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
@@ -59,7 +59,7 @@ namespace ncnn {
 
         auto param = std::dynamic_pointer_cast<InnerProductLayerParam>(info->param);
         if (!param) {
-            return Status(RPDERR_LAYER_ERR, "layer param is nil: InnerProductLayerParam");
+            return Status(TNNERR_LAYER_ERR, "layer param is nil: InnerProductLayerParam");
         }
 
         RawBuffer weights;
@@ -74,7 +74,7 @@ namespace ncnn {
 
         // LOGDT("ip model %d %.6f\n", "ncnn", param->weight_data_size, weights.force_to<float *>()[0]);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

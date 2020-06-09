@@ -29,8 +29,8 @@ static const char model_path_message[] =
     "mlmodel path, snpe dlc path.";
 
 static const char device_type_message[] =
-    "specify tnn device type: CPU, X86, ARM, CUDA, METAL, OPENCL, default "
-    "is CPU.";
+    "specify tnn device type: NAIVE, X86, ARM, CUDA, METAL, OPENCL, default "
+    "is ARM.";
 
 static const char library_path_message[] =
     "specify tnn NetworkConfig library_path. For metal, it is the tnn.metallib full path";

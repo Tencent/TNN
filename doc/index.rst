@@ -8,7 +8,7 @@ Welcome to TNN's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Get Started
+   :caption: 快速开始
 
    ./cn/get_started.md
 
@@ -23,31 +23,38 @@ Welcome to TNN's documentation!
    :caption: 能力展示
 
    ./cn/user/support.md
-   ./cn/user/test.md
+   Benchmark性能测试方法 <./cn/development/profiling.md>
 
 .. toctree::
    :maxdepth: 1
    :caption: 使用手册
 
-   ./cn/user/compile.md
-   ./cn/user/convert.md
-   ./cn/user/quantization.md
-   ./cn/development/profiling.md
-   ./cn/development/model_check.md
+   从源码编译 <./cn/user/compile.md>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: 工具集
+   
+   模型转换 <./cn/user/convert.md>
+   模型量化 <./cn/user/quantization.md>
+   模型可视化 <./cn/user/visual.md>
+   性能分析工具 <./cn/development/profiling.md>
+   模型对齐工具 <./cn/development/model_check.md>
 
 .. toctree::
    :maxdepth: 1
    :caption: API文档
 
-   ./cn/user/api.md
+   API调用 <./cn/user/api.md>
 
 .. toctree::
    :maxdepth: 1
    :caption: 贡献者须知
 
-   ./cn/development/contributing.md
-   ./cn/development/architecture.md
-   ./cn/development/add_op.md
+   开发基础须知 <./cn/development/contributing.md>
+   架构详解 <./cn/development/architecture.md>
+   新增OP <./cn/development/add_op.md>
+   单元测试 <./cn/development/unit_test.md>
 
 .. toctree::
    :maxdepth: 1

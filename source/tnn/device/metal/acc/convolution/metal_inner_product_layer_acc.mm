@@ -26,7 +26,7 @@ Status MetalInnerProductLayerAcc::Init(Context *context, LayerParam *param,
                                const std::vector<Blob *> &inputs,
                                const std::vector<Blob *> &outputs) {
     Status status = isSupported(param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     return MetalLayerAcc::Init(context, param, resource, inputs, outputs);
@@ -39,15 +39,15 @@ Status MetalInnerProductLayerAcc::isSupported(LayerParam *param, LayerResource *
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     if (!layer_param || layer_param->axis != 1) {
         LOGE("MetalInnerProductLayerAcc do not support axis!=1 \n");
-        return Status(RPDERR_LAYER_ERR, "MetalInnerProductLayerAcc do not support axis!=1");
+        return Status(TNNERR_LAYER_ERR, "MetalInnerProductLayerAcc do not support axis!=1");
     }
     
     auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource);
     if (!layer_res) {
         LOGE("InnerProductLayerResource is invalid \n");
-        return Status(RPDERR_LAYER_ERR, "InnerProductLayerResource is invalid");
+        return Status(TNNERR_LAYER_ERR, "InnerProductLayerResource is invalid");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 MetalInnerProductLayerAcc::~MetalInnerProductLayerAcc() {}
@@ -56,7 +56,7 @@ Status
 MetalInnerProductLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
@@ -81,7 +81,7 @@ Status
 MetalInnerProductLayerAcc::AllocateBufferBias(const std::vector<Blob *> &inputs,
                                            const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
@@ -106,7 +106,7 @@ Status
 MetalInnerProductLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                        const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
@@ -126,13 +126,13 @@ MetalInnerProductLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
                                 length:sizeof(MetalInnerProductParams)
                                options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs,
                                   const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
@@ -154,7 +154,7 @@ Status MetalInnerProductLayerAcc::SetKernelEncoderParam(
     [encoder setBuffer:buffer_bias_
                 offset:0
                atIndex:4];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalInnerProductLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
@@ -166,7 +166,7 @@ Status MetalInnerProductLayerAcc::ComputeThreadSize(const std::vector<Blob *> &i
 Status MetalInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs,
                                   const std::vector<Blob *> &outputs) {
     Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     

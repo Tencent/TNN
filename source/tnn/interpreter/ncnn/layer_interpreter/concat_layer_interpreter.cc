@@ -35,12 +35,12 @@ namespace ncnn {
 
         layer_param->axis = GetInt(p, 0, 0) + 1;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ConcatLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                      LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

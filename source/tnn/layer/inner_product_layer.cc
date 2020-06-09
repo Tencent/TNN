@@ -26,9 +26,9 @@ Status InnerProductLayer::InferOutputDataType() {
         output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     } else {
         LOGE("Error: inner_product resource is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Error: inner_product resource is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: inner_product resource is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status InnerProductLayer::InferOutputShape() {
@@ -50,7 +50,7 @@ Status InnerProductLayer::InferOutputShape() {
         output_blob->GetBlobDesc().dims[i] = 1;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(InnerProduct, LAYER_INNER_PRODUCT);

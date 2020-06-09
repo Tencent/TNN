@@ -15,7 +15,6 @@
 #include "UltraFaceDetector.h"
 #include <sys/time.h>
 #include <cmath>
-#include <cstring>
 
 #define clip(x, y) (x < 0 ? 0 : (x > y ? y : x))
 
@@ -128,14 +127,14 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
         input_convert_param.scale = {1.0 / 128, 1.0 / 128, 1.0 / 128, 0.0};
         input_convert_param.bias  = {-127.0 / 128, -127.0 / 128, -127.0 / 128, 0.0};
         auto status = instance_->SetInputMat(image_mat, input_convert_param);
-        if (status != TNN_NS::RPD_OK) {
+        if (status != TNN_NS::TNN_OK) {
             LOGE("input_blob_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
             return status;
         }
 
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
-        if (status != TNN_NS::RPD_OK) {
+        if (status != TNN_NS::TNN_OK) {
             LOGE("instance.Forward Error: %s\n", status.description().c_str());
             return status;
         }
@@ -144,14 +143,14 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
         TNN_NS::MatConvertParam output_convert_param;
         std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
         status = instance_->GetOutputMat(output_mat_scores, output_convert_param, "scores");
-        if (status != TNN_NS::RPD_OK) {
+        if (status != TNN_NS::TNN_OK) {
             LOGE("GetOutputMat Error: %s\n", status.description().c_str());
             return status;
         }
         
         std::shared_ptr<TNN_NS::Mat> output_mat_boxes = nullptr;
         status = instance_->GetOutputMat(output_mat_boxes, output_convert_param, "boxes");
-        if (status != TNN_NS::RPD_OK) {
+        if (status != TNN_NS::TNN_OK) {
             LOGE("GetOutputMat Error: %s\n", status.description().c_str());
             return status;
         }

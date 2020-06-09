@@ -30,9 +30,9 @@ Status DeconvLayer::InferOutputDataType() {
     } else if (conv_resource) {
         output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
     } else {
-        return Status(RPDERR_LAYER_ERR, "Error: deconv_resource is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: deconv_resource is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status DeconvLayer::InferOutputShape() {
@@ -87,7 +87,7 @@ Status DeconvLayer::InferOutputShape() {
             width_out  = width * stride_w - (stride_w + kernel_w - 2);
         } else {
             LOGE("Error: DeconvLayer dont support pad type: %d\n", pad_type);
-            return Status(RPDERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
+            return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
         }
 
         int pad_along_height = ((height - 1) * stride_h + kernel_h - height_out);
@@ -122,17 +122,17 @@ Status DeconvLayer::InferOutputShape() {
         //             deconv_param->pads[3]);
     } else {
         LOGE("Error: DeconvLayer dont support pad type: %d\n", pad_type);
-        return Status(RPDERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
+        return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
     }
 
     int group = deconv_param->group;
     if (group == 0) {
-        return Status(RPDERR_INVALID_GROUP, "Error: invalid group param");
+        return Status(TNNERR_INVALID_GROUP, "Error: invalid group param");
     }
 
     if (height_out <= 0 || width_out <= 0) {
         LOGE("Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
-        return Status(RPDERR_PARAM_ERR, "Error: invalid deconv param, height_out or width_out is less than zero");
+        return Status(TNNERR_PARAM_ERR, "Error: invalid deconv param, height_out or width_out is less than zero");
     }
 
     DimsVector output_dims;
@@ -142,7 +142,7 @@ Status DeconvLayer::InferOutputShape() {
     output_dims.push_back(width_out);
     output_blob->GetBlobDesc().dims = output_dims;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(Deconv, LAYER_DECONVOLUTION);

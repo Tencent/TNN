@@ -39,7 +39,7 @@ namespace ncnn {
         int permute = GetInt(p, 3, 0);
 
         if (permute != 0) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn reshape with permute is not supported now");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn reshape with permute is not supported now");
         }
 
         if (c == 0 && h == 0) {
@@ -53,12 +53,12 @@ namespace ncnn {
         layer_param->axis     = 0;
         layer_param->num_axes = 4;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ReshapeLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

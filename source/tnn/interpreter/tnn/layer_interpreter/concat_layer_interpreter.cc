@@ -23,21 +23,21 @@ DECLARE_LAYER_INTERPRETER(Concat, LAYER_CONCAT);
 Status ConcatLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
     auto p = CreateLayerParam<ConcatLayerParam>(param);
     GET_INT_1_OR_DEFAULT(p->axis, 1);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConcatLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConcatLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ConcatLayerParam, "invalid concat param to save", param);
     output_stream << layer_param->axis << " ";
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConcatLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Concat, LAYER_CONCAT);

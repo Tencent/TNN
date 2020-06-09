@@ -42,7 +42,7 @@
 
    首次运行先利用快捷键`Command + Shift + K`对工程进行清理，再执行快捷键`Command + R`运行。在界面上点击Run按钮，界面会显示model目录下所有模型的CPU和GPU耗时情况。iPhone7真机运行结果如下图。
 
-   <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "75%" height = "75%"/>
    
    PS：
 
@@ -66,56 +66,55 @@ export PATH=<path_to_android_sdk>/platform-tools:$PATH
 ```
 
 ### 2. 添加模型
-在`<path_to_tnn>/platforms/android`目录下添加目录models，并将要测试模型的prototxt放入models文件夹，例如， 
+在`<path_to_tnn>/benchmark/benchmark-model`目录下，将要测试模型的tnnproto放入文件夹，例如， 
 ```
-cd <path_to_tnn>/platforms/android
-mkdir models
-cp mobilenet_v1.onnx.opt.onnx.rapidproto models
+cd <path_to_tnn>/benchmark/benchmark-model
+cp mobilenet_v1.tnnproto .
 ```
 
 
 ### 3. 修改脚本
-在脚本`profiling_model_android.sh`中的`benchmark_model_list`变量里添加模型文件名，例如：
+在脚本`benchmark_models.sh`中的`benchmark_model_list`变量里添加模型文件名，例如：
 ```
  benchmark_model_list=(
- #test.rapidproto \
- mobilenet_v1.onnx.opt.onnx.rapidproto \    # 待测试的模型文件名
+ #test.tnnproto \
+ mobilenet_v1.tnnproto \    # 待测试的模型文件名
 )
 ```
 
 ### 4. 执行脚本
 ```
-./profiling_model_android.sh  <-c> <-64> <-p> <-b> <-f> <-d> <device-id>
+./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>
 参数说明：
+    -32   编译32位的库，否则为64位
     -c    删除之前的编译文件，重新编译
-    -64   编译64位的库，否则为32位
-    -p    替换测试模型
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
     -d    如果连接了多个Android设备，则可以通过这个参数指定设备。需要加上<device-id>
+    -t    指定执行的平台。需要加上<CPU/GPU>
 ```
 #### 4.1 全网络性能分析：
 分析整体网络耗时，执行多次，获取平均性能。  
 执行脚本：
 ```
-./profiling_model_android.sh -c -64 -p
+./benchmark_models.sh -c
 ```
 结果如图：
 <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/android_profiling.jpg" width = "75%" height = "75%"/>
 
-执行结果会保存在`dump_data/test_log.txt`中。
+执行结果会保存在`benchmark_models_result.txt`中。
 
 
 #### 4.2 逐层性能分析：
 逐层性能分析工具可准备计算各层耗时，以便进行模型优化和op性能问题定位。  
 执行脚本:
 ```
-./profiling_model_android.sh -c -64 -p -f
+./benchmark_models.sh -c -f
 ```
 结果如图：
 <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/development/resource/opencl_profiling.jpg" width = "75%" height = "75%"/>
 
-执行结果会保存在`dump_data/test_log.txt`中。  
+执行结果会保存在`benchmark_models_result.txt`中。  
 
 
 ### 5. 特殊说明

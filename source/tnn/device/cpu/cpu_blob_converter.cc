@@ -111,9 +111,9 @@ static void BlobToBGR(const float *src, uint8_t *dst, float *scale, float *bias,
 }
 
 Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (blob_ == nullptr) {
-        return Status(RPDERR_NULL_PARAM, "input/output blob is null");
+        return Status(TNNERR_NULL_PARAM, "input/output blob is null");
     }
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     auto desc      = blob_->GetBlobDesc();
@@ -123,7 +123,7 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
-            return RPD_OK;
+            return TNN_OK;
         } else {
             auto real_blob_data = new float[dims[0] * dims[1] * dims[2] * dims[3]];
             auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
@@ -154,7 +154,7 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
             reinterpret_cast<bfp16_t *>(image.GetData())[n] = blob_data[n];
         }
     } else {
-        ret = Status(RPDERR_PARAM_ERR, "convert type not support yet");
+        ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
     if (desc.data_type == DATA_TYPE_INT8)
@@ -164,7 +164,7 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
 Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
     if (blob_ == nullptr) {
-        return Status(RPDERR_NULL_PARAM, "input/output blob_ is null");
+        return Status(TNNERR_NULL_PARAM, "input/output blob_ is null");
     }
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
@@ -173,7 +173,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
-            return RPD_OK;
+            return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
     }
@@ -203,7 +203,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         if (desc.data_type == DATA_TYPE_INT8 && blob_data) {
             delete[] blob_data;
         }
-        return Status(RPDERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
     if (desc.data_type == DATA_TYPE_INT8) {
@@ -212,7 +212,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         CPU_QUANT(blob_data, blob_scale, dims[1], real_blob_data, dims);
         delete[] blob_data;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void *command_queue) {
@@ -224,14 +224,14 @@ Status CpuBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, vo
 }
 
 Status CpuBlobConverterAcc::ConvertNCHWToNHWC(uint8_t *src, uint8_t *dst) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuBlobConverterAcc::ConvertNHWCToNCHW(uint8_t *src, uint8_t *dst) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 DECLARE_BLOB_CONVERTER_CREATER(Cpu);
-REGISTER_BLOB_CONVERTER(Cpu, DEVICE_CPU);
+REGISTER_BLOB_CONVERTER(Cpu, DEVICE_NAIVE);
 
 }  // namespace TNN_NS

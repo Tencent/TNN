@@ -138,10 +138,10 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     } else {
         LOGE("Error: Upsample dont support resize type\n");
-        return Status(RPDERR_MODEL_ERR, "Error: Upsample dont support resize type");
+        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Upsample, LAYER_UPSAMPLE)

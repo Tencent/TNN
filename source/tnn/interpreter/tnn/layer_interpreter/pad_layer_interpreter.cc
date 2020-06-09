@@ -61,28 +61,28 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
     }
 
     layer_param->pads = {pad_w, pad_r, pad_h, pad_b};
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PadLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PadLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<PadLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer param to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
     output_stream << "0 0 " << layer_param->pads[2] << " " << layer_param->pads[3] << " " << layer_param->pads[0] << " "
                   << layer_param->pads[1] << " 0 0 " << layer_param->type << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status PadLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Pad, LAYER_PAD);

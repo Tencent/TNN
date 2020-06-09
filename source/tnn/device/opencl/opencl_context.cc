@@ -34,7 +34,7 @@ OpenCLContext::~OpenCLContext() {
 
 Status OpenCLContext::GetCommandQueue(void** command_queue) {
     *command_queue = command_queue_.get();
-    return RPD_OK;
+    return TNN_OK;
 }
 
 cl::CommandQueue* OpenCLContext::CommandQueue() {
@@ -146,16 +146,16 @@ Status OpenCLContext::OnInstanceForwardBegin() {
 }
 
 Status OpenCLContext::OnInstanceForwardEnd() {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // synchronize will wait until the comman queue finish
 Status OpenCLContext::Synchronize() {
     cl_int result = command_queue_->finish();
     if (result == 0) {
-        return RPD_OK;
+        return TNN_OK;
     } else {
-        return Status(RPDERR_OPENCL_FINISH_ERROR, "command queue finish falied");
+        return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish falied");
     }
 }
 
@@ -168,11 +168,11 @@ unsigned int OpenCLContext::AddAndGetFlushCount() {
 // Init Will create command queue, get fp16 info
 Status OpenCLContext::Init() {
     if (opencl_runtime_ == nullptr) {
-        return Status(RPDERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
     }
 
     Status status = opencl_runtime_->Init();
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         LOGE("OpenCL Runtime Init() failed (ret = %d)!\n", (int)status);
         return status;
     }
@@ -187,7 +187,7 @@ Status OpenCLContext::Init() {
         std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(), *opencl_runtime_->Device(), properties, &err);
     if (err != CL_SUCCESS) {
         LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
-        return Status(RPDERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
     }
 
 #ifdef OPENCL_FORCE_FP32
@@ -208,7 +208,7 @@ Status OpenCLContext::Init() {
     }
 #endif
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

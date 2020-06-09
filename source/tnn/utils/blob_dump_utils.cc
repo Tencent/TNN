@@ -219,7 +219,7 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
     void* command_queue;
     context->GetCommandQueue(&command_queue);
     auto ret = CopyFromDevice(cpu_blob.get(), dev_blob, command_queue);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGD("copy blob from device failed\n");
         return ret;
     }
@@ -237,7 +237,7 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
 #ifndef DUMP_RAW_INT8
         IntScaleResource* re = reinterpret_cast<BlobInt8*>(dev_blob)->GetIntResource();
         if (!re || !re->scale_handle.GetDataCount()) {
-            return RPD_OK;
+            return TNN_OK;
         }
         cpu_data    = new float[data_count];
         convert_ptr = std::shared_ptr<float>(cpu_data);
@@ -264,7 +264,7 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
                 break;
 
             default:
-                return Status(RPDERR_PARAM_ERR, "unsupport data format");
+                return Status(TNNERR_PARAM_ERR, "unsupport data format");
         }
 #endif
     }
@@ -300,10 +300,10 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
 
     if (ret_code != 0) {
         LOGE("dump blob error\n");
-        return Status(RPDERR_PARAM_ERR, "dump blob error");
+        return Status(TNNERR_PARAM_ERR, "dump blob error");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 #pragma warning(push)

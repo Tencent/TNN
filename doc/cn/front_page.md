@@ -56,32 +56,59 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 * Runtime无任何第三方库依赖，CPU动态库尺寸仅约400KB，并提供基础图像变换操作，调用简单便捷。跨平台模型统一、调用接口统一，通过单个配置参数快速切换。
 
 ## 能力展示
-* [支持](./user/support.md)
-* 支持OP: [支持](./user/support.md)中支持OP
-* 支持网络: [支持](./user/support.md)中支持OP
-* 支持硬件: [支持](./user/support.md)中支持OP
-* [Benchmark&测试方法](./user/test.md)
+* [支持的算子](doc/cn/user/support.md)
+* [支持的网络](doc/cn/user/support.md)
+* [支持的架构](doc/cn/user/support.md)
+* [Benchmark性能测试方法](doc/cn/development/profiling.md)
 
 ## 使用手册
-* [使用流程概览]()
-* [从源码编译](./user/compile.md)
+* [从源码编译](doc/cn/user/compile.md)
 * [工具集]()
-    * [模型转换](./user/convert.md)
-    * [模型量化](./user/quantization.md)
-    <!---[模型可视化]() -->
-    * [profile工具](./development/profiling.md)
-    * [对齐工具](./development/model_check.md)
+    * [模型转换](doc/cn/user/convert.md)
+    * [模型量化](doc/cn/user/quantization.md)
+    * [模型可视化](doc/cn/user/visual.md)
+    * [性能分析工具](doc/cn/development/profiling.md)
+    * [模型对齐工具](doc/cn/development/model_check.md)
 
 ## API文档
-* [API调用](./user/api.md)
+* [API调用](doc/cn/user/api.md)
 
 ## 贡献者须知
-* [开发基础须知](./development/contributing.md)
-* [架构详解](./development/architecture.md)
-* [新增OP](./development/add_op.md)
+* [开发基础须知](doc/cn/development/contributing.md)
+* [架构详解](doc/cn/development/architecture.md)
+* [新增OP](doc/cn/development/add_op.md)
+* [单元测试](doc/cn/development/unit_test.md)
 
 ## Roadmap
 * [Road map]()
 
+## 致谢
+TNN参考和借鉴了下列项目：
+
+* [ncnn](https://github.com/Tencent/ncnn)
+
+* [mace](https://github.com/XiaoMi/mace.git)
+
+* [MNN](https://github.com/alibaba/MNN)
+
+* [caffe-onnx](https://github.com/htshinichi/caffe-onnx)
+
+* [tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)
+
+* [onnx](https://github.com/onnx/onnx)
+
+## License
+
+* [BSD 3 Clause](LICENSE)
+
 ## FAQ
-* [FAQ 常见问题](./faq.md)
+* [FAQ 常见问题](doc/cn/faq.md)
+
+## 加入我们
+
+* 欢迎大家参与，协同共建，打造业界最好的移动端推理框架。
+
+* 技术交流QQ群： 913940506 答案：TNN
+
+* QQ群二维码：
+<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN-QQ.png"/>

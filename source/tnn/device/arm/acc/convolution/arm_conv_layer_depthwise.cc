@@ -74,10 +74,10 @@ Status ArmConvLayerDepthwise::allocateBufferWeight(const std::vector<Blob *> &in
             buffer_weight_ = temp_buffer;
         } else {
             LOGE("Error: DataType %d not support\n", conv_res->filter_handle.GetDataType());
-            return Status(RPDERR_MODEL_ERR, "conv_res DataType is not supported");
+            return Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -87,7 +87,7 @@ Status ArmConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     } else if (in_data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
 }
 
@@ -180,7 +180,7 @@ Status ArmConvLayerDepthwise::Exec(const std::vector<Blob *> &inputs, const std:
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

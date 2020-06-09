@@ -23,7 +23,7 @@ Status OpenCLSplitLayerAcc::Init(Context *context, LayerParam *param, LayerResou
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Split Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "Split";
@@ -32,13 +32,13 @@ Status OpenCLSplitLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     execute_units_.resize(outputs.size());
     for (size_t i = 0; i < execute_units_.size(); i++) {
         ret = CreateExecuteUnit(execute_units_[i], "copy", "CopyImage");
-        if (ret != RPD_OK) {
+        if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -72,7 +72,7 @@ Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
         unit.ocl_kernel.setArg(idx++, outputWH);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Split, LAYER_SPLITING)

@@ -45,17 +45,17 @@ OpenCLPriorBoxLayerAcc::~OpenCLPriorBoxLayerAcc(){};
 Status OpenCLPriorBoxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "PriorBox";
 
     param_ = dynamic_cast<PriorBoxLayerParam *>(param);
     if (!param_) {
-        return Status(RPDERR_MODEL_ERR, "Error: PriorBoxLayerParam is empyt");
+        return Status(TNNERR_MODEL_ERR, "Error: PriorBoxLayerParam is empyt");
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLPriorBoxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -69,7 +69,7 @@ Status OpenCLPriorBoxLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     DimsVector dims               = GetImageShape(ocl_priorbox_.get());
 
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
 #if TNN_PROFILE
     std::shared_ptr<OpenCLProfilingData> pdata(new OpenCLProfilingData());
     UpdateProfilingData(pdata.get(), {}, {});
@@ -97,20 +97,20 @@ Status OpenCLPriorBoxLayerAcc::ConvertPriorBox(std::vector<float> &priorbox, Dim
 
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     auto priorbox_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         priorbox_clbuffer, true, CL_MAP_WRITE, 0, priorbox.size() * sizeof(float), nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
 
     memcpy(priorbox_clbuffer_ptr, priorbox.data(), priorbox.size() * sizeof(float));
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(priorbox_clbuffer, priorbox_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create ocl_pribox_
@@ -126,7 +126,7 @@ Status OpenCLPriorBoxLayerAcc::ConvertPriorBox(std::vector<float> &priorbox, Dim
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_priorbox_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_priorbox_->SetData(image, true);

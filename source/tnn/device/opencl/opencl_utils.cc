@@ -142,7 +142,7 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(RPDERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
     }
 
 #if TNN_PROFILE
@@ -151,7 +151,7 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
     }
 #endif
     LOGD("end RunKernel !\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // adreno local size calculate
@@ -295,9 +295,9 @@ Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const c
     cl::Kernel kernel;
     std::string kernel_name = "CopyBufferToImage2d";
     Status ret              = runtime->BuildKernel(kernel, "copy_buffer_to_image2d", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("kernel %s build failed!\n", kernel_name.c_str());
-        return Status(RPDERR_OPENCL_KERNELBUILD_ERROR, "kernel (CopyBufferToImage2d) build failed!");
+        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "kernel (CopyBufferToImage2d) build failed!");
     }
     auto status = kernel.setArg(0, buffer);
     ASSERT(status == CL_SUCCESS);
@@ -313,14 +313,14 @@ Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const c
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(RPDERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
     }
 
     if (need_wait) {
         event.wait();
     }
     LOGD("end CopyBufferToImage\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // copy from clImage to clImage
@@ -336,7 +336,7 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(RPDERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
     }
 
     if (need_wait) {
@@ -350,7 +350,7 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
 #endif
 
     LOGD("end CopyImageToImage\n");
-    return RPD_OK;
+    return TNN_OK;
 }
 
 uint32_t gcd(uint32_t number1, uint32_t number2) {
@@ -363,19 +363,19 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
     Status ret = opencl_runtime->BuildKernel(unit.ocl_kernel, program_name, kernel_name, build_opt);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("kernel (%s) build failed!\n", kernel_name.c_str());
         return ret;
     }
     unit.workgroupsize_max = static_cast<uint32_t>(opencl_runtime->GetMaxWorkGroupSize(unit.ocl_kernel));
     if (unit.workgroupsize_max == 0) {
         LOGE("Get max workgroup size failed!\n");
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "Get max workgroup size failed!");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "Get max workgroup size failed!");
     }
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 // set execute unit 3d default global size, local size and kernel arguments.

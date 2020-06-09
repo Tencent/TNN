@@ -123,7 +123,7 @@ static int concat_common(Blob *output, const std::vector<Blob *> &inputs, int ax
 Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 2) {
         LOGE("Error: invalid inputs count\n");
-        return Status(RPDERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
+        return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
 
     ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param_);
@@ -162,7 +162,7 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                     concat_channel<bfp16_t>(outputs[0], inputs, unpack_buf);
                 }
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
             break;
         case 2:
@@ -172,7 +172,7 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
                 concat_common<bfp16_t>(outputs[0], inputs, concat_param->axis);
             } else {
-                return RPDERR_LAYER_ERR;
+                return TNNERR_LAYER_ERR;
             }
             break;
         default:
@@ -180,7 +180,7 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             break;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Concat, LAYER_CONCAT)

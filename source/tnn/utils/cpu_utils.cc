@@ -229,7 +229,7 @@ Status CpuUtils::SetCpuPowersave(int powersave) {
         cpuids = std::vector<int>(sorted_cpuids.begin(), sorted_cpuids.begin() + little_cluster_offset);
     } else {
         fprintf(stderr, "powersave %d not supported\n", powersave);
-        return RPDERR_SET_CPU_AFFINITY;
+        return TNNERR_SET_CPU_AFFINITY;
     }
 
 #ifdef _OPENMP
@@ -243,32 +243,32 @@ Status CpuUtils::SetCpuPowersave(int powersave) {
     }
     for (int i = 0; i < num_threads; i++) {
         if (ssarets[i] != 0) {
-            return RPDERR_SET_CPU_AFFINITY;
+            return TNNERR_SET_CPU_AFFINITY;
         }
     }
 #else
     int ssaret = SetSchedAffinity(cpuids);
     if (ssaret != 0) {
-        return RPDERR_SET_CPU_AFFINITY;
+        return TNNERR_SET_CPU_AFFINITY;
     }
 #endif
 
-    return RPD_OK;
+    return TNN_OK;
 #else
     // TODO
     (void)powersave;  // Avoid unused parameter warning.
-    return RPDERR_SET_CPU_AFFINITY;
+    return TNNERR_SET_CPU_AFFINITY;
 #endif
 }
 
 Status CpuUtils::SetCpuAffinity(const std::vector<int>& cpu_list) {
 #if defined(__ANDROID__) || defined(__linux__)
     if (0 != SetSchedAffinity(cpu_list)) {
-        return RPDERR_SET_CPU_AFFINITY;
+        return TNNERR_SET_CPU_AFFINITY;
     }
-    return RPD_OK;
+    return TNN_OK;
 #else
-    return RPDERR_SET_CPU_AFFINITY;
+    return TNNERR_SET_CPU_AFFINITY;
 #endif
 }
 

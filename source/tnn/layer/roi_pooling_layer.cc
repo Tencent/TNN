@@ -49,7 +49,7 @@ Status RoiPoolingLayer::InferOutputShape() {
     for (int i = 0; i < output_blobs_.size(); ++i) {
         output_blobs_[i]->GetBlobDesc().dims = output_dims;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(RoiPooling, LAYER_ROIPOOLING);

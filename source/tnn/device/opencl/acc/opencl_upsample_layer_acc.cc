@@ -39,14 +39,14 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Upsample Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     op_name_ = "Upsample";
 
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param);
     if (!upsample_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     // create kernel
@@ -64,19 +64,19 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         }
     } else {
         LOGE("Not support Upsample type: %d\n", upsample_param->type);
-        return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "invalid upsample type");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample type");
     }
     if (run_3d_ndrange_) {
         kernel_name += "GS3D";
     }
 
     ret = CreateExecuteUnit(execute_units_[0], "upsample", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -84,7 +84,7 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!upsample_param) {
         LOGE("Error: layer param is null\n");
-        return Status(RPDERR_MODEL_ERR, "Error: layer param is null");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
     auto input  = inputs[0];
@@ -138,7 +138,7 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_width));
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Upsample, LAYER_UPSAMPLE)

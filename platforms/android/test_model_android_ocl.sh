@@ -95,7 +95,7 @@ function run_android() {
     fi
     adb shell "echo > $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
-    adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=OPENCL -mp=$ANDROID_DATA_DIR/test.rapidproto -ip=$ANDROID_DATA_DIR/$INPUT_FILE_NAME -op=dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test_log.txt"
+    adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=OPENCL -mp=$ANDROID_DATA_DIR/test.tnnproto -ip=$ANDROID_DATA_DIR/$INPUT_FILE_NAME -op=dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test_log.txt"
     adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     adb pull $ANDROID_DIR/dump_data.txt $DUMP_DIR
     #adb pull $ANDROID_DIR/dump_data.bin $DUMP_DIR

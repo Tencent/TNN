@@ -24,9 +24,9 @@ Status HdrGuideLayer::InferOutputDataType() {
         output_blobs_[0]->GetBlobDesc().data_type = hdrguide_resource->ccm_weight_handle.GetDataType();
     } else {
         LOGE("Error: hdrguide_resource is nil\n");
-        return Status(RPDERR_LAYER_ERR, "Error: hdrguide_resource is nil");
+        return Status(TNNERR_LAYER_ERR, "Error: hdrguide_resource is nil");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HdrGuideLayer::InferOutputShape() {
@@ -42,12 +42,12 @@ Status HdrGuideLayer::InferOutputShape() {
         LOGE(
             "Error: HdrGuideLayer Error: invalid channel size (need to be "
             "3)\n");
-        return Status(RPDERR_PARAM_ERR, "HdrGuideLayer Error: invalid channel size");
+        return Status(TNNERR_PARAM_ERR, "HdrGuideLayer Error: invalid channel size");
     }
 
     if (height <= 0 || width <= 0) {
         LOGE("Error: invalid height or width, is less than zero\n");
-        return Status(RPDERR_PARAM_ERR, "invalid height or width, is less than zero");
+        return Status(TNNERR_PARAM_ERR, "invalid height or width, is less than zero");
     }
 
     DimsVector output_dims;
@@ -57,7 +57,7 @@ Status HdrGuideLayer::InferOutputShape() {
     output_dims.push_back(width);
     output_blob->GetBlobDesc().dims = output_dims;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(HdrGuide, LAYER_HDRGUIDE);

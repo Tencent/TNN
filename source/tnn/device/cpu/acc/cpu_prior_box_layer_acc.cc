@@ -23,20 +23,20 @@ CpuPriorBoxLayerAcc::~CpuPriorBoxLayerAcc(){};
 Status CpuPriorBoxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPriorBoxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuPriorBoxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PriorBoxLayerParam *>(param_);
     if (!param) {
-        return Status(RPDERR_MODEL_ERR, "Error: PriorBoxLayerParam is empyt");
+        return Status(TNNERR_MODEL_ERR, "Error: PriorBoxLayerParam is empyt");
     }
 
     Blob *output_blob  = outputs[0];
@@ -48,9 +48,9 @@ Status CpuPriorBoxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         auto prior_box = GeneratePriorBox(inputs, outputs, param);
         memcpy(output_data, prior_box.data(), prior_box.size() * sizeof(float));
     } else {
-        return Status(RPDERR_LAYER_ERR, "datatype not support");
+        return Status(TNNERR_LAYER_ERR, "datatype not support");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 

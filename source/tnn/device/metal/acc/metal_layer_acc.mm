@@ -62,7 +62,7 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
                                             length:sizeof(metal_params)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::string MetalLayerAcc::KernelName() {
@@ -76,7 +76,7 @@ Status MetalLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
     size = GetDefaultThreadSize(dims_output, true);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalLayerAcc::SetKernelEncoderParam(
@@ -94,7 +94,7 @@ Status MetalLayerAcc::SetKernelEncoderParam(
                atIndex:1];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
     
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -102,7 +102,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     auto data_type_str = DataTypeUtils::GetDataTypeString(data_type);
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
         LOGE("MetalLayerAcc: DataType must be float or half\n");
-        return Status(RPDERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
+        return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
     
     //
@@ -114,14 +114,14 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     
     MTLSize threads;
     auto status = ComputeThreadSize(inputs, outputs, threads);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
     
     do {
         auto kernel_name = KernelName();
         if (kernel_name.length() <= 0) {
-            status = Status(RPDERR_LAYER_ERR, "empty kernel name");
+            status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             break;
         }
         
@@ -129,18 +129,18 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
                             encoder:encoder
                           bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
         
         status = SetKernelEncoderParam(encoder, inputs, outputs);
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != RPD_OK);
+        BREAK_IF(status != TNN_OK);
     } while (0);
 
     [encoder endEncoding];
     
-    if (status == RPD_OK) {
+    if (status == TNN_OK) {
         [context_impl commit];
         TNN_PRINT_ENCODER(context_, encoder, this);
     }
@@ -194,7 +194,12 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
         LOGE("Error: DataType %d not support\n", data_type);
-        status = Status(RPDERR_MODEL_ERR, "bias_handle DataType is not supported");
+        status = Status(TNNERR_MODEL_ERR, "bias_handle DataType is not supported");
+        return mtl_buffer;
+    }
+    if (total_byte_size < b_handle_size) {
+        LOGE("Error: Invalid model, buffer has wrong byte size\n");
+        status = Status(TNNERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
         return mtl_buffer;
     }
 
@@ -229,7 +234,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         ConvertFromHalfToFloat((void *)data_fill_4, data_fp32_data, data_count_4);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_fp32_data
-                                         length:total_byte_size
+                                         length:data_count_4*sizeof(float)
                                         options:MTLResourceCPUCacheModeWriteCombined];
         delete[] data_fp32_data;
 
@@ -252,7 +257,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         ConvertFromFloatToHalf((float *)data_fill_4, (void *)data_fp16_data, data_count_4);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_fp16_data
-                                         length:total_byte_size
+                                         length:data_count_4*sizeof(uint16_t)
                                         options:MTLResourceCPUCacheModeWriteCombined];
         delete[] data_fp16_data;
 
@@ -301,7 +306,7 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
         LOGE("Error: DataType %d not support\n", data_type);
-        status = Status(RPDERR_MODEL_ERR, "conv_res DataType is not supported");
+        status = Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
         return nil;
     }
 
@@ -398,7 +403,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
 
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
         LOGE("Error: DataType %d not support\n", data_type);
-        status = Status(RPDERR_MODEL_ERR, "conv_res DataType is not supported");
+        status = Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
         return nil;
     }
 

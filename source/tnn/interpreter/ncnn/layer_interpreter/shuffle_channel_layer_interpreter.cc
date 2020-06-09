@@ -35,13 +35,13 @@ namespace ncnn {
 
         layer_param->group = GetInt(p, 0, 1);
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status ShuffleChannelLayerInterpreter::InterpretResource(Deserializer& deserializer,
                                                              std::shared_ptr<LayerInfo> info,
                                                              LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

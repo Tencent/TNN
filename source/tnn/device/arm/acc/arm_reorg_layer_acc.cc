@@ -39,11 +39,11 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
                     input_dims[1], input_dims[0], param->stride, param->reverse,
                     reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle())));
     } else {
-        return Status(RPDERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
+        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
     }
     PackOutputs(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Reorg, LAYER_REORG)

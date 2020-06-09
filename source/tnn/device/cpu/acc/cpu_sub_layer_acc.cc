@@ -41,9 +41,9 @@ Status CpuSubLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
                 output->GetBlobDesc().dims);
     } else {
         LOGE("Error: CpuSubLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: CpuSubLayerAcc don't support data type");
+        return Status(TNNERR_MODEL_ERR, "Error: CpuSubLayerAcc don't support data type");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Sub, LAYER_SUB);

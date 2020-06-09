@@ -28,7 +28,7 @@ Status MetalPowLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
     auto layer_param = dynamic_cast<PowLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: PowLayerParam is nil\n");
-        return Status(RPDERR_MODEL_ERR, "PowLayerParam is nil");
+        return Status(TNNERR_MODEL_ERR, "PowLayerParam is nil");
     }
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
@@ -48,7 +48,7 @@ Status MetalPowLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
                                             length:sizeof(MetalPowParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalPowLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

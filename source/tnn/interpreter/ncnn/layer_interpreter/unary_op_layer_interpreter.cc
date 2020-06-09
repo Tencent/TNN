@@ -39,12 +39,12 @@ namespace ncnn {
 
         type = unary_op_layer_type_map[op_type];
         
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status UnaryOpLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

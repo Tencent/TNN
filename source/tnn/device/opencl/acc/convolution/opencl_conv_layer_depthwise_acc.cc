@@ -34,10 +34,10 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     op_name_   = "Conv_Depthwise";
 
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     ret = AllocateWeightsBias(resource);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::set<std::string> build_options;
@@ -52,12 +52,12 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
         kernel_name = "DepthwiseConv2DS1";
     }
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLConvLayerDepthwiseAcc::~OpenCLConvLayerDepthwiseAcc() {}
@@ -105,7 +105,7 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

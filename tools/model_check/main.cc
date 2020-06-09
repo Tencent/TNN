@@ -52,7 +52,7 @@ DeviceType ConvertDeviceType(std::string device_type) {
     } else if ("ARM" == device_type) {
         return DEVICE_ARM;
     } else {
-        return DEVICE_CPU;
+        return DEVICE_NAIVE;
     }
 }
 
@@ -257,7 +257,7 @@ int main(int argc, char* argv[]) {
 
     ModelChecker model_checker;
     Status status = model_checker.Init(net_config, model_config);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         printf("model_checker init failed!\n");
         return -1;
     }
@@ -269,7 +269,7 @@ int main(int argc, char* argv[]) {
     }
 
     status = model_checker.RunModelChecker();
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         printf("model check failed!\n");
         return -1;
     }

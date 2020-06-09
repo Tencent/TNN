@@ -24,7 +24,7 @@ CpuConvLayerAcc::~CpuConvLayerAcc() {}
 Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         return status;
     }
 
@@ -62,18 +62,18 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             buffer_scale_ = temp_buffer;
         }
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
     auto resource = dynamic_cast<ConvLayerResource *>(resource_);
     if (!param || !resource) {
-        return Status(RPDERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+        return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
 
     Blob *input_blob   = inputs[0];
@@ -106,9 +106,9 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
             param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
             param->activation_type, scale_ptr, buffer_scale_.GetDataCount());
     } else {
-        return RPDERR_LAYER_ERR;
+        return TNNERR_LAYER_ERR;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuConvLayerAcc>> g_cpu_conv_layer_acc_register(LAYER_CONVOLUTION);

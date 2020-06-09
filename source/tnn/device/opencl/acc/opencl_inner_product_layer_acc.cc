@@ -55,7 +55,7 @@ Status OpenCLInnerProductLayerAcc::Init(Context *context, LayerParam *param, Lay
                                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init InnerProduct Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = false;
     op_name_        = "InnerProduct";
@@ -81,33 +81,33 @@ Status OpenCLInnerProductLayerAcc::Init(Context *context, LayerParam *param, Lay
         // get float pointer from raw buffer.
         float *weights_data_ptr = weight_handle.force_to<float *>();
         if (weights_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(weights_data_ptr, weights_width, weights_height);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     } else {
         // if handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(weight_handle);
         if (float_data_ptr == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         ret = ConvertWeights(float_data_ptr.get(), weights_width, weights_height);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // get bias
     ret = ConvertChannelWeights(innerproduct_resource->bias_handle, ocl_bias_, num_output_, has_bias);
-    CHECK_RPD_OK(ret)
+    CHECK_TNN_OK(ret)
 
     // create kernel
     std::string kernel_name = "Innerproduct";
     ret                     = CreateExecuteUnit(execute_units_[0], "innerproduct", kernel_name);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 OpenCLInnerProductLayerAcc::~OpenCLInnerProductLayerAcc() {}
@@ -121,7 +121,7 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     // now only support axis is channel, output width and output height is 1.
     if (axis_ != 1 || output_dims[2] != 1 || output_dims[3] != 1) {
         LOGE("Invalid InnerParameter param or input/output size!\n");
-        return Status(RPDERR_OPENCL_ACC_RESHAPE_ERROR, "Invalid InnerParameter param or input/output size!");
+        return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "Invalid InnerParameter param or input/output size!");
     }
 
     // if input width and input height is not 1, need reshape first.
@@ -130,19 +130,19 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     }
 
     // init
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (need_reshape_) {
         ret = InitReshapeLayer(inputs);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // reshape
     if (need_reshape_) {
         if (reshape_layer_acc_ == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in InnerProduct is null");
+            return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in InnerProduct is null");
         }
         ret = reshape_layer_acc_->Reshape(inputs, reshape_outputs_);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     // calcuate M,K,N
@@ -170,30 +170,30 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[0].ocl_kernel.setArg(idx++, remain);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status OpenCLInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     if (need_reshape_) {
         // reshape first
         if (reshape_layer_acc_ == nullptr) {
-            return Status(RPDERR_OPENCL_ACC_FORWARD_ERROR, "reshape layer acc in InnerProduct is null");
+            return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "reshape layer acc in InnerProduct is null");
         }
         ret = reshape_layer_acc_->Forward(inputs, reshape_outputs_);
-        CHECK_RPD_OK(ret)
+        CHECK_TNN_OK(ret)
     }
 
     return OpenCLLayerAcc::Forward(inputs, outputs);
 }
 
 Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
 
     reshape_layer_acc_ = std::make_shared<OpenCLReshapeLayerAcc>();
     if (reshape_layer_acc_ == nullptr) {
         LOGE("Create Reshape Layer Acc in InnerProduct failed!\n");
-        return Status(RPDERR_CREATE_LAYER, "Create Reshape Layer Acc in InnerProduct failed!");
+        return Status(TNNERR_CREATE_LAYER, "Create Reshape Layer Acc in InnerProduct failed!");
     }
 
     // create output_blob
@@ -207,7 +207,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
     reshape_output_blob_    = std::make_shared<Blob>(output_desc);
     if (reshape_output_blob_ == nullptr) {
         LOGE("Create reshape output blob in InnerProduct failed!\n");
-        return Status(RPDERR_CREATE_LAYER, "Create reshape output blob in InnerProduct failed!");
+        return Status(TNNERR_CREATE_LAYER, "Create reshape output blob in InnerProduct failed!");
     }
     reshape_outputs_.clear();
     reshape_outputs_.push_back(reshape_output_blob_.get());
@@ -224,7 +224,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
                                                           imageshape[1], 0, nullptr, &err);
     if (err != CL_SUCCESS) {
         CHECK_CL_SUCCESS(err)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     BlobHandle blob_handle;
     blob_handle.base = reshape_output_image_.get();
@@ -260,20 +260,20 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
                       DimsVectorUtils::Count(weight_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         buffer, true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(weight_shape) * sizeof(float), nullptr, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
     }
     memcpy(weight_clbuffer_ptr, weights_data_ptr_trans.get(), DimsVectorUtils::Count(weight_shape) * sizeof(float));
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(RPDERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
     }
 
     // create ocl_weights_
@@ -288,7 +288,7 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(RPDERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);

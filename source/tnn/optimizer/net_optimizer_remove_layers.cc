@@ -50,17 +50,17 @@ namespace optimizer {
     Status NetOptimizerRemoveLayers::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(RPDERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
         if (structure->source_model_type != MODEL_TYPE_NCNN) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
         if (count <= 1) {
-            return RPD_OK;
+            return TNN_OK;
         }
 
         auto &ly_sets = global_remove_layer_types_set;
@@ -76,7 +76,7 @@ namespace optimizer {
                     if (rename_map.find(out_name) == rename_map.end()) {
                         rename_map[out_name] = in_name;
                     } else {
-                        return Status(RPDERR_NET_ERR, "duplicated output blobs");
+                        return Status(TNNERR_NET_ERR, "duplicated output blobs");
                     }
                 }
             } else {
@@ -95,7 +95,7 @@ namespace optimizer {
 
         structure->layers = layers_fused;
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace optimizer

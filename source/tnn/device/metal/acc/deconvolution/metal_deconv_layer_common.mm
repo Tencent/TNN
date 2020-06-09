@@ -81,7 +81,7 @@ Status MetalDeconvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &in
                                             length:sizeof(MetalConvParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -95,7 +95,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
 
     if (dims_input[0] != 1) {
         LOGE("Error: batch size or group is not support\n");
-        return Status(RPDERR_LAYER_ERR, "batch size or group is not support");
+        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
     }
 
     auto encoder = [context_impl encoder];
@@ -125,7 +125,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     auto output_slice_per_group = output_slice / group;
     output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
 
-    Status status = RPD_OK;
+    Status status = TNN_OK;
     MetalBandwidth bandwidth;
     MTLSize threads = {(NSUInteger)output_width, (NSUInteger)output_height, (NSUInteger)output_slice_per_group};
 
@@ -149,10 +149,10 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     if (!supported) {
         [encoder endEncoding];
         LOGE("Error: deconv group != 1 is not supported\n");
-        return Status(RPDERR_LAYER_ERR, "deconv group != 1 is not supported");
+        return Status(TNNERR_LAYER_ERR, "deconv group != 1 is not supported");
     }
 
-    if (status != RPD_OK) {
+    if (status != TNN_OK) {
         [encoder endEncoding];
         return status;
     }
@@ -171,7 +171,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
 
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
-            if (status != RPD_OK) {
+            if (status != TNN_OK) {
                 [encoder endEncoding];
                 return status;
             }
@@ -189,7 +189,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
-        if (status != RPD_OK) {
+        if (status != TNN_OK) {
             [encoder endEncoding];
             return status;
         }
@@ -197,7 +197,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     [encoder endEncoding];
     [context_impl commit];
     TNN_PRINT_ENCODER(context_, encoder, this);
-    return RPD_OK;
+    return TNN_OK;
 }
 
 } // namespace TNN_NS

@@ -37,9 +37,9 @@ Status CpuAddLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
                 output->GetBlobDesc().dims);
     } else {
         LOGE("Error: CpuAddLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
-        return Status(RPDERR_MODEL_ERR, "Error: CpuAddLayerAcc don't support data type");
+        return Status(TNNERR_MODEL_ERR, "Error: CpuAddLayerAcc don't support data type");
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 REGISTER_CPU_ACC(Add, LAYER_ADD);
 

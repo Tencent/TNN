@@ -95,15 +95,15 @@ namespace ncnn {
             we pads left and top as default.
             */
         if (pad_mod == 3) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn pool mod 3 SAME_LOWER is not supported now");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn pool mod 3 SAME_LOWER is not supported now");
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status PoolingLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

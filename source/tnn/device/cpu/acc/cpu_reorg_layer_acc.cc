@@ -23,7 +23,7 @@ namespace TNN_NS {
 DECLARE_CPU_ACC(Reorg, LAYER_REORG);
 
 Status CpuReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status CpuReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -47,7 +47,7 @@ Status CpuReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 
     NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, top_data);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Reorg, LAYER_REORG);

@@ -43,7 +43,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
     * 麒麟970：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 88           |   12         |
         | Mobilenet_v1_int8         | 55           |              |
@@ -54,7 +54,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
     * 骁龙835：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 94           |   16         |
         | Mobilenet_v1_int8         | 62           |              |
@@ -65,7 +65,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
     * 骁龙845：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 60           |   10         |
         | Mobilenet_v1_int8         | 37           |              |
@@ -80,7 +80,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
    <div><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过ONNX支持TensorFlow， Pytorch， MxNet， Caffe等多种训练框架，充分利用和融入不断完善的ONNX开源生态。当前支持ONNX算子55个，近期会完善到约80个，覆盖主流CNN网络
-* 支持主流安卓、iOS、embedded Linux，windows操作系统，支持ARM CPU， GPU硬件平台（近期还会加入达芬奇NPU支持）
+* 支持主流安卓、iOS、embedded Linux操作系统，支持ARM CPU， GPU硬件平台（近期还会加入达芬奇NPU支持）
 * 模块化设计，将模型解析、计算图构建、优化、底层硬件适配、高性能kernel实现各部分抽象隔离，通过Factory Mode注册、构建设备，方便接入更多的底层硬件、加速方案。
 * Runtime无任何第三方库依赖，CPU动态库尺寸仅约400KB，并提供基础图像变换操作，调用简单便捷。跨平台模型统一、调用接口统一，通过单个配置参数快速切换。
 

@@ -18,9 +18,9 @@ namespace TNN_NS {
 
 Status OthersMemoryModeState::GetStatus() {
     if (memory_allocated) {
-        return RPD_OK;
+        return TNN_OK;
     } else {
-        return Status(RPDERR_FORWARD_MEM_NOT_SET, "memory is not set");
+        return Status(TNNERR_FORWARD_MEM_NOT_SET, "memory is not set");
     }
 }
 

@@ -76,7 +76,7 @@ Status ArmConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &input
 
         buffer_weight_ = temp_buffer;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -102,14 +102,14 @@ Status ArmConvLayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs,
         buffer_bias_ = temp_buffer;
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerCommon::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ArmLayerAcc::Reshape(inputs, outputs);
 
-    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), RPD_OK);
-    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), RPD_OK);
+    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
 
     k_param_->fil_ptr = buffer_weight_.force_to<void *>();
     k_param_->bias    = buffer_bias_.force_to<void *>();
@@ -138,7 +138,7 @@ Status ArmConvLayerCommon::Reshape(const std::vector<Blob *> &inputs, const std:
         }
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -147,7 +147,7 @@ Status ArmConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return RPDERR_LAYER_ERR;
+    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -308,7 +308,7 @@ Status ArmConvLayerCommon::Exec(const std::vector<Blob *> &inputs, const std::ve
 
     PostExec<T>(outputs);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

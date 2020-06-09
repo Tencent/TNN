@@ -51,7 +51,7 @@ Status ConvLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_ind
     // activation
     GET_INT_1(p->activation_type);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -74,7 +74,7 @@ Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
         GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConvLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
@@ -105,7 +105,7 @@ Status ConvLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam*
 
     output_stream << layer_param->activation_type << " ";
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
@@ -122,7 +122,7 @@ Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* pa
         serializer.PutRaw(layer_res->scale_handle);
     }
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(Conv, LAYER_CONVOLUTION);

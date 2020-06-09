@@ -48,7 +48,7 @@ Status DetectionOutputLayer::InferOutputShape() {
     // [image_id, label, confidence, xmin, ymin, xmax, ymax]
     output_dims.push_back(7);
     output_blob->GetBlobDesc().dims = output_dims;
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER(DetectionOutput, LAYER_DETECTION_OUTPUT);

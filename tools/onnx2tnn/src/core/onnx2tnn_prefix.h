@@ -19,7 +19,7 @@
 #undef TNNNameSpace
 #endif
 
-#define TNN_VERSION_(x) rpdnet##x
+#define TNN_VERSION_(x) tnn##x
 #define TNN_VERSION(x) TNN_VERSION_(x)
 #ifdef TNN_DATE
 #define TNNNameSpace TNN_VERSION(TNN_DATE)

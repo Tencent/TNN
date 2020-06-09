@@ -33,18 +33,18 @@ std::shared_ptr<Serializer> ModelPacker::GetSerializer(std::ostream &os) {
 }
 
 Status ModelPacker::Pack(std::string proto_path, std::string model_path) {
-    Status ret = RPD_OK;
+    Status ret = TNN_OK;
     ret        = PackProto(proto_path);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("Pack TNN Prototxt failed!\n");
         return ret;
     }
     ret = PackModel(model_path);
-    if (ret != RPD_OK) {
+    if (ret != TNN_OK) {
         LOGE("Pack TNN Model failed!\n");
         return ret;
     }
-    return RPD_OK;
+    return TNN_OK;
 }
 
 void ModelPacker::SetVersion(int version) {
@@ -68,14 +68,14 @@ std::shared_ptr<LayerInfo> ModelPacker::FindLayerInfo(std::string layer_name) {
 }
 
 Status ModelPacker::PackProto(std::string file_path) {
-    Status ret              = RPD_OK;
+    Status ret              = TNN_OK;
     NetStructure *net_struc = GetNetStructure();
 
     std::ofstream write_stream;
     write_stream.open(file_path);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
-        return Status(RPDERR_PACK_MODEL, "proto file cannot be written");
+        return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
     }
 
     // 1st line: "1 <blob_size> 1 <magic_num> ,"
@@ -164,7 +164,7 @@ Status ModelPacker::PackProto(std::string file_path) {
 
     write_stream.close();
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ModelPacker::PackModel(std::string file_path) {
@@ -174,7 +174,7 @@ Status ModelPacker::PackModel(std::string file_path) {
     write_stream.open(file_path, std::ios::binary);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
-        return Status(RPDERR_PACK_MODEL, "model file cannot be written");
+        return Status(TNNERR_PACK_MODEL, "model file cannot be written");
     }
 
     auto magic_number = GetMagicNumber();
@@ -190,7 +190,7 @@ Status ModelPacker::PackModel(std::string file_path) {
         }
     }
     if (header.layer_cnt_ <= 0) {
-        return Status(RPDERR_INVALID_MODEL, "invalid model: layer count is less than 1");
+        return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
 
     auto serializer = GetSerializer(write_stream);
@@ -206,7 +206,7 @@ Status ModelPacker::PackModel(std::string file_path) {
         auto layer_info = FindLayerInfo(ly_head.name_);
         if (layer_info == nullptr) {
             LOGE("layer_packer: can't find layer(%s) in net struct!\n", ly_head.name_.c_str());
-            return Status(RPDERR_PACK_MODEL, "layer_packer: can't find layer in net struct");
+            return Status(TNNERR_PACK_MODEL, "layer_packer: can't find layer in net struct");
         }
 
         ly_head.type_     = LAYER_NOT_SUPPORT;  // just use type_str_ to judge
@@ -217,7 +217,7 @@ Status ModelPacker::PackModel(std::string file_path) {
         auto layer_interpreter        = layer_interpreter_map[layer_info->type];
         if (layer_interpreter != NULL) {
             Status result = layer_interpreter->SaveResource(*serializer, layer_info->param.get(), layer_resource);
-            if (result != RPD_OK) {
+            if (result != TNN_OK) {
                 write_stream.close();
                 return result;
             }
@@ -227,14 +227,14 @@ Status ModelPacker::PackModel(std::string file_path) {
                 "Error: layer_interpreter is null (name:%s "
                 "type_from_str:%s type:%d)\n",
                 ly_head.name_.c_str(), ly_head.type_str_.c_str(), ly_head.type_);
-            return Status(RPDERR_LOAD_MODEL, "model content is invalid");
+            return Status(TNNERR_LOAD_MODEL, "model content is invalid");
             ;
         }
     }
 
     write_stream.close();
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

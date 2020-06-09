@@ -22,8 +22,8 @@ cd <path_to_tnn>/platforms/linux/
 |命令参数           |是否必须|带参数 |参数说明                                       |
 |:------------------|:------:|:-----:|:----------------------------------------------|
 |-h, --help         |        |       |输出命令提示。                                 |
-|-p, --proto        |&radic; |&radic;|指定rapidproto模型描述文件。                   |
-|-m, --model        |&radic; |&radic;|指定rapidmodel模型参数文件。                   |
+|-p, --proto        |&radic; |&radic;|指定tnnproto模型描述文件。                   |
+|-m, --model        |&radic; |&radic;|指定tnnmodel模型参数文件。                   |
 |-i, --input_path   |&radic; |&radic;|指定量化输入文件夹路径。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>会将此目录下面的所有文件作为输入。|
 |-b, --blob_method  |        |&radic;|指定feature map的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 2 KL方法|
 |-w, --weight_method|        |&radic;|指定weights的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 1 ADMM方法|
@@ -40,8 +40,8 @@ input_pre = (input - bias) * scale
 
 ### 4. 命令输出  
 在执行命令的当前目录下会生成两个文件：    
-* model_quantized.rapidproto　--　量化后的模型描述文件；
-* model_quantized.rapidmodel　--　量化后的模型参数文件；
+* model_quantized.tnnproto　--　量化后的模型描述文件；
+* model_quantized.tnnmodel　--　量化后的模型参数文件；
 
 ### 5. 注意事项  
 （1）-n和-s参数仅对输入为图片的时候有作用；  

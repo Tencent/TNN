@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(HdrGuide, LAYER_HDRGUIDE);
 
 Status HdrGuideLayerInterpreter::InterpretProto(str_arr, int, LayerParam**) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HdrGuideLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
@@ -50,18 +50,18 @@ Status HdrGuideLayerInterpreter::InterpretResource(Deserializer& deserializer, L
     deserializer.GetRaw(projection_bias);
     layer_res->projection_bias_handle = projection_bias;
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HdrGuideLayerInterpreter::SaveProto(std::ofstream&, LayerParam*) {
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status HdrGuideLayerInterpreter::SaveResource(Serializer& serializer, LayerParam*, LayerResource* resource) {
     HdrGuideLayerResource* layer_res = dynamic_cast<HdrGuideLayerResource*>(resource);
     if (nullptr == layer_res) {
         LOGE("invalid layer res to save\n");
-        return Status(RPDERR_NULL_PARAM, "invalid layer res to save");
+        return Status(TNNERR_NULL_PARAM, "invalid layer res to save");
     }
 
     serializer.PutRaw(layer_res->ccm_weight_handle);
@@ -71,7 +71,7 @@ Status HdrGuideLayerInterpreter::SaveResource(Serializer& serializer, LayerParam
     serializer.PutRaw(layer_res->projection_weight_handle);
     serializer.PutRaw(layer_res->projection_bias_handle);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 REGISTER_LAYER_INTERPRETER(HdrGuide, LAYER_HDRGUIDE);

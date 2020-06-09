@@ -10,7 +10,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 - Detection: Yolo-v2 MobileNet-YOLOV3 ...
 - Segmentation: FCN PSPNet
 
-| model name                | onnx2tnn | cpu | armv7 | armv8 | opencl | metal |
+| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal |
 |---------------------------|----------|-----|-------|-------|--------|-------|
 | AlexNet                   | yes      | yes |       |       |        |       |
 | DenseNet(121)             | yes      | yes |       |       |        |       |
@@ -48,7 +48,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 # 支持OP 
 
-| TNN Operators            | ONNX Operators                                 | CPU | armv7 | armv8 | opencl | metal |
+| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal |
 |--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   |
 | Acos                     | Acos                                           | yes |       |       | yes    | yes   |
@@ -149,7 +149,6 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 | device | support |
 |--------|---------|
-| CPU    | Yes     |
 | ARMv7  | Yes     |
 | ARMv8  | Yes     |
 | OpenCL | Yes     |

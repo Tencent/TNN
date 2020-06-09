@@ -42,21 +42,21 @@ namespace ncnn {
         std::vector<float> coef = GetFloatList(p, 1);
 
         if (op_type < 0 || op_type > 2) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn eltwise got invalid op_type");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn eltwise got invalid op_type");
         }
 
         type = global_elementwise_layer_type_map[op_type];
 
         if (coef.size() != 0) {
-            return Status(RPDERR_INVALID_NETCFG, "ncnn eltwise layer with coefs is not supported now.");
+            return Status(TNNERR_INVALID_NETCFG, "ncnn eltwise layer with coefs is not supported now.");
         }
 
-        return RPD_OK;
+        return TNN_OK;
     }
 
     Status EltwiseLayerInterpreter::InterpretResource(Deserializer& deserializer, std::shared_ptr<LayerInfo> info,
                                                       LayerResource** resource) {
-        return RPD_OK;
+        return TNN_OK;
     }
 
 }  // namespace ncnn

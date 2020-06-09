@@ -53,7 +53,7 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     k_param_->oh    = output_dim[2];
     k_param_->ow    = output_dim[3];
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
@@ -79,7 +79,7 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     k_param_->oc_r4 = ROUND_UP(output_dim[1], 4);
     k_param_->oh    = output_dim[2];
     k_param_->ow    = output_dim[3];
-    return RPD_OK;
+    return TNN_OK;
 }
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
@@ -103,7 +103,7 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
         status = this->DoForward(inputs, outputs);
     } else {
         LOGE("Error : arm layer acc got unsupported data type %d\n", in_data_type);
-        return Status(RPDERR_LAYER_ERR, "Error: arm layer acc got unsupported data type.");
+        return Status(TNNERR_LAYER_ERR, "Error: arm layer acc got unsupported data type.");
     }
 
 #if TNN_PROFILE
@@ -111,13 +111,13 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
     context_->AddProfilingData(pdata);
 #endif
 
-    RETURN_ON_NEQ(status, RPD_OK);
+    RETURN_ON_NEQ(status, TNN_OK);
 
-    return RPD_OK;
+    return TNN_OK;
 }
 
 Status ArmLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return Status(RPDERR_LAYER_ERR, "DoForward not implement");
+    return Status(TNNERR_LAYER_ERR, "DoForward not implement");
 }
 
 }  // namespace TNN_NS
