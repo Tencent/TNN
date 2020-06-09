@@ -27,7 +27,32 @@
 ### Convert2tnn Docker (推荐)
 
 为了简化 convert2tnn转换工具的安装和编译步骤，目前 TNN 提供了 Dockerfile 文件以及 Docker image 的方式，你可以自己根据 Dockerfile 文件自己构建 docker 镜像，也可以从公司内部的 docker hub 上直接拉取已经构建好的镜像。你可以选择自己喜欢的方式获取 docker 的镜像。
-#### 构建 docker 镜像
+
+#### 拉取构建好的 docker 镜像（推荐）
+
+目前 TNN 已经在 docker hub 上准备好了构建好的 docker image，我们建议直接从 docker hub 上拉取镜像。
+
+```shell script
+docker pull docker pull turandotkay/tnn-convert
+```
+同样的，等待一会之后，你可以通过 `docker images` 来查看是否构建成功，如果构建成功之后，会有类似下面的输出信息：
+``` text
+REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
+turandotkay/tnn-convert   latest              28c93a738b08        15 minutes ago      2.81GB
+```
+我们发现pull 下来的 docker 镜像的 REPOSIOTY 的名称太长了，我们可以通过下面的命令进行重命名：
+```
+docker tag turandotkay/tnn-convert:latest tnn-convert:latest
+docker rmi turandotkay/tnn-convert:latest
+```
+此时再次执行 `docker images` 命令，会得到下面的类似的输出：
+``` text
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+tnn-convert         latest              28c93a738b08        16 minutes ago      2.81GB
+```
+
+
+#### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
 ``` shell script
 cd <path-to-tnn>/tools/
 docker build -t tnn-convert:latest .
@@ -39,7 +64,7 @@ docker images
 在输出的列表中会有下面类似的输出，这表明docker 的镜像已经构建好了。
 ``` text
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-tnn-convert         latest              9e2a73fbfb3b        18 hours ago        2.53GB
+tnn-convert         latest              9fb83110d2c9        26 minutes ago      2.79GB
 ```
 
 #### convert2tnn 工具进行转换

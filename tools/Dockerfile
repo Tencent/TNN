@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
@@ -26,7 +26,7 @@ RUN pip3 install tensorflow==1.15.0 tf2onnx
 ENV TNN_ROOT=/opt/TNN
 ENV TOOLS_ROOT=$TNN_ROOT/tools
 COPY ./onnx2tnn $TOOLS_ROOT/onnx2tnn
-COPY ./caffe2onnx $TOOLS_ROOT/caffe2tnn
+COPY ./caffe2onnx $TOOLS_ROOT/caffe2onnx
 COPY ./convert2tnn $TOOLS_ROOT/convert2tnn
 
 RUN cd $TOOLS_ROOT/onnx2tnn/onnx-converter && ./build.sh

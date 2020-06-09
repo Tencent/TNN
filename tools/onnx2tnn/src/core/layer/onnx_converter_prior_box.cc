@@ -32,17 +32,17 @@ string OnnxOpConverterPriorBox::TNNLayerParam(NodeProto &node,
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
 
-    std::vector<float_t> min_sizes = get_node_attr_af(node, "min_sizes");
-    std::vector<float_t> max_sizes = get_node_attr_af(node, "max_sizes");
+    std::vector<float> min_sizes = get_node_attr_af(node, "min_sizes");
+    std::vector<float> max_sizes = get_node_attr_af(node, "max_sizes");
     int32_t clip                   = get_node_attr_i(node, "clip");
     int32_t flip                   = get_node_attr_i(node, "flip");
-    std::vector<float_t> variances = get_node_attr_af(node, "variances");
-    std::vector<float_t> aspect_ratios =
+    std::vector<float> variances = get_node_attr_af(node, "variances");
+    std::vector<float> aspect_ratios =
         get_node_attr_af(node, "aspect_ratios");
 
     std::vector<int64_t> img_sizes = get_node_attr_ai(node, "img_sizes");
-    std::vector<float_t> steps     = get_node_attr_af(node, "steps");
-    float_t offset                 = get_node_attr_f(node, "offset");
+    std::vector<float> steps     = get_node_attr_af(node, "steps");
+    float offset                 = get_node_attr_f(node, "offset");
 
     layer_param << min_sizes.size() << " ";
     for (float min_size : min_sizes) {
