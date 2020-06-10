@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 贡献代码
 [添加算子](add_op.md)
 
@@ -10,4 +9,3 @@ TNN项目对于C、C++、Objective-C、Python、Shell代码风格参照
 ## 代码格式化
 
 TNN项目代码格式化使用clang-format、git-clang-format, 格式化后部分缩进格式与谷歌开源项目风格有差异，以clang-format为准。
-
