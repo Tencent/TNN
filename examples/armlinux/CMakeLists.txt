@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(TNN-demo)
 message(${CMAKE_SOURCE_DIR})
-
+message(${TNN_LIB_PATH})
 set(CMAKE_SYSTEM_NAME Linux)
 set(TNN_OPENMP_ENABLE ON)
 set(CMAKE_CXX_STANDARD 11)

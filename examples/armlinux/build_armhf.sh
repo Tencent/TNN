@@ -1,15 +1,15 @@
 #!/bin/bash
 
-CC=aarch64-linux-gnu-gcc
-CXX=aarch64-linux-gnu-g++
-TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+CC=arm-linux-gnueabihf-gcc
+CXX=arm-linux-gnueabihf-g++
+TNN_LIB_PATH=../../scripts/build_armhf_linux
 
 cd ../../scripts
-./build_aarch64_linux.sh
+./build_armhf_linux.sh
 cd -
 
 rm -r build
-mkdir build
+mkdir -p build
 cd build
 cmake .. \
     -DCMAKE_C_COMPILER=$CC \
