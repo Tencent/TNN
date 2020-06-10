@@ -43,7 +43,7 @@ At present, TNN has been launched in various major businesses, and its following
 
     * Kirin970：
 
-        | model                     | cpu time(ms) | gpu time(ms) |
+        | model                     | cpu time(single thread, ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 88           |   12         |
         | Mobilenet_v1_int8         | 55           |              |
@@ -54,7 +54,7 @@ At present, TNN has been launched in various major businesses, and its following
 
     * Snapdragon 835：
     
-        | model                     | cpu time(ms) | gpu time(ms) |
+        | model                     | cpu time(single thread, ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 94           |   16         |
         | Mobilenet_v1_int8         | 62           |              |
@@ -65,7 +65,7 @@ At present, TNN has been launched in various major businesses, and its following
         
     * Snapdragon 845：
 
-        | model                     | cpu time(ms) | gpu time(ms) |
+        | model                     | cpu time(single thread, ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 60           |   10         |
         | Mobilenet_v1_int8         | 37           |              |
