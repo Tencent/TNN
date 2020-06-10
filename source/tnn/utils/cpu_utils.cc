@@ -44,6 +44,26 @@ static int GetMaxFreqOfCpu(int cpuid) {
         snprintf(path, 256, "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state", cpuid);
         fp = fopen(path, "rb");
 
+        if (fp) {
+            int max_freq_khz = 0;
+            while (!feof(fp)) {
+                int freq_khz = 0;
+                int nscan = fscanf(fp, "%d %*d", &freq_khz);
+                if (nscan != 1)
+                    break;
+
+                if (freq_khz > max_freq_khz)
+                    max_freq_khz = freq_khz;
+            }
+
+            fclose(fp);
+
+            if (max_freq_khz != 0)
+                return max_freq_khz;
+
+            fp = NULL;
+        }
+
         if (!fp) {
             // third try, for online cpu
             snprintf(path, 256, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", cpuid);
@@ -64,7 +84,7 @@ static int GetMaxFreqOfCpu(int cpuid) {
     int max_freq_khz = 0;
     while (!feof(fp)) {
         int freq_khz = 0;
-        int nscan    = fscanf(fp, "%d %*d", &freq_khz);
+        int nscan = fscanf(fp, "%d %*d", &freq_khz);
         if (nscan != 1)
             break;
 
