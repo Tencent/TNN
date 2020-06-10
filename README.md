@@ -74,7 +74,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
 * TNN架构图：
 
-   <div><img src="TNN.png"/>
+   <div><img src="./doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子55个，近期会完善到约80个，覆盖主流CNN网络
 * 支持主流安卓、iOS、Embedded Linux 操作系统，支持 ARM CPU， GPU 硬件平台（近期还会加入达芬奇 NPU 支持）
