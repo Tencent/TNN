@@ -57,6 +57,7 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config,
     }
 
     NetworkConfig net_config_cpu;
+    net_config_cpu.device_type = DEVICE_NAIVE;
     instance_cpu_ = tnn_->CreateInst(net_config_cpu, status);
     if (status != TNN_OK) {
         LOGE("create cpu instance falied: %s\n", status.description().c_str());
@@ -319,7 +320,7 @@ Status ModelChecker::CompareDeviceAndCpu() {
 
 bool ModelChecker::CompareData(void* device_data, void* cpu_data,
                                DimsVector blob_dims) {
-    float ep           = 0.0001;
+    float ep           = 0.005;
     float* result_data = reinterpret_cast<float*>(device_data);
     float* ref_data    = reinterpret_cast<float*>(cpu_data);
 
@@ -328,7 +329,7 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data,
         float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
         float sum =
             static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
-        if (fabs(diff / sum) > ep && fabs(diff) > 1e-4f) {
+        if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
             LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n",
                  i, result_data[i], ref_data[i], fabs(diff / sum), fabs(diff));
             return false;
