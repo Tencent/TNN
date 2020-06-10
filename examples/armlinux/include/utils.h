@@ -26,7 +26,7 @@
 
 #define CHECK_TNN_STATUS(status)                                               \
     do {                                                                       \
-        if (status != TNN_NS::TNN_OK) {                                          \
+        if (status != TNN_NS::TNN_OK) {                                        \
             fprintf(stderr, "TNN API ERROR:0x%x", int(status));                \
             return status;                                                     \
         }                                                                      \
