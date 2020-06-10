@@ -133,7 +133,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    TNN_LIB_PATH=../../scripts/build_aarch64_linux/
 * 执行build_aarch64.sh
 * 执行demo:
-   ./demo_arm_linux ../../../model/SqueezeNet/squeezenet_v1.1.rapidproto ../../../model/SqueezeNet/squeezenet_v1.1.rapidmodel 224 224
+   ./demo_arm_linux ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel 224 224
 
 ### 函数流程
 
