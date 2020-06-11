@@ -18,7 +18,8 @@ from . import align_model
 import os
 
 
-def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False):
+def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
+            input_path=None, refer_path=None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -57,7 +58,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         print("onnx2tnn failed!")
     onnx_base_name = os.path.basename(onnx_path)
 
-    if align is True:
+    if align is True and input_path is None and refer_path is None:
         if optimize is True:
             tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
             tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
@@ -67,4 +68,3 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path)
-

@@ -130,7 +130,8 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
     print("check onnx input shape and tnn input shape align!\n")
 
 
-def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str) -> bool:
+def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
+                refer_path:str = None) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
