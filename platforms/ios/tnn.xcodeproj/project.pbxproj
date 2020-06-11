@@ -584,6 +584,13 @@
 		9DD1FCEF247CEA1500800139 /* arm_blob_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FC62247CEA1400800139 /* arm_blob_converter.cc */; };
 		9DD1FCF0247CEA1500800139 /* arm_device.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FC63247CEA1400800139 /* arm_device.h */; };
 		9DD1FCF1247CEA1500800139 /* arm_device.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FC64247CEA1400800139 /* arm_device.cc */; };
+		9DD1FCFB247CEB2B00800139 /* encryption.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF4247CEB2B00800139 /* encryption.h */; };
+		9DD1FCFC247CEB2B00800139 /* encryption.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCF5247CEB2B00800139 /* encryption.cc */; };
+		9DD1FCFD247CEB2B00800139 /* model_interpreter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF6247CEB2B00800139 /* model_interpreter.h */; };
+		9DD1FCFE247CEB2B00800139 /* model_packer.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF7247CEB2B00800139 /* model_packer.h */; };
+		9DD1FCFF247CEB2B00800139 /* model_packer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCF8247CEB2B00800139 /* model_packer.cc */; };
+		9DD1FD00247CEB2B00800139 /* objseri.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF9247CEB2B00800139 /* objseri.h */; };
+		9DD1FD01247CEB2B00800139 /* model_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCFA247CEB2B00800139 /* model_interpreter.cc */; };
 		9DDA7090241F99E700F17A1C /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA7081241F99E600F17A1C /* version.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9DDA70A1241F9A0300F17A1C /* core in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA709E241F99F800F17A1C /* core */; settings = {ATTRIBUTES = (Public, ); }; };
 		9DDA70A2241F9A0300F17A1C /* utils in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA709D241F99F800F17A1C /* utils */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -1172,6 +1179,13 @@
 		9DD1FC62247CEA1400800139 /* arm_blob_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_blob_converter.cc; sourceTree = "<group>"; };
 		9DD1FC63247CEA1400800139 /* arm_device.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_device.h; sourceTree = "<group>"; };
 		9DD1FC64247CEA1400800139 /* arm_device.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_device.cc; sourceTree = "<group>"; };
+		9DD1FCF4247CEB2B00800139 /* encryption.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = encryption.h; sourceTree = "<group>"; };
+		9DD1FCF5247CEB2B00800139 /* encryption.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = encryption.cc; sourceTree = "<group>"; };
+		9DD1FCF6247CEB2B00800139 /* model_interpreter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = model_interpreter.h; sourceTree = "<group>"; };
+		9DD1FCF7247CEB2B00800139 /* model_packer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = model_packer.h; sourceTree = "<group>"; };
+		9DD1FCF8247CEB2B00800139 /* model_packer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = model_packer.cc; sourceTree = "<group>"; };
+		9DD1FCF9247CEB2B00800139 /* objseri.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = objseri.h; sourceTree = "<group>"; };
+		9DD1FCFA247CEB2B00800139 /* model_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = model_interpreter.cc; sourceTree = "<group>"; };
 		9DDA7081241F99E600F17A1C /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
 		9DDA709D241F99F800F17A1C /* utils */ = {isa = PBXFileReference; lastKnownFileType = folder; path = utils; sourceTree = "<group>"; };
 		9DDA709E241F99F800F17A1C /* core */ = {isa = PBXFileReference; lastKnownFileType = folder; path = core; sourceTree = "<group>"; };
@@ -1456,6 +1470,7 @@
 		9D32FBFA24557EEB002DCDAB /* interpreter */ = {
 			isa = PBXGroup;
 			children = (
+				9DD1FCF2247CEB2B00800139 /* rapidnetv3 */,
 				9D32FBFB24557EEB002DCDAB /* default_model_interpreter.h */,
 				9D32FBFC24557EEB002DCDAB /* layer_resource_generator.cc */,
 				9D32FBFD24557EEB002DCDAB /* layer_param.h */,
@@ -2001,6 +2016,28 @@
 			path = convolution;
 			sourceTree = "<group>";
 		};
+		9DD1FCF2247CEB2B00800139 /* rapidnetv3 */ = {
+			isa = PBXGroup;
+			children = (
+				9DD1FCF3247CEB2B00800139 /* encryption */,
+				9DD1FCF6247CEB2B00800139 /* model_interpreter.h */,
+				9DD1FCF7247CEB2B00800139 /* model_packer.h */,
+				9DD1FCF8247CEB2B00800139 /* model_packer.cc */,
+				9DD1FCF9247CEB2B00800139 /* objseri.h */,
+				9DD1FCFA247CEB2B00800139 /* model_interpreter.cc */,
+			);
+			path = rapidnetv3;
+			sourceTree = "<group>";
+		};
+		9DD1FCF3247CEB2B00800139 /* encryption */ = {
+			isa = PBXGroup;
+			children = (
+				9DD1FCF4247CEB2B00800139 /* encryption.h */,
+				9DD1FCF5247CEB2B00800139 /* encryption.cc */,
+			);
+			path = encryption;
+			sourceTree = "<group>";
+		};
 		9DDA7080241F99E600F17A1C /* tnn */ = {
 			isa = PBXGroup;
 			children = (
@@ -2055,6 +2092,7 @@
 				9DDA70A1241F9A0300F17A1C /* core in Headers */,
 				9DD1FCD7247CEA1500800139 /* arm_conv_int8_layer_common.h in Headers */,
 				9DD1FB3A247CE9BE00800139 /* metal_device.h in Headers */,
+				9DD1FCFD247CEB2B00800139 /* model_interpreter.h in Headers */,
 				9D32FF6F24557EED002DCDAB /* context.h in Headers */,
 				9DD1FCAB247CEA1400800139 /* compute_int8.h in Headers */,
 				9D32FF7524557EED002DCDAB /* tnn_impl.h in Headers */,
@@ -2102,11 +2140,13 @@
 				9DF26BDA24645EA500F22F0D /* naive_compute.h in Headers */,
 				9DD1FB36247CE9BE00800139 /* tnn_impl_coreml.h in Headers */,
 				9D32FC9924557EEC002DCDAB /* memory_mode_state_factory.h in Headers */,
+				9DD1FCFB247CEB2B00800139 /* encryption.h in Headers */,
 				9D4C60CB246BF7A1006068D1 /* bbox_util.h in Headers */,
 				9D32FF4824557EED002DCDAB /* ncnn_layer_type.h in Headers */,
 				9D32FF3624557EED002DCDAB /* reduce_op_interpreter.h in Headers */,
 				9D32FF0724557EED002DCDAB /* model_packer.h in Headers */,
 				9D32FC9624557EEC002DCDAB /* blob_memory_size_info.h in Headers */,
+				9DD1FD00247CEB2B00800139 /* objseri.h in Headers */,
 				9D32FCA224557EEC002DCDAB /* blob_memory_pool.h in Headers */,
 				9D32FF4224557EED002DCDAB /* ncnn_optimizer.h in Headers */,
 				9DD1FB37247CE9BE00800139 /* metal_macro.h in Headers */,
@@ -2117,6 +2157,7 @@
 				9D32FC9A24557EEC002DCDAB /* others_memory_mode_state.h in Headers */,
 				9D32FF0124557EED002DCDAB /* default_model_interpreter.h in Headers */,
 				9D32FC9B24557EEC002DCDAB /* blob_2d_memory.h in Headers */,
+				9DD1FCFE247CEB2B00800139 /* model_packer.h in Headers */,
 				9D32FF4624557EED002DCDAB /* ncnn_optimizer_manager.h in Headers */,
 				9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */,
 				9DD1FC89247CEA1400800139 /* arm_deconv_layer_acc.h in Headers */,
@@ -2409,6 +2450,7 @@
 				9DD1FCB6247CEA1400800139 /* CONV_DW_5X5_FLOAT_SLIDEW.S in Sources */,
 				9DD1FB48247CE9BE00800139 /* metal_mul_layer_acc.mm in Sources */,
 				9DD1FC67247CEA1400800139 /* arm_context.cc in Sources */,
+				9DD1FD01247CEB2B00800139 /* model_interpreter.cc in Sources */,
 				9DD1FCCE247CEA1500800139 /* arm_log_sigmoid_layer_acc.cc in Sources */,
 				9D32FC9224557EEC002DCDAB /* blob_memory.cc in Sources */,
 				9DD1FB76247CE9BE00800139 /* metal_deconv_layer_depthwise.mm in Sources */,
@@ -2461,6 +2503,7 @@
 				9DD1FC6C247CEA1400800139 /* arm_unary_layer_acc.cc in Sources */,
 				9D32FF4D24557EED002DCDAB /* batch_norm_layer_interpreter.cc in Sources */,
 				9D4C60CF246BF826006068D1 /* profile.cc in Sources */,
+				9DD1FCFF247CEB2B00800139 /* model_packer.cc in Sources */,
 				9D32FCE124557EEC002DCDAB /* prelu_layer.cc in Sources */,
 				9D32FCA524557EEC002DCDAB /* blob_1d_memory_pool.cc in Sources */,
 				9D32FC8824557EEC002DCDAB /* others_memory_mode_state.cc in Sources */,
@@ -2473,6 +2516,7 @@
 				9DD1FBA4247CE9BE00800139 /* metal_stride_slice_layer_acc.metal in Sources */,
 				9D32FF7A24557EED002DCDAB /* default_network.cc in Sources */,
 				9DD1FB77247CE9BE00800139 /* metal_deconv_layer_acc.mm in Sources */,
+				9DD1FCFC247CEB2B00800139 /* encryption.cc in Sources */,
 				9D32FF1324557EED002DCDAB /* clip_layer_interpreter.cc in Sources */,
 				9D32FF0824557EED002DCDAB /* model_packer.cc in Sources */,
 				9DD1FB9A247CE9BE00800139 /* metal_exp_layer_acc.metal in Sources */,

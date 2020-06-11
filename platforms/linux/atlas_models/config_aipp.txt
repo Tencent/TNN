@@ -1,0 +1,5 @@
+# <om_file path> <with_aipp> <batch> <channel> <height> <width>
+#/home/atlas300/shaundai/res80/om/res80.om 0 1 3 248 248
+#/home/atlas300/shaundai/res80/om/res80_aipp_norm.om 1 1 3 248 248
+#/home/atlas300/shaundai/res80/om/res80_aipp_bgr.om 1 1 3 248 248
+/home/atlas300/shaundai/res80/om/res80_aipp8_bgr2rgb.om 1 8 3 248 248

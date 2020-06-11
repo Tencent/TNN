@@ -20,7 +20,8 @@
 #if TNN_PROFILE
 #define kMetalCommandBufferDepth 1
 #else
-#define kMetalCommandBufferDepth 10
+//for balance of cpu uage and perfermence, suggest 32 or 64
+#define kMetalCommandBufferDepth 32
 #endif
 
 static NSUInteger smallest_log2(NSUInteger integer) {

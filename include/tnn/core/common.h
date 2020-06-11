@@ -89,6 +89,7 @@ typedef enum {
 
 typedef enum {
     MODEL_TYPE_TNN      = 0x0001,
+    MODEL_TYPE_RAPIDNET = 0x0002,
     MODEL_TYPE_NCNN     = 0x0100,
     MODEL_TYPE_OPENVINO = 0x1000,
     MODEL_TYPE_COREML   = 0x2000,
@@ -125,7 +126,7 @@ struct PUBLIC NetworkConfig {
 };
 
 struct PUBLIC ModelConfig {
-    ModelType model_type = MODEL_TYPE_TNN;
+    ModelType model_type = MODEL_TYPE_RAPIDNET;
 
     // tnn model need two params: order is proto content, model content.
     // ncnn need two: params: order is param, weights.

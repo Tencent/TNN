@@ -194,7 +194,7 @@ namespace test {
         ModelConfig config;
         config.model_type = ConvertModelType(FLAGS_mt);
         if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_OPENVINO ||
-            config.model_type == MODEL_TYPE_NCNN) {
+            config.model_type == MODEL_TYPE_RAPIDNET || config.model_type == MODEL_TYPE_NCNN) {
             std::string network_path = FLAGS_mp;
             int size                 = static_cast<int>(network_path.size());
             std::string model_path;
@@ -204,7 +204,8 @@ namespace test {
              * NCNN file names:
              *  xxx.param xxx.bin
              */
-            if (config.model_type == MODEL_TYPE_TNN) {
+            if (config.model_type == MODEL_TYPE_TNN || 
+                config.model_type == MODEL_TYPE_RAPIDNET) {
                 model_path = network_path.substr(0, size - 5) + "model";
             } else if (config.model_type == MODEL_TYPE_NCNN) {
                 model_path = network_path.substr(0, size - 5) + "bin";
@@ -223,7 +224,8 @@ namespace test {
                 config.params.push_back(buffer);
             }
 
-            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
+            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_RAPIDNET || 
+                config.model_type == MODEL_TYPE_NCNN) {
                 std::ifstream model_stream(model_path);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");

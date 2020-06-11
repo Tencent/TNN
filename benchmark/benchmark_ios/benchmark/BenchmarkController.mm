@@ -223,7 +223,7 @@ struct BenchResult {
             config.model_type = MODEL_TYPE_COREML;
             config.params = {coremlDir};
         } else {
-            config.model_type = MODEL_TYPE_TNN;
+            config.model_type = MODEL_TYPE_RAPIDNET;
             config.params = {protoContent, modelPathOrContent};
         }
         

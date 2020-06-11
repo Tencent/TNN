@@ -18,8 +18,7 @@
 #include <random>
 #include "tnn/core/macro.h"
 #include "file_reader.h"
-#include "tnn/interpreter/tnn/objseri.h"
-#include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/rapidnetv3/model_packer.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -102,6 +101,7 @@ Calibration::Calibration() {
     cali_params_.merge_blob_channel      = true;
     cali_params_.input_bias              = {0, 0, 0, 0};
     cali_params_.input_scale             = {1.0f, 1.0f, 1.0f, 1.0f};
+    model_version_                       = rapidnetv3::MV_RPNV3;
 }
 
 Calibration::~Calibration() {}
@@ -177,6 +177,10 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     return TNN_OK;
 }
 
+void Calibration::SetModelVersion(rapidnetv3::ModelVersion ver) {
+    model_version_ = ver;
+}
+
 Status Calibration::Serialize(std::string proto_path, std::string model_path) {
     NetStructure* net_struct  = interpreter_->GetNetStructure();
     NetResource* net_resource = interpreter_->GetNetResource();
@@ -185,7 +189,8 @@ Status Calibration::Serialize(std::string proto_path, std::string model_path) {
         return TNNERR_INVALID_MODEL;
     }
 
-    TNN_NS::ModelPacker packer(net_struct, net_resource);
+    rapidnetv3::ModelPacker packer(net_struct, net_resource);
+    packer.SetVersion(model_version_);
 
     Status status = packer.Pack(proto_path, model_path);
     if (status != TNN_OK) {

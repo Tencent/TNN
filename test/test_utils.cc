@@ -44,8 +44,10 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_COREML;
     } else if ("NCNN" == model_type) {
         return MODEL_TYPE_NCNN;
-    } else {
+    } else if ("TNN" == model_type){
         return MODEL_TYPE_TNN;
+    } else {
+        return MODEL_TYPE_RAPIDNET;
     }
 }
 

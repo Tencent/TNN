@@ -1,0 +1,30 @@
+#!/bin/bash
+
+SHARED_LIB="ON"
+ARM="OFF"
+OPENMP="OFF"
+OPENCL="OFF"
+SYSTEM="Darwin"
+
+mkdir build_x86
+cd build_x86
+if [ -z $TNN_ROOT_PATH ]
+then
+      TNN_ROOT_PATH=`git rev-parse --show-toplevel`
+fi
+
+cmake ${TNN_ROOT_PATH} \
+    -DCMAKE_SYSTEM_NAME=${SYSTEM} \
+    -DTNN_TEST_ENABLE=OFF \
+    -DTNN_CPU_ENABLE=ON \
+    -DTNN_X86_ENABLE=ON\
+    -DDEBUG=OFF \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DTNN_ARM_ENABLE:BOOL=$ARM \
+    -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
+    -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
+    -DTNN_UNIT_TEST_ENABLE=OFF \
+    -DTNN_TEST_ENABLE=ON \
+    -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
+
+make -j4

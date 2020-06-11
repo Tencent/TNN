@@ -48,7 +48,7 @@ void DumpDataToTxt(T* data, std::vector<int> dims, std::string output_path = "du
 template <class T>
 void DumpDataToBin(T* data, std::vector<int> dims, std::string output_path = "dump_data.bin") {
     printf("save to bin file! (%s)\n", output_path.c_str());
-    std::ofstream f("dump_data.bin", std::ios::binary);
+    std::ofstream f(output_path, std::ios::binary);
     int dim_size = TNN_NS::DimsVectorUtils::Count(dims);
     printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
 
