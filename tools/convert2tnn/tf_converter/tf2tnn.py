@@ -56,7 +56,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     if tf2onnx(tf_path, input_names, output_names, onnx_path) is False:
         print("Oh No, tf2onnx failed")
     else:
-        print("congratulations! caffe2onnx succeed!")
+        print("congratulations! tf2onnx succeed!")
     if version is None:
         version = "v1.0"
     checker.check_file_exist(onnx_path)
