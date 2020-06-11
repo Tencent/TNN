@@ -231,7 +231,7 @@ brew install protobuf
 
 Linux:
 
-For linux system, we suggest to refer to the official [README](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md) document of protobuf and install directly from the source code.
+For linux system, we suggest referring to the official [README](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md) document of protobuf and install directly from the source code.
 
 If you are using Ubuntu system, you can use the following instructions to install:
 
@@ -385,7 +385,7 @@ python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0
 ```
 
 ## Model Conversion Details
-convert2tnn is just an encapsulation of a variety of tools for model converting. According to the principles explained in the previous parts "Introduction to model conversion", you can also convert the original model into ONNX first, and then convert the ONNX model into a TNN model. We provide documentation on how to manually convert Caffe, Pytorch, TensorFlow models into ONNX models, and then convert ONNX models into TNN models. If you encounter problems when using the convert2tnn converter, we recommend that you understand the relevant content, which may help you to use the tool more smoothly.
+convert2tnn is just an encapsulation of a variety of tools for model converting. According to the principles explained in the previous part "Introduction to model conversion", you can also convert the original model into ONNX first, and then convert the ONNX model into a TNN model. We provide documentation on how to manually convert Caffe, Pytorch, TensorFlow models into ONNX models, and then convert ONNX models into TNN models. If you encounter problems when using the convert2tnn converter, we recommend that you understand the relevant content, which may help you to use the tool more smoothly.
 
 - [onnx2tnn](onnx2tnn_en.md)
 - [pytorch2tnn](onnx2tnn_en.md)
