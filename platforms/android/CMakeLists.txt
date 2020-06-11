@@ -11,7 +11,7 @@ endif()
 set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
 
 if(${ANDROID_NDK_MAJOR})
-    if(${ANDROID_NDK_MAJOR} GREATER_EQUAL 21)
+    if(${ANDROID_NDK_MAJOR} GREATER 20)
         target_link_libraries(TNN log -fopenmp -static-openmp)
     else()
         target_link_libraries(TNN log -fopenmp)
