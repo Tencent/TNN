@@ -27,9 +27,10 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
+        align = args.align
         onnx_path = parse_path.parse_path(onnx_path)
         output_dir = parse_path.parse_path(output_dir)
-        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align)
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
         model_path = parse_path.parse_path(args.model_path)

@@ -50,6 +50,12 @@ def parse_args():
                                  action='store',
                                  required=False,
                                  help="the output tnn directory")
+    onnx2tnn_parser.add_argument('-align',
+                                 dest='align',
+                                 default=False,
+                                 action='store_true',
+                                 required=False,
+                                 help='align the onnx model with tnn model')
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
