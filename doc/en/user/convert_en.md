@@ -3,7 +3,7 @@
 
 <div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/user/resource/convert.png"/>
 
-TNN currently supports the industry's mainstream model file formats, including ONNX, Pytorch, Tensorflow and Caffe. As shown in the figure above, TNN utilises ONNX as the intermediate port to support multiple model file formats. 
+TNN currently supports the industry's mainstream model file formats, including ONNX, Pytorch, Tensorflow and Caffe. As shown in the figure above, TNN utilizes ONNX as the intermediate port to support multiple model file formats. 
 To convert model file formats such as Pytorch, Tensorflow, and Caffe to TNN, you need to use corresponding tool to convert from the original format to ONNX model first, which then will be transferred into a TNN model.
 
 | Source Model   | Convertor        | Target Model |
@@ -31,19 +31,19 @@ In order to simplify the installation and compilation steps of the convert2tnn c
 
 #### Pull from the Docker Hub (Recommend)
 
-At present, TNN has prepared a built Docker image on Docker Hub. We suggest to pull the docker image directly from Docker Hub. 
+At present, TNN has prepared a built Docker image on Docker Hub. We suggest pulling the Docker image directly from Docker Hub. 
 
 ```shell script
 docker pull turandotkay/tnn-convert
 ```
- After waiting for a while, you can check through `docker images`. If successful, there will be output similar to the following:
+ After waiting for a while, you can check through `docker images` command. If successful, there will be output similar to the following:
 
 ``` text
 REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
 turandotkay/tnn-convert   latest              28c93a738b08        15 minutes ago      2.81GB
 ```
 
-If the REPOSIOTY name is too long, rename it with the folwing command:
+If the REPOSITORY name is too long, rename it with the following command:
 ```
 docker tag turandotkay/tnn-convert:latest tnn-convert:latest
 docker rmi turandotkay/tnn-convert:latest
@@ -111,7 +111,7 @@ optional arguments:
   -optimize        optimize the model
   -half            optimize the model
 ```
-Here is the explanations for each parameters:
+Here are the explanations for each parameter:
 
 - tp parameter (required)
     Use the "-tp" parameter to specify the path of the model to be converted. Currently only supports the conversion of a single TF model, does not support the conversion of multiple TF models together.
@@ -137,7 +137,7 @@ Here is an example of converting a TF model in a TNN model
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize 
 ```
 
-Since the convert2tnn tool is deployed in the Docker image, if you want to convert the model, you need to first push the model into the docker container. We can use the docker run parameter --volume to mount certain path in docker container. In the above example, the current directory (pwd) for executing the shell is under the "/workspace" folder in the docker container. The test.pb used in the test therefore **must be executed under the current path of the shell command**. After executing the above command, the convert2tnn tool will store the generated TNN model in the same level directory of the test.pb file. 
+Since the convert2tnn tool is deployed in the Docker image, if you want to convert the model, you need to first push the model into the Docker container. We can use the docker run parameter --volume to mount certain path in the Docker container. In the above example, the current directory (pwd) for executing the shell is under the "/workspace" folder in the Docker container. The test.pb used in the test therefore **must be executed under the current path of the shell command**. After executing the above command, the convert2tnn tool will store the generated TNN model in the same level directory of the test.pb file. 
 
 The above information only introduces the conversion for Tensorflow's models. It is similar for other model formats. You can use the conversion tool's note to remind yourself. These subcommands are listed below:
 
