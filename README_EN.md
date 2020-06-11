@@ -10,7 +10,7 @@ At present, TNN has been launched to support various products in Youtu Lab and G
 
 It is very simple to use TNN. If you have a trained model, the model can be deployed on the target platform through three steps.
 1. Convert the trained model into a TNN model. We provide a wealth of tools to help you complete this step, whether you are using Tensorflow, Pytorch, or Caffe, you can easily complete the conversion.
-Detailed hands-on tutorials can be found here [How to Create TNN Models](doc/en/user/convert_en.md).
+Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en/user/convert_en.md).
 
 2. When you have finished converting the model, the second step is to compile the TNN engine of the target platform. You can choose among different acceleration solutions such as ARM / OpenCL / Metal according to the hardware support.
    For these platforms, TNN provides convenient one-click scripts to compile. For detailed steps, please refer to [How to Compile TNN](doc/en/user/compile_en.md).
@@ -43,7 +43,7 @@ At present, TNN has been launched in various major businesses, and its following
 
     * Kirin970：
 
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 88           |   12         |
         | Mobilenet_v1_int8         | 55           |              |
@@ -54,7 +54,7 @@ At present, TNN has been launched in various major businesses, and its following
 
     * Snapdragon 835：
     
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 94           |   16         |
         | Mobilenet_v1_int8         | 62           |              |
@@ -65,7 +65,7 @@ At present, TNN has been launched in various major businesses, and its following
         
     * Snapdragon 845：
 
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
+        | model                     | cpu time(ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 60           |   10         |
         | Mobilenet_v1_int8         | 37           |              |
@@ -95,7 +95,7 @@ At present, TNN has been launched in various major businesses, and its following
 ## Manual
 * [Compile TNN](doc/en/user/compile_en.md)
 * [Tools]()
-    * [Create TNN Models](doc/en/user/convert_en.md)
+    * [Create a TNN Model](doc/en/user/convert_en.md)
     * [Model Quantization](doc/en/user/quantization_en.md)
     * [Model Visualization](doc/en/user/visual_en.md)
     * [Performance Analysis](doc/en/development/profiling_en.md)

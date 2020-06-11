@@ -17,28 +17,51 @@ At present, TNN only supports common network structures such as CNN. Networks li
 
 ## TNN Model Converter
 
-Through the general introduction above, you can find that it takes at least two steps to convert a Tensorflow model into a TNN model. So we provide an integrated tool, convert2tnn, to simplify. which can convert Tensorflow, Caffe and ONNX models into TNN models in one single operation. Since Pytorch can directly export ONNX models, this tool no longer provides support for the Pytorch model.
+Through the general introduction above, you can find that it takes at least two steps to convert a Tensorflow model into a TNN model. So we provide an integrated tool, convert2tnn, to simplify. The converter can convert Tensorflow, Caffe and ONNX models into TNN models by just one single operation. Since Pytorch can directly export ONNX models, this tool no longer provides support for the Pytorch model.
 
-You can use the convert2tnn tool to directly convert the models to TNN, or you can first convert the corresponding model into ONNX format basedand then convert the ONNX to the TNN model based on the documents.
+You can use the convert2tnn tool to directly convert the models to TNN, or you can first convert the corresponding model into ONNX format and then convert it to a TNN model based on the documents.
 
 This article provides two ways to help you use the convert2tnn tool:
-- Use covnert2tnn via docker image;
-- Manually install dependent tools and compiler tools using convert2tnn conversion tool;
+- Use covnert2tnn via Docker image;
+- Manually install dependencies and tools to use convert2tnn converter;
 
 ### Convert2tnn Docker (Recommend)
 
-In order to simplify the installation and compilation steps of the convert2tnn conversion tool, TNN currently provides a Dockerfile and a Docker image method. You can build the docker image yourself based on the Dockerfile file, or you can directly pull the built Docker image from the company docker . You can choose the way you like to get the docker image.
+In order to simplify the installation and compilation steps of the convert2tnn converter, TNN provides a Dockerfile and a Docker image method. You can build the Docker image yourself based on the Dockerfile file, or you can directly pull the built Docker image from Docker Hub. You can choose the way you like to obtain the Docker image.
 
-#### Build a docker image
+#### Pull from the Docker Hub (Recommend)
+
+At present, TNN has prepared a built Docker image on Docker Hub. We suggest to pull the docker image directly from Docker Hub. 
+
+```shell script
+docker pull turandotkay/tnn-convert
+```
+ After waiting for a while, you can check through `docker images`. If successful, there will be output similar to the following:
+
+``` text
+REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
+turandotkay/tnn-convert   latest              28c93a738b08        15 minutes ago      2.81GB
+```
+
+If the REPOSIOTY name is too long, rename it with the folwing command:
+```
+docker tag turandotkay/tnn-convert:latest tnn-convert:latest
+docker rmi turandotkay/tnn-convert:latest
+```
+#### Build Docker image (If the image is pulled through previous step, skip this part)
+
 ``` shell script
 cd <path-to-tnn>/tools/
 docker build -t tnn-convert:latest.
 ```
-Docker will build based on the Dockerfile file, which needs to wait for a while. After the construction is completed, you can verify whether the construction is completed by the following command.
+
+Docker will build a Docker image based on the Dockerfile, which needs a while to complete. After the construction is completed, you can verify whether the installation process is successful by the following command.
+
 ``` shell script
 docker images
 ```
-In the output list, there will be similar output below, which indicates that the docker image has been built.
+
+There should be similar output as shown below, which indicates that the Docker image has been built.
 ``` text
 REPOSITORY TAG IMAGE ID CREATED SIZE
 tnn-convert latest 9e2a73fbfb3b 18 hours ago 2.53GB
@@ -46,12 +69,14 @@ tnn-convert latest 9e2a73fbfb3b 18 hours ago 2.53GB
 
 #### Use convert2tnn to convert
 
-First verify that the docker image can be used normally. First, let's look at the help information of convert2tnn by the following command:
+First, verify that the Docker image's status. Let's take a look at the help information of convert2tnn by entering the following command:
 
 ``` shell script
 docker run -it tnn-convert:latest python3 ./converter.py -h
 ```
-If the docker image is correct, you will get the following output:
+
+If the Docker image is correct, you will obtain the following output:
+
 ```text
 usage: convert [-h] {onnx2tnn,caffe2tnn,tf2tnn} ...
 
@@ -66,7 +91,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
-From above，we can know that currently convert2tnn provides conversion support for 3 model formats. Suppose we want to convert the Tensorflow model to a TNN model here, we enter the following command to continue to get help information:
+From above，we can know that currently convert2tnn provides conversion support for 3 model formats. Suppose we want to convert the Tensorflow model to a TNN model here, we enter the following subcommand to continue to get help information:
 
 ``` shell script
 docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
@@ -112,9 +137,9 @@ Here is an example of converting a TF model in a TNN model
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize 
 ```
 
-Since the convert2tnn tool is deployed in the docker image, if you want to convert the model, you need to first push the model into the docker container. We can use the docker run parameter --volume to copy the model to certain path in docker container. In the above example, the current directory (pwd) for executing the shell is under the "/workspace" folder in the docker container. The test.pb used in the test therefore **must be executed under the current path of the shell command**. After executing the above command, the convert2tnn tool will store the generated TNN model in the same level directory of the test.pb file.The generated file is also in the current directory.
+Since the convert2tnn tool is deployed in the Docker image, if you want to convert the model, you need to first push the model into the docker container. We can use the docker run parameter --volume to mount certain path in docker container. In the above example, the current directory (pwd) for executing the shell is under the "/workspace" folder in the docker container. The test.pb used in the test therefore **must be executed under the current path of the shell command**. After executing the above command, the convert2tnn tool will store the generated TNN model in the same level directory of the test.pb file. 
 
-The above information only introduces the conversion for Tensorflow's models. It is similar for other models. You can use the conversion tool's note to remind yourself. These conversion commands are listed below:
+The above information only introduces the conversion for Tensorflow's models. It is similar for other model formats. You can use the conversion tool's note to remind yourself. These subcommands are listed below:
 
 ``` shell script
 # convert onnx
@@ -125,7 +150,7 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
 ```
 
 ### Manual Convert2tnn Installation
-You can also install the dependent tool of convert2tnn on your development machine manually and compile it according to the relevant instructions. 
+You can also install the dependencies of convert2tnn on your development machine manually and compile it according to the relevant instructions. 
 
 If you only want to convert the models of certain types, you just need to install the corresponding dependent tools. For example, if you only want to convert the caffe model, you do not need to install the tools that the Tensorflow model depends on. Similarly, if you need to convert Tensorflow's model, you don't need to install Caffe model conversion dependent tools. However, the ONNX model depends on tools and installation and compilation are required.
 
@@ -334,7 +359,7 @@ python3 converter.py caffe2tnn ~/squeezenet/squeezenet.prototxt ~/squeezenet/squ
 ```
 - tensorflow2tnn
 
-The current convert2tnn model only supports the graphdef model, and does not support checkpoint and saved_model format files. If you want to convert the checkpoint or saved_model model, you can refer to the tf2onnx section below to convert it yourself.
+The current convert2tnn model only supports the graphdef model, but does not support checkpoint or saved_model format files. If you want to convert the checkpoint or saved_model model, you can refer to the tf2onnx section below to convert it yourself.
 
 ``` shell script
 python3 converter.py tf2tnn -h
@@ -360,7 +385,7 @@ python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0
 ```
 
 ## Model Conversion Details
-convert2tnn is just an encapsulation of a variety of tools for model converting. According to the principles explained in the first part "Introduction to model conversion", you can also convert the original model into ONNX first, and then convert the ONNX model into a TNN model. We provide documentation on how to manually convert Caffe, Pytorch, TensorFlow models into ONNX models, and then convert ONNX models into TNN models. If you encounter problems when using the convert2tnn conversion tool, we recommend that you understand the relevant content, which may help you to use the tool more smoothly.
+convert2tnn is just an encapsulation of a variety of tools for model converting. According to the principles explained in the previous parts "Introduction to model conversion", you can also convert the original model into ONNX first, and then convert the ONNX model into a TNN model. We provide documentation on how to manually convert Caffe, Pytorch, TensorFlow models into ONNX models, and then convert ONNX models into TNN models. If you encounter problems when using the convert2tnn converter, we recommend that you understand the relevant content, which may help you to use the tool more smoothly.
 
 - [onnx2tnn](onnx2tnn_en.md)
 - [pytorch2tnn](onnx2tnn_en.md)
