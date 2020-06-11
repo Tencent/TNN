@@ -14,6 +14,7 @@
 import cv2
 import numpy as np
 import os
+import pathlib
 from utils import cmd
 from utils import checker
 
@@ -37,8 +38,8 @@ def gene_data_from_png(inputs, shape):
 
 def gene_random_data(input_info: dict) -> str:
     data = {}
-    # data_dir = os.path.join(os.getcwd(), "./data_dir")
-    data_dir = "./data_dir"
+    current_dir = pathlib.Path(__file__).parent.parent
+    data_dir = os.path.join(current_dir, "temp_data")
     command = "mkdir -p " + data_dir
     print(command)
     cmd.run("pwd")
@@ -52,7 +53,7 @@ def gene_random_data(input_info: dict) -> str:
     data_file.close()
     return data_path
 
-    
-def remove_temp_random_data():
-    cmd.run("rm -rf ./data_dir")
 
+def clean_temp_data(path: str):
+    command = "rm -rf " + path
+    cmd.run(command)

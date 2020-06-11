@@ -151,11 +151,6 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     reference_output_path = run_onnx(onnx_path, input_path)
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
-
-    #data.remove_temp_random_data()
-
-    # run onnx
-    # run tnn
-    # check output
+    data.clean_temp_data(os.path.dirname(input_path))
     return True
 
