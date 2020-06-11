@@ -15,10 +15,14 @@ cmake ../../.. \
 
 make -j4
 
-if [ ! -f "Model_check" ]; then
+if [ $? -eq 0 ]; then
 	mv model_check ../bin/
 	cd ..
 	rm -rf temp
+	
+	cd ../onnx2tnn/onnx-converter
+	./build.sh
+	
 	echo "Compiled successfully !"
 else
 	cd ..
