@@ -18,8 +18,8 @@ if [ -f "model_check" ]; then
 	rm -rf source
 	rm -rf tools
 	
-	#cd ../onnx2tnn/onnx-converter
-	#./build.sh
+	cd ../onnx2tnn/onnx-converter
+	./build.sh
 
 	echo "Compiled successfully !"
 else
