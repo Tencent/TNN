@@ -1,5 +1,5 @@
 [English Version](/en/front_page_en.md)
-<div align=left ><img src="./../../TNN.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
 ## 快速开始
 
@@ -73,7 +73,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 * TNN架构图：
 
 
-   <div><img src="./imgs/tnn_architect.jpg"/>
+   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过ONNX支持TensorFlow， Pytorch， MxNet， Caffe等多种训练框架，充分利用和融入不断完善的ONNX开源生态。当前支持ONNX算子55个，近期会完善到约80个，覆盖主流CNN网络
 * 支持主流安卓、iOS、embedded Linux，windows操作系统，支持ARM CPU， GPU硬件平台（近期还会加入达芬奇NPU支持）
@@ -136,4 +136,4 @@ TNN参考和借鉴了下列项目：
 * 技术交流QQ群： 913940506 答案：TNN
 
 * QQ群二维码：
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN-QQ.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
