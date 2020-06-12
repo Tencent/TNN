@@ -19,7 +19,6 @@ if [ -f "model_check" ]; then
 	rm -rf tools
 	
 	cd ../../onnx2tnn/onnx-converter
-	pwd
 	./build.sh
 
 	echo "Compiled successfully !"
