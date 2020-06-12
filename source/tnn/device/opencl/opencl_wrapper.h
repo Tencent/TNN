@@ -31,7 +31,11 @@
 
 #include "CL/cl2.hpp"
 
-#define CHECK_NOTNULL(X) ASSERT(X != NULL)
+#define CHECK_NOTNULL(X)                                                       \
+    ASSERT(X != NULL)                                                          \
+    if (X == NULL) {                                                           \
+        LOGE("OpenCL API is null\n");                                          \
+    }
 
 #define CHECK_CL_SUCCESS(error)                                                \
     if (error != CL_SUCCESS) {                                                 \
@@ -192,12 +196,6 @@ public:
         void *param_value, size_t *param_value_size_ret);
     using clGetImageInfoFunc = cl_int (*)(cl_mem, cl_image_info, size_t, void *,
                                           size_t *);
-    using clEnqueueAcquireGLObjectsFunc =
-        cl_int(CL_API_CALL *)(cl_command_queue, cl_uint, const cl_mem *,
-                            cl_uint, const cl_event *, cl_event *);
-    using clEnqueueReleaseGLObjectsFunc =
-        cl_int(CL_API_CALL *)(cl_command_queue, cl_uint, const cl_mem *,
-                            cl_uint, const cl_event *, cl_event *);
     using clEnqueueCopyBufferToImageFunc = cl_int(CL_API_CALL *)(
         cl_command_queue, cl_mem, cl_mem, size_t, const size_t *,
         const size_t *, cl_uint, const cl_event *, cl_event *);
@@ -211,8 +209,6 @@ public:
                                         const cl_image_format *,
                                         const cl_image_desc *, void *,
                                         cl_int *);
-    using clCreateFromGLTextureFunc = cl_mem(CL_API_CALL *)(
-        cl_context, cl_mem_flags, cl_GLenum, cl_GLint, cl_GLuint, cl_int *);
 #endif
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     //opencl 2.0 can get sub group info and wave size.
@@ -270,15 +266,12 @@ public:
     TNN_CL_DEFINE_FUNC_PTR(clGetEventInfo);
     TNN_CL_DEFINE_FUNC_PTR(clGetEventProfilingInfo);
     TNN_CL_DEFINE_FUNC_PTR(clGetImageInfo);
-    TNN_CL_DEFINE_FUNC_PTR(clEnqueueAcquireGLObjects);
-    TNN_CL_DEFINE_FUNC_PTR(clEnqueueReleaseGLObjects);
     TNN_CL_DEFINE_FUNC_PTR(clEnqueueCopyBufferToImage);
     TNN_CL_DEFINE_FUNC_PTR(clEnqueueCopyImageToBuffer);
 #if CL_HPP_TARGET_OPENCL_VERSION >= 120
     TNN_CL_DEFINE_FUNC_PTR(clRetainDevice);
     TNN_CL_DEFINE_FUNC_PTR(clReleaseDevice);
     TNN_CL_DEFINE_FUNC_PTR(clCreateImage);
-    TNN_CL_DEFINE_FUNC_PTR(clCreateFromGLTexture);
 #endif
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     TNN_CL_DEFINE_FUNC_PTR(clGetKernelSubGroupInfoKHR);

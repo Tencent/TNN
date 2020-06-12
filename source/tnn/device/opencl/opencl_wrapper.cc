@@ -158,15 +158,12 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     TNN_LOAD_FUNCTION_PTR(clGetEventProfilingInfo);
     TNN_LOAD_FUNCTION_PTR(clGetImageInfo);
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyImage);
-    TNN_LOAD_FUNCTION_PTR(clEnqueueAcquireGLObjects);
-    TNN_LOAD_FUNCTION_PTR(clEnqueueReleaseGLObjects);
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyBufferToImage);
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyImageToBuffer);
 #if CL_HPP_TARGET_OPENCL_VERSION >= 120
     TNN_LOAD_FUNCTION_PTR(clRetainDevice);
     TNN_LOAD_FUNCTION_PTR(clReleaseDevice);
     TNN_LOAD_FUNCTION_PTR(clCreateImage);
-    TNN_LOAD_FUNCTION_PTR(clCreateFromGLTexture);
 #endif
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     TNN_LOAD_FUNCTION_PTR(clGetKernelSubGroupInfoKHR);
@@ -181,7 +178,6 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
 
 }  // namespace TNN_NS
 
-#pragma GCC visibility push(default)
 // clGetPlatformIDs wrapper, use OpenCLSymbols function. use OpenCLSymbols function.
 cl_int clGetPlatformIDs(cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetPlatformIDs;
@@ -533,22 +529,6 @@ cl_int clEnqueueCopyImage(cl_command_queue queue, cl_mem src_image, cl_mem dst_i
                 event);
 }
 
-//clEnqueueAcquireGLObjects wrapper, use OpenCLSymbols function.
-cl_int clEnqueueAcquireGLObjects(cl_command_queue command_queue, cl_uint num_objects, const cl_mem *mem_objects,
-                                 cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event) {
-    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueAcquireGLObjects;
-    CHECK_NOTNULL(func);
-    return func(command_queue, num_objects, mem_objects, num_events_in_wait_list, event_wait_list, event);
-}
-
-//clEnqueueReleaseGLObjects wrapper, use OpenCLSymbols function.
-cl_int clEnqueueReleaseGLObjects(cl_command_queue command_queue, cl_uint num_objects, const cl_mem *mem_objects,
-                                 cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event) {
-    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueReleaseGLObjects;
-    CHECK_NOTNULL(func);
-    return func(command_queue, num_objects, mem_objects, num_events_in_wait_list, event_wait_list, event);
-}
-
 //clEnqueueCopyBufferToImage wrapper, use OpenCLSymbols function.
 cl_int clEnqueueCopyBufferToImage(cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image,
                                   size_t src_offset, const size_t *dst_origin, const size_t *region,
@@ -593,13 +573,6 @@ cl_mem clCreateImage(cl_context context, cl_mem_flags flags, const cl_image_form
     return func(context, flags, image_format, image_desc, host_ptr, errcode_ret);
 }
 
-//clCreateFromGLTexture wrapper, use OpenCLSymbols function.
-cl_mem clCreateFromGLTexture(cl_context context, cl_mem_flags flags, cl_GLenum texture_target, cl_GLint miplevel,
-                             cl_GLuint texture, cl_int *errcode_ret) {
-    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateFromGLTexture;
-    CHECK_NOTNULL(func);
-    return func(context, flags, texture_target, miplevel, texture, errcode_ret);
-}
 #endif
 
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
@@ -629,7 +602,5 @@ void *clGetExtensionFunctionAddress(const char *func_name) {
     return func(func_name);
 }
 #endif
-
-#pragma GCC visibility pop
 
 #endif  // TNN_USE_OPENCL_WRAPPER
