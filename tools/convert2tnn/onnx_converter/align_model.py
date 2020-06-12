@@ -25,7 +25,8 @@ import numpy as np
 
 
 def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path):
-    relative_path = "../../build/model_check"
+    cmd.run("pwd")
+    relative_path = "bin/model_check"
     model_check_path = parse_path.parse_path(relative_path)
     checker.check_file_exist(model_check_path)
     command = model_check_path + " -p  " + proto_path + " -m " + \
@@ -146,13 +147,21 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
     onnx_input_info = get_input_shape_from_onnx(onnx_path)
     check_input_info(onnx_input_info, tnn_input_info)
-    # generate data
-    input_path = data.gene_random_data(onnx_input_info)
-    reference_output_path = run_onnx(onnx_path, input_path)
+
+    if input_file_path is None:
+        # generate data
+        input_path = data.gene_random_data(onnx_input_info)
+    else:
+        input_path = input_file_path
+
+    if refer_path is None:
+        reference_output_path = run_onnx(onnx_path, input_path)
+    else:
+        reference_output_path = refer_path
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
 
-    #data.remove_temp_random_data()
+    data.remove_temp_random_data()
 
     # run onnx
     # run tnn

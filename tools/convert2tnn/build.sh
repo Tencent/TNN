@@ -2,11 +2,7 @@ if [ ! -d "bin" ]; then
   mkdir bin
 fi
 
-if [ ! -d "temp" ]; then
-  mkdir temp
-fi
-
-cd temp
+cd bin
 
 cmake ../../.. \
 	-DCMAKE_BUILD_TYPE=Release \
@@ -15,14 +11,20 @@ cmake ../../.. \
 
 make -j4
 
-if [ ! -f "Model_check" ]; then
-	mv model_check ../bin/
-	cd ..
-	rm -rf temp
+if [ -f "model_check" ]; then
+	rm -rf CMake*
+	rm -rf cmake*
+	rm -rf Make*
+	rm -rf source
+	rm -rf tools
+	
+	#cd ../onnx2tnn/onnx-converter
+	#./build.sh
+
 	echo "Compiled successfully !"
 else
 	cd ..
-	rm -rf temp bin
+	rm -rf bin
 	echo "Compiled failed !!!"
 fi
 
