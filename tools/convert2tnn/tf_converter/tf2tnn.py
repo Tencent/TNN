@@ -15,6 +15,7 @@
 from utils import cmd
 from utils import checker
 from onnx_converter import onnx2tnn
+from onnx_converter import align_model
 import os
 
 
@@ -45,7 +46,8 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path):
         return False
 
 
-def convert(tf_path, input_names, output_names, output_dir, version, optimize, half):
+def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False,
+            input_path=None, refer_path=None):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
     if output_dir is None:
@@ -61,3 +63,17 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
         version = "v1.0"
     checker.check_file_exist(onnx_path)
     onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+
+    if align is True:
+        proto_suffix = '.tnnproto'
+        model_suffix = '.tnnmodel'
+        onnx_base_name = os.path.basename(onnx_path)
+        if optimize is True:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+        else:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)

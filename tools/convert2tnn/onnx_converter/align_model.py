@@ -15,6 +15,7 @@ from utils import checker
 from utils import parse_path
 from utils import cmd
 from utils import data
+from utils import convert_name
 
 import linecache
 import math
@@ -123,13 +124,14 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
         print_not_align_message("onnx input size != tnn input size")
     for name, onnx_shape in onnx_input_info.items():
-        tnn_shape = tnn_input_info[name]
+        tnn_name = convert_name.onnx_name2tnn_name(name)
+        tnn_shape = tnn_input_info[tnn_name]
         if tnn_shape != onnx_shape:
             print_not_align_message(
                 "the {}'s shape not equal! the onnx shape:{}, tnn shape: {}".format(name, str(onnx_shape),
                                                                                     str(tnn_shape)))
+    
     print("check onnx input shape and tnn input shape align!\n")
-
 
 def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
                 refer_path:str = None) -> bool:
