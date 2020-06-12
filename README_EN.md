@@ -1,5 +1,5 @@
 [中文版本](README.md)
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
 ## Introduction
 
@@ -18,7 +18,7 @@ Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en
 3. The final step is to use the compiled TNN engine for inference. You can make program calls to TNN inside your application. We provide a rich and detailed demo as a reference to help you complete.
     * [Run an iOS Demo](doc/en/user/demo_en.md)
     * [Run an Android Demo](doc/en/user/demo_en.md)
-    
+
 ## Technical Solutions
 
 TNN is a high-performance and lightweight inference framework for mobile devices. It provides lots of advanced features such as cross-platform, model-compression, and code-pruning. TNN, inspired by mainstream open-source industry frameworks, integrates and leverages Youtu Lab's Rapidnet, ncnn framework. It also combines the efforts of the deep-learning framework Oteam from all departments(PCG, TEG, IEG) to create an enterprise-level mobile inference engine.
@@ -53,7 +53,7 @@ At present, TNN has been launched in various major businesses, and its following
         | squeezenet_v1.0_int8      | 82           |              |
 
     * Snapdragon 835：
-    
+
         | model                     | cpu time(single thread, ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 94           |   16         |
@@ -62,7 +62,7 @@ At present, TNN has been launched in various major businesses, and its following
         | Mobilenet_v2_int8         | 47           |              |
         | squeezenet_v1.0           | 122          |   28         |
         | squeezenet_v1.0_int8      | 93           |              |
-        
+
     * Snapdragon 845：
 
         | model                     | cpu time(single thread, ms) | gpu time(ms) |
@@ -77,7 +77,7 @@ At present, TNN has been launched in various major businesses, and its following
 
 * TNN architecture diagram：
 
-   <div><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/tnn_architect.jpg"/>
+   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently, TNN supports 55 ONNX operators and will be developed to cover 80 operators shortly, consisting of most of the mainstream CNN operators needed.
@@ -141,7 +141,7 @@ TNN referenced the following projects：
 * Technical Discussion QQ Group: 913940506 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN-QQ.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
 
 ## FAQ
 * [Frequently asked questions](/doc/en/faq_en.md)

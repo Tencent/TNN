@@ -47,24 +47,24 @@ echo "$(dirname $0)"
 
 # download face-detector tnn model
 download_model \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnproto" \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnmodel" \
+  "https://gitee.com/darren3d/tnn-resource/raw/master/model/face-detector/version-slim-320_simplified.tnnproto" \
+  "https://gitee.com/darren3d/tnn-resource/raw/master/model/face-detector/version-slim-320_simplified.tnnmodel" \
   "face_detector"
 
 # download face-detector ncnn model
 download_model \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.bin" \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.param" \
+  "https://gitee.com/darren3d/tnn-resource/raw/master/model/face-detector/version-slim-320_simplified.bin" \
+  "https://gitee.com/darren3d/tnn-resource/raw/master/model/face-detector/version-slim-320_simplified.param" \
   "face_detector"
 
 # download mobilenetv2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnmodel" \
+    "https://gitee.com/darren3d/tnn-resource/raw/master/model/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnproto" \
+    "https://gitee.com/darren3d/tnn-resource/raw/master/model/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnmodel" \
     "mobilenet_v2"
 
 # download shufflenet_v2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnmodel" \
+    "https://gitee.com/darren3d/tnn-resource/raw/master/model/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnproto" \
+    "https://gitee.com/darren3d/tnn-resource/raw/master/model/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnmodel" \
     "shufflenet_v2"
