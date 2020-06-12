@@ -160,6 +160,8 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         reference_output_path = refer_path
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
-    data.clean_temp_data(os.path.dirname(input_path))
+    
+    if input_file_path is None:
+        data.clean_temp_data(os.path.dirname(input_path))
     return True
 
