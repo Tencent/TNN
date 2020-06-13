@@ -24,6 +24,7 @@ WARM_UP_COUNT=8
 
 benchmark_model_list=(
 #test.tnnproto \
+    resnet50.tnnproto  mobilenet_v1.tnnproto  mobilenet_v2.tnnproto   squeezenet_v1.0.tnnproto
 )
 
 function usage() {
@@ -91,8 +92,8 @@ function bench_android() {
     find . -name "*.so" | while read solib; do
         $ADB push $solib  $ANDROID_DIR
     done
-    $ADB push test/TNNTest $ANDROID_DIR/TNNTest
-    $ADB shell chmod 0777 $ANDROID_DIR/TNNTest
+    $ADB push test/benchmark/TNNBench $ANDROID_DIR/TNNBench
+    $ADB shell chmod 0777 $ANDROID_DIR/TNNBench
 
     $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
     $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
@@ -114,7 +115,7 @@ function bench_android() {
 
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNBench -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
         done
     fi
 
@@ -128,7 +129,7 @@ function bench_android() {
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNBench -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
         done
     fi
 

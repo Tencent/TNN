@@ -63,9 +63,10 @@ namespace test {
          * Set the cpu affinity.
          * usually, -dl 0-3 for little core, -dl 4-7 for big core
          */
-        if (!FLAGS_dl.empty())
+        if (!FLAGS_dl.empty()) 
             SetCpuAffinity();
 
+        srand(102);
         ModelConfig model_config     = GetModelConfig();
         NetworkConfig network_config = GetNetworkConfig();
         TNN net;
@@ -86,11 +87,44 @@ namespace test {
             instance->GetAllOutputBlobs(output_blob_maps);
             instance->GetCommandQueue(&command_queue);
             if (CheckResult("create instance", ret)) {
-                srand(102);
-                InitInput(input_blob_maps, command_queue);
+                MatConvertParam in_param;
+                MatConvertParam out_param;
+                auto device_blob  = input_blob_maps.begin()->second;
+                BlobConverter blob_converter(device_blob);
+                BlobDesc blob_desc = device_blob->GetBlobDesc();
+                int data_count     = DimsVectorUtils::Count(blob_desc.dims);
+
+                MatType mat_type   = NCHW_FLOAT;
+                auto dtype    = DATA_TYPE_FLOAT;
+                auto size_in_bytes = data_count * DataTypeUtils::GetBytesSize(dtype);
+                void* img_data     = malloc(size_in_bytes);
+                //init random
+                for (int i = 0; i < data_count; i++) {
+                    if (dtype == DATA_TYPE_FLOAT) {
+                        reinterpret_cast<float*>(img_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
+                    } else {
+                        reinterpret_cast<uint8_t*>(img_data)[i] = (rand() % 256);
+                    }
+                }
+
+                if (dtype == DATA_TYPE_FLOAT && blob_desc.dims[1] > 4) {
+                    in_param.scale = std::vector<float>(blob_desc.dims[1], 1);
+                    in_param.bias  = std::vector<float>(blob_desc.dims[1], 0);
+                }
+
+                auto out_dev_blob = output_blob_maps.begin()->second;
+                TNN_NS::Mat img(DEVICE_NAIVE, mat_type, img_data);
+
+                BlobDesc out_blob_desc = out_dev_blob->GetBlobDesc();
+                data_count             = DimsVectorUtils::Count(out_blob_desc.dims);
+                BlobConverter out_blob_converter(out_dev_blob);
+                void* out_data = malloc(data_count * sizeof(float));
+                TNN_NS::Mat out_img(DEVICE_NAIVE, NCHW_FLOAT, img_data);
 
                 for (int i = 0; i < FLAGS_wc; ++i) {
+                    blob_converter.ConvertFromMat(img, in_param, command_queue);
                     ret = instance->Forward();
+                    out_blob_converter.ConvertToMat(out_img, out_param, command_queue);
                 }
 #if TNN_PROFILE
                 instance->StartProfile();
@@ -99,17 +133,23 @@ namespace test {
                 auto end   = system_clock::now();
                 float min = FLT_MAX, max = FLT_MIN, sum = 0.0f;
                 for (int i = 0; i < FLAGS_ic; ++i) {
-                    start       = system_clock::now();
+                    start = system_clock::now();
+                    blob_converter.ConvertFromMat(img, in_param, command_queue);
                     ret         = instance->Forward();
+                    out_blob_converter.ConvertToMat(out_img, out_param, command_queue);
                     end         = system_clock::now();
                     float delta = duration_cast<microseconds>(end - start).count() / 1000.0f;
                     min         = static_cast<float>(fmin(min, delta));
                     max         = static_cast<float>(fmax(max, delta));
                     sum += delta;
                 }
+
 #if TNN_PROFILE
                 instance->FinishProfile(true);
 #endif
+
+                free(img_data);
+                free(out_data);
                 CheckResult("Forward", ret);
                 char min_str[16];
                 snprintf(min_str, 16, "%6.3f", min);
