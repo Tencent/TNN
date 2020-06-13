@@ -63,8 +63,8 @@ namespace test {
          * Set the cpu affinity.
          * usually, -dl 0-3 for little core, -dl 4-7 for big core
          */
-        if (!FLAGS_dl.empty())
-            SetCpuAffinity();
+        /// only works when -dl flags were set. current not set in benchmark script
+        SetCpuAffinity();
 
         ModelConfig model_config     = GetModelConfig();
         NetworkConfig network_config = GetNetworkConfig();
@@ -173,20 +173,22 @@ namespace test {
 
     void SetCpuAffinity() {
         // set cpu affinity, only work in arm mode
-        auto split = [=](const std::string str, char delim, std::vector<std::string>& str_vec) {
-            std::stringstream ss(str);
-            std::string element;
-            while (std::getline(ss, element, delim))
-                str_vec.push_back(element);
-        };
+        if (!FLAGS_dl.empty()) {
+            auto split = [=](const std::string str, char delim, std::vector<std::string>& str_vec) {
+                std::stringstream ss(str);
+                std::string element;
+                while (std::getline(ss, element, delim))
+                    str_vec.push_back(element);
+            };
 
-        std::vector<std::string> devices;
-        split(FLAGS_dl, ',', devices);
-        std::vector<int> device_list;
-        for (auto iter : devices) {
-            device_list.push_back(atoi(iter.c_str()));
+            std::vector<std::string> devices;
+            split(FLAGS_dl, ',', devices);
+            std::vector<int> device_list;
+            for (auto iter : devices) {
+                device_list.push_back(atoi(iter.c_str()));
+            }
+            CpuUtils::SetCpuAffinity(device_list);
         }
-        CpuUtils::SetCpuAffinity(device_list);
     }
 
     ModelConfig GetModelConfig() {
