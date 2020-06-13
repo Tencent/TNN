@@ -122,8 +122,8 @@ namespace test {
                 TNN_NS::Mat out_img(DEVICE_NAIVE, NCHW_FLOAT, img_data);
 
                 for (int i = 0; i < FLAGS_wc; ++i) {
-                    blob_converter.ConvertFromMat(img, in_param, command_queue);
-                    ret = instance->Forward();
+                    blob_converter.ConvertFromMatAsync(img, in_param, command_queue);
+                    ret = instance->ForwardAsync(nullptr);
                     out_blob_converter.ConvertToMat(out_img, out_param, command_queue);
                 }
 #if TNN_PROFILE
@@ -134,8 +134,11 @@ namespace test {
                 float min = FLT_MAX, max = FLT_MIN, sum = 0.0f;
                 for (int i = 0; i < FLAGS_ic; ++i) {
                     start = system_clock::now();
-                    blob_converter.ConvertFromMat(img, in_param, command_queue);
-                    ret         = instance->Forward();
+                    // copy data into device
+                    blob_converter.ConvertFromMatAsync(img, in_param, command_queue);
+                    // forward async
+                    ret = instance->ForwardAsync(nullptr);
+                    // copy data from device and sync
                     out_blob_converter.ConvertToMat(out_img, out_param, command_queue);
                     end         = system_clock::now();
                     float delta = duration_cast<microseconds>(end - start).count() / 1000.0f;
