@@ -37,4 +37,3 @@ function build_model_check() {
 
 build_model_check bin temp
 
-
