@@ -187,6 +187,10 @@ Status ModelChecker::GetOutputRefData() {
             int num_out;
             std::ifstream f_stream(output_file_name);
             f_stream >> num_out;
+            if (num_out == 0) {
+                LOGE("invalid output reference file (%s)!  Please make sure the reference file formate right\n", output_file_name.c_str());
+                return Status(TNNERR_COMMON_ERROR, "invalid output ref file, the wrong file formate!");
+            }
             for (int index = 0; index < num_out; index++) {
                 int dims_size = 0;
                 int dim       = 1;
