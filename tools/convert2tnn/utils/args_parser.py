@@ -160,7 +160,6 @@ def parse_args():
                                action='store_true',
                                required=False,
                                help="optimize the model")
-
     tf2tnn_parser.add_argument('-half',
                                dest='half',
                                default=False,
@@ -173,6 +172,12 @@ def parse_args():
                                action='store_true',
                                required=False,
                                help='align the onnx model with tnn model')
+    tf2tnn_parser.add_argument('-fold_const',
+                                dest='fold_const',
+                                default=False,
+                                action='store_true',
+                                required=False,
+                                help='enable tf constant_folding transformation before conversion')
     tf2tnn_parser.add_argument('-input_file',
                                dest='input_file_path',
                                action='store',
