@@ -24,6 +24,8 @@ static const char help_message[] = "print a usage message.";
 
 static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN.";
 
+static const char network_type_message[] = "network type: OPENVINO";
+
 static const char model_path_message[] =
     "specify model path: tnn proto path, openvino xml path, coreml "
     "mlmodel path, snpe dlc path.";
@@ -62,6 +64,8 @@ static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 DECLARE_bool(h);
 
 DECLARE_string(mt);
+
+DECLARE_string(nt);
 
 DECLARE_string(mp);
 
