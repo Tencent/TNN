@@ -136,7 +136,7 @@ optional arguments:
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 half 和 align 不能同时使用__
+    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
 - fold_const 参数（可选）
     可以通过 -fold_const 参数指定，在 TensorFlow 模型转换为 ONNX 模型之前优化模型中的 transformation 算子。
 - input_file 参数（可选）
