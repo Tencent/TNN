@@ -124,7 +124,7 @@ optional arguments:
 
 
 ```shell script
-python3 onnx2tnn.py model.onnx -version=algo_version -optimize=1 -half=0
+python3 onnx2tnn.py model.onnx -version=algo_version -optimize=1 -align -input_file=in.txt -ref_file=ref.txt
 ```
 ```text
 参数说明：
@@ -144,7 +144,7 @@ Note: 实际计算是否用FP16看各个平台特性决定，移动端GPU目前�
 output_dir : 指定 TNN 模型的存放的文件夹路径，该文件夹必须存在
 
 -align
-模型对齐，如需使用模型对齐添加该参数即可
+模型对齐，如需使用模型对齐添加该参数即可。当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half
 
 -input_file
 input_file : 指定模型对齐所需要的输入文件的位置
