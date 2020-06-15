@@ -55,11 +55,9 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, fold_const=False):
     work_dir = "./"
     inputs, inputs_as_nchw = process_input_names(input_names)
     command = "python3 -m tf2onnx.convert  --graphdef " + tf_path
-    # command = command + " --inputs " + inputs
-    # command = command + " --inputs-as-nchw " + inputs_as_nchw
 
-    command = command + " --inputs " + hack_name(input_names)
-    command = command + " --inputs-as-nchw " + hack_name(input_names)
+    command = command + " --inputs " + inputs
+    command = command + " --inputs-as-nchw " + inputs_as_nchw
 
     command = command + " --outputs " + hack_name(output_name)
     command = command + " --output " + onnx_path
