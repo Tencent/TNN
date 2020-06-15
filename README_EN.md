@@ -97,7 +97,7 @@ At present, TNN has been launched in various major businesses, and its following
 * [Tools]()
     * [Create a TNN Model](doc/en/user/convert_en.md)
     * [Model Quantization](doc/en/user/quantization_en.md)
-    * [Model Visualization](doc/en/user/visual_en.md)
+    * [Model Visualization Netron](https://lutzroeder.github.io/netron/)
     * [Performance Analysis](doc/en/development/profiling_en.md)
     * [Model Alignment](doc/en/development/model_check_en.md)
 
