@@ -157,6 +157,7 @@ namespace test {
     void ShowUsage() {
         printf("    -h                      %s \n", help_message);
         printf("    -mt \"<model type>\"    %s \n", model_type_message);
+        printf("    -nt \"<network type>\"  %s \n", network_type_message);
         printf("    -mp \"<model path>\"    %s \n", model_path_message);
         printf("    -dt \"<device type>\"   %s \n", device_type_message);
         printf("    -lp \"<library path>\"  %s \n", library_path_message);
@@ -259,7 +260,7 @@ namespace test {
         config.device_type = ConvertDeviceType(FLAGS_dt);
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_mt);
+        config.network_type = ConvertNetworkType(FLAGS_nt);
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
