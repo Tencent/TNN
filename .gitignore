@@ -484,4 +484,5 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+source/tnn/device/openvino/thirdparty/
 
