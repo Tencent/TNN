@@ -137,7 +137,7 @@ optional arguments:
 - input_file 参数（可选）
     可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称。
 - ref_file 参数（可选）
-    可以通过 -ref_file 参数指定待对齐的输出文件的名称，若模型为多输出需遵循  如下格式。
+    可以通过 -ref_file 参数指定待对齐的输出文件的名称，若模型为多输出需遵循如下[格式](#额外说明)。
 
 
 **当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
@@ -400,6 +400,29 @@ optional arguments:
 python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize -o ~/tf-model/
 ```
 
+## 额外说明
+
+#### reference file 文件格式示例
+
+输出数量 </br>
+输出名称 shape维度个数 具体shape信息 </br>
+输出 </br>
+输出名称 shape维度个数 具体shape信息 </br>
+输出 </br>
+ ......
+
+ #### 例如
+ 2 </br>
+ out0 2 1 3 </br>
+ 0.1 </br>
+ 0.2 </br>
+ 0.3 </br>
+ out1 4 1 2 2 1 </br>
+ 0.1 </br>
+ 0.2 </br>
+ 0.3 </br>
+ 0.4 </br>
+
 
 # 模型转换详细介绍
 convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 “模型转换介绍”中原理说明，你也可以先将原始模型转换成 ONNX，然后再将 ONNX 模型转换成 TNN 模型。我们提供了如何手动的将 Caffe、PyTorch、TensorFlow 模型转换成 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型的文档。如果你在使用 convert2tnn 转换工具遇到问题时，我们建议你了解下相关的内容，这有可能帮助你更加顺利的进行模型转换。
@@ -408,3 +431,4 @@ convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 �
 - [pytorch2tnn](onnx2tnn.md)
 - [tf2tnn](tf2tnn.md)
 - [caffe2tnn](caffe2tnn.md)
+
