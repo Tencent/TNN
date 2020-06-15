@@ -101,37 +101,42 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
                       [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names. 
-  -on output_name  the tensorflow model's output name
-  -o OUTPUT_DIR    the output tnn directory
-  -v v1.0          the version for model
-  -optimize        optimize the model
-  -half            optimize the model
-  -align           align the onnx model with tnn model
-  -fold_const      enable tf constant_folding transformation before conversion
-  -input_file      the input file path which contains the input data for the inference model
-  -ref_file        the reference file path which contains the reference data to compare the results
+  -h, --help            show this help message and exit
+  -tp TF_PATH           the path for tensorflow graphdef file
+  -in input_name        the tensorflow model's input names
+  -on output_name       the tensorflow model's output name
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -optimize             optimize the model
+  -half                 optimize the model
+  -align                align the onnx model with tnn model
+  -fold_const           enable tf constant_folding transformation before
+                        conversion
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 通过上面的输出，可以发现针对 TF 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
 
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
 - in 参数（必须）
-    通过 “-in” 参数指定模型输入的名称，如果模型有多个输入，请使用 “，”进行分割。有的 TensorFlow 模型没有指定 batch 信息导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：--inputs X:0[1,28,28,3]。
+    通过 “-in” 参数指定模型输入的名称，如果模型有多个输入，请使用 “;”进行分割。有的 TensorFlow 模型没有指定 batch 导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：-in name[1,28,28,3]。
 - on 参数（必须）
-    通过 “-on” 参数指定模型输入的名称，如果模型有多个输出，请使用 “，”进行分割
+    通过 “-on” 参数指定模型输入的名称，如果模型有多个输出，请使用 “;”进行分割
 - output_dir 参数：
-    可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不适用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
+    可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不使用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
 - optimize 参数（可选）
-    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议您去掉 “-optimize” 参数进行重新尝试**。
+    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议你去掉 “-optimize” 参数进行重新尝试**。
 - v 参数（可选）
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。
+    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 half 和 align 不能同时使用__
 - fold_const 参数（可选）
     可以通过 -fold_const 参数指定，在 TensorFlow 模型转换为 ONNX 模型之前优化模型中的 transformation 算子。
 - input_file 参数（可选）
@@ -145,7 +150,7 @@ optional arguments:
 下面我们通过一个例子来展示如何将 TF 模型转换到 TNN 模型，
 
 ``` shell script
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize -half -align -fold_const -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
 ```
 
 由于 convert2tnn工具是部署在 docker 镜像中的，如果要进行模型的转换,需要先将模型传输到 docker 容器中。我们可以通过 docker run 的参数--volume 将包含模型的模型挂载到 docker 容器的某个路径下。上面的例子中是将执行shell 的当前目录（pwd）挂载到 docker 容器中的 "/workspace” 文件夹下面。当然了测试用到的test.pb 也**必须执行 shell 命令的当前路径下**。执行完成上面的命令后，convert2tnn 工具会将生成的 TNN 模型存放在 test.pb文件的同一级目录下，当然了生成的文件也就是在当前目录下。
@@ -154,9 +159,10 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converte
 
 ``` shell script
 # convert onnx
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/mobilenetv3-small-c7eb32fe.onnx -optimize -v=v3.0
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/mobilenetv3-small-c7eb32fe.onnx -optimize -v=v3.0 -half -align  -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
+
 # convert caffe
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn /workspace/squeezenet.prototxt /workspace/squeezenet.caffemodel -optimize -v=v1.0
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn /workspace/squeezenet.prototxt /workspace/squeezenet.caffemodel -optimize -v=v1.0 -half -align  -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
 
 ```
 
@@ -209,7 +215,7 @@ pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
 ##### 编译
 onnx2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行就可以。
  ```shell script
-cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
+cd <path-to-tnn>/tools/convert2tnn
 ./build.sh
  ```
 
@@ -312,8 +318,12 @@ optional arguments:
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
   -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 示例：
 ```shell script
@@ -362,8 +372,12 @@ optional arguments:
   -optimize             optimize the model
   -half                 save model using half
   -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 示例：
 ```shell script
@@ -391,9 +405,14 @@ optional arguments:
   -optimize             optimize the model
   -half                 optimize the model
   -align                align the onnx model with tnn model
-  -fold_const           enable tf constant_folding transformation before conversion
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -fold_const           enable tf constant_folding transformation before
+                        conversion
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 示例：
 ```shell script
@@ -422,6 +441,7 @@ python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0
  0.2 </br>
  0.3 </br>
  0.4 </br>
+     </br>
 
 
 # 模型转换详细介绍

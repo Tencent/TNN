@@ -87,10 +87,17 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -o ONNX_FILE          the path for generate onnx file
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model, default v1.0
+  -optimize             optimize the model
+  -half                 save model using half
   -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 
 ## 3. caffe2onnx 支持的算子
