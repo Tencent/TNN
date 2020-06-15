@@ -18,6 +18,7 @@ option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
 option(TNN_DSP_ENABLE "Enable DSP" OFF)
 option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
+option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
 option(TNN_NPU_ENABLE "Enable NPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
@@ -144,6 +145,7 @@ message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
 message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
 message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
+message(STATUS "\tOpenVINO:\t${TNN_OPENVINO_ENABLE}")
 message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
@@ -168,6 +170,8 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/interpreter/*.cc"
                       "source/tnn/optimizer/*.h"
                       "source/tnn/optimizer/*.cc"
+                      "source/tnn/extern_wrapper/*.h"
+                      "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
@@ -184,6 +188,11 @@ endif()
 if(TNN_X86_ENABLE)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
+endif()
+
+if(TNN_OPENVINO_ENABLE)
+    add_subdirectory(source/tnn/device/openvino)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNOpenVINO>")
 endif()
 
 if(TNN_OPENCL_ENABLE)

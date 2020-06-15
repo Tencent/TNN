@@ -40,6 +40,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils.h"
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -179,6 +180,7 @@ namespace test {
     void ShowUsage() {
         printf("    -h                      \t%s \n", help_message);
         printf("    -mt \"<model type>\"    \t%s \n", model_type_message);
+        printf("    -nt \"<network type>\"  \t%s \n", network_type_message);
         printf("    -mp \"<model path>\"    \t%s \n", model_path_message);
         printf("    -dt \"<device type>\"   \t%s \n", device_type_message);
         printf("    -lp \"<library path>\"  \t%s \n", library_path_message);
@@ -297,7 +299,7 @@ namespace test {
         
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_mt);
+        config.network_type = ConvertNetworkType(FLAGS_nt);
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
@@ -431,6 +433,7 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
+        std::cout << "Writing outputs" << std::endl;
         for (auto output : outputs) {
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
