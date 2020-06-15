@@ -22,7 +22,6 @@ from utils import parse_path
 def main():
     args = args_parser.parse_args()
     if args.sub_command == 'onnx2tnn':
-        
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
         version = args.version
