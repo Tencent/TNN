@@ -108,14 +108,18 @@ positional arguments:
   onnx_model_path     Input ONNX model path
 
 optional arguments:
-  -h, --help              show this help message and exit
-  -version VERSION        Algorithm version string
-  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
-  -half HALF              Save model using half, 1:yes, 0:default no
-  -o OUTPUT_DIR           the output dir for tnn model
-  -align                  align the onnx model with tnn model
-  -input_file INPUT_FILE  the input file path which contains the input data for the inference model
-  -ref_file   REF_FILE    the reference file path which contains the reference data to compare the results
+  -h, --help            show this help message and exit
+  -optimize             optimize the model
+  -half                 save model using half
+  -v v1.0.0             the version for model
+  -o OUTPUT_DIR         the output tnn directory
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 
 

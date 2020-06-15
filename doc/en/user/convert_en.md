@@ -95,9 +95,9 @@ Here is the explanations for each parameters:
 - tp parameter (required)
     Use the "-tp" parameter to specify the path of the model to be converted. Currently only supports the conversion of a single TF model, does not support the conversion of multiple TF models together.
 - in parameter (required)
-    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use "," to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example --inputs X:0[1,28,28,3]
+    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
 - on parameter (required)
-    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use "," to split
+    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use ";" to split
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
@@ -113,7 +113,7 @@ Here is the explanations for each parameters:
 - input_file parameter (optional)
     Specify the input file's name which will be used by model_check through the "-input_file" parameter.
 - ref_file parameter (optional)
-    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. Hers is the file's format.
+    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. 
 
 
 **Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.
