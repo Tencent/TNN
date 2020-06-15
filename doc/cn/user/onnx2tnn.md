@@ -108,11 +108,14 @@ positional arguments:
   onnx_model_path     Input ONNX model path
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -version VERSION    Algorithm version string
-  -optimize OPTIMIZE  Optimize model befor convert, 1:default yes, 0:no
-  -half HALF          Save model using half, 1:yes, 0:default no
-  -o OUTPUT_DIR       the output dir for tnn model
+  -h, --help              show this help message and exit
+  -version VERSION        Algorithm version string
+  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
+  -half HALF              Save model using half, 1:yes, 0:default no
+  -o OUTPUT_DIR           the output dir for tnn model
+  -align                  align the onnx model with tnn model
+  -input_file INPUT_FILE  the input file path which contains the input data for the inference model
+  -ref_file   REF_FILE    the reference file path which contains the reference data to compare the results
 ```
 
 
@@ -134,7 +137,16 @@ python3 onnx2tnn.py model.onnx -version=algo_version -optimize=1 -half=0
 Note: 实际计算是否用FP16看各个平台特性决定，移动端GPU目前仅支持FP16运算
 
 -o
-output_dir : 指定 TNN 模型的存放的文件夹路径，该文件夹必须存在。
+output_dir : 指定 TNN 模型的存放的文件夹路径，该文件夹必须存在
+
+-align
+模型对齐，如需使用模型对齐添加该参数即可
+
+-input_file
+input_file : 指定模型对齐所需要的输入文件的位置
+
+-ref_file
+reference_file : 指定模型对齐所需要的对齐文件的位置
 ```
 
 

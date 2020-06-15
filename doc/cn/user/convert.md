@@ -103,19 +103,23 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
 optional arguments:
   -h, --help       show this help message and exit
   -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names
+  -in input_name   the tensorflow model's input names. 
   -on output_name  the tensorflow model's output name
   -o OUTPUT_DIR    the output tnn directory
   -v v1.0          the version for model
   -optimize        optimize the model
   -half            optimize the model
+  -align           align the onnx model with tnn model
+  -fold_const      enable tf constant_folding transformation before conversion
+  -input_file      the input file path which contains the input data for the inference model
+  -ref_file        the reference file path which contains the reference data to compare the results
 ```
 通过上面的输出，可以发现针对 TF 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
 
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
 - in 参数（必须）
-    通过 “-in” 参数指定模型输入的名称，如果模型有多个输入，请使用 “，”进行分割
+    通过 “-in” 参数指定模型输入的名称，如果模型有多个输入，请使用 “，”进行分割。有的 TensorFlow 模型没有指定 batch 信息导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：--inputs X:0[1,28,28,3]。
 - on 参数（必须）
     通过 “-on” 参数指定模型输入的名称，如果模型有多个输出，请使用 “，”进行分割
 - output_dir 参数：
@@ -126,6 +130,14 @@ optional arguments:
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
+- align 参数（可选）
+    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。
+- fold_const 参数（可选）
+    可以通过 -fold_const 参数指定，在 TensorFlow 模型转换为 ONNX 模型之前优化模型中的 transformation 算子。
+- input_file 参数（可选）
+    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称。
+- ref_file 参数（可选）
+    可以通过 -ref_file 参数指定待对齐的输出文件的名称，若模型为多输出需遵循  如下格式。
 
 
 **当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
@@ -294,11 +306,14 @@ positional arguments:
   onnx_path      the path for onnx file
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -optimize      optimize the model
-  -half          save model using half
-  -v v1.0.0      the version for model
-  -o OUTPUT_DIR  the output tnn directory
+  -h, --help            show this help message and exit
+  -optimize             optimize the model
+  -half                 save model using half
+  -v v1.0.0             the version for model
+  -o OUTPUT_DIR         the output tnn directory
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
 ```
 示例：
 ```shell script
@@ -346,6 +361,9 @@ optional arguments:
   -v v1.0               the version for model, default v1.0
   -optimize             optimize the model
   -half                 save model using half
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
 ```
 示例：
 ```shell script
@@ -364,14 +382,18 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
                       [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names
-  -on output_name  the tensorflow model's output name
-  -o OUTPUT_DIR    the output tnn directory
-  -v v1.0          the version for model
-  -optimize        optimize the model
-  -half            optimize the model
+  -h, --help            show this help message and exit
+  -tp TF_PATH           the path for tensorflow graphdef file
+  -in input_name        the tensorflow model's input names
+  -on output_name       the tensorflow model's output name
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -optimize             optimize the model
+  -half                 optimize the model
+  -align                align the onnx model with tnn model
+  -fold_const           enable tf constant_folding transformation before conversion
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
 ```
 示例：
 ```shell script
