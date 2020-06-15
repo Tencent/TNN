@@ -1,5 +1,5 @@
 [中文版本](/doc/cn/front_page.md)
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
 ## Get Started
 
@@ -37,16 +37,16 @@ At present, TNN has been launched in various major businesses, and its following
 * Performance comparison among mainstream models: TNN outperforms other mainstream open-source mobile high-performance frameworks.
     * Kirin970：
 
-    <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/970.jpg"/>
+    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/970.jpg"/>
 
     * Snapdragon 835：
 
-    <div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/835.jpg"/>
+    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/835.jpg"/>
 
 
 * TNN architecture diagram：
 
-   <div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/tnn_architect.jpg" width="512" alt=TNN架构 />
+   <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg" width="512" alt=TNN架构 />
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently TNN supports 55 ONNX operators, and will be developed to cover 80 operators shortly, consisting of most of the mainstream CNN operators needed.
@@ -110,7 +110,7 @@ TNN referenced the following projects：
 * Technical Discussion QQ Group: 913940506 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN-QQ.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
 
 ## FAQ
 * [Frequently asked questions](/doc/en/faq_en.md)

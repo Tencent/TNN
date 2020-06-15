@@ -101,7 +101,7 @@ __kernel void ConvertFromN8UC3(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
     int buffer_offset =
         ((batch_idx * height + height_idx) * width + image_width_idx) * 3;
 
-    float4 values;
+    float4 values = (float4)(0.0f);
 
 #ifdef SWAP_RB
     values.z = convert_float(input_ptr[buffer_offset]);

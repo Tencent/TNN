@@ -22,15 +22,15 @@ At present, TNN has been launched in various major businesses, and its following
 
     * Kirin970：
 
-    <div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/970.jpg"/>
+    <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/970.jpg"/>
 
     * Snapdragon 835：
 
-    <div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/835.jpg"/>
+    <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/835.jpg"/>
     
 #### TNN Architecture Diagram：
 
-   <div align=left><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/tnn_architect.jpg" width="512"/>
+   <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg" width="512"/>
    
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently, TNN supports 55 ONNX operators and will be developed to cover 80 operators shortly, consisting of most of the mainstream CNN operators needed.
