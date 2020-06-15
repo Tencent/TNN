@@ -165,5 +165,8 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     
     if input_file_path is None:
         data.clean_temp_data(os.path.dirname(input_path))
+    if os.path.exists(reference_output_path):
+        data.clean_temp_data(reference_output_path)
+    
     return True
 

@@ -21,7 +21,7 @@ import os
 
 def hack_name(names: str):
     hacked_names = ""
-    name_list = names.split(',')
+    name_list = names.split(';')
     for name in name_list:
         if name.endswith(":0"):
             hacked_names = hacked_names + name + ","
