@@ -59,12 +59,12 @@ download_model \
 
 # download mobilenetv2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.onnx.opt.onnx.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.tnnmodel" \
     "mobilenet_v2"
 
 # download shufflenet_v2 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.onnx.opt.onnx.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnmodel" \
     "shufflenet_v2"

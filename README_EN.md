@@ -1,5 +1,5 @@
 [中文版本](README.md)
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
 ## Introduction
 
@@ -10,7 +10,7 @@ At present, TNN has been launched to support various products in Youtu Lab and G
 
 It is very simple to use TNN. If you have a trained model, the model can be deployed on the target platform through three steps.
 1. Convert the trained model into a TNN model. We provide a wealth of tools to help you complete this step, whether you are using Tensorflow, Pytorch, or Caffe, you can easily complete the conversion.
-Detailed hands-on tutorials can be found here [How to Create TNN Models](doc/en/user/convert_en.md).
+Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en/user/convert_en.md).
 
 2. When you have finished converting the model, the second step is to compile the TNN engine of the target platform. You can choose among different acceleration solutions such as ARM / OpenCL / Metal according to the hardware support.
    For these platforms, TNN provides convenient one-click scripts to compile. For detailed steps, please refer to [How to Compile TNN](doc/en/user/compile_en.md).
@@ -18,7 +18,7 @@ Detailed hands-on tutorials can be found here [How to Create TNN Models](doc/en/
 3. The final step is to use the compiled TNN engine for inference. You can make program calls to TNN inside your application. We provide a rich and detailed demo as a reference to help you complete.
     * [Run an iOS Demo](doc/en/user/demo_en.md)
     * [Run an Android Demo](doc/en/user/demo_en.md)
-    
+
 ## Technical Solutions
 
 TNN is a high-performance and lightweight inference framework for mobile devices. It provides lots of advanced features such as cross-platform, model-compression, and code-pruning. TNN, inspired by mainstream open-source industry frameworks, integrates and leverages Youtu Lab's Rapidnet, ncnn framework. It also combines the efforts of the deep-learning framework Oteam from all departments(PCG, TEG, IEG) to create an enterprise-level mobile inference engine.
@@ -53,7 +53,7 @@ At present, TNN has been launched in various major businesses, and its following
         | squeezenet_v1.0_int8      | 82           |              |
 
     * Snapdragon 835：
-    
+
         | model                     | cpu time(single thread, ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
         | Mobilenet_v1              | 94           |   16         |
@@ -62,7 +62,7 @@ At present, TNN has been launched in various major businesses, and its following
         | Mobilenet_v2_int8         | 47           |              |
         | squeezenet_v1.0           | 122          |   28         |
         | squeezenet_v1.0_int8      | 93           |              |
-        
+
     * Snapdragon 845：
 
         | model                     | cpu time(single thread, ms) | gpu time(ms) |
@@ -77,7 +77,7 @@ At present, TNN has been launched in various major businesses, and its following
 
 * TNN architecture diagram：
 
-   <div><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/cn/imgs/tnn_architect.jpg"/>
+   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently, TNN supports 55 ONNX operators and will be developed to cover 80 operators shortly, consisting of most of the mainstream CNN operators needed.
@@ -95,7 +95,7 @@ At present, TNN has been launched in various major businesses, and its following
 ## Manual
 * [Compile TNN](doc/en/user/compile_en.md)
 * [Tools]()
-    * [Create TNN Models](doc/en/user/convert_en.md)
+    * [Create a TNN Model](doc/en/user/convert_en.md)
     * [Model Quantization](doc/en/user/quantization_en.md)
     * [Model Visualization](doc/en/user/visual_en.md)
     * [Performance Analysis](doc/en/development/profiling_en.md)
@@ -141,7 +141,7 @@ TNN referenced the following projects：
 * Technical Discussion QQ Group: 913940506 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN-QQ.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
 
 ## FAQ
 * [Frequently asked questions](/doc/en/faq_en.md)

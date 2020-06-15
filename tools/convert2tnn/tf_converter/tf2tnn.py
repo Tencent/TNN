@@ -77,7 +77,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
             input_path=None, refer_path=None):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
-    if output_dir is None:
+    if output_dir is None or not os.path.isdir(output_dir):
         output_dir = os.path.dirname(tf_path)
     checker.check_file_exist(output_dir)
     model_name = model_name[:-len(".pb")]

@@ -1,7 +1,7 @@
 # 模型转换
 ## 模型转换介绍
 
-<div align=left ><img src="./resource/convert.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
 
 目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
 
@@ -33,7 +33,7 @@
 目前 TNN 已经在 docker hub 上准备好了构建好的 docker image，我们建议直接从 docker hub 上拉取镜像。
 
 ```shell script
-docker pull docker pull turandotkay/tnn-convert
+docker pull turandotkay/tnn-convert
 ```
 同样的，等待一会之后，你可以通过 `docker images` 来查看是否构建成功，如果构建成功之后，会有类似下面的输出信息：
 ``` text
