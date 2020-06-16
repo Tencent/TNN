@@ -69,7 +69,7 @@ private:
     std::shared_ptr<TNN> tnn_;
     std::shared_ptr<Instance> instance_cpu_;
     std::shared_ptr<Instance> instance_device_;
-    std::shared_ptr<float> output_ref_data_;
+    std::map<std::string, std::shared_ptr<float>> output_ref_data_map_;
     std::map<std::string, std::shared_ptr<char>> cpu_blobdata_map;
     std::vector<std::pair<LayerInfo*, bool>> check_results;
 };

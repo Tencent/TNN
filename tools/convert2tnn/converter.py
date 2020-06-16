@@ -27,9 +27,15 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
+        align = args.align
+        input_file = args.input_file_path
+        ref_file = args.refer_file_path
         onnx_path = parse_path.parse_path(onnx_path)
         output_dir = parse_path.parse_path(output_dir)
-        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+        input_file = parse_path.parse_path(input_file)
+        ref_file = parse_path.parse_path(ref_file)
+        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file)
+    
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
         model_path = parse_path.parse_path(args.model_path)
@@ -37,7 +43,12 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
-        caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half)
+        align = args.align
+        input_file = args.input_file_path
+        ref_file = args.refer_file_path
+        input_file = parse_path.parse_path(input_file)
+        ref_file = parse_path.parse_path(ref_file)
+        caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -47,7 +58,14 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
-        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half)
+        align = args.align
+        not_fold_const = args.not_fold_const
+        input_file = args.input_file_path
+        ref_file = args.refer_file_path
+        input_file = parse_path.parse_path(input_file)
+        ref_file = parse_path.parse_path(ref_file)
+        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
+                        input_file, ref_file)
     else:
         print("Do not support convert!")
 

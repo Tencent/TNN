@@ -14,10 +14,12 @@
 
 from utils import cmd
 from utils import checker
+from . import align_model
 import os
 
 
-def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False):
+def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
+            input_path=None, refer_path=None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -29,6 +31,8 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     :return return_code
     :exception 执行超时
     """
+    proto_suffix = '.tnnproto'
+    model_suffix = '.tnnmodel'
     command = "python3 onnx2tnn.py " + onnx_path
     command = command + " -version=v1.0"
     checker.check_file_exist(onnx_path)
@@ -52,3 +56,15 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         print("onnx2tnn succeed!")
     else:
         print("onnx2tnn failed!")
+    onnx_base_name = os.path.basename(onnx_path)
+
+    if align is True:
+        if optimize is True:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+        else:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)

@@ -28,7 +28,7 @@ pip3 install onnxruntime
 
 下面是对 test.pb 进行转换的命令，使用起来非常方便。建议大家阅读 tf2onnx 的 README.md 文件，里面有详细的对该工具各个参数的说明。
 ``` shell script
-python3 -m tf2onnx.convert  --graphdef test.pb   --inputs input_data:0  --outputs pred:0   --opset 11 --output  test.onnx --inputs-as-nchw input_data:0
+python3 -m tf2onnx.convert  --graphdef test.pb   --inputs input_data:0[1,28,28,3]  --outputs pred:0   --opset 11 --output  test.onnx --inputs-as-nchw input_data:0
 ```
 
 ## 3. tf2onnx 支持的算子
