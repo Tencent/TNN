@@ -103,15 +103,15 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names
+  -in input_name        the tensorflow model's input names. If batch is not
+                        specified, you can add input shape after the input
+                        name, e.g. -in in:0[1,3,28,28]
   -on output_name       the tensorflow model's output name
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
   -optimize             optimize the model
   -half                 optimize the model
   -align                align the onnx model with tnn model
-  -fold_const           enable tf constant_folding transformation before
-                        conversion
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for
                         the inference model.
@@ -136,9 +136,7 @@ optional arguments:
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
-- fold_const 参数（可选）
-    可以通过 -fold_const 参数指定，在 TensorFlow 模型转换为 ONNX 模型之前优化模型中的 transformation 算子。
+    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模S型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
     可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称。
 - ref_file 参数（可选）
@@ -150,7 +148,15 @@ optional arguments:
 下面我们通过一个例子来展示如何将 TF 模型转换到 TNN 模型，
 
 ``` shell script
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn -tp=/workspace/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize -align -fold_const -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn \
+    -tp=/workspace/test.pb \
+    -in=input0,input2 \
+    -on=output0 \
+    -v=v2.0 \
+    -optimize \
+    -align \
+    -input_file=/workspace/in.txt \
+    -ref_file=/workspace/ref.txt
 ```
 
 由于 convert2tnn工具是部署在 docker 镜像中的，如果要进行模型的转换,需要先将模型传输到 docker 容器中。我们可以通过 docker run 的参数--volume 将包含模型的模型挂载到 docker 容器的某个路径下。上面的例子中是将执行shell 的当前目录（pwd）挂载到 docker 容器中的 "/workspace” 文件夹下面。当然了测试用到的test.pb 也**必须执行 shell 命令的当前路径下**。执行完成上面的命令后，convert2tnn 工具会将生成的 TNN 模型存放在 test.pb文件的同一级目录下，当然了生成的文件也就是在当前目录下。
@@ -159,10 +165,21 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converte
 
 ``` shell script
 # convert onnx
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/mobilenetv3-small-c7eb32fe.onnx -optimize -v=v3.0 -align  -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn \
+    /workspace/mobilenetv3-small-c7eb32fe.onnx \
+    -optimize \
+    -v=v3.0 \
+    -align  \
+    -input_file=/workspace/in.txt \
+    -ref_file=/workspace/ref.txt
 
 # convert caffe
-docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn /workspace/squeezenet.prototxt /workspace/squeezenet.caffemodel -optimize -v=v1.0 -align  -input_file=/workspace/in.txt -ref_file=/workspace/ref.txt
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn \
+    /workspace/squeezenet.prototxt \
+    /workspace/squeezenet.caffemodel \
+    -optimize -v=v1.0 -align  \
+    -input_file=/workspace/in.txt \
+    -ref_file=/workspace/ref.txt
 
 ```
 
@@ -327,7 +344,14 @@ optional arguments:
 ```
 示例：
 ```shell script
-python3 converter.py onnx2tnn ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx -optimize -v=v3.0 -o ~/mobilenetv3/ -align -input_file=in.txt -ref_file=ref.txt
+python3 converter.py onnx2tnn \
+    ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx \
+    -optimize \
+    -v=v3.0 \
+    -o ~/mobilenetv3/ \
+    -align \
+    -input_file=in.txt \
+    -ref_file=ref.txt
 ```
 
 - caffe2tnn
@@ -381,7 +405,15 @@ optional arguments:
 ```
 示例：
 ```shell script
-python3 converter.py caffe2tnn ~/squeezenet/squeezenet.prototxt ~/squeezenet/squeezenet.caffemodel -optimize -v=v1.0 -o ~/squeezenet/ -align -input_file=in.txt -ref_file=ref.txt
+python3 converter.py caffe2tnn \
+    ~/squeezenet/squeezenet.prototxt \
+    ~/squeezenet/squeezenet.caffemodel \
+    -optimize \
+    -v=v1.0 \
+    -o ~/squeezenet/ \
+    -align \
+    -input_file=in.txt \
+    -ref_file=ref.txt
 ```
 - tensorflow2tnn
 
@@ -398,15 +430,15 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names
+  -in input_name        the tensorflow model's input names. If batch is not
+                        specified, you can add input shape after the input
+                        name, e.g. -in in:0[1,3,28,28]
   -on output_name       the tensorflow model's output name
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
   -optimize             optimize the model
   -half                 optimize the model
   -align                align the onnx model with tnn model
-  -fold_const           enable tf constant_folding transformation before
-                        conversion
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for
                         the inference model.
@@ -416,32 +448,75 @@ optional arguments:
 ```
 示例：
 ```shell script
-python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize -o ~/tf-model/ -align -fold_const -input_file=in.txt -ref_file=ref.txt
+python3 converter.py tf2tnn \
+    -tp ~/tf-model/test.pb \
+    -in=input0,input2 \
+    -on=output0 \
+    -v=v2.0 \
+    -optimize \
+    -o ~/tf-model/ \
+    -align \
+    -input_file=in.txt \
+    -ref_file=ref.txt
 ```
 
-## 额外说明
+#### 输入输出文件格式示例
+##### 输入
+```text
+输入数据按一维排列
 
-#### reference file 文件格式示例
+例如
+0.1
+0.2
+0.3
 
-输出数量 </br>
-输出名称 shape维度个数 具体shape信息 </br>
-输出 </br>
-输出名称 shape维度个数 具体shape信息 </br>
-输出 </br>
- ......
+```
 
- #### 例如
- 2 </br>
- out0 2 1 3 </br>
- 0.1 </br>
- 0.2 </br>
- 0.3 </br>
- out1 4 1 2 2 1 </br>
- 0.1 </br>
- 0.2 </br>
- 0.3 </br>
- 0.4 </br>
-     </br>
+##### 输出
+```text
+
+输出数量 
+输出名称 shape维度个数 具体shape信息 
+输出 
+输出名称 shape维度个数 具体shape信息 
+输出 
+......
+
+例如
+ 2 
+ out0 2 1 3 
+ 0.1 
+ 0.2 
+ 0.3 
+ out1 4 1 2 2 1 
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+```
+
+生成输出示例代码
+```python
+
+"""
+假设模型推理得到的结果类型为 
+output = {name0: ndarray0, name1: ndarray1}
+"""
+
+output_path = "output.txt"
+with open(output_path, "w") as f:
+    f.write("{}\n" .format(len(output)))
+    for name, tensor in output.items():
+        shape = tensor.shape
+        description = "{} {} " .format(name, len(shape))
+        for dim in shape:
+            description += "{} " .format(dim)
+        f.write(description + "\n")
+        np.savetxt(f, tensor.reshape(-1), fmt="%0.18f")
+
+```
 
 
 # 模型转换详细介绍
