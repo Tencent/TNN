@@ -32,6 +32,10 @@ int Onnx2TNN::FuseDeconv(onnx::GraphProto* mutable_graph,
             if (node->op_type() == "ConvTranspose" && i + 1 < node_count) {
                 auto node_deconv = node;
                 auto node_batchnorm = index_nodes[i+1].node;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
 
                 // check op
                 if (!(node_batchnorm->op_type() == "BatchNormalization"))
