@@ -173,7 +173,7 @@ def parse_args():
                                required=False,
                                help='align the onnx model with tnn model')
     tf2tnn_parser.add_argument('-not_fold_const',
-                                dest='fold_const',
+                                dest='not_fold_const',
                                 default=False,
                                 action='store_true',
                                 required=False,
