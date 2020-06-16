@@ -21,7 +21,7 @@ import os
 
 def hack_name(names: str):
     hacked_names = ""
-    name_list = names.split(',')
+    name_list = names.split(';')
     for name in name_list:
         if name.endswith(":0"):
             hacked_names = hacked_names + name + ","
@@ -51,7 +51,7 @@ def process_input_names(input_names : str):
 
     return inputs[:-1], inputs_as_nchw[:-1]
 
-def tf2onnx(tf_path, input_names, output_name, onnx_path, fold_const=False):
+def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
     work_dir = "./"
     inputs, inputs_as_nchw = process_input_names(input_names)
     command = "python3 -m tf2onnx.convert  --graphdef " + tf_path
@@ -62,7 +62,7 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, fold_const=False):
     command = command + " --outputs " + hack_name(output_name)
     command = command + " --output " + onnx_path
     command = command + " --opset 11"
-    if fold_const:
+    if not_fold_const is False:
         command = command + " --fold_const"
 
     print(command)
@@ -73,7 +73,7 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, fold_const=False):
         return False
 
 
-def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False, fold_const=False,
+def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False, not_fold_const=False,
             input_path=None, refer_path=None):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
@@ -82,7 +82,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     checker.check_file_exist(output_dir)
     model_name = model_name[:-len(".pb")]
     onnx_path = os.path.join(output_dir, model_name + ".onnx")
-    if tf2onnx(tf_path, input_names, output_names, onnx_path, fold_const) is False:
+    if tf2onnx(tf_path, input_names, output_names, onnx_path, not_fold_const) is False:
         print("Oh No, tf2onnx failed")
     else:
         print("congratulations! tf2onnx succeed!")
