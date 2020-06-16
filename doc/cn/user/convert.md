@@ -138,9 +138,9 @@ optional arguments:
 - align 参数（可选）
     可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模S型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
-    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称。
+    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。
 - ref_file 参数（可选）
-    可以通过 -ref_file 参数指定待对齐的输出文件的名称，若模型为多输出需遵循如下[格式](#额外说明)。
+    可以通过 -ref_file 参数指定待对齐的输出文件的名称，输出需遵循如下[格式](#输出)。生成输出的代码可以[参考](#生成输出示例代码)。
 
 
 **当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
@@ -432,7 +432,7 @@ optional arguments:
   -tp TF_PATH           the path for tensorflow graphdef file
   -in input_name        the tensorflow model's input names. If batch is not
                         specified, you can add input shape after the input
-                        name, e.g. -in in:0[1,3,28,28]
+                        name, e.g. -in in:0[1,28,28,3]
   -on output_name       the tensorflow model's output name
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
@@ -497,7 +497,7 @@ python3 converter.py tf2tnn \
 
 ```
 
-生成输出示例代码
+##### 生成输出示例代码
 ```python
 
 """
