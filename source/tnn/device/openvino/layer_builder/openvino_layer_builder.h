@@ -48,6 +48,8 @@ public:
     Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
 
+    Status Init1(LayerParam* param, LayerResource* resource, std::vector<std::shared_ptr<ngraph::Node>> inputNodes);
+
     //@brief Reshape recalculate the output tensor dims
     virtual Status Reshape();
 
@@ -64,6 +66,8 @@ protected:
 
     //@brief Build the foreign network 
     virtual Status Build() = 0 ;
+
+    std::vector<std::shared_ptr<ngraph::Node>> inputNodes_;
 
 };
 

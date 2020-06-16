@@ -29,23 +29,28 @@ namespace TNN_NS {
 DECLARE_OPENVINO_LAYER_BUILDER(Conv, LAYER_CONVOLUTION);
 
 Status ConvOVLayerBuilder::Build() {
+    
+    auto paramlist = dynamic_cast<ConvLayerParam*>(this->param_);
+    
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    
     auto in_node = GetInputNodes()[0];
     
+    std::cout << "building conv node" << std::endl;
+    
     // build the conv layer and generates a new out_node. 
+
     // here simply asign out_node = in_node for code compiling.
-    auto out_node = in_node;
+    // auto out_node = in_node;
 
-    if (GetOutputTensors().size() <=0) {
-        LOGE("Error: 0 output tensors\n");
-        return TNNERR_INIT_LAYER;
-    }
+    // if (GetOutputTensors().size() <=0) {
+    //     LOGE("Error: 0 output tensors\n");
+    //     return TNNERR_INIT_LAYER;
+    // }
 
-    std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(out_node);
+    // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(out_node);
 
     return TNN_OK;
 }

@@ -1,7 +1,7 @@
 // Copyright 2019 Tencent. All Rights Reserved
 
 #include "openvino_network.h"
-
+#include "node.h"
 #include <string.h>
 
 #include <inference_engine.hpp>
@@ -34,13 +34,68 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                             InputShapesMap inputs_shape) {
 
     Status ret                                   = TNN_OK;
-    RETURN_ON_NEQ(DefaultNetwork::Init(net_config, model_config, interpreter, inputs_shape), TNN_OK);
+    std::cout << "Init Layers" << std::endl;
+    // RETURN_ON_NEQ(DefaultNetwork::Init(net_config, model_config, interpreter, inputs_shape), TNN_OK);
+    DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    CHECK_PARAM_NULL(default_interpreter);
 
+    NetStructure *net_structure = default_interpreter->GetNetStructure();
+    NetResource *net_resource   = default_interpreter->GetNetResource();
+
+    if (net_structure == NULL || net_resource == NULL) {
+        LOGE("ERROR: network_ is nil, network_type may not support\n");
+        return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
+    }
+
+    // InitLayers(net_structure, net_resource);
+    std::cout << "Device type :" << net_config.device_type << std::endl;
+    device_ = GetDevice(net_config.device_type);
+    if (device_ == NULL) {
+        return TNNERR_DEVICE_NOT_SUPPORT;
+    }
+
+    // init iuput node--------------------------
+    NodeManager node_manager;
+    std::vector<int> input_node_shape = net_structure->inputs_shape_map.begin()->second;
+    // auto input_layer_name = net_structure->layers.at(0)->inputs.at(0); 
+    // std::cout << "input layer name : " << input_layer_name << " ";
+    ngraph::Shape ngraphInputShape;
+    for (size_t i = 0; i < input_node_shape.size(); i++) {
+        std::cout << input_node_shape.at(i) << " ";
+        ngraphInputShape.push_back(input_node_shape.at(i));
+    }
+
+    // std::cout << "output layer name: " << net_structure->layers.at(0)->outputs.at(0) << std::endl;
+
+    std::shared_ptr<ngraph::Node> input_node = std::make_shared<ngraph::op::Parameter>(\
+                        ngraph::element::f32, ngraph::Shape(ngraphInputShape));
+    input_node->set_friendly_name(net_structure->layers.at(0)->inputs.at(0));
+    // std::cout << "input node name: " << input->get_friendly_name() << std::endl;
+
+    node_manager.addNode(input_node->get_friendly_name(), input_node);
+
+    // std::cout << "Layer number:" << net_structure->layers.size() << std::endl;
+    for (auto layer_info : net_structure->layers) {
+        LayerType type       = layer_info->type;
+        BaseLayer *cur_layer = CreateLayer(type);
+        std::string layer_name = layer_info->name;
+
+        std::vector<std::string> &input_names = layer_info->inputs;
+        std::vector<std::shared_ptr<ngraph::Node>> inputNodes;
+        for (auto name : input_names) {
+            inputNodes.push_back(node_manager.findNode(name));
+        }
+    
+        OpenVINOLayerBuilder* openvino_cur_layer = CreateOpenVINOLayerBuilder(type);
+        LayerResource* layer_resource = net_resource->resource_map[layer_name].get();
+        openvino_cur_layer->Init1(layer_info->param.get(), layer_resource, inputNodes);
+    }
+    //////////////////////////////////////////////////////////////
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
 
     // OpenVINOModelInterpreter* default_interpreter = dynamic_cast<OpenVINOModelInterpreter*>(interpreter);
     // network_ = default_interpreter->GetCNNNetwork();
-
+    std::cout << "Loading Network" << std::endl;
     executable_network_ = ie_.LoadNetwork(network_, "CPU");
     infer_request_ = executable_network_.CreateInferRequest();
 
