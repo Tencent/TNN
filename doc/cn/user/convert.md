@@ -105,7 +105,7 @@ optional arguments:
   -tp TF_PATH           the path for tensorflow graphdef file
   -in input_name        the tensorflow model's input names. If batch is not
                         specified, you can add input shape after the input
-                        name, e.g. -in in:0[1,3,28,28]
+                        name, e.g. -in "name[1,28,28,3]"
   -on output_name       the tensorflow model's output name
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
@@ -124,7 +124,7 @@ optional arguments:
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
 - in 参数（必须）
-    通过 “-in” 参数指定模型输入的名称，如果模型有多个输入，请使用 “;”进行分割。有的 TensorFlow 模型没有指定 batch 导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：-in name[1,28,28,3]。
+    通过 “-in” 参数指定模型输入的名称，输入的名称需要放到“”中，例如，-in "name"。如果模型有多个输入，请使用 “;”进行分割。有的 TensorFlow 模型没有指定 batch 导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：-in "name[1,28,28,3]"。
 - on 参数（必须）
     通过 “-on” 参数指定模型输入的名称，如果模型有多个输出，请使用 “;”进行分割
 - output_dir 参数：
@@ -149,14 +149,14 @@ optional arguments:
 
 ``` shell script
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn \
-    -tp=/workspace/test.pb \
-    -in=input0,input2 \
-    -on=output0 \
-    -v=v2.0 \
+    -tp /workspace/test.pb \
+    -in "input0[1,32,32,3];input1[1,32,32,3]" \
+    -on output0 \
+    -v v2.0 \
     -optimize \
     -align \
-    -input_file=/workspace/in.txt \
-    -ref_file=/workspace/ref.txt
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
 ```
 
 由于 convert2tnn工具是部署在 docker 镜像中的，如果要进行模型的转换,需要先将模型传输到 docker 容器中。我们可以通过 docker run 的参数--volume 将包含模型的模型挂载到 docker 容器的某个路径下。上面的例子中是将执行shell 的当前目录（pwd）挂载到 docker 容器中的 "/workspace” 文件夹下面。当然了测试用到的test.pb 也**必须执行 shell 命令的当前路径下**。执行完成上面的命令后，convert2tnn 工具会将生成的 TNN 模型存放在 test.pb文件的同一级目录下，当然了生成的文件也就是在当前目录下。
@@ -168,18 +168,20 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converte
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn \
     /workspace/mobilenetv3-small-c7eb32fe.onnx \
     -optimize \
-    -v=v3.0 \
+    -v v3.0 \
     -align  \
-    -input_file=/workspace/in.txt \
-    -ref_file=/workspace/ref.txt
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
 
 # convert caffe
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn \
     /workspace/squeezenet.prototxt \
     /workspace/squeezenet.caffemodel \
-    -optimize -v=v1.0 -align  \
-    -input_file=/workspace/in.txt \
-    -ref_file=/workspace/ref.txt
+    -optimize \
+    -v v1.0 \
+    -align  \
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
 
 ```
 
@@ -350,8 +352,8 @@ python3 converter.py onnx2tnn \
     -v=v3.0 \
     -o ~/mobilenetv3/ \
     -align \
-    -input_file=in.txt \
-    -ref_file=ref.txt
+    -input_file in.txt \
+    -ref_file ref.txt
 ```
 
 - caffe2tnn
@@ -409,11 +411,11 @@ python3 converter.py caffe2tnn \
     ~/squeezenet/squeezenet.prototxt \
     ~/squeezenet/squeezenet.caffemodel \
     -optimize \
-    -v=v1.0 \
+    -v v1.0 \
     -o ~/squeezenet/ \
     -align \
-    -input_file=in.txt \
-    -ref_file=ref.txt
+    -input_file in.txt \
+    -ref_file ref.txt
 ```
 - tensorflow2tnn
 
@@ -432,7 +434,7 @@ optional arguments:
   -tp TF_PATH           the path for tensorflow graphdef file
   -in input_name        the tensorflow model's input names. If batch is not
                         specified, you can add input shape after the input
-                        name, e.g. -in in:0[1,28,28,3]
+                        name, e.g. -in "name[1,28,28,3]"
   -on output_name       the tensorflow model's output name
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
@@ -450,14 +452,14 @@ optional arguments:
 ```shell script
 python3 converter.py tf2tnn \
     -tp ~/tf-model/test.pb \
-    -in=input0,input2 \
-    -on=output0 \
-    -v=v2.0 \
+    -in "input0[1,32,32,3];input1[1,32,32,3]" \
+    -on output0 \
+    -v v2.0 \
     -optimize \
     -o ~/tf-model/ \
     -align \
-    -input_file=in.txt \
-    -ref_file=ref.txt
+    -input_file in.txt \
+    -ref_file ref.txt
 ```
 
 #### 输入输出文件格式示例

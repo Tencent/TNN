@@ -132,7 +132,7 @@ def parse_args():
                                dest='input_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in in:0[1,3,28,28]")
+                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in \"name[1,28,28,3]\"")
 
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
