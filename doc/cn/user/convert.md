@@ -150,7 +150,7 @@ optional arguments:
 ``` shell script
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn \
     -tp /workspace/test.pb \
-    -in "input0[1,32,32,3];input2[1,32,32,3]" \
+    -in "input0[1,32,32,3];input1[1,32,32,3]" \
     -on output0 \
     -v v2.0 \
     -optimize \
