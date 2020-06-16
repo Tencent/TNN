@@ -21,6 +21,7 @@ import linecache
 import math
 import os
 import onnxruntime
+import sys
 
 import numpy as np
 
@@ -154,18 +155,26 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         # generate data
         input_path = data.gene_random_data(onnx_input_info)
     else:
-        input_path = input_file_path
+        if os.path.exists(input_file_path):
+            input_path = input_file_path
+        else:
+            print("invalid input_file_path")
+            sys.exit(1)
 
     if refer_path is None:
         reference_output_path = run_onnx(onnx_path, input_path)
     else:
-        reference_output_path = refer_path
+        if os.path.exists(refer_path):
+            reference_output_path = refer_path
+        else:
+            print("invalid refer_path")
+            sys.exit(1)
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
     
-    if input_file_path is None:
+    if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))
-    if os.path.exists(reference_output_path):
+    if refer_path is None and os.path.exists(reference_output_path):
         data.clean_temp_data(reference_output_path)
     
     return True
