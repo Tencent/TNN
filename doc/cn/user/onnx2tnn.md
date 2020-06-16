@@ -108,19 +108,23 @@ positional arguments:
   onnx_model_path     Input ONNX model path
 
 optional arguments:
-  -h, --help              show this help message and exit
-  -version VERSION        Algorithm version string
-  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
-  -half HALF              Save model using half, 1:yes, 0:default no
-  -o OUTPUT_DIR           the output dir for tnn model
-  -align                  align the onnx model with tnn model
-  -input_file INPUT_FILE  the input file path which contains the input data for the inference model
-  -ref_file   REF_FILE    the reference file path which contains the reference data to compare the results
+  -h, --help            show this help message and exit
+  -optimize             optimize the model
+  -half                 save model using half
+  -v v1.0.0             the version for model
+  -o OUTPUT_DIR         the output tnn directory
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
 
 
 ```shell script
-python3 onnx2tnn.py model.onnx -version=algo_version -optimize=1 -half=0
+python3 onnx2tnn.py model.onnx -version=algo_version -optimize=1 -align -input_file=in.txt -ref_file=ref.txt
 ```
 ```text
 参数说明：
@@ -140,7 +144,7 @@ Note: 实际计算是否用FP16看各个平台特性决定，移动端GPU目前�
 output_dir : 指定 TNN 模型的存放的文件夹路径，该文件夹必须存在
 
 -align
-模型对齐，如需使用模型对齐添加该参数即可
+模型对齐，如需使用模型对齐添加该参数即可。当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half
 
 -input_file
 input_file : 指定模型对齐所需要的输入文件的位置

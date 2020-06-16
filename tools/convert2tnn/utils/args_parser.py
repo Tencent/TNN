@@ -132,7 +132,7 @@ def parse_args():
                                dest='input_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's input names")
+                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in in:0[1,3,28,28]")
 
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
@@ -172,12 +172,12 @@ def parse_args():
                                action='store_true',
                                required=False,
                                help='align the onnx model with tnn model')
-    tf2tnn_parser.add_argument('-fold_const',
-                                dest='fold_const',
+    tf2tnn_parser.add_argument('-not_fold_const',
+                                dest='not_fold_const',
                                 default=False,
                                 action='store_true',
                                 required=False,
-                                help='enable tf constant_folding transformation before conversion')
+                                help=argparse.SUPPRESS)
     tf2tnn_parser.add_argument('-input_file',
                                dest='input_file_path',
                                action='store',
