@@ -59,12 +59,12 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
-        fold_const = args.fold_const
+        not_fold_const = args.not_fold_const
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, fold_const, 
+        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
                         input_file, ref_file)
     else:
         print("Do not support convert!")
