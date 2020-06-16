@@ -9,14 +9,16 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "model_checker.h"
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -36,7 +38,7 @@ ModelChecker::ModelChecker() {
     model_checker_params_.input_bias  = {0, 0, 0, 0};
     model_checker_params_.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
     model_checker_params_.dump_output = false;
-    output_ref_data_                  = nullptr;
+    output_ref_data_map_.clear();
     cpu_blobdata_map.clear();
     check_results.clear();
 }
@@ -47,8 +49,7 @@ ModelChecker::~ModelChecker() {
     tnn_.reset();
 }
 
-Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config,
-                          InputShapesMap inputs_shape) {
+Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape) {
     tnn_.reset(new TNN());
     Status status = tnn_->Init(model_config);
     if (status != TNN_OK) {
@@ -58,7 +59,7 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config,
 
     NetworkConfig net_config_cpu;
     net_config_cpu.device_type = DEVICE_NAIVE;
-    instance_cpu_ = tnn_->CreateInst(net_config_cpu, status);
+    instance_cpu_              = tnn_->CreateInst(net_config_cpu, status);
     if (status != TNN_OK) {
         LOGE("create cpu instance falied: %s\n", status.description().c_str());
         return Status(TNNERR_INST_ERR, "create cpu instance falied");
@@ -66,8 +67,7 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config,
 
     instance_device_ = tnn_->CreateInst(net_config, status);
     if (status != TNN_OK) {
-        LOGE("create device instance falied: %s\n",
-             status.description().c_str());
+        LOGE("create device instance falied: %s\n", status.description().c_str());
         return Status(TNNERR_INST_ERR, "create device instance falied");
     }
 
@@ -101,8 +101,7 @@ Status ModelChecker::RunModelChecker() {
     // compare between cpu and device
     ret = CompareDeviceAndCpu();
     if (ret != TNN_OK) {
-        return Status(TNNERR_COMMON_ERROR,
-                      "compare device and cpu data failed");
+        return Status(TNNERR_COMMON_ERROR, "compare device and cpu data failed");
     }
 
     // check result
@@ -113,8 +112,8 @@ Status ModelChecker::RunModelChecker() {
         if (!item.second) {
             failed_count++;
             check_pass = false;
-            LOGE("layer is not aligned! (layer name: %s,  layer type: %s)\n",
-                 item.first->name.c_str(), item.first->type_str.c_str());
+            LOGE("layer is not aligned! (layer name: %s,  layer type: %s)\n", item.first->name.c_str(),
+                 item.first->type_str.c_str());
         } else {
             pass_count++;
         }
@@ -122,8 +121,7 @@ Status ModelChecker::RunModelChecker() {
     if (check_pass) {
         return TNN_OK;
     } else {
-        printf("failed layer count: %d    pass layer count: %d\n", failed_count,
-               pass_count);
+        printf("failed layer count: %d    pass layer count: %d\n", failed_count, pass_count);
         if (!check_results.back().second) {
             printf("the last layer check falied!\n");
         }
@@ -144,9 +142,7 @@ Status ModelChecker::FeedInputData() {
         file_reader.SetScaleValue(model_checker_params_.input_scale);
 
         Blob* input_blob_cpu = input_blobs_cpu.begin()->second;
-        Status status =
-            file_reader.Read(input_blob_cpu, input_name,
-                             model_checker_params_.input_file.second);
+        Status status        = file_reader.Read(input_blob_cpu, input_name, model_checker_params_.input_file.second);
         if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", input_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "read input failed");
@@ -157,10 +153,8 @@ Status ModelChecker::FeedInputData() {
     if (generate_random_input) {
         LOGE("Generate Random input...\n");
         for (auto item : input_blobs_cpu) {
-            int data_count =
-                DimsVectorUtils::Count(item.second->GetBlobDesc().dims);
-            float* data_ptr =
-                reinterpret_cast<float*>(item.second->GetHandle().base);
+            int data_count  = DimsVectorUtils::Count(item.second->GetBlobDesc().dims);
+            float* data_ptr = reinterpret_cast<float*>(item.second->GetHandle().base);
             for (int i = 0; i < data_count; i++) {
                 data_ptr[i] = (float)(rand() % 256 - 128) / 128.0f;
             }
@@ -175,13 +169,10 @@ Status ModelChecker::FeedInputData() {
     for (auto item : input_blobs_device) {
         MatConvertParam param;
         BlobConverter blob_converter(item.second);
-        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT,
-                            input_blobs_cpu[item.first]->GetHandle().base);
-        Status ret =
-            blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
+        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, input_blobs_cpu[item.first]->GetHandle().base);
+        Status ret = blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
         if (ret != TNN_OK) {
-            LOGE("input blob_converter failed (%s)\n",
-                 ret.description().c_str());
+            LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
             return Status(TNNERR_COMMON_ERROR, "run blob_converter failed");
         }
     }
@@ -193,29 +184,38 @@ Status ModelChecker::GetOutputRefData() {
     std::string output_file_name = model_checker_params_.ref_file.first;
     if ("" != output_file_name) {
         if (TEXT == model_checker_params_.ref_file.second) {
-            BlobMap output_blobs_device;
-            instance_device_->GetAllOutputBlobs(output_blobs_device);
-            if (output_blobs_device.size() != 1) {
-                LOGE("output ref only support 1 output model!\n");
-                return Status(TNNERR_COMMON_ERROR, "not support");
-            }
-
-            auto output_dims =
-                output_blobs_device.begin()->second->GetBlobDesc().dims;
-            int count = DimsVectorUtils::Count(output_dims);
-            output_ref_data_.reset(new float[count],
-                                   [](float* p) { delete[] p; });
-            float* data_ptr = output_ref_data_.get();
+            int num_out;
             std::ifstream f_stream(output_file_name);
-            for (int i = 0; i < count; ++i) {
-                f_stream >> data_ptr[i];
+            f_stream >> num_out;
+            if (num_out == 0) {
+                LOGE("invalid output reference file (%s)!  Please make sure the reference file formate right\n", output_file_name.c_str());
+                return Status(TNNERR_COMMON_ERROR, "invalid output ref file, the wrong file formate!");
             }
-            f_stream.close();
+            for (int index = 0; index < num_out; index++) {
+                int dims_size = 0;
+                int dim       = 1;
+                int dim_cnt   = 1;
+                std::string name;
+                std::shared_ptr<float> data;
+                f_stream >> name;
+                f_stream >> dims_size;
+                for (int i = 0; i < dims_size; i++) {
+                    f_stream >> dim;
+                    dim_cnt *= dim;
+                }
+                data.reset(new float[dim_cnt], [](float* p) { delete[] p; });
+                float* data_ptr = data.get();
 
+                for (int line = 0; line < dim_cnt; line++) {
+                    f_stream >> data_ptr[line];
+                }
+                output_ref_data_map_[name] = data;
+            }
+
+            f_stream.close();
         } else {
-            LOGE("invalid output reference file (%s)!\n",
-                 output_file_name.c_str());
-            return Status(TNNERR_COMMON_ERROR, "invalid output ref file");
+            LOGE("invalid output reference file (%s)!\n", output_file_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, "invalid output ref file, we only support txt format!");
         }
     }
 
@@ -223,29 +223,23 @@ Status ModelChecker::GetOutputRefData() {
 }
 
 Status ModelChecker::GetCpuBlobData() {
-    BlobStatisticCallback cpu_func_after = [&](std::vector<Blob*>& blobs,
-                                               LayerInfo* info) {
+    BlobStatisticCallback cpu_func_after = [&](std::vector<Blob*>& blobs, LayerInfo* info) {
         for (auto blob : blobs) {
             auto blob_desc        = blob->GetBlobDesc();
             std::string blob_name = blob_desc.name;
 
             // convert blob
-            int blob_data_bytes =
-                DimsVectorUtils::Count(blob_desc.dims) * sizeof(float);
-            cpu_blobdata_map[blob_name] = std::shared_ptr<char>(
-                new char[blob_data_bytes], [](char* p) { delete[] p; });
+            int blob_data_bytes         = DimsVectorUtils::Count(blob_desc.dims) * sizeof(float);
+            cpu_blobdata_map[blob_name] = std::shared_ptr<char>(new char[blob_data_bytes], [](char* p) { delete[] p; });
 
             void* command_queue;
             instance_cpu_->GetCommandQueue(&command_queue);
             MatConvertParam param;
             BlobConverter blob_converter(blob);
-            TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT,
-                                cpu_blobdata_map[blob_name].get());
-            Status ret =
-                blob_converter.ConvertToMat(cpu_mat, param, command_queue);
+            TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_blobdata_map[blob_name].get());
+            Status ret = blob_converter.ConvertToMat(cpu_mat, param, command_queue);
             if (ret != TNN_OK) {
-                LOGE("cpu blob (name:%s) converte failed (%s)\n",
-                     blob_name.c_str(), ret.description().c_str());
+                LOGE("cpu blob (name:%s) converte failed (%s)\n", blob_name.c_str(), ret.description().c_str());
             }
         }
     };
@@ -259,8 +253,7 @@ Status ModelChecker::CompareDeviceAndCpu() {
 
     check_results.clear();
 
-    BlobStatisticCallback device_func_after = [&](std::vector<Blob*>& blobs,
-                                                  LayerInfo* info) {
+    BlobStatisticCallback device_func_after = [&](std::vector<Blob*>& blobs, LayerInfo* info) {
         bool is_pass = true;
 
         for (auto blob : blobs) {
@@ -268,58 +261,50 @@ Status ModelChecker::CompareDeviceAndCpu() {
             std::string blob_name = blob_desc.name;
 
             // convert blob
-            int blob_data_bytes =
-                DimsVectorUtils::Count(blob_desc.dims) * sizeof(float);
-            std::shared_ptr<char> device_mat_data(new char[blob_data_bytes],
-                                                  [](char* p) { delete[] p; });
+            int blob_data_bytes = DimsVectorUtils::Count(blob_desc.dims) * sizeof(float);
+            std::shared_ptr<char> device_mat_data(new char[blob_data_bytes], [](char* p) { delete[] p; });
 
             void* command_queue;
             instance_device_->GetCommandQueue(&command_queue);
             MatConvertParam param;
             BlobConverter blob_converter(blob);
-            TNN_NS::Mat device_mat(DEVICE_NAIVE, NCHW_FLOAT,
-                                   device_mat_data.get());
-            Status ret =
-                blob_converter.ConvertToMat(device_mat, param, command_queue);
+            TNN_NS::Mat device_mat(DEVICE_NAIVE, NCHW_FLOAT, device_mat_data.get());
+            Status ret = blob_converter.ConvertToMat(device_mat, param, command_queue);
             if (ret != TNN_OK) {
-                LOGE("device blob (name:%s) converte failed (%s)\n",
-                     blob_name.c_str(), ret.description().c_str());
+                LOGE("device blob (name:%s) converte failed (%s)\n", blob_name.c_str(), ret.description().c_str());
             }
 
-            // compare data
-            is_pass &=
-                CompareData(device_mat_data.get(),
-                            cpu_blobdata_map[blob_name].get(), blob_desc.dims);
+            // compare device data with default data
+            is_pass &= CompareData(device_mat_data.get(), cpu_blobdata_map[blob_name].get(), blob_desc.dims);
 
-            if (nullptr != output_ref_data_) {
-                if (output_blobs_device.find(blob_name) !=
-                    output_blobs_device.end()) {
-                    is_pass &=
-                        CompareData(device_mat_data.get(),
-                                    output_ref_data_.get(), blob_desc.dims);
+            // compare data with reference file
+            if (!output_ref_data_map_.empty()) {
+                if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
+                    if (output_ref_data_map_.find(blob_name) != output_ref_data_map_.end()) {
+                        auto compare_data = output_ref_data_map_[blob_name];
+                        is_pass &= CompareData(device_mat_data.get(), compare_data.get(), blob_desc.dims);
+                    } else {
+                        LOGE("The output layer name: %s not find in the reference file.\n", blob_name.c_str());
+                        is_pass = false;
+                    }
                 }
             }
 
             if (model_checker_params_.dump_output) {
-                if (output_blobs_device.find(blob_name) !=
-                    output_blobs_device.end()) {
+                if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
                     LOGE("dump blob (%s) data\n", blob_name.c_str());
-                    DumpBlobData(cpu_blobdata_map[blob_name].get(),
-                                 blob_desc.dims, "cpu_" + blob_name + ".txt");
-                    DumpBlobData(device_mat_data.get(), blob_desc.dims,
-                                 "device_" + blob_name + ".txt");
+                    DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims, "cpu_" + blob_name + ".txt");
+                    DumpBlobData(device_mat_data.get(), blob_desc.dims, "device_" + blob_name + ".txt");
                 }
             }
         }
-
         check_results.push_back(std::make_pair(info, is_pass));
     };
 
     return instance_device_->ForwardWithCallback(nullptr, device_func_after);
 }
 
-bool ModelChecker::CompareData(void* device_data, void* cpu_data,
-                               DimsVector blob_dims) {
+bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blob_dims) {
     float ep           = 0.005;
     float* result_data = reinterpret_cast<float*>(device_data);
     float* ref_data    = reinterpret_cast<float*>(cpu_data);
@@ -327,11 +312,10 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data,
     int data_count = DimsVectorUtils::Count(blob_dims);
     for (unsigned long long i = 0; i < data_count; i++) {
         float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
-        float sum =
-            static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
+        float sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
         if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
-            LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n",
-                 i, result_data[i], ref_data[i], fabs(diff / sum), fabs(diff));
+            LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n", i, result_data[i], ref_data[i],
+                 fabs(diff / sum), fabs(diff));
             return false;
         }
     }
@@ -339,8 +323,7 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data,
     return true;
 }
 
-void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims,
-                                std::string output_name) {
+void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name) {
     if (blob_dims.size() != 4) {
         LOGE("output blob dims is not equal 4, will not dump data.\n");
         return;
@@ -357,10 +340,8 @@ void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims,
         for (int c = 0; c < channel; ++c) {
             for (int h = 0; h < height; ++h) {
                 for (int w = 0; w < width; ++w) {
-                    int index = b * channel * height * width +
-                                c * height * width + h * width + w;
-                    f_out << "[" << b << "," << c << "," << h << "," << w
-                          << "] " << data_ptr[index] << std::endl;
+                    int index = b * channel * height * width + c * height * width + h * width + w;
+                    f_out << "[" << b << "," << c << "," << h << "," << w << "] " << data_ptr[index] << std::endl;
                 }
             }
         }
