@@ -37,7 +37,10 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 // check op
                 if (!(node_batchnorm->op_type() == "BatchNormalization"))
                     break;
-
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
                 auto kernel_shape =
                     get_node_attr_ai(*node_conv, "kernel_shape");
 

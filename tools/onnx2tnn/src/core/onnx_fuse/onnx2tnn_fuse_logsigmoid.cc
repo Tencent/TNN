@@ -36,6 +36,10 @@ int Onnx2TNN::FuseLogSigmoid(onnx::GraphProto* mutable_graph,
                 // check op
                 if (!(node_log->op_type() == "Log"))
                     break;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
 
                 node_log->set_op_type(k_tnn_noop_type);
 
