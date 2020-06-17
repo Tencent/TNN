@@ -39,6 +39,14 @@ int Onnx2TNN::FuseSoftmax(onnx::GraphProto* mutable_graph,
                 if (!(node_reducesum->op_type() == "ReduceSum" &&
                     node_div->op_type() == "Div"))
                     break;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
+                next_indexes = GetNextIndexNode(index_nodes, i+1);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
 
                 auto axis = get_node_attr_ai(*node_reducesum, "axes");
 

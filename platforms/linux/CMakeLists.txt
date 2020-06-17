@@ -5,10 +5,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src)
 
 set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
 
-if(TNN_OPENCL_ENABLE)
-    find_package(OpenCL)
-    target_link_libraries(TNN ${OpenCL_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-endif()
 
 if(TNN_X86_ENABLE)
     add_library(inference_engine SHARED IMPORTED)

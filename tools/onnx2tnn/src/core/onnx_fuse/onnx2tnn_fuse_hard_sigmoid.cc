@@ -69,6 +69,14 @@ int Onnx2TNN::FuseHardSigmoid(onnx::GraphProto* mutable_graph,
                  float constant_div_six = div_six.has_raw_data() ? ((const float*)div_six.raw_data().data())[0] : div_six.float_data().data()[0];
                  if (constant_div_six != 6.f)
                      break;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
+                next_indexes = GetNextIndexNode(index_nodes, i+ 1);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
 
                  // reduce
                  node->set_op_type(k_tnn_noop_type);
