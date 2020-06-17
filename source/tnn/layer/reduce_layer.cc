@@ -21,8 +21,8 @@ namespace TNN_NS {
 Status ReduceLayer::InferOutputShape() {
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
     if (!layer_param || layer_param->axis.size() != 1) {
-        LOGE("Error: layer param is invalid\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
+        LOGE("Error: Reduce may not support axes != 1, depend on device\n");
+        return Status(TNNERR_MODEL_ERR, "Error: Reduce may not support axes != 1, depend on device");
     }
 
     Blob* input_blob  = input_blobs_[0];
