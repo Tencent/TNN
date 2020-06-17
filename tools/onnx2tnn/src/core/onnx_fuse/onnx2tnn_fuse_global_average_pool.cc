@@ -25,7 +25,7 @@ int Onnx2TNN::FuseGlobalAveragePool(
     std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
 
-    // GlobalAveragePool <= Transpose +
+    // GlobalAveragePool <= Transpose + ReduceMean
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
 
