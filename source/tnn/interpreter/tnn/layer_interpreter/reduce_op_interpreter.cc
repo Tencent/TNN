@@ -21,11 +21,12 @@ Status ReduceOpLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start
     int index         = start_index;
 
     layer_param->keep_dims = atoi(layer_cfg_arr[index++].c_str());
-    int axis               = atoi(layer_cfg_arr[index++].c_str());
 
     layer_param->axis.clear();
-    layer_param->axis.push_back(axis);
-
+    for (int i = index; i < layer_cfg_arr.size(); ++i) {
+        int axis = atoi(layer_cfg_arr[index].c_str());
+        layer_param->axis.push_back(axis);
+    }
     return TNN_OK;
 }
 
@@ -38,7 +39,9 @@ Status ReduceOpLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerPa
 
     output_stream << layer_param->keep_dims << " ";
     ASSERT(layer_param->axis.size() == 1);
-    output_stream << layer_param->axis[0] << " ";
+    for(auto axis : layer_param->axis) {
+        output_stream << axis << " ";
+    }
     return TNN_OK;
 }
 }  // namespace TNN_NS
