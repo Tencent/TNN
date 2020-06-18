@@ -3,14 +3,10 @@
 #ifndef TNN_SOURCE_DEVICE_ATLAS_ATLAS_COMMON_TYPES_H_
 #define TNN_SOURCE_DEVICE_ATLAS_ATLAS_COMMON_TYPES_H_
 
-#include <cereal/types/map.hpp>
-#include <cereal/types/vector.hpp>
 #include <map>
 #include <memory>
 #include <string>
 #include "tnn/core/macro.h"
-#include "hiaiengine/data_type.h"
-#include "hiaiengine/data_type_reg.h"
 
 namespace TNN_NS {
 
@@ -38,75 +34,17 @@ struct AtlasModelConfig {
     int output_engine_id    = 480;
 };
 
-enum CommandType {
-    CT_None             = 0,
-    CT_DataTransfer     = 1,
-    CT_DataTransfer_End = 2,
-    CT_InfoQuery        = 3,
-    CT_InfoQuery_End    = 4,
-};
-
-enum QueryType { QT_None = 0, QT_InputDims = 1, QT_OutputDims = 2 };
-
 struct DimInfo {
     uint32_t batch   = 0;
     uint32_t channel = 0;
     uint32_t height  = 0;
     uint32_t width   = 0;
 };
-template <class Archive>
-void serialize(Archive& ar, DimInfo& data);
 
-struct TransferDataInfo {
-    CommandType cmd_type = CT_None;
-    QueryType query_type = QT_None;
-    DimInfo dim_info;
-    uint32_t size_in_bytes = 0;
-    char name[32]          = "";
+struct AtlasCommandQueue {
+    void* context;
+    void* stream;
 };
-template <class Archive>
-void serialize(Archive& ar, TransferDataInfo& data);
-
-struct OutputDataInfo {
-    std::map<std::string, long> output_map;
-    long output_cv_addr        = 0;
-    long time_s                = 0;
-    long time_ns               = 0;
-    double process_duration_ms = 0;
-};
-template <class Archive>
-void serialize(Archive& ar, OutputDataInfo& data);
-
-struct TransferDataType {
-    TransferDataInfo info;
-    OutputDataInfo output_info;
-    uint32_t data_len = 0;
-    std::shared_ptr<uint8_t> data;
-};
-template <class Archive>
-void serialize(Archive& ar, TransferDataType& data);
-
-struct DvppInputDataType {
-    OutputDataInfo output_info;
-    hiai::BatchInfo b_info;
-    std::vector<hiai::ImageData<uint8_t>> img_vec;
-};
-
-struct DvppTransDataType {
-    OutputDataInfo output_info;
-    hiai::BatchInfo b_info;
-    hiai::ImageData<uint8_t> img_data;
-};
-template <class Archive>
-void serialize(Archive& ar, DvppTransDataType& data);
-
-void GetTransferDataTypeSearPtr(void* input_ptr, std::string& ctrl_str,
-                                uint8_t*& data_ptr, uint32_t& data_len);
-
-std::shared_ptr<void> GetTransferDataTypeDearPtr(const char* ctrl_ptr,
-                                                 const uint32_t& ctr_len,
-                                                 const uint8_t* data_ptr,
-                                                 const uint32_t& data_len);
 
 }  // namespace TNN_NS
 

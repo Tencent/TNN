@@ -60,7 +60,7 @@ Status AtlasModelInterpreter::ParseConfig(std::string config_str) {
     return TNN_OK;
 }
 
-TypeModelInterpreterRegister<TypeModelInterpreterCreator<AtlasModelInterpreter>>
-    g_atlas_model_interpreter_register(MODEL_TYPE_ATLAS);
+TypeModelInterpreterRegister<TypeModelInterpreterCreator<AtlasModelInterpreter>> g_atlas_model_interpreter_register(
+    MODEL_TYPE_ATLAS);
 
 }  // namespace TNN_NS

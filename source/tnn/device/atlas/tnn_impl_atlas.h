@@ -33,8 +33,7 @@ public:
     //@return status code: If successful, returns zero. Otherwise, returns
     // error
     // code.
-    virtual Status AddOutput(const std::string& output_name,
-                             int output_index = 0);
+    virtual Status AddOutput(const std::string& output_name, int output_index = 0);
 
     // @brief create an instance
     // @param instance: The instance to be created.
@@ -42,9 +41,8 @@ public:
     // proto
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
-    virtual std::shared_ptr<Instance> CreateInst(
-        NetworkConfig& config, Status& status,
-        InputShapesMap inputs_shape = InputShapesMap());
+    virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
+                                                 InputShapesMap inputs_shape = InputShapesMap());
 
 private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;

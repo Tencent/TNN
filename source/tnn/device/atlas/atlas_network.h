@@ -7,11 +7,10 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "acl/acl.h"
 #include "atlas_common_types.h"
-#include "atlas_data_recv.h"
-#include "hiaiengine/api.h"
-#include "tnn/core/macro.h"
 #include "tnn/core/abstract_network.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
@@ -23,8 +22,7 @@ public:
     // @brief init network with net cfg and net res.
     // @param net_cfg
     // @param net_res
-    virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
-                        AbstractModelInterpreter *interpreter,
+    virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape);
 
     // @brief deinit release init create resource
@@ -70,34 +68,37 @@ public:
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
 private:
-    // @brief if device is disconnected, call this func
-    static HIAI_StatusT DeviceDisconnectCallBack();
+    // @brief load model from om file
+    Status LoadModelFromFile(std::string om_file);
 
-    // @brief allocate input buffer on host
-    Status AllocateInputBufferForAtlas();
+    // @brief unload model
+    void UnloadModel();
 
-    // @brief allocate output buffer on host
-    Status AllocateOutputBufferForAtlas();
+    // @brief allocate data set
+    Status AllocateDataset(aclmdlDataset *data_set, bool is_input);
 
-    // @brief send data to dvpp engine to use dvpp and aipp
-    Status SendInputToDvppEngine();
+    // @brief add blob into map
+    Status AddBlobToMap(size_t index, void *data, bool is_input);
 
-    // @brief send data to inference engine directly
-    Status SendInputToInferenceEngine();
+    // @brief destory dataset
+    void DestroyDataset(aclmdlDataset *data_set);
 
-    std::shared_ptr<hiai::Graph> graph_;
     AtlasModelConfig atlas_config_;
-    std::shared_ptr<AtlasDataRecv> data_recv_;
-    std::shared_ptr<TransferDataType> input_trans_data_;
-    std::shared_ptr<DvppTransDataType> input_dvpp_data_;
-    std::map<std::string, std::shared_ptr<uint8_t>> input_data_buffer_;
-    std::map<std::string, std::shared_ptr<uint8_t>> output_data_buffer_;
-    std::map<std::string, long> output_addr_map_;
-    uint32_t batch_id_ = 0;
-    uint32_t frame_id_ = 0;
 
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
+
+    std::shared_ptr<AtlasCommandQueue> command_queue_ = nullptr;
+    aclrtContext context_                             = nullptr;
+    aclrtStream stream_                               = nullptr;
+    size_t model_mem_size_                            = 0;
+    size_t model_weight_size_                         = 0;
+    void *model_mem_ptr_                              = nullptr;
+    void *model_weight_ptr_                           = nullptr;
+    uint32_t model_id_                                = 0;
+    aclmdlDesc *model_desc_                           = nullptr;
+    aclmdlDataset *input_                             = nullptr;
+    aclmdlDataset *output_                            = nullptr;
 };
 
 }  // namespace TNN_NS

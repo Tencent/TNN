@@ -27,7 +27,7 @@ if(TNN_CUDA_ENABLE)
 endif()
 
 if(TNN_ATLAS_ENABLE)
-    target_link_libraries(TNN ${DDK_HOST_LIBRARIES})
+    target_link_libraries(TNN ascendcl)
 
     if(LINUX_TEST_ENABLE)
         add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86.cc)

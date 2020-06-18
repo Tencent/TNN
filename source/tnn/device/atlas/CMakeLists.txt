@@ -1,12 +1,33 @@
 aux_source_directory(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas ATLAS_SRC)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake)
-
-find_package(DDK REQUIRED)
-include_directories(${DDK_INCLUDE_DIRS} ${DDK_CEREAL_INCLUDE_DIRS} ${DDK_PROTOBUF_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
 
-add_library(TNNAtlas OBJECT ${ATLAS_SRC})
+set(ASCEND_PATH $ENV{DDK_PATH})
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake/device)
-add_subdirectory(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake/host)
+if (NOT DEFINED ENV{DDK_PATH})
+    set(ASCEND_PATH "/usr/local/Ascend")
+    message(STATUS "set default ASCEND_PATH: ${ASCEND_PATH}")
+else ()
+    message(STATUS "env ASCEND_PATH: ${ASCEND_PATH}")
+endif()
+
+set(ACL_LIB_PATH $ENV{NPU_HOST_LIB})
+
+if (NOT DEFINED ENV{NPU_HOST_LIB})
+    set(ACL_LIB_PATH "/usr/local/Ascend/acllib/lib64/stub/")
+    message(STATUS "set default ACL_LIB_PATH: ${ACL_LIB_PATH}")
+else ()
+    message(STATUS "env ACL_LIB_PATH: ${ACL_LIB_PATH}")
+endif()
+
+# Header path
+include_directories(
+    ${ASCEND_PATH}/acllib/include/
+)
+
+# add host lib path
+link_directories(
+    ${ACL_LIB_PATH}
+)
+
+add_library(TNNAtlas OBJECT ${ATLAS_SRC})
