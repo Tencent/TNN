@@ -94,6 +94,9 @@ int Onnx2TNN::FuseGEMM(onnx::GraphProto* mutable_graph,
          do {
              if (node->op_type() == "MatMul") {
                  auto B = get_node_attr_tensor(*node, "B", onnx_net_info_, 1);
+                 if (B.dims_size() == 0) {
+                     break;
+                 }
                  auto const h = B.dims(0);
                  auto const channel = B.dims(1);
                  if (B.dims_size() != 2)
