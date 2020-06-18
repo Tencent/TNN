@@ -287,6 +287,7 @@ int main(int argc, char* argv[]) {
         return -1;
 
     NetworkConfig net_config;
+    net_config.device_type = DEVICE_NAIVE;
     DataSet dataset;
     ret = ImportDataSet(dataset, input_path);
     if (CheckResult("import data set", ret) != true)
