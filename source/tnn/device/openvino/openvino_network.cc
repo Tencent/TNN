@@ -17,9 +17,9 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/openvino/openvino_types.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/device/openvino/common/foreign_blob.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
 
 namespace TNN_NS {
 

@@ -20,8 +20,8 @@
 #include <ngraph/op/op.hpp>
 
 #include "tnn/core/macro.h"
-#include "tnn/device/openvino/common/foreign_blob.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/openvino/openvino_types.h"
 
 namespace TNN_NS {

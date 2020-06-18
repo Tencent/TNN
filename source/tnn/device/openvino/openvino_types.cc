@@ -19,7 +19,7 @@
 #include <ngraph/node.hpp>
 
 #include "tnn/core/blob.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
 

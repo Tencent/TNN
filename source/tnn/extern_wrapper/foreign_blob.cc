@@ -12,12 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/openvino/common/foreign_blob.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
 
 #include <memory>
 
 #include "tnn/core/blob.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
 

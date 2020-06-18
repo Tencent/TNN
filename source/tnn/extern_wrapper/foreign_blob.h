@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_BLOB_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_BLOB_H_
+#ifndef TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_BLOB_H_
+#define TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_BLOB_H_
 
 #include <cstdint>
 #include <map>
@@ -25,7 +25,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
 
@@ -61,4 +61,4 @@ protected:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_BLOB_H_
+#endif  // TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_BLOB_H_

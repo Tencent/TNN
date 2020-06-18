@@ -22,8 +22,8 @@
 
 #include "tnn/layer/base_layer.h"
 #include "tnn/device/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/device/openvino/common/foreign_blob.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/openvino/openvino_types.h"
 
 namespace TNN_NS {
