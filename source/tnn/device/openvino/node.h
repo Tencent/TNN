@@ -16,6 +16,8 @@ public:
     Status InitNodeManager();
 
     Status addNode(std::string node_name, std::shared_ptr<ngraph::Node> node);
+
+    std::shared_ptr<ngraph::Node> getLastNode();
     
     std::shared_ptr<ngraph::Node> findNode(std::string node_name);
 

@@ -61,44 +61,76 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     // std::cout << "input layer name : " << input_layer_name << " ";
     ngraph::Shape ngraphInputShape;
     for (size_t i = 0; i < input_node_shape.size(); i++) {
-        std::cout << input_node_shape.at(i) << " ";
+        // std::cout << input_node_shape.at(i) << " ";
         ngraphInputShape.push_back(input_node_shape.at(i));
     }
 
     // std::cout << "output layer name: " << net_structure->layers.at(0)->outputs.at(0) << std::endl;
 
-    std::shared_ptr<ngraph::Node> input_node = std::make_shared<ngraph::op::Parameter>(\
+    std::shared_ptr<ngraph::op::Parameter> input_node = std::make_shared<ngraph::op::Parameter>(
                         ngraph::element::f32, ngraph::Shape(ngraphInputShape));
     input_node->set_friendly_name(net_structure->layers.at(0)->inputs.at(0));
     // std::cout << "input node name: " << input->get_friendly_name() << std::endl;
 
     node_manager.addNode(input_node->get_friendly_name(), input_node);
 
-    // std::cout << "Layer number:" << net_structure->layers.size() << std::endl;
+    // init nodes
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         std::string layer_name = layer_info->name;
 
+        // get input nodes in node manager
         std::vector<std::string> &input_names = layer_info->inputs;
-        std::vector<std::shared_ptr<ngraph::Node>> inputNodes;
+        ngraph::NodeVector inputNodes;
         for (auto name : input_names) {
             inputNodes.push_back(node_manager.findNode(name));
         }
-    
+
+        ngraph::NodeVector outputNodes;
         OpenVINOLayerBuilder* openvino_cur_layer = CreateOpenVINOLayerBuilder(type);
         LayerResource* layer_resource = net_resource->resource_map[layer_name].get();
-        openvino_cur_layer->Init1(layer_info->param.get(), layer_resource, inputNodes);
+        openvino_cur_layer->Init1(layer_info->param.get(), layer_resource, inputNodes, outputNodes);
+        
+        // add nodes to node manager
+        for (auto node : outputNodes) {
+            node_manager.addNode(node->get_friendly_name(), node);
+        }
     }
+
+
+    // init network
+    // std::cout << "last node name" << node_manager.findNode(net_structure->layers.back()->outputs.at(0))->get_friendly_name() << std::endl;
+    auto result_node = std::make_shared<ngraph::op::Result>(node_manager.findNode(net_structure->layers.back()->outputs.at(0)));
+    std::shared_ptr<ngraph::Function> nodeFunciton = std::make_shared<ngraph::Function>(
+        result_node, ngraph::ParameterVector{ input_node }, "net");
+
+    // std::cout << "init net finish" << std::endl;
     //////////////////////////////////////////////////////////////
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
-
+    
+    InferenceEngine::CNNNetwork network(nodeFunciton);
     // OpenVINOModelInterpreter* default_interpreter = dynamic_cast<OpenVINOModelInterpreter*>(interpreter);
     // network_ = default_interpreter->GetCNNNetwork();
     std::cout << "Loading Network" << std::endl;
-    executable_network_ = ie_.LoadNetwork(network_, "CPU");
+    executable_network_ = ie_.LoadNetwork(network, "CPU");
+    std::cout << "Creating Infer Request" << std::endl;
     infer_request_ = executable_network_.CreateInferRequest();
 
+    // set input blob
+    // InferenceEngine::InputsDataMap inputInfo = network.getInputsInfo();
+    // inputInfo.begin()->second->setPrecision(InferenceEngine::Precision::FP32);
+    // inputInfo.begin()->second->setLayout(InferenceEngine::Layout::NCHW);
+    // for (auto item : inputInfo) {
+    //     // create input blob
+    //     InferenceEngine::Blob::Ptr input = infer_request_.GetBlob(item.first);
+
+    // }
+
+    infer_request_.Infer();
+
+
+    std::cout << "infer finished" << std::endl;
     auto input_map = executable_network_.GetInputsInfo();
     for(auto item : input_map) {
         std::string key = item.first;

@@ -48,7 +48,7 @@ public:
     Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
 
-    Status Init1(LayerParam* param, LayerResource* resource, std::vector<std::shared_ptr<ngraph::Node>> inputNodes);
+    Status Init1(LayerParam* param, LayerResource* resource, ngraph::NodeVector inputNodes, ngraph::NodeVector &outputNodes);
 
     //@brief Reshape recalculate the output tensor dims
     virtual Status Reshape();
@@ -64,11 +64,15 @@ protected:
     //@brief get all input nodes
     virtual std::vector<std::shared_ptr<ngraph::Node>> GetOutputNodes();
 
+    virtual Status SetOutputNodes(ngraph::NodeVector);
+
     //@brief Build the foreign network 
     virtual Status Build() = 0 ;
 
-    std::vector<std::shared_ptr<ngraph::Node>> inputNodes_;
+    virtual LayerResource* GetResource();
 
+    std::vector<std::shared_ptr<ngraph::Node>> inputNodes_;
+    std::vector<std::shared_ptr<ngraph::Node>> outputNodes_;
 };
 
 //@brief TypeLayerBuilderCreator register map
