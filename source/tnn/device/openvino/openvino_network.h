@@ -80,7 +80,8 @@ private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
   
     InferenceEngine::Core ie_;
-    InferenceEngine::CNNNetwork network_;
+    // InferenceEngine::CNNNetwork network_;
+    std::shared_ptr<InferenceEngine::CNNNetwork> network_;
     InferenceEngine::ExecutableNetwork executable_network_;
     InferenceEngine::InferRequest infer_request_;
     BlobMap input_blob_map_;

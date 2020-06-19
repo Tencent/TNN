@@ -19,6 +19,7 @@
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/core/instance.h"
 
 namespace TNN_NS {
 
@@ -38,7 +39,7 @@ namespace test {
 
     bool CheckResult(std::string desc, Status result);
 
-    void InitInput(BlobMap& inputs, void* command_queue);
+    void InitInput(BlobMap& inputs, void* command_queue, std::shared_ptr<tnn::Instance> instance);
 
     template <typename T>
     int PackC4(T* dst, const float* src, size_t area, size_t depth);

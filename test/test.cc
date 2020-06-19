@@ -41,6 +41,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils.h"
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -87,11 +88,12 @@ namespace test {
             instance->GetCommandQueue(&command_queue);
             if (CheckResult("create instance", ret)) {
                 srand(102);
-                InitInput(input_blob_maps, command_queue);
-
+                InitInput(input_blob_maps, command_queue, instance);
+                std::cout << reinterpret_cast<float*>(input_blob_maps["input"]->GetHandle().base)[0] << std::endl;
                 for (int i = 0; i < FLAGS_wc; ++i) {
                     ret = instance->Forward();
                 }
+                std::cout<<"finished" <<std::endl;
 #if TNN_PROFILE
                 instance->StartProfile();
 #endif
@@ -109,7 +111,7 @@ namespace test {
                 }
 #if TNN_PROFILE
                 instance->FinishProfile(true);
-#endif
+#endif        
                 CheckResult("Forward", ret);
                 char min_str[16];
                 snprintf(min_str, 16, "%6.3f", min);
@@ -277,7 +279,7 @@ namespace test {
         }
     }
 
-    void InitInput(BlobMap& inputs, void* command_queue) {
+    void InitInput(BlobMap& inputs, void* command_queue, std::shared_ptr<tnn::Instance> instance) {
         MatConvertParam param;
         for (auto iter : inputs) {
             Blob* device_blob = iter.second;
@@ -338,6 +340,10 @@ namespace test {
             if (ret != TNN_OK) {
                 LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
             }
+
+            // if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
+            //     instance->SetForwardMemory(img_data);
+            // }
             free(img_data);
         }
     }
@@ -373,6 +379,7 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
+        std::cout << "Writing outputs" << std::endl;
         for (auto output : outputs) {
             Blob* device_blob  = output.second;
             BlobDesc blob_desc = device_blob->GetBlobDesc();

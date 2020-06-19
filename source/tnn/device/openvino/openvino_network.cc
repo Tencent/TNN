@@ -109,11 +109,12 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     //////////////////////////////////////////////////////////////
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
     
-    InferenceEngine::CNNNetwork network(nodeFunciton);
+    // InferenceEngine::CNNNetwork network(nodeFunciton);
+    network_ =  std::make_shared<InferenceEngine::CNNNetwork>(nodeFunciton);
     // OpenVINOModelInterpreter* default_interpreter = dynamic_cast<OpenVINOModelInterpreter*>(interpreter);
     // network_ = default_interpreter->GetCNNNetwork();
     std::cout << "Loading Network" << std::endl;
-    executable_network_ = ie_.LoadNetwork(network, "CPU");
+    executable_network_ = ie_.LoadNetwork(*network_, "CPU");
     std::cout << "Creating Infer Request" << std::endl;
     infer_request_ = executable_network_.CreateInferRequest();
 
@@ -126,9 +127,6 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     //     InferenceEngine::Blob::Ptr input = infer_request_.GetBlob(item.first);
 
     // }
-
-    infer_request_.Infer();
-
 
     std::cout << "infer finished" << std::endl;
     auto input_map = executable_network_.GetInputsInfo();
@@ -163,6 +161,8 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         output_blob_map_[key] = new Blob(desc, handle); 
     }
 
+    std::cout << "init layer finshed" << std::endl;
+
     return Reshape(inputs_shape);
 }
 
@@ -172,6 +172,22 @@ Status OpenVINONetwork_::GetForwardMemorySize(int &memory_size) {
 }
 
 Status OpenVINONetwork_::SetForwardMemory(void *memory) {
+    InferenceEngine::InputsDataMap input_info = network_->getInputsInfo();
+    input_info.begin()->second->setPrecision(InferenceEngine::Precision::FP32);
+    input_info.begin()->second->setLayout(InferenceEngine::Layout::NCHW);
+
+
+    InferenceEngine::Blob::Ptr input = infer_request_.GetBlob(input_info.begin()->first);
+    size_t input_images = input->getTensorDesc().getDims()[0];
+    size_t num_channels = input->getTensorDesc().getDims()[1];
+    size_t image_size   = input->getTensorDesc().getDims()[2] * input->getTensorDesc().getDims()[3];
+    size_t input_size = input_images * num_channels * image_size;
+
+    auto data = input->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+    for (size_t i = 0; i < input_size; i++) {
+        data[i] = reinterpret_cast<float*>(memory)[i];
+    }
+    
     return TNN_OK;
 }
 
@@ -188,7 +204,8 @@ Status OpenVINONetwork_::GetAllOutputBlobs(BlobMap &blobs) {
 Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
     RETURN_ON_NEQ(DefaultNetwork::Reshape(inputs), TNN_OK);
 
-    auto network_shapes = network_.getInputShapes();
+    auto network_shapes = network_->getInputShapes();
+    std::cout << "reshape " << std::endl;
 
     for(auto item : inputs) {
         std::string input_name = item.first;
@@ -207,9 +224,9 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 
     }
 
-    network_.reshape(network_shapes);
+    network_->reshape(network_shapes);
 
-    executable_network_ = ie_.LoadNetwork(network_, "CPU");
+    executable_network_ = ie_.LoadNetwork(*network_, "CPU");
     infer_request_ = executable_network_.CreateInferRequest();
 
     auto input_map = executable_network_.GetInputsInfo();
@@ -250,7 +267,6 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 
     return TNN_OK;
 }
-
 
 /*
  * InitLayerBuilders funcion does the following things:
@@ -396,7 +412,14 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 }
 
 Status OpenVINONetwork_::Forward() {
+    std::cout << "fowarding " << std::endl;
+
+    auto blob_ptr = infer_request_.GetBlob("input");
+    std::cout << "ok" << std::endl;
+    std::cout<<blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0]<<std::endl;
     infer_request_.Infer();
+    // auto output_blob = infer_request_.GetBlob("2");
+    // std::cout << output_blob->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0] << std::endl;
     return TNN_OK;
 }
 
