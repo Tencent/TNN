@@ -501,22 +501,52 @@ python3 converter.py tf2tnn \
 
 ##### 生成输出示例代码
 ```python
-
-"""
-假设模型推理得到的结果类型为 
-output = {name0: ndarray0, name1: ndarray1}
 """
 
+模型推理得到的输出至少包含以下三个部分：
+name -> 类型：str。用于标识该输出的名称。
+shape -> 类型：list。用于描述输出的维数。
+tensor -> 类型：numpy.ndarray。存放输出数据。
+
+假设有两个输出，它们分别如下：
+输出一组成部分：
+name_1
+shape_1
+tensor_1
+
+输出二组成部分：
+name_2
+shape_2
+tensor_2
+
+你可以参考以下代码将输出写到文件中
+
+"""
+
+# 输出数量
+num_output = 2
+
+# 输出文件保存路径
 output_path = "output.txt"
+
 with open(output_path, "w") as f:
-    f.write("{}\n" .format(len(output)))
-    for name, tensor in output.items():
-        shape = tensor.shape
-        description = "{} {} " .format(name, len(shape))
-        for dim in shape:
-            description += "{} " .format(dim)
-        f.write(description + "\n")
-        np.savetxt(f, tensor.reshape(-1), fmt="%0.18f")
+    # 保存输出数量
+    f.write("{}\n" .format(num_output))
+
+    # 保存第一个输出
+    description_1 = "{} {} " .format(name_1, len(shape_1))
+    for dim in shape_1:
+        description_1 += "{} " .format(dim)
+    f.write(description_1 + "\n")
+    np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
+
+    # 保存第二个输出
+    description_2 = "{} {} " .format(name_2, len(shape_2))
+    for dim in shape_2:
+        description_2 += "{} " .format(dim)
+    f.write(description_2 + "\n")
+    np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
+
 
 ```
 
