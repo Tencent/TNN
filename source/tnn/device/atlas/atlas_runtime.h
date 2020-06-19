@@ -35,11 +35,13 @@ public:
     AtlasRuntime &operator=(const AtlasRuntime &) = delete;
 
     Status Init();
+    void AddDevice(int device_id);
 
 private:
     AtlasRuntime();
 
 private:
+    std::vector<int> device_list_;
     static std::shared_ptr<AtlasRuntime> atlas_runtime_singleton_;
     static bool enable_increase_count_;
     static int ref_count_;

@@ -75,7 +75,7 @@ private:
     void UnloadModel();
 
     // @brief allocate data set
-    Status AllocateDataset(aclmdlDataset *data_set, bool is_input);
+    Status AllocateDataset(aclmdlDataset **data_set, bool is_input);
 
     // @brief add blob into map
     Status AddBlobToMap(size_t index, void *data, bool is_input);

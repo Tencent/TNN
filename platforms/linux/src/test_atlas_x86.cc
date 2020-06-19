@@ -125,12 +125,15 @@ int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims
                 for (int w = 0; w < W; ++w) {
                     int idx = h * W * C + w * C + c;
                     f >> img[idx];
+                    img[idx] = img[idx] / 255.0;
                 }
             }
         }
     } else {
-        for (int i = 0; i < chw; i++)
+        for (int i = 0; i < chw; i++) {
             f >> img[i];
+            img[i] = img[i] / 255.0;
+        }
     }
 
     int offset = chw * sizeof(float);
@@ -179,8 +182,10 @@ int main(int argc, char* argv[]) {
     gettimeofday(&time1, NULL);
     Status error;
     auto instance_ = net_.CreateInst(network_config, error);
-    if (CheckResult("create instance", error) != true)
+    if (CheckResult("create instance", error) != true) {
+        printf("error info: %s\n", error.description().c_str());
         return -1;
+    }
     gettimeofday(&time2, NULL);
     delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
     printf("tnn create instance time cost: %g ms\n", delta);
@@ -261,5 +266,7 @@ int main(int argc, char* argv[]) {
     if (input_data_ptr != nullptr)
         free(input_data_ptr);
 
+    instance_.reset();
+    net_.DeInit();
     return 0;
 }

@@ -29,6 +29,7 @@ function build_atlas() {
           -DCMAKE_BUILD_TYPE=Debug \
           -DDEBUG=$DEBUG \
           -DLINUX_TEST_ENABLE=1 \
+          -DTNN_CPU_ENABLE:BOOL="ON"  \
           -DTNN_X86_ENABLE:BOOL="OFF"  \
           -DTNN_ATLAS_ENABLE:BOOL=$ATLAS
     make -j4

@@ -26,26 +26,31 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
 
     // Init ACL
     Status ret = AtlasRuntime::GetInstance()->Init();
-    if (ret != TNN_OK)
+    if (ret != TNN_OK) {
+        LOGE("acl init falied\n");
         return ret;
+    }
     AtlasRuntime::IncreaseRef();
 
     // Set Device
     aclError acl_ret = aclrtSetDevice(net_config.device_id);
     if (acl_ret != ACL_ERROR_NONE) {
-        LOGE("acl open device %d failed\n", net_config.device_id);
+        LOGE("acl open device %d failed (acl error code: %d)\n", net_config.device_id, acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl open device falied");
     }
+    AtlasRuntime::GetInstance()->AddDevice(net_config.device_id);
 
     // Create Context
     acl_ret = aclrtCreateContext(&context_, net_config.device_id);
     if (acl_ret != ACL_ERROR_NONE) {
+        LOGE("acl create context failed (acl error code: %d)\n", acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl create context falied");
     }
 
     // Create Stream
     acl_ret = aclrtCreateStream(&stream_);
     if (acl_ret != ACL_ERROR_NONE) {
+        LOGE("acl create stream failed (acl error code: %d)\n", acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl create stream falied");
     }
 
@@ -59,10 +64,10 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         return ret;
 
     // allocate input and output
-    ret = AllocateDataset(input_, true);
+    ret = AllocateDataset(&input_, true);
     if (ret != TNN_OK)
         return ret;
-    ret = AllocateDataset(output_, false);
+    ret = AllocateDataset(&output_, false);
     if (ret != TNN_OK)
         return ret;
 
@@ -104,7 +109,9 @@ Status AtlasNetwork::DeInit() {
     }
     output_blob_map_.clear();
 
+    LOGD("acl destroy input dataset\n");
     DestroyDataset(input_);
+    LOGD("acl destroy output dataset\n");
     DestroyDataset(output_);
 
     UnloadModel();
@@ -112,6 +119,7 @@ Status AtlasNetwork::DeInit() {
     aclError ret;
     if (nullptr != stream_) {
         ret = aclrtDestroyStream(stream_);
+        LOGD("acl destroy stream\n");
         if (ret != ACL_ERROR_NONE) {
             LOGE("destroy stream failed\n");
         }
@@ -120,6 +128,7 @@ Status AtlasNetwork::DeInit() {
 
     if (nullptr != context_) {
         ret = aclrtDestroyContext(context_);
+        LOGD("acl destroy context\n");
         if (ret != ACL_ERROR_NONE) {
             LOGE("destroy context failed\n");
         }
@@ -201,36 +210,40 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
 
 void AtlasNetwork::UnloadModel() {
     aclError ret = aclmdlUnload(model_id_);
+    LOGD("acl unload model\n");
     if (ret != ACL_ERROR_NONE) {
         LOGE("unload model failed, modelId is %u\n", model_id_);
     }
 
     if (nullptr != model_desc_) {
         (void)aclmdlDestroyDesc(model_desc_);
+        LOGD("acl destroy model desc\n");
         model_desc_ = nullptr;
     }
 
     if (nullptr != model_mem_ptr_) {
         aclrtFree(model_mem_ptr_);
+        LOGD("acl free model mem ptr\n");
         model_mem_ptr_  = nullptr;
         model_mem_size_ = 0;
     }
 
     if (nullptr != model_weight_ptr_) {
         aclrtFree(model_weight_ptr_);
+        LOGD("acl free model weight ptr\n");
         model_weight_ptr_  = nullptr;
         model_weight_size_ = 0;
     }
 }
 
-Status AtlasNetwork::AllocateDataset(aclmdlDataset *data_set, bool is_input) {
+Status AtlasNetwork::AllocateDataset(aclmdlDataset **data_set, bool is_input) {
     if (nullptr == model_desc_) {
         LOGE("no model description, create ouput failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "no model description, create ouput failed");
     }
 
-    data_set = aclmdlCreateDataset();
-    if (nullptr == data_set) {
+    *data_set = aclmdlCreateDataset();
+    if (nullptr == *data_set) {
         LOGE("can't create dataset, create output failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't create dataset, create output failed");
     }
@@ -244,9 +257,9 @@ Status AtlasNetwork::AllocateDataset(aclmdlDataset *data_set, bool is_input) {
     for (size_t i = 0; i < count; ++i) {
         size_t buffer_size = 0;
         if (is_input) {
-            aclmdlGetInputSizeByIndex(model_desc_, i);
+            buffer_size = aclmdlGetInputSizeByIndex(model_desc_, i);
         } else {
-            aclmdlGetOutputSizeByIndex(model_desc_, i);
+            buffer_size = aclmdlGetOutputSizeByIndex(model_desc_, i);
         }
 
         void *buffer     = nullptr;
@@ -263,7 +276,7 @@ Status AtlasNetwork::AllocateDataset(aclmdlDataset *data_set, bool is_input) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't create data buffer");
         }
 
-        acl_ret = aclmdlAddDatasetBuffer(data_set, data_buffer);
+        acl_ret = aclmdlAddDatasetBuffer(*data_set, data_buffer);
         if (acl_ret != ACL_ERROR_NONE) {
             LOGE("can't add data buffer, create output failed\n");
             aclrtFree(buffer);
@@ -325,6 +338,9 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     blob_desc.data_format = ConvertFromAclDataFormat(data_format);
     for (int i = 0; i < acl_dims.dimCount; ++i) {
         blob_desc.dims.push_back((int)acl_dims.dims[i]);
+    }
+    for (int i = acl_dims.dimCount; i < 4; ++i) {
+        blob_desc.dims.push_back(1);
     }
     blob_desc.name = blob_name;
 

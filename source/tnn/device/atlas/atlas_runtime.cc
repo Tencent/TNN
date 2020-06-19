@@ -66,9 +66,10 @@ Status AtlasRuntime::Init() {
     if (!init_done_) {
         LOGD("Init Atlas Acl\n");
 
+        LOGD("aclInit()\n");
         aclError ret = aclInit(nullptr);
         if (ret != ACL_ERROR_NONE) {
-            LOGE("Init ACL failed!\n");
+            LOGE("acl init failed!\n");
             return TNNERR_ATLAS_RUNTIME_ERROR;
         }
 
@@ -78,11 +79,30 @@ Status AtlasRuntime::Init() {
     return TNN_OK;
 }
 
+void AtlasRuntime::AddDevice(int device_id) {
+    device_list_.push_back(device_id);
+    LOGD("add device: %d\n", device_id);
+}
+
 AtlasRuntime::~AtlasRuntime() {
-    aclError ret = aclFinalize();
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("DeInit ACL failed!\n");
+    LOGD("~AtlasRuntime() begin \n");
+
+    aclError ret;
+    for (auto id : device_list_) {
+        LOGD("reset device: %d\n", id);
+        ret = aclrtResetDevice(id);
+        if (ret != ACL_ERROR_NONE) {
+            LOGE("acl reset device failed!\n");
+        }
     }
+
+    LOGD("aclFinalize()\n");
+    ret = aclFinalize();
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("acl finalize failed!\n");
+    }
+
+    LOGD("~AtlasRuntime() end \n");
 }
 
 }  // namespace TNN_NS

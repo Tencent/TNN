@@ -1,2 +1,2 @@
 # <om_file path> <with_dvpp> <dynamic_aipp> <to_bgr> <normalize> <height> <width>
-/home/atlas300/shaundai/dpn810_fix_padding/mul_aipp/om/dpn810_aipp_rgbInput_b8.om 0 0 0 0 248 248
+/home/HwHiAiUser/shaundai/community_models/dpn820/atc/graph_batch1.om 0 0 0 0 248 248
