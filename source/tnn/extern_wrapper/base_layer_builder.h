@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_BASE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_BASE_LAYER_BUILDER_H_
+#ifndef TNN_SOURCE_TNN_EXTERN_WRAPPER_BASE_LAYER_BUILDER_H_
+#define TNN_SOURCE_TNN_EXTERN_WRAPPER_BASE_LAYER_BUILDER_H_
 
 #include <map>
 #include <memory>
@@ -28,7 +28,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
 
@@ -87,4 +87,4 @@ protected:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_BASE_LAYER_BUILDER_H_
+#endif  // TNN_SOURCE_TNN_EXTERN_WRAPPER_BASE_LAYER_BUILDER_H_

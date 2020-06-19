@@ -169,6 +169,8 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/interpreter/*.cc"
                       "source/tnn/optimizer/*.h"
                       "source/tnn/optimizer/*.cc"
+                      "source/tnn/extern_wrapper/*.h"
+                      "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 

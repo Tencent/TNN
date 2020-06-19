@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_TENSOR_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_TENSOR_H_
+#ifndef TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_TENSOR_H_
+#define TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_TENSOR_H_
 
 #include <cstdint>
 #include <map>
@@ -35,4 +35,4 @@ public:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENVINO_COMMON_FOREIGN_TENSOR_H_
+#endif  // TNN_SOURCE_TNN_EXTERN_WRAPPER_FOREIGN_TENSOR_H_

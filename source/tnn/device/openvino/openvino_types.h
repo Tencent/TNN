@@ -25,7 +25,7 @@
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
-#include "tnn/device/openvino/common/foreign_tensor.h"
+#include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
 
