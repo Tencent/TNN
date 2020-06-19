@@ -7,10 +7,11 @@ from functools import reduce
 # 计算输出维度
 def getReshapeOutShape(layer, input_shape: List) -> List:
     if layer.type == 'InnerProduct':
+        dims = input_shape[0]
         in_prod = 1
-        for dim in input_shape[0]:
-            in_prod = in_prod * dim
-        output_shape = [1, in_prod]
+        for i in range(1, len(dims)):
+            in_prod = in_prod * dims[i]
+        output_shape = [dims[0], in_prod]
         return [output_shape]
 
     elif layer.type == 'ShuffleChannel':

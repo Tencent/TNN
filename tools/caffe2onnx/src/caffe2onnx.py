@@ -315,8 +315,13 @@ class Caffe2Onnx():
                 # signal scale
                 input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])  # 获取输入名列表和输入形状
                 output_name = self.GetCurrentLayerOutName(Layers[i])  # 获取输出名列表
-                node_name = Layers[i].name + random.choice('1234567890abcdefghijklmnopqrst')
-                if op.need_add_reshape(input_shape):
+                # node_name = Layers[i].name + random.choice('1234567890abcdefghijklmnopqrst')
+                node_name = Layers[i].name
+                has_two_input: bool = False
+                if len(input_name) > 1:
+                    has_two_input = True
+
+                if has_two_input and op.need_add_reshape(input_shape):
                     reshape_layer = copy.deepcopy(Layers[i])
                     # add reshape layer
                     reshape_node_name =  input_name[1] + '_reshap_' + random.choice('1234567890abcdefghijklmnopqrst')
@@ -345,9 +350,33 @@ class Caffe2Onnx():
 
                     self.onnxNodeList.append(mul_node)
                 else:
-                    mul_node = op.create_mul_node(Layers[i], node_name, input_name, output_name, input_shape)
+                    # Scale = Mul + Add
+                    param_shape, param_data = self.GetParamsShapeAndData(Layers[i])
+                    if len(param_shape) == 2:
+                        # create mul
+                        param_scale_shape = [1, param_shape[0][0], 1, 1]
+                        param_scale_data = param_data[0]
+                        param_scale_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [param_scale_shape], [param_scale_data])
 
-                    self.onnxNodeList.append(mul_node)
+                        mul_node_name = node_name + "_mul"
+                        mul_input_name = [input_name[0], param_scale_name[0]]
+                        mul_output_name = [output_name[0] + "_mul"]
+                        mul_input_shape = [input_shape[0], param_scale_shape]
+
+                        mul_node = op.create_mul_node(Layers[i], mul_node_name, mul_input_name, mul_output_name, mul_input_shape)
+                        self.onnxNodeList.append(mul_node)
+
+                        param_bias_shape = [1, param_shape[1][0], 1, 1]
+                        param_bias_data = param_data[1]
+                        param_bias_name = self.AddInputsTVIMannul(Layers[i], ["_bias"], [TensorProto.FLOAT], [param_bias_shape], [param_bias_data])
+
+                        add_node_name = node_name + "_add"
+                        add_input_name = [mul_output_name[0], param_bias_name[0]]
+                        add_output_name = output_name
+                        add_input_shape = [input_shape[0], param_bias_shape]
+                        add_node = op.create_add_node(Layers[i], add_node_name, add_input_name, add_output_name, add_input_shape)
+                        self.onnxNodeList.append(add_node)
+
             # Pooling
             elif Layers[i].type == "Pooling" or Layers[i].type == Layer_POOLING:
                 # TODO:
@@ -881,6 +910,31 @@ class Caffe2Onnx():
                 mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, output_name,
                                               mul_input_shape)
                 self.onnxNodeList.append(mul_node)
+            elif Layers[i].type == "Power":
+                # Power: Mul + Add + Pow
+                # create mul node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
+                power, scale, shift = op.get_power_param(Layers[i])
+                scale_node_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [np.shape(scale)], [scale])
+                mul_input_name = [input_name[0], scale_node_name[0]]
+                mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, [output_name[0] + "_mul"],
+                                              [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(mul_node)
+                # create Add node
+                shift_param_name = self.AddInputsTVIMannul(Layers[i], ["_shift"], [TensorProto.FLOAT], [np.shape(scale)],
+                                                        [shift])
+                add_input_name = [output_name[0] + "_mul", shift_param_name[0]]
+                add_node = op.create_add_node(Layers[i], node_name + "_add", add_input_name, [output_name[0] + "_add"], [input_shape[0], np.shape(shift)])
+                self.onnxNodeList.append(add_node)
+
+                # create Pow
+                power_param_name = self.AddInputsTVIMannul(Layers[i], ["_param_power"], [TensorProto.FLOAT], [np.shape(power)],[power])
+                power_input_name = [output_name[0] + "_add", power_param_name[0]]
+                power_node = op.create_power_node(Layers[i], node_name + "_power", power_input_name, output_name,
+                                                  [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(power_node)
 
             else:
                 print("Failed type not support: " + Layers[i].type)
