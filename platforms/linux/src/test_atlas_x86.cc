@@ -9,13 +9,12 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 /*
  * This is a demo for the huawei atlas devices.
  */
-
 
 #include <float.h>
 #include <math.h>
@@ -27,9 +26,9 @@
 #include <memory>
 #include <string>
 
+#include "test_common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
-#include "test_common.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 using namespace TNN_NS;
@@ -63,13 +62,11 @@ int InitTNN(std::string config_file) {
 }
 
 /* read input from text files */
-int ReadFromNchwtoNhwcFromTxt(unsigned char*& img, std::string file_path,
-                              std::vector<int> dims) {
+int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std::vector<int> dims) {
     printf("read from txt file! (%s)\n", file_path.c_str());
     std::ifstream f(file_path);
     int dim_size = DimsVectorUtils::Count(dims, 1);
-    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3],
-           dim_size);
+    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
 
     img = (unsigned char*)malloc(dim_size);
     if (img == NULL) {
@@ -77,8 +74,7 @@ int ReadFromNchwtoNhwcFromTxt(unsigned char*& img, std::string file_path,
         return -1;
     }
 
-    std::shared_ptr<unsigned char> img_org(
-        new unsigned char[dim_size], [](unsigned char* p) { delete[] p; });
+    std::shared_ptr<unsigned char> img_org(new unsigned char[dim_size], [](unsigned char* p) { delete[] p; });
 
     float tmp = 0;
     for (int i = 0; i < dim_size; i++) {
@@ -97,6 +93,50 @@ int ReadFromNchwtoNhwcFromTxt(unsigned char*& img, std::string file_path,
                 img[dst_idx] = *(img_org.get() + src_idx);
             }
         }
+    }
+
+    f.close();
+    return 0;
+}
+
+// Read input data from text files and copy to multi batch.
+int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims, bool nchw_to_nhwc) {
+    printf("read from txt file! (%s)\n", file_path.c_str());
+    std::ifstream f(file_path);
+    int dim_size = TNN_NS::DimsVectorUtils::Count(dims);
+    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
+
+    img = (float*)malloc(dim_size * sizeof(float));
+    if (img == NULL) {
+        printf("allocate memory failed!\n");
+        return -1;
+    }
+
+    int N   = dims[0];
+    int C   = dims[1];
+    int H   = dims[2];
+    int W   = dims[3];
+    int chw = C * H * W;
+
+    if (nchw_to_nhwc) {
+        // convert from nchw to nhwc
+        for (int c = 0; c < C; ++c) {
+            for (int h = 0; h < H; ++h) {
+                for (int w = 0; w < W; ++w) {
+                    int idx = h * W * C + w * C + c;
+                    f >> img[idx];
+                }
+            }
+        }
+    } else {
+        for (int i = 0; i < chw; i++)
+            f >> img[i];
+    }
+
+    int offset = chw * sizeof(float);
+    for (int n = 1; n < N; ++n) {
+        memcpy(img + offset, img, chw * sizeof(float));
+        offset += chw * sizeof(float);
     }
 
     f.close();
@@ -133,8 +173,7 @@ int main(int argc, char* argv[]) {
     if (CheckResult("init tnn", ret) != true)
         return -1;
     gettimeofday(&time2, NULL);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 +
-            (time2.tv_usec - time1.tv_usec) / 1000.0;
+    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
     printf("init tnn time cost: %g ms\n", delta);
 
     gettimeofday(&time1, NULL);
@@ -143,58 +182,50 @@ int main(int argc, char* argv[]) {
     if (CheckResult("create instance", error) != true)
         return -1;
     gettimeofday(&time2, NULL);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 +
-            (time2.tv_usec - time1.tv_usec) / 1000.0;
+    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
     printf("tnn create instance time cost: %g ms\n", delta);
 
+    // Get command queue
+    void* command_queue;
+    instance_->GetCommandQueue(&command_queue);
+
+    // Reshape
     InputShapesMap input_shapemap;
     error = instance_->Reshape(input_shapemap);
 
+    // Get input/output blobs
     BlobMap input_blobs, output_blobs;
     error       = instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
-    printf("input data shape [ %d %d %d %d ]\n", input->GetBlobDesc().dims[0],
-           input->GetBlobDesc().dims[1], input->GetBlobDesc().dims[2],
-           input->GetBlobDesc().dims[3]);
+    printf("input data shape [ %d %d %d %d ]\n", input->GetBlobDesc().dims[0], input->GetBlobDesc().dims[1],
+           input->GetBlobDesc().dims[2], input->GetBlobDesc().dims[3]);
     instance_->GetAllOutputBlobs(output_blobs);
 
     for (auto it = output_blobs.begin(); it != output_blobs.end(); ++it) {
-        printf("output(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(),
-               it->second->GetBlobDesc().dims[0],
-               it->second->GetBlobDesc().dims[1],
-               it->second->GetBlobDesc().dims[2],
-               it->second->GetBlobDesc().dims[3]);
+        printf("output(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
+               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
     }
 
     // load input
-    unsigned char* input_data_ptr = nullptr;
-    ret = ReadFromNchwtoNhwcFromTxt(input_data_ptr, argv[2],
-                                    input->GetBlobDesc().dims);
+    float* input_data_ptr = nullptr;
+    ret                   = ReadFromTxtToBatch(input_data_ptr, argv[2], input->GetBlobDesc().dims, false);
     if (CheckResult("load input data", ret) != true)
         return -1;
     int index = 10;
     printf("input_data_ptr[%d] = %d\n", index, (int)input_data_ptr[index]);
 
-    // copy data to atlas buffer
-    int bytes_per_elem = 1;
-    if (input->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        bytes_per_elem = 4;
-    } else if (input->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        bytes_per_elem = 2;
-    } else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        bytes_per_elem = 1;
-    }
-    int input_data_size =
-        DimsVectorUtils::Count(input->GetBlobDesc().dims, 1) * bytes_per_elem;
-    int offset = 0;
-    for (int i = 0; i < input->GetBlobDesc().dims[0]; ++i) {
-        memcpy((char*)input->GetHandle().base + offset, input_data_ptr,
-               input_data_size);
-        offset += input_data_size;
+    // BlobConvert
+    std::shared_ptr<BlobConverter> input_cvt;
+    std::map<std::string, std::shared_ptr<BlobConverter>> output_cvt_map;
+    input_cvt.reset(new BlobConverter(input));
+    for (auto item : output_blobs) {
+        output_cvt_map[item.first].reset(new BlobConverter(item.second));
     }
 
-    if (input_data_ptr != nullptr)
-        free(input_data_ptr);
+    // copy input data into atlas
+    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
+    MatConvertParam input_param;
+    input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
 
     // Forward on atlas device.
     // Also check the running time.
@@ -210,25 +241,25 @@ int main(int argc, char* argv[]) {
                         (time_end.tv_usec - time_begin.tv_usec) / 1000.0);
     }
     gettimeofday(&time2, &zone);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 +
-            (time2.tv_usec - time1.tv_usec) / 1000.0;
+    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
     printf("time cost: %g ms\n", delta / (float)loopcnt);
     DisplayStats("", costs);
 
     // copy data from atlas buffer
     // then dump to files
     for (auto output : output_blobs) {
-        float* output_data_ptr       = nullptr;
-        std::vector<int> output_dims = output.second->GetBlobDesc().dims;
-        int output_data_size = DimsVectorUtils::Count(output_dims) * sizeof(float);
-        output_data_ptr      = (float*)malloc(output_data_size);
-        memcpy(output_data_ptr, output.second->GetHandle().base, output_data_size);
-        DumpDataToTxt(output_data_ptr, output_dims, "../dump_data/dump_" + output.second->GetBlobDesc().name + ".txt");
-        // DumpDataToBin(output_data_ptr, output_dims, "../dump_data/dump_" + output.second->GetBlobDesc().name + ".bin");
-        // SpiltResult(output_data_ptr, outout_dims);
+        Mat output_mat(DEVICE_NAIVE, NCHW_FLOAT, output.second->GetBlobDesc().dims);
+        MatConvertParam output_param;
+        output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
 
-        if (output_data_ptr != nullptr)
-            free(output_data_ptr);
+        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
+                      "../dump_data/dump_" + output.second->GetBlobDesc().name + ".txt");
+        // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
+        // output.second->GetBlobDesc().name + ".bin");
     }
+
+    if (input_data_ptr != nullptr)
+        free(input_data_ptr);
+
     return 0;
 }
