@@ -33,15 +33,14 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     AtlasRuntime::IncreaseRef();
 
     // Set Device
-    aclError acl_ret = aclrtSetDevice(net_config.device_id);
-    if (acl_ret != ACL_ERROR_NONE) {
-        LOGE("acl open device %d failed (acl error code: %d)\n", net_config.device_id, acl_ret);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl open device falied");
+    ret = AtlasRuntime::GetInstance()->SetDevice(net_config.device_id);
+    if (ret != TNN_OK) {
+        LOGE("acl set device falied\n");
+        return ret;
     }
-    AtlasRuntime::GetInstance()->AddDevice(net_config.device_id);
 
     // Create Context
-    acl_ret = aclrtCreateContext(&context_, net_config.device_id);
+    aclError acl_ret = aclrtCreateContext(&context_, net_config.device_id);
     if (acl_ret != ACL_ERROR_NONE) {
         LOGE("acl create context failed (acl error code: %d)\n", acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl create context falied");

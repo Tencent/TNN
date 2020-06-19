@@ -79,9 +79,18 @@ Status AtlasRuntime::Init() {
     return TNN_OK;
 }
 
-void AtlasRuntime::AddDevice(int device_id) {
-    device_list_.push_back(device_id);
-    LOGD("add device: %d\n", device_id);
+Status AtlasRuntime::SetDevice(int device_id) {
+    if (device_list_.find(device_id) == device_list_.end()) {
+        LOGD("set device: %d\n", device_id);
+        aclError acl_ret = aclrtSetDevice(device_id);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("acl open device %d failed (acl error code: %d)\n", device_id, acl_ret);
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl open device falied");
+        }
+        device_list_.emplace(device_id);
+    }
+
+    return TNN_OK;
 }
 
 AtlasRuntime::~AtlasRuntime() {
