@@ -48,28 +48,30 @@ int SaveMemToFile(std::string file_name, void* data, int size) {
     return 0;
 }
 
-DataType ConvertFromAclDataType(aclDataType acl_datatype) {
+Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& tnn_datatype) {
     if (ACL_FLOAT == acl_datatype) {
-        return DATA_TYPE_FLOAT;
+        tnn_datatype = DATA_TYPE_FLOAT;
     } else if (ACL_FLOAT16 == acl_datatype) {
-        return DATA_TYPE_HALF;
-    } else if (ACL_INT8 == acl_datatype) {
-        return DATA_TYPE_INT8;
-    } else if (ACL_INT32 == acl_datatype) {
-        return DATA_TYPE_INT32;
+        tnn_datatype = DATA_TYPE_HALF;
+    } else if (ACL_INT8 == acl_datatype || ACL_UINT8 == acl_datatype) {
+        tnn_datatype = DATA_TYPE_INT8;
+    } else if (ACL_INT32 == acl_datatype || ACL_UINT32 == acl_datatype) {
+        tnn_datatype = DATA_TYPE_INT32;
     } else {
-        return DATA_TYPE_FLOAT;
+        return Status(TNNERR_COMMON_ERROR, "the data type is not support");
     }
+    return TNN_OK;
 }
 
-DataFormat ConvertFromAclDataFormat(aclFormat acl_format) {
+Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat) {
     if (ACL_FORMAT_NCHW == acl_format) {
-        return DATA_FORMAT_NCHW;
+        tnn_dataformat = DATA_FORMAT_NCHW;
     } else if (ACL_FORMAT_NHWC == acl_format) {
-        return DATA_FORMAT_NHWC;
+        tnn_dataformat = DATA_FORMAT_NHWC;
     } else {
-        return DATA_FORMAT_AUTO;
+        return Status(TNNERR_COMMON_ERROR, "the data format is not support");
     }
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

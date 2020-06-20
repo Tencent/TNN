@@ -11,6 +11,7 @@
 #include "acl/acl.h"
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
+#include "tnn/core/status.h"
 
 namespace TNN_NS {
 
@@ -20,9 +21,9 @@ long GetCurentTime();
 
 int SaveMemToFile(std::string file_name, void* data, int size);
 
-DataType ConvertFromAclDataType(aclDataType acl_datatype);
+Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& tnn_datatype);
 
-DataFormat ConvertFromAclDataFormat(aclFormat acl_format);
+Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat);
 
 }  // namespace TNN_NS
 

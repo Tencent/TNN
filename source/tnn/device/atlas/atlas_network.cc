@@ -307,8 +307,8 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // get blob name
         blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
         // get dims info
-        aclError ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
-        if (ret != ACL_ERROR_NONE) {
+        aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
+        if (acl_ret != ACL_ERROR_NONE) {
             LOGE("can't get input dims\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input dims");
         }
@@ -316,12 +316,13 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         data_type = aclmdlGetInputDataType(model_desc_, index);
         // get data format
         data_format = aclmdlGetInputFormat(model_desc_, index);
+        LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
     } else {
         // get blob name
         blob_name = aclmdlGetOutputNameByIndex(model_desc_, index);
         // get dims info
-        aclError ret = aclmdlGetOutputDims(model_desc_, index, &acl_dims);
-        if (ret != ACL_ERROR_NONE) {
+        aclError acl_ret = aclmdlGetOutputDims(model_desc_, index, &acl_dims);
+        if (acl_ret != ACL_ERROR_NONE) {
             LOGE("can't get output dims\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get output dims");
         }
@@ -329,12 +330,22 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         data_type = aclmdlGetOutputDataType(model_desc_, index);
         // get data format
         data_format = aclmdlGetOutputFormat(model_desc_, index);
+        LOGD("output data type: %d  output data format: %d\n", data_type, data_format);
     }
 
+    Status ret = TNN_OK;
     BlobDesc blob_desc;
     blob_desc.device_type = DEVICE_ATLAS;
-    blob_desc.data_type   = ConvertFromAclDataType(data_type);
-    blob_desc.data_format = ConvertFromAclDataFormat(data_format);
+    ret = ConvertFromAclDataTypeToTnnDataType(data_type, blob_desc.data_type);
+    if (TNN_OK != ret) {
+        LOGE("convert from acl data type to tnn data type falied\n");
+        return ret;
+    }
+    ret = ConvertFromAclDataFormatToTnnDataFormat(data_format, blob_desc.data_format);
+    if (TNN_OK != ret) {
+        LOGE("convert from acl data format to tnn data format falied\n");
+        return ret;
+    }
     for (int i = 0; i < acl_dims.dimCount; ++i) {
         blob_desc.dims.push_back((int)acl_dims.dims[i]);
     }

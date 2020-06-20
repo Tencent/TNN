@@ -227,10 +227,14 @@ int main(int argc, char* argv[]) {
         output_cvt_map[item.first].reset(new BlobConverter(item.second));
     }
 
+    Status tnn_ret;
     // copy input data into atlas
     Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
     MatConvertParam input_param;
-    input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
+    tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
+    }
 
     // Forward on atlas device.
     // Also check the running time.
@@ -240,7 +244,10 @@ int main(int argc, char* argv[]) {
     gettimeofday(&time1, &zone);
     for (int i = 0; i < loopcnt; ++i) {
         gettimeofday(&time_begin, NULL);
-        ret = instance_->Forward();
+        tnn_ret = instance_->Forward();
+        if (tnn_ret != TNN_OK) {
+            printf("instance Forward falied (%s)\n", tnn_ret.description().c_str());
+        }
         gettimeofday(&time_end, NULL);
         costs.push_back((time_end.tv_sec - time_begin.tv_sec) * 1000.0 +
                         (time_end.tv_usec - time_begin.tv_usec) / 1000.0);
@@ -255,7 +262,11 @@ int main(int argc, char* argv[]) {
     for (auto output : output_blobs) {
         Mat output_mat(DEVICE_NAIVE, NCHW_FLOAT, output.second->GetBlobDesc().dims);
         MatConvertParam output_param;
-        output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
+        tnn_ret = output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
+        if (tnn_ret != TNN_OK) {
+            printf("ConvertToMat falied (%s)\n", tnn_ret.description().c_str());
+            continue;
+        }
 
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
                       "dump_" + output.second->GetBlobDesc().name + ".txt");

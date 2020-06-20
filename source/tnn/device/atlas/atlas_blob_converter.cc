@@ -27,6 +27,7 @@ namespace TNN_NS {
 AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
     BlobMemorySizeInfo size_info = Calculate1DMemorySize(blob->GetBlobDesc());
     blob_bytesize_               = GetBlobMemoryBytesSize(size_info);
+    LOGD("blob bytesize: %d\n", blob_bytesize_);
 }
 
 AtlasBlobConverterAcc::~AtlasBlobConverterAcc() {}
@@ -55,22 +56,27 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
     }
 
-    if (mat.GetDeviceType() == DEVICE_ATLAS) {
-        // need to copy form device to device
-        ret = aclrtMemcpyAsync(mat.GetData(), blob_bytesize_, blob_->GetHandle().base, blob_bytesize_,
-                               ACL_MEMCPY_DEVICE_TO_DEVICE, atlas_cmd_queue->stream);
-        if (ret != ACL_ERROR_NONE) {
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
-        }
-    } else if (mat.GetDeviceType() == DEVICE_NAIVE) {
-        // need to copy form device to host
-        ret = aclrtMemcpyAsync(mat.GetData(), blob_bytesize_, blob_->GetHandle().base, blob_bytesize_,
-                               ACL_MEMCPY_DEVICE_TO_HOST, atlas_cmd_queue->stream);
-        if (ret != ACL_ERROR_NONE) {
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+    DataFormat blob_datatype = blob_->GetBlobDesc().data_format;
+    if ((NCHW_FLOAT == mat.GetMatType() && DATA_FORMAT_NCHW == blob_datatype)) {
+        if (mat.GetDeviceType() == DEVICE_ATLAS) {
+            // need to copy form device to device
+            ret = aclrtMemcpyAsync(mat.GetData(), blob_bytesize_, blob_->GetHandle().base, blob_bytesize_,
+                    ACL_MEMCPY_DEVICE_TO_DEVICE, atlas_cmd_queue->stream);
+            if (ret != ACL_ERROR_NONE) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+            }
+        } else if (mat.GetDeviceType() == DEVICE_NAIVE) {
+            // need to copy form device to host
+            ret = aclrtMemcpyAsync(mat.GetData(), blob_bytesize_, blob_->GetHandle().base, blob_bytesize_,
+                    ACL_MEMCPY_DEVICE_TO_HOST, atlas_cmd_queue->stream);
+            if (ret != ACL_ERROR_NONE) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
+        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
     }
 
     return TNN_OK;
@@ -100,22 +106,27 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
     }
 
-    if (mat.GetDeviceType() == DEVICE_ATLAS) {
-        // need to copy from device to device
-        ret = aclrtMemcpyAsync(blob_->GetHandle().base, blob_bytesize_, mat.GetData(), blob_bytesize_,
-                               ACL_MEMCPY_DEVICE_TO_DEVICE, atlas_cmd_queue->stream);
-        if (ret != ACL_ERROR_NONE) {
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
-        }
-    } else if (mat.GetDeviceType() == DEVICE_NAIVE) {
-        // need to copy from host to device
-        ret = aclrtMemcpyAsync(blob_->GetHandle().base, blob_bytesize_, mat.GetData(), blob_bytesize_,
-                               ACL_MEMCPY_HOST_TO_DEVICE, atlas_cmd_queue->stream);
-        if (ret != ACL_ERROR_NONE) {
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+    DataFormat blob_datatype = blob_->GetBlobDesc().data_format;
+    if ((NCHW_FLOAT == mat.GetMatType() && DATA_FORMAT_NCHW == blob_datatype)) {
+        if (mat.GetDeviceType() == DEVICE_ATLAS) {
+            // need to copy from device to device
+            ret = aclrtMemcpyAsync(blob_->GetHandle().base, blob_bytesize_, mat.GetData(), blob_bytesize_,
+                    ACL_MEMCPY_DEVICE_TO_DEVICE, atlas_cmd_queue->stream);
+            if (ret != ACL_ERROR_NONE) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+            }
+        } else if (mat.GetDeviceType() == DEVICE_NAIVE) {
+            // need to copy from host to device
+            ret = aclrtMemcpyAsync(blob_->GetHandle().base, blob_bytesize_, mat.GetData(), blob_bytesize_,
+                    ACL_MEMCPY_HOST_TO_DEVICE, atlas_cmd_queue->stream);
+            if (ret != ACL_ERROR_NONE) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
+        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
     }
 
     return TNN_OK;
