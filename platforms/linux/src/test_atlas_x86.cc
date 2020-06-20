@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
     if (CheckResult("load input data", ret) != true)
         return -1;
     int index = 10;
-    printf("input_data_ptr[%d] = %d\n", index, (int)input_data_ptr[index]);
+    printf("input_data_ptr[%d] = %f\n", index, input_data_ptr[index]);
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -258,7 +258,7 @@ int main(int argc, char* argv[]) {
         output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
 
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
-                      "../dump_data/dump_" + output.second->GetBlobDesc().name + ".txt");
+                      "dump_" + output.second->GetBlobDesc().name + ".txt");
         // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
         // output.second->GetBlobDesc().name + ".bin");
     }

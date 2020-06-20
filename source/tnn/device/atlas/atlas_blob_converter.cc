@@ -25,7 +25,7 @@ namespace TNN_NS {
 
 // default contructor will create convert buffer
 AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
-    BlobMemorySizeInfo size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    BlobMemorySizeInfo size_info = Calculate1DMemorySize(blob->GetBlobDesc());
     blob_bytesize_               = GetBlobMemoryBytesSize(size_info);
 }
 
