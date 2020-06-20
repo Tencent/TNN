@@ -26,7 +26,7 @@
 
 ### Convert2tnn Docker (推荐)
 
-为了简化 convert2tnn转换工具的安装和编译步骤，目前 TNN 提供了 Dockerfile 文件以及 Docker image 的方式，你可以自己根据 Dockerfile 文件自己构建 docker 镜像，也可以从公司内部的 docker hub 上直接拉取已经构建好的镜像。你可以选择自己喜欢的方式获取 docker 的镜像。
+为了简化 convert2tnn转换工具的安装和编译步骤，目前 TNN 提供了 Dockerfile 文件以及 Docker image 的方式，你可以自己根据 Dockerfile 文件自己构建 docker 镜像，也可以从 Docker Hub 上直接拉取已经构建好的镜像。你可以选择自己喜欢的方式获取 docker 的镜像。
 
 #### 拉取构建好的 docker 镜像（推荐）
 
