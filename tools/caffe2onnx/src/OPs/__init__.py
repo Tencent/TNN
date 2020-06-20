@@ -29,3 +29,4 @@ from src.OPs.Axpy import create_axpy_add_node, create_axpy_mul_node
 from src.OPs.LpNormalization import create_Lp_Normalization
 from src.OPs.Power import get_power_param, create_power_node
 from src.OPs.Add import create_add_node
+from src.OPs.Tanh import createTanh
