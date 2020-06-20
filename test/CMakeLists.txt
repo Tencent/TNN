@@ -12,6 +12,8 @@ target_link_libraries(TNNTest
     gflags
     )
 
+add_subdirectory(benchmark)
+
 if(TNN_UNIT_TEST_ENABLE)
     add_subdirectory(unit_test)
 endif()

@@ -33,6 +33,10 @@ int Onnx2TNN::FuseGEMM(onnx::GraphProto* mutable_graph,
                  auto node2 = index_nodes[i+1].node;
                  if (node2->op_type() != "Add")
                      break;
+                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                 if (next_indexes.size() != 1) {
+                     break;
+                 }
 
                  auto B = get_node_attr_tensor(*node, "B", onnx_net_info_, 1);
                  auto const h = B.dims(0);

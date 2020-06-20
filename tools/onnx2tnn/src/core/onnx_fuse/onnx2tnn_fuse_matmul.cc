@@ -56,6 +56,10 @@ int Onnx2TNN::FuseMatMul(onnx::GraphProto* mutable_graph,
 
                  if (node2->op_type() != "MatMul")
                      break;
+                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                 if (next_indexes.size() != 1) {
+                     break;
+                 }
 
                  // reduce
                  node->set_op_type(k_tnn_noop_type);

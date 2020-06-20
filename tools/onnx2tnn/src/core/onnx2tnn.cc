@@ -514,6 +514,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     RemoveConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -616,7 +617,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     // onnx_op chain fusion
     FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseLogSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseSoftmax(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHardSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);

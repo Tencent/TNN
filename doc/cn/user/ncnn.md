@@ -32,73 +32,72 @@ TNN Instance 在创建时需要声明默认InputShape，通常ncnn.param 的Inpu
 
 | Operators                  |    NCNN   |   TNN   |
 |----------------------------|-----------|---------|
-|MemoryData                  |           |    ❌     |
-|AbsVal                      |           |    ✅     |
-|ArgMax                      | TODO      |         |
-|BatchNorm                   |           |    ✅     |
-|Bias                        |           |         |
-|BinaryOp                    |           |    ✅     |
-|BNLL                        |           |         |
-|Cast                        |           |         |
-|Clip                        |           |         |
-|Concat                      |           |    ✅     |
-|Convolution                 |           |    ✅     |
-|ConvolutionDepthWise        |           |    ✅     |
-|Crop                        |           |    ✅     |
-|Deconvolution               |           |    ✅     |
-|DeconvolutionDepthWise      |           |    ✅     |
-|Dequantize                  |           |         |
-|DetectionOutput             |           |         |
-|Dropout                     |           |    ✅     |
-|Eltwise                     |           |         |
-|ELU                         |           |         |
-|Embed                       |           |         |
-|Exp                         |           |         |
-|ExpandDims                  |           |         |
-|Flatten                     |           |    ✅     |
-|HardSigmoid                 |           |    ✅     |
-|HardSwish                   |           |    ✅     |
-|InnerProduct                |           |    ✅     |
-|Input                       |           |    ✅     |
-|InstanceNorm                |           |    TODO     |
-|Interp                      |           |    ✅     |
-|Log                         |           |         |
-|LRN                         |           |    ✅     |
-|MVN                         |           |         |
-|Noop                        |           |         |
-|Normalize                   |           |    TODO    |
-|Packing                     |           |         |
-|Padding                     |           |    TODO     |
-|Permute                     |           |    ✅     |
-|Pooling                     |           |    ✅     |
-|Power                       |           |    TODO     |
-|PReLU                       |           |    TODO     |
-|PriorBox                    |           |         |
-|Proposal                    |           |         |
-|PSROIPooling                |           |         |
-|Quantize                    |           |         |
-|Reduction                   |           |         |
-|ReLU                        |           |    ✅     |
-|Reorg                       |           |    TODO     |
-|Requantize                  |           |         |
-|Reshape                     |           |    ✅     |
-|ROIAlign                    |           |         |
-|ROIPooling                  |           |         |
-|Scale                       |           |         |
-|SELU                        |           |         |
-|ShuffleChannel              |           |    ✅     |
-|Sigmoid                     |           |    ✅     |
-|Slice                       |           |    ✅     |
-|Softmax                     |           |    ✅     |
-|Split                       |           |    ✅     |
-|SPP                         | TODO      |         |
-|Squeeze                     |           |         |
-|TanH                        |           |    ✅     |
-|Threshold                   |           |         |
-|Tile                        | TODO      |         |
-|UnaryOp                     |           |         |
-|RNN                         | TODO      |         |
-|LSTM                        | TODO      |         |
+|MemoryData                  |    ✅     |    ✅     |
+|AbsVal                      |    ✅       |    ✅     |
+|ArgMax                      |    ✅   |      ✅     |
+|BatchNorm                   |    ✅       |    ✅     |
+|Bias                        |           |     TODO    |
+|BinaryOp                    |    ✅       |    ✅     |
+|BNLL                        |           |    TODO     |
+|Cast                        |           |    TODO     |
+|Clip                        |     ✅      |  ✅       |
+|Concat                      |     ✅      |    ✅     |
+|Convolution                 |     ✅      |    ✅     |
+|ConvolutionDepthWise        |     ✅      |    ✅     |
+|Crop                        |     ✅      |    ✅     |
+|Deconvolution               |     ✅      |    ✅     |
+|DeconvolutionDepthWise      |     ✅      |    ✅     |
+|Dequantize                  |           |     TODO    |
+|DetectionOutput             |     partial      |   ✅      |
+|Dropout                     |     ✅      |    ✅     |
+|Eltwise                     |     ✅      |    ✅     |
+|ELU                         |     ✅      |    ✅     |
+|Embed                       |           |     TODO    |
+|Exp                         |     TODO      |    ✅     |
+|ExpandDims                  |           |     TODO    |
+|Flatten                     |     ✅      |    ✅     |
+|HardSigmoid                 |     ✅      |    ✅     |
+|HardSwish                   |     ✅      |    ✅     |
+|InnerProduct                |     ✅      |    ✅     |
+|InstanceNorm                |     ✅      |    ✅     |
+|Interp                      |     ✅      |    ✅     |
+|Log                         |           |     TODO      |
+|LRN                         |     ✅      |    ✅     |
+|MVN                         |           |     TODO    |
+|Noop                        |           |     TODO    |
+|Normalize                   |     ✅      |    ✅    |
+|Packing                     |           |     TODO    |
+|Padding                     |     ✅      |    ✅     |
+|Permute                     |     ✅      |    ✅     |
+|Pooling                     |     ✅      |    ✅     |
+|Power                       |     TODO      |       ✅     |
+|PReLU                       |     ✅      |    ✅     |
+|PriorBox                    |     ✅      |    ✅     |
+|Proposal                    |           |     TODO    |
+|PSROIPooling                |           |     TODO    |
+|Quantize                    |           |     TODO    |
+|Reduction                   |     ✅      |    ✅     |
+|ReLU                        |     ✅      |    ✅     |
+|Reorg                       |     ✅      |    ✅     |
+|Requantize                  |           |     TODO    |
+|Reshape                     |     ✅      |    ✅     |
+|ROIAlign                    |           |     TODO    |
+|ROIPooling                  |     TODO     |       ✅  |
+|Scale                       |     ✅      |    ✅     |
+|SELU                        |     ✅      |    ✅     |
+|ShuffleChannel              |     ✅      |    ✅     |
+|Sigmoid                     |     ✅      |    ✅     |
+|Slice                       |     ✅      |    ✅     |
+|Softmax                     |     ✅      |    ✅     |
+|Split                       |     ✅      |    ✅     |
+|SPP                         |             |   TODO      |
+|Squeeze                     |           |     TODO    |
+|TanH                        |     ✅      |    ✅     |
+|Threshold                   |           |     TODO    |
+|Tile                        |      |      TODO   |
+|UnaryOp                     |     ✅      |    ✅     |
+|RNN                         |      |    TODO     |
+|LSTM                        |      |    TODO     |
 
 
 ## ncnn 模型使用文档

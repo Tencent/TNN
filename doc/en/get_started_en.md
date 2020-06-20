@@ -1,4 +1,4 @@
-<div align=left ><img src="https://raw.githubusercontent.com/darrenyao87/tnn-models/master/TNN.png"/>
+<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
 # Run a demo from scratch 
 
