@@ -882,6 +882,20 @@ class Caffe2Onnx():
                                               mul_input_shape)
                 self.onnxNodeList.append(mul_node)
 
+            elif Layers[i].type == "TanH":
+                # 1.获取节点输入名、输入维度、输出名、节点名
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(
+                    Layers[i])  # 获取输入名列表和输入形状
+                output_name = self.GetCurrentLayerOutName(Layers[i])  # 获取输出名列表
+                node_name = Layers[i].name
+
+                # 2.构建tanh_node
+                tanh_node = op.createTanh(
+                    Layers[i], node_name, input_name, output_name, input_shape)
+
+                # 3.添加节点到节点列表
+                self.onnxNodeList.append(tanh_node)
+
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)
