@@ -34,9 +34,11 @@ public:
 
 private:
     bool NeedDoScaleBias(MatConvertParam& param);
+    Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, void* stream, bool from_mat);
 
     bool do_scale_bias_ = true;
     int blob_bytesize_  = 0;
+    std::shared_ptr<char> buffer_ = nullptr;
 };
 
 }  // namespace TNN_NS

@@ -213,7 +213,16 @@ int main(int argc, char* argv[]) {
 
     // load input
     float* input_data_ptr = nullptr;
-    ret                   = ReadFromTxtToBatch(input_data_ptr, argv[2], input->GetBlobDesc().dims, false);
+    auto input_dims = input->GetBlobDesc().dims;
+    auto input_format = input->GetBlobDesc().data_format;
+    if (DATA_FORMAT_NCHW == input_format) {
+        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
+    } else if (DATA_FORMAT_NHWC == input_format) {
+        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
+    } else {
+        printf("invalid model input format\n");
+        return -1;
+    }
     if (CheckResult("load input data", ret) != true)
         return -1;
     int index = 10;

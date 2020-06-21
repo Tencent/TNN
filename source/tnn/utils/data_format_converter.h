@@ -24,7 +24,7 @@ namespace TNN_NS {
 class DataFormatConverter {
 public:
     // @brief convert weights from [g][o][i][h][w] to [g][o/4][i/4][h][w][16]
-    // @param data_tyep data type info
+    // @param data_type data type info
     static Status ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,
                                                  int output_channel, int height, int width, bool tanspose = false);
     static Status ConvertFromGOIHWToGOIHW16Half(short *src, short *dst, int group, int input_channel,
@@ -33,7 +33,12 @@ public:
                                                 int output_channel, int height, int width, bool tanspose = false);
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
-    // @param data_tyep data type info
+    // @param data_type data type info
+    static Status ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
+
+    // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
+    // @param data_type data type info
     static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);

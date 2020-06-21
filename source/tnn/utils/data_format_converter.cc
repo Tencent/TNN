@@ -19,6 +19,46 @@
 namespace TNN_NS {
 
 template <class T>
+static Status ConvertFromNCHWToNHWC(T *src, T *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        auto n_dst = dst + n * channel * height * width;
+        auto n_src = src + n * channel * height * width;
+        for (int c = 0; c < channel; c++) {
+            auto z_dst = n_dst + c;
+            auto z_src = n_src + c * height * width;
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [h][w][c]
+                    // from [c][h][w]
+                    z_dst[h * width * channel + w * channel] = z_src[h * width + w];
+                }
+            }
+        }
+    }
+    return TNN_OK;
+};
+
+template <class T>
+static Status ConvertFromNHWCToNCHW(T *src, T *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        auto n_dst = dst + n * channel * height * width;
+        auto n_src = src + n * channel * height * width;
+        for (int c = 0; c < channel; c++) {
+            auto z_dst = n_dst + c * height * width;
+            auto z_src = n_src + c;
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [c][h][w]
+                    // from [h][w][c]
+                    z_dst[h * width + w] = z_src[h * width * channel + w * channel];
+                }
+            }
+        }
+    }
+    return TNN_OK;
+};
+
+template <class T>
 static Status ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int input_channel, int output_channel,
                                                int height, int width, bool tanspose = false) {
     const int goc       = output_channel / group;
@@ -185,6 +225,14 @@ static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int h
     }
     return TNN_OK;
 };
+
+Status DataFormatConverter::ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width) {
+    return ConvertFromNCHWToNHWC<float>(src, dst, num, channel, height, width);
+}
+
+Status DataFormatConverter::ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width) {
+    return ConvertFromNHWCToNCHW<float>(src, dst, num, channel, height, width);
+}
 
 Status DataFormatConverter::ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,
                                                            int output_channel, int height, int width, bool tanspose) {
