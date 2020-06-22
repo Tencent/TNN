@@ -34,11 +34,29 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
-        for (int n = 0; n < count_quad; n++) {
-            Float4 val = Float4::load(input_data + n * 4);
-            Float4 res =
-                Float4::pow(val * layer_param->scale + Float4(layer_param->shift), Float4(layer_param->exponent));
-            Float4::save(output_data + n * 4, res);
+        int pow = std::round(layer_param->exponent);
+        if (ABS(pow - layer_param->exponent) < 0.00001) {
+            bool reciprocal = pow < 0;
+            if(reciprocal)
+                pow = -pow;
+            for (int n = 0; n < count_quad; n++) {
+                Float4 val = Float4::load(input_data + n * 4) * layer_param->scale + layer_param->shift;
+                if (reciprocal) {
+                    val = Float4::div(1.0f, val);
+                }
+                Float4 res = val;
+                for (int i = 0; i < pow - 1; i++) {
+                    res = res * val;
+                }
+                Float4::save(output_data + n * 4, res);
+            }
+        } else {
+            for (int n = 0; n < count_quad; n++) {
+                Float4 val = Float4::load(input_data + n * 4);
+                Float4 res =
+                    Float4::pow(val * layer_param->scale + Float4(layer_param->shift), Float4(layer_param->exponent));
+                Float4::save(output_data + n * 4, res);
+            }
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
