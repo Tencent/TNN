@@ -54,7 +54,7 @@ tnn-convert         latest              28c93a738b08        16 minutes ago      
 
 #### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
 ``` shell script
-cd <path-to-tnn>/tools/
+cd <path-to-tnn>/
 docker build -t tnn-convert:latest .
 ```
 docker 会根据 Dockerfile 文件进行构建，这需要等待一会。等构建完成之后，你可以通过下面的命令进行验证是否构建完成。
