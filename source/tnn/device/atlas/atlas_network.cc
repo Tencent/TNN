@@ -172,13 +172,13 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
 
-    ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_NORMAL_ONLY);
+    ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
         LOGE("malloc buffer for mem failed, require size is %zu\n", model_mem_size_);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
     }
 
-    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_NORMAL_ONLY);
+    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
         LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
