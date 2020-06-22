@@ -81,6 +81,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
+    
     if result == 0:
         print("onnx2tnn succeed!")
     else:

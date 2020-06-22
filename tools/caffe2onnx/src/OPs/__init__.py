@@ -27,3 +27,4 @@ from src.OPs.Flatten import create_flatten_node
 from src.OPs.Resize import create_resize_node
 from src.OPs.Axpy import create_axpy_add_node, create_axpy_mul_node
 from src.OPs.LpNormalization import create_Lp_Normalization
+from src.OPs.Tanh import createTanh

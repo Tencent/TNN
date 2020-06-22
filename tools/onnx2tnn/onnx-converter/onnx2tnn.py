@@ -97,6 +97,11 @@ def main():
     if algo_optimize == '0':
         onnx_net_opt_path = onnx_net_path
 
+    if "convert" not in dir(onnx2tnn):
+        print("\nYou should compile onnx2tnn first !!!")
+        print("You can find more compilation details in <path-to-tnn>/doc/cn/user/convert.md")
+        exit(-1)
+
     # original_net = onnx.load(onnx_net_path)
     # converted_model = version_converter.convert_version(original_net, 10)
     print('0.----onnx version:' + str(onnx.__version__))
@@ -111,11 +116,13 @@ def main():
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
     status = 0
+
     try:
         status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
     except Exception as err:
         status = -1
         traceback.print_exc()
+
 
     print("3.----onnx2tnn status: " + str(status))
 
