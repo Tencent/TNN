@@ -35,11 +35,16 @@ def is_ssd_model(proto_path):
     else:
         return False
 
-def check_onnx_dim(onnx_path : str) -> bool:
+def check_onnx_dim(onnx_path : str):
     session = onnxruntime.InferenceSession(onnx_path)
+    current_shape = []
+    status = 0
     for ip in session.get_inputs():
+        current_shape.append((ip.name, ip.shape))
         for dim in ip.shape:
             if type(dim) is not int or dim < 1:
-                return False
-
-    return True
+                status = -1
+                
+    if status == -1:
+        return False, current_shape
+    return True, None
