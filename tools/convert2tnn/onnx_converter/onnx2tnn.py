@@ -17,9 +17,12 @@ from utils import checker
 from . import align_model
 import os
 
+def throw_exception():
+    print("You should use -in to specify input's shape. e.g.: -in name[1,3,32,32]")
+    exit(-1)
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
-            input_path=None, refer_path=None):
+            input_path=None, refer_path=None, input_names : str=None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -27,10 +30,16 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
           output_path:  生成的 tnn 文件的路径
           version:      转换模型的版本号
           optimize:     是否需要对模型进行优化,默认是需要进行优化
-          halt:         是否需要转为 FP16 的模型,减小模型的大小
+          half:         是否需要转为 FP16 的模型,减小模型的大小
     :return return_code
     :exception 执行超时
     """
+    if checker.check_onnx_dim(onnx_path) is False:
+        if input_names is None:
+            throw_exception()
+        if input_names is not None and not ("[" in input_names and "]" in input_names):
+            throw_exception()
+
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
     command = "python3 onnx2tnn.py " + onnx_path
@@ -50,6 +59,17 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
     print("the onnx2tnn command:" + command)
+
+    if input_names is not None:
+        new_input_names = ""
+        for char in input_names:
+            if char == "[":
+                char = ":"
+            if char == "]":
+                continue
+            new_input_names += char
+        command = command + " -input_shape " + new_input_names
+
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
     if result == 0:
@@ -67,4 +87,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+        if input_names is None:
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+        else:
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, new_input_names)
