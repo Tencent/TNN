@@ -26,6 +26,12 @@ def parse_args():
     onnx2tnn_parser.add_argument(dest='onnx_path',
                                  action='store',
                                  help="the path for onnx file")
+    onnx2tnn_parser.add_argument('-in',
+                                 metavar='input_name',
+                                 dest='input_names',
+                                 action='store',
+                                 required=False,
+                                 help="specify the shape of input. e.g. -in name[1,3,28,28]")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,
