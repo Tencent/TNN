@@ -23,7 +23,7 @@ def throw_exception(current_shape):
         name, shape = item
         message += str(name) + ": " + str(shape) + "   "
 
-    print("You should use -in to specify input's shape. e.g.: -in name[1,3,32,32]")
+    print("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
     print(message)
     
     exit(-1)
