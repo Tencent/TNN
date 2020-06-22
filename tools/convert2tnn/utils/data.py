@@ -11,29 +11,11 @@
 # under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
-import cv2
 import numpy as np
 import os
 import pathlib
 from utils import cmd
 from utils import checker
-
-
-def gene_data_from_png(inputs, shape):
-    # inputs format: input1:path1,input2,path2
-    input_list = inputs.split(",")
-    input_feed = {}
-    for item in input_list:
-        name, path = item.split(":")
-        img = cv2.imread(path)
-        img = img.astype(np.float32)
-        img = cv2.resize(img, shape)
-        img = img.transpose((2, 0, 1))
-        current_shape = img.shape
-        img = img.reshape(1, *current_shape)
-        input_feed[name] = img
-
-    return input_feed
 
 
 def gene_random_data(input_info: dict) -> str:
