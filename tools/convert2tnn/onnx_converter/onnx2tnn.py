@@ -17,8 +17,15 @@ from utils import checker
 from . import align_model
 import os
 
-def throw_exception():
+def throw_exception(current_shape):
+    message = "Current shape: "
+    for item in current_shape:
+        name, shape = item
+        message += str(name) + ": " + str(shape) + "   "
+
     print("You should use -in to specify input's shape. e.g.: -in name[1,3,32,32]")
+    print(message)
+    
     exit(-1)
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
@@ -34,11 +41,13 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     :return return_code
     :exception 执行超时
     """
-    if checker.check_onnx_dim(onnx_path) is False:
+    ret, current_shape = checker.check_onnx_dim(onnx_path)
+
+    if ret is False and current_shape is not None:
         if input_names is None:
-            throw_exception()
+            throw_exception(current_shape)
         if input_names is not None and not ("[" in input_names and "]" in input_names):
-            throw_exception()
+            throw_exception(current_shape)
 
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
