@@ -29,7 +29,8 @@ COPY ./onnx2tnn $TOOLS_ROOT/onnx2tnn
 COPY ./caffe2onnx $TOOLS_ROOT/caffe2onnx
 COPY ./convert2tnn $TOOLS_ROOT/convert2tnn
 
-RUN cd $TOOLS_ROOT/onnx2tnn/onnx-converter && ./build.sh
+#RUN cd $TOOLS_ROOT/onnx2tnn/onnx-converter && ./build.sh
+RUN cd $TOOLS_ROOT/convert2tnn && ./build.sh
 
 RUN python3 $TOOLS_ROOT/convert2tnn/converter.py -h
 
