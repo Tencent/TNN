@@ -58,17 +58,19 @@ Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& t
     } else if (ACL_INT32 == acl_datatype || ACL_UINT32 == acl_datatype) {
         tnn_datatype = DATA_TYPE_INT32;
     } else {
+        LOGE("not support convert from acl datatype (%d) to tnn datatype\n", acl_datatype);
         return Status(TNNERR_COMMON_ERROR, "the data type is not support");
     }
     return TNN_OK;
 }
 
 Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat) {
-    if (ACL_FORMAT_NCHW == acl_format) {
+    if (ACL_FORMAT_NCHW == acl_format || ACL_FORMAT_ND == acl_format) {
         tnn_dataformat = DATA_FORMAT_NCHW;
     } else if (ACL_FORMAT_NHWC == acl_format) {
         tnn_dataformat = DATA_FORMAT_NHWC;
     } else {
+        LOGE("not support convert from acl dataformat (%d) to tnn datatype\n", acl_format);
         return Status(TNNERR_COMMON_ERROR, "the data format is not support");
     }
     return TNN_OK;
