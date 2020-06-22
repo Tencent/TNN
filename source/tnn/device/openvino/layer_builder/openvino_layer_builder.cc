@@ -32,16 +32,6 @@ OpenVINOLayerBuilder::OpenVINOLayerBuilder(LayerType type): BaseLayerBuilder(typ
 OpenVINOLayerBuilder::~OpenVINOLayerBuilder() {
 }
 
-Status OpenVINOLayerBuilder::Init1(LayerParam* param, LayerResource* resource, ngraph::NodeVector inputNodes, ngraph::NodeVector &outputNodes) {
-    param_ = param;
-    inputNodes_ = inputNodes;
-    resource_ = resource;
-
-    Build();
-    outputNodes = GetOutputNodes();
-    return TNN_OK;
-}
-
 Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
                        std::vector<Blob*>& output_blobs, AbstractDevice* device) {
 
@@ -51,59 +41,79 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     param_    = param;
     resource_ = resource;
 
+    std::cout << "building" << std::endl;
+    Build();
+    SetOutputTensors(output_blobs);
+
     auto status = InferOutputDataType();
     if (status != TNN_OK) {
         return status;
     }
-
+    
     status = InferOutputShape();
+    
     LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
          output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
          output_blobs[0]->GetBlobDesc().dims[3]);
     if (status != TNN_OK) {
         return status;
     }
-    auto dims = output_blobs[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
-        }
-    }
+    
+    // auto dims = output_blobs[0]->GetBlobDesc().dims;
+    
+    // for (auto item : dims) {
+    //     if (item <= 0) {
+    //         LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
+    //         return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+    //     }
+    // }
+
+    return TNN_OK;
 
 }
 
 std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetInputNodes() {
-    // std::vector<std::shared_ptr<ngraph::Node>> input_nodes;
-    // for(auto tensor : GetInputTensors()) {
-    //     auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
-    //     if (openvino_tensor){
-    //         input_nodes.push_back(openvino_tensor->GetNode());
-    //     } else {
-    //         LOGE("Error: OpenVINOLayerBuilder(%s) got none-openvino input tensor\n", layer_name_.c_str());
-    //         return std::vector<std::shared_ptr<ngraph::Node>>();
-    //     }
-    // }
-    // return input_nodes;
-    return inputNodes_;
+    std::vector<std::shared_ptr<ngraph::Node>> input_nodes;
+    for(auto tensor : GetInputTensors()) {
+        auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
+        if (openvino_tensor){
+            input_nodes.push_back(openvino_tensor->GetNode());
+        } else {
+            LOGE("Error: OpenVINOLayerBuilder(%s) got none-openvino input tensor\n", layer_name_.c_str());
+            return std::vector<std::shared_ptr<ngraph::Node>>();
+        }
+    }
+    return input_nodes;
+    // return inputNodes_;
 }
 
 LayerResource* OpenVINOLayerBuilder::GetResource() {
     return resource_;
 }
 
+Status OpenVINOLayerBuilder::SetOutputTensors(std::vector<Blob*> output_blobs) {
+    for (auto blob : output_blobs) {
+        auto name = blob->GetBlobDesc().name;
+        auto tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+        auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
+        openvino_tensor->SetNode(outputNodes_[0]);
+    }
+
+    return TNN_OK;
+}
+
 std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetOutputNodes() {
-    // std::vector<std::shared_ptr<ngraph::Node>> output_nodes;
-    // for(auto tensor : GetOutputTensors()) {
-    //     auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
-    //     if (openvino_tensor){
-    //         output_nodes.push_back(openvino_tensor->GetNode());
-    //     } else {
-    //         LOGE("Error: OpenVINOLayerBuilder(%s) got none-openvino output tensor\n", layer_name_.c_str());
-    //         return std::vector<std::shared_ptr<ngraph::Node>>();
-    //     }
-    // }
-    return outputNodes_;
+    std::vector<std::shared_ptr<ngraph::Node>> output_nodes;
+    for(auto tensor : GetOutputTensors()) {
+        auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
+        if (openvino_tensor){
+            output_nodes.push_back(openvino_tensor->GetNode());
+        } else {
+            LOGE("Error: OpenVINOLayerBuilder(%s) got none-openvino output tensor\n", layer_name_.c_str());
+            return std::vector<std::shared_ptr<ngraph::Node>>();
+        }
+    }
+    // return outputNodes_;
 }
 
 Status OpenVINOLayerBuilder::SetOutputNodes(ngraph::NodeVector node) {

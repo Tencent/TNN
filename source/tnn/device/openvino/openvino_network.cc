@@ -46,87 +46,29 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
     }
+    device_ = GetDevice(net_config.device_type);
+    blob_manager_ = new BlobManager(device_);
+    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
 
-    // InitLayers(net_structure, net_resource);
-    std::cout << "Device type :" << net_config.device_type << std::endl;
+    //set inputnode
+    SetNetInputNode(net_structure, net_resource);
+    //init layers and nodes
+    InitLayers(net_structure, net_resource);
+
     device_ = GetDevice(net_config.device_type);
     if (device_ == NULL) {
         return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
-    // init iuput node--------------------------
-    NodeManager node_manager;
-    std::vector<int> input_node_shape = net_structure->inputs_shape_map.begin()->second;
-    // auto input_layer_name = net_structure->layers.at(0)->inputs.at(0); 
-    // std::cout << "input layer name : " << input_layer_name << " ";
-    ngraph::Shape ngraphInputShape;
-    for (size_t i = 0; i < input_node_shape.size(); i++) {
-        // std::cout << input_node_shape.at(i) << " ";
-        ngraphInputShape.push_back(input_node_shape.at(i));
-    }
-
-    // std::cout << "output layer name: " << net_structure->layers.at(0)->outputs.at(0) << std::endl;
-
-    std::shared_ptr<ngraph::op::Parameter> input_node = std::make_shared<ngraph::op::Parameter>(
-                        ngraph::element::f32, ngraph::Shape(ngraphInputShape));
-    input_node->set_friendly_name(net_structure->layers.at(0)->inputs.at(0));
-    // std::cout << "input node name: " << input->get_friendly_name() << std::endl;
-
-    node_manager.addNode(input_node->get_friendly_name(), input_node);
-
-    // init nodes
-    for (auto layer_info : net_structure->layers) {
-        LayerType type       = layer_info->type;
-        BaseLayer *cur_layer = CreateLayer(type);
-        std::string layer_name = layer_info->name;
-
-        // get input nodes in node manager
-        std::vector<std::string> &input_names = layer_info->inputs;
-        ngraph::NodeVector inputNodes;
-        for (auto name : input_names) {
-            inputNodes.push_back(node_manager.findNode(name));
-        }
-
-        ngraph::NodeVector outputNodes;
-        OpenVINOLayerBuilder* openvino_cur_layer = CreateOpenVINOLayerBuilder(type);
-        LayerResource* layer_resource = net_resource->resource_map[layer_name].get();
-        openvino_cur_layer->Init1(layer_info->param.get(), layer_resource, inputNodes, outputNodes);
-        
-        // add nodes to node manager
-        for (auto node : outputNodes) {
-            node_manager.addNode(node->get_friendly_name(), node);
-        }
-    }
-
-
-    // init network
-    // std::cout << "last node name" << node_manager.findNode(net_structure->layers.back()->outputs.at(0))->get_friendly_name() << std::endl;
-    auto result_node = std::make_shared<ngraph::op::Result>(node_manager.findNode(net_structure->layers.back()->outputs.at(0)));
-    std::shared_ptr<ngraph::Function> nodeFunciton = std::make_shared<ngraph::Function>(
-        result_node, ngraph::ParameterVector{ input_node }, "net");
-
-    // std::cout << "init net finish" << std::endl;
+    // build ngraph network
+    BuildNgraphNetwork(net_structure);
     //////////////////////////////////////////////////////////////
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
     
-    // InferenceEngine::CNNNetwork network(nodeFunciton);
-    network_ =  std::make_shared<InferenceEngine::CNNNetwork>(nodeFunciton);
-    // OpenVINOModelInterpreter* default_interpreter = dynamic_cast<OpenVINOModelInterpreter*>(interpreter);
-    // network_ = default_interpreter->GetCNNNetwork();
     std::cout << "Loading Network" << std::endl;
     executable_network_ = ie_.LoadNetwork(*network_, "CPU");
     std::cout << "Creating Infer Request" << std::endl;
     infer_request_ = executable_network_.CreateInferRequest();
-
-    // set input blob
-    // InferenceEngine::InputsDataMap inputInfo = network.getInputsInfo();
-    // inputInfo.begin()->second->setPrecision(InferenceEngine::Precision::FP32);
-    // inputInfo.begin()->second->setLayout(InferenceEngine::Layout::NCHW);
-    // for (auto item : inputInfo) {
-    //     // create input blob
-    //     InferenceEngine::Blob::Ptr input = infer_request_.GetBlob(item.first);
-
-    // }
 
     std::cout << "infer finished" << std::endl;
     auto input_map = executable_network_.GetInputsInfo();
@@ -166,28 +108,56 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     return Reshape(inputs_shape);
 }
 
+Status OpenVINONetwork_::SetNetInputNode(NetStructure *net_structure, NetResource* net_resource) {
+    
+    std::string input_name = net_structure->layers.at(0)->inputs.at(0);
+    std::vector<int> input_node_shape = net_structure->inputs_shape_map.begin()->second;
+    ngraph::Shape ngraphInputShape;
+    for (size_t i = 0; i < input_node_shape.size(); i++) {
+        ngraphInputShape.push_back(input_node_shape.at(i));
+    }
+    
+    std::shared_ptr<ngraph::op::Parameter> input_node = std::make_shared<ngraph::op::Parameter>(
+                        ngraph::element::f32, ngraph::Shape(ngraphInputShape));
+    input_node->set_friendly_name(input_name);
+
+    auto blob = blob_manager_->GetBlob(input_name);
+    auto foreign_blob = new ForeignBlob(blob);
+    auto openvinoTensor = std::make_shared<OpenvinoTensor>();
+    
+    openvinoTensor->SetNode(input_node);
+    foreign_blob->SetForeignTensor(openvinoTensor);
+    blob_manager_->ReplaceBlob(input_name, foreign_blob);
+
+    return TNN_OK;
+}
+
+Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
+
+    auto input_name = net_structure->layers.front()->inputs.front();
+    auto input_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(input_name))->GetForeignTensor();
+    auto input_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(input_tensor);
+    auto input_node = std::dynamic_pointer_cast<ngraph::op::Parameter>(input_openvino_tensor->GetNode());
+
+    auto output_name = net_structure->layers.back()->outputs.at(0);
+    auto output_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(output_name))->GetForeignTensor();
+    auto output_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(output_tensor);
+    auto result_node = std::make_shared<ngraph::op::Result>(output_openvino_tensor->GetNode());
+    
+    
+    std::shared_ptr<ngraph::Function> nodeFunciton = std::make_shared<ngraph::Function>(
+         result_node, ngraph::ParameterVector{ input_node }, "net");
+
+    network_ =  std::make_shared<InferenceEngine::CNNNetwork>(nodeFunciton);
+    return TNN_OK;
+}
+
 Status OpenVINONetwork_::GetForwardMemorySize(int &memory_size) {
     memory_size = 0;
     return TNN_OK;
 }
 
-Status OpenVINONetwork_::SetForwardMemory(void *memory) {
-    InferenceEngine::InputsDataMap input_info = network_->getInputsInfo();
-    input_info.begin()->second->setPrecision(InferenceEngine::Precision::FP32);
-    input_info.begin()->second->setLayout(InferenceEngine::Layout::NCHW);
-
-
-    InferenceEngine::Blob::Ptr input = infer_request_.GetBlob(input_info.begin()->first);
-    size_t input_images = input->getTensorDesc().getDims()[0];
-    size_t num_channels = input->getTensorDesc().getDims()[1];
-    size_t image_size   = input->getTensorDesc().getDims()[2] * input->getTensorDesc().getDims()[3];
-    size_t input_size = input_images * num_channels * image_size;
-
-    auto data = input->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-    for (size_t i = 0; i < input_size; i++) {
-        data[i] = reinterpret_cast<float*>(memory)[i];
-    }
-    
+Status OpenVINONetwork_::SetForwardMemory(void *memory) {   
     return TNN_OK;
 }
 
@@ -278,9 +248,11 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
  */
 Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
+    std::cout << "initlayer function" << std::endl;
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         OpenVINOLayerBuilder *cur_layer = CreateOpenVINOLayerBuilder(type);
+        
         if (cur_layer == NULL) {
             LOGE("Error: CreateLayerBuilder failed, type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateLayerBuilder failed");
@@ -291,12 +263,11 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<Blob *> inputs;
         std::vector<std::string> &input_names = layer_info->inputs;
 
+        // get input nodes
         for (auto name : input_names) {
-            auto blob = blob_manager_->GetBlob(name);
-            auto foreign_blob = new ForeignBlob(blob);
-            foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>());
-            blob_manager_->ReplaceBlob(name, foreign_blob);
-            blob = foreign_blob;
+            ForeignBlob* blob = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name));
+            // auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(blob.GetForeignTensor());
+            // openvino_tensor->GetNode();
             /*
             // Check for int8
             bool is_int8_blob = layer_info->param->quantized;
@@ -324,7 +295,6 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             */
             inputs.push_back(blob);
         }
-
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
@@ -344,7 +314,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
                                    net_resource->resource_map[layer_name].get());
 #endif
-
+        // init output nodes
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
             auto foreign_blob = new ForeignBlob(blob);
@@ -379,17 +349,17 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             */
-            outputs.push_back(blob);
+           outputs.push_back(blob);
         }
-
         LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
 
+        // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
         }
-
+        
         layers_.push_back(cur_layer);
     }
     return ret;
@@ -414,9 +384,9 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 Status OpenVINONetwork_::Forward() {
     std::cout << "fowarding " << std::endl;
 
-    auto blob_ptr = infer_request_.GetBlob("input");
-    std::cout << "ok" << std::endl;
-    std::cout<<blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0]<<std::endl;
+    // auto blob_ptr = infer_request_.GetBlob("input");
+    // std::cout << "ok" << std::endl;
+    // std::cout<<blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0]<<std::endl;
     infer_request_.Infer();
     // auto output_blob = infer_request_.GetBlob("2");
     // std::cout << output_blob->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0] << std::endl;

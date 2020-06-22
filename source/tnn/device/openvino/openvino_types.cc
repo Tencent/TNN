@@ -42,6 +42,7 @@ std::shared_ptr<ngraph::Node> OpenvinoTensor::GetNode() {
 //@brief set the ForeignTensor
 Status OpenvinoTensor::SetNode(std::shared_ptr<ngraph::Node> node) {
     node_ = node;
+    return TNN_OK;
 }
 
 

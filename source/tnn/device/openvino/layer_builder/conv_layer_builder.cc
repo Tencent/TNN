@@ -18,6 +18,8 @@
 #include <ngraph/node.hpp>
 #include <ngraph/ngraph.hpp>
 #include <ngraph/op/op.hpp>
+#include <ngraph/opsets/opset.hpp>
+#include <ngraph/opsets/opset1.hpp>
 #include <inference_engine.hpp>
 
 #include "tnn/layer/base_layer.h"
@@ -39,7 +41,7 @@ Status ConvOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
     auto in_node = GetInputNodes()[0];
-    
+
     // std::cout << "building conv node" << std::endl;
     auto convNode = std::make_shared<ngraph::op::v1::Convolution>();
 
@@ -81,8 +83,9 @@ Status ConvOVLayerBuilder::Build() {
     convNode->set_auto_pad(ngraph::op::PadType::EXPLICIT); // 这里需要有一定的对应 pad_type -> PadType
 
     // set weights
+    std::cout << "setting weights" << std::endl;
     size_t weight_size = 1;
-    convNode->set_argument(0, inputNodes_.at(0)->output(0));
+    convNode->set_argument(0, in_node->output(0));
     ngraph::Shape weights_shape;
     weights_shape.push_back(paramlist->output_channel);
     weights_shape.push_back(paramlist->input_channel);
@@ -162,7 +165,6 @@ Status ConvOVLayerBuilder::Build() {
     // }
 
     // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(out_node);
-
     return TNN_OK;
 }
 

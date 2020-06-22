@@ -76,6 +76,11 @@ public:
     // @param blobs output blobs name map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
+    //
+    virtual Status SetNetInputNode(NetStructure *net_structure, NetResource *net_resource);
+
+    virtual Status BuildNgraphNetwork(NetStructure *net_structure);
+
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
   
