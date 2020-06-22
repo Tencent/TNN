@@ -103,6 +103,13 @@ def main():
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
     status = 0
+
+    if "convert" not in dir(onnx2tnn):
+        print("\nyou should compile onnx2tnn first !!!")
+        print("you can find more compilation details in <path-to-tnn>/doc/cn/user/convert.md\n")
+        print("3.----onnx2tnn status: -1")
+        exit(-1)
+
     try:
         status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
     except Exception as err:
