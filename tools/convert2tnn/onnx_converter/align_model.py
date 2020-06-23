@@ -81,7 +81,8 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
         cnt = 0
         for item in output_info:
             output_name = item.name
-            output_shape = item.shape
+            output_shape = pred[cnt].shape
+
             description = "{} {} " .format(output_name, len(output_shape))
             for dim in output_shape:
                 description += "{} " .format(dim)
@@ -149,6 +150,9 @@ def parse_input_names(input_names: str) -> dict:
         shape = []
         for dim in shape_.split(","):
             shape.append(int(dim))
+
+        shape[0] = 1
+
         input_info[name] = shape
 
     return input_info
