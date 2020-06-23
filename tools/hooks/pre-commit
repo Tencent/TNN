@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Sensitive info check in pre-commit
+# ver: 1.0 
+# by: Tencent Security Yunding Lab
+# contact: CSIG_SEC
+#
+# To enable this hook, rename this file to "pre-commit", add to .git/hooks/
+
+exec 1>&2
+
+echo "Sensitive info check --by Tencent Security Yunding Lab"
+echo "Hook script in .git/hooks/pre-commit"
+
+regx_ak="(AKID[a-zA-Z0-9]{32})([^a-zA-Z0-9]|$)|([a-zA-Z0-9]{32})([^a-zA-Z0-9]|$)"
+regx_ip="(((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?))|(([\da-fA-F]{1,4}:){7}[\da-fA-F]{1,4})"
+regx_pw="(://[^:]+:([^@]+)@)|([\'\"])([%s]+)(\1)|((password|passwd|pwd|secret|secrete|token)[^=,;\"\']*(\'|\")?\s*((={1,3})|:)\s*((\"[^\"]+\")|(\'[^\']+\')))|(BEGIN RSA PRIVATE KEY)|(BEGIN DSA PRIVATE KEY)|(BEGIN EC PRIVATE KEY)|(BEGIN OPENSSH PRIVATE KEY)|(BEGIN PRIVATE KEY)|(PuTTY-User-Key-File-2)|(BEGIN SSH2 ENCRYPTED PRIVATE KEY)"
+regx_dm='(\.oa\.com)|(\.sng\.com)|(\\\\tencent\.com\\tfs\\)|(\.isd\.com)|(\.sng\.local)|(\.woa\.com)'
+regx_ast="(\btlinux)|(\bDev-VD\d{1,2})|(\bTencent-GuestWiFi\b)|(\bTencent-StaffWiFi\b)|(\bTencent-OfficeWiFi\b)|(\bTencent-LabWiFi\b)|(\bMNet)|(汕尾鹅埠)|(上海青浦ODC)|(内网开发测试虚拟化区)|(\bdevnet)|(TENCENT64.site)"
+regx_ml='@tencent\.com'
+regx="'"$regx_ak"|"$regx_ml"|"$regx_ast"|"$regx_dm"|"$regx_ip"|"$regx_pw
+
+result=`git diff --cached HEAD|grep -v "127.0.0.1"| grep -irE "$regx" ` 
+
+
+if [ ! -n "$result" ]; then
+    echo "Sensitive info check pass"
+else
+    echo "Sensitive info check failed! please remove sensitive info!"
+    git diff --cached HEAD|grep -v "127.0.0.1"|grep --color -irE "$regx"
+    # 重复执行为了高亮显示
+    exit 1
+fi
+
+exit 0
+
