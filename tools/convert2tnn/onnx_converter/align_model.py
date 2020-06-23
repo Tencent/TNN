@@ -32,6 +32,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     checker.check_file_exist(model_check_path)
     command = model_check_path + " -p  " + proto_path + " -m " + \
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
+
     print(command)
     cmd.run(command)
     return
@@ -80,10 +81,7 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
         cnt = 0
         for item in output_info:
             output_name = item.name
-            output_shape = item.shape
-
-            if type(output_shape[0]) is not int or output_shape[0] < 1:
-                output_shape[0] = input_shape[0]
+            output_shape = pred[cnt].shape
 
             description = "{} {} " .format(output_name, len(output_shape))
             for dim in output_shape:
@@ -152,6 +150,9 @@ def parse_input_names(input_names: str) -> dict:
         shape = []
         for dim in shape_.split(","):
             shape.append(int(dim))
+
+        shape[0] = 1
+
         input_info[name] = shape
 
     return input_info
