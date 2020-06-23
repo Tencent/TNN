@@ -26,6 +26,12 @@ def parse_args():
     onnx2tnn_parser.add_argument(dest='onnx_path',
                                  action='store',
                                  help="the path for onnx file")
+    onnx2tnn_parser.add_argument('-in',
+                                 metavar='input_name',
+                                 dest='input_names',
+                                 action='store',
+                                 required=False,
+                                 help="specify the shape of input. e.g. -in name[1,3,28,28]")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,
@@ -50,6 +56,22 @@ def parse_args():
                                  action='store',
                                  required=False,
                                  help="the output tnn directory")
+    onnx2tnn_parser.add_argument('-align',
+                                 dest='align',
+                                 default=False,
+                                 action='store_true',
+                                 required=False,
+                                 help='align the onnx model with tnn model')
+    onnx2tnn_parser.add_argument('-input_file',
+                                 dest='input_file_path',
+                                 action='store',
+                                 required=False,
+                                 help="the input file path which contains the input data for the inference model.")
+    onnx2tnn_parser.add_argument('-ref_file',
+                                 dest='refer_file_path',
+                                 action='store',
+                                 required=False,
+                                 help="the reference file path which contains the reference data to compare the results.")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -86,6 +108,22 @@ def parse_args():
                                   action='store_true',
                                   required=False,
                                   help="save model using half")
+    caffe2tnn_parser.add_argument('-align',
+                                  dest='align',
+                                  default=False,
+                                  action='store_true',
+                                  required=False,
+                                  help='align the onnx model with tnn model')
+    caffe2tnn_parser.add_argument('-input_file',
+                                  dest='input_file_path',
+                                  action='store',
+                                  required=False,
+                                  help="the input file path which contains the input data for the inference model.")
+    caffe2tnn_parser.add_argument('-ref_file',
+                                  dest='refer_file_path',
+                                  action='store',
+                                  required=False,
+                                  help="the reference file path which contains the reference data to compare the results.")
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -100,7 +138,7 @@ def parse_args():
                                dest='input_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's input names")
+                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in \"name[1,28,28,3]\"")
 
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
@@ -128,13 +166,34 @@ def parse_args():
                                action='store_true',
                                required=False,
                                help="optimize the model")
-
     tf2tnn_parser.add_argument('-half',
                                dest='half',
                                default=False,
                                action='store_true',
                                required=False,
                                help="optimize the model")
+    tf2tnn_parser.add_argument('-align',
+                               dest='align',
+                               default=False,
+                               action='store_true',
+                               required=False,
+                               help='align the onnx model with tnn model')
+    tf2tnn_parser.add_argument('-not_fold_const',
+                                dest='not_fold_const',
+                                default=False,
+                                action='store_true',
+                                required=False,
+                                help=argparse.SUPPRESS)
+    tf2tnn_parser.add_argument('-input_file',
+                               dest='input_file_path',
+                               action='store',
+                               required=False,
+                               help="the input file path which contains the input data for the inference model.")
+    tf2tnn_parser.add_argument('-ref_file',
+                               dest='refer_file_path',
+                               action='store',
+                               required=False,
+                               help="the reference file path which contains the reference data to compare the results.")
 
     args = parser.parse_args()
     return args

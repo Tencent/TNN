@@ -19,7 +19,7 @@ import datetime
 import time
 
 
-def run(cmd_string, work_dir="", timeout=None, is_shell=True):
+def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
     """
          执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
         :parameter:
