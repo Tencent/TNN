@@ -34,7 +34,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                             InputShapesMap inputs_shape) {
 
     Status ret                                   = TNN_OK;
-    std::cout << "Init Layers" << std::endl;
+
     // RETURN_ON_NEQ(DefaultNetwork::Init(net_config, model_config, interpreter, inputs_shape), TNN_OK);
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
@@ -65,12 +65,10 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     //////////////////////////////////////////////////////////////
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
     
-    std::cout << "Loading Network" << std::endl;
     executable_network_ = ie_.LoadNetwork(*network_, "CPU");
-    std::cout << "Creating Infer Request" << std::endl;
+
     infer_request_ = executable_network_.CreateInferRequest();
 
-    std::cout << "infer finished" << std::endl;
     auto input_map = executable_network_.GetInputsInfo();
     for(auto item : input_map) {
         std::string key = item.first;
@@ -102,8 +100,6 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
         output_blob_map_[key] = new Blob(desc, handle); 
     }
-
-    std::cout << "init layer finshed" << std::endl;
 
     return Reshape(inputs_shape);
 }
@@ -175,7 +171,6 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
     RETURN_ON_NEQ(DefaultNetwork::Reshape(inputs), TNN_OK);
 
     auto network_shapes = network_->getInputShapes();
-    std::cout << "reshape " << std::endl;
 
     for(auto item : inputs) {
         std::string input_name = item.first;
@@ -248,7 +243,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
  */
 Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
-    std::cout << "initlayer function" << std::endl;
+
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         OpenVINOLayerBuilder *cur_layer = CreateOpenVINOLayerBuilder(type);
@@ -382,14 +377,7 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 }
 
 Status OpenVINONetwork_::Forward() {
-    std::cout << "fowarding " << std::endl;
-
-    // auto blob_ptr = infer_request_.GetBlob("input");
-    // std::cout << "ok" << std::endl;
-    // std::cout<<blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0]<<std::endl;
     infer_request_.Infer();
-    // auto output_blob = infer_request_.GetBlob("2");
-    // std::cout << output_blob->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>()[0] << std::endl;
     return TNN_OK;
 }
 

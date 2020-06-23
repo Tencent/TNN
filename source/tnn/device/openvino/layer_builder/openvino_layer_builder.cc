@@ -41,7 +41,6 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     param_    = param;
     resource_ = resource;
 
-    std::cout << "building" << std::endl;
     Build();
     SetOutputTensors(output_blobs);
 
@@ -117,7 +116,6 @@ std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetOutputNodes(
 }
 
 Status OpenVINOLayerBuilder::SetOutputNodes(ngraph::NodeVector node) {
-    // std::cout << "setting output nodes" << std::endl;
     outputNodes_ = node;
     return TNN_OK;
 }

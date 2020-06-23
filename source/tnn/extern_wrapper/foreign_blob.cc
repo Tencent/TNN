@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include <iostream>
 #include "tnn/core/blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 
@@ -45,6 +46,7 @@ std::shared_ptr<ForeignTensor> ForeignBlob::GetForeignTensor() {
 //@brief set the ForeignTensor
 Status ForeignBlob::SetForeignTensor(std::shared_ptr<ForeignTensor> foreign_tensor) {
     foreign_tensor_ = foreign_tensor;
+    return TNN_OK;
 }
 
 
