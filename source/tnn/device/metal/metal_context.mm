@@ -317,6 +317,7 @@ Status MetalContext::Synchronize() {
     if (!force_commit && _commitCount % kMetalCommandBufferDepth != 0) {
         return;
     }
+    _commitCount = (!force_commit) ? _commitCount : 0;
 
     if (_commandBuffer.status < MTLCommandBufferStatusCommitted) {
         /*Note: addScheduledHandler or addCompletedHandler may cause crash*/
