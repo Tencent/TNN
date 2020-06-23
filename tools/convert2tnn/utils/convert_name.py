@@ -12,21 +12,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import os
+def onnx_name2tnn_name(onnx_name : str) -> str:
+    split = onnx_name.split(":")
+    tnn_name = ""
+    for item in split:
+        tnn_name += (item + "_")
+    tnn_name = tnn_name[:-1]
 
-
-def parse_path(path: str):
-    if path is None:
-        return None
-    if path.startswith("/"):
-        return path
-    elif path.startswith("./"):
-        return os.path.join(os.getcwd(), path[2:])
-    elif path.startswith("../"):
-        abs_path = os.getcwd() + "/" + path
-        return abs_path
-    elif path.startswith("~"):
-        abs_path = os.path.expanduser('~') + path[1:]
-        return abs_path
-    else:
-        return os.path.join(os.getcwd(), path)
+    return tnn_name

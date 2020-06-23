@@ -47,7 +47,7 @@ def onnx_fix_prelu(m: onnx.ModelProto) -> None:
         d4.dim_value = 1
         inp.type.tensor_type.shape.dim.extend([d1, d2, d3, d4])
 
-def onnx_optimizer(onnx_net_path):
+def onnx_optimizer(onnx_net_path, input_shape):
         onnx_net_opt_path = onnx_net_path[:-5]+'.opt.onnx'
 
         print(os.getcwd())
@@ -94,7 +94,16 @@ def onnx_optimizer(onnx_net_path):
         optimized_onnx_model = onnx_model
 
         try:
-            optimized_onnx_model, check_ok = onnx_simplifier.simplify(optimized_onnx_model, perform_optimization=False)
+            input_shape_ = {}
+            if input_shape is not None:
+                for inp in input_shape.split(";"):
+                    name, shape = inp.split(":")
+                    shape_ = []
+                    for dim in shape.split(","):
+                        shape_.append(int(dim))
+                    input_shape_[name] = shape_
+            optimized_onnx_model, check_ok = onnx_simplifier.simplify(
+                optimized_onnx_model, input_shapes=input_shape_, perform_optimization=False)
             if not check_ok :
                 print("Check failed!")
                 exit()

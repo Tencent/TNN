@@ -84,8 +84,11 @@ positional arguments:
                     .caffemodel!
 
 optional arguments:
-  -h, --help        show this help message and exit
-  -o ONNX_FILE      the path for generate onnx file
+  -h, --help            show this help message and exit
+  -o ONNX_FILE          the path for generate onnx file
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
 ```
 
 ## 3. caffe2onnx operator support
