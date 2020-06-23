@@ -20,6 +20,7 @@
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/device/metal/acc/metal_cpu_adapter_acc.h"
 
 namespace TNN_NS {
 
@@ -125,6 +126,8 @@ AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
     std::map<LayerType, LayerAccCreator *> &layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
+    } else {
+        return new MetalCpuAdapterAcc(type);
     }
     return NULL;
 }
