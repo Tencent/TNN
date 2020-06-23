@@ -199,6 +199,11 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
     }
+    
+    auto context_impl = command_queue_impl.metalContextImpl;
+    if (waitState == 1) {
+        [context_impl commit:YES];
+    }
 
     // check class type
     if (!input_blob || typeid(*input_blob) != typeid(Blob)) {
@@ -334,6 +339,11 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
         return Status(TNNERR_INST_ERR, "command queue is nil");
     }
 
+    auto context_impl = command_queue_impl.metalContextImpl;
+    if (waitState == 1) {
+        [context_impl commit:YES];
+    }
+    
     // check class type
     if (!output_blob || typeid(*output_blob) != typeid(Blob)) {
         LOGE("Error: output_blob is nil or not instance of Blob*\n");
