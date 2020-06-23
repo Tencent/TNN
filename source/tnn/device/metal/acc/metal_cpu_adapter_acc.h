@@ -46,7 +46,7 @@ private:
     Context* impl_device_context_;
     AbstractLayerAcc* cpu_adapter_acc_;
 
-    MetalContext *ocl_context_ = nullptr;
+    MetalContext *metal_context_ = nullptr;
 
     std::vector<Blob *> cpu_blob_in_;
     std::vector<Blob *> cpu_blob_out_;
