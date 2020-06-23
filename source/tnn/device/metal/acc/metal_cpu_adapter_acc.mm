@@ -46,8 +46,8 @@ Status MetalCpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResour
     auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    ocl_context_ = dynamic_cast<MetalContext *>(context);
-    if (ocl_context_ == nullptr) {
+    metal_context_ = dynamic_cast<MetalContext *>(context);
+    if (metal_context_ == nullptr) {
         return Status(TNNERR_NULL_PARAM, "Metal Context Convert failed");
     }
     
@@ -88,9 +88,8 @@ Status MetalCpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResour
     
     //cpu acc init
     status = cpu_adapter_acc_->Init(impl_device_context_, param, resource, cpu_blob_in_, cpu_blob_out_);
-    RETURN_ON_NEQ(status, TNN_OK);
     
-    return TNN_OK;
+    return status;
 }
 
 MetalCpuAdapterAcc::~MetalCpuAdapterAcc() {
@@ -131,8 +130,9 @@ Status MetalCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 Status MetalCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    void* command_queue;
-    ocl_context_->GetCommandQueue(&command_queue);
+    void* command_queue = nullptr;
+    metal_context_->GetCommandQueue(&command_queue);
+    
     //convert data from metal to cpu
     for(int i = 0; i < inputs.size(); ++i) {
         auto device_input = inputs[i];
@@ -170,18 +170,18 @@ Status MetalCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std:
         MatConvertParam param;
         if(DATA_FORMAT_NCHW == cpu_output->GetBlobDesc().data_format) {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_output->GetBlobDesc().dims, cpu_output->GetHandle().base);
-            blob_converter.ConvertFromMat(mat, param, command_queue);
+            status = blob_converter.ConvertFromMat(mat, param, command_queue);
         } else {
             //To optimize, use convert to change format
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, dims);
             float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base);
             float* dst_data = reinterpret_cast<float*>(mat.GetData());
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
-            blob_converter.ConvertFromMat(mat, param, command_queue);
+            status = blob_converter.ConvertFromMat(mat, param, command_queue);
         }
     }
 
-    return TNN_OK;
+    return status;
 }
 
 std::vector<DataFormat> MetalCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size) {
