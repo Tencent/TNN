@@ -355,6 +355,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             return ret;
         }
         
+        std::cout << "layer finished" << std::endl;
         layers_.push_back(cur_layer);
     }
     return ret;

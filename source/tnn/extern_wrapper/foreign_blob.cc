@@ -16,7 +16,6 @@
 
 #include <memory>
 
-#include <iostream>
 #include "tnn/core/blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 

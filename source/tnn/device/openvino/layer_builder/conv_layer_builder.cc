@@ -34,7 +34,7 @@ DECLARE_OPENVINO_LAYER_BUILDER(Conv, LAYER_CONVOLUTION);
 
 Status ConvOVLayerBuilder::Build() {
     
-    auto paramlist = dynamic_cast<ConvLayerParam*>(this->param_);
+    auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
     
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
@@ -70,7 +70,15 @@ Status ConvOVLayerBuilder::Build() {
     convNode->set_dilations(dilation);
 
     // set pad type
-    convNode->set_auto_pad(ngraph::op::PadType::EXPLICIT); // 这里需要有一定的对应 pad_type -> PadType
+    ngraph::op::PadType pad_type;
+    if (paramlist->pad_type == -1) {
+        pad_type = ngraph::op::PadType::EXPLICIT;
+    } else if (paramlist->pad_type == 0) {
+        pad_type = ngraph::op::PadType::SAME_LOWER;
+    } else {
+        pad_type = ngraph::op::PadType::VALID;
+    }
+    convNode->set_auto_pad(pad_type);
 
     // set weights
     size_t weight_size = 1;
@@ -133,6 +141,7 @@ Status ConvOVLayerBuilder::Build() {
         outputNodes.push_back(addNode);
         addNode->validate_and_infer_types();
         SetOutputNodes(outputNodes);
+        // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(addNode);
     } else {
         // set node name
         convNode->set_friendly_name(paramlist->name);
@@ -142,6 +151,7 @@ Status ConvOVLayerBuilder::Build() {
         outputNodes.push_back(convNode);
         convNode->validate_and_infer_types();
         SetOutputNodes(outputNodes);
+        // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(convNode);
     }
     // build the conv layer and generates a new out_node. 
 
