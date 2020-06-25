@@ -133,6 +133,7 @@ Status OpenCLCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status status = TNN_OK;
     void* command_queue = nullptr;
     ocl_context_->GetCommandQueue(&command_queue);
     //convert data from opencl to cpu
