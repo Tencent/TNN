@@ -22,7 +22,7 @@ namespace TNN_NS {
 
 static const char help_message[] = "print a usage message.";
 
-static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE.";
+static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN.";
 
 static const char model_path_message[] =
     "specify model path: tnn proto path, openvino xml path, coreml "
@@ -57,6 +57,10 @@ static const char input_format_message[] = "input format(0: nchw float, 1:bgr u8
 
 static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
+static const char input_name_message[] = "input name (only for NCNN)";
+
+static const char input_shape_message[] = "input shape: NxCxHxW (only for NCNN)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -88,6 +92,10 @@ DECLARE_int32(th);
 DECLARE_int32(it);
 
 DECLARE_string(pr);
+
+DECLARE_string(in);
+
+DECLARE_string(is);
 
 }  // namespace TNN_NS
 
