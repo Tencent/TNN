@@ -15,6 +15,9 @@
 from utils import cmd
 from utils import checker
 from . import align_model
+
+from converter import logging
+
 import os
 
 def throw_exception(current_shape):
@@ -67,7 +70,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         output_dir = os.path.dirname(onnx_path)
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
-    print("the onnx2tnn command:" + command)
+    logging.debug("the onnx2tnn command:" + command)
 
     if input_names is not None:
         new_input_names = ""
@@ -83,9 +86,9 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     result = cmd.run(command, work_dir=work_dir)
     
     if result == 0:
-        print("onnx2tnn succeed!")
+        print("onnx2tnn succeed!\n")
     else:
-        print("onnx2tnn failed!")
+        print("onnx2tnn failed!\n")
         exit(-1)
     onnx_base_name = os.path.basename(onnx_path)
 
@@ -98,6 +101,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
         if input_names is None:
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
         else:

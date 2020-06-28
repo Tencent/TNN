@@ -16,6 +16,9 @@ from utils import cmd
 from utils import checker
 from onnx_converter import onnx2tnn
 from onnx_converter import align_model
+
+from converter import logging
+
 import os
 
 
@@ -65,7 +68,7 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
     if not_fold_const is False:
         command = command + " --fold_const"
 
-    print(command)
+    logging.debug(command)
     result = cmd.run(command, work_dir=work_dir)
     if result == 0:
         return True
