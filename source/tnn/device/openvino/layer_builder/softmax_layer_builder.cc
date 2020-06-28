@@ -30,39 +30,29 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
+DECLARE_OPENVINO_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
-Status ReshapeOVLayerBuilder::Build() {
+Status SoftmaxOVLayerBuilder::Build() {
 
-    auto paramlist = dynamic_cast<ReshapeLayerParam*>(param_);
-    
+    auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes()[0];
 
-    ngraph::Shape output_shape;
-    output_shape.push_back(paramlist->num_axes);
-
-    std::vector<int> shapePattern;
-    for (auto item : paramlist->shape) {
-        shapePattern.push_back(item);
-    }
-    auto patternNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, output_shape, shapePattern);
-    
-    auto reshapeNode = std::make_shared<ngraph::op::v1::Reshape>(input_node->output(0), patternNode, true);
-    reshapeNode->set_friendly_name(paramlist->name);
-    reshapeNode->validate_and_infer_types();
+    auto softmaxNode = std::make_shared<ngraph::op::v1::Softmax>(
+        input_node->output(0), paramlist->axis);
+    softmaxNode->set_friendly_name(paramlist->name);
+    softmaxNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(reshapeNode);
+    outputNodes.push_back(softmaxNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
+REGISTER_OPENVINO_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
 }

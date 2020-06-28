@@ -65,11 +65,11 @@ Status PoolingOVLayerBuilder::Build() {
     }
 
     // set pad type
-    ngraph::op::PadType pad_type;
+    ngraph::op::PadType pad_type ; //= ngraph::op::PadType::EXPLICIT;
     if (paramlist->pad_type == -1) {
         pad_type = ngraph::op::PadType::EXPLICIT;
     } else if (paramlist->pad_type == 0) {
-        pad_type = ngraph::op::PadType::SAME_LOWER;
+        pad_type = ngraph::op::PadType::SAME_UPPER;
     } else {
         pad_type = ngraph::op::PadType::VALID;
     }
@@ -91,7 +91,7 @@ Status PoolingOVLayerBuilder::Build() {
     
     poolNode->set_friendly_name(paramlist->name);
     poolNode->validate_and_infer_types();
-    
+
     ngraph::NodeVector outputNodes;
     outputNodes.push_back(poolNode);
     SetOutputNodes(outputNodes);

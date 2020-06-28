@@ -36,7 +36,7 @@ Status AddOVLayerBuilder::Build() {
 
     auto paramlist = param_;
 
-    if (GetInputNodes().size() <=0) {
+    if (GetInputNodes().size() <=1) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }

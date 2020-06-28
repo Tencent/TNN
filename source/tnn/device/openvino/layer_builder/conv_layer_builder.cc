@@ -40,10 +40,10 @@ Status ConvOVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto in_node = GetInputNodes()[0];
+    auto input_node = GetInputNodes()[0];
 
     auto convNode = std::make_shared<ngraph::op::v1::Convolution>();
-    convNode->set_argument(0, in_node->output(0));
+    convNode->set_argument(0, input_node->output(0));
 
 
     // set strides
@@ -74,7 +74,7 @@ Status ConvOVLayerBuilder::Build() {
     if (paramlist->pad_type == -1) {
         pad_type = ngraph::op::PadType::EXPLICIT;
     } else if (paramlist->pad_type == 0) {
-        pad_type = ngraph::op::PadType::SAME_LOWER;
+        pad_type = ngraph::op::PadType::SAME_UPPER;
     } else {
         pad_type = ngraph::op::PadType::VALID;
     }
