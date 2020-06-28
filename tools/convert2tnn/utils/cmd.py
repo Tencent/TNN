@@ -19,7 +19,7 @@ import datetime
 import time
 
 
-def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
+def run(cmd_string, work_dir=None, timeout=None, is_shell=True, stdout=False, stderr=False):
     """
          执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
         :parameter:
@@ -45,9 +45,11 @@ def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
                            bufsize=4096,
                            cwd=work_dir,
                            close_fds=True)
-    (stdout, stderr) = sub.communicate()
-    print(str(stdout.decode('utf-8')))
-    print(str(stderr.decode('utf-8')))
+    (stdout_, stderr_) = sub.communicate()
+    if stdout:
+        print(str(stdout_.decode('utf-8')))
+    if stderr:
+        print(str(stderr_.decode('utf-8')))
     rc = sub.poll()
     return rc
 

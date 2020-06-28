@@ -17,6 +17,8 @@ from utils import cmd
 from utils import data
 from utils import convert_name
 
+from converter import logging
+
 import linecache
 import math
 import os
@@ -33,8 +35,8 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     command = model_check_path + " -p  " + proto_path + " -m " + \
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
 
-    print(command)
-    cmd.run(command)
+    logging.debug(command)
+    cmd.run(command, stdout=True)
     return
 
 
@@ -168,6 +170,8 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     :param tnn_model_path:
     :return:
     """
+    print("{}  align model  {}" .format("-" * 30, "-" * 30))
+
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
 
