@@ -12,11 +12,15 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
+
 from utils import args_parser
 from onnx_converter import onnx2tnn
 from caffe_converter import caffe2tnn
 from tf_converter import tf2tnn
 from utils import parse_path
+
+logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
 
 
 def main():
