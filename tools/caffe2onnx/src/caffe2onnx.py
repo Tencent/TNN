@@ -958,8 +958,7 @@ class Caffe2Onnx():
                 node_name = Layers[i].name
 
                 starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
-
-                CropLayer = copy.deepcopy(Layers[i])
+                
                 Crop_name=[]
                 Crop_name.append(input_name[0])
                 # starts ends axes 的 shape 是相同的
