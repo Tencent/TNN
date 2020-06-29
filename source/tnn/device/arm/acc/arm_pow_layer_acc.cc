@@ -35,7 +35,7 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
         int pow = std::round(layer_param->exponent);
-        if (ABS(pow - layer_param->exponent) < 0.00001) {
+        if (ABS(pow - layer_param->exponent) < FLT_EPSILON) {
             bool reciprocal = pow < 0;
             if(reciprocal)
                 pow = -pow;
