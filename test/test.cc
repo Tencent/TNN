@@ -68,14 +68,33 @@ namespace test {
 
         ModelConfig model_config     = GetModelConfig();
         NetworkConfig network_config = GetNetworkConfig();
+
+        InputShapesMap input_shape;
+        if (model_config.model_type == MODEL_TYPE_NCNN) {
+            std::string inputShape(FLAGS_is);
+            std::vector<int> input_dim;
+            const char* delim = "x";
+            std::ptrdiff_t p1 = 0, p2;
+            while (1) {
+                p2 = inputShape.find(delim, p1);
+                if (p2 != std::string::npos) {
+                    input_dim.push_back(atoi(inputShape.substr(p1, p2 - p1).c_str()));
+                    p1 = p2 + 1;
+                } else {
+                    input_dim.push_back(atoi(inputShape.substr(p1).c_str()));
+                    break;
+                }
+            }
+            input_shape[FLAGS_in] = input_dim;
+        }
+
         TNN net;
         Status ret = net.Init(model_config);
         if (CheckResult("init tnn", ret)) {
-            auto instance = net.CreateInst(network_config, ret);
+            auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
                 return 0;
             }
-
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
             // set cpu affinity, only work in arm mode
 
@@ -169,6 +188,8 @@ namespace test {
         printf("    -it \"<input type>\"    %s \n", input_format_message);
         printf("    -fc \"<format for compare>\"%s \n", output_format_cmp_message);
         printf("    -pr \"<precision >\"    %s \n", precision_message);
+        printf("    -in \"<input name>\"    %s \n", input_name_message);
+        printf("    -is \"<input shape>\"   %s \n", input_shape_message);
     }
 
     void SetCpuAffinity() {
