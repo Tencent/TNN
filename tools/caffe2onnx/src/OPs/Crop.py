@@ -31,15 +31,11 @@ def get_crop_param(layer,input_shape):
         end = start + input_shape[1][i]
         axes.append(i)
         starts.append(start)
-        ends.append(end)
-    print(starts)
-    print(ends)
-    print(axes)    
+        ends.append(end)   
     return starts, ends, axes
 
 
 def get_crop_output_shape(layer, input_shape):  
-    print(input_shape[1])
     return [input_shape[1]]
 
 
