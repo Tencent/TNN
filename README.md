@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/seanxcwang/TNN.svg?branch=dev-ci)](https://travis-ci.org/seanxcwang/TNN)
+[![codecov](https://codecov.io/gh/seanxcwang/TNN/branch/dev-ci/graph/badge.svg)](https://codecov.io/gh/seanxcwang/TNN)
+
 [English Version](README_EN.md)
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
 
