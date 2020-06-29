@@ -950,35 +950,6 @@ class Caffe2Onnx():
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
                 
-            elif Layers[i].type == "Power":
-                # Power: Mul + Add + Pow
-                # create mul node
-                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
-                output_name = self.GetCurrentLayerOutName(Layers[i])
-                node_name = Layers[i].name
-
-                power, scale, shift = op.get_power_param(Layers[i])
-
-                scale_node_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [np.shape(scale)], [scale])
-                
-                mul_input_name = [input_name[0], scale_node_name[0]]
-                mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, [output_name[0] + "_mul"],
-                                              [input_shape[0], np.shape(power)])
-                self.onnxNodeList.append(mul_node)
-                # create Add node
-                shift_param_name = self.AddInputsTVIMannul(Layers[i], ["_shift"], [TensorProto.FLOAT], [np.shape(scale)],
-                                                        [shift])
-                add_input_name = [output_name[0] + "_mul", shift_param_name[0]]
-                add_node = op.create_add_node(Layers[i], node_name + "_add", add_input_name, [output_name[0] + "_add"], [input_shape[0], np.shape(shift)])
-                self.onnxNodeList.append(add_node)
-
-                # create Pow
-                power_param_name = self.AddInputsTVIMannul(Layers[i], ["_param_power"], [TensorProto.FLOAT], [np.shape(power)],[power])
-                power_input_name = [output_name[0] + "_add", power_param_name[0]]
-                power_node = op.create_power_node(Layers[i], node_name + "_power", power_input_name, output_name,
-                                                  [input_shape[0], np.shape(power)])
-                self.onnxNodeList.append(power_node)
-                
             elif Layers[i].type == "Crop":
                 # Crop: Slice
                 # create Slice node
