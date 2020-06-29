@@ -72,6 +72,12 @@ def parse_args():
                                  action='store',
                                  required=False,
                                  help="the reference file path which contains the reference data to compare the results.")
+    onnx2tnn_parser.add_argument('-debug',
+                                dest='debug',
+                                default=False,
+                                action='store_true',
+                                required=False,
+                                help=argparse.SUPPRESS)
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -124,6 +130,12 @@ def parse_args():
                                   action='store',
                                   required=False,
                                   help="the reference file path which contains the reference data to compare the results.")
+    caffe2tnn_parser.add_argument('-debug',
+                                dest='debug',
+                                default=False,
+                                action='store_true',
+                                required=False,
+                                help=argparse.SUPPRESS)
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -194,6 +206,12 @@ def parse_args():
                                action='store',
                                required=False,
                                help="the reference file path which contains the reference data to compare the results.")
+    tf2tnn_parser.add_argument('-debug',
+                                dest='debug',
+                                default=False,
+                                action='store_true',
+                                required=False,
+                                help=argparse.SUPPRESS)
 
     args = parser.parse_args()
     return args
