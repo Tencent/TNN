@@ -48,4 +48,6 @@ DEFINE_int32(it, 0, input_format_message);
 
 DEFINE_string(pr, "HIGH", precision_message);
 
+DEFINE_string(is, "", input_shape_message);
+
 }  // namespace TNN_NS
