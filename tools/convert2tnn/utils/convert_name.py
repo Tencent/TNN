@@ -12,17 +12,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import src.c2oObject as Node
+def onnx_name2tnn_name(onnx_name : str) -> str:
+    split = onnx_name.split(":")
+    tnn_name = ""
+    for item in split:
+        tnn_name += (item + "_")
+    tnn_name = tnn_name[:-1]
 
-
-def get_add_output_shape(input_shape):
-    output_shape = input_shape[0]
-    return [output_shape]
-
-
-def create_add_node(layer, node_name, input_name, output_name, input_shape):
-    output_shape = get_add_output_shape(input_shape)
-
-    node = Node.c2oNode(layer, node_name, 'Add', input_name, output_name, input_shape, output_shape)
-
-    return node
+    return tnn_name

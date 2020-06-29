@@ -142,8 +142,9 @@ static Status ConvertFromNCHWToNHWC4(T *src, T *dst, int num, int channel, int h
 
 template <class T>
 static Status ConvertFromNCHW4ToNCHW(T *src, T *dst, int num, int channel, int height, int width) {
+    int round_channel = ROUND_UP(channel, 4);
     for (int n = 0; n < num; n++) {
-        auto n_src = src + n * ROUND_UP(channel, 4) * height * width;
+        auto n_src = src + n * round_channel * height * width;
         auto n_dst = dst + n * channel * height * width;
         for (int c = 0; c < channel; c++) {
             auto z = c / 4, r = c % 4;

@@ -25,5 +25,8 @@ def parse_path(path: str):
     elif path.startswith("../"):
         abs_path = os.getcwd() + "/" + path
         return abs_path
+    elif path.startswith("~"):
+        abs_path = os.path.expanduser('~') + path[1:]
+        return abs_path
     else:
         return os.path.join(os.getcwd(), path)

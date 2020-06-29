@@ -71,7 +71,7 @@ layer {
 - caffe2onnx 工具的使用
 
 ```shell script
-python3 convert2onnx.py ./test.prototxt ./test.caffemodel -o ./test.onnx
+python3 convert2onnx.py ./test.prototxt ./test.caffemodel -o ./test.onnx -align -input_file=in.txt -ref_file=ref.txt
 ```
 
 ```text
@@ -86,9 +86,20 @@ positional arguments:
                     .caffemodel!
 
 optional arguments:
-  -h, --help        show this help message and exit
-  -o ONNX_FILE      the path for generate onnx file
+  -h, --help            show this help message and exit
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model, default v1.0
+  -optimize             optimize the model
+  -half                 save model using half
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
 ```
+注意：当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half。
 
 ## 3. caffe2onnx 支持的算子
 

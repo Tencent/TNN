@@ -110,15 +110,19 @@ optional arguments:
   -v v1.0          the version for model
   -optimize        optimize the model
   -half            optimize the model
+  -align           align the onnx model with tnn model
+  -fold_const      enable tf constant_folding transformation before conversion
+  -input_file      the input file path which contains the input data for the inference model
+  -ref_file        the reference file path which contains the reference data to compare the results
 ```
 Here are the explanations for each parameter:
 
 - tp parameter (required)
     Use the "-tp" parameter to specify the path of the model to be converted. Currently only supports the conversion of a single TF model, does not support the conversion of multiple TF models together.
 - in parameter (required)
-    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use "," to split
+    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
 - on parameter (required)
-    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use "," to split
+    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use ";" to split
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
@@ -126,7 +130,15 @@ Here are the explanations for each parameter:
 - v parameter (optional)
     You can use -v to specify the version number of the model to facilitate later tracking and differentiation of the model.
 - half parameter (optional)
-   The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
+   You can optimize the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
+- align parameter (optional)
+    You can optimize the model with the "-align" parameter. Compare TNN model and Original model to determine whether TNN model is correct.
+- fold_const parameter (optional)
+    You can optimize the model with the "-fold_const" parameter. Enable tf constant_folding transformation before conversion.
+- input_file parameter (optional)
+    Specify the input file's name which will be used by model_check through the "-input_file" parameter.
+- ref_file parameter (optional)
+    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. 
 
 
 **Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.
@@ -298,11 +310,14 @@ positional arguments:
   onnx_path      the path for onnx file
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -optimize      optimize the model
-  -half          save model using half
-  -v v1.0.0      the version for model
-  -o OUTPUT_DIR  the output tnn directory
+  -h, --help            show this help message and exit
+  -optimize             optimize the model
+  -half                 save model using half
+  -v v1.0.0             the version for model
+  -o OUTPUT_DIR         the output tnn directory
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
 ```
 Example:
 ```shell script
@@ -352,6 +367,9 @@ optional arguments:
   -v v1.0               the version for model, default v1.0
   -optimize             optimize the model
   -half                 save model using half
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
 ```
 Example：
 ```shell script
@@ -370,14 +388,18 @@ usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
                       [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names
-  -on output_name  the tensorflow model's output name
-  -o OUTPUT_DIR    the output tnn directory
-  -v v1.0          the version for model
-  -optimize        optimize the model
-  -half            optimize the model
+  -h, --help            show this help message and exit
+  -tp TF_PATH           the path for tensorflow graphdef file
+  -in input_name        the tensorflow model's input names
+  -on output_name       the tensorflow model's output name
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -optimize             optimize the model
+  -half                 optimize the model
+  -align                align the onnx model with tnn model
+  -fold_const           enable tf constant_folding transformation before conversion
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
 ```
 Example：
 ```shell script

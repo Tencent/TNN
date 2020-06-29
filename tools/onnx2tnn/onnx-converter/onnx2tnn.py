@@ -36,16 +36,18 @@ def parse_path(path: str):
         return os.path.join(os.getcwd(), path)
 
 
-def do_optimize(onnx_net_path):
+def do_optimize(onnx_net_path, input_shape):
     try:
-        import onnx2tnn.onnx_optimizer.onnx_optimizer as opt
+        import onnx_optimizer.onnx_optimizer as opt
     except ImportError:
+        print("\n\n t fail")
         os.system(sys.executable + " onnx_optimizer " + onnx_net_path)
         return
 
     import multiprocessing
     ctx = multiprocessing.get_context('spawn')
-    p = ctx.Process(target=opt.onnx_optimizer, args=(onnx_net_path,))
+
+    p = ctx.Process(target=opt.onnx_optimizer, args=(onnx_net_path, input_shape))
     p.start()
     p.join()
     return
@@ -62,14 +64,20 @@ def main():
                         required=False,
                         action='store',
                         help='the output dir for tnn model')
+    parser.add_argument('-input_shape', 
+                        required=False, 
+                        action='store',
+                        help='manually-set static input shape, useful when the input shape is dynamic')
     args = parser.parse_args()
     onnx_net_path = args.onnx_model_path
     algo_version = args.version
     algo_optimize = args.optimize
     model_half = args.half
     output_dir = args.output_dir
+    input_shape = args.input_shape
+
     if onnx_net_path is None:
-        print('Please make sure the onnx model path is correct!');
+        print('Please make sure the onnx model path is correct!')
         exit(-1)
     onnx_net_path = parse_path(onnx_net_path)
 
@@ -89,6 +97,11 @@ def main():
     if algo_optimize == '0':
         onnx_net_opt_path = onnx_net_path
 
+    if "convert" not in dir(onnx2tnn):
+        print("\nYou should compile onnx2tnn first !!!")
+        print("You can find more compilation details in <path-to-tnn>/doc/cn/user/convert.md")
+        exit(-1)
+
     # original_net = onnx.load(onnx_net_path)
     # converted_model = version_converter.convert_version(original_net, 10)
     print('0.----onnx version:' + str(onnx.__version__))
@@ -97,17 +110,19 @@ def main():
     print('onnx_net_opt_path ' + onnx_net_opt_path)
     if algo_optimize != '0':
         print("1.----onnx_optimizer: " + onnx_net_path)
-        do_optimize(onnx_net_path)
+        do_optimize(onnx_net_path, input_shape)
 
     # os.access('/python/test.py',os.F_OK)
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
     status = 0
+
     try:
         status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
     except Exception as err:
         status = -1
         traceback.print_exc()
+
 
     print("3.----onnx2tnn status: " + str(status))
 

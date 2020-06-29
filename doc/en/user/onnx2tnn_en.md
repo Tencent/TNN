@@ -111,11 +111,14 @@ positional arguments:
   onnx_model_path     Input ONNX model path
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -version VERSION    Algorithm version string
-  -optimize OPTIMIZE  Optimize model befor convert, 1:default yes, 0:no
-  -half HALF          Save model using half, 1:yes, 0:default no
-  -o OUTPUT_DIR       the output dir for tnn model
+  -h, --help              show this help message and exit
+  -version VERSION        Algorithm version string
+  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
+  -half HALF              Save model using half, 1:yes, 0:default no
+  -o OUTPUT_DIR           the output dir for tnn model
+  -align                  align the onnx model with tnn model
+  -input_file INPUT_FILE  the input file path which contains the input data for the inference model
+  -ref_file   REF_FILE    the reference file path which contains the reference data to compare the results
 ```
 
 
@@ -138,6 +141,15 @@ Note: Whether using fp16 depends on the platform，mobile GPU only allows fp16 c
 
 -o
 output_dir : The directory the model to be saved in，the directory must exit already.
+
+-align
+model align, if you want to use it, you can add '-align' in your command
+
+-input_file
+input_file : The path of input file, which will be used in model align
+
+-ref_file
+reference_file : The path of reference file, which will be used in model align. Compare tnn's output and reference file.
 ```
 
 

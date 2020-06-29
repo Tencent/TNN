@@ -15,12 +15,13 @@
 from utils import cmd
 from utils import checker
 from onnx_converter import onnx2tnn
+from onnx_converter import align_model
 import os
 
 
 def hack_name(names: str):
     hacked_names = ""
-    name_list = names.split(',')
+    name_list = names.split(';')
     for name in name_list:
         if name.endswith(":0"):
             hacked_names = hacked_names + name + ","
@@ -28,15 +29,42 @@ def hack_name(names: str):
             hacked_names = hacked_names + name + ":0,"
     return hacked_names[:-1]
 
+def process_input_names(input_names : str):
+    split = input_names.split(";")
+    name_list = []
+    shape_list = []
+    for item in split:
+        temp = item.split("[")
+        if not temp[0].endswith(":0"):
+            temp[0] += ":0"
+        name_list.append(temp[0])
+        if len(temp) > 1:
+            shape_list.append("[" + temp[1])
+        else:
+            shape_list.append("")
 
-def tf2onnx(tf_path, input_names, output_name, onnx_path):
+    inputs = ""
+    inputs_as_nchw = ""
+    for name, shape in zip(name_list, shape_list):
+        inputs += (name + shape + ",")
+        inputs_as_nchw += (name + ",")
+
+    return inputs[:-1], inputs_as_nchw[:-1]
+
+def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
     work_dir = "./"
+    inputs, inputs_as_nchw = process_input_names(input_names)
     command = "python3 -m tf2onnx.convert  --graphdef " + tf_path
-    command = command + " --inputs " + hack_name(input_names)
-    command = command + " --inputs-as-nchw " + hack_name(input_names)
+
+    command = command + " --inputs " + inputs
+    command = command + " --inputs-as-nchw " + inputs_as_nchw
+
     command = command + " --outputs " + hack_name(output_name)
     command = command + " --output " + onnx_path
     command = command + " --opset 11"
+    if not_fold_const is False:
+        command = command + " --fold_const"
+
     print(command)
     result = cmd.run(command, work_dir=work_dir)
     if result == 0:
@@ -45,7 +73,8 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path):
         return False
 
 
-def convert(tf_path, input_names, output_names, output_dir, version, optimize, half):
+def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False, not_fold_const=False,
+            input_path=None, refer_path=None):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
     if output_dir is None or not os.path.isdir(output_dir):
@@ -53,7 +82,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     checker.check_file_exist(output_dir)
     model_name = model_name[:-len(".pb")]
     onnx_path = os.path.join(output_dir, model_name + ".onnx")
-    if tf2onnx(tf_path, input_names, output_names, onnx_path) is False:
+    if tf2onnx(tf_path, input_names, output_names, onnx_path, not_fold_const) is False:
         print("Oh No, tf2onnx failed")
     else:
         print("congratulations! tf2onnx succeed!")
@@ -61,3 +90,17 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
         version = "v1.0"
     checker.check_file_exist(onnx_path)
     onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+
+    if align is True:
+        proto_suffix = '.tnnproto'
+        model_suffix = '.tnnmodel'
+        onnx_base_name = os.path.basename(onnx_path)
+        if optimize is True:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+        else:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
