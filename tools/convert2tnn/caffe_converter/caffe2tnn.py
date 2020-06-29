@@ -17,6 +17,8 @@ from utils import checker
 from onnx_converter import onnx2tnn
 from onnx_converter import align_model
 
+from converter import logging
+
 import os
 
 def caffe2onnx(proto_path, model_path, output_path):
@@ -42,9 +44,9 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
     onnx_path = os.path.join(output_dir, proto_name + ".onnx")
 
     if caffe2onnx(proto_path, model_path, onnx_path) is False:
-        print("Oh No, caff2onnx failed")
+        logging.info("\nOh No, caff2onnx failed")
     else:
-        print("congratulations! caffe2onnx succeed!")
+        logging.info("\ncongratulations! caffe2onnx succeed!")
     if version is None:
         version = "v1.0"
 
