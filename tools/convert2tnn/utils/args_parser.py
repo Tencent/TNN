@@ -213,5 +213,4 @@ def parse_args():
                                 required=False,
                                 help=argparse.SUPPRESS)
 
-    args = parser.parse_args()
-    return args
+    return parser

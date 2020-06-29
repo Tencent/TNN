@@ -17,10 +17,12 @@ import os
 import onnxruntime
 import re
 
+from converter import logging
+
 
 def check_file_exist(file_path):
     if os.path.exists(file_path) is False:
-        print("the " + file_path + " does not exist! please make sure the file exist!")
+        logging.info("the " + file_path + " does not exist! please make sure the file exist!")
         exit(-1)
 
 

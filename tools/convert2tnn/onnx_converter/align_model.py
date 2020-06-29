@@ -36,26 +36,14 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
 
     logging.debug(command)
-    cmd.run(command, stdout=True)
+    ret = cmd.run(command)
+
+    if ret == 0:
+        logging.info("model align success!\n")
+    else:
+        logging.info("model align failed :(\n")
+
     return
-
-
-def run_onnx_input_dict(model_path, input_feed, output_path_list):
-    session = onnxruntime.InferenceSession(model_path)
-
-    if len(input_feed) != len(session.get_inputs()):
-        print("The input of model = {}, the length of inputs = {}, they should be equal"
-              .format(len(session.get_inputs()), len(input_feed)))
-        return False
-
-    for i, output in enumerate(session.get_outputs()):
-        output_name = output.name
-        pred = session.run([output_name, ], input_feed)
-        print("The output_name:\n{}:\n{}".format(
-            output_name, np.shape(pred[0])))
-        np.savetxt(output_path_list[i], pred[0].reshape(-1), fmt="%0.18f")
-
-    return True
 
 
 def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
@@ -119,15 +107,15 @@ def get_input_shape_from_tnn(tnn_proto_path):
 
 
 def print_not_align_message(reason):
-    print("==================== Unfortunately============================\n")
-    print("The onnx model not aligned with tnn model\n")
-    print("the reason " + reason)
+    logging.info("==================== Unfortunately============================\n")
+    logging.info("The onnx model not aligned with tnn model\n")
+    logging.info("the reason " + reason)
     exit(-1)
 
 
 def print_align_message():
-    print("====================Congratulations!==========================\n")
-    print("the onnx model aligned whit tnn model\n")
+    logging.info("====================Congratulations!==========================\n")
+    logging.info("the onnx model aligned whit tnn model\n")
 
 
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
@@ -140,10 +128,10 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
             onnx_shape[0] = 1
         if tnn_shape != onnx_shape:
             print_not_align_message(
-                "the {}'s shape not equal! the onnx shape:{}, tnn shape: {}".format(name, str(onnx_shape),
+                "\nthe {}'s shape not equal! the onnx shape:{}, tnn shape: {}".format(name, str(onnx_shape),
                                                                                     str(tnn_shape)))
     
-    print("check onnx input shape and tnn input shape align!\n")
+    logging.info("\ncheck onnx input shape and tnn input shape align!\n")
 
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
@@ -170,7 +158,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     :param tnn_model_path:
     :return:
     """
-    print("{}  align model  {}" .format("-" * 30, "-" * 30))
+    logging.info("{}  align model  {}" .format("-" * 30, "-" * 30))
 
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
@@ -194,7 +182,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(input_file_path):
             input_path = input_file_path
         else:
-            print("invalid input_file_path")
+            logging.info("invalid input_file_path")
             exit(-1)
 
     if refer_path is None:
@@ -203,7 +191,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(refer_path):
             reference_output_path = refer_path
         else:
-            print("invalid refer_path")
+            logging.info("invalid refer_path")
             exit(-1)
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)

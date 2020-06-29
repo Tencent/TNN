@@ -26,8 +26,8 @@ def throw_exception(current_shape):
         name, shape = item
         message += str(name) + ": " + str(shape) + "   "
 
-    print("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
-    print(message)
+    logging.info("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.info(message)
     
     exit(-1)
 
@@ -84,11 +84,11 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
-    
+
     if result == 0:
-        print("onnx2tnn succeed!\n")
+        logging.info("\nonnx2tnn succeed!\n")
     else:
-        print("onnx2tnn failed!\n")
+        logging.info("\nonnx2tnn failed!\n")
         exit(-1)
     onnx_base_name = os.path.basename(onnx_path)
 
