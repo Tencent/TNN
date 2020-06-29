@@ -34,7 +34,3 @@ cmake ${TNN_ROOT_PATH} \
 
 
 make -j4
-
-#./test/unit_test/unit_test -dt ARM > /dev/null
-
-ctest --output-on-failure -j 2
