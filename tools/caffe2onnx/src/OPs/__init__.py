@@ -21,6 +21,7 @@ from src.OPs.Clip import *
 from src.OPs.Log import *
 from src.OPs.Mul import *
 from src.OPs.Interp import *
+from src.OPs.Crop import *
 from src.OPs.PriroBox import create_priorbox_node
 from src.OPs.DetectionOutput import create_detection_output
 from src.OPs.Flatten import create_flatten_node
