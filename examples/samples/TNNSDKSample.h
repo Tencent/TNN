@@ -61,6 +61,10 @@ typedef enum {
     TNNComputeUnitsNPU = 2,
 } TNNComputeUnits;
 
+typedef  struct{
+    unsigned char r,g,b,a;
+}RGBA;
+
 class TNNSDKSample {
 public:
     TNNSDKSample();

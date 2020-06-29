@@ -141,9 +141,7 @@ BenchResult TNNSDKSample::GetBenchResult() {
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x, float scale_y)
 {
-    typedef  struct{
-        unsigned char r,g,b,a;
-    }RGBA;
+
     
     RGBA *image_rgba = (RGBA *)data_rgba;
 
