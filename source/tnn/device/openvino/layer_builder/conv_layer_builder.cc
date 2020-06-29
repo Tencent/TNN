@@ -42,9 +42,8 @@ Status ConvOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto convNode = std::make_shared<ngraph::op::v1::Convolution>();
+    auto convNode = std::make_shared<ngraph::op::v1::GroupConvolution>();
     convNode->set_argument(0, input_node->output(0));
-
 
     // set strides
     ngraph::Strides stride;
@@ -55,10 +54,10 @@ Status ConvOVLayerBuilder::Build() {
 
     // set pads
     ngraph::CoordinateDiff pad_begin, pad_end;
-    pad_begin.push_back(paramlist->pads.at(0));
     pad_begin.push_back(paramlist->pads.at(2));
-    pad_end.push_back(paramlist->pads.at(1));
+    pad_begin.push_back(paramlist->pads.at(0));
     pad_end.push_back(paramlist->pads.at(3));
+    pad_end.push_back(paramlist->pads.at(1));
     convNode->set_pads_begin(pad_begin);
     convNode->set_adding_above(pad_end);
 
@@ -83,14 +82,15 @@ Status ConvOVLayerBuilder::Build() {
     // set weights
     size_t weight_size = 1;
     ngraph::Shape weights_shape;
-    weights_shape.push_back(paramlist->output_channel);
+    weights_shape.push_back(paramlist->group);
+    weights_shape.push_back(paramlist->output_channel / paramlist->group);
     weights_shape.push_back(paramlist->input_channel);
     weight_size *= paramlist->output_channel * paramlist->input_channel;
     for (auto item : paramlist->kernels) {
         weights_shape.push_back(item);
         weight_size *= item;
     }
-    InferenceEngine::TBlob<float>::Ptr weightsPtr(new InferenceEngine::TBlob<float>({InferenceEngine::Precision::FP32, weights_shape, InferenceEngine::Layout::OIHW}));
+    InferenceEngine::TBlob<float>::Ptr weightsPtr(new InferenceEngine::TBlob<float>({InferenceEngine::Precision::FP32, weights_shape, InferenceEngine::Layout::GOIHW}));
     weightsPtr->allocate();
     void* buffer = weightsPtr->buffer();
     auto weight_buffer = reinterpret_cast<float*>(buffer);

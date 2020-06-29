@@ -50,11 +50,10 @@ Status PoolingOVLayerBuilder::Build() {
 
     // set pads
     ngraph::Shape pad_begin, pad_end;
-    pad_begin.push_back(paramlist->pads.at(0));
     pad_begin.push_back(paramlist->pads.at(2));
-    pad_end.push_back(paramlist->pads.at(1));
+    pad_begin.push_back(paramlist->pads.at(0));
     pad_end.push_back(paramlist->pads.at(3));
-    std::cout << paramlist->pads.at(0) << paramlist->pads.at(1) << std::endl;
+    pad_end.push_back(paramlist->pads.at(1));
 
     // set rounding
     ngraph::op::RoundingType rounding_type;
@@ -76,26 +75,30 @@ Status PoolingOVLayerBuilder::Build() {
     
     // kernel shape
     ngraph::Shape kernel_shape;
-    for (auto item : paramlist->kernels) {
-        kernel_shape.push_back(item);
+    for (size_t i = 0; i < 2; i++) {
+        if (paramlist->kernels.at(i) == 0) {
+            kernel_shape.push_back(input_node[0]->output(0).get_shape().at(3));
+        } else {
+            kernel_shape.push_back(paramlist->kernels.at(i));
+        }
     }
 
     std::shared_ptr<ngraph::Node> poolNode;
     if (paramlist->pool_type == 0) { // max pool
         poolNode = std::make_shared<ngraph::op::v1::MaxPool>(
             input_node[0]->output(0), strides, pad_begin, pad_end, kernel_shape, rounding_type, pad_type);
+        poolNode->validate_and_infer_types();
     } else {    // average pool
         poolNode = std::make_shared<ngraph::op::v1::AvgPool>(
-            input_node[0]->output(0), strides, pad_begin, pad_end, kernel_shape, false, rounding_type, pad_type);        
+            input_node[0]->output(0), strides, pad_begin, pad_end, kernel_shape, true, rounding_type, pad_type);        
+        poolNode->validate_and_infer_types();
     }
-    
+
     poolNode->set_friendly_name(paramlist->name);
-    poolNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
     outputNodes.push_back(poolNode);
     SetOutputNodes(outputNodes);
-    std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(poolNode);
 
     return TNN_OK;
 }
