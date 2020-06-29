@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="1C3-Qb-WYm">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16097" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="1C3-Qb-WYm">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15510"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -150,6 +150,78 @@
             </objects>
             <point key="canvasLocation" x="380" y="799.2503748125938"/>
         </scene>
+        <!--TNNImageColourController-->
+        <scene sceneID="B8Y-Rn-CJa">
+            <objects>
+                <viewController storyboardIdentifier="TNNImageColourController" id="PJc-D7-Ivv" userLabel="TNNImageColourController" customClass="TNNImageColourController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Wkn-ql-Vnr">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Q6n-7v-8G6">
+                                <rect key="frame" x="188" y="563" width="120" height="40"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" systemColor="systemBlueColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <state key="normal" title="Run">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </state>
+                                <userDefinedRuntimeAttributes>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="layer.cornerRadius" value="8"/>
+                                </userDefinedRuntimeAttributes>
+                                <connections>
+                                    <action selector="onBtnTNNExamples:" destination="PJc-D7-Ivv" eventType="touchUpInside" id="gjx-HK-Wbh"/>
+                                </connections>
+                            </button>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xt2-b2-uro">
+                                <rect key="frame" x="15" y="15" width="345" height="500"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <gestureRecognizers/>
+                            </imageView>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="zih-kX-m9R">
+                                <rect key="frame" x="82" y="568" width="51" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="onSwichChanged:" destination="PJc-D7-Ivv" eventType="valueChanged" id="0m4-VL-PaN"/>
+                                </connections>
+                            </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="GPU" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="4" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4Yj-Bb-fER">
+                                <rect key="frame" x="30" y="574" width="35" height="17"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="0.5" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="" lineBreakMode="tailTruncation" numberOfLines="4" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="t79-JY-bBc">
+                                <rect key="frame" x="20" y="466" width="335" height="100"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="0.5" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <viewLayoutGuide key="safeArea" id="7UQ-Y4-KzY"/>
+                    </view>
+                    <navigationItem key="navigationItem" title="TNNImageColourController" id="xzk-mj-0ea">
+                        <barButtonItem key="rightBarButtonItem" systemItem="compose" id="l3Y-9y-0VW">
+                            <connections>
+                                <segue destination="jDT-gM-iHE" kind="show" id="Rxr-c4-ben"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="btnTNNExamples" destination="Q6n-7v-8G6" id="sGK-EO-Pj7"/>
+                        <outlet property="imageView" destination="Xt2-b2-uro" id="Z37-cR-4nU"/>
+                        <outlet property="labelResult" destination="t79-JY-bBc" id="FVv-bO-xJX"/>
+                        <outlet property="switchGPU" destination="zih-kX-m9R" id="pB0-b6-mqo"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="pJl-p4-ig9" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1956" y="27"/>
+        </scene>
         <!--Model List-->
         <scene sceneID="1He-D9-9al">
             <objects>
@@ -225,10 +297,43 @@
                                     </tableViewCell>
                                 </cells>
                             </tableViewSection>
+                            <tableViewSection id="vMx-5W-VFJ">
+                                <cells>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" rowHeight="80" id="D01-pz-rqy">
+                                        <rect key="frame" x="0.0" y="300" width="375" height="80"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="D01-pz-rqy" id="70Z-DM-gRg">
+                                            <rect key="frame" x="0.0" y="0.0" width="375" height="80"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="灰度图上色" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WRF-KA-zvE">
+                                                    <rect key="frame" x="20" y="15" width="87" height="21"/>
+                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="单输入（图）单输出（图）" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ivg-gt-ccx">
+                                                    <rect key="frame" x="20" y="43.5" width="208" height="21"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="WRF-KA-zvE" firstAttribute="top" secondItem="70Z-DM-gRg" secondAttribute="top" constant="15" id="417-GY-0G8"/>
+                                                <constraint firstItem="Ivg-gt-ccx" firstAttribute="leading" secondItem="70Z-DM-gRg" secondAttribute="leading" constant="20" id="9hu-T7-FlL"/>
+                                                <constraint firstAttribute="bottom" secondItem="Ivg-gt-ccx" secondAttribute="bottom" priority="250" constant="15.5" id="avv-at-qgy"/>
+                                                <constraint firstItem="WRF-KA-zvE" firstAttribute="leading" secondItem="70Z-DM-gRg" secondAttribute="leading" constant="20" id="c3M-65-6z0"/>
+                                                <constraint firstItem="Ivg-gt-ccx" firstAttribute="top" secondItem="WRF-KA-zvE" secondAttribute="bottom" constant="7.5" id="gpv-LG-hX6"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                </cells>
+                            </tableViewSection>
                             <tableViewSection id="YQG-61-135">
                                 <cells>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" rowHeight="80" id="7uo-lB-3GH">
-                                        <rect key="frame" x="0.0" y="300" width="375" height="80"/>
+                                        <rect key="frame" x="0.0" y="436" width="375" height="80"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="7uo-lB-3GH" id="ftW-FJ-3Md">
                                             <rect key="frame" x="0.0" y="0.0" width="375" height="80"/>
@@ -268,6 +373,7 @@
                     <connections>
                         <segue destination="5Zr-9o-llY" kind="show" id="Mjh-EY-zsL"/>
                         <segue destination="sgv-XJ-oS6" kind="show" id="K4E-B9-D8z"/>
+                        <segue destination="PJc-D7-Ivv" kind="show" id="1wx-bU-IUG"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="9yb-bE-TQ2" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -358,10 +464,10 @@
             <point key="canvasLocation" x="1144.8" y="798.35082458770626"/>
         </scene>
     </scenes>
+    <inferredMetricsTieBreakers>
+        <segue reference="Rxr-c4-ben"/>
+    </inferredMetricsTieBreakers>
     <resources>
         <image name="camera_rotate_fill.png" width="200" height="200"/>
     </resources>
-    <inferredMetricsTieBreakers>
-        <segue reference="g4Z-94-bEW"/>
-    </inferredMetricsTieBreakers>
 </document>
