@@ -19,12 +19,18 @@ from onnx_converter import onnx2tnn
 from caffe_converter import caffe2tnn
 from tf_converter import tf2tnn
 from utils import parse_path
-
-logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+from utils import cmd
 
 
 def main():
     args = args_parser.parse_args()
+
+    if args.debug:
+        cmd.cmd.set_debug(args.debug)
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+    else:
+        logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
@@ -39,7 +45,11 @@ def main():
         output_dir = parse_path.parse_path(output_dir)
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
+
+        try:
+            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
+        except:
+            print("Conversion to  tnn failed :(")
     
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
@@ -53,7 +63,10 @@ def main():
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
+        try:
+            caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
+        except:
+            print("Conversion to  tnn failed :(")
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -69,8 +82,12 @@ def main():
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
+
+        try:
+            tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
                         input_file, ref_file)
+        except:
+            print("\nConversion to  tnn failed :(")
     else:
         print("Do not support convert!")
 

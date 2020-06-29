@@ -18,38 +18,56 @@ import subprocess
 import datetime
 import time
 
+import converter
 
+
+
+class CMD:
+    def __init__(self, is_debug=False):
+        self.is_debug = is_debug
+    
+    def set_debug(self, is_debug):
+        self.is_debug = is_debug
+
+    def run(self, cmd_string, work_dir=None, timeout=None, is_shell=True, stdout=False, stderr=False):
+        """
+            执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
+            :parameter:
+                cwd: 运行命令时更改路径，如果被设定，子进程会直接先更改当前路径到cwd
+                timeout: 超时时间，秒，支持小数，精度0.1秒
+                shell: 是否通过shell运行
+            :return return_code
+            :exception 执行超时
+        """
+
+        if is_shell:
+            cmd_string_list = cmd_string
+        else:
+            cmd_string_list = shlex.split(cmd_string)
+        if timeout:
+            end_time = datetime.datetime.now() + \
+                    datetime.timedelta(seconds=timeout)
+
+        sub = subprocess.Popen(cmd_string_list,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            shell=True,
+                            bufsize=4096,
+                            cwd=work_dir,
+                            close_fds=True)
+        (stdout_, stderr_) = sub.communicate()
+
+        if self.is_debug:
+            stdout = True
+
+        if stdout:
+            print(str(stdout_.decode('utf-8')))
+        rc = sub.poll()
+        if stderr_ and rc != 0:
+            print(str(stderr_.decode('utf-8')))
+        return rc
+
+    
+cmd = CMD()
 def run(cmd_string, work_dir=None, timeout=None, is_shell=True, stdout=False, stderr=False):
-    """
-         执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
-        :parameter:
-              cwd: 运行命令时更改路径，如果被设定，子进程会直接先更改当前路径到cwd
-              timeout: 超时时间，秒，支持小数，精度0.1秒
-              shell: 是否通过shell运行
-        :return return_code
-        :exception 执行超时
-    """
-
-    if is_shell:
-        cmd_string_list = cmd_string
-    else:
-        cmd_string_list = shlex.split(cmd_string)
-    if timeout:
-        end_time = datetime.datetime.now() + \
-                   datetime.timedelta(seconds=timeout)
-
-    sub = subprocess.Popen(cmd_string_list,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           shell=True,
-                           bufsize=4096,
-                           cwd=work_dir,
-                           close_fds=True)
-    (stdout_, stderr_) = sub.communicate()
-    if stdout:
-        print(str(stdout_.decode('utf-8')))
-    if stderr:
-        print(str(stderr_.decode('utf-8')))
-    rc = sub.poll()
-    return rc
-
+    return cmd.run(cmd_string, work_dir, timeout, is_shell, stdout, stderr)
