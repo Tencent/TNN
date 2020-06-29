@@ -895,7 +895,68 @@ class Caffe2Onnx():
 
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
+                
+            elif Layers[i].type == "Power":
+                # Power: Mul + Add + Pow
+                # create mul node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
 
+                power, scale, shift = op.get_power_param(Layers[i])
+
+                scale_node_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [np.shape(scale)], [scale])
+                
+                mul_input_name = [input_name[0], scale_node_name[0]]
+                mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, [output_name[0] + "_mul"],
+                                              [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(mul_node)
+                # create Add node
+                shift_param_name = self.AddInputsTVIMannul(Layers[i], ["_shift"], [TensorProto.FLOAT], [np.shape(scale)],
+                                                        [shift])
+                add_input_name = [output_name[0] + "_mul", shift_param_name[0]]
+                add_node = op.create_add_node(Layers[i], node_name + "_add", add_input_name, [output_name[0] + "_add"], [input_shape[0], np.shape(shift)])
+                self.onnxNodeList.append(add_node)
+
+                # create Pow
+                power_param_name = self.AddInputsTVIMannul(Layers[i], ["_param_power"], [TensorProto.FLOAT], [np.shape(power)],[power])
+                power_input_name = [output_name[0] + "_add", power_param_name[0]]
+                power_node = op.create_power_node(Layers[i], node_name + "_power", power_input_name, output_name,
+                                                  [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(power_node)
+                
+            elif Layers[i].type == "Crop":
+                # Crop: Slice
+                # create Slice node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
+
+                starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
+
+                CropLayer = copy.deepcopy(Layers[i])
+                Crop_name=[]
+                Crop_name.append(input_name[0])
+                # starts ends axes 的 shape 是相同的
+                shape = [np.shape(starts)]
+
+                starts_param = self.AddInputsTVIMannul(Layers[i], ['_starts'],
+                                                           [TensorProto.INT64], shape,
+                                                           [starts])
+                ends_param = self.AddInputsTVIMannul(Layers[i], ['_ends'],
+                                                         [TensorProto.INT64], shape,
+                                                         [ends])
+                axes_param = self.AddInputsTVIMannul(Layers[i], ['_axes'],
+                                                         [TensorProto.INT64], shape,
+                                                         [axes])
+           
+                Crop_name.extend(starts_param)
+                Crop_name.extend(ends_param)
+                Crop_name.extend(axes_param)
+                crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
+                                                  input_shape)
+                self.onnxNodeList.append(crop_node)
+                
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)
