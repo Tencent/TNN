@@ -1,6 +1,12 @@
 #!/bin/sh
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-TNN_BUILD_PATH=$PWD/../platforms/ios
+
+if [ -z $TNN_ROOT_PATH ]
+then
+      TNN_ROOT_PATH=`git rev-parse --show-toplevel`
+fi
+
+TNN_BUILD_PATH=$TNN_ROOT_PATH/platforms/ios
 #设置文件
 PLIST_PATH=$TNN_BUILD_PATH/tnn/Info.plist
 TNN_VERSION_PATH=$PWD/version

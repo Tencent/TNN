@@ -22,6 +22,12 @@ matrix:
       compiler: clang
       script: ./scripts/build_macos.sh
       name: "macos | Debug"
+    - os: osx
+      language: cpp
+      osx_image: xcode11.2
+      compiler: clang
+      script: ./scripts/build_ios.sh
+      name: "iOS | debug"
     - os: linux
       language: android
       compiler: clang
