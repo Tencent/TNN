@@ -133,9 +133,10 @@ Status OpenCLCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status status = TNN_OK;
     void* command_queue = nullptr;
     ocl_context_->GetCommandQueue(&command_queue);
+
+    Status status = TNN_OK;
     //convert data from opencl to cpu
     for(int i = 0; i < inputs.size(); ++i) {
         auto device_input = inputs[i];
@@ -145,17 +146,27 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
         MatConvertParam param;
         if(DATA_FORMAT_NCHW == cpu_input->GetBlobDesc().data_format) {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_input->GetBlobDesc().dims, cpu_input->GetHandle().base);
-            blob_converter.ConvertToMat(mat, param, command_queue);
+            status = blob_converter.ConvertToMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         } else {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_input->GetBlobDesc().dims);
-            blob_converter.ConvertToMat(mat, param, command_queue);
+            status = blob_converter.ConvertToMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
             float* src_data = reinterpret_cast<float*>(mat.GetData());
             float* dst_data = reinterpret_cast<float*>(cpu_input->GetHandle().base);
             DataFormatConverter::ConvertFromNCHWToNCHW4Float(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
         }
     }
 
-    cpu_adapter_acc_->Forward(cpu_blob_in_, cpu_blob_out_);
+    //cpu acc forword
+    status = cpu_adapter_acc_->Forward(cpu_blob_in_, cpu_blob_out_);
+    if (status != TNN_OK) {
+        return status;
+    }
 
     //convert data from cpu to opencl
     for(int i = 0; i < outputs.size(); ++i) {
@@ -168,12 +179,18 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
         if(DATA_FORMAT_NCHW == cpu_output->GetBlobDesc().data_format) {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_output->GetBlobDesc().dims, cpu_output->GetHandle().base);
             status = blob_converter.ConvertFromMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         } else {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_output->GetBlobDesc().dims);
             float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base);
             float* dst_data = reinterpret_cast<float*>(mat.GetData());
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
             status = blob_converter.ConvertFromMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         }
     }
 
