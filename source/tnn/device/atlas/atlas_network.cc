@@ -70,6 +70,15 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     if (ret != TNN_OK)
         return ret;
 
+    // add model info
+    AtlasModelInfo model_info;
+    model_info.model_desc    = model_desc_;
+    model_info.model_id      = model_id_;
+    model_info.input_dataset = input_;
+    for (auto item : input_blob_map_) {
+        AtlasRuntime::GetInstance()->AddModelInfo(item.second, model_info);
+    }
+
     return TNN_OK;
 }
 
@@ -100,11 +109,17 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
 
 Status AtlasNetwork::DeInit() {
     for (auto item : input_blob_map_) {
-        delete item.second;
+        if (nullptr != item.second) {
+            // delete model info
+            AtlasRuntime::GetInstance()->DelModelInfo(item.second);
+            delete item.second;
+        }
     }
     input_blob_map_.clear();
     for (auto item : output_blob_map_) {
-        delete item.second;
+        if (nullptr != item.second) {
+            delete item.second;
+        }
     }
     output_blob_map_.clear();
 
@@ -336,7 +351,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     Status ret = TNN_OK;
     BlobDesc blob_desc;
     blob_desc.device_type = DEVICE_ATLAS;
-    ret = ConvertFromAclDataTypeToTnnDataType(data_type, blob_desc.data_type);
+    ret                   = ConvertFromAclDataTypeToTnnDataType(data_type, blob_desc.data_type);
     if (TNN_OK != ret) {
         LOGE("convert from acl data type to tnn data type falied\n");
         return ret;

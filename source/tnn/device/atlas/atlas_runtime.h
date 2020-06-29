@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 #include "tnn/core/status.h"
+#include "tnn/device/atlas/atlas_common_types.h"
 
 namespace TNN_NS {
 
@@ -36,12 +37,17 @@ public:
 
     Status Init();
     Status SetDevice(int device_id);
+    Status AddModelInfo(Blob *blob, AtlasModelInfo model_info);
+    Status DelModelInfo(Blob *blob);
+    std::map<Blob *, AtlasModelInfo> &GetModleInfoMap();
 
 private:
     AtlasRuntime();
 
 private:
     std::set<int> device_list_;
+    std::map<Blob *, AtlasModelInfo> model_info_map_;
+
     static std::shared_ptr<AtlasRuntime> atlas_runtime_singleton_;
     static bool enable_increase_count_;
     static int ref_count_;

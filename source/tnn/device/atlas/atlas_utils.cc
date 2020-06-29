@@ -76,4 +76,19 @@ Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat&
     return TNN_OK;
 }
 
+Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat& aipp_input_format) {
+    if (N8UC3 == mat_type) {
+        aipp_input_format = ACL_RGB888_U8;
+    } else if (N8UC4 == mat_type) {
+        aipp_input_format = ACL_XRGB8888_U8;
+    } else if (NNV12 == mat_type) {
+        aipp_input_format = ACL_YUV420SP_U8;
+    } else {
+        LOGE("not support convert from mat type (%d) to aipp input format\n", mat_type);
+        return Status(TNNERR_COMMON_ERROR, "the mat type is not support");
+    }
+
+    return TNN_OK;
+}
+
 }  // namespace TNN_NS

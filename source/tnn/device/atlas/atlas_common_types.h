@@ -6,6 +6,8 @@
 #include <map>
 #include <memory>
 #include <string>
+#include "acl/acl.h"
+#include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -44,6 +46,12 @@ struct DimInfo {
 struct AtlasCommandQueue {
     void* context;
     void* stream;
+};
+
+struct AtlasModelInfo {
+    aclmdlDesc* model_desc       = nullptr;
+    uint32_t model_id            = 0;
+    aclmdlDataset* input_dataset = nullptr;
 };
 
 }  // namespace TNN_NS

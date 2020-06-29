@@ -12,6 +12,7 @@
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
 
@@ -24,6 +25,8 @@ int SaveMemToFile(std::string file_name, void* data, int size);
 Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& tnn_datatype);
 
 Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat);
+
+Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat& aipp_input_format);
 
 }  // namespace TNN_NS
 

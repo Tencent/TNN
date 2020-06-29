@@ -25,7 +25,7 @@ bool AtlasRuntime::enable_increase_count_                            = false;
 int AtlasRuntime::ref_count_                                         = 0;
 bool AtlasRuntime::init_done_                                        = false;
 
-AtlasRuntime *AtlasRuntime::GetInstance() {
+AtlasRuntime* AtlasRuntime::GetInstance() {
     // don't use DCL
     std::unique_lock<std::mutex> lck(g_mtx);
     if (nullptr == atlas_runtime_singleton_.get()) {
@@ -91,6 +91,25 @@ Status AtlasRuntime::SetDevice(int device_id) {
     }
 
     return TNN_OK;
+}
+
+Status AtlasRuntime::AddModelInfo(Blob* blob, AtlasModelInfo model_info) {
+    std::unique_lock<std::mutex> lck(g_mtx);
+    model_info_map_[blob] = model_info;
+    return TNN_OK;
+}
+
+Status AtlasRuntime::DelModelInfo(Blob* blob) {
+    std::unique_lock<std::mutex> lck(g_mtx);
+    auto blob_it = model_info_map_.find(blob);
+    if (blob_it != model_info_map_.end()) {
+        model_info_map_.erase(blob_it);
+    }
+    return TNN_OK;
+}
+
+std::map<Blob*, AtlasModelInfo>& AtlasRuntime::GetModleInfoMap() {
+    return model_info_map_;
 }
 
 AtlasRuntime::~AtlasRuntime() {

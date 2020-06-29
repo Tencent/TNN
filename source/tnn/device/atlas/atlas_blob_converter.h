@@ -15,7 +15,9 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_MAT_CONVERTER_H_
 #define TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_MAT_CONVERTER_H_
 
+#include "acl/acl.h"
 #include "tnn/core/macro.h"
+#include "tnn/device/atlas/atlas_common_types.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/blob_converter_internal.h"
 
@@ -26,19 +28,29 @@ public:
     AtlasBlobConverterAcc(Blob* blob);
     virtual ~AtlasBlobConverterAcc();
 
-    virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue = NULL);
-    virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
+    virtual Status ConvertToMat(Mat& mat, MatConvertParam param, void* command_queue = NULL);
+    virtual Status ConvertToMatAsync(Mat& mat, MatConvertParam param, void* command_queue = NULL);
 
-    virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue = NULL);
-    virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
+    virtual Status ConvertFromMat(Mat& mat, MatConvertParam param, void* command_queue = NULL);
+    virtual Status ConvertFromMatAsync(Mat& mat, MatConvertParam param, void* command_queue = NULL);
 
 private:
+    Status ConvertFromMatAsyncWithoutAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
+    Status ConvertFromMatAsyncWithAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
+
     bool NeedDoScaleBias(MatConvertParam& param);
     Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, void* stream, bool from_mat);
+    Status SetDynamicAipp(Mat& mat, MatConvertParam& param);
 
-    bool do_scale_bias_ = true;
-    int blob_bytesize_  = 0;
+    bool do_scale_bias_           = true;
+    int blob_bytesize_            = 0;
     std::shared_ptr<char> buffer_ = nullptr;
+
+    aclmdlAIPP* aipp_dynamic_set_ = nullptr;
+    bool use_dynamic_aipp_        = false;
+    int blob_batchsize_           = 0;
+    size_t input_index_           = 0;
+    AtlasModelInfo model_info_;
 };
 
 }  // namespace TNN_NS
