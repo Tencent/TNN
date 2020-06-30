@@ -12,15 +12,21 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
+
 from utils import args_parser
 from onnx_converter import onnx2tnn
 from caffe_converter import caffe2tnn
 from tf_converter import tf2tnn
 from utils import parse_path
 
+logging.basicConfig(level=logging.INFO, format="")
+
 
 def main():
-    args = args_parser.parse_args()
+    parser = args_parser.parse_args()
+    args = parser.parse_args()
+
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
@@ -35,7 +41,13 @@ def main():
         output_dir = parse_path.parse_path(output_dir)
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
+
+        try:
+            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
+            logging.info("\nmodel is converting, please wait")
+            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
+        except:
+            logging.info("Conversion to  tnn failed :(")
     
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
@@ -49,7 +61,12 @@ def main():
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
+        try:
+            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
+            logging.info("\nmodel is converting, please wait")
+            caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
+        except:
+            logging.info("Conversion to  tnn failed :(")
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -65,10 +82,18 @@ def main():
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-        tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
+
+        try:
+            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
+            logging.info("\nmodel is converting, please wait")
+            tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
                         input_file, ref_file)
+        except:
+            logging.info("\nConversion to  tnn failed :(")
+    elif args.sub_command is None:
+        parser.print_help()
     else:
-        print("Do not support convert!")
+        logging.info("Do not support convert!")
 
 
 if __name__ == '__main__':
