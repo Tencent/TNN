@@ -36,13 +36,43 @@ At present, TNN has been launched in various major businesses, and its following
     * Cross-model memory reduces: This supports external real-time design for network memory so that multiple models can share mutual memory.
 
 * Performance comparison among mainstream models: TNN outperforms other mainstream open-source mobile high-performance frameworks.
-    * Kirin970：
 
-    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/970.jpg"/>
+>  Kirin970：
 
-    * Snapdragon 835：
+   | model                     | cpu 1 thread(ms) | gpu time(ms) |
+   |---------------------------|--------------|--------------|
+   | Mobilenet_v1              | 88           |   12         |
+   | Mobilenet_v1_int8         | 55           |              |
+   | Mobilenet_v2              | 58           |   11         |
+   | Mobilenet_v2_int8         | 41           |              |
+   | squeezenet_v1.0           | 127          |   20         |
+   | squeezenet_v1.0_int8      | 82           |              |
 
-    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/835.jpg"/>
+
+>  Snapdragon 835：
+
+ | model                     | cpu 1 thread(ms) | gpu time(ms) |
+ |---------------------------|--------------|--------------|
+ | Mobilenet_v1              | 94           |   16         |
+ | Mobilenet_v1_int8         | 62           |              |
+ | Mobilenet_v2              | 61           |   14         |
+ | Mobilenet_v2_int8         | 47           |              |
+ | squeezenet_v1.0           | 122          |   28         |
+ | squeezenet_v1.0_int8      | 93           |              |
+
+
+>  Snapdragon 845：
+
+
+| model                     | cpu 1 thread(ms) | gpu time(ms) |
+|---------------------------|--------------|--------------|
+| Mobilenet_v1              | 60           |   10         |
+| Mobilenet_v1_int8         | 37           |              |
+| Mobilenet_v2              | 39           |   8          |
+| Mobilenet_v2_int8         | 28           |              |
+| squeezenet_v1.0           | 74           |   14         |
+| squeezenet_v1.0_int8      | 56           |              |
+
 
 
 * TNN architecture diagram：
