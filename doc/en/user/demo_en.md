@@ -1,5 +1,7 @@
 # Demo Introduction
 
+[中文版本](../../cn/user/demo.md)
+
 ## I. Introduction to iOS Demo
 
 ### How to run

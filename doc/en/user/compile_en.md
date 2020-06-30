@@ -1,5 +1,7 @@
 # Compile
 
+[中文版本](../../cn/user/compile.md)
+
 ## I. Compile (iOS)
 ### 1. Environment requirements
   - Mac, Xcode IDE

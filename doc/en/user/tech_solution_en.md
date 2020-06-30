@@ -1,5 +1,7 @@
 # Technical Solutions
 
+[中文版本](../../cn/user/tech_solution.md)
+
 TNN is a high-performance and lightweight inference framework for mobile devices. It provides lots of advanced features such as cross-platform, model-compression, and code-pruning. TNN, inspired by mainstream open-source industry frameworks, integrates and leverages Youtu Lab's Rapidnet, ncnn framework. It also combines the efforts of the deep-learning framework Oteam from all departments(PCG, TEG, IEG) to create an enterprise-level mobile inference engine.
 At present, TNN has been launched in various major businesses, and its following characteristics have been widely praised.
 
@@ -20,13 +22,42 @@ At present, TNN has been launched in various major businesses, and its following
 
 * Performance comparison among mainstream models: TNN outperforms other mainstream open-source mobile high-performance frameworks.
 
-    * Kirin970：
+>  Kirin970：
 
-    <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/970.jpg"/>
+   | model                     | cpu 1 thread(ms) | gpu time(ms) |
+   |---------------------------|--------------|--------------|
+   | Mobilenet_v1              | 88           |   12         |
+   | Mobilenet_v1_int8         | 55           |              |
+   | Mobilenet_v2              | 58           |   11         |
+   | Mobilenet_v2_int8         | 41           |              |
+   | squeezenet_v1.0           | 127          |   20         |
+   | squeezenet_v1.0_int8      | 82           |              |
 
-    * Snapdragon 835：
 
-    <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/835.jpg"/>
+>  Snapdragon 835：
+
+ | model                     | cpu 1 thread(ms) | gpu time(ms) |
+ |---------------------------|--------------|--------------|
+ | Mobilenet_v1              | 94           |   16         |
+ | Mobilenet_v1_int8         | 62           |              |
+ | Mobilenet_v2              | 61           |   14         |
+ | Mobilenet_v2_int8         | 47           |              |
+ | squeezenet_v1.0           | 122          |   28         |
+ | squeezenet_v1.0_int8      | 93           |              |
+
+
+>  Snapdragon 845：
+
+
+| model                     | cpu 1 thread(ms) | gpu time(ms) |
+|---------------------------|--------------|--------------|
+| Mobilenet_v1              | 60           |   10         |
+| Mobilenet_v1_int8         | 37           |              |
+| Mobilenet_v2              | 39           |   8          |
+| Mobilenet_v2_int8         | 28           |              |
+| squeezenet_v1.0           | 74           |   14         |
+| squeezenet_v1.0_int8      | 56           |              |
+
     
 #### TNN Architecture Diagram：
 

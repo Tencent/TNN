@@ -1,5 +1,6 @@
-[English Version](/en/front_page_en.md)
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+
+[English Version](../en/front_page_en.md)
 
 ## 快速开始
 
@@ -36,38 +37,41 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
 * 主流模型实测性能：v0.1 2020.05.29
 
-    * 麒麟970：
+>  麒麟970：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 88           |   12         |
-        | Mobilenet_v1_int8         | 55           |              |
-        | Mobilenet_v2              | 58           |   11         |
-        | Mobilenet_v2_int8         | 41           |              |
-        | squeezenet_v1.0           | 127          |   20         |
-        | squeezenet_v1.0_int8      | 82           |              |
+   | model                     | cpu 1 thread(ms) | gpu time(ms) |
+   |---------------------------|--------------|--------------|
+   | Mobilenet_v1              | 88           |   12         |
+   | Mobilenet_v1_int8         | 55           |              |
+   | Mobilenet_v2              | 58           |   11         |
+   | Mobilenet_v2_int8         | 41           |              |
+   | squeezenet_v1.0           | 127          |   20         |
+   | squeezenet_v1.0_int8      | 82           |              |
 
-    * 骁龙835：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |
-        | Mobilenet_v1_int8         | 62           |              |
-        | Mobilenet_v2              | 61           |   14         |
-        | Mobilenet_v2_int8         | 47           |              |
-        | squeezenet_v1.0           | 122          |   28         |
-        | squeezenet_v1.0_int8      | 93           |              |
+>  骁龙835：
 
-    * 骁龙845：
+ | model                     | cpu 1 thread(ms) | gpu time(ms) |
+ |---------------------------|--------------|--------------|
+ | Mobilenet_v1              | 94           |   16         |
+ | Mobilenet_v1_int8         | 62           |              |
+ | Mobilenet_v2              | 61           |   14         |
+ | Mobilenet_v2_int8         | 47           |              |
+ | squeezenet_v1.0           | 122          |   28         |
+ | squeezenet_v1.0_int8      | 93           |              |
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 60           |   10         |
-        | Mobilenet_v1_int8         | 37           |              |
-        | Mobilenet_v2              | 39           |   8          |
-        | Mobilenet_v2_int8         | 28           |              |
-        | squeezenet_v1.0           | 74           |   14         |
-        | squeezenet_v1.0_int8      | 56           |              |
+
+>  骁龙845：
+
+
+| model                     | cpu 1 thread(ms) | gpu time(ms) |
+|---------------------------|--------------|--------------|
+| Mobilenet_v1              | 60           |   10         |
+| Mobilenet_v1_int8         | 37           |              |
+| Mobilenet_v2              | 39           |   8          |
+| Mobilenet_v2_int8         | 28           |              |
+| squeezenet_v1.0           | 74           |   14         |
+| squeezenet_v1.0_int8      | 56           |              |
 
 
 * TNN架构图：
@@ -81,53 +85,34 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 * Runtime无任何第三方库依赖，CPU动态库尺寸仅约400KB，并提供基础图像变换操作，调用简单便捷。跨平台模型统一、调用接口统一，通过单个配置参数快速切换。
 
 ## 能力展示
-* [支持的算子](doc/cn/user/support.md)
-* [支持的网络](doc/cn/user/support.md)
-* [支持的架构](doc/cn/user/support.md)
-* [Benchmark性能测试方法](doc/cn/development/profiling.md)
+* [支持的算子](./user/support.md)
+* [支持的网络](./user/support.md)
+* [支持的架构](./user/support.md)
+* [Benchmark性能测试方法](./development/profiling.md)
 
 ## 使用手册
-* [从源码编译](doc/cn/user/compile.md)
+* [从源码编译](./user/compile.md)
 * [工具集]()
-    * [模型转换](doc/cn/user/convert.md)
-    * [模型量化](doc/cn/user/quantization.md)
-    * [模型可视化Netron](https://lutzroeder.github.io/netron/)
-    * [性能分析工具](doc/cn/development/profiling.md)
-    * [模型对齐工具](doc/cn/development/model_check.md)
+    * [模型转换](./user/convert.md)
+    * [模型量化](./user/quantization.md)
+    * [模型可视化](https://lutzroeder.github.io/netron/)
+    * [性能分析工具](./development/profiling.md)
+    * [模型对齐工具](./development/model_check.md)
 
 ## API文档
-* [API调用](doc/cn/user/api.md)
+* [API调用](./user/api.md)
 
 ## 贡献者须知
-* [开发基础须知](doc/cn/development/contributing.md)
-* [架构详解](doc/cn/development/architecture.md)
-* [新增OP](doc/cn/development/add_op.md)
-* [单元测试](doc/cn/development/unit_test.md)
+* [开发基础须知](./development/contributing.md)
+* [架构详解](./development/architecture.md)
+* [新增OP](./development/add_op.md)
+* [单元测试](./development/unit_test.md)
 
 ## Roadmap
-* [Road map]()
-
-## 致谢
-TNN参考和借鉴了下列项目：
-
-* [ncnn](https://github.com/Tencent/ncnn)
-
-* [mace](https://github.com/XiaoMi/mace.git)
-
-* [MNN](https://github.com/alibaba/MNN)
-
-* [caffe-onnx](https://github.com/htshinichi/caffe-onnx)
-
-* [tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)
-
-* [onnx](https://github.com/onnx/onnx)
-
-## License
-
-* [BSD 3 Clause](LICENSE)
+* [Road map](./user/roadmap.md)
 
 ## FAQ
-* [FAQ 常见问题](doc/cn/faq.md)
+* [FAQ 常见问题](./faq.md)
 
 ## 加入我们
 

@@ -1,4 +1,7 @@
 # Model Performance Analysis
+
+[中文版本](../../cn/development/profiling.md)
+
 Analyze the running time of a model.
 
 ## I. Test the time cost on iOS platform
