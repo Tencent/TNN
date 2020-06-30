@@ -1,5 +1,7 @@
 # Unit Test
 
+[中文版本](../../cn/development/unit_test.md)
+
 This document mainly introduces the purpose, usage, and note of the unit test.
 
 ## Why Unit Test

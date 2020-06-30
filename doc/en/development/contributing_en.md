@@ -1,4 +1,7 @@
 # Code Contribution
+
+[中文版本](../../cn/development/contributing.md)
+
 ## Code Contribution
 
 [Add a New Operator](./add_op_en.md)

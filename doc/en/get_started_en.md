@@ -2,6 +2,8 @@
 
 # Run a demo from scratch 
 
+[中文版本](../cn/get_started.md)
+
 It is very simple to use TNN. If you have a trained model, the model can be deployed on the target platform through three steps.
 1. Convert the trained model into a TNN model. We provide a wealth of tools to help you complete this step, whether you are using Tensorflow, Pytorch, or Caffe, you can easily complete the conversion.
 Detailed hands-on tutorials can be found here [How to Create TNN Models](./user/convert_en.md).

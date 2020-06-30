@@ -1,5 +1,7 @@
 # FAQ 常见问题
 
+[English Version](../en/faq_en.md)
+
 ## 编译环境要求：
     general:
         cmake >= 3.1

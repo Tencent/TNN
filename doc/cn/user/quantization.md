@@ -1,4 +1,7 @@
 # 模型量化  
+
+[English Version](../../en/user/quantization_en.md)
+
 ## 一、量化的作用  
 量化将网络中主要算子（Convolution，Pooling，Binary等）由原先的浮点计算转成低精度的Int8计算，减少模型大小并提升性能。  
 PS：    
