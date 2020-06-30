@@ -27,6 +27,8 @@ def main():
     parser = args_parser.parse_args()
     args = parser.parse_args()
 
+    logging.info("\n{}  convert model, please wait a moment {}\n".format("-" * 10, "-" * 10))
+
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
@@ -43,11 +45,9 @@ def main():
         ref_file = parse_path.parse_path(ref_file)
 
         try:
-            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
-            logging.info("\nmodel is converting, please wait")
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
         except:
-            logging.info("Conversion to  tnn failed :(")
+            logging.info("Conversion to  tnn failed :(\n")
     
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
@@ -62,11 +62,9 @@ def main():
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
         try:
-            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
-            logging.info("\nmodel is converting, please wait")
             caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
         except:
-            logging.info("Conversion to  tnn failed :(")
+            logging.info("Conversion to  tnn failed :(\n")
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -84,12 +82,10 @@ def main():
         ref_file = parse_path.parse_path(ref_file)
 
         try:
-            logging.info("{}  convert model  {}" .format("-" * 30, "-" * 30))
-            logging.info("\nmodel is converting, please wait")
-            tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const, 
+            tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const,
                         input_file, ref_file)
         except:
-            logging.info("\nConversion to  tnn failed :(")
+            logging.info("\nConversion to  tnn failed :(\n")
     elif args.sub_command is None:
         parser.print_help()
     else:

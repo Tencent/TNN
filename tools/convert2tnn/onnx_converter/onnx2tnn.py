@@ -44,6 +44,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     :return return_code
     :exception 执行超时
     """
+    logging.info("converter ONNX to TNN Model\n")
     ret, current_shape = checker.check_onnx_dim(onnx_path)
 
     if ret is False and current_shape is not None:
@@ -70,7 +71,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         output_dir = os.path.dirname(onnx_path)
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
-    logging.debug("the onnx2tnn command:" + command)
+    logging.debug("the onnx2tnn command:" + command + "\n")
 
     if input_names is not None:
         new_input_names = ""
@@ -86,9 +87,9 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     result = cmd.run(command, work_dir=work_dir)
 
     if result == 0:
-        logging.info("\nonnx2tnn succeed!\n")
+        logging.info("converter ONNX to TNN model succeed!\n")
     else:
-        logging.info("\nonnx2tnn failed!\n")
+        logging.info("converter ONNX to TNN model failed!\n")
         exit(-1)
     onnx_base_name = os.path.basename(onnx_path)
 
