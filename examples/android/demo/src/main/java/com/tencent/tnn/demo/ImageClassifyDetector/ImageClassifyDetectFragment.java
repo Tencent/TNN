@@ -45,7 +45,6 @@ public class ImageClassifyDetectFragment extends BaseFragment {
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
-        System.loadLibrary("TNN");
         System.loadLibrary("tnn_wrapper");
     }
 
