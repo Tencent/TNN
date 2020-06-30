@@ -39,9 +39,9 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     ret = cmd.run(command)
 
     if ret == 0:
-        logging.info("model align success!\n")
+        print_align_message()
     else:
-        logging.info("model align failed :(\n")
+        print_not_align_message()
 
     return
 
@@ -84,6 +84,7 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
 
 
 def get_input_shape_from_onnx(onnx_path) -> dict:
+    onnxruntime.set_default_logger_severity(3)
     session = onnxruntime.InferenceSession(onnx_path)
     input_info: dict = {}
     for ip in session.get_inputs():
@@ -107,14 +108,14 @@ def get_input_shape_from_tnn(tnn_proto_path):
 
 
 def print_not_align_message(reason):
-    logging.info("==================== Unfortunately============================\n")
+    logging.info("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
     logging.info("The onnx model not aligned with tnn model\n")
-    logging.info("the reason " + reason)
+    logging.info("the reason " + reason + "\n")
     exit(-1)
 
 
 def print_align_message():
-    logging.info("====================Congratulations!==========================\n")
+    logging.info("{}  Congratulations!   {}" .format("-" * 10, "-" * 10))
     logging.info("the onnx model aligned whit tnn model\n")
 
 
@@ -128,10 +129,10 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
             onnx_shape[0] = 1
         if tnn_shape != onnx_shape:
             print_not_align_message(
-                "\nthe {}'s shape not equal! the onnx shape:{}, tnn shape: {}".format(name, str(onnx_shape),
+                "the {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
                                                                                     str(tnn_shape)))
     
-    logging.info("\ncheck onnx input shape and tnn input shape align!\n")
+    logging.info("check onnx input shape and tnn input shape align!\n")
 
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
@@ -158,7 +159,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     :param tnn_model_path:
     :return:
     """
-    logging.info("{}  align model  {}" .format("-" * 30, "-" * 30))
+    logging.info("{}  align model (ONNX vs TNN),please wait a moment {}\n" .format("-" * 10, "-" * 10))
 
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
