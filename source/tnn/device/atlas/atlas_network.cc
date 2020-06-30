@@ -321,6 +321,11 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     if (is_input) {
         // get blob name
         blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
+        // skip dynamic aipp input
+        if (blob_name.find(ACL_DYNAMIC_AIPP_NAME) != std::string::npos) {
+            LOGD("find dynamic aipp input and skip...\n");
+            return TNN_OK;
+        }
         // get dims info
         aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
         if (acl_ret != ACL_ERROR_NONE) {
@@ -332,6 +337,10 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // get data format
         data_format = aclmdlGetInputFormat(model_desc_, index);
         LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
+        LOGD("input shape:\n");
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            LOGD("[%d]\n", (int)acl_dims.dims[i]);
+        }
     } else {
         // get blob name
         blob_name = aclmdlGetOutputNameByIndex(model_desc_, index);
@@ -346,6 +355,10 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // get data format
         data_format = aclmdlGetOutputFormat(model_desc_, index);
         LOGD("output data type: %d  output data format: %d\n", data_type, data_format);
+        LOGD("output shape:\n");
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            LOGD("[%d]\n", (int)acl_dims.dims[i]);
+        }
     }
 
     Status ret = TNN_OK;

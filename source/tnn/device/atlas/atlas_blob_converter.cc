@@ -27,19 +27,17 @@ namespace TNN_NS {
 AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
     BlobMemorySizeInfo size_info = Calculate1DMemorySize(blob->GetBlobDesc());
     blob_bytesize_               = GetBlobMemoryBytesSize(size_info);
-    blob_batchsize_              = blob->GetBlobDesc().dims[0];
-    LOGD("blob bytesize: %d   batch size:%d\n", blob_bytesize_, blob_batchsize_);
+    LOGD("blob bytesize: %d\n", blob_bytesize_);
 
     auto model_info_map = AtlasRuntime::GetInstance()->GetModleInfoMap();
     if (model_info_map.find(blob) != model_info_map.end()) {
         model_info_      = model_info_map[blob];
         aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &input_index_);
+        LOGD("acl ret: %d  input_index: %d\n", acl_ret);
         if (ACL_ERROR_NONE == acl_ret) {
             use_dynamic_aipp_ = true;
-            aipp_dynamic_set_ = aclmdlCreateAIPP(blob_batchsize_);
         } else {
             use_dynamic_aipp_ = false;
-            aipp_dynamic_set_ = nullptr;
         }
     }
 }
@@ -80,15 +78,16 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
     }
 
-    DataFormat blob_datatype = blob_->GetBlobDesc().data_format;
+    DataFormat blob_dataformat = blob_->GetBlobDesc().data_format;
+    DataType blob_datatype = blob_->GetBlobDesc().data_type;
     if (NCHW_FLOAT == mat.GetMatType()) {
         LOGD("Convert To Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
-        if (DATA_FORMAT_NCHW == blob_datatype) {
+        if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(),
                                            atlas_cmd_queue->stream, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
-        } else if (DATA_FORMAT_NHWC == blob_datatype) {
+        } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             // only support DEVICE_NAIVE device type
             if (DEVICE_NAIVE == mat.GetDeviceType()) {
                 if (nullptr == buffer_) {
@@ -140,8 +139,10 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
     }
 
     if (use_dynamic_aipp_) {
+        LOGD("run with dynamic aipp\n");
         tnn_ret = ConvertFromMatAsyncWithAipp(mat, param, atlas_cmd_queue);
     } else {
+        LOGD("run without dynamic aipp\n");
         tnn_ret = ConvertFromMatAsyncWithoutAipp(mat, param, atlas_cmd_queue);
     }
 
@@ -191,19 +192,16 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         return Status(TNNERR_PARAM_ERR, "not support preprocess yet!");
     }
 
-    if (mat.GetMatType() != NCHW_FLOAT) {
-        return Status(TNNERR_PARAM_ERR, "not support this type convert yet!");
-    }
-
-    DataFormat blob_datatype = blob_->GetBlobDesc().data_format;
+    DataFormat blob_dataformat = blob_->GetBlobDesc().data_format;
+    DataType blob_datatype = blob_->GetBlobDesc().data_type;
+    LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
     if (NCHW_FLOAT == mat.GetMatType()) {
-        LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
-        if (DATA_FORMAT_NCHW == blob_datatype) {
+        if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
                                            atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
-        } else if (DATA_FORMAT_NHWC == blob_datatype) {
+        } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             // only support DEVICE_NAIVE device type
             if (DEVICE_NAIVE == mat.GetDeviceType()) {
                 if (nullptr == buffer_) {
@@ -222,6 +220,15 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
             } else {
                 return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
             }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+        }
+    } else if (N8UC3 == mat.GetMatType()) {
+        if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
+                                           atlas_cmd_queue->stream, true);
+            if (tnn_ret != TNN_OK)
+                return tnn_ret;
         } else {
             return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
         }
@@ -312,8 +319,13 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     aclError acl_ret = ACL_ERROR_NONE;
     Status tnn_ret   = TNN_OK;
 
-    int height = blob_->GetBlobDesc().dims[2];
-    int width  = blob_->GetBlobDesc().dims[3];
+    if (mat.GetBatch() != blob_batchsize_) {
+        aipp_dynamic_set_ = aclmdlCreateAIPP(blob_batchsize_);
+        blob_batchsize_   = mat.GetBatch();
+    }
+
+    int height = mat.GetHeight();
+    int width  = mat.GetWidth();
 
     // set aipp image size
     acl_ret = aclmdlSetAIPPSrcImageSize(aipp_dynamic_set_, width, height);
