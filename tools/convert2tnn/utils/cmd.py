@@ -48,8 +48,7 @@ def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
                            cwd=work_dir,
                            close_fds=True)
     (stdout, stderr) = sub.communicate()
-    #logging.debug(str(stdout.decode('utf-8')))
-    #print(str(stdout.decode('utf-8')))
+    logging.debug(str(stdout.decode('utf-8')))
     rc = sub.poll()
     if rc != 0:
         logging.error(str(stderr.decode('utf-8')))
