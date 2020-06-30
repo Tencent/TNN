@@ -5,7 +5,22 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 add_executable(TNNBench ${BENCHMARK_SRCS})
 
-target_link_libraries(TNNBench
-    TNN
-    gflags
-)
+if(TNN_BUILD_SHARED)
+    target_link_libraries(TNNBench
+        TNN
+        gflags
+    )
+elseif(SYSTEM.iOS OR SYSTEM.Darwin)
+    target_link_libraries(TNNBench
+        -Wl,-force_load TNN
+        gflags
+    )
+else()
+    message("target link libraries whole-archive")
+    target_link_libraries(TNNBench
+        -Wl,--whole-archive TNN -Wl,--no-whole-archive
+        gflags
+    )
+endif()
+
+

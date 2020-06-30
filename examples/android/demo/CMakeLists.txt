@@ -21,6 +21,7 @@ include_directories(../demo/src/main/jni/cc/)
 
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -43,7 +44,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                         tnn_wrapper
                         -ljnigraphics
-                        TNN
+                        -Wl,--whole-archive TNN -Wl,--no-whole-archive
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib})
