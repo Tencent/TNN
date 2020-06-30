@@ -37,38 +37,41 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
 * 主流模型实测性能：v0.1 2020.05.29
 
-    * 麒麟970：
+>  麒麟970：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 88           |   12         |
-        | Mobilenet_v1_int8         | 55           |              |
-        | Mobilenet_v2              | 58           |   11         |
-        | Mobilenet_v2_int8         | 41           |              |
-        | squeezenet_v1.0           | 127          |   20         |
-        | squeezenet_v1.0_int8      | 82           |              |
+   | model                     | cpu 1 thread(ms) | gpu time(ms) |
+   |---------------------------|--------------|--------------|
+   | Mobilenet_v1              | 88           |   12         |
+   | Mobilenet_v1_int8         | 55           |              |
+   | Mobilenet_v2              | 58           |   11         |
+   | Mobilenet_v2_int8         | 41           |              |
+   | squeezenet_v1.0           | 127          |   20         |
+   | squeezenet_v1.0_int8      | 82           |              |
 
-    * 骁龙835：
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |
-        | Mobilenet_v1_int8         | 62           |              |
-        | Mobilenet_v2              | 61           |   14         |
-        | Mobilenet_v2_int8         | 47           |              |
-        | squeezenet_v1.0           | 122          |   28         |
-        | squeezenet_v1.0_int8      | 93           |              |
+>  骁龙835：
 
-    * 骁龙845：
+ | model                     | cpu 1 thread(ms) | gpu time(ms) |
+ |---------------------------|--------------|--------------|
+ | Mobilenet_v1              | 94           |   16         |
+ | Mobilenet_v1_int8         | 62           |              |
+ | Mobilenet_v2              | 61           |   14         |
+ | Mobilenet_v2_int8         | 47           |              |
+ | squeezenet_v1.0           | 122          |   28         |
+ | squeezenet_v1.0_int8      | 93           |              |
 
-        | model                     | cpu 1 thread(ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 60           |   10         |
-        | Mobilenet_v1_int8         | 37           |              |
-        | Mobilenet_v2              | 39           |   8          |
-        | Mobilenet_v2_int8         | 28           |              |
-        | squeezenet_v1.0           | 74           |   14         |
-        | squeezenet_v1.0_int8      | 56           |              |
+
+>  骁龙845：
+
+
+| model                     | cpu 1 thread(ms) | gpu time(ms) |
+|---------------------------|--------------|--------------|
+| Mobilenet_v1              | 60           |   10         |
+| Mobilenet_v1_int8         | 37           |              |
+| Mobilenet_v2              | 39           |   8          |
+| Mobilenet_v2_int8         | 28           |              |
+| squeezenet_v1.0           | 74           |   14         |
+| squeezenet_v1.0_int8      | 56           |              |
 
 
 * TNN架构图：
