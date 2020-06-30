@@ -103,8 +103,25 @@ Status AtlasNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
-    LOGE("Not support reshape in Atlas!\n");
-    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Not support reshape in Atlas!");
+    for (auto item : inputs) {
+        LOGD("reshape input %s to [%d,%d,%d,%d]\n", item.first.c_str(), item.second[0], item.second[1], item.second[2],
+             item.second[3]);
+        size_t index     = 0;
+        aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, item.first.c_str(), &index);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("can't get input index from input name (%s) in reshape\n", item.first.c_str());
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input index in reshape");
+        }
+
+        int batch = item.second[0];
+        acl_ret   = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("set batch size (%s) in reshape failed\n", item.first.c_str());
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
+        }
+    }
+
+    return TNN_OK;
 }
 
 Status AtlasNetwork::DeInit() {
@@ -324,6 +341,11 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // skip dynamic aipp input
         if (blob_name.find(ACL_DYNAMIC_AIPP_NAME) != std::string::npos) {
             LOGD("find dynamic aipp input and skip...\n");
+            return TNN_OK;
+        }
+        // skip dynamic batch input
+        if (blob_name.find(ACL_DYNAMIC_TENSOR_NAME) != std::string::npos) {
+            LOGD("find dynamic batch input and skip...\n");
             return TNN_OK;
         }
         // get dims info

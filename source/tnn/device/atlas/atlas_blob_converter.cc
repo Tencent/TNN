@@ -79,7 +79,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
     }
 
     DataFormat blob_dataformat = blob_->GetBlobDesc().data_format;
-    DataType blob_datatype = blob_->GetBlobDesc().data_type;
+    DataType blob_datatype     = blob_->GetBlobDesc().data_type;
     if (NCHW_FLOAT == mat.GetMatType()) {
         LOGD("Convert To Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
@@ -193,7 +193,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     }
 
     DataFormat blob_dataformat = blob_->GetBlobDesc().data_format;
-    DataType blob_datatype = blob_->GetBlobDesc().data_type;
+    DataType blob_datatype     = blob_->GetBlobDesc().data_type;
     LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
     if (NCHW_FLOAT == mat.GetMatType()) {
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
