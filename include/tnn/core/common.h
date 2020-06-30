@@ -134,7 +134,7 @@ struct PUBLIC ModelConfig {
     // coreml model need one param: coreml model dir.
     // snpe model need one param: dlc model dir.
     // hiai model need two params: order is model name, model_file_path.
-    // atlas model need one param: config string.
+    // atlas model need one param: om file path.
     std::vector<std::string> params = {};
 };
 

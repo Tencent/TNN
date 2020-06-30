@@ -26,8 +26,6 @@ public:
     AtlasModelConfig& GetModelConfig();
 
 private:
-    Status ParseConfig(std::string config_path);
-
     AtlasModelConfig model_config_;
 };
 

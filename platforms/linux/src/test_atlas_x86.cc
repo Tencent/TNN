@@ -34,31 +34,19 @@
 using namespace TNN_NS;
 TNN net_;
 
-int InitTNN(std::string config_file) {
-    std::ifstream file_in;
-    file_in.open(config_file, std::ios::in);
+std::string ReplaceString(std::string s) {
+    char temp[128];
+    memset(temp, 0, 128);
+    memcpy(temp, s.c_str(), s.length());
 
-    std::string line_str;
-    int error_code = -1;
-    while (std::getline(file_in, line_str)) {
-        if (line_str.at(0) == '#')
-            continue;
-
-        ModelConfig config;
-        config.model_type = MODEL_TYPE_ATLAS;
-        config.params.push_back(line_str);
-
-        error_code = net_.Init(config);  // init the net
-
-        if (error_code != 0) {
-            continue;
-        } else {
-            break;
+    for (int i = 0; i < s.length(); ++i) {
+        if ('/' == temp[i] || '\\' == temp[i]) {
+            temp[i] = '_';
         }
     }
 
-    file_in.close();
-    return error_code;
+    std::string ret = temp;
+    return ret;
 }
 
 /* read input from text files */
@@ -171,16 +159,23 @@ int main(int argc, char* argv[]) {
     struct timeval time_begin, time_end;
     float delta = 0;
 
+    Status error;
+    int ret;
     gettimeofday(&time1, NULL);
-    int ret = InitTNN(argv[1]);
-    if (CheckResult("init tnn", ret) != true)
+    ModelConfig config;
+    config.model_type = MODEL_TYPE_ATLAS;
+    config.params.push_back(argv[1]);
+
+    error = net_.Init(config);  // init the net
+    if (TNN_OK != error) {
+        printf("TNN init failed\n");
         return -1;
+    }
     gettimeofday(&time2, NULL);
     delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
     printf("init tnn time cost: %g ms\n", delta);
 
     gettimeofday(&time1, NULL);
-    Status error;
     auto instance_ = net_.CreateInst(network_config, error);
     if (CheckResult("create instance", error) != true) {
         printf("error info: %s\n", error.description().c_str());
@@ -202,8 +197,10 @@ int main(int argc, char* argv[]) {
     BlobMap input_blobs, output_blobs;
     error       = instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
-    printf("input data shape [ %d %d %d %d ]\n", input->GetBlobDesc().dims[0], input->GetBlobDesc().dims[1],
-           input->GetBlobDesc().dims[2], input->GetBlobDesc().dims[3]);
+    for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
+        printf("input(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
+               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
+    }
     instance_->GetAllOutputBlobs(output_blobs);
 
     for (auto it = output_blobs.begin(); it != output_blobs.end(); ++it) {
@@ -213,12 +210,15 @@ int main(int argc, char* argv[]) {
 
     // load input
     float* input_data_ptr = nullptr;
+    //unsigned char* input_data_ptr = nullptr;
     auto input_dims = input->GetBlobDesc().dims;
     auto input_format = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
         ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
+        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
         ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
+        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
         printf("invalid model input format\n");
         return -1;
@@ -239,10 +239,12 @@ int main(int argc, char* argv[]) {
     Status tnn_ret;
     // copy input data into atlas
     Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
+    //Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
     MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
     }
 
     // Forward on atlas device.
@@ -277,8 +279,9 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+        std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
-                      "dump_" + output.second->GetBlobDesc().name + ".txt");
+                      "dump_" + name_temp + ".txt");
         // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
         // output.second->GetBlobDesc().name + ".bin");
     }

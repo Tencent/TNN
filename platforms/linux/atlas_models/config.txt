@@ -1,3 +1,0 @@
-# <om_file path> <with_dvpp> <dynamic_aipp> <to_bgr> <normalize> <height> <width>
-#/home/HwHiAiUser/shaundai/community_models/dpn820/atc/graph_batch1.om 0 0 0 0 248 248
-/home/HwHiAiUser/shaundai/community_models/face-attribute-mart1.0/best_age_cls_V180927/0927_youpin_wumei_wanda_single_fintune_5000step_weighted_wanda_with_0913wumei_large_lr_22500.caffemodel.om 0 0 0 0 224 224

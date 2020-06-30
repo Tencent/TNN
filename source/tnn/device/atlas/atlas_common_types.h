@@ -24,16 +24,6 @@ enum ImageTypeT {
 
 struct AtlasModelConfig {
     std::string om_path;
-    uint32_t graph_id  = 0;
-    bool with_dvpp     = false;
-    bool dynamic_aipp  = false;
-    bool daipp_swap_rb = false;
-    bool daipp_norm    = false;
-    int height;
-    int width;
-    int dvpp_engine_id      = 252;
-    int inference_engine_id = 535;
-    int output_engine_id    = 480;
 };
 
 struct DimInfo {

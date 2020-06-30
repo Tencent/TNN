@@ -20,8 +20,7 @@ Status TNNImplAtlas::Init(ModelConfig& config) {
         return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
     interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
-    interpreter_->Interpret(config.params);
-    return TNN_OK;
+    return interpreter_->Interpret(config.params);
 }
 
 Status TNNImplAtlas::DeInit() {
