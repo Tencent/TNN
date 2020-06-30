@@ -34,3 +34,5 @@ cmake ${TNN_ROOT_PATH} \
 
 
 make -j4
+
+ctest --output-on-failure -j 2

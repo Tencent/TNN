@@ -1,4 +1,4 @@
-sudo: required
+sudo: false
 
 git:
   depth: 3
@@ -11,24 +11,28 @@ addons:
 
 matrix:
   include:
-    - os: linux
+    - name: "Linux | Debug | build"
+      os: linux
       language: cpp
       compiler: gcc
       script: ./scripts/build_linux_debug.sh
-      name: "Linux | Debug"
-    - os: osx
+
+    - name: "MacOS | build"
+      os: osx
       language: cpp
       osx_image: xcode11.2
       compiler: clang
       script: ./scripts/build_macos.sh
-      name: "macos | Debug"
-    - os: osx
+
+    - name: "IOS | build"
+      os: osx
       language: cpp
       osx_image: xcode11.2
       compiler: clang
       script: ./scripts/build_ios.sh
-      name: "iOS | debug"
-    - os: linux
+      
+    - name: "Linux | Android | build"
+      os: linux
       language: android
       compiler: clang
       android:
@@ -49,15 +53,31 @@ matrix:
         - export PATH=/usr/local/android-sdk/cmake/3.10.2.4988404/bin/:$PATH
       script:
         - ./scripts/build_android.sh
-      name: "Linux | Android"      
-    - os: linux
-      compiler: clang
+
+    - name: "Linux | Arm64 | build"
+      os: linux
       arch: arm64
       script:
         - ./scripts/build_aarch64_linux.sh
+
+    - name: "Linux | Arm32 | build"
+      os: linux
+      arch: arm64
+      before_script:
+        - sudo dpkg --add-architecture armhf
+        - sudo apt-get update
+        - sudo apt-get -y install crossbuild-essential-armhf libc6:armhf libstdc++-5-dev:armhf linux-libc-dev:armhf
+      script:
+        - ./scripts/build_armhf_linux.sh
+
+    - name: "Linux | Arm64 | test"
+      os: linux
+      compiler: clang
+      arch: arm64
+      script:
+        - ./scripts/build_test.sh
       after_success:
         - lcov --directory . --capture --output-file coverage.info
         - lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' --output-file coverage.info
         - lcov --list coverage.info
         - bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
-      name: "Linux | Arm64"

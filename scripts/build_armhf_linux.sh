@@ -12,7 +12,7 @@ mkdir build_armhf_linux
 cd build_armhf_linux
 if [ -z $TNN_ROOT_PATH ]
 then
-      TNN_ROOT_PATH=../..
+    TNN_ROOT_PATH=`git rev-parse --show-toplevel`    
 fi
 
 cmake ${TNN_ROOT_PATH} \
