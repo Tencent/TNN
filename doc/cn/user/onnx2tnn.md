@@ -1,5 +1,7 @@
 # ONNX(Pytorch) 模型转换为 TNN 模型
 
+[English Version](../../en/user/onnx2tnn_en.md)
+
 onnx2tnn 是 TNN 中最重要的模型转换工具，它的主要作用是将 ONNX 模型转换成 TNN 模型格式。目前 onnx2tnn 工具支持主要支持 CNN 常用网络结构。由于 Pytorch 模型官方支持支持导出为 ONNX 模型，并且保证导出的 ONNX 模型和原始的 Pytorch 模型是等效的，所以我们只需要保证 ONNX 模型能够转换为 TNN 模型，就直接能够保证 Pytorch 直接转换为 TNN 模型。
 ## 1. 环境搭建及编译
 ### 环境搭建

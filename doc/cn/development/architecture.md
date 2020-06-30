@@ -1,5 +1,7 @@
 # 架构详解
 
+[English Version](../../en/development/architecture_en.md)
+
 ## 一、API设计
 考虑开源库后期维护及版本兼容性，所有对外暴露接口均通过include目录统一管理。具体API相关介绍可参见[API文档](../user/api.md)
 
