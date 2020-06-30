@@ -1,5 +1,7 @@
 # Technical Solutions
 
+[中文版本](../../cn/user/tech_solution.md)
+
 TNN is a high-performance and lightweight inference framework for mobile devices. It provides lots of advanced features such as cross-platform, model-compression, and code-pruning. TNN, inspired by mainstream open-source industry frameworks, integrates and leverages Youtu Lab's Rapidnet, ncnn framework. It also combines the efforts of the deep-learning framework Oteam from all departments(PCG, TEG, IEG) to create an enterprise-level mobile inference engine.
 At present, TNN has been launched in various major businesses, and its following characteristics have been widely praised.
 

@@ -86,7 +86,7 @@ At present, TNN has been launched in various major businesses, and its following
    It uses "Factory Mode" to register and build devices, that tries to minimize the cost of supporting more hardware and acceleration solutions.
 * TNN's running time does not rely on any third-party libraries. The size of the CPU dynamic library is only around 400KB, and it provides basic image conversion operations, which are light-weight and convenient. TNN uses unified models and interfaces across platforms and can switch easily by configuring just one single parameter.
 
-## Learn About the TNN Spec
+## Learn About TNN Abilities
 * [Operator Support](doc/en/user/support_en.md)
 * [Model Support](doc/en/user/support_en.md)
 * [Device Support](doc/en/user/support_en.md)
@@ -104,7 +104,7 @@ At present, TNN has been launched in various major businesses, and its following
 ## API Document
 * [API call](doc/en/user/api_en.md)
 
-## Integration & Development
+## Contribute to TNN
 * [Development Basics](doc/en/development/contributing_en.md)
 * [Detailed Architecture](doc/en/development/architecture_en.md)
 * [Add a New Operator](doc/en/development/add_op_en.md)

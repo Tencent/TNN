@@ -60,11 +60,19 @@ Welcome to TNN's documentation!
    :maxdepth: 1
    :caption: Roadmap
 
+    ./cn/user/roadmap.md
+
 .. toctree::
    :maxdepth: 1
    :caption: FAQ
 
    ./cn/faq.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: English
+
+   ./en/front_page_en.md
 
 Indices and tables
 ==================
