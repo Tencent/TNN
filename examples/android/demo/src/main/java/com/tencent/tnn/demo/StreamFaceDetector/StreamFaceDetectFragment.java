@@ -56,7 +56,6 @@ public class StreamFaceDetectFragment extends BaseFragment {
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
-        System.loadLibrary("TNN");
         System.loadLibrary("tnn_wrapper");
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
