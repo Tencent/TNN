@@ -187,8 +187,9 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     return TNN_OK;
 }
 
-Status ArmInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
+Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
 
