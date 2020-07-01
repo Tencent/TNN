@@ -1,5 +1,7 @@
 # FAQ
 
+[中文版本](../cn/faq.md)
+
 ## Compilation environment requirements:
     General:
         cmake >= 3.1

@@ -1,5 +1,7 @@
 # Caffe 模型转换为 ONNX 模型
 
+[English Version](../../en/user/caffe2tnn_en.md)
+
 要将 Caffe 模型转换为 TNN 模型，首先将 Caffe 模型转换为 ONNX 模型，然后再将ONNX 模型转换为 TNN 模型。
 
 将 Caffe 模型转换为ONNX，我们借助于 caffe2onnx 工具, 它可以直接将 Caffe 模型转换为 ONNX 模型。在下面的文档中，会简单的介绍如何使用 caffe2onnx进行转换，然后建议参考 [onnx2tnn](onnx2tnn.md) 的相关文档，再将 ONNX 模型转换为 TNN。
