@@ -15,25 +15,34 @@
 import src.c2oObject as Node
 import numpy as np
 
-def get_crop_param(layer,input_shape):
+def get_crop_param(layer, input_shape):
     axis: int = layer.crop_param.axis
     crop_offset = layer.crop_param.offset
-    offset=[]
+
+    if (not crop_offset):
+        offset0 = 0
+    else:
+        offset0 = crop_offset[0]
+
+    offset = []
     starts = []
     axes = []
     ends = []
+
     for i in range(axis, len(input_shape[0])):
-        if((i-axis)>= len(crop_offset)):
-            offset.append(crop_offset[0])
+        if ((i - axis) >= len(crop_offset)):
+            offset.append(offset0)
         else:
-            offset.append(crop_offset[i-axis])  
-        start = offset[i-axis]
+            offset.append(crop_offset[i - axis])
+
+        start = offset[i - axis]
         end = start + input_shape[1][i]
+        
         axes.append(i)
         starts.append(start)
-        ends.append(end)   
-    return starts, ends, axes
+        ends.append(end)
 
+    return starts, ends, axes
 
 def get_crop_output_shape(layer, input_shape):  
     return [input_shape[1]]
