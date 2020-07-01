@@ -966,9 +966,7 @@ class Caffe2Onnx():
                 
                 Crop_name=[]
                 Crop_name.append(input_name[0])
-                # starts ends axes 的 shape 是相同的
-                shape = [np.shape(starts)]
-
+                
                 starts_param = self.AddInputsTVIMannul(Layers[i],
                                                        ['_starts' + str(i)],
                                                        [TensorProto.INT64],
