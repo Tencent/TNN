@@ -63,9 +63,9 @@ class Caffe2Onnx():
                     else:
                         input_layer_name = lay.name
                         
-                    in_tvi = helper.make_tensor_value_info(lay.name + "_input", TensorProto.FLOAT,
+                    in_tvi = helper.make_tensor_value_info(input_layer_name + "_input", TensorProto.FLOAT,
                                                            lay.input_param.shape[0].dim)
-                    self.model_input_name.append(lay.name + "_input")
+                    self.model_input_name.append(input_layer_name + "_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
                 else:
