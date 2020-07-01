@@ -19,10 +19,10 @@ def get_crop_param(layer, input_shape):
     axis: int = layer.crop_param.axis
     crop_offset = layer.crop_param.offset
 
-    if (not crop_offset):
-        offset0 = 0
+    if not crop_offset:
+        offset_0 = 0
     else:
-        offset0 = crop_offset[0]
+        offset_0 = crop_offset[0]
 
     offset = []
     starts = []
@@ -31,7 +31,7 @@ def get_crop_param(layer, input_shape):
 
     for i in range(axis, len(input_shape[0])):
         if ((i - axis) >= len(crop_offset)):
-            offset.append(offset0)
+            offset.append(offset_0)
         else:
             offset.append(crop_offset[i - axis])
 
