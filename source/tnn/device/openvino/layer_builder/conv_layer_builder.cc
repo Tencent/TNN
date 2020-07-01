@@ -43,7 +43,7 @@ Status ConvOVLayerBuilder::Build() {
     auto input_node = GetInputNodes()[0];
 
     auto convNode = std::make_shared<ngraph::op::v1::GroupConvolution>();
-    convNode->set_argument(0, input_node->output(0));
+
 
     // set strides
     ngraph::Strides stride;
@@ -104,6 +104,23 @@ Status ConvOVLayerBuilder::Build() {
 
     std::shared_ptr<ngraph::Node> weights_Node = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, weights_shape, weightsPtr->cbuffer().as<float*>());
+    
+    // if input channels > weights input channels
+    if (input_node->get_output_shape(0).at(1) > paramlist->input_channel * paramlist->group) {
+        auto channels = paramlist->input_channel * paramlist->group;
+        ngraph::Shape axisShape, lengthShape;
+        axisShape.push_back(1);
+        lengthShape.push_back(2);
+        auto axisNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::i32, axisShape, std::vector<int>({1}));
+        auto lengthNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::i32, lengthShape, std::vector<int>({channels, -1}));
+        auto sliceNode = std::make_shared<ngraph::op::VariadicSplit>(
+            input_node->output(0), axisNode, lengthNode);
+        convNode->set_argument(0, sliceNode->output(0));
+    } else {
+        convNode->set_argument(0, input_node->output(0));
+    }
     convNode->set_argument(1, weights_Node->output(0));
     convNode->validate_and_infer_types();
 
