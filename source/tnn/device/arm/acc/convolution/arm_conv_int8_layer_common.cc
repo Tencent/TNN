@@ -247,8 +247,9 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     }
 }
 
-Status ArmConvInt8LayerCommon::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
+Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);

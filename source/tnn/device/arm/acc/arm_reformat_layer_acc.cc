@@ -21,10 +21,7 @@ namespace TNN_NS {
 
 Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
 
     auto reformat_param = dynamic_cast<ReformatLayerParam *>(param);
     CHECK_PARAM_NULL(reformat_param);

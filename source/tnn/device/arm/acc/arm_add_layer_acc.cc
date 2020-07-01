@@ -103,7 +103,7 @@ ArmAddLayerAcc::~ArmAddLayerAcc() {}
 
 Status ArmAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     return allocateBufferParam(inputs, outputs);
 }
 
