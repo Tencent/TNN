@@ -24,10 +24,6 @@ WARM_UP_COUNT=8
 
 benchmark_model_list=(
 #test.tnnproto \
-resnet50.tnnproto        \
-mobilenet_v1.tnnproto    \
-mobilenet_v2.tnnproto    \
-squeezenet_v1.0.tnnproto \
 )
 
 function usage() {
