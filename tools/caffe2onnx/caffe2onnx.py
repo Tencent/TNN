@@ -27,7 +27,7 @@ def main(args):
     if is_ssd:
         SaveOnnxModel(onnx_model, save_path, need_polish=False)
     else:
-        SaveOnnxModel(onnx_model, save_path, need_polish=True)
+        SaveOnnxModel(onnx_model, save_path, need_polish=False)
 
 
 if __name__ == '__main__':
