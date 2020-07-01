@@ -101,8 +101,9 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
 
 ArmAddLayerAcc::~ArmAddLayerAcc() {}
 
-Status ArmAddLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
+Status ArmAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     return allocateBufferParam(inputs, outputs);
 }
 
