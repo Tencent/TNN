@@ -45,15 +45,10 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         }
         return Status(TNNERR_MODEL_ERR, "unsupport precision mode");
     }
-    return this->Reshape(inputs, outputs);
+    return allocateBufferParam(inputs, outputs);
 }
 
 ArmReformatLayerAcc::~ArmReformatLayerAcc() {}
-
-Status ArmReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
-    return allocateBufferParam(inputs, outputs);
-}
 
 Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReformatLayerParam *>(param_);
