@@ -54,6 +54,8 @@ REPOSITORY          TAG                 IMAGE ID            CREATED             
 tnn-convert         latest              28c93a738b08        16 minutes ago      2.81GB
 ```
 
+#### 更新 docker 镜像
+重复 [__拉取构建好的 docker 镜像__](#拉取构建好的-docker-镜像推荐) 中的操作即可
 
 #### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
 ``` shell script
@@ -69,6 +71,8 @@ docker images
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
 tnn-convert         latest              9fb83110d2c9        26 minutes ago      2.79GB
 ```
+
+
 
 #### convert2tnn 工具进行转换
 
