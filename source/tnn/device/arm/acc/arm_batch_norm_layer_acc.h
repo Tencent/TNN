@@ -25,7 +25,8 @@ public:
     virtual ~ArmBatchNormLayerAcc();
 
     virtual Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
