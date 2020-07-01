@@ -24,14 +24,21 @@ namespace TNN_NS {
 class ArmConvLayer3x3 : public ArmConvLayerCommon {
 public:
     virtual ~ArmConvLayer3x3();
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     static bool isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs);
+
     static int SelectWinograd(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                               const std::vector<Blob *> &outputs);
+                              
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
