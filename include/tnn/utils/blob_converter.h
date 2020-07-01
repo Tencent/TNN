@@ -79,6 +79,8 @@ private:
     std::shared_ptr<void> data_alloc_ = nullptr;
 };
 
+using MatMap = std::map<std::string, std::shared_ptr<Mat>>;
+
 //formular: y = scale*x + bias
 struct PUBLIC MatConvertParam {
     std::vector<float> scale = {1.0f, 1.0f, 1.0f, 1.0f};
