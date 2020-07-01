@@ -117,10 +117,11 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
+    RETURN_ON_NEQ(status, TNN_OK);
 
+    status = allocateBufferParam(inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
     return this->Reshape(inputs, outputs);
 }
 
@@ -135,16 +136,13 @@ bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
 ArmBinaryLayerAcc::~ArmBinaryLayerAcc() {}
 
 Status ArmBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
-    return allocateBufferParam(inputs, outputs);
+    return ArmLayerAcc::Reshape(inputs, outputs);
 }
 
 Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    if (!layer_param) {
-        LOGE("Error: layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
-    }
+    CHECK_PARAM_NULL(layer_param);
+
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
     if (layer_res && broadcast_.GetBytesSize() == 0) {
