@@ -58,6 +58,11 @@ class Caffe2Onnx():
             # 考虑到整个网络会有多输入情况
             for lay in self.netLayerCaffe:
                 if lay.type == "Input":
+                    if len(lay.top) == 1 and lay.top[0] != lay.name:
+                        input_layer_name = lay.top[0]
+                    else:
+                        input_layer_name = lay.name
+                        
                     in_tvi = helper.make_tensor_value_info(lay.name + "_input", TensorProto.FLOAT,
                                                            lay.input_param.shape[0].dim)
                     self.model_input_name.append(lay.name + "_input")
@@ -964,15 +969,19 @@ class Caffe2Onnx():
                 # starts ends axes 的 shape 是相同的
                 shape = [np.shape(starts)]
 
-                starts_param = self.AddInputsTVIMannul(Layers[i], ['_starts'],
-                                                           [TensorProto.INT64], shape,
-                                                           [starts])
-                ends_param = self.AddInputsTVIMannul(Layers[i], ['_ends'],
-                                                         [TensorProto.INT64], shape,
-                                                         [ends])
-                axes_param = self.AddInputsTVIMannul(Layers[i], ['_axes'],
-                                                         [TensorProto.INT64], shape,
-                                                         [axes])
+                starts_param = self.AddInputsTVIMannul(Layers[i],
+                                                       ['_starts' + str(i)],
+                                                       [TensorProto.INT64],
+                                                       [np.shape(starts)],
+                                                       [starts])
+                ends_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_ends' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(ends)], [ends])
+                axes_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_axes' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(axes)], [axes])
            
                 Crop_name.extend(starts_param)
                 Crop_name.extend(ends_param)
