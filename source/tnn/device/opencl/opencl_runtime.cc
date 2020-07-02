@@ -145,17 +145,17 @@ Status OpenCLRuntime::Init() {
         LOGE("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
         cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
                                                 CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
-        context_ = std::shared_ptr<cl::Context>(new cl::Context({*device_}, context_prop, nullptr, nullptr, &err));
+        context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, context_prop, nullptr, nullptr, &err));
 
         if (err != CL_SUCCESS) {
             LOGE(
                 "Create special opencl context falied, Create common opencl "
                 "context then.\n");
-            context_ = std::shared_ptr<cl::Context>(new cl::Context({*device_}, nullptr, nullptr, nullptr, &err));
+            context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, nullptr, nullptr, nullptr, &err));
         }
 #else
         LOGI("Create common opencl context\n");
-        context_ = std::shared_ptr<cl::Context>(new cl::Context({*device_}, nullptr, nullptr, nullptr, &err));
+        context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, nullptr, nullptr, nullptr, &err));
 #endif
         if (err != CL_SUCCESS) {
             LOGE("Context create failed! (ERROR CODE: %d)\n", err);
