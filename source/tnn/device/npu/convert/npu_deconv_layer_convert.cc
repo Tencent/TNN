@@ -65,7 +65,7 @@ protected:
         output->set_input_x(*input_data->GetOperator());
         output->set_attr_group(group);
         output->set_attr_num_output(output_channel);
-        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_left, pad_right, pad_top, pad_bottom}));
+        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end,pad_w_begin, pad_w_end,}));
         output->set_attr_pad_mode(pad_mode);
         output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
         output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));

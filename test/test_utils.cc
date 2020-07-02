@@ -30,6 +30,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_X86;
     } else if ("NAIVE" == device_type){
         return DEVICE_NAIVE;
+    }else if ("NPU" == device_type) {
+	 return DEVICE_NPU;
     } else {
         return DEVICE_ARM;
     }
@@ -56,6 +58,8 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_SNPE;
     } else if ("COREML" == network_type) {
         return NETWORK_TYPE_COREML;
+    } else if ("NPU" == network_type) {
+	return NETWORK_TYPE_NPU;
     } else {
         return NETWORK_TYPE_DEFAULT;
     }

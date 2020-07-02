@@ -67,6 +67,8 @@ DECLARE_string(mp);
 
 DECLARE_string(dt);
 
+DECLARE_string(nt);
+
 DECLARE_string(lp);
 
 DECLARE_int32(di);

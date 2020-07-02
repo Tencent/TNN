@@ -62,7 +62,8 @@ typedef enum {
     NETWORK_TYPE_COREML   = 0x2000,
     NETWORK_TYPE_SNPE     = 0x3000,
     NETWORK_TYPE_HIAI     = 0x4000,
-    NETWORK_TYPE_ATLAS    = 0x5000
+    NETWORK_TYPE_ATLAS    = 0x5000,
+    NETWORK_TYPE_NPU      = 0x6000
 } NetworkType;
 
 typedef enum {
