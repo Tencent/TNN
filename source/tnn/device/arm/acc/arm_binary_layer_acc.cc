@@ -21,8 +21,6 @@
 
 namespace TNN_NS {
 
-enum BinaryOpType { BINARY_SINGLE = 1, BINARY_CHANNEL = 2, BINARY_CHW = 3, BINARY_HW = 4, BINARY_ELEMENT = 5 };
-
 /*
 Binary func with different opreator,
 set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
@@ -31,21 +29,26 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
                                      DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
     DimsVector dims_broadcast;
-    BinaryOpType type = BINARY_ELEMENT;
-    auto _input0      = input0_ptr;
-    auto _input1      = input1_ptr;
-    bool swap_flag    = false;
+    BroadcastType type = BroadcastTypeUnknown;
+    auto _input0       = input0_ptr;
+    auto _input1       = input1_ptr;
+    bool swap_flag     = false;
 
     if (DimsVectorUtils::Equal(dims0, dims1)) {
-        type = BINARY_ELEMENT;
+        type = BroadcastTypeNormal;
         dims_broadcast.clear();
     } else if (DimsVectorUtils::Equal(dims0, dims1, 1, 3)) {
-        type = BINARY_CHW;
+        type = BroadcastTypeElement;
         dims_broadcast.clear();
         if (dims0[0] < dims1[0])
             swap_flag = true;
     } else if (DimsVectorUtils::Equal(dims0, dims1, 2, 3)) {
-        type = BINARY_HW;
+        type = BroadcastTypeHeightWidth;
+        dims_broadcast.clear();
+        if (dims0[1] < dims1[1])
+            swap_flag = true;
+    } else if (DimsVectorUtils::Equal(dims0, dims1, 3)) {
+        type = BroadcastTypeWidth;
         dims_broadcast.clear();
         if (dims0[1] < dims1[1])
             swap_flag = true;
@@ -61,28 +64,28 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
     }
 
     if (dims_broadcast.size()) {
-        type = (dims_broadcast[1] == 1) ? BINARY_SINGLE : BINARY_CHANNEL;
+        type = (dims_broadcast[1] == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
     }
 
     int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
     int count_quad = UP_DIV(count, 4);
 
-    if (type == BINARY_SINGLE) {
+    if (type == BroadcastTypeSingle) {
         // broadcast single
         for (int n = 0; n < count_quad; n++) {
             auto v1 = Float4::load(_input0 + n * 4);
             auto v2 = Float4(_input1[0]);
             Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
         }
-    } else if (type == BINARY_ELEMENT) {
-        // no broadcast 
+    } else if (type == BroadcastTypeNormal) {
+        // no broadcast
         for (int n = 0; n < count_quad; n++) {
             auto v1 = Float4::load(_input0 + n * 4);
             auto v2 = Float4::load(_input1 + n * 4);
             Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
         }
-    } else if (type == BINARY_CHANNEL) {
-        // broadcast channel 
+    } else if (type == BroadcastTypeChannel) {
+        // broadcast channel
         for (int n = 0; n < count_quad; n++) {
             int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
             int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
@@ -90,18 +93,26 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
             auto v2             = Float4::load(_input1 + channel_4_index * 4);
             Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
         }
-    } else if (type == BINARY_CHW) {
-        // broadcast chw 
+    } else if (type == BroadcastTypeElement) {
+        // broadcast chw
         for (int n = 0; n < count_quad; n++) {
             int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
             auto v1             = Float4::load(_input0 + n * 4);
             auto v2             = Float4::load(_input1 + channel_4_index * 4);
             Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
         }
-    } else if (type == BINARY_HW) {
-        // broadcast hw 
+    } else if (type == BroadcastTypeHeightWidth) {
+        // broadcast hw
         for (int n = 0; n < count_quad; n++) {
             int hw_index = n % (dims[2] * dims[3]);
+            auto v1      = Float4::load(_input0 + n * 4);
+            auto v2      = Float4(_input1[hw_index * 4]);
+            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
+        }
+    } else if (type == BroadcastTypeWidth) {
+        // broadcast w
+        for (int n = 0; n < count_quad; n++) {
+            int hw_index = n % (dims[3]);
             auto v1      = Float4::load(_input0 + n * 4);
             auto v2      = Float4(_input1[hw_index * 4]);
             Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
@@ -116,13 +127,12 @@ Status ArmBinaryLayerAcc::BinaryFunc(float *output_ptr, float *input0_ptr, float
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
 
     return allocateBufferParam(inputs, outputs);
 }
 
-//SUPPORTED DATATYPES
+// SUPPORTED DATATYPES
 bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
     if (data_type == DATA_TYPE_FLOAT)
         return true;
@@ -140,7 +150,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
 
     if (layer_res && broadcast_.GetBytesSize() == 0) {
         RawBuffer element_handle = layer_res->element_handle;
-        auto dims = layer_res->element_shape;
+        auto dims                = layer_res->element_shape;
         if (element_handle.GetDataType() == DATA_TYPE_HALF)
             element_handle = ConvertHalfHandle(element_handle);
 
@@ -182,7 +192,6 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     std::vector<DimsVector> input_shapes;
     input_ptrs.reserve(4);
     input_shapes.reserve(4);
-    BinaryOpType type;
     auto output = outputs[0];
     auto dims   = output->GetBlobDesc().dims;
 
