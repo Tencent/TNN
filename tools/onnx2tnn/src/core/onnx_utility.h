@@ -108,4 +108,6 @@ std::vector<T> get_tensor_proto_data_vector(const onnx::TensorProto &tp) {
 int read_proto_from_binary(const char *filepath,
                            google::protobuf::Message *message);
 
+bool set_node_attr_ai(onnx::NodeProto& node, const char* key, std::vector<int64_t> values);
+
 #endif /* onnx_utility_hpp */

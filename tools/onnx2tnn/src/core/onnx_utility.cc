@@ -174,6 +174,19 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
     return array_i;
 }
 
+bool set_node_attr_ai(onnx::NodeProto& node, const char* key, std::vector<int64_t> values){
+    for (int i = 0; i < node.attribute_size(); ++i) {
+        auto attr = node.mutable_attribute(i);
+        if (attr->name() == key) {
+            for (int j = 0; j < values.size(); j++) {
+                attr->set_ints(j, values[j]);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<float> get_node_attr_af(const onnx::NodeProto& node,
                                     const char* key) {
     std::vector<float> v;
