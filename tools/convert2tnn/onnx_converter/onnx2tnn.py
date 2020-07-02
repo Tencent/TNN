@@ -29,15 +29,14 @@ def throw_exception(current_shape):
         name, shape = item
         message += str(name) + ": " + str(shape) + "   "
 
-    logging.info(
-        "You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.info("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
     logging.info(message)
 
     sys.exit(return_code.CONVERT_FAILED)
 
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
-            input_path=None, refer_path=None, input_names: str = None):
+            input_path=None, refer_path=None, input_names : str=None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -51,8 +50,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     """
     logging.info("converter ONNX to TNN Model\n")
 
-    if not checker.check_file_exist(onnx_path):
-        sys.exit(return_code.CONVERT_FAILED)
+    checker.check_file_exist(onnx_path)
 
     ret, current_shape = checker.check_onnx_dim(onnx_path)
 
