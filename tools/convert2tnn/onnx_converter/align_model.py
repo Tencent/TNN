@@ -117,7 +117,7 @@ def print_not_align_message(reason=None):
 
 def print_align_message():
     logging.info("{}  Congratulations!   {}" .format("-" * 10, "-" * 10))
-    logging.info("The onnx model aligned whit tnn model\n")
+    logging.info("The onnx model aligned with tnn model\n")
 
 
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
