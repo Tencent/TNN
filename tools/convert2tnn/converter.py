@@ -47,7 +47,7 @@ def main():
         try:
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
         except Exception as err:
-            logging.info("Conversion to  tnn failed :(\n")
+            logging.error("Conversion to  tnn failed :(\n")
     
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
@@ -64,7 +64,7 @@ def main():
         try:
             caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
         except Exception as err:
-            logging.info("Conversion to  tnn failed :(\n")
+            logging.error("Conversion to  tnn failed :(\n")
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -85,7 +85,7 @@ def main():
             tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const,
                         input_file, ref_file)
         except Exception as err:
-            logging.info("\nConversion to  tnn failed :(\n")
+            logging.error("\nConversion to  tnn failed :(\n")
     elif args.sub_command is None:
         parser.print_help()
     else:
