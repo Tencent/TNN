@@ -11,7 +11,10 @@ MODEL_DIR=$WORK_DIR/npu_model
 ANDROID_DIR=/data/local/tmp/npu_test
 ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_npu
-INPUT_FILE_NAME=rpn_in_0_n1_c3_h320_w320.txt
+
+MODEL_TYPE=tnn
+MODEL_NAME=face_detector.rapidproto
+INPUT_FILE_NAME=input_face.txt
 
 function usage() {
     echo "-64\tBuild 64bit."
@@ -31,6 +34,7 @@ function clean_build() {
     fi
     rm -rf $1
     mkdir $1
+    adb shell "rm -r $ANDROID_DIR/dump_data"
 }
 
 function build_android() {
@@ -43,18 +47,23 @@ function build_android() {
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DANDROID_ABI="${ABI}" \
-          -DANDROID_STL=c++_static \
-          -DANDROID_NATIVE_API_LEVEL=android-24  \
+          -DANDROID_STL=c++_shared \
+          -DTNN_BENCHMARK_MODE:BOOL="ON" \
+	      -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
-          -DANDROID_TEST_ENABLE=1 \
-          -DTNN_NPU_ENABLE:BOOL=$NPU \
-          -DBUILD_FOR_ANDROID_COMMAND=true
+          -DTNN_TEST_ENABLE="ON" \
+	      -DTNN_NPU_ENABLE:BOOL=$NPU \
+	      -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
 
 function push_hiai_lib() {
     adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
-    adb push $WORK_DIR/../../source/device/npu/thirdparty/hiai_ddk_200/lib64/* $ANDROID_DIR/$ABI/lib
+	if [ $ABI == "arm64-v8a" ]; then
+		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/arm64-v8a/* $ANDROID_DIR/$ABI/lib
+	else
+		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/armeabi-v7a/* $ANDROID_DIR/$ABI/lib
+	fi
 }
 
 function run_android() {
@@ -69,8 +78,8 @@ function run_android() {
     find . -name "*.so" | while read solib; do
         adb push $solib  $ANDROID_DIR
     done
-    adb push AndroidTest $ANDROID_DIR
-    adb shell chmod 0777 $ANDROID_DIR/AndroidTest
+    adb push  $WORK_DIR/build/test/TNNTest $ANDROID_DIR
+    adb shell chmod 0777 $ANDROID_DIR/TNNTest
 
     if [ "" != "$PUSH_MODEL" ]; then
         adb shell "rm -r $ANDROID_DATA_DIR"
@@ -81,11 +90,9 @@ function run_android() {
     adb shell "cat /proc/cpuinfo > $ANDROID_DIR/test_log.txt"
     adb shell "echo >> $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
-    adb shell "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./AndroidTest $ANDROID_DATA_DIR/test.om $ANDROID_DATA_DIR/$INPUT_FILE_NAME  >> $ANDROID_DIR/test_log.txt"
+    adb shell "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU -mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
     adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     adb pull $ANDROID_DIR/dump_data.txt $DUMP_DIR
-    adb pull $ANDROID_DIR/dump_data.bin $DUMP_DIR
-    adb pull $ANDROID_DIR/dump_data $DUMP_DIR
 }
 
 while [ "$1" != "" ]; do
