@@ -28,6 +28,8 @@
 #include <sstream>
 #include <exception>
 
+#include "macro.h"
+
 #include "objseri/objseri.h"
 #include "onnx2tnn_prefix.h"
 #include "onnx_op_converter.h"
@@ -37,6 +39,8 @@
 
 using namespace std;
 using namespace parser;
+
+const std::string tag = "converter";
 
 
 struct IndexNode {

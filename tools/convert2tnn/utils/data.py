@@ -17,13 +17,17 @@ import pathlib
 from utils import cmd
 from utils import checker
 
+from converter import logging
+
 
 def gene_random_data(input_info: dict) -> str:
     data = {}
     current_dir = pathlib.Path(__file__).parent.parent
     data_dir = os.path.join(current_dir, "temp_data")
     command = "mkdir -p " + data_dir
-    print(command)
+    
+    logging.debug(command)
+    
     cmd.run("pwd")
     cmd.run(command)
     checker.check_file_exist(data_dir)

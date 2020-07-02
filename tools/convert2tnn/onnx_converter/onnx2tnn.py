@@ -15,6 +15,9 @@
 from utils import cmd
 from utils import checker
 from . import align_model
+
+from converter import logging
+
 import os
 
 def throw_exception(current_shape):
@@ -23,8 +26,8 @@ def throw_exception(current_shape):
         name, shape = item
         message += str(name) + ": " + str(shape) + "   "
 
-    print("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
-    print(message)
+    logging.info("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.info(message)
     
     exit(-1)
 
@@ -41,6 +44,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     :return return_code
     :exception 执行超时
     """
+    logging.info("converter ONNX to TNN Model\n")
     ret, current_shape = checker.check_onnx_dim(onnx_path)
 
     if ret is False and current_shape is not None:
@@ -67,7 +71,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         output_dir = os.path.dirname(onnx_path)
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
-    print("the onnx2tnn command:" + command)
+    logging.debug("the onnx2tnn command:" + command + "\n")
 
     if input_names is not None:
         new_input_names = ""
@@ -81,11 +85,12 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
-    
+
     if result == 0:
-        print("onnx2tnn succeed!")
+        logging.info("converter ONNX to TNN model succeed!\n")
     else:
-        print("onnx2tnn failed!")
+        logging.info("converter ONNX to TNN model failed!\n")
+        exit(-1)
     onnx_base_name = os.path.basename(onnx_path)
 
     if align is True:
@@ -97,6 +102,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
         if input_names is None:
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
         else:

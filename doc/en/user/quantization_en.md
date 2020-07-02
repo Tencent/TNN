@@ -1,4 +1,7 @@
 # Model Quantization  
+
+[中文版本](../../cn/user/quantization.md)
+
 ## I. Why Quantization
 Quantization converts the main operators (Convolution, Pooling, Binary, etc.) in the network from the original floating-point precision to the int8 precision, reducing the model size and improving performance.
 PS:

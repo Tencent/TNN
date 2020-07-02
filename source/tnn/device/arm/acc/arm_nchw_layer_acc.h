@@ -24,8 +24,6 @@ class ArmNchwLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmNchwLayerAcc();
 
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:

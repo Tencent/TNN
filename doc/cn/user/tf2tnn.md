@@ -1,5 +1,7 @@
 # Tensorflow 模型转换为 TNN 模型
 
+[English Version](../../en/user/tf2tnn_en.md)
+
 要将 Tensorflow 模型转换为 TNN 模型，首先将 Tensorflow 模型转换为 ONNX 模型，然后再将ONNX 模型转换为 TNN 模型。
 
 将 Tensorflow 模型转换为ONNX，我们借助于 ONNX 开源社区的力量，ONNX 开源社区提供的开源的转换工具 tf2onnx，可以直接将 Tensorflow 模型转换为 ONNX 模型。在下面的文档中，会简单的介绍如何使用 tf2onnx 进行转换。我们强烈建议你去 tf2onnx 的官网，去了解 tf2onnx 的详细用法，这会帮助你更好的将 TensorFlow模型转换为 TNN 模型。当使用 tf2onnx 将 Tensorflow 模型转换为 ONNX 之后，建议参考 [onnx2tnn](onnx2tnn.md) 的相关文档，将 ONNX 模型转换为 TNN。

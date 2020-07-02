@@ -24,6 +24,9 @@ class ArmConvLayerCommon : public ArmLayerAcc {
 public:
     virtual ~ArmConvLayerCommon();
 
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     // always true as last solution
@@ -32,9 +35,6 @@ public:
 
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    // alloc conv params and set post op
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     // alloc conv params and set post op
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);

@@ -1,5 +1,7 @@
 # 新增OP  
 
+[English Version](../../en/development/add_op_en.md)
+
 如果需要的算子不在[算子列表](../user/support.md)中，则需要通过以下步骤添加新的算子。
 * [添加算子解析](#1)
 * [添加Layer实现](#2)
