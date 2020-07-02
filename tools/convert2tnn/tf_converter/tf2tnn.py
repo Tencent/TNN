@@ -87,7 +87,7 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     model_name = model_name[:-len(".pb")]
     onnx_path = os.path.join(output_dir, model_name + ".onnx")
     if tf2onnx(tf_path, input_names, output_names, onnx_path, not_fold_const) is False:
-        logging.info("Oh No, tf2onnx failed\n")
+        logging.error("Oh No, tf2onnx failed\n")
     else:
         logging.info("convert TensorFlow to ONNX model succeed!\n")
     if version is None:

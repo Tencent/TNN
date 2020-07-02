@@ -45,7 +45,7 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
     onnx_path = os.path.join(output_dir, proto_name + ".onnx")
 
     if caffe2onnx(proto_path, model_path, onnx_path) is False:
-        logging.info("Oh No, caff2onnx failed\n")
+        logging.error("Oh No, caff2onnx failed\n")
     else:
         logging.info("congratulations! caffe2onnx succeed!\n")
     if version is None:

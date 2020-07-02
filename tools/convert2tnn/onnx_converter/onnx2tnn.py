@@ -29,8 +29,8 @@ def throw_exception(current_shape):
         name, shape = item
         message += str(name) + ": " + str(shape) + "   "
 
-    logging.info("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
-    logging.info(message)
+    logging.error("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.error(message)
 
     sys.exit(return_code.CONVERT_FAILED)
 
@@ -96,7 +96,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     if result == 0:
         logging.info("converter ONNX to TNN model succeed!\n")
     else:
-        logging.info("converter ONNX to TNN model failed!\n")
+        logging.error("converter ONNX to TNN model failed!\n")
         sys.exit(return_code.CONVERT_FAILED)
     onnx_base_name = os.path.basename(onnx_path)
 

@@ -24,7 +24,7 @@ from utils import return_code
 
 def check_file_exist(file_path):
     if os.path.exists(file_path) is False:
-        logging.info("the " + file_path + " does not exist! please make sure the file exist!\n")
+        logging.error("the " + file_path + " does not exist! please make sure the file exist!\n")
         sys.exit(return_code.CONVERT_FAILED)
 
 

@@ -110,9 +110,8 @@ def get_input_shape_from_tnn(tnn_proto_path):
 
 
 def print_not_align_message(reason=None):
-    logging.info("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
-    logging.info("The onnx model not aligned with tnn model\n")
-    # logging.info("the reason " + reason + "\n")
+    logging.error("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
+    logging.error("The onnx model not aligned with tnn model\n")
     sys.exit(return_code.ALIGN_FAILED)
 
 
@@ -186,7 +185,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(input_file_path):
             input_path = input_file_path
         else:
-            logging.info("invalid input_file_path")
+            logging.error("invalid input_file_path")
             sys.exit(return_code.ALIGN_FAILED)
 
     if refer_path is None:
@@ -195,11 +194,10 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(refer_path):
             reference_output_path = refer_path
         else:
-            logging.info("invalid refer_path")
+            logging.error("invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
-    
     if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))
     if refer_path is None and os.path.exists(reference_output_path):
