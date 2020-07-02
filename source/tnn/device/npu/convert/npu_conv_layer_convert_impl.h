@@ -41,11 +41,12 @@ protected:
         kernel_h       = param->kernels[1];
         group          = param->group;
         output_channel = param->output_channel;
-        pad_left       = param->pads[0];
-        pad_right      = param->pads[1];
-        pad_top        = param->pads[2];
-        pad_bottom     = param->pads[3];
+        pad_w_begin    = param->pads[0];
+        pad_w_end      = param->pads[1];
+        pad_h_begin    = param->pads[2];
+        pad_h_end      = param->pads[3];
         pad_type       = param->pad_type;
+        noPadding = param->pads.size()  == std::count(param->pads.begin(), param->pads.end(),0);
 
         return TNN_OK;
     }
@@ -59,16 +60,16 @@ protected:
     int kernel_w;
     int kernel_h;
 
-    int pad_left;
-    int pad_right;
-    int pad_top;
-    int pad_bottom;
+    int pad_w_begin;
+    int pad_w_end;
+    int pad_h_begin;
+    int pad_h_end;
+    bool noPadding = false;
 
     int group;
     int output_channel;
     int pad_type;
 };
 }  // namespace tnn
-
 
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_NPU_CONV_LAYER_CONVERT_IMPL_H_

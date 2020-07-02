@@ -36,7 +36,7 @@ Status NpuDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
 Status NpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     BlobDesc desc;
     desc.dims        = dims;
-    desc.device_type = DEVICE_CPU;
+    desc.device_type = DEVICE_NAIVE;
     if (mat_type == NCHW_FLOAT) {
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.data_format = DATA_FORMAT_NCHW;
