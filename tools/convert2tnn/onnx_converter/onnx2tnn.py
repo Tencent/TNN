@@ -104,10 +104,8 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     if align is True:
         if optimize is True:
-            tnn_proto_name = onnx_base_name[:-
-                                            len('.onnx')] + '.opt' + proto_suffix
-            tnn_model_name = onnx_base_name[:-
-                                            len('.onnx')] + '.opt' + model_suffix
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
         else:
             tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
@@ -115,8 +113,6 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
 
         if input_names is None:
-            align_model.align_model(
-                onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
         else:
-            align_model.align_model(
-                onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, new_input_names)
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, new_input_names)

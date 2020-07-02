@@ -22,8 +22,7 @@ from converter import logging
 
 def check_file_exist(file_path):
     if os.path.exists(file_path) is False:
-        logging.info("the " + file_path +
-                     " does not exist! please make sure the file exist!\n")
+        logging.info("the " + file_path + " does not exist! please make sure the file exist!\n")
         return False
     return True
 
@@ -39,7 +38,6 @@ def is_ssd_model(proto_path):
     else:
         return False
 
-
 def check_onnx_dim(onnx_path: str):
     onnxruntime.set_default_logger_severity(3)
     session = onnxruntime.InferenceSession(onnx_path)
@@ -50,7 +48,7 @@ def check_onnx_dim(onnx_path: str):
         for dim in ip.shape:
             if type(dim) is not int or dim < 1:
                 status = -1
-
+                
     if status == -1:
         return False, current_shape
     return True, None

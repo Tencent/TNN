@@ -132,7 +132,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         if tnn_shape != onnx_shape:
             print_not_align_message(
                 "the {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
-                                                                                      str(tnn_shape)))
+                                                                                    str(tnn_shape)))
 
     logging.info("check onnx input shape and tnn input shape align!\n")
 
@@ -152,7 +152,7 @@ def parse_input_names(input_names: str) -> dict:
     return input_info
 
 
-def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
+def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
                 refer_path: str = None, input_names: str = None) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
@@ -162,8 +162,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     :param tnn_model_path:
     :return:
     """
-    logging.info("{}  align model (ONNX vs TNN),please wait a moment {}\n" .format(
-        "-" * 10, "-" * 10))
+    logging.info("{}  align model (ONNX vs TNN),please wait a moment {}\n" .format("-" * 10, "-" * 10))
 
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
@@ -191,8 +190,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             sys.exit(return_code.ALIGN_FAILED)
 
     if refer_path is None:
-        reference_output_path = run_onnx(
-            onnx_path, input_path, onnx_input_info)
+        reference_output_path = run_onnx(onnx_path, input_path, onnx_input_info)
     else:
         if os.path.exists(refer_path):
             reference_output_path = refer_path
@@ -200,8 +198,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             logging.info("invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
 
-    run_tnn_model_check(tnn_proto_path, tnn_model_path,
-                        input_path, reference_output_path)
+    run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
 
     if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))
