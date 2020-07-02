@@ -242,11 +242,9 @@ class Caffe2Onnx():
                     outshape.append(shape)
 
         try:
-            assert output_name, "Failed at layer %s, layer's bottom not detected ..." % (
-                layer.name)
+            assert output_name, "Failed at layer %s, layer's bottom not detected ..." % (layer.name)
         except:
-            print("Failed at layer %s, layer's bottom not detected ..." %
-                  (layer.name))
+            print("Failed at layer %s, layer's bottom not detected ..." % (layer.name))
             exit(-1)
         return output_name, outshape
 
