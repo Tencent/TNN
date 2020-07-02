@@ -202,6 +202,7 @@ class Caffe2Onnx():
     def GetLastLayerOutNameAndShape(self, layer):
         output_name = []
         outshape = []
+        flag = 1
 
         # 如果结点列表为空，或者当前层的bottom在input_name中，那么上一层输入一定是 Input
         if self.onnxNodeList == []:
@@ -210,27 +211,42 @@ class Caffe2Onnx():
 
         else:
             for i in range(len(layer.bottom)):
-                for j in range(len(self.model_input_name)):
-                    if layer.bottom[i] + '_input' == self.model_input_name[j]:
-                        output_name.append(self.model_input_name[j])
-                        outshape.append(self.model_input_shape[j])
 
                 # 因为prototxt中存在top和bottom同名的情况，但是layer.bottom只能对应一个node，所以对每个layer.bottom，找到最末的那个同名节点作为上一层节点
                 name = None
                 shape = None
                 for node in self.onnxNodeList:
-                    for j in range(len(node.top) if node.node.op_type != "MaxPool" else 1):  # comment if statement for original maxpool and maxunpool
+                    for j in range(
+                            len(node.top
+                                ) if node.node.op_type != "MaxPool" else 1
+                    ):  # comment if statement for original maxpool and maxunpool
                         if layer.bottom[i] == node.top[j]:
                             name = node.outputs_name[j]
                             shape = node.outputs_shape[j]
+                        for k in range(len(node.bottom)):
+                            if node.top[j] == node.bottom[k]:
+                                for w in range(len(self.model_input_name)):
+                                    if node.top[
+                                            j] + '_input' == self.model_input_name[
+                                                w]:
+                                        flag = 0
+
+                for j in range(len(self.model_input_name)):
+                    if layer.bottom[i] + '_input' == self.model_input_name[
+                            j] and flag:
+                        output_name.append(self.model_input_name[j])
+                        outshape.append(self.model_input_shape[j])
+
                 if name:
                     output_name.append(name)
                     outshape.append(shape)
 
         try:
-            assert output_name, "Failed at layer %s, layer's bottom not detected ..." % (layer.name)
+            assert output_name, "Failed at layer %s, layer's bottom not detected ..." % (
+                layer.name)
         except:
-            print("Failed at layer %s, layer's bottom not detected ..." % (layer.name))
+            print("Failed at layer %s, layer's bottom not detected ..." %
+                  (layer.name))
             exit(-1)
         return output_name, outshape
 
