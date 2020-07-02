@@ -14,12 +14,14 @@
 
 from utils import cmd
 from utils import checker
+from utils import return_code
 from onnx_converter import onnx2tnn
 from onnx_converter import align_model
 
 from converter import logging
 
 import os
+import sys
 
 
 def hack_name(names: str):
@@ -78,7 +80,7 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
 
 def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False, not_fold_const=False,
             input_path=None, refer_path=None):
-    logging.info("converter Tensorflow to TNN model\n")
+    logging.info("Converter Tensorflow to TNN model\n")
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
     if output_dir is None or not os.path.isdir(output_dir):
@@ -87,9 +89,10 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     model_name = model_name[:-len(".pb")]
     onnx_path = os.path.join(output_dir, model_name + ".onnx")
     if tf2onnx(tf_path, input_names, output_names, onnx_path, not_fold_const) is False:
-        logging.error("Oh No, tf2onnx failed\n")
+        logging.error("Oh No, tf2onnx failed :(\n")
+        sys.exit(return_code.CONVERT_FAILED)
     else:
-        logging.info("convert TensorFlow to ONNX model succeed!\n")
+        logging.info("Convert TensorFlow to ONNX model succeed!\n")
     if version is None:
         version = "v1.0"
     checker.check_file_exist(onnx_path)

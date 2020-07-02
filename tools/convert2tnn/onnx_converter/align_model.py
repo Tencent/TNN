@@ -117,7 +117,7 @@ def print_not_align_message(reason=None):
 
 def print_align_message():
     logging.info("{}  Congratulations!   {}" .format("-" * 10, "-" * 10))
-    logging.info("the onnx model aligned whit tnn model\n")
+    logging.info("The onnx model aligned whit tnn model\n")
 
 
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
@@ -130,10 +130,10 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
             onnx_shape[0] = 1
         if tnn_shape != onnx_shape:
             print_not_align_message(
-                "the {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
+                "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
                                                                                     str(tnn_shape)))
 
-    logging.info("check onnx input shape and tnn input shape align!\n")
+    logging.info("Check onnx input shape and tnn input shape align!\n")
 
 
 def parse_input_names(input_names: str) -> dict:
@@ -185,7 +185,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(input_file_path):
             input_path = input_file_path
         else:
-            logging.error("invalid input_file_path")
+            logging.error("Invalid input_file_path")
             sys.exit(return_code.ALIGN_FAILED)
 
     if refer_path is None:
@@ -194,7 +194,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         if os.path.exists(refer_path):
             reference_output_path = refer_path
         else:
-            logging.error("invalid refer_path")
+            logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
 
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
