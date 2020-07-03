@@ -9,12 +9,13 @@ QUANTIZATION="OFF"
 CC=gcc
 CXX=g++
 
-mkdir build_linux_debug
-cd build_linux_debug
 if [ -z $TNN_ROOT_PATH ]
 then
-      TNN_ROOT_PATH=`git rev-parse --show-toplevel`
+    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
 fi
+
+mkdir build_linux_debug
+cd build_linux_debug
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \

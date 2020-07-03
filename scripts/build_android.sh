@@ -23,7 +23,7 @@ fi
 TNN_BUILD_PATH=$PWD
 if [ -z $TNN_ROOT_PATH ]
 then
-      TNN_ROOT_PATH=`git rev-parse --show-toplevel`
+    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
 fi
 TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version
 echo $TNN_ROOT_PATH

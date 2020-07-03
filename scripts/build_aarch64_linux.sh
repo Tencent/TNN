@@ -7,12 +7,14 @@ OPENCL="OFF"
 CC=aarch64-linux-gnu-gcc
 CXX=aarch64-linux-gnu-g++
 TARGET_ARCH=aarch64
-mkdir build_aarch64_linux
-cd build_aarch64_linux
+
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=`git rev-parse --show-toplevel`
+    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
 fi
+
+mkdir build_aarch64_linux
+cd build_aarch64_linux
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \
