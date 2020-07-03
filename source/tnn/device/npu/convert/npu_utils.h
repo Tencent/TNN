@@ -46,7 +46,7 @@ public:
 
     static bool FileExits(string model_path);
 
-    static Status GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool noPadding = false, bool outputInputEquals = false);
+    static Status GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same = false);
 };
 }  // namespace tnn
 #endif
