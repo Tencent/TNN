@@ -17,8 +17,11 @@
 #include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
-namespace tnn {
+
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER_WEIGHT(StridedSlice, LAYER_STRIDED_SLICE);
+
 Status NpuStridedSliceLayer::Convert() {
     auto param    = dynamic_cast<StrideSliceLayerParam *>(param_);
     auto resource = dynamic_cast<StrideSliceLayerParam *>(resource_);
@@ -80,5 +83,7 @@ Status NpuStridedSliceLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(StridedSlice, LAYER_STRIDED_SLICE);
-}  // namespace tnn
+
+}  // namespace TNN_NS

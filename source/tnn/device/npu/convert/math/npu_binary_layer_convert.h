@@ -11,6 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
 #ifndef TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_BINARY_LAYER_CONVERT_H_
 #define TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_BINARY_LAYER_CONVERT_H_
 #include <tnn/device/npu/convert/npu_base_layer_convert.h>
@@ -30,7 +31,9 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
-namespace tnn {
+
+namespace TNN_NS {
+
 class NpuBinaryLayer : public NpuBaseLayer {
 public:
     NpuBinaryLayer(LayerType layer_type) : NpuBaseLayer(layer_type){};
@@ -84,5 +87,7 @@ protected:
     }
     std::vector<shared_ptr<ge::Operator>> weight_ops_;
 };
-}  // namespace tnn
+
+}  // namespace TNN_NS
+
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_BINARY_LAYER_CONVERT_H_

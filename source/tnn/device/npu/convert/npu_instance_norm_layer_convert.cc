@@ -18,8 +18,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER_WEIGHT(InstanceNorm, LAYER_INST_BATCH_NORM);
+
 Status NpuInstanceNormLayer::Convert() {
     auto layer_res = dynamic_cast<InstanceNormLayerResource*>(resource_);
     if (!layer_res) {
@@ -51,5 +53,7 @@ Status NpuInstanceNormLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(InstanceNorm, LAYER_INST_BATCH_NORM);
-}
+
+}  // namespace TNN_NS

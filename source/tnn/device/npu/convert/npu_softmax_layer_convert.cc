@@ -17,8 +17,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(Softmax, LAYER_SOFTMAX);
+
 Status NpuSoftmaxLayer::Convert() {
     // one of the activation
     auto params = dynamic_cast<SoftmaxLayerParam *>(param_);
@@ -38,5 +40,7 @@ Status NpuSoftmaxLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(Softmax, LAYER_SOFTMAX);
-}  // namespace tnn
+
+}  // namespace TNN_NS

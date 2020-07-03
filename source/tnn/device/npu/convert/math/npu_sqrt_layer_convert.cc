@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuSqrtLayer : public NpuUnaryLayer {
 public:
     NpuSqrtLayer(LayerType ignore) : NpuUnaryLayer(LAYER_SQRT) {}
@@ -28,5 +29,7 @@ protected:
         return NpuUnaryLayer::UnaryConvert<ge::op::Sqrt>();
     }
 };
+
 REGISTER_NPU_LAYER(Sqrt, LAYER_SQRT);
-}  // namespace tnn
+
+}  // namespace TNN_NS

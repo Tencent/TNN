@@ -11,11 +11,15 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
 #ifndef TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_UNARY_OPERATOR_H_
 #define TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_UNARY_OPERATOR_H_
+
 #include <tnn/core/layer_type.h>
 #include <tnn/device/npu/convert/npu_base_layer_convert.h>
-namespace tnn {
+
+namespace TNN_NS {
+
 class NpuUnaryLayer : public NpuBaseLayer {
 public:
     NpuUnaryLayer(LayerType layer_type) : NpuBaseLayer(layer_type){};
@@ -36,5 +40,7 @@ protected:
         return SetOutputOps();
     }
 };
-}  // namespace tnn
+
+}  // namespace TNN_NS
+
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_MATH_NPU_UNARY_OPERATOR_H_

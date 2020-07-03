@@ -19,7 +19,7 @@
 
 namespace tnn {
 
-Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, tnn::RawBuffer &raw_buffer) {
+Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
 
@@ -65,11 +65,10 @@ Status NpuUtils::CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std
     return Status();
 }
 
-Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res,
-                                        vector<int> &input) {
+Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res, vector<int> &input) {
     int input_count = DimsVectorUtils::Count(input, 1);
     if (weight.size() < 4) {
-        weight       = {1, 1, 1, 1};
+        weight             = {1, 1, 1, 1};
         int layer_res_size = layer_res->element_handle.GetDataCount();
         if (layer_res_size == 1) {
             // single element
@@ -116,12 +115,13 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool de
     } else if (pad_type == -1) {
         // pad_type : NOSET
         if (depthwise) {
-            if (depthwise_same){
+            if (depthwise_same) {
                 pad_mode = 6;
-                return  TNN_OK;
+                return TNN_OK;
             }
             LOGE("Error: Npu ConvLayerDepthwise does not support current pad type, neither valid nor same\n");
-            return Status(TNNERR_PARAM_ERR, "Error: Npu ConvLayerDepthwise dont support current pad type, neither valid nor same");
+            return Status(TNNERR_PARAM_ERR,
+                          "Error: Npu ConvLayerDepthwise dont support current pad type, neither valid nor same");
         } else {
             pad_mode = 0;
         }

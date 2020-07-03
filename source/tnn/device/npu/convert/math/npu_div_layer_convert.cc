@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuDivLayer : public NpuBinaryLayer {
 public:
     NpuDivLayer(LayerType ignore) : NpuBinaryLayer(LAYER_DIV) {}
@@ -28,5 +29,7 @@ protected:
         return NpuBinaryLayer::BinaryConvert<ge::op::RealDiv>();
     }
 };
+
 REGISTER_NPU_LAYER(Div, LAYER_DIV);
-}  // namespace tnn
+
+}  // namespace TNN_NS

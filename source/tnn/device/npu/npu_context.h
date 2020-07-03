@@ -20,7 +20,7 @@
 
 #include "tnn/core/context.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 class NpuContext : public Context {
 public:
@@ -41,6 +41,6 @@ public:
     virtual Status Synchronize() override;
 };
 
-}  // namespace tnn
+}  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_NPU_CONTEXT_H_

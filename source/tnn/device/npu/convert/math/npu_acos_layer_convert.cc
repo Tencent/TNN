@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuAcosLayer : public NpuUnaryLayer {
 public:
     NpuAcosLayer(LayerType ignore) : NpuUnaryLayer(LAYER_ACOS) {}
@@ -28,5 +29,7 @@ protected:
         return NpuUnaryLayer::UnaryConvert<ge::op::Acos>();
     }
 };
+
 REGISTER_NPU_LAYER(Acos, LAYER_ACOS);
-}  // namespace tnn
+
+}  // namespace TNN_NS

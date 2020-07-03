@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef RAPIDNET_SOURCE_DEVICE_NPU_HIAI_NETWORK_H_
-#define RAPIDNET_SOURCE_DEVICE_NPU_HIAI_NETWORK_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_NPU_NPU_NETWORK_H_
+#define TNN_SOURCE_TNN_DEVICE_NPU_NPU_NETWORK_H_
 
 #include <tnn/core/abstract_device.h>
 #include <tnn/core/blob_manager.h>
@@ -32,7 +32,7 @@
 #include "graph/op/nn_defs.h"
 #include "tnn/core/abstract_network.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 class NpuNetwork : public AbstractNetwork {
 public:
@@ -97,9 +97,9 @@ private:
     // add for npu
     virtual Status InitLayers(NetResource *net_resource);
 
-    virtual Status CreateGraphInputs(InputShapesMap& input_shape_map);
+    virtual Status CreateGraphInputs(InputShapesMap &input_shape_map);
 
-    virtual Status SetGraphInputsAndOutputs(InputShapesMap& input_shape_map);
+    virtual Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map);
 
     virtual Status BuildModel(std::string &tnn_file_path);
 
@@ -126,6 +126,6 @@ private:
     Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 };
 
-}  // namespace tnn
+}  // namespace TNN_NS
 
-#endif  // RAPIDNET_SOURCE_DEVICE_NPU_HIAI_NETWORK_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_NPU_NPU_NETWORK_H_

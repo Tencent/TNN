@@ -18,8 +18,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(Permute, LAYER_PERMUTE);
+
 Status NpuPermuteLayer::Convert() {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!param) {
@@ -35,5 +37,7 @@ Status NpuPermuteLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(Permute, LAYER_PERMUTE);
-}  // namespace tnn
+
+}  // namespace TNN_NS

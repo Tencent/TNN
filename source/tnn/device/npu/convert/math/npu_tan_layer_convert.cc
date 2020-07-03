@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuTanLayer : public NpuUnaryLayer {
 public:
     NpuTanLayer(LayerType ignore) : NpuUnaryLayer(LAYER_TAN) {}
@@ -28,5 +29,7 @@ protected:
         return NpuUnaryLayer::UnaryConvert<ge::op::Tan>();
     }
 };
+
 REGISTER_NPU_LAYER(Tan, LAYER_TAN);
-}  // namespace tnn
+
+}  // namespace TNN_NS

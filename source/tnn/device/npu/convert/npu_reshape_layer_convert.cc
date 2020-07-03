@@ -11,14 +11,17 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
 #include "graph/attr_value.h"
 #include "graph/op/all_ops.h"
 #include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(Reshape, LAYER_RESHAPE);
+
 Status NpuReshapeLayer::Convert() {
     auto param = dynamic_cast<ReshapeLayerParam *>(param_);
     if (!param) {
@@ -37,5 +40,7 @@ Status NpuReshapeLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(Reshape, LAYER_RESHAPE);
-}  // namespace tnn
+
+}  // namespace TNN_NS

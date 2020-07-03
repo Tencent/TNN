@@ -16,7 +16,7 @@
 #include "tnn/device/npu/npu_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 NpuDevice::NpuDevice(DeviceType device_type) : AbstractDevice(device_type) {}
 
@@ -93,4 +93,4 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& NpuDevice::GetLayerCreato
 
 TypeDeviceRegister<NpuDevice> g_npu_device_register(DEVICE_NPU);
 
-}  // namespace tnn
+}  // namespace TNN_NS

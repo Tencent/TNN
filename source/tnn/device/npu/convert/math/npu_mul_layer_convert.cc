@@ -11,32 +11,16 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-//#include <graph/op/all_ops.h>
-//#include "npu_binary_layer_convert.h"
-//#include "tnn/device/npu/convert/npu_base_layer_convert.h"
-//#include "tnn/device/npu/convert/npu_utils.h"
-//
-// namespace tnn {
-// class NpuMulLayer : public NpuBinaryLayer {
-// public:
-//    NpuMulLayer(LayerType ignore) : NpuBinaryLayer(LAYER_MUL) {}
-//    ~NpuMulLayer() {}
-//
-// protected:
-//    Status Convert() {
-//        return NpuBinaryLayer::BinaryConvert<ge::op::Mul>();
-//    }
-//};
-// REGISTER_NPU_LAYER(Mul, LAYER_MUL);
-//}  // namespace tnn
 
 #include <graph/op/all_ops.h>
 #include <tnn/core/status.h>
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER_WEIGHT(Mul, LAYER_MUL);
+
 Status NpuMulLayer::Convert() {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
@@ -55,6 +39,8 @@ Status NpuMulLayer::Convert() {
     std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
     output_ops_.push_back(output_op);
     return SetOutputOps();
-}  // namespace tnn
+}
+
 REGISTER_NPU_LAYER(Mul, LAYER_MUL);
-}  // namespace tnn
+
+}  // namespace TNN_NS

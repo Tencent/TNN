@@ -14,7 +14,7 @@
 
 #include "tnn/device/npu/npu_context.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 Status NpuContext::LoadLibrary(std::vector<std::string> path) {
     return TNN_OK;
@@ -36,4 +36,4 @@ Status NpuContext::Synchronize() {
     return TNN_OK;
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS
