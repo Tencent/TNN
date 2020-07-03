@@ -80,7 +80,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b)
     {
-        if(b && mNPUswitch.isChecked()){
+        if (b && mNPUswitch.isChecked()) {
             mNPUswitch.setChecked(false);
             mUseNPU = false;
         }
@@ -91,7 +91,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
     private void onSwichNPU(boolean b)
     {
-        if(b && mGPUSwitch.isChecked()){
+        if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
@@ -168,9 +168,9 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseNPU) {
+        if (mUseNPU) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if (mUseGPU) {
             device = 1;
         }
         int result = mImageClassify.init(modelPath, NET_INPUT, NET_INPUT, device);

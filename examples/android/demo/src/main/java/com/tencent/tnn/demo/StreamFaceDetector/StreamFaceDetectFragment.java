@@ -98,7 +98,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     }
     private void onSwichGPU(boolean b)
     {
-        if(b && mNPUswitch.isChecked()){
+        if (b && mNPUswitch.isChecked()) {
             mNPUswitch.setChecked(false);
             mUseNPU = false;
         }
@@ -110,7 +110,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
     private void onSwichNPU(boolean b)
     {
-        if(b && mGPUSwitch.isChecked()){
+        if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }

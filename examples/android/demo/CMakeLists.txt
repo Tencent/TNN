@@ -46,7 +46,7 @@ add_library(hiai_ir
 set_target_properties(hiai_ir
         PROPERTIES
         IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir_build.so)
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir.so)
 
 add_library(hiai_ir_build
         SHARED
@@ -54,7 +54,7 @@ add_library(hiai_ir_build
 set_target_properties(hiai_ir_build
         PROPERTIES
         IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir.so)
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir_build.so)
 
 find_library( # Sets the name of the path variable.
               log-lib

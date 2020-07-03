@@ -112,10 +112,9 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
         if (status != TNN_NS::TNN_OK || !instance) {
             // try device_arm
             if (units >= TNNComputeUnitsGPU) {
-                device_type_ = TNN_NS::DEVICE_ARM;
-                network_config.device_type =  TNN_NS::DEVICE_ARM;
-                network_config.network_type = TNN_NS::NETWORK_TYPE_DEFAULT;
-                instance = net_->CreateInst(network_config, status, shapeMap);
+                device_type_                = TNN_NS::DEVICE_ARM;
+                network_config.device_type  = TNN_NS::DEVICE_ARM;
+                instance                    = net_->CreateInst(network_config, status, shapeMap);
             }
         }
         instance_ = instance;
