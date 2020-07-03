@@ -36,7 +36,7 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs = ['libs']
+            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_320']
             jni.srcDirs = ['src/main/jni']
             assets.srcDirs = ['src/main/assets', '../../../model']
         }

@@ -22,6 +22,8 @@ include_directories(../demo/src/main/jni/cc/)
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_BENCHMARK_MODE ON CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -29,6 +31,30 @@ file(GLOB_RECURSE WRAPPER_SRCS ../demo/src/main/jni/cc/*.cc)
 file(GLOB_RECURSE COMMON_SRCS ${COMMON_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${COMMON_SRCS} ${THIRDPARTY_SRCS})
+
+include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/include)
+add_library(hiai
+        SHARED
+        IMPORTED)
+set_target_properties(hiai
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai.so)
+add_library(hiai_ir
+        SHARED
+        IMPORTED)
+set_target_properties(hiai_ir
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir.so)
+
+add_library(hiai_ir_build
+        SHARED
+        IMPORTED)
+set_target_properties(hiai_ir_build
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir_build.so)
 
 find_library( # Sets the name of the path variable.
               log-lib
@@ -44,6 +70,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                         tnn_wrapper
                         -ljnigraphics
+                        hiai hiai_ir hiai_ir_build
                         -Wl,--whole-archive TNN -Wl,--no-whole-archive
                        # Links the target library to the log library
                        # included in the NDK.
