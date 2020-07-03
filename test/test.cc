@@ -255,6 +255,7 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
                 config.params.push_back(model_content);
+		config.params.push_back("/data/local/tmp/npu_test/dump_data/");
             } else {
                 config.params.push_back(model_path);
             }
@@ -280,7 +281,7 @@ namespace test {
         config.device_type = ConvertDeviceType(FLAGS_dt);
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_mt);
+        config.network_type = ConvertNetworkType(FLAGS_nt);
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
