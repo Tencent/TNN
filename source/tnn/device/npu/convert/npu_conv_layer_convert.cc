@@ -32,17 +32,14 @@ protected:
         if (ret != TNN_OK || !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
-        auto &input_data             = (input_ops_[0]);
+        auto &input_data             = input_ops_[0];
         std::vector<int> input_shape = input_ops_[0]->GetShape();
 
-        bool depthwise = group == input_shape[1] && group == output_channel;
-
+        //bool depthwise = group == input_shape[1] && group == output_channel;
+        bool depthwise = false;
         int pad_mode = 0;
-        std::vector<int> output_shape = NpuBaseLayer::GetOutputShape(0);
-        bool outputInputEquals = (output_shape[2] == input_shape[2]) && (output_shape[3] ==input_shape[3]);
-        ret = NpuUtils::GetPadMode(pad_mode, pad_type, false, noPadding, outputInputEquals);
-        if (ret != TNN_OK)
-            return ret;
+        ret = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        if (ret != TNN_OK) return ret;
 
         // weight
         int total_data_size     = resource->filter_handle.GetDataCount();
@@ -53,21 +50,21 @@ protected:
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
 
-////        if (depthwise) {
-//            auto output = std::make_shared<ge::op::ConvolutionDepthwise>(outputs_[0]);
-//            output->set_input_x(*input_data->GetOperator());
-//            output->set_input_filter(*weight_const);
-//            output->set_attr_num_output(output_channel);
-//            output->set_attr_group(group);
-//            output->set_attr_pad_mode(pad_mode);
-//            output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-//            output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
-//
-//            std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, output_shape);
-//            output_ops_.push_back(output_op);
-//            return TNN_OK;
-//
-//        } else {
+        if (depthwise) {
+            auto output = std::make_shared<ge::op::ConvolutionDepthwise>(outputs_[0]);
+            output->set_input_x(*input_data->GetOperator());
+            output->set_input_filter(*weight_const);
+            output->set_attr_num_output(output_channel);
+            output->set_attr_group(group);
+            output->set_attr_pad_mode(pad_mode);
+            output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
+            output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
+
+            auto output_op = std::make_shared<OperatorInfo>(output);
+            output_ops_.push_back(output_op);
+            return SetOutputOps();
+
+        } else {
             auto output = std::make_shared<ge::op::Convolution>(outputs_[0]);
             // Init weights
             int bias_count = resource->bias_handle.GetDataCount();
@@ -91,10 +88,10 @@ protected:
             output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end, pad_w_begin, pad_w_end}));
             output->set_attr_pad_mode(pad_mode);
             output->set_attr_num_output(output_channel);
-            std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, output_shape);
+            auto output_op = std::make_shared<OperatorInfo>(output);
             output_ops_.push_back(output_op);
-            return TNN_OK;
-//        }
+            return SetOutputOps();
+        }
     }
 };
 REGISTER_NPU_LAYER(Conv, LAYER_CONVOLUTION);

@@ -103,7 +103,7 @@ bool NpuUtils::FileExits(std::string model_path) {
     return infile.good();
 }
 
-Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool noPadding, bool outputInputEquals) {
+Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same) {
     // npu pad mode
     if (pad_type == 0) {
         // pad_type : SAME_UPPER or SAME_LOWER
@@ -116,15 +116,11 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool no
     } else if (pad_type == -1) {
         // pad_type : NOSET
         if (depthwise) {
-            if (noPadding){
-                pad_mode = 5;
-                return TNN_OK;
-            }
-            if (outputInputEquals){
+            if (depthwise_same){
                 pad_mode = 6;
                 return  TNN_OK;
             }
-            LOGE("Error: Npu ConvLayerDepthwise dont support current pad type, neither valid nor same\n");
+            LOGE("Error: Npu ConvLayerDepthwise does not support current pad type, neither valid nor same\n");
             return Status(TNNERR_PARAM_ERR, "Error: Npu ConvLayerDepthwise dont support current pad type, neither valid nor same");
         } else {
             pad_mode = 0;

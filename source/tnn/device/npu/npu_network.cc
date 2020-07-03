@@ -46,30 +46,37 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_            = default_interpreter->GetNetStructure();
     model_name_               = NpuUtils::GetFileHash(model_config);
-    if (inputs_shape.empty() || inputs_shape == net_structure_->inputs_shape_map) {
-        inputs_shape = net_structure_->inputs_shape_map;
-    } else {
-        std::stringstream ss;
-        for (auto it = inputs_shape.begin(); it != inputs_shape.end(); it++) {
-            DimsVector value = it->second;
+
+    auto instance_input_shapes_map = net_structure_->inputs_shape_map;
+
+    std::stringstream model_suffix_stream("");
+    for (auto iter : inputs_shape) {
+        if (instance_input_shapes_map.count(iter.first) > 0
+            && instance_input_shapes_map[iter.first] != iter.second) {
+            instance_input_shapes_map[iter.first] = iter.second;
+            model_suffix_stream << "_"<< iter.first << "[";
+            DimsVector value = iter.second;
             for (size_t i = 0; i < value.size(); ++i) {
                 if (i != 0) {
-                    ss << "x";
+                    model_suffix_stream << "x";
                 }
-                ss << value[i];
+                model_suffix_stream << value[i];
             }
+            model_suffix_stream << "]";
         }
-        std::string input_shape_info = ss.str();
-        model_name_                  = model_name_ + "_" + input_shape_info;
     }
+    std::string model_suffix     = model_suffix_stream.str();
+    model_name_                  = model_name_ + model_suffix;
+
     std::string model_path       = model_config.params[2] + model_name_ + ".om";
     LOGI("the path %s\n", model_path.c_str());
 
     if (net_config.device_type == DEVICE_NPU && model_config.model_type == MODEL_TYPE_TNN) {
         if (NpuUtils::FileExits(model_path)) {
+            LOGI("The om file already exists in %s\n", model_config.params[2].c_str());
         } else {
             // NPU IR Build
-            Status ret = IRInitLayers(net_config, interpreter, inputs_shape);
+            Status ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
             // Build Graph
             if (ret != TNN_OK)
                 return ret;
@@ -83,7 +90,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         LOGE("ERROR: not support device_type %d or model type %d\n", net_config.device_type, model_config.model_type);
         return Status(TNNERR_NULL_PARAM, " not support  device_type or model type");
     }
-
     // Start to read from om
     client_ = std::make_shared<hiai::AiModelMngerClient>();
     assert(client_ != nullptr);
@@ -99,7 +105,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     hiai::MemBuffer *model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
     assert(model_mem_buffer != nullptr);
-
+    
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
         model_name_ + ".om", hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
         hiai::HIAI_MODELTYPE_ONLINE, hiai::AiModelDescription_DeviceType_NPU);
@@ -365,7 +371,6 @@ Status NpuNetwork::SetDeviceAffinity(const std::vector<int> &) {
 }
 
 Status NpuNetwork::Reshape(const InputShapesMap &inputs) {
-    // LOGE("Npu Reshape!\n");
     return TNN_OK;
 }
 

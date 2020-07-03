@@ -49,11 +49,11 @@ function build_android() {
           -DANDROID_ABI="${ABI}" \
           -DANDROID_STL=c++_shared \
           -DTNN_BENCHMARK_MODE:BOOL="ON" \
-	      -DANDROID_NATIVE_API_LEVEL=android-14  \
+	  -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_TEST_ENABLE="ON" \
-	      -DTNN_NPU_ENABLE:BOOL=$NPU \
-	      -DBUILD_FOR_ANDROID_COMMAND=true
+	  -DTNN_NPU_ENABLE:BOOL=$NPU \
+	  -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
 
@@ -90,8 +90,8 @@ function run_android() {
     adb shell "cat /proc/cpuinfo > $ANDROID_DIR/test_log.txt"
     adb shell "echo >> $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
-    echo "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU-mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
-    adb shell "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU-mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
+    echo "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU -mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
+    adb shell "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU -mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
     adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     adb pull $ANDROID_DIR/dump_data.txt $DUMP_DIR
 }

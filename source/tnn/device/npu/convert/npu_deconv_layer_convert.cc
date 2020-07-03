@@ -33,7 +33,6 @@ protected:
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
         auto input_data = (input_ops_[0]);
-
         const int input_channel = input_data->GetShape()[1];
 
         int pad_mode = 0;
@@ -43,7 +42,6 @@ protected:
 
         // filter
         int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h * kernel_w * input_channel));
-        // printf("the kernel size %d %d %d %d \n", input_channel, filter_channel, kernel_h, kernel_w);
         ge::Shape filter_shape({input_channel, filter_channel, kernel_h, kernel_w});
         auto filter_const = std::make_shared<ge::op::Const>(layer_name_ + "filter");
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
@@ -52,8 +50,6 @@ protected:
         std::vector<int> calculate_shape = NpuBaseLayer::GetOutputShape(0);
 
         // input size
-        // printf("the output size is  %d %d %d %d \n", calculate_shape[0],
-        // calculate_shape[1],calculate_shape[2],calculate_shape[3]);
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
         ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_UINT8);
         NpuUtils::CreateAttrArray(input_size_const, calculate_shape, desc);

@@ -46,7 +46,6 @@ protected:
         pad_h_begin    = param->pads[2];
         pad_h_end      = param->pads[3];
         pad_type       = param->pad_type;
-        noPadding = param->pads.size()  == std::count(param->pads.begin(), param->pads.end(),0);
 
         return TNN_OK;
     }
@@ -64,7 +63,6 @@ protected:
     int pad_w_end;
     int pad_h_begin;
     int pad_h_end;
-    bool noPadding = false;
 
     int group;
     int output_channel;
