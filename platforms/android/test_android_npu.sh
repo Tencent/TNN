@@ -87,13 +87,13 @@ function run_android() {
         adb push $MODEL_DIR/* $ANDROID_DATA_DIR
         push_hiai_lib
     fi
-    adb shell "cat /proc/cpuinfo > $ANDROID_DIR/test_log.txt"
-    adb shell "echo >> $ANDROID_DIR/test_log.txt"
+    adb shell "echo > $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
     echo "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU -mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
     adb shell "cd $ANDROID_DIR ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_DIR/$ABI/lib:$ANDROID_DIR; ./TNNTest -mt $MODEL_TYPE -nt NPU -mp $ANDROID_DATA_DIR/$MODEL_NAME -dt NPU -ip $ANDROID_DATA_DIR/$INPUT_FILE_NAME -op $ANDROID_DIR/dump_data.txt   >> $ANDROID_DIR/test_log.txt"
     adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     adb pull $ANDROID_DIR/dump_data.txt $DUMP_DIR
+    cat $DUMP_DIR/test_log.txt
 }
 
 while [ "$1" != "" ]; do
