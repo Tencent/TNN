@@ -54,7 +54,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     ret, current_shape = checker.check_onnx_dim(onnx_path)
 
-    if ret is False and current_shape is not None:
+    if ret is False and current_shape is not None and (optimize is True or align is True):
         if input_names is None:
             throw_exception(current_shape)
         if input_names is not None and not ("[" in input_names and "]" in input_names):
