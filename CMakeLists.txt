@@ -229,19 +229,18 @@ if(TNN_ATLAS_ENABLE)
     include_directories(${DDK_INCLUDE_DIRS} ${DDK_CEREAL_INCLUDE_DIRS} ${DDK_PROTOBUF_INCLUDE_DIRS})
     include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
 endif()
-
 if(TNN_NPU_ENABLE)
     add_subdirectory(source/tnn/device/npu)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib
-            )
+                ./third_party/npu/hiai_ddk_320/armeabi-v7a/
+        )
     else()
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib64
-            )
+                ./third_party/npu/hiai_ddk_320/arm64-v8a/
+        )
     endif()
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
 endif()
 
 if(TNN_SYMBOL_HIDE AND UNIX)
