@@ -3,7 +3,7 @@ export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 
 if [ -z $TNN_ROOT_PATH ]
 then
-  TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
+  TNN_ROOT_PATH=$(cd "$(dirname "$0")";pwd)/..
 fi
 
 TNN_BUILD_PATH=$TNN_ROOT_PATH/platforms/ios
