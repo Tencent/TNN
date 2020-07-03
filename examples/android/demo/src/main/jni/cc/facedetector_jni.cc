@@ -10,7 +10,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<UltraFaceDetector> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
 static jclass clsFaceInfo;
 static jmethodID midconstructorFaceInfo;
 static jfieldID fidx1;
@@ -37,8 +37,12 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     gComputeUnitType = computUnitType;
     if (gComputeUnitType == 0 ) {
         gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsCPU, nchw);
-    } else {
+    } else if (gComputeUnitType == 1) {
         gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU, nchw);
+    } else {
+        LOGI("the device type  %d" ,gComputeUnitType);
+        gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, nchw, modelPathStr);
+        //add for npu store the om file
     }
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
@@ -99,7 +103,13 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
 
     LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime:", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);
@@ -162,7 +172,13 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     }
     LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime:", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);

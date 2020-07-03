@@ -65,8 +65,7 @@ class TNNSDKSample {
 public:
     TNNSDKSample();
     virtual ~TNNSDKSample();
-    virtual TNN_NS::Status Init(const std::string &proto_content, const std::string &model_path,
-                                const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw = {});
+    virtual TNN_NS::Status Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw = {}, std::string modelPathStr = "");
     TNNComputeUnits GetComputeUnits();
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
