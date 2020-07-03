@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuSinLayer : public NpuUnaryLayer {
 public:
     NpuSinLayer(LayerType ignore) : NpuUnaryLayer(LAYER_SIN) {}
@@ -28,5 +29,7 @@ protected:
         return NpuUnaryLayer::UnaryConvert<ge::op::Sin>();
     }
 };
+
 REGISTER_NPU_LAYER(Sin, LAYER_SIN);
-}  // namespace tnn
+
+}  // namespace TNN_NS

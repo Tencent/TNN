@@ -14,6 +14,7 @@
 
 #ifndef TNN_SOURCE_TNN_NPU_CONVERT_NPU_BASE_LAYER_CONVERT_ACC_H_
 #define TNN_SOURCE_TNN_NPU_CONVERT_NPU_BASE_LAYER_CONVERT_ACC_H_
+
 #include <tnn/layer/base_layer.h>
 #include <map>
 #include <memory>
@@ -30,7 +31,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 class OperatorInfo {
 public:
@@ -150,5 +151,6 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
 #define REGISTER_NPU_LAYER(type_string, layer_type)                                                                    \
     TypeNpuLayerRegister<TypeNpuLayerCreator<Npu##type_string##Layer>> g_Npu##layer_type##_register(layer_type);
 
-}  // namespace tnn
-#endif  // TNN_SOURCE_TNN_CORE_LAYER_ACC_H_
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_NPU_CONVERT_NPU_BASE_LAYER_CONVERT_ACC_H_

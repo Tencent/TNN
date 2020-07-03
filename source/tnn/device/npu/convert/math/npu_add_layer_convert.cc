@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuAddLayer : public NpuBinaryLayer {
 public:
     NpuAddLayer(LayerType ignore) : NpuBinaryLayer(LAYER_ADD) {}
@@ -28,5 +29,7 @@ protected:
         return NpuBinaryLayer::BinaryConvert<ge::op::Add>();
     }
 };
+
 REGISTER_NPU_LAYER(Add, LAYER_ADD);
-}  // namespace tnn
+
+}  // namespace TNN_NS

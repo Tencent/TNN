@@ -19,11 +19,13 @@
 #include "npu_utils.h"
 #ifndef TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_NPU_CONV_LAYER_IMPL_H_
 #define TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_NPU_CONV_LAYER_IMPL_H_
-namespace tnn {
+
+namespace TNN_NS {
+
 class NpuConvImplLayer : public NpuBaseLayer {
 public:
     NpuConvImplLayer(LayerType layer_type) : NpuBaseLayer(layer_type){};
-    virtual ~NpuConvImplLayer(){}
+    virtual ~NpuConvImplLayer() {}
 
 protected:
     Status ObtainParam() {
@@ -68,6 +70,7 @@ protected:
     int output_channel;
     int pad_type;
 };
-}  // namespace tnn
+
+}  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_CONVERT_NPU_CONV_LAYER_CONVERT_IMPL_H_

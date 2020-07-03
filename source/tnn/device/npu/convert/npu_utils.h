@@ -26,14 +26,14 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 class NpuUtils {
 public:
     static Status CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                   DimsVector dims_vector);
 
-    static Status CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, tnn::RawBuffer &raw_buffer);
+    static Status CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<int> calculate_shape,
                                   ge::TensorDesc input_desc);
@@ -48,5 +48,7 @@ public:
 
     static Status GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same = false);
 };
-}  // namespace tnn
-#endif
+
+}  // namespace TNN_NS
+
+#endif // TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_

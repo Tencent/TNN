@@ -26,7 +26,7 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 NetworkImplFactoryRegister<NetworkImplFactory<NpuNetwork>> g_network_impl_npu_factory_register(NETWORK_TYPE_NPU);
 
@@ -51,10 +51,9 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     std::stringstream model_suffix_stream("");
     for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0
-            && instance_input_shapes_map[iter.first] != iter.second) {
+        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
             instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_"<< iter.first << "[";
+            model_suffix_stream << "_" << iter.first << "[";
             DimsVector value = iter.second;
             for (size_t i = 0; i < value.size(); ++i) {
                 if (i != 0) {
@@ -65,10 +64,10 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
             model_suffix_stream << "]";
         }
     }
-    std::string model_suffix     = model_suffix_stream.str();
-    model_name_                  = model_name_ + model_suffix;
+    std::string model_suffix = model_suffix_stream.str();
+    model_name_              = model_name_ + model_suffix;
 
-    std::string model_path       = model_config.params[2] + model_name_ + ".om";
+    std::string model_path = model_config.params[2] + model_name_ + ".om";
     LOGI("the path %s\n", model_path.c_str());
 
     if (net_config.device_type == DEVICE_NPU && model_config.model_type == MODEL_TYPE_TNN) {
@@ -105,7 +104,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     hiai::MemBuffer *model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
     assert(model_mem_buffer != nullptr);
-    
+
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
         model_name_ + ".om", hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
         hiai::HIAI_MODELTYPE_ONLINE, hiai::AiModelDescription_DeviceType_NPU);
@@ -401,4 +400,4 @@ Status NpuNetwork::ForwardAsync(Callback call_back) {
     return NpuNetwork::Forward();
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS

@@ -17,8 +17,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(Upsample, LAYER_UPSAMPLE);
+
 Status NpuUpsampleLayer::Convert() {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!param) {
@@ -35,5 +37,7 @@ Status NpuUpsampleLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(Upsample, LAYER_UPSAMPLE);
-}  // namespace tnn
+
+}  // namespace TNN_NS

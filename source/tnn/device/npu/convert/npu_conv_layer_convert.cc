@@ -19,7 +19,8 @@
 #include "npu_conv_layer_convert_impl.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuConvLayer : public NpuConvImplLayer {
 public:
     NpuConvLayer(LayerType ignore) : NpuConvImplLayer(LAYER_CONVOLUTION){};
@@ -35,11 +36,12 @@ protected:
         auto &input_data             = input_ops_[0];
         std::vector<int> input_shape = input_ops_[0]->GetShape();
 
-        //bool depthwise = group == input_shape[1] && group == output_channel;
+        // bool depthwise = group == input_shape[1] && group == output_channel;
         bool depthwise = false;
-        int pad_mode = 0;
-        ret = NpuUtils::GetPadMode(pad_mode, pad_type, false);
-        if (ret != TNN_OK) return ret;
+        int pad_mode   = 0;
+        ret            = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        if (ret != TNN_OK)
+            return ret;
 
         // weight
         int total_data_size     = resource->filter_handle.GetDataCount();
@@ -94,5 +96,7 @@ protected:
         }
     }
 };
+
 REGISTER_NPU_LAYER(Conv, LAYER_CONVOLUTION);
-}  // namespace tnn
+
+}  // namespace TNN_NS

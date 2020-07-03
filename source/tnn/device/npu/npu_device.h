@@ -21,7 +21,7 @@
 
 #include "tnn/core/abstract_device.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 // @brief NpuDevice create npu memory and npu layer acc
 
@@ -52,6 +52,7 @@ public:
 private:
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
 };
-}  // namespace tnn
+
+}  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_NPU_NPU_DEVICE_H_

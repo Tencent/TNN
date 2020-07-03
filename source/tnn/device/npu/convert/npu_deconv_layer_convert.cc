@@ -19,11 +19,12 @@
 #include "npu_conv_layer_convert_impl.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuDeconvLayer : public NpuConvImplLayer {
 public:
     NpuDeconvLayer(LayerType ignore) : NpuConvImplLayer(LAYER_DECONVOLUTION){};
-    virtual ~NpuDeconvLayer(){}
+    virtual ~NpuDeconvLayer() {}
 
 protected:
     virtual Status Convert() {
@@ -32,7 +33,7 @@ protected:
         if (ret != TNN_OK || !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
-        auto input_data = (input_ops_[0]);
+        auto input_data         = (input_ops_[0]);
         const int input_channel = input_data->GetShape()[1];
 
         int pad_mode = 0;
@@ -61,7 +62,12 @@ protected:
         output->set_input_x(*input_data->GetOperator());
         output->set_attr_group(group);
         output->set_attr_num_output(output_channel);
-        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end,pad_w_begin, pad_w_end,}));
+        output->set_attr_pad(ge::AttrValue::LIST_INT({
+            pad_h_begin,
+            pad_h_end,
+            pad_w_begin,
+            pad_w_end,
+        }));
         output->set_attr_pad_mode(pad_mode);
         output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
         output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
@@ -72,5 +78,7 @@ protected:
         return TNN_OK;
     }
 };
+
 REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION);
-}  // namespace tnn
+
+}  // namespace TNN_NS

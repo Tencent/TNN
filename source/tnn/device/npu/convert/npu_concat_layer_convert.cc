@@ -16,8 +16,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(Concat, LAYER_CONCAT);
+
 Status NpuConcatLayer::Convert() {
     int input_size = input_ops_.size();
     auto param     = dynamic_cast<ConcatLayerParam *>(param_);
@@ -42,5 +44,7 @@ Status NpuConcatLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(Concat, LAYER_CONCAT);
-}
+
+}  // namespace TNN_NS

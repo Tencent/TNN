@@ -17,8 +17,10 @@
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 DECLARE_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL);
+
 Status NpuShuffleChannelLayer::Convert() {
     auto param = dynamic_cast<ShuffleLayerParam *>(param_);
     if (!param) {
@@ -36,5 +38,7 @@ Status NpuShuffleChannelLayer::Convert() {
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
+
 REGISTER_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL);
-}  // namespace tnn
+
+}  // namespace TNN_NS

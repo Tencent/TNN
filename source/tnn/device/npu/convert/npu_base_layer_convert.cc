@@ -13,7 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_base_layer_convert.h"
-namespace tnn {
+
+namespace TNN_NS {
 
 OperatorInfo::OperatorInfo() = default;
 
@@ -138,4 +139,4 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type) {
     return cur_layer;
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS

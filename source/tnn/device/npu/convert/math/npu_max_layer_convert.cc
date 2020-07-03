@@ -17,7 +17,8 @@
 #include "tnn/device/npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/npu/convert/npu_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
+
 class NpuMaxLayer : public NpuBinaryLayer {
 public:
     NpuMaxLayer(LayerType ignore) : NpuBinaryLayer(LAYER_MAXIMUM) {}
@@ -28,5 +29,7 @@ protected:
         return NpuBinaryLayer::BinaryConvert<ge::op::Maximum>();
     }
 };
+
 REGISTER_NPU_LAYER(Max, LAYER_MAXIMUM);
-}  // namespace tnn
+
+}  // namespace TNN_NS
