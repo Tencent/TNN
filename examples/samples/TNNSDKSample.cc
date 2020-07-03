@@ -62,8 +62,8 @@ TNNSDKSample::TNNSDKSample() {}
 
 TNNSDKSample::~TNNSDKSample() {}
 
-TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::string &model_path,
-                                const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw) {
+TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw, std::string modelPathStr)
+{
     //网络初始化
     TNN_NS::Status status;
     if (!net_) {
@@ -73,7 +73,8 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 #else
         config.model_type = TNN_NS::MODEL_TYPE_TNN;
 #endif
-        config.params = {proto_content, model_path};
+
+        config.params = {proto_content, model_path, modelPathStr};
 
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
@@ -86,11 +87,13 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 
     // network init
     device_type_ = TNN_NS::DEVICE_ARM;
-    if (units >= TNNComputeUnitsGPU) {
+    if(units == TNNComputeUnitsGPU) device_type_ = TNN_NS::DEVICE_OPENCL;
+    if (units > TNNComputeUnitsGPU) {
+        device_type_      = TNN_NS::DEVICE_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
-        device_type_      = TNN_NS::DEVICE_OPENCL;
+        device_type_      = TNN_NS::DEVICE_NPU;
 #endif
     }
     InputShapesMap shapeMap;
@@ -101,14 +104,18 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
     {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {library_path};
-        network_config.device_type  = device_type_;
-        auto instance               = net_->CreateInst(network_config, status, shapeMap);
+        network_config.device_type =  device_type_;
+        if(device_type_ == TNN_NS::DEVICE_NPU){
+            network_config.network_type = NETWORK_TYPE_NPU;
+        }
+        auto instance = net_->CreateInst(network_config, status, shapeMap);
         if (status != TNN_NS::TNN_OK || !instance) {
             // try device_arm
             if (units >= TNNComputeUnitsGPU) {
-                device_type_               = TNN_NS::DEVICE_ARM;
-                network_config.device_type = TNN_NS::DEVICE_ARM;
-                instance                   = net_->CreateInst(network_config, status, shapeMap);
+                device_type_ = TNN_NS::DEVICE_ARM;
+                network_config.device_type =  TNN_NS::DEVICE_ARM;
+                network_config.network_type = TNN_NS::NETWORK_TYPE_DEFAULT;
+                instance = net_->CreateInst(network_config, status, shapeMap);
             }
         }
         instance_ = instance;
@@ -119,6 +126,8 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 
 TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
+        case DEVICE_NPU:
+            return TNNComputeUnitsNPU;
         case DEVICE_METAL:
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;

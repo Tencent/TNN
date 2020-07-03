@@ -49,6 +49,9 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
+    //add for npu
+    private ToggleButton mNPUswitch;
+    private boolean mUseNPU = false;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -87,15 +90,34 @@ public class StreamFaceDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-
-    private void onSwichGPU(boolean b)
+    private void restartCamera()
     {
-        mUseGPU = b;
-        TextView result_view = (TextView)$(R.id.result);
-        result_view.setText("");
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
+    }
+    private void onSwichGPU(boolean b)
+    {
+        if(b && mNPUswitch.isChecked()){
+            mNPUswitch.setChecked(false);
+            mUseNPU = false;
+        }
+        mUseGPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+        restartCamera();
+    }
+
+    private void onSwichNPU(boolean b)
+    {
+        if(b && mGPUSwitch.isChecked()){
+            mGPUSwitch.setChecked(false);
+            mUseGPU = false;
+        }
+        mUseNPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+        restartCamera();
     }
 
     private void clickBack() {
@@ -116,6 +138,14 @@ public class StreamFaceDetectFragment extends BaseFragment {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 onSwichGPU(b);
+            }
+        });
+        $$(R.id.npu_switch);
+        mNPUswitch = $(R.id.npu_switch);
+        mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwichNPU(b);
             }
         });
         init();
@@ -249,7 +279,13 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     mCameraWidth = parameters.getPreviewSize().width;
                     mCameraHeight = parameters.getPreviewSize().height;
                     String modelPath = initModel();
-                    int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, mUseGPU?1:0);
+                    int device = 0;
+                    if (mUseNPU) {
+                        device = 2;
+                    } else if (mUseGPU) {
+                        device = 1;
+                    }
+                    int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
                     if (ret == 0) {
                         mIsDetectingFace = true;
                     } else {

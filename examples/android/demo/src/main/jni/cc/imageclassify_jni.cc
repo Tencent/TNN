@@ -24,8 +24,13 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     gComputeUnitType = computeUnitType;
     if (gComputeUnitType == 0) {
         status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsCPU);
-    } else {
+    } else if (gComputeUnitType == 1) {
         status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU);
+    } else if (gComputeUnitType == 2) {
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, {}, modelPathStr);
+    } else {
+        LOGI("the device type  %d" ,gComputeUnitType);
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, {}, modelPathStr);
     }
 
     if (status != TNN_NS::TNN_OK) {
@@ -72,7 +77,13 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
         return 0;
     }
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime: ", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime: ", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + gDetector->GetBenchResult().Description());
     setBenchResult(resultTips);

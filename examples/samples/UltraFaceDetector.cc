@@ -120,6 +120,7 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
         timeval tv_begin, tv_end;
+        timeval forward_begin, forward_end;
         gettimeofday(&tv_begin, NULL);
 #endif
         
@@ -132,14 +133,16 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
             LOGE("input_blob_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
             return status;
         }
-
+        gettimeofday(&forward_begin, NULL);
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
             LOGE("instance.Forward Error: %s\n", status.description().c_str());
             return status;
         }
-
+        gettimeofday(&forward_end, NULL);
+        double forward_elapsed = (forward_end.tv_sec - forward_begin.tv_sec) * 1000.0 + (forward_end.tv_usec - forward_begin.tv_usec) / 1000.0;
+        LOGE("===the forward time is %f\n", forward_elapsed);
         // step 3. get output mat
         TNN_NS::MatConvertParam output_convert_param;
         std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
