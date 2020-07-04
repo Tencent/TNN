@@ -53,7 +53,8 @@ std::string ReplaceString(std::string s) {
 int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std::vector<int> dims) {
     printf("read from txt file! (%s)\n", file_path.c_str());
     std::ifstream f(file_path);
-    int dim_size = DimsVectorUtils::Count(dims, 1);
+    int dim_size = DimsVectorUtils::Count(dims, 0);
+    int chw_size = DimsVectorUtils::Count(dims, 1);
     printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
 
     img = (unsigned char*)malloc(dim_size);
@@ -62,10 +63,10 @@ int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std:
         return -1;
     }
 
-    std::shared_ptr<unsigned char> img_org(new unsigned char[dim_size], [](unsigned char* p) { delete[] p; });
+    std::shared_ptr<unsigned char> img_org(new unsigned char[chw_size], [](unsigned char* p) { delete[] p; });
 
     float tmp = 0;
-    for (int i = 0; i < dim_size; i++) {
+    for (int i = 0; i < chw_size; i++) {
         f >> tmp;
         *(img_org.get() + i) = (unsigned char)tmp;
     }
@@ -81,6 +82,12 @@ int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std:
                 img[dst_idx] = *(img_org.get() + src_idx);
             }
         }
+    }
+
+    int offset = chw_size;
+    for (int n = 1; n < dims[0]; ++n) {
+        memcpy(img + offset, img, chw_size);
+        offset += chw_size;
     }
 
     f.close();
@@ -99,6 +106,7 @@ int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims
         printf("allocate memory failed!\n");
         return -1;
     }
+    printf("allocate input memory size: %d   addr: 0x%x\n", dim_size * sizeof(float), (unsigned long)img);
 
     int N   = dims[0];
     int C   = dims[1];
@@ -152,6 +160,7 @@ int main(int argc, char* argv[]) {
     NetworkConfig network_config;
     network_config.network_type = NETWORK_TYPE_ATLAS;
     network_config.device_type  = DEVICE_ATLAS;
+    network_config.device_id    = 0;
 
     struct timezone zone;
     struct timeval time1;
@@ -190,7 +199,11 @@ int main(int argc, char* argv[]) {
     instance_->GetCommandQueue(&command_queue);
 
     // Reshape
+    BlobMap input_blobs_temp;
+    error = instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
+    input_shapemap[input_blobs_temp.begin()->first] = input_blobs_temp.begin()->second->GetBlobDesc().dims;
+    input_shapemap[input_blobs_temp.begin()->first][0] = 1;
     error = instance_->Reshape(input_shapemap);
 
     // Get input/output blobs

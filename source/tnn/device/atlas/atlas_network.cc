@@ -104,20 +104,28 @@ Status AtlasNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 
 Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
     for (auto item : inputs) {
-        LOGD("reshape input %s to [%d,%d,%d,%d]\n", item.first.c_str(), item.second[0], item.second[1], item.second[2],
-             item.second[3]);
+        if (input_blob_map_.find(item.first) != input_blob_map_.end()) {
+            auto dims_org = input_blob_map_[item.first]->GetBlobDesc().dims;
+            auto dims = item.second;
+            LOGD("reshape input %s form [%d,%d,%d,%d] to [%d,%d,%d,%d]\n", item.first.c_str(), dims_org[0], dims_org[1], dims_org[2], dims_org[3], dims[0], dims[1], dims[2], dims[3]);
+            input_blob_map_[item.first]->GetBlobDesc().dims = dims;
+        }
+    }
+
+    for (auto item : input_blob_map_) {
         size_t index     = 0;
         aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, item.first.c_str(), &index);
-        if (acl_ret != ACL_ERROR_NONE) {
-            LOGE("can't get input index from input name (%s) in reshape\n", item.first.c_str());
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input index in reshape");
-        }
-
-        int batch = item.second[0];
-        acl_ret   = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
-        if (acl_ret != ACL_ERROR_NONE) {
-            LOGE("set batch size (%s) in reshape failed\n", item.first.c_str());
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
+        if (acl_ret == ACL_ERROR_NONE) {
+            if (IsDynamicBatch(model_desc_, item.first)) {
+                // set dynamic batch
+                int batch = item.second->GetBlobDesc().dims[0];
+                acl_ret   = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
+                if (acl_ret != ACL_ERROR_NONE) {
+                    LOGE("set batch size (%s) in reshape failed\n", item.first.c_str());
+                    return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
+                }
+                LOGD("input (%s) set dynamic batch size %d\n", item.first.c_str(), batch);
+            }
         }
     }
 
@@ -299,6 +307,7 @@ Status AtlasNetwork::AllocateDataset(aclmdlDataset **data_set, bool is_input) {
             LOGE("can't malloc buffer, size is %zu\n", buffer_size);
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't malloc buffer");
         }
+        LOGD("acl malloc buffer size: %zu  addr: 0x%lx\n", buffer_size, (long long)buffer);
 
         aclDataBuffer *data_buffer = aclCreateDataBuffer(buffer, buffer_size);
         if (acl_ret != ACL_ERROR_NONE) {
@@ -340,12 +349,12 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
         // skip dynamic aipp input
         if (blob_name.find(ACL_DYNAMIC_AIPP_NAME) != std::string::npos) {
-            LOGD("find dynamic aipp input and skip...\n");
+            LOGD("find dynamic aipp input (%s) and skip...\n", blob_name.c_str());
             return TNN_OK;
         }
         // skip dynamic batch input
         if (blob_name.find(ACL_DYNAMIC_TENSOR_NAME) != std::string::npos) {
-            LOGD("find dynamic batch input and skip...\n");
+            LOGD("find dynamic batch input (%s) and skip...\n", blob_name.c_str());
             return TNN_OK;
         }
         // get dims info
@@ -359,6 +368,15 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // get data format
         data_format = aclmdlGetInputFormat(model_desc_, index);
         LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
+        // in dynamic batch input, reset batch
+        if (-1 == acl_dims.dims[0]) {
+            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index); 
+            int chw_size = aclDataTypeSize(data_type);
+            for (int i = 1; i < acl_dims.dimCount; ++i) {
+                chw_size *= acl_dims.dims[i];
+            }
+            acl_dims.dims[0] = buffer_size / chw_size;
+        }
         LOGD("input shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
             LOGD("[%d]\n", (int)acl_dims.dims[i]);

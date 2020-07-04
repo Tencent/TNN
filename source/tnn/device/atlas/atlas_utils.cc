@@ -91,4 +91,23 @@ Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat&
     return TNN_OK;
 }
 
+bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name) {
+    size_t index = 0;
+    aclError acl_ret = aclmdlGetInputIndexByName(model_desc, input_name.c_str(), &index);
+    if (ACL_ERROR_NONE != acl_ret) {
+        return false;
+    }
+
+    aclmdlIODims acl_dims;
+    acl_ret = aclmdlGetInputDims(model_desc, index, &acl_dims);
+    if (ACL_ERROR_NONE != acl_ret) {
+        return false;
+    }
+
+    if (-1 == acl_dims.dims[0]) {
+        return true;
+    }
+    return false;
+}
+
 }  // namespace TNN_NS

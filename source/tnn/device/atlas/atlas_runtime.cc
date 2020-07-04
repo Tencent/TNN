@@ -66,12 +66,13 @@ Status AtlasRuntime::Init() {
     if (!init_done_) {
         LOGD("Init Atlas Acl\n");
 
-        LOGD("aclInit()\n");
-        aclError ret = aclInit(nullptr);
+        LOGD("acl begin init...\n");
+        aclError ret = aclInit("acl.json");
         if (ret != ACL_ERROR_NONE) {
             LOGE("acl init failed!\n");
             return TNNERR_ATLAS_RUNTIME_ERROR;
         }
+        LOGD("acl init done!\n");
 
         init_done_ = true;
     }
@@ -87,6 +88,7 @@ Status AtlasRuntime::SetDevice(int device_id) {
             LOGE("acl open device %d failed (acl error code: %d)\n", device_id, acl_ret);
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl open device falied");
         }
+        LOGD("set device done!\n");
         device_list_.emplace(device_id);
     }
 

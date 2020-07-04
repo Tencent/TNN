@@ -28,6 +28,8 @@ Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat&
 
 Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat& aipp_input_format);
 
+bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_DEVICE_ATLAS_ATLAS_UTILS_H_
