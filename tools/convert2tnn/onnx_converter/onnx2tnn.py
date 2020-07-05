@@ -14,10 +14,25 @@
 
 from utils import cmd
 from utils import checker
+from . import align_model
+
+from converter import logging
+
 import os
 
+def throw_exception(current_shape):
+    message = "Current shape: "
+    for item in current_shape:
+        name, shape = item
+        message += str(name) + ": " + str(shape) + "   "
 
-def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False):
+    logging.info("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.info(message)
+    
+    exit(-1)
+
+def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
+            input_path=None, refer_path=None, input_names : str=None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -25,10 +40,21 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
           output_path:  生成的 tnn 文件的路径
           version:      转换模型的版本号
           optimize:     是否需要对模型进行优化,默认是需要进行优化
-          halt:         是否需要转为 FP16 的模型,减小模型的大小
+          half:         是否需要转为 FP16 的模型,减小模型的大小
     :return return_code
     :exception 执行超时
     """
+    logging.info("converter ONNX to TNN Model\n")
+    ret, current_shape = checker.check_onnx_dim(onnx_path)
+
+    if ret is False and current_shape is not None:
+        if input_names is None:
+            throw_exception(current_shape)
+        if input_names is not None and not ("[" in input_names and "]" in input_names):
+            throw_exception(current_shape)
+
+    proto_suffix = '.tnnproto'
+    model_suffix = '.tnnmodel'
     command = "python3 onnx2tnn.py " + onnx_path
     command = command + " -version=v1.0"
     checker.check_file_exist(onnx_path)
@@ -45,10 +71,39 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         output_dir = os.path.dirname(onnx_path)
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
-    print("the onnx2tnn command:" + command)
+    logging.debug("the onnx2tnn command:" + command + "\n")
+
+    if input_names is not None:
+        new_input_names = ""
+        for char in input_names:
+            if char == "[":
+                char = ":"
+            if char == "]":
+                continue
+            new_input_names += char
+        command = command + " -input_shape " + new_input_names
+
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
+
     if result == 0:
-        print("onnx2tnn succeed!")
+        logging.info("converter ONNX to TNN model succeed!\n")
     else:
-        print("onnx2tnn failed!")
+        logging.info("converter ONNX to TNN model failed!\n")
+        exit(-1)
+    onnx_base_name = os.path.basename(onnx_path)
+
+    if align is True:
+        if optimize is True:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+        else:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
+        if input_names is None:
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+        else:
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, new_input_names)

@@ -1,5 +1,7 @@
 # Add a New Operator
 
+[中文版本](../../cn/development/add_op.md)
+
 If the operator is not found in [Operator List](../user/support_en.md), you can add a new operator through the following steps.
 * [Add operator parser](#1)
 * [Add Layer implementation](#2)

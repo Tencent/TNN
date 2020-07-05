@@ -9,7 +9,6 @@ public class TNNLib {
 
     static {
         try {
-            System.loadLibrary("TNN");
             System.loadLibrary("tnn_wrapper");
         }catch(Exception e) {
         }catch(Error e) {

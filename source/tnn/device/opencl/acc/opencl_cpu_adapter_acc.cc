@@ -31,7 +31,7 @@ OpenCLCpuAdapterAcc::OpenCLCpuAdapterAcc(LayerType impl_layer_type) {
                 cpu_adapter_acc_ = acc;
                 impl_device_type_ = device_type;
                 impl_device_context_ = device->CreateContext(0);
-                break;                
+                break;
             }
         }
     }
@@ -40,35 +40,78 @@ OpenCLCpuAdapterAcc::OpenCLCpuAdapterAcc(LayerType impl_layer_type) {
 Status OpenCLCpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) {
     if(cpu_adapter_acc_ == NULL) {
-       return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "cpu adapter acc is null"); 
+       return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "cpu adapter acc is null");
     }
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     ocl_context_ = dynamic_cast<OpenCLContext *>(context);
     if (ocl_context_ == nullptr) {
         return Status(TNNERR_NULL_PARAM, "OpenCL Context Convert failed");
-    }    
+    }
+
+    //check input and output data type
+    for(auto input : inputs) {
+        auto desc = input->GetBlobDesc();
+        if (desc.data_type != DATA_TYPE_FLOAT && desc.data_type != DATA_TYPE_HALF) {
+            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            return Status(TNNERR_NULL_PARAM, "layer acc is nil");
+        }
+    }
+
+    for(auto output : outputs) {
+        auto desc = output->GetBlobDesc();
+        if (desc.data_type != DATA_TYPE_FLOAT && desc.data_type != DATA_TYPE_HALF) {
+            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            return Status(TNNERR_NULL_PARAM, "layer acc is nil");
+        }
+    }
+
+    //TODO: test with bfp16 mode
 
     for(auto input : inputs) {
         auto desc = input->GetBlobDesc();
         desc.device_type = impl_device_type_;
         desc.data_format = DATA_FORMAT_AUTO;
-        cpu_blob_in_.push_back(new Blob(desc, true));        
+        desc.data_type = DATA_TYPE_FLOAT;
+        cpu_blob_in_.push_back(new Blob(desc, true));
     }
 
     for(auto output : outputs) {
         auto desc = output->GetBlobDesc();
         desc.device_type = impl_device_type_;
         desc.data_format = DATA_FORMAT_AUTO;
-        cpu_blob_out_.push_back(new Blob(desc, true));        
+        desc.data_type = DATA_TYPE_FLOAT;
+        cpu_blob_out_.push_back(new Blob(desc, true));
     }
 
-    cpu_adapter_acc_->Init(impl_device_context_, param, resource, cpu_blob_in_, cpu_blob_out_);
-    
-    return TNN_OK;
+    //cpu acc init
+    status = cpu_adapter_acc_->Init(impl_device_context_, param, resource, cpu_blob_in_, cpu_blob_out_);
+
+    return status;
 }
 
 OpenCLCpuAdapterAcc::~OpenCLCpuAdapterAcc() {
+    for(auto input : cpu_blob_in_) {
+        delete input;
+    }
+    cpu_blob_in_.clear();
+
+    for(auto output : cpu_blob_out_) {
+        delete output;
+    }
+    cpu_blob_out_.clear();
+
+    if (cpu_adapter_acc_) {
+        delete cpu_adapter_acc_;
+    }
+    cpu_adapter_acc_ = nullptr;
+
+    if (impl_device_context_) {
+        delete impl_device_context_;
+    }
+    impl_device_context_ = nullptr;
+
 }
 
 Status OpenCLCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -77,22 +120,23 @@ Status OpenCLCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std
         auto cpu_input = cpu_blob_in_[i];
         auto dims = device_input->GetBlobDesc().dims;
         cpu_input->GetBlobDesc().dims = dims;
-    }   
+    }
 
     for(int i = 0; i < outputs.size(); ++i) {
         auto device_output = outputs[i];
         auto cpu_output = cpu_blob_out_[i];
         auto dims = device_output->GetBlobDesc().dims;
         cpu_output->GetBlobDesc().dims = dims;
-    }   
- 
-    cpu_adapter_acc_->Reshape(cpu_blob_in_, cpu_blob_out_);
-    return TNN_OK;
+    }
+
+    return cpu_adapter_acc_->Reshape(cpu_blob_in_, cpu_blob_out_);
 }
 
 Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    void* command_queue;
+    void* command_queue = nullptr;
     ocl_context_->GetCommandQueue(&command_queue);
+
+    Status status = TNN_OK;
     //convert data from opencl to cpu
     for(int i = 0; i < inputs.size(); ++i) {
         auto device_input = inputs[i];
@@ -102,47 +146,62 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
         MatConvertParam param;
         if(DATA_FORMAT_NCHW == cpu_input->GetBlobDesc().data_format) {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_input->GetBlobDesc().dims, cpu_input->GetHandle().base);
-            blob_converter.ConvertToMat(mat, param, command_queue);
+            status = blob_converter.ConvertToMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         } else {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_input->GetBlobDesc().dims);
-            blob_converter.ConvertToMat(mat, param, command_queue);
+            status = blob_converter.ConvertToMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
             float* src_data = reinterpret_cast<float*>(mat.GetData());
-            float* dst_data = reinterpret_cast<float*>(cpu_input->GetHandle().base); 
+            float* dst_data = reinterpret_cast<float*>(cpu_input->GetHandle().base);
             DataFormatConverter::ConvertFromNCHWToNCHW4Float(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
         }
     }
-        
-    cpu_adapter_acc_->Forward(cpu_blob_in_, cpu_blob_out_);
-   
+
+    //cpu acc forword
+    status = cpu_adapter_acc_->Forward(cpu_blob_in_, cpu_blob_out_);
+    if (status != TNN_OK) {
+        return status;
+    }
+
     //convert data from cpu to opencl
     for(int i = 0; i < outputs.size(); ++i) {
         auto device_output = outputs[i];
         auto cpu_output = cpu_blob_out_[i];
         auto dims = cpu_output->GetBlobDesc().dims;
-        device_output->GetBlobDesc().dims = dims;
 
         BlobConverter blob_converter(device_output);
-        MatConvertParam param;    
+        MatConvertParam param;
         if(DATA_FORMAT_NCHW == cpu_output->GetBlobDesc().data_format) {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_output->GetBlobDesc().dims, cpu_output->GetHandle().base);
-            blob_converter.ConvertFromMat(mat, param, command_queue); 
+            status = blob_converter.ConvertFromMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         } else {
             Mat mat(DEVICE_NAIVE, NCHW_FLOAT, cpu_output->GetBlobDesc().dims);
-            float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base); 
+            float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base);
             float* dst_data = reinterpret_cast<float*>(mat.GetData());
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
-            blob_converter.ConvertFromMat(mat, param, command_queue); 
+            status = blob_converter.ConvertFromMat(mat, param, command_queue);
+            if (status != TNN_OK) {
+                return status;
+            }
         }
     }
-    
-    return TNN_OK;
+
+    return status;
 }
 
 std::vector<DataFormat> OpenCLCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
-    }   
+    }
     return support_list;
 }
 

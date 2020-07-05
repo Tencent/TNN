@@ -40,7 +40,7 @@ int Onnx2TNN::FuseSoftmax(onnx::GraphProto* mutable_graph,
                     node_div->op_type() == "Div"))
                     break;
                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
-                if (next_indexes.size() != 1) {
+                if (next_indexes.size() != 2) {
                     break;
                 }
                 next_indexes = GetNextIndexNode(index_nodes, i+1);

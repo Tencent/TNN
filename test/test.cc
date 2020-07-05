@@ -68,14 +68,34 @@ namespace test {
 
         ModelConfig model_config     = GetModelConfig();
         NetworkConfig network_config = GetNetworkConfig();
+
+        std::string input_shape_message(FLAGS_is);
+        std::string delimiter = "[";
+        std::vector<int> input_dim;
+        std::ptrdiff_t p1 = 0, p2;
+        p2 = input_shape_message.find(delimiter, p1);
+        std::string input_name = input_shape_message.substr(p1, p2 -p1);
+        p1 = p2 + 1;
+        delimiter = ",";
+        while (true) {
+            p2 = input_shape_message.find(delimiter, p1);
+            if (p2 != std::string::npos) {
+                input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
+                p1 = p2 + 1;
+            } else {
+                input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
+                break;
+            }
+        }
+        InputShapesMap input_shape;
+        input_shape[input_name] = input_dim;
         TNN net;
         Status ret = net.Init(model_config);
         if (CheckResult("init tnn", ret)) {
-            auto instance = net.CreateInst(network_config, ret);
+            auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
                 return 0;
             }
-
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
             // set cpu affinity, only work in arm mode
 
@@ -155,20 +175,21 @@ namespace test {
     }
 
     void ShowUsage() {
-        printf("    -h                      %s \n", help_message);
-        printf("    -mt \"<model type>\"    %s \n", model_type_message);
-        printf("    -mp \"<model path>\"    %s \n", model_path_message);
-        printf("    -dt \"<device type>\"   %s \n", device_type_message);
-        printf("    -lp \"<library path>\"  %s \n", library_path_message);
-        printf("    -ic \"<number>\"        %s \n", iterations_count_message);
-        printf("    -wc \"<number>\"        %s \n", warm_up_count_message);
-        printf("    -ip \"<path>\"          %s \n", input_path_message);
-        printf("    -op \"<path>\"          %s \n", output_path_message);
-        printf("    -dl \"<device list>\"   %s \n", device_list_message);
-        printf("    -th \"<thread umber>\"  %s \n", cpu_thread_num_message);
-        printf("    -it \"<input type>\"    %s \n", input_format_message);
-        printf("    -fc \"<format for compare>\"%s \n", output_format_cmp_message);
-        printf("    -pr \"<precision >\"    %s \n", precision_message);
+        printf("    -h                      \t%s \n", help_message);
+        printf("    -mt \"<model type>\"    \t%s \n", model_type_message);
+        printf("    -mp \"<model path>\"    \t%s \n", model_path_message);
+        printf("    -dt \"<device type>\"   \t%s \n", device_type_message);
+        printf("    -lp \"<library path>\"  \t%s \n", library_path_message);
+        printf("    -ic \"<number>\"        \t%s \n", iterations_count_message);
+        printf("    -wc \"<number>\"        \t%s \n", warm_up_count_message);
+        printf("    -ip \"<path>\"          \t%s \n", input_path_message);
+        printf("    -op \"<path>\"          \t%s \n", output_path_message);
+        printf("    -dl \"<device list>\"   \t%s \n", device_list_message);
+        printf("    -th \"<thread umber>\"  \t%s \n", cpu_thread_num_message);
+        printf("    -it \"<input type>\"    \t%s \n", input_format_message);
+        printf("    -pr \"<precision >\"    \t%s \n", precision_message);
+        printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
+        printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
     }
 
     void SetCpuAffinity() {

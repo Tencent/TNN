@@ -102,7 +102,7 @@ int Onnx2TNN::Convert(DataType dataType) {
         if (ret != 0) {
             delete onnx_model;
 
-            DLog("read_proto_from_binary failed, path:%s\n", onnx_model_path_.c_str());
+            LOGE("read_proto_from_binary failed, path:%s\n", onnx_model_path_.c_str());
             return ret;
         }
 
@@ -112,7 +112,7 @@ int Onnx2TNN::Convert(DataType dataType) {
     //提取onnx的blob和weights信息
     ret = OnnxExtractBlobWeights();
     if (ret != 0) {
-        DLog("OnnxExtractBlobWeights failed");
+        LOGE("OnnxExtractBlobWeights failed");
         return ret;
     }
 
@@ -122,13 +122,13 @@ int Onnx2TNN::Convert(DataType dataType) {
 
     ret = TNNWriteProto();
     if (ret != 0) {
-        DLog("TNNWriteProto failed");
+        LOGE("TNNWriteProto failed");
         return ret;
     }
 
     ret = TNNWriteModel();
     if (ret != 0) {
-        DLog("TNNWriteModel failed");
+        LOGE("TNNWriteModel failed");
         return ret;
     }
 
@@ -142,7 +142,7 @@ int Onnx2TNN::TNNWriteProto() {
     do {
         file_proto = fopen(tnn_proto_path_.c_str(), "w");
         if (!file_proto) {
-            DLog("fopen proto file failed, path:%s\n", tnn_proto_path_.c_str());
+            LOGE("fopen proto file failed, path:%s\n", tnn_proto_path_.c_str());
             break;
         }
 
@@ -196,7 +196,7 @@ int Onnx2TNN::TNNWriteProto() {
                 }
 
                 if (intput_blob_count == 0) {
-                    DLog("invalid input blob count(must >= 1): %d\n", intput_blob_count);
+                    LOGE("invalid input blob count(must >= 1): %d\n", intput_blob_count);
                     assert(0);
                     break;
                 }
@@ -213,7 +213,7 @@ int Onnx2TNN::TNNWriteProto() {
                         shape_w = (int)input_blob_shape.dim(3).dim_value();
                         shape_n = std::max(shape_n, 1);
 
-                        DLog(
+                        LOGD(
                             "input_blob %d(%s) channel order:%d(%s) %d(%s) "
                             "%d(%s) %d(%s)\n",
                             ii, input_blob->name().c_str(), shape_n, input_blob_shape.dim(0).denotation().c_str(),
@@ -222,7 +222,7 @@ int Onnx2TNN::TNNWriteProto() {
                             input_blob_shape.dim(3).denotation().c_str());
 
                         if (shape_c <= 0 || shape_h <= 0 || shape_w <= 0) {
-                            DLog("intput shape is invalid\n");
+                            LOGE("intput shape is invalid\n");
                             assert(0);
                         }
 
@@ -234,7 +234,7 @@ int Onnx2TNN::TNNWriteProto() {
                         shape_d = (int)input_blob_shape.dim(2).dim_value();
                         shape_h = (int)input_blob_shape.dim(3).dim_value();
                         shape_w = (int)input_blob_shape.dim(4).dim_value();
-                        DLog(
+                        LOGD(
                             "input_blob %d(%s) channel order:%d(%s) %d(%s) "
                             "%d(%s) %d(%s) %d(%s)\n",
                             ii, input_blob->name().c_str(), shape_n, input_blob_shape.dim(0).denotation().c_str(),
@@ -246,7 +246,7 @@ int Onnx2TNN::TNNWriteProto() {
                         proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_d
                                        << " " << shape_h << " " << shape_w << " ";
                     } else {
-                        DLog("input_blob_shape invalid\n");
+                        LOGE("input_blob_shape invalid\n");
                         assert(0);
                         break;
                     }
@@ -287,7 +287,7 @@ int Onnx2TNN::TNNWriteProto() {
                 proto_net_info << ",\"" << endl;
 
                 if (output_blob_count <= 0) {
-                    DLog("invalid output blob count(must = 1): %d\n", output_blob_count);
+                    LOGE("invalid output blob count(must = 1): %d\n", output_blob_count);
                     assert(0);
                     break;
                 }
@@ -307,10 +307,10 @@ int Onnx2TNN::TNNWriteProto() {
 
                 auto op_converter = OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
                 if (!op_converter) {
-                    DLog("error::op convert failed onnx:%s\n", onnx_op.c_str());
+                    LOGE("error::op convert failed onnx:%s\n", onnx_op.c_str());
                     assert(0);
                 } else {
-                    DLog("node:%s onnx:%s -> tnn:%s\n", node.output(0).c_str(), onnx_op.c_str(),
+                    LOGD("node:%s onnx:%s -> tnn:%s\n", node.output(0).c_str(), onnx_op.c_str(),
                          op_converter->TNNOpType(node, onnx_net_info_).c_str());
                 }
 
@@ -325,6 +325,11 @@ int Onnx2TNN::TNNWriteProto() {
         fprintf(file_proto, "\" %d ,\"\n", layer_count);
         fprintf(file_proto, "%s", proto_layers.str().c_str());
 
+        // LOGE("%s", proto_net_info.str().c_str());
+        // // line 5, 层数 TODO
+        // LOGE("\" %d ,\"\n", layer_count);
+        // LOGE("%s", proto_layers.str().c_str());
+
     } while (0);
 
     if (file_proto) {
@@ -335,7 +340,7 @@ int Onnx2TNN::TNNWriteProto() {
 
 int Onnx2TNN::OnnxExtractBlobWeights() {
     if (!onnx_model_) {
-        DLog("onnx_model is nil");
+        LOGE("onnx_model is nil");
         return -1;
     }
 
@@ -365,7 +370,8 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     for (int j = 0; j < graph.initializer_size(); j++) {
         const onnx::TensorProto& initializer = graph.initializer(j);
 
-        fprintf(stderr, "weight = %s\n", initializer.name().c_str());
+        // fprintf(stderr, "weight = %s\n", initializer.name().c_str());
+        LOGD("weight = %s\n", initializer.name().c_str());
 
         weights[initializer.name()] = initializer;
     }
@@ -373,7 +379,8 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     for (int j = 0; j < graph.value_info_size(); j++) {
         const onnx::TensorShapeProto& shape_info = graph.value_info(j).type().tensor_type().shape();
 
-        fprintf(stderr, "value_info dim_size = %d\n", shape_info.dim_size());
+        // fprintf(stderr, "value_info dim_size = %d\n", shape_info.dim_size());
+        LOGD("value_info dim_size = %d\n", shape_info.dim_size());
 
         weight_shapes[graph.value_info(j).name()] = shape_info;
     }
@@ -529,7 +536,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             auto next_op_type = mutable_graph->mutable_node(i)->op_type();
             if (op_types_to_remove.find(next_op_type) != op_types_to_remove.end() && i < node_count) {
                 if (node->input_size() != 1 || (node->output_size() != 1 && i != node_count - 1)) {
-                    DLog("remove %s layer failed\n", next_op_type.c_str());
+                    LOGE("remove %s layer failed\n", next_op_type.c_str());
                     assert(0);
                 }
 
@@ -543,14 +550,14 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
                 // 找到输入输出节点
                 int input_node_id = node_name_to_node_id[node->input(0)];
-                DLog("op %s[%s] input node id:%d\n", next_op_type.c_str(), node_name.c_str(), input_node_id);
+                LOGD("op %s[%s] input node id:%d\n", next_op_type.c_str(), node_name.c_str(), input_node_id);
                 onnx::NodeProto* node_input = mutable_graph->mutable_node(input_node_id);
 
                 std::vector<int> output_node_ids = follow_up_node_ids[node_name];
 
                 // 将Squeeze 后续节点 输入替换为Squeeze的输入
                 for (int out_id = 0; out_id < output_node_ids.size(); out_id++) {
-                    DLog("%s[%s] out node id:%d\n", next_op_type.c_str(), node_name.c_str(), output_node_ids[out_id]);
+                    LOGD("%s[%s] out node id:%d\n", next_op_type.c_str(), node_name.c_str(), output_node_ids[out_id]);
                     onnx::NodeProto* node_follow_up = mutable_graph->mutable_node(output_node_ids[out_id]);
 
                     int k;
@@ -561,7 +568,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
                         }
                     }
                     if (k == node_follow_up->input_size()) {
-                        DLog("%s follow up nodes does not has a corresponding input\n", next_op_type.c_str());
+                        LOGE("%s follow up nodes does not has a corresponding input\n", next_op_type.c_str());
                         assert(0);
                     }
                 }

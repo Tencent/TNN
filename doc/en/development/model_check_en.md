@@ -1,4 +1,7 @@
 # Model Verification Tool
+
+[中文版本](../../cn/development/model_check.md)
+
 ## I. Function
 Check whether the output of the model on corresponding platform (OpenCL, Metal, Cuda, ARM) is correct.
 

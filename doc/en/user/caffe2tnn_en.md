@@ -1,5 +1,7 @@
 # Caffe Model to ONNX Model
 
+[中文版本](../../cn/user/caffe2tnn.md)
+
 To convert the Caffe model to a TNN model, first convert the Caffe model to an ONNX model, which is then converted to a TNN model.
 
  We use the caffe2onnx tool to convert the Caffe model to ONNX. In the following document, it will briefly introduce how to use caffe2onnx to convert, and then it is recommended to refer to [onnx2tnn](onnx2tnn_en.md)to convert the ONNX model to TNN.
@@ -84,8 +86,11 @@ positional arguments:
                     .caffemodel!
 
 optional arguments:
-  -h, --help        show this help message and exit
-  -o ONNX_FILE      the path for generate onnx file
+  -h, --help            show this help message and exit
+  -o ONNX_FILE          the path for generate onnx file
+  -align                align the onnx model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
 ```
 
 ## 3. caffe2onnx operator support

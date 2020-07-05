@@ -30,8 +30,6 @@ public:
 
     Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 

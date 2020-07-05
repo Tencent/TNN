@@ -18,8 +18,10 @@ import subprocess
 import datetime
 import time
 
+from converter import logging
 
-def run(cmd_string, work_dir="", timeout=None, is_shell=True):
+
+def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
     """
          执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
         :parameter:
@@ -46,8 +48,8 @@ def run(cmd_string, work_dir="", timeout=None, is_shell=True):
                            cwd=work_dir,
                            close_fds=True)
     (stdout, stderr) = sub.communicate()
-    print(str(stdout.decode('utf-8')))
-    print(str(stderr.decode('utf-8')))
+    logging.debug(str(stdout.decode('utf-8')))
     rc = sub.poll()
+    if rc != 0:
+        logging.error(str(stderr.decode('utf-8')))
     return rc
-

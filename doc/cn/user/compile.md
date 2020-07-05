@@ -1,5 +1,7 @@
 # 从源代码编译
 
+[English Version](../../en/user/compile_en.md)
+
 ## 一、iOS库编译
 ### 1. 编译环境要求
   - Mac系统, Xcode IDE

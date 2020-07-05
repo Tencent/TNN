@@ -21,10 +21,7 @@ namespace TNN_NS {
 
 Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
 
     auto reformat_param = dynamic_cast<ReformatLayerParam *>(param);
     CHECK_PARAM_NULL(reformat_param);
@@ -45,15 +42,10 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         }
         return Status(TNNERR_MODEL_ERR, "unsupport precision mode");
     }
-    return this->Reshape(inputs, outputs);
+    return allocateBufferParam(inputs, outputs);
 }
 
 ArmReformatLayerAcc::~ArmReformatLayerAcc() {}
-
-Status ArmReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
-    return allocateBufferParam(inputs, outputs);
-}
 
 Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReformatLayerParam *>(param_);

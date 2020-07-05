@@ -15,8 +15,11 @@
 from utils import cmd
 from utils import checker
 from onnx_converter import onnx2tnn
-import os
+from onnx_converter import align_model
 
+from converter import logging
+
+import os
 
 def caffe2onnx(proto_path, model_path, output_path):
     work_dir = "../caffe2onnx/"
@@ -28,23 +31,42 @@ def caffe2onnx(proto_path, model_path, output_path):
         return False
 
 
-def convert(proto_path, model_path, output_dir, version, optimize, half):
+def convert(proto_path, model_path, output_dir, version, optimize, half, align=False,
+            input_path=None, refer_path=None):
+    logging.info("converter Caffe to ONNX Model\n")
     checker.check_file_exist(proto_path)
     checker.check_file_exist(model_path)
     if output_dir is None:
         output_dir = os.path.dirname(proto_path)
     checker.check_file_exist(output_dir)
+
     proto_name = os.path.basename(proto_path)
     proto_name = proto_name[:-len(".prototxt")]
     onnx_path = os.path.join(output_dir, proto_name + ".onnx")
+
     if caffe2onnx(proto_path, model_path, onnx_path) is False:
-        print("Oh No, caff2onnx failed")
+        logging.info("Oh No, caff2onnx failed\n")
     else:
-        print("congratulations! caffe2onnx succeed!")
+        logging.info("congratulations! caffe2onnx succeed!\n")
     if version is None:
         version = "v1.0"
+
     is_ssd = checker.is_ssd_model(proto_path)
     if is_ssd:
         onnx2tnn.convert(onnx_path, output_dir, version, False, half)
     else:
         onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+
+    if align is True:
+        proto_suffix = '.tnnproto'
+        model_suffix = '.tnnmodel'
+        onnx_base_name = os.path.basename(onnx_path)
+        if optimize is True:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+        else:
+            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)

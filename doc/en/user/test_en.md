@@ -1,5 +1,7 @@
 # Model Test  
 
+[中文版本](../../cn/user/test.md)
+
 ## I. Compile
 Refer to [Install and Compile](./compile_en.md).
 Enable the test options：

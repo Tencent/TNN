@@ -50,11 +50,6 @@ Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status ArmNchwLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
-    return TNN_OK;
-}
-
 Status ArmNchwLayerAcc::AllocConvertBuffer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     int space_id = 0;
     nchw_blob_in.clear();
