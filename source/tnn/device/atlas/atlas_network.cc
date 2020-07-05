@@ -113,18 +113,18 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
     }
 
     for (auto item : input_blob_map_) {
-        size_t index     = 0;
-        aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, item.first.c_str(), &index);
-        if (acl_ret == ACL_ERROR_NONE) {
-            if (IsDynamicBatch(model_desc_, item.first)) {
-                // set dynamic batch
-                int batch = item.second->GetBlobDesc().dims[0];
-                acl_ret   = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
+        if (IsDynamicBatch(model_desc_, item.first) && dynamic_batch_name_.size() > 0) {
+            // set dynamic batch
+            int batch = item.second->GetBlobDesc().dims[0];
+            size_t index = 0;
+            aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, dynamic_batch_name_[0].c_str(), &index);
+            if (acl_ret == ACL_ERROR_NONE) {
+                acl_ret = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
                 if (acl_ret != ACL_ERROR_NONE) {
                     LOGE("set batch size (%s) in reshape failed\n", item.first.c_str());
                     return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
                 }
-                LOGD("input (%s) set dynamic batch size %d\n", item.first.c_str(), batch);
+                LOGD("input (%s) set dynamic batch size %d (index: %d)\n", item.first.c_str(), batch, index);
             }
         }
     }
@@ -355,6 +355,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         // skip dynamic batch input
         if (blob_name.find(ACL_DYNAMIC_TENSOR_NAME) != std::string::npos) {
             LOGD("find dynamic batch input (%s) and skip...\n", blob_name.c_str());
+            dynamic_batch_name_.push_back(blob_name);
             return TNN_OK;
         }
         // get dims info

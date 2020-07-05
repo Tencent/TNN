@@ -99,6 +99,7 @@ private:
     aclmdlDesc *model_desc_                           = nullptr;
     aclmdlDataset *input_                             = nullptr;
     aclmdlDataset *output_                            = nullptr;
+    std::vector<std::string> dynamic_batch_name_;
 };
 
 }  // namespace TNN_NS

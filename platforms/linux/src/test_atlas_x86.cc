@@ -132,10 +132,10 @@ int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims
         }
     }
 
-    int offset = chw * sizeof(float);
+    int offset = chw;
     for (int n = 1; n < N; ++n) {
         memcpy(img + offset, img, chw * sizeof(float));
-        offset += chw * sizeof(float);
+        offset += chw;
     }
 
     f.close();
