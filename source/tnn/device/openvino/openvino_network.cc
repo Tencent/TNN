@@ -135,14 +135,16 @@ Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
     auto input_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(input_tensor);
     auto input_node = std::dynamic_pointer_cast<ngraph::op::Parameter>(input_openvino_tensor->GetNode());
 
-    auto output_name = net_structure->layers.back()->outputs.at(0);
-    auto output_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(output_name))->GetForeignTensor();
-    auto output_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(output_tensor);
-    auto result_node = std::make_shared<ngraph::op::Result>(output_openvino_tensor->GetNode());
-    
+    ngraph::NodeVector outputNodes;
+    for (auto name : net_structure->outputs) {
+        auto output_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name))->GetForeignTensor();
+        auto output_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(output_tensor);
+        auto result_node = std::make_shared<ngraph::op::Result>(output_openvino_tensor->GetNode());
+        outputNodes.push_back(result_node);
+    } 
     
     std::shared_ptr<ngraph::Function> nodeFunciton = std::make_shared<ngraph::Function>(
-         result_node, ngraph::ParameterVector{ input_node }, "net");
+         outputNodes, ngraph::ParameterVector{ input_node }, "net");
 
     network_ =  std::make_shared<InferenceEngine::CNNNetwork>(nodeFunciton);
     return TNN_OK;
