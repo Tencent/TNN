@@ -20,6 +20,10 @@ namespace TNN_NS {
 
 DECLARE_CPU_ACC(SignedMul, LAYER_SIGNED_MUL);
 
+Status CpuSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
 Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, const std::vector<tnn::Blob *> &outputs) {
     auto layer_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!layer_param) {
