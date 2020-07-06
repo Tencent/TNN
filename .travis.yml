@@ -11,7 +11,7 @@ addons:
 
 matrix:
   include:
-    - name: "Linux | Debug | build"
+    - name: "Linux | build"
       os: linux
       language: cpp
       compiler: gcc
