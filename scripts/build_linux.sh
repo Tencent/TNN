@@ -3,7 +3,6 @@
 SHARED_LIB="ON"
 ARM="ON"
 OPENMP="ON"
-DEBUG="ON"
 OPENCL="OFF"
 QUANTIZATION="OFF"
 CC=gcc
@@ -14,8 +13,8 @@ then
     TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
 fi
 
-mkdir build_linux_debug
-cd build_linux_debug
+mkdir build_linux
+cd build_linux
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \
@@ -23,7 +22,6 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_CPU_ENABLE=ON \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
-    -DCMAKE_BUILD_TYPE=Debug\
     -DTNN_ARM_ENABLE:BOOL=$ARM \
     -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
     -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \

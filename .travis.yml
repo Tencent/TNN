@@ -15,7 +15,7 @@ matrix:
       os: linux
       language: cpp
       compiler: gcc
-      script: ./scripts/build_linux_debug.sh
+      script: ./scripts/build_linux.sh
 
     - name: "MacOS | build"
       os: osx
