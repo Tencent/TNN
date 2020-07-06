@@ -50,6 +50,7 @@ Status ConvOVLayerBuilder::Build() {
     for (auto item : paramlist->strides) {
         stride.push_back(item);
     }
+    std::reverse(stride.begin(), stride.end());
     convNode->set_strides(stride);
 
     // set pads
@@ -86,6 +87,7 @@ Status ConvOVLayerBuilder::Build() {
     weights_shape.push_back(paramlist->output_channel / paramlist->group);
     weights_shape.push_back(paramlist->input_channel);
     weight_size *= paramlist->output_channel * paramlist->input_channel;
+    std::reverse(paramlist->kernels.begin(), paramlist->kernels.end());
     for (auto item : paramlist->kernels) {
         weights_shape.push_back(item);
         weight_size *= item;
