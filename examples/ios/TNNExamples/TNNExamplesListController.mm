@@ -54,9 +54,11 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFaceDetectorController"];
     } else if (indexPath.section == 1) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageClassifyController"];
-    } else if (indexPath.section == 2) {
+    } else if (indexPath.section == 2){
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageColourController"];
+    } else if (indexPath.section == 3){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
-    } else if (indexPath.section == 3) {
+    } else if (indexPath.section == 4) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNObjectDetectorController"];
     }
 

@@ -161,9 +161,8 @@ using namespace TNN_NS;
     }
     auto bench_result = detector.GetBenchResult();
     self.labelResult.text =
-        [NSString stringWithFormat:@"device: %@      obj count:%d\ntime:\n%sclass=%s",
-                                   compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)obj_info.size(),
-         bench_result.Description().c_str(), ss.str().c_str()];
+        [NSString stringWithFormat:@"device: %@      obj count:%d\nclass=%s\ntime:\n%s",
+                                   compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)obj_info.size(), ss.str().c_str(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
