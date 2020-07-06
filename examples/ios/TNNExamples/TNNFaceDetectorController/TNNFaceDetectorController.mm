@@ -37,17 +37,20 @@ using namespace TNN_NS;
 
     self.image_orig = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"test.jpg" ofType:nil]];
     self.imageView.image = self.image_orig;
-    auto view = self.labelResult.superview;
+    auto view            = self.labelResult.superview;
     [self.imageView removeFromSuperview];
     [self.labelResult removeFromSuperview];
-    int screenWidth = view.frame.size.width;
-    int screenHeight = view.frame.size.height;
-    int width = self.imageView.frame.size.width;
-    int height = self.imageView.frame.size.height;
-    int widthOffset = (screenWidth - width) / 2;
+    int screenWidth      = view.frame.size.width;
+    int screenHeight     = view.frame.size.height;
+    int width            = self.imageView.frame.size.width;
+    int height           = self.imageView.frame.size.height;
+    int widthOffset      = (screenWidth - width) / 2;
     self.imageView.frame = CGRectMake(widthOffset, (screenHeight - height) / 10, width, height);
     [view addSubview:self.imageView];
-    self.labelResult.frame = CGRectMake(self.imageView.frame.origin.x, self.imageView.frame.origin.y + height + 5 - self.labelResult.frame.size.height / 2, self.labelResult.frame.size.width, self.labelResult.frame.size.height);
+    self.labelResult.frame =
+        CGRectMake(self.imageView.frame.origin.x,
+                   self.imageView.frame.origin.y + height + 5 - self.labelResult.frame.size.height / 2,
+                   self.labelResult.frame.size.width, self.labelResult.frame.size.height);
     [view addSubview:self.labelResult];
 }
 
@@ -71,14 +74,12 @@ using namespace TNN_NS;
     auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.param"
                                                       ofType:nil];
 #else
-    auto model_path =
-        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
-                                        ofType:nil];
-    auto proto_path =
-        [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
-                                        ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
+                                                      ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
+                                                      ofType:nil];
 #endif
-    if ( proto_path.length <= 0 || model_path.length <= 0 ) {
+    if (proto_path.length <= 0 || model_path.length <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
         NSLog(@"Error: proto or model path is invalid");
         return;
@@ -86,7 +87,7 @@ using namespace TNN_NS;
 
     string proto_content =
         [NSString stringWithContentsOfFile:proto_path encoding:NSUTF8StringEncoding error:nil].UTF8String;
-    NSData *data_mode         = [NSData dataWithContentsOfFile:model_path];
+    NSData *data_mode    = [NSData dataWithContentsOfFile:model_path];
     string model_content = [data_mode length] > 0 ? string((const char *)[data_mode bytes], [data_mode length]) : "";
     if (proto_content.size() <= 0 || model_content.size() <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
@@ -96,7 +97,7 @@ using namespace TNN_NS;
 
     const int target_height = 240;
     const int target_width  = 320;
-    DimsVector target_dims = {1, 3, target_height, target_width};
+    DimsVector target_dims  = {1, 3, target_height, target_width};
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
@@ -134,14 +135,14 @@ using namespace TNN_NS;
         status = detector.Detect(image_mat, target_height, target_width, face_info);
     } else if (compute_units == TNNComputeUnitsCPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = detector.Detect(image_mat, target_height, target_width, face_info);
+        status         = detector.Detect(image_mat, target_height, target_width, face_info);
     }
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
-    auto bench_result = detector.GetBenchResult();
+    auto bench_result     = detector.GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
                                                        compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
                                                        (int)face_info.size(), bench_result.Description().c_str()];

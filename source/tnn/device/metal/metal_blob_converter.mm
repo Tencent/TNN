@@ -359,7 +359,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
     if (status != TNN_OK) {
         return status;
     }
-
+    //dongxiao
+    output_blob->GetBlobDesc().dims = input_mat.GetDims();
     do {
         if (mat_type == N8UC4) {
             // For Texture input

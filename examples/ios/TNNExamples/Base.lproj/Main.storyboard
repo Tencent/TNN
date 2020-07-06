@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="1C3-Qb-WYm">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16097" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="1C3-Qb-WYm">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15510"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -64,7 +64,7 @@
                     <navigationItem key="navigationItem" title="TNNFaceDetectorController" id="It1-My-GFQ">
                         <barButtonItem key="rightBarButtonItem" systemItem="compose" id="ij5-NC-1g3">
                             <connections>
-                                <segue destination="jDT-gM-iHE" kind="show" id="v5L-ug-QZk"/>
+                                <segue destination="jDT-gM-iHE" kind="show" id="33x-pX-Avd"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -78,6 +78,75 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="357.60000000000002" y="26.53673163418291"/>
+        </scene>
+        <!--TNNObjectDetectorController-->
+        <scene sceneID="QXE-Uc-qAl">
+            <objects>
+                <viewController storyboardIdentifier="TNNObjectDetectorController" id="AwB-4D-ExP" customClass="TNNObjectDetectorController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="lwv-Yl-rCH">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="j8N-8N-DvR" userLabel="BtnTNN Exampls">
+                                <rect key="frame" x="188" y="563" width="120" height="40"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" systemColor="systemBlueColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <state key="normal" title="Run">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </state>
+                                <connections>
+                                    <action selector="onBtnTNNExamples:" destination="AwB-4D-ExP" eventType="touchDown" id="Ewj-OX-RE3"/>
+                                </connections>
+                            </button>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BPL-CO-dcy">
+                                <rect key="frame" x="30" y="60" width="300" height="300"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="FVH-sk-W1O" userLabel="SwitchGPU">
+                                <rect key="frame" x="82" y="568" width="49" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="onSwichChanged:" destination="AwB-4D-ExP" eventType="valueChanged" id="JCh-V4-ocx"/>
+                                </connections>
+                            </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="GPU" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NHy-Fo-Lmj">
+                                <rect key="frame" x="30" y="577" width="35" height="17"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="" lineBreakMode="tailTruncation" numberOfLines="5" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ivE-Ud-4v3" userLabel="Label Result">
+                                <rect key="frame" x="30" y="680" width="300" height="80"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <viewLayoutGuide key="safeArea" id="gVz-JL-dqT"/>
+                    </view>
+                    <toolbarItems/>
+                    <navigationItem key="navigationItem" title="TNNObjectDetectorController" id="ZOX-Ve-2Hp">
+                        <barButtonItem key="rightBarButtonItem" systemItem="compose" id="GoY-xj-UbG" userLabel="Compose">
+                            <connections>
+                                <segue destination="jDT-gM-iHE" kind="show" id="eRu-Rx-vNT"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="btnTNNExamples" destination="j8N-8N-DvR" id="2CT-vv-7qa"/>
+                        <outlet property="imageView" destination="BPL-CO-dcy" id="JBU-aC-4MZ"/>
+                        <outlet property="labelResult" destination="ivE-Ud-4v3" id="ek6-5o-EsT"/>
+                        <outlet property="switchGPU" destination="FVH-sk-W1O" id="Ya3-jL-wt1"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="uEe-Ji-48m" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-500" y="798.35082458770626"/>
         </scene>
         <!--TNNImageClassifyController-->
         <scene sceneID="ySD-2M-GbC">
@@ -258,6 +327,39 @@
                                     </tableViewCell>
                                 </cells>
                             </tableViewSection>
+                            <tableViewSection id="lsY-aX-KAj">
+                                <cells>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" rowHeight="80" id="1Vr-Lz-e4C">
+                                        <rect key="frame" x="0.0" y="436" width="375" height="80"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="1Vr-Lz-e4C" id="oRu-DS-ZNZ">
+                                            <rect key="frame" x="0.0" y="0.0" width="375" height="80"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="物体检测" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YzV-lk-FKt">
+                                                    <rect key="frame" x="21" y="15" width="69.5" height="21"/>
+                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="单输入多输出" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ap5-5s-kkU">
+                                                    <rect key="frame" x="20" y="43.5" width="104" height="21"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="YzV-lk-FKt" firstAttribute="leading" secondItem="oRu-DS-ZNZ" secondAttribute="leading" constant="20" id="8MJ-Tj-rtC"/>
+                                                <constraint firstItem="ap5-5s-kkU" firstAttribute="top" secondItem="YzV-lk-FKt" secondAttribute="bottom" constant="7.5" id="GJ0-Ac-IEU"/>
+                                                <constraint firstItem="YzV-lk-FKt" firstAttribute="top" secondItem="oRu-DS-ZNZ" secondAttribute="top" constant="15" id="TQd-zZ-y6A"/>
+                                                <constraint firstAttribute="bottom" secondItem="ap5-5s-kkU" secondAttribute="bottom" priority="250" constant="15.5" id="XbX-ui-33a"/>
+                                                <constraint firstItem="ap5-5s-kkU" firstAttribute="leading" secondItem="oRu-DS-ZNZ" secondAttribute="leading" constant="20" id="iZO-Xx-ECU"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                </cells>
+                            </tableViewSection>
                         </sections>
                         <connections>
                             <outlet property="dataSource" destination="jDT-gM-iHE" id="ggX-Ye-BF7"/>
@@ -268,6 +370,7 @@
                     <connections>
                         <segue destination="5Zr-9o-llY" kind="show" id="Mjh-EY-zsL"/>
                         <segue destination="sgv-XJ-oS6" kind="show" id="K4E-B9-D8z"/>
+                        <segue destination="AwB-4D-ExP" kind="show" id="gjf-d3-x5D"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="9yb-bE-TQ2" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -358,10 +461,10 @@
             <point key="canvasLocation" x="1144.8" y="798.35082458770626"/>
         </scene>
     </scenes>
+    <inferredMetricsTieBreakers>
+        <segue reference="eRu-Rx-vNT"/>
+    </inferredMetricsTieBreakers>
     <resources>
         <image name="camera_rotate_fill.png" width="200" height="200"/>
     </resources>
-    <inferredMetricsTieBreakers>
-        <segue reference="g4Z-94-bEW"/>
-    </inferredMetricsTieBreakers>
 </document>
