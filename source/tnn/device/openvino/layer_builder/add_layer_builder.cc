@@ -36,13 +36,32 @@ Status AddOVLayerBuilder::Build() {
 
     auto paramlist = param_;
 
-    if (GetInputNodes().size() <=1) {
-        LOGE("Error: 0 input nodes\n");
+    if (GetInputNodes().size() <= 0) {
+        LOGE("Error: %d input nodes\n", GetInputNodes().size());
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes();
 
-    auto addNode = std::make_shared<ngraph::op::Add>(input_node[0]->output(0), input_node[1]->output(0));
+    std::shared_ptr<ngraph::op::v1::Add> addNode;
+    if (input_node.size() == 2) {
+        addNode = std::make_shared<ngraph::op::v1::Add>(
+            input_node[0]->output(0), input_node[1]->output(0));
+    } else {
+        auto resource = dynamic_cast<EltwiseLayerResource*>(GetResource());
+        // suppose that weights are on channel broadcast
+        ngraph::Shape weightNodeShape;
+        for (size_t i = 0; i < input_node[0]->get_output_shape(0).size(); i++) {
+            if (i == 1) weightNodeShape.push_back(input_node[0]->get_output_shape(0).at(i));
+            else weightNodeShape.push_back(1);
+        }
+        auto weightNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::f32, weightNodeShape, resource->element_handle.force_to<float*>());
+        weightNode->validate_and_infer_types();
+
+        addNode = std::make_shared<ngraph::op::v1::Add>(
+            input_node[0]->output(0), weightNode);
+    }
+
     addNode->set_friendly_name(paramlist->name);
     addNode->validate_and_infer_types();
 

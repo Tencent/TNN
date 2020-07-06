@@ -34,15 +34,31 @@ DECLARE_OPENVINO_LAYER_BUILDER(Mul, LAYER_MUL);
 
 Status MulOVLayerBuilder::Build() {
 
-    if (GetInputNodes().size() <=1) {
+    if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes();
 
-    auto mulNode = std::make_shared<ngraph::op::v1::Multiply>(
-        input_node[0]->output(0), input_node[1]->output(0));
+    std::shared_ptr<ngraph::op::v1::Multiply> mulNode;
+    if (input_node.size() == 2) {
+        mulNode = std::make_shared<ngraph::op::v1::Multiply>(
+            input_node[0]->output(0), input_node[1]->output(0));
+    } else {
+        auto resource = dynamic_cast<EltwiseLayerResource*>(GetResource());
+        // suppose that weights are on channels broadcast
+        ngraph::Shape weightNodeShape;
+        for (size_t i = 0; i < input_node[0]->get_output_shape(0).size(); i++) {
+            if (i == 1) weightNodeShape.push_back(input_node[0]->get_output_shape(0).at(i));
+            else weightNodeShape.push_back(1);
+        }
+        auto weightNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::f32, weightNodeShape, resource->element_handle.force_to<float*>());
+        weightNode->validate_and_infer_types();
 
+        mulNode = std::make_shared<ngraph::op::v1::Multiply>(
+            input_node[0]->output(0), weightNode);
+    }
     mulNode->validate_and_infer_types();
     mulNode->set_friendly_name(param_->name);
 
