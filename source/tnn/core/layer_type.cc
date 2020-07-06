@@ -207,7 +207,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
-    {"SignedMul", LATER_SIGNED_MUL},
+    {"SignedMul", LAYER_SIGNED_MUL},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

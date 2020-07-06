@@ -327,9 +327,9 @@ struct ConstLayerParam : public LayerParam {
 };
 
 struct SignedMulLayerParam : public LayerParam {
-    float alpha;
-    float beta;
-    float gamma;
+    float alpha = 1.0f;
+    float beta = 1.0f;
+    float gamma = 2.0f;
 };
 
 }  // namespace TNN_NS
