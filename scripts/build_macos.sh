@@ -21,5 +21,3 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
 
 make -j4
-
-ctest --output-on-failure -j 2
