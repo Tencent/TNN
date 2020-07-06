@@ -192,6 +192,14 @@ Status MetalCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std:
                 return status;
             }
         }
+        
+        // change the device_output dim for detection_output layer when necessary
+        if(impl_layer_type_ == LAYER_DETECTION_OUTPUT && device_output->GetBlobDesc().dims[2] != cpu_output->GetBlobDesc().dims[2]) {
+            // the detected object count will never exceed the 'keep_top_k' parameter, which is used to set the device_output dim
+            if (device_output->GetBlobDesc().dims[2] > cpu_output->GetBlobDesc().dims[2]) {
+                device_output->GetBlobDesc().dims[2] = cpu_output->GetBlobDesc().dims[2];
+            }
+        }
     }
 
     return status;
