@@ -31,54 +31,43 @@ Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, con
         return Status(TNNERR_MODEL_ERR, "Error: SignedMulLayerParam is nil");
     }
 
-    auto alpha = layer_param->alpha;
-    auto beta = layer_param->beta;
+    auto alpha     = layer_param->alpha;
+    auto beta      = layer_param->beta;
     auto gamma_inv = 1.0f / layer_param->gamma;
 
-    auto input_blob        = inputs[0];
-    auto output_blob       = outputs[0];
-    float *input_data      = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data     = static_cast<float *>(output_blob->GetHandle().base);
-    int batch              = input_blob->GetBlobDesc().dims[0];
-    int channel            = input_blob->GetBlobDesc().dims[1];
-    int count              = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    int channel_size       = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
+    auto input_blob    = inputs[0];
+    auto output_blob   = outputs[0];
+    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
+    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    int batch          = input_blob->GetBlobDesc().dims[0];
+    int channel        = input_blob->GetBlobDesc().dims[1];
+    int count          = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
+    int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
     for (int b = 0; b < batch; b++) {
         int offset = count / batch * b;
         for (int index = 0; index < count / batch; index++) {
-            // sub
             float temp = input_data[index + offset] - alpha;
-
-            // sign
             if (temp > 0) {
                 temp = 1;
             } else if (temp < 0) {
                 temp = -1;
             }
-
-            // add
             temp += beta;
-
-            //div
             temp *= gamma_inv;
-
             output_data[index + offset] = temp;
         }
-
-        // mul
         for (int c = 0; c < channel; c++) {
             int output_channel0_offset = offset;
-            int output_offset = offset + c * channel_size;
+            int output_offset          = offset + c * channel_size;
             for (int index = 0; index < channel_size; index++) {
                 output_data[output_offset + index] *= input_data[output_channel0_offset + index];
             }
         }
     }
-
     return 0;
 }
 
 REGISTER_CPU_ACC(SignedMul, LAYER_SIGNED_MUL);
 
-}
+}  // namespace TNN_NS
