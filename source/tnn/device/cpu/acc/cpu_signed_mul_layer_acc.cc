@@ -41,27 +41,29 @@ Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, con
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
     int batch          = input_blob->GetBlobDesc().dims[0];
     int channel        = input_blob->GetBlobDesc().dims[1];
-    int count          = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
     int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
     for (int b = 0; b < batch; b++) {
-        int offset = count / batch * b;
-        for (int index = 0; index < count / batch; index++) {
-            float temp = input_data[index + offset] - alpha;
-            if (temp > 0) {
-                temp = 1;
-            } else if (temp < 0) {
-                temp = -1;
-            }
-            temp += beta;
-            temp *= gamma_inv;
-            output_data[index + offset] = temp;
-        }
         for (int c = 0; c < channel; c++) {
-            int output_channel0_offset = offset;
-            int output_offset          = offset + c * channel_size;
-            for (int index = 0; index < channel_size; index++) {
-                output_data[output_offset + index] *= input_data[output_channel0_offset + index];
+            int channel_index = b * channel + c;
+            for (int i = 0; i < channel_size; i++) {
+                int index  = channel_index * channel_size + i;
+                float temp = input_data[index] - alpha;
+                if (temp > 0) {
+                    temp = 1;
+                } else if (temp < 0) {
+                    temp = -1;
+                }
+                temp += beta;
+                temp *= gamma_inv;
+                output_data[index] = temp;
+            }
+        }
+        for (int c = channel_size - 1; c >= 0; c--) {
+            int channel_index         = b * channel + c;
+            int output_channel0_index = b * channel;
+            for (int i = 0; i < channel_size; i++) {
+                output_data[channel_index + i] *= input_data[output_channel0_index + i];
             }
         }
     }
