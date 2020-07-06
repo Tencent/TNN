@@ -20,5 +20,3 @@ target_link_libraries(unit_test
     gtest
     gflags
     )
-
-add_test(NAME unit_test COMMAND unit_test)
