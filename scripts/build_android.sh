@@ -23,7 +23,7 @@ fi
 TNN_BUILD_PATH=$PWD
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
+    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version
 echo $TNN_ROOT_PATH

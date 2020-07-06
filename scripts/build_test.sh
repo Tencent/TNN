@@ -10,7 +10,7 @@ TARGET_ARCH=aarch64
 
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
+    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
 mkdir build_aarch64_linux

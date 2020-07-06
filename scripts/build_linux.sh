@@ -10,7 +10,7 @@ CXX=g++
 
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=$(dirname $(readlink -f $0))/..
+    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
 mkdir build_linux
