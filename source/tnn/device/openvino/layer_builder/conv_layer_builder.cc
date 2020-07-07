@@ -127,29 +127,16 @@ Status ConvOVLayerBuilder::Build() {
     convNode->validate_and_infer_types();
 
     if (paramlist->bias) {
-
-        // set bias
-        auto img_size = 1;
-        for (auto item : convNode->get_output_shape(0)) {
-            img_size *= item;
+        // set bias shape
+        ngraph::Shape biasShape;
+        for (size_t i = 0; i < convNode->get_output_shape(0).size(); i++) {
+            if (i == 1) biasShape.push_back(convNode->get_output_shape(0).at(1));
+            else biasShape.push_back(1);
         }
-        auto bias_size = paramlist->output_channel;
-        img_size /= bias_size;
 
-        InferenceEngine::TBlob<float>::Ptr biasPtr(new InferenceEngine::TBlob<float>({InferenceEngine::Precision::FP32, convNode->get_output_shape(0), InferenceEngine::Layout::OIHW}));
-        biasPtr->allocate();
-
-        // extend bias to conv shape
-        void* bias_buffer = biasPtr->buffer();
-        const float* w_bias = resource->bias_handle.force_to<float*>();
-        for (size_t i = 0; i < bias_size; i++) {
-            for (size_t j =0; j < img_size; j++) {
-                reinterpret_cast<float*>(bias_buffer)[i * img_size + j] = w_bias[i];
-            }
-        }
-        
+        // set bias node
         std::shared_ptr<ngraph::Node> biasNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, convNode->get_output_shape(0), biasPtr->cbuffer().as<float*>());
+            ngraph::element::Type_t::f32, biasShape, resource->bias_handle.force_to<float*>());
         
         auto addNode = std::make_shared<ngraph::op::v1::Add>();
         addNode->set_argument(0, convNode->output(0));
