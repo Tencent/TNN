@@ -69,12 +69,12 @@ Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, con
         }
         
         //mul
-        float *input_channel0_data = input_data + b * channel * channel_size;
+        float *output_data_c0 = output_data + b * channel * channel_size;
         for (int c = channel - 1; c >= 0; c--) {
             int channel_index = b * channel + c;
             float *output_data_c = output_data + channel_index * channel_size;
             for (int i = 0; i < channel_size; i++) {
-                output_data_c[i] *= input_channel0_data[i];
+                output_data_c[i] *= output_data_c0[i];
             }
         }
     }
