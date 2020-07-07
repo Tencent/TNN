@@ -46,24 +46,35 @@ Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, con
     for (int b = 0; b < batch; b++) {
         for (int c = 0; c < channel; c++) {
             int channel_index = b * channel + c;
+            float *input_data_c = input_data + channel_index * channel_size;
+            float *output_data_c = output_data + channel_index * channel_size;
             for (int i = 0; i < channel_size; i++) {
-                int index  = channel_index * channel_size + i;
-                float temp = input_data[index] - alpha;
+                //sub 
+                float temp = input_data_c[i] - alpha;
+                
+                //sign
                 if (temp > 0) {
                     temp = 1;
                 } else if (temp < 0) {
                     temp = -1;
                 }
+                
+                //add
                 temp += beta;
+                
+                //div
                 temp *= gamma_inv;
-                output_data[index] = temp;
+                output_data_c[i] = temp;
             }
         }
-        for (int c = channel_size - 1; c >= 0; c--) {
-            int channel_index         = b * channel + c;
-            int output_channel0_index = b * channel;
+        
+        //mul
+        float *input_channel0_data = input_data + b * channel * channel_size;
+        for (int c = channel - 1; c >= 0; c--) {
+            int channel_index = b * channel + c;
+            float *output_data_c = output_data + channel_index * channel_size;
             for (int i = 0; i < channel_size; i++) {
-                output_data[channel_index + i] *= input_data[output_channel0_index + i];
+                output_data_c[i] *= input_channel0_data[i];
             }
         }
     }
