@@ -61,8 +61,10 @@ function push_hiai_lib() {
     adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
 	if [ $ABI == "arm64-v8a" ]; then
 		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/arm64-v8a/* $ANDROID_DIR/$ABI/lib
+		adb push $WORK_DIR/../../third_party/npu/cpp_lib/arm64-v8a/* $ANDROID_DIR/$ABI/lib
 	else
 		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/armeabi-v7a/* $ANDROID_DIR/$ABI/lib
+		adb push $WORK_DIR/../../third_party/npu/cpp_lib/armeabi-v7a/* $ANDROID_DIR/$ABI/lib
 	fi
 }
 

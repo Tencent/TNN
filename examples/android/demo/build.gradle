@@ -36,14 +36,23 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_320']
+            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']
             jni.srcDirs = ['src/main/jni']
             assets.srcDirs = ['src/main/assets', '../../../model']
         }
     }
 }
 
+task copyFiles(type: Copy) {
+    from '../../../third_party/npu/hiai_ddk_latest'
+    into 'src/main/jni/thirdparty/hiai_ddk'
+}
+
+preBuild.dependsOn(copyFiles)
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:24.2.1'
 }
+
+
