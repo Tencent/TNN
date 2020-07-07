@@ -18,6 +18,7 @@ include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/incl
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
 include_directories(${COMMON_SRC}/)
 include_directories(../demo/src/main/jni/cc/)
+include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/include)
 
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
@@ -32,21 +33,20 @@ file(GLOB_RECURSE COMMON_SRCS ${COMMON_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${COMMON_SRCS} ${THIRDPARTY_SRCS})
 
-include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/include)
 add_library(hiai
         SHARED
         IMPORTED)
 set_target_properties(hiai
         PROPERTIES
         IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai.so)
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai.so)
 add_library(hiai_ir
         SHARED
         IMPORTED)
 set_target_properties(hiai_ir
         PROPERTIES
         IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir.so)
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir.so)
 
 add_library(hiai_ir_build
         SHARED
@@ -54,7 +54,7 @@ add_library(hiai_ir_build
 set_target_properties(hiai_ir_build
         PROPERTIES
         IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_320/${ANDROID_ABI}/libhiai_ir_build.so)
+        ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir_build.so)
 
 find_library( # Sets the name of the path variable.
               log-lib
