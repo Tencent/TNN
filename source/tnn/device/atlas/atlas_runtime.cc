@@ -51,12 +51,13 @@ void AtlasRuntime::DecreaseRef() {
     ref_count_--;
     if (0 == ref_count_) {
         atlas_runtime_singleton_.reset();
-        init_done_ = false;
     }
     LOGD("AtlasRuntime::DecreaseRef() count=%d\n", ref_count_);
 }
 
-AtlasRuntime::AtlasRuntime() {}
+AtlasRuntime::AtlasRuntime() {
+    device_list_.clear();
+}
 
 // Init will get platforms info, get devices info, create opencl context.
 Status AtlasRuntime::Init() {
@@ -125,6 +126,7 @@ AtlasRuntime::~AtlasRuntime() {
             LOGE("acl reset device failed!\n");
         }
     }
+    device_list_.clear();
 
     LOGD("aclFinalize()\n");
     ret = aclFinalize();
