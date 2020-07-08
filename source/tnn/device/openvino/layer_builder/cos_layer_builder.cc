@@ -42,13 +42,13 @@ Status CosOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto CosNode = std::make_shared<ngraph::op::Cos>(input_node->output(0));
+    auto cosNode = std::make_shared<ngraph::op::Cos>(input_node->output(0));
 
-    CosNode->set_friendly_name(param_->name);
-    CosNode->validate_and_infer_types();
+    cosNode->set_friendly_name(param_->name);
+    cosNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(CosNode);
+    outputNodes.push_back(cosNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;

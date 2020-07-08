@@ -32,9 +32,9 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Sin, LAYER_SIN);
+DECLARE_OPENVINO_LAYER_BUILDER(Log, LAYER_LOG);
 
-Status SinOVLayerBuilder::Build() {
+Status LogOVLayerBuilder::Build() {
     
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
@@ -42,18 +42,18 @@ Status SinOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto sinNode = std::make_shared<ngraph::op::Sin>(input_node->output(0));
+    auto logNode = std::make_shared<ngraph::op::Log>(input_node->output(0));
 
-    sinNode->set_friendly_name(param_->name);
-    sinNode->validate_and_infer_types();
+    logNode->set_friendly_name(param_->name);
+    logNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(sinNode);
+    outputNodes.push_back(logNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Sin, LAYER_SIN);
+REGISTER_OPENVINO_LAYER_BUILDER(Log, LAYER_LOG);
 
 }

@@ -42,13 +42,13 @@ Status AbsOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto AbsNode = std::make_shared<ngraph::op::Abs>(input_node->output(0));
+    auto absNode = std::make_shared<ngraph::op::Abs>(input_node->output(0));
 
-    AbsNode->set_friendly_name(param_->name);
-    AbsNode->validate_and_infer_types();
+    absNode->set_friendly_name(param_->name);
+    absNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(AbsNode);
+    outputNodes.push_back(absNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;

@@ -42,13 +42,13 @@ Status AsinOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto AsinNode = std::make_shared<ngraph::op::Asin>(input_node->output(0));
+    auto asinNode = std::make_shared<ngraph::op::Asin>(input_node->output(0));
 
-    AsinNode->set_friendly_name(param_->name);
-    AsinNode->validate_and_infer_types();
+    asinNode->set_friendly_name(param_->name);
+    asinNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(AsinNode);
+    outputNodes.push_back(asinNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;

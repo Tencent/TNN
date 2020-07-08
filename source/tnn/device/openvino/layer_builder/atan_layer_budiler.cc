@@ -42,13 +42,13 @@ Status AtanOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto AtanNode = std::make_shared<ngraph::op::Atan>(input_node->output(0));
+    auto atanNode = std::make_shared<ngraph::op::Atan>(input_node->output(0));
 
-    AtanNode->set_friendly_name(param_->name);
-    AtanNode->validate_and_infer_types();
+    atanNode->set_friendly_name(param_->name);
+    atanNode->validate_and_infer_types();
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(AtanNode);
+    outputNodes.push_back(atanNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;

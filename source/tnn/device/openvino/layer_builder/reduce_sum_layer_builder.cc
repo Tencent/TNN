@@ -20,8 +20,6 @@
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
-#include <ngraph/opsets/opset2.hpp>
-#include <ngraph/opsets/opset3.hpp>
 #include <inference_engine.hpp>
 
 #include "tnn/layer/base_layer.h"
@@ -32,28 +30,33 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Sin, LAYER_SIN);
+DECLARE_OPENVINO_LAYER_BUILDER(ReduceSum, LAYER_REDUCE_SUM);
 
-Status SinOVLayerBuilder::Build() {
-    
+Status ReduceSumOVLayerBuilder::Build() {
+
+    auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
+
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes()[0];
 
-    auto sinNode = std::make_shared<ngraph::op::Sin>(input_node->output(0));
+    auto axisNode = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i32, ngraph::Shape{paramlist->axis.size()}, paramlist->axis);
+    auto reduceSumNode = std::make_shared<ngraph::op::v1::ReduceSum>(
+        input_node->output(0), axisNode, paramlist->keep_dims);
+    reduceSumNode->validate_and_infer_types();
 
-    sinNode->set_friendly_name(param_->name);
-    sinNode->validate_and_infer_types();
+    reduceSumNode->set_friendly_name(paramlist->name);
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(sinNode);
+    outputNodes.push_back(reduceSumNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Sin, LAYER_SIN);
+REGISTER_OPENVINO_LAYER_BUILDER(ReduceSum, LAYER_REDUCE_SUM);
 
 }
