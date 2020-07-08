@@ -59,6 +59,9 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
     if (index < layer_cfg_arr.size()) {
         layer_param->type = atoi(layer_cfg_arr[index++].c_str());
     }
+    if (index < layer_cfg_arr.size()) {
+        layer_param->value = atof(layer_cfg_arr[index++].c_str());
+    }
 
     layer_param->pads = {pad_w, pad_r, pad_h, pad_b};
     return TNN_OK;

@@ -51,8 +51,10 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
         int pad_r = layer_param->pads[1];
         int pad_t = layer_param->pads[2];
         int pad_b = layer_param->pads[3];
+        float value = layer_param->value;
 
         if (layer_param->type == 0) {
+            // mode: const
             int ht_border = pad_t;
             int hb_border = pad_t + input_height;
             int wl_border = pad_l;
@@ -64,7 +66,7 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                 for (int h = 0; h < output_height; ++h) {
                     for (int w = 0; w < output_width; ++w) {
                         if (h < ht_border || h >= hb_border || w < wl_border || w >= wr_border) {
-                            output_data_ptr[h * output_width + w] = 0;
+                            output_data_ptr[h * output_width + w] = value;
                         } else {
                             int output_idx              = h * output_width + w;
                             int input_idx               = (h - ht_border) * input_width + w - wl_border;
@@ -74,6 +76,7 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                 }
             }
         } else if (layer_param->type == 1) {
+            // mode: reflect
             for (int c = 0; c < channels; c++) {
                 auto input_data_ptr  = input_data + c * input_height * input_width;
                 auto output_data_ptr = output_data + c * output_height * output_width;

@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -17,27 +17,22 @@
 
 DECLARE_OP_CONVERTER(Pad);
 
-string OnnxOpConverterPad::TNNOpType(NodeProto &node,
-                                          OnnxNetInfo &net_info) {
+string OnnxOpConverterPad::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<int64_t> pads = get_node_attr_ai(node, "pads", net_info, 1);
-    if (pads.size() > 8 ) {
+    if (pads.size() > 8) {
         return "Pad3D";
     } else {
         return "Pad";
     }
 }
 
-string OnnxOpConverterPad::TNNLayerParam(NodeProto &node,
-                                                     OnnxNetInfo &net_info) {
+string OnnxOpConverterPad::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
 
-    std::string mode = get_node_attr_s(node, "mode");
+    std::string mode          = get_node_attr_s(node, "mode");
     std::vector<int64_t> pads = get_node_attr_ai(node, "pads", net_info, 1);
-    float value;
-    if (net_info.opset >= 11 ) {
-        value = get_node_attr_f(node, "value", net_info, 2,0.f);
-    }
+    float const_value         = get_node_attr_f(node, "value", net_info, 2, 0.f);
 
     int type = 0;
     if (mode == "constant" || mode == "") {
@@ -56,32 +51,33 @@ string OnnxOpConverterPad::TNNLayerParam(NodeProto &node,
     }
 
     if (pads.size() == 10) {
-        int64_t pad_t = pads[2];
-        int64_t pad_b = pads[7];
-        int64_t pad_l = pads[3];
-        int64_t pad_r = pads[8];
+        int64_t pad_t   = pads[2];
+        int64_t pad_b   = pads[7];
+        int64_t pad_l   = pads[3];
+        int64_t pad_r   = pads[8];
         int64_t pad_d_f = pads[4];
         int64_t pad_d_b = pads[9];
 
-        layer_param <<"0 0 "<<pad_t<<" "<<pad_b<<" "
-        <<pad_l<<" "<<pad_r<<" "
-        <<pad_d_f<<" "<<pad_d_b<<" 0 0 "<<type<<" ";
-    } else if(pads.size() == 8){
-        int64_t pad_t = pads[2];
-        int64_t pad_b = pads[6];
-        int64_t pad_l = pads[3];
-        int64_t pad_r = pads[7];
+        layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " " << pad_d_f << " "
+                    << pad_d_b << " 0 0 " << type << " ";
+    } else if (pads.size() == 8) {
+        int64_t pad_c_b = pads[1];
+        int64_t pad_c_e = pads[5];
+        int64_t pad_t   = pads[2];
+        int64_t pad_b   = pads[6];
+        int64_t pad_l   = pads[3];
+        int64_t pad_r   = pads[7];
 
-        layer_param <<"0 0 "<<pad_t<<" "<<pad_b<<" "
-        <<pad_l<<" "<<pad_r <<" 0 0 "<<type<<" ";
+        // layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " 0 0 " << type << " ";
+        layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " " << pad_c_b << " "
+                    << pad_c_e << " " << type << " ";
     }
+    layer_param << const_value << " ";
 
     return layer_param.str();
 }
 
-int OnnxOpConverterPad::WriteTNNModel(serializer *net_writer,
-                                                  NodeProto &node,
-                                                  OnnxNetInfo &net_info) {
+int OnnxOpConverterPad::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

@@ -357,6 +357,10 @@ float get_node_attr_f(const onnx::NodeProto& node, const char* key,
     }
 
     // get attribute from inputs
+    if (number > node.input_size()) {
+        DLog("invalid number for input size: %s\n", node.name().c_str());
+        return def;
+    }
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
         DLog("invalid name for input: %s\n", name.c_str());

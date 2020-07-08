@@ -20,7 +20,7 @@
 namespace TNN_NS {
 
 class PadLayerTest : public LayerTest,
-                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int>> {};
+                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, float>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PadLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -29,7 +29,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PadLayerTest,
                                             // pad_t
                                             testing::Values(0, 1, 2),
                                             // pad_type
-                                            testing::Values(0, 1)));
+                                            testing::Values(0, 1),
+                                            // pad value
+                                            testing::Values(-FLT_MAX, 0, 2, FLT_MAX)));
 
 TEST_P(PadLayerTest, PadLayer) {
     // get param
@@ -39,6 +41,7 @@ TEST_P(PadLayerTest, PadLayer) {
     int pad_l      = std::get<3>(GetParam());
     int pad_t      = std::get<4>(GetParam());
     int pad_type   = std::get<5>(GetParam());
+    float value    = std::get<6>(GetParam());
 
     // insure pad is valid
     if (pad_l >= input_size) {
@@ -58,6 +61,7 @@ TEST_P(PadLayerTest, PadLayer) {
     param.name = "Pad";
     param.type = pad_type;
     param.pads = {pad_l, pad_l, pad_t, pad_t};
+    param.value = value;
 
     Run(LAYER_PAD, &param, nullptr, inputs_desc, outputs_desc);
 }
