@@ -96,6 +96,9 @@ Status OpenVINOLayerBuilder::SetOutputTensors(std::vector<Blob*> output_blobs) {
         auto tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
         openvino_tensor->SetNode(outputNodes_[0]);
+        for (auto dim : outputNodes_[0]->get_output_shape(0)) {
+            blob->GetBlobDesc().dims.push_back(dim);
+        }
     }
 
     return TNN_OK;
