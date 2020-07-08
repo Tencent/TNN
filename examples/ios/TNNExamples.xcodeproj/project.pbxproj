@@ -38,9 +38,9 @@
 		D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */ = {isa = PBXBuildFile; fileRef = D1330F4A244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm */; };
 		D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */; };
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
+		ECC4BCEE24B5DB4C0083024A /* 004545.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECC4BCED24B5DB4B0083024A /* 004545.jpg */; };
 		ECEF96DB24AED6360094CB8B /* TNNObjectDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DA24AED6360094CB8B /* TNNObjectDetectorController.mm */; };
 		ECEF96DD24AED66D0094CB8B /* ObjectDetector.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* ObjectDetector.cc */; };
-		ECEF97AF24B18D2A0094CB8B /* 001763.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECEF97AE24B18D2A0094CB8B /* 001763.jpg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -110,11 +110,11 @@
 		D1330F4B244AC4FA00CEBF29 /* TNNCameraVideoDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNCameraVideoDevice.h; sourceTree = "<group>"; };
 		D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = camera_rotate_fill.png; sourceTree = "<group>"; };
+		ECC4BCED24B5DB4B0083024A /* 004545.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 004545.jpg; sourceTree = "<group>"; };
 		ECEF96D624AED36B0094CB8B /* TNNObjectDetectorController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNObjectDetectorController.h; sourceTree = "<group>"; };
 		ECEF96D924AED3980094CB8B /* ObjectDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjectDetector.h; sourceTree = "<group>"; };
 		ECEF96DA24AED6360094CB8B /* TNNObjectDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNObjectDetectorController.mm; sourceTree = "<group>"; };
 		ECEF96DC24AED66C0094CB8B /* ObjectDetector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjectDetector.cc; sourceTree = "<group>"; };
-		ECEF97AE24B18D2A0094CB8B /* 001763.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 001763.jpg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,7 +276,7 @@
 		ECEF96D524AED36B0094CB8B /* TNNObjectDetectorController */ = {
 			isa = PBXGroup;
 			children = (
-				ECEF97AE24B18D2A0094CB8B /* 001763.jpg */,
+				ECC4BCED24B5DB4B0083024A /* 004545.jpg */,
 				ECEF96DA24AED6360094CB8B /* TNNObjectDetectorController.mm */,
 				ECEF96D624AED36B0094CB8B /* TNNObjectDetectorController.h */,
 			);
@@ -362,9 +362,9 @@
 				9D9187E2242C30D600DF2B79 /* tiger_cat.jpg in Resources */,
 				9DD579FD23B5A20E00A96E63 /* LaunchScreen.storyboard in Resources */,
 				9D9187E3242C30D600DF2B79 /* test.jpg in Resources */,
-				ECEF97AF24B18D2A0094CB8B /* 001763.jpg in Resources */,
 				9D9187E0242C30D600DF2B79 /* synset.txt in Resources */,
 				D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */,
+				ECC4BCEE24B5DB4C0083024A /* 004545.jpg in Resources */,
 				9DDED30A2429A0BE000C09EA /* model in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */,
@@ -564,7 +564,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T7UMVXQMZ6;
+				DEVELOPMENT_TEAM = 63GW8TBRYS;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -592,7 +592,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T7UMVXQMZ6;
+				DEVELOPMENT_TEAM = 63GW8TBRYS;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

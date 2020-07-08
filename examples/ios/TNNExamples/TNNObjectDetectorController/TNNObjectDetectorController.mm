@@ -44,7 +44,7 @@ using namespace TNN_NS;
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
-    self.image_orig      = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"001763.jpg"
+    self.image_orig      = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"004545.jpg"
                                                                                        ofType:nil]];
     self.imageView.image = self.image_orig;
 
