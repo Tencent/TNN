@@ -13,9 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include <iostream>
 
 namespace TNN_NS {
 
@@ -32,55 +32,43 @@ Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, c
     auto beta      = layer_param->beta;
     auto gamma_inv = 1.0f / layer_param->gamma;
 
+    Float4 alpha_4 = Float4(alpha);
+    Float4 val_gt4 = Float4((beta + 1.0) * gamma_inv / 2.0);
+    Float4 val_lt4 = Float4((beta - 1.0) * gamma_inv / 2.0);
+
     auto input_blob    = inputs[0];
     auto output_blob   = outputs[0];
     float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
     int batch          = input_blob->GetBlobDesc().dims[0];
     int channel        = input_blob->GetBlobDesc().dims[1];
-    int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
     int channel_r4     = UP_DIV(channel, 4);
+    int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
     for (int b = 0; b < batch; b++) {
+        float *input_data_c  = input_data  + b * channel_r4 * channel_size * 4;
+        float *output_data_c = output_data + b * channel_r4 * channel_size * 4;
         for (int c = 0; c < channel_r4; c++) {
-            int channel_index = b * channel_r4 + c;
-            float *input_data_c_r4 = input_data + channel_index * channel_size * 4;
-            float *output_data_c_r4 = output_data + channel_index * channel_size * 4;
             for (int i = 0; i < channel_size; i++) {
-                float *input_data_c = input_data_c_r4 + i * 4;
-                float *output_data_c = output_data_c_r4 + i * 4;
-                for (int j = 0; j < 4; j++) {
-                    //sub 
-                    float temp = input_data_c[j] - alpha;
-
-                    //sign
-                    if (temp > 0) {
-                        temp = 1;
-                    } else if (temp < 0) {
-                        temp = -1;
-                    }
-
-                    //add
-                    temp += beta;
-
-                    //div
-                    temp *= gamma_inv;
-                    output_data_c[j] = temp;
-                }
+                Float4 val  = Float4::load(input_data_c);
+                Float4 res1 = Float4::bsl_cgt(val, alpha_4, val_gt4, val_lt4);
+                Float4 res2 = Float4::bsl_clt(val, alpha_4, val_lt4, val_gt4);
+                Float4 res  = res1 + res2;
+                Float4::save(output_data_c, res);
+                input_data_c  += 4;
+                output_data_c += 4;
             }
         }
 
-        //mul
-        float *output_data_c0_r4 = output_data + b * channel_r4 * channel_size * 4;
         for (int c = channel_r4 - 1; c >= 0; c--) {
-            int channel_index = b * channel_r4 + c;
-            float *output_data_c_r4 = output_data + channel_index * channel_size * 4;
+            float *output_data_c  = output_data + (b * channel_r4 + c) * channel_size * 4;
+            float *output_data_c0 = output_data + b * channel_r4 * channel_size * 4;
             for (int i = 0; i < channel_size; i++) {
-                float *output_data_c = output_data_c_r4 + i * 4;
-                float *output_data_c0 = output_data_c0_r4 + i * 4;
-                for (int j = 3; j >= 0; j--) {
-                    output_data_c[j] *= output_data_c0[0];
-                }
+                Float4 val = Float4::load(output_data_c);
+                Float4 res = val * output_data_c0[0];
+                Float4::save(output_data_c, res);
+                output_data_c  += 4;
+                output_data_c0 += 4;
             }
         }
     }
