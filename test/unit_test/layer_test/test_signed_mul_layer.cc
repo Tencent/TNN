@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                                             // gema
                                             testing::Values(2.0f, 0.0f, -1.0f),
                                             // data type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(SignedMulLayerTest, SignedMulLayer) {
     // get param
@@ -57,9 +57,9 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     SignedMulLayerParam param;
     param.alpha = alpha;
     param.beta  = beta;
-    param.beta  = gamma;
+    param.gamma  = gamma;
 
-    Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
+    Run(LAYER_SIGNED_MUL, &param, nullptr, inputs_desc, outputs_desc);
 }
 
 }  // namespace TNN_NS
