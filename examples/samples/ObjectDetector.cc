@@ -99,15 +99,4 @@ void ObjectDetector::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output, s
         
         detecs.push_back(std::move(info));
     }
-    // TODO(fix detection results)
-    // As the detection results seem not to be right, we manually only keep one detect for each class
-    std::unordered_set<int>distinct_class;
-    std::vector<ObjInfo> filtered;
-    for(auto& obj:detecs){
-        if(distinct_class.find(obj.classid) == distinct_class.end()){
-            filtered.push_back(std::move(obj));
-            distinct_class.insert(obj.classid);
-        }
-    }
-    detecs = filtered;
 }
