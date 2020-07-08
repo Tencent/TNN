@@ -59,7 +59,7 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     param.beta  = beta;
     param.beta  = gamma;
 
-    Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
+    Run(LAYER_SIGNED_MUL, &param, nullptr, inputs_desc, outputs_desc);
 }
 
 }  // namespace TNN_NS
