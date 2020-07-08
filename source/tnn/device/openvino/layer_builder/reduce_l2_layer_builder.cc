@@ -30,46 +30,44 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Mul, LAYER_MUL);
+DECLARE_OPENVINO_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
 
-Status MulOVLayerBuilder::Build() {
+Status ReduceL2OVLayerBuilder::Build() {
+
+    auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
 
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes();
+    auto input_node = GetInputNodes()[0];
 
-    std::shared_ptr<ngraph::op::v1::Multiply> mulNode;
-    if (input_node.size() == 2) {
-        mulNode = std::make_shared<ngraph::op::v1::Multiply>(
-            input_node[0]->output(0), input_node[1]->output(0));
-    } else {
-        auto resource = dynamic_cast<EltwiseLayerResource*>(GetResource());
-        // suppose that weights are on channels broadcast
-        ngraph::Shape weightNodeShape;
-        for (size_t i = 0; i < input_node[0]->get_output_shape(0).size(); i++) {
-            if (i == 1) weightNodeShape.push_back(resource->element_handle.GetDataCount());
-            else weightNodeShape.push_back(1);
-        }
+    // reduce l2 : square -> reduceSum -> sqrt
+    auto squareConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{2.0f});
+    auto squareNode = std::make_shared<ngraph::op::v1::Power>(
+        input_node->output(0), squareConst);
+    squareNode->validate_and_infer_types();
 
-        auto weightNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, weightNodeShape, resource->element_handle.force_to<float*>());
-        weightNode->validate_and_infer_types();
+    auto axisNode = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i32, ngraph::Shape{paramlist->axis.size()}, paramlist->axis);
 
-        mulNode = std::make_shared<ngraph::op::v1::Multiply>(
-            input_node[0]->output(0), weightNode);
-    }
-    mulNode->validate_and_infer_types();
-    mulNode->set_friendly_name(param_->name);
+    auto reduceSumNode = std::make_shared<ngraph::op::v1::ReduceSum>(
+        squareNode->output(0), axisNode, paramlist->keep_dims);
+    reduceSumNode->validate_and_infer_types();
+
+    auto sqrtNode = std::make_shared<ngraph::op::Sqrt>(reduceSumNode->output(0));
+    sqrtNode->validate_and_infer_types();
+    
+    sqrtNode->set_friendly_name(paramlist->name);
 
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(mulNode);
+    outputNodes.push_back(sqrtNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Mul, LAYER_MUL);
+REGISTER_OPENVINO_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
 
 }

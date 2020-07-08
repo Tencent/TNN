@@ -30,46 +30,43 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Add, LAYER_ADD);
+DECLARE_OPENVINO_LAYER_BUILDER(Pow, LAYER_POWER);
 
-Status AddOVLayerBuilder::Build() {
+Status PowOVLayerBuilder::Build() {
+    
+    auto paramlist = dynamic_cast<PowLayerParam*>(param_);
 
-    if (GetInputNodes().size() <= 0) {
-        LOGE("Error: %d input nodes\n", GetInputNodes().size());
+    if (GetInputNodes().size() <=0) {
+        LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes();
+    auto input_node = GetInputNodes()[0];
 
-    std::shared_ptr<ngraph::op::v1::Add> addNode;
-    if (input_node.size() == 2) {
-        addNode = std::make_shared<ngraph::op::v1::Add>(
-            input_node[0]->output(0), input_node[1]->output(0));
-    } else {
-        auto resource = dynamic_cast<EltwiseLayerResource*>(GetResource());
-        // suppose that weights are on channel broadcast
-        ngraph::Shape weightNodeShape;
-        for (size_t i = 0; i < input_node[0]->get_output_shape(0).size(); i++) {
-            if (i == 1) weightNodeShape.push_back(resource->element_handle.GetDataCount());
-            else weightNodeShape.push_back(1);
-        }
+    auto powNodeShape = ngraph::Shape(input_node->get_output_shape(0).size(), 1);
+    auto mulConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, powNodeShape, std::vector<float>{paramlist->scale});
+    auto mulNode = std::make_shared<ngraph::op::v1::Multiply>(input_node->output(0), mulConst);
+    mulNode->validate_and_infer_types();
 
-        auto weightNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, weightNodeShape, resource->element_handle.force_to<float*>());
-        weightNode->validate_and_infer_types();
-
-        addNode = std::make_shared<ngraph::op::v1::Add>(
-            input_node[0]->output(0), weightNode);
-    }
-    addNode->set_friendly_name(param_->name);
+    auto addConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, powNodeShape, std::vector<float>{paramlist->shift});
+    auto addNode = std::make_shared<ngraph::op::v1::Add>(mulNode->output(0), addConst);
     addNode->validate_and_infer_types();
 
+    auto powerConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, powNodeShape, std::vector<float>{paramlist->exponent});
+    auto powerNode = std::make_shared<ngraph::op::v1::Power>(addNode->output(0), powerConst);
+    powerNode->validate_and_infer_types();
+
+    powerNode->set_friendly_name(paramlist->name);
+
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(addNode);
+    outputNodes.push_back(powerNode);
     SetOutputNodes(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Add, LAYER_ADD);
+REGISTER_OPENVINO_LAYER_BUILDER(Pow, LAYER_POWER);
 
 }
