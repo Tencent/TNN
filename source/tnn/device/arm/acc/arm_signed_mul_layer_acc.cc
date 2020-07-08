@@ -22,6 +22,11 @@ namespace TNN_NS {
 DECLARE_ARM_ACC(SignedMul, LAYER_SIGNED_MUL);
 
 Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, const std::vector<tnn::Blob *> &outputs) {
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (in_data_type != DATA_TYPE_FLOAT) {
+        return TNNERR_LAYER_ERR;
+    }
+
     auto layer_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: SignedMulLayerParam is nil\n");
@@ -73,7 +78,7 @@ Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, c
         }
     }
 
-    return 0;
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(SignedMul, LAYER_SIGNED_MUL);
