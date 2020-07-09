@@ -33,28 +33,30 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
         int n2 = atoi(layer_cfg_arr[index++].c_str());
     }
 
-    int pad_h = INT_MIN;
+    int pad_t = INT_MIN;
     int pad_b = INT_MIN;
-    int pad_w = INT_MIN;
+    int pad_l = INT_MIN;
     int pad_r = INT_MIN;
+    int pad_c_b = INT_MIN;
+    int pad_c_e = INT_MIN;
     if (index < layer_cfg_arr.size()) {
-        pad_h = atoi(layer_cfg_arr[index++].c_str());
+        pad_t = atoi(layer_cfg_arr[index++].c_str());
     }
     if (index < layer_cfg_arr.size()) {
         pad_b = atoi(layer_cfg_arr[index++].c_str());
     }
     if (index < layer_cfg_arr.size()) {
-        pad_w = atoi(layer_cfg_arr[index++].c_str());
+        pad_l = atoi(layer_cfg_arr[index++].c_str());
     }
     if (index < layer_cfg_arr.size()) {
         pad_r = atoi(layer_cfg_arr[index++].c_str());
     }
 
     if (index < layer_cfg_arr.size()) {
-        int c1 = atoi(layer_cfg_arr[index++].c_str());
+        pad_c_b = atoi(layer_cfg_arr[index++].c_str());
     }
     if (index < layer_cfg_arr.size()) {
-        int c2 = atoi(layer_cfg_arr[index++].c_str());
+        pad_c_e = atoi(layer_cfg_arr[index++].c_str());
     }
     if (index < layer_cfg_arr.size()) {
         layer_param->type = atoi(layer_cfg_arr[index++].c_str());
@@ -62,8 +64,10 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
     if (index < layer_cfg_arr.size()) {
         layer_param->value = atof(layer_cfg_arr[index++].c_str());
     }
-
-    layer_param->pads = {pad_w, pad_r, pad_h, pad_b};
+    if (layer_param->type != 0 && (pad_c_b != 0 || pad_c_e != 0)) {
+        LOGE("Pad (edge, reflect) do not support pad in channel!");
+    }
+    layer_param->pads = {pad_l, pad_r, pad_t, pad_b, pad_c_b, pad_c_e};
     return TNN_OK;
 }
 

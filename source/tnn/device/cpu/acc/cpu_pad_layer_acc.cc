@@ -35,9 +35,12 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     auto input_dims  = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
 
+    int batch                   = output_dims[0];
     int channels                = output_dims[0] * output_dims[1];
+    int output_channel          = output_dims[1];
     int output_height           = output_dims[2];
     int output_width            = output_dims[3];
+    int input_channel           = input_dims[1];
     int input_height            = input_dims[2];
     int input_width             = input_dims[3];
     int data_byte_size          = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
@@ -51,26 +54,33 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
         int pad_r = layer_param->pads[1];
         int pad_t = layer_param->pads[2];
         int pad_b = layer_param->pads[3];
+        int pad_c_b = layer_param->pads[4];
+        int pad_c_e = layer_param->pads[5];
         float value = layer_param->value;
 
         if (layer_param->type == 0) {
             // mode: const
+            int cb_border = pad_c_b;
+            int ce_border = pad_c_b + input_channel;
             int ht_border = pad_t;
             int hb_border = pad_t + input_height;
             int wl_border = pad_l;
             int wr_border = pad_l + input_width;
-            for (int c = 0; c < channels; c++) {
-                auto input_data_ptr  = input_data + c * input_height * input_width;
-                auto output_data_ptr = output_data + c * output_height * output_width;
-
-                for (int h = 0; h < output_height; ++h) {
-                    for (int w = 0; w < output_width; ++w) {
-                        if (h < ht_border || h >= hb_border || w < wl_border || w >= wr_border) {
-                            output_data_ptr[h * output_width + w] = value;
-                        } else {
-                            int output_idx              = h * output_width + w;
-                            int input_idx               = (h - ht_border) * input_width + w - wl_border;
-                            output_data_ptr[output_idx] = input_data_ptr[input_idx];
+            for (int n = 0; n < batch; ++n) {
+                for (int c = 0; c < output_channel; c++) {
+                    auto input_data_ptr  = input_data + (n * input_channel + c - cb_border) * input_height * input_width;
+                    auto output_data_ptr = output_data + (n * output_channel + c) * output_height * output_width;
+                    for (int h = 0; h < output_height; ++h) {
+                        for (int w = 0; w < output_width; ++w) {
+                            if (c < cb_border || c >= ce_border ||
+                                h < ht_border || h >= hb_border ||
+                                w < wl_border || w >= wr_border ) {
+                                output_data_ptr[h * output_width + w] = value;
+                            } else {
+                                int output_idx              = h * output_width + w;
+                                int input_idx               = (h - ht_border) * input_width + w - wl_border;
+                                output_data_ptr[output_idx] = input_data_ptr[input_idx];
+                            }
                         }
                     }
                 }

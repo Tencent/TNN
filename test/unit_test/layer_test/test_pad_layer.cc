@@ -20,13 +20,15 @@
 namespace TNN_NS {
 
 class PadLayerTest : public LayerTest,
-                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, float>> {};
+                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, float>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PadLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                            // pad_l
+                                            // pad_w
                                             testing::Values(0, 1, 2),
-                                            // pad_t
+                                            // pad_h
+                                            testing::Values(0, 1, 2),
+                                            // pad_c
                                             testing::Values(0, 1, 2),
                                             // pad_type
                                             testing::Values(0, 1),
@@ -38,17 +40,22 @@ TEST_P(PadLayerTest, PadLayer) {
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
-    int pad_l      = std::get<3>(GetParam());
-    int pad_t      = std::get<4>(GetParam());
-    int pad_type   = std::get<5>(GetParam());
-    float value    = std::get<6>(GetParam());
+    int pad_w      = std::get<3>(GetParam());
+    int pad_h      = std::get<4>(GetParam());
+    int pad_c      = std::get<5>(GetParam());
+    int pad_type   = std::get<6>(GetParam());
+    float value    = std::get<7>(GetParam());
 
     // insure pad is valid
-    if (pad_l >= input_size) {
-        pad_l = pad_l % input_size;
+    if (pad_w >= input_size) {
+        pad_w = pad_w % input_size;
     }
-    if (pad_t >= input_size) {
-        pad_t = pad_t % input_size;
+    if (pad_h >= input_size) {
+        pad_h = pad_h % input_size;
+    }
+    // 目前 只有pad mode 为 const 时, 才支持在channel上进行pad
+    if ( (pad_type == 1 || pad_type == 2) && (pad_c != 0)){
+        GTEST_SKIP();
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -60,7 +67,7 @@ TEST_P(PadLayerTest, PadLayer) {
     PadLayerParam param;
     param.name = "Pad";
     param.type = pad_type;
-    param.pads = {pad_l, pad_l, pad_t, pad_t};
+    param.pads = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
     param.value = value;
 
     Run(LAYER_PAD, &param, nullptr, inputs_desc, outputs_desc);

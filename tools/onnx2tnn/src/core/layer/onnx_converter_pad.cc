@@ -67,8 +67,10 @@ string OnnxOpConverterPad::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info)
         int64_t pad_b   = pads[6];
         int64_t pad_l   = pads[3];
         int64_t pad_r   = pads[7];
-
-        // layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " 0 0 " << type << " ";
+        if ((type == 1 || type == 2) && (pad_c_b != 0 || pad_c_e != 0)) {
+            DLog("Pad (edge, reflect) do not support pad in channel!");
+            assert(0);
+        }
         layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " " << pad_c_b << " "
                     << pad_c_e << " " << type << " ";
     }

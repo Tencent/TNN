@@ -72,7 +72,7 @@ struct ConvLayerParam : public LayerParam {
 };
 
 struct PadLayerParam : public LayerParam {
-    //[w_begin w_end h_begin h_end d_begin d_end, c_begin, c_end]
+    //[w_begin, w_end, h_begin, h_end, c_begin, c_end]
     std::vector<int> pads;
     // 0:const 1:reflect 2:edge
     int type = 0;
