@@ -418,7 +418,7 @@ inline CodeType GetCodeType(const int number) {
 
     switch (number) {
         case 1: {
-            return PriorBoxParameter_CodeType_CORNER_SIZE;
+            return PriorBoxParameter_CodeType_CORNER;
         }
         case 2: {
             return PriorBoxParameter_CodeType_CENTER_SIZE;

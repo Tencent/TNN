@@ -33,7 +33,7 @@ Status DetectionOutputLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, in
 
     int variance_encoded_in_target = 0;
     GET_INT_1(variance_encoded_in_target);
-    p->variance_encoded_in_target = variance_encoded_in_target ? false : true;
+    p->variance_encoded_in_target = variance_encoded_in_target ? true : false;
 
     GET_INT_2(p->code_type, p->keep_top_k);
     GET_FLOAT_2(p->confidence_threshold, p->nms_param.nms_threshold);
