@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                                             // gema
                                             testing::Values(2.0f, 0.0f, -1.0f),
                                             // data type
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
 
 TEST_P(SignedMulLayerTest, SignedMulLayer) {
     // get param

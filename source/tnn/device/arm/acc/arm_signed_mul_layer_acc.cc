@@ -12,21 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/device/arm/arm_common.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/device/arm/acc/arm_signed_mul_layer_acc.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(SignedMul, LAYER_SIGNED_MUL);
-
 Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, const std::vector<tnn::Blob *> &outputs) {
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-    if (in_data_type != DATA_TYPE_FLOAT) {
+    if (in_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (in_data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    } else {
         return TNNERR_LAYER_ERR;
     }
+}
 
+template <typename T>
+Status ArmSignedMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: SignedMulLayerParam is nil\n");
@@ -43,16 +45,16 @@ Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, c
 
     auto input_blob    = inputs[0];
     auto output_blob   = outputs[0];
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    T *input_data  = static_cast<T *>(input_blob->GetHandle().base);
+    T *output_data = static_cast<T *>(output_blob->GetHandle().base);
     int batch          = input_blob->GetBlobDesc().dims[0];
     int channel        = input_blob->GetBlobDesc().dims[1];
     int channel_r4     = UP_DIV(channel, 4);
     int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
     for (int b = 0; b < batch; b++) {
-        float *input_data_c  = input_data  + b * channel_r4 * channel_size * 4;
-        float *output_data_c = output_data + b * channel_r4 * channel_size * 4;
+        T *input_data_c  = input_data  + b * channel_r4 * channel_size * 4;
+        T *output_data_c = output_data + b * channel_r4 * channel_size * 4;
         for (int c = 0; c < channel_r4; c++) {
             for (int i = 0; i < channel_size; i++) {
                 Float4 val  = Float4::load(input_data_c);
@@ -66,8 +68,8 @@ Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, c
         }
 
         for (int c = channel_r4 - 1; c >= 0; c--) {
-            float *output_data_c  = output_data + (b * channel_r4 + c) * channel_size * 4;
-            float *output_data_c0 = output_data + b * channel_r4 * channel_size * 4;
+            T *output_data_c  = output_data + (b * channel_r4 + c) * channel_size * 4;
+            T *output_data_c0 = output_data + b * channel_r4 * channel_size * 4;
             for (int i = 0; i < channel_size; i++) {
                 Float4 val = Float4::load(output_data_c);
                 Float4 res = val * output_data_c0[0];
