@@ -67,6 +67,7 @@ Status ConvOVLayerBuilder::Build() {
     for (auto item : paramlist->dialations) {
         dilation.push_back(item);
     }
+    std::reverse(dilation.begin(), dilation.end());
     convNode->set_dilations(dilation);
 
     // set pad type
