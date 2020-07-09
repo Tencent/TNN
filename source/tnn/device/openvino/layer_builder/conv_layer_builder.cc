@@ -92,20 +92,11 @@ Status ConvOVLayerBuilder::Build() {
         weights_shape.push_back(item);
         weight_size *= item;
     }
-    InferenceEngine::TBlob<float>::Ptr weightsPtr(new InferenceEngine::TBlob<float>({InferenceEngine::Precision::FP32, weights_shape, InferenceEngine::Layout::GOIHW}));
-    weightsPtr->allocate();
-    void* buffer = weightsPtr->buffer();
-    auto weight_buffer = reinterpret_cast<float*>(buffer);
 
     auto resource = dynamic_cast<ConvLayerResource*>(GetResource());
-    const float *w_scale = resource->filter_handle.force_to<float *>();
-
-    for (size_t i = 0; i < weight_size; i++) {
-        weight_buffer[i] = w_scale[i];
-    }
-
+    
     std::shared_ptr<ngraph::Node> weights_Node = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, weights_shape, weightsPtr->cbuffer().as<float*>());
+        DataTransfer(resource->filter_handle.GetDataType()), weights_shape, resource->filter_handle.force_to<float*>());
     
     // if input channels > weights input channels
     if (input_node->get_output_shape(0).at(1) > paramlist->input_channel * paramlist->group) {
@@ -136,7 +127,7 @@ Status ConvOVLayerBuilder::Build() {
 
         // set bias node
         std::shared_ptr<ngraph::Node> biasNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, biasShape, resource->bias_handle.force_to<float*>());
+            DataTransfer(resource->bias_handle.GetDataType()), biasShape, resource->bias_handle.force_to<float*>());
         
         auto addNode = std::make_shared<ngraph::op::v1::Add>();
         addNode->set_argument(0, convNode->output(0));
@@ -147,7 +138,7 @@ Status ConvOVLayerBuilder::Build() {
         outputNodes.push_back(addNode);
         addNode->validate_and_infer_types();
         SetOutputNodes(outputNodes);
-        // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(addNode);
+
     } else {
         // set node name
         convNode->set_friendly_name(paramlist->name);
@@ -157,19 +148,8 @@ Status ConvOVLayerBuilder::Build() {
         outputNodes.push_back(convNode);
         convNode->validate_and_infer_types();
         SetOutputNodes(outputNodes);
-        // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(convNode);
     }
-    // build the conv layer and generates a new out_node. 
 
-    // here simply asign out_node = in_node for code compiling.
-    // auto out_node = in_node;
-
-    // if (GetOutputTensors().size() <=0) {
-    //     LOGE("Error: 0 output tensors\n");
-    //     return TNNERR_INIT_LAYER;
-    // }
-
-    // std::dynamic_pointer_cast<OpenvinoTensor>(GetOutputTensors()[0])->SetNode(out_node);
     return TNN_OK;
 }
 
