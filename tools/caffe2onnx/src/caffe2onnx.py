@@ -58,9 +58,14 @@ class Caffe2Onnx():
             # 考虑到整个网络会有多输入情况
             for lay in self.netLayerCaffe:
                 if lay.type == "Input":
-                    in_tvi = helper.make_tensor_value_info(lay.name + "_input", TensorProto.FLOAT,
+                    if len(lay.top) == 1 and lay.top[0] != lay.name:
+                        input_layer_name = lay.top[0]
+                    else:
+                        input_layer_name = lay.name
+                        
+                    in_tvi = helper.make_tensor_value_info(input_layer_name + "_input", TensorProto.FLOAT,
                                                            lay.input_param.shape[0].dim)
-                    self.model_input_name.append(lay.name + "_input")
+                    self.model_input_name.append(input_layer_name + "_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
                 else:
@@ -197,6 +202,9 @@ class Caffe2Onnx():
     def GetLastLayerOutNameAndShape(self, layer):
         output_name = []
         outshape = []
+        # flag is True: 模型的输入没有被覆盖
+        # flag is False: 模型的输入已经被覆盖
+        flag = True
 
         # 如果结点列表为空，或者当前层的bottom在input_name中，那么上一层输入一定是 Input
         if self.onnxNodeList == []:
@@ -205,19 +213,26 @@ class Caffe2Onnx():
 
         else:
             for i in range(len(layer.bottom)):
-                for j in range(len(self.model_input_name)):
-                    if layer.bottom[i] + '_input' == self.model_input_name[j]:
-                        output_name.append(self.model_input_name[j])
-                        outshape.append(self.model_input_shape[j])
 
                 # 因为prototxt中存在top和bottom同名的情况，但是layer.bottom只能对应一个node，所以对每个layer.bottom，找到最末的那个同名节点作为上一层节点
                 name = None
                 shape = None
                 for node in self.onnxNodeList:
-                    for j in range(len(node.top) if node.node.op_type != "MaxPool" else 1):  # comment if statement for original maxpool and maxunpool
+                    for j in range(len(node.top) if node.node.op_type != "MaxPool" else 1):
                         if layer.bottom[i] == node.top[j]:
                             name = node.outputs_name[j]
                             shape = node.outputs_shape[j]
+                        for k in range(len(node.bottom)):
+                            if node.top[j] == node.bottom[k]:
+                                for w in range(len(self.model_input_name)):
+                                    if node.top[j] + '_input' == self.model_input_name[w]:
+                                        flag = False
+
+                for j in range(len(self.model_input_name)):
+                    if layer.bottom[i] + '_input' == self.model_input_name[j] and flag:
+                        output_name.append(self.model_input_name[j])
+                        outshape.append(self.model_input_shape[j])
+
                 if name:
                     output_name.append(name)
                     outshape.append(shape)
@@ -949,7 +964,40 @@ class Caffe2Onnx():
 
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
+                
+            elif Layers[i].type == "Crop":
+                # Crop: Slice
+                # create Slice node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
 
+                starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
+                
+                Crop_name=[]
+                Crop_name.append(input_name[0])
+                
+                starts_param = self.AddInputsTVIMannul(Layers[i],
+                                                       ['_starts' + str(i)],
+                                                       [TensorProto.INT64],
+                                                       [np.shape(starts)],
+                                                       [starts])
+                ends_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_ends' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(ends)], [ends])
+                axes_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_axes' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(axes)], [axes])
+           
+                Crop_name.extend(starts_param)
+                Crop_name.extend(ends_param)
+                Crop_name.extend(axes_param)
+                crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
+                                                  input_shape)
+                self.onnxNodeList.append(crop_node)
+                
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)

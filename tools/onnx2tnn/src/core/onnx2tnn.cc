@@ -524,6 +524,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     for (int i = 0; i < node_count; i++) {
@@ -643,6 +644,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseDepthToSpace(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseGlobalAveragePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
