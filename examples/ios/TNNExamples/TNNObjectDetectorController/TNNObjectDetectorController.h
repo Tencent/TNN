@@ -15,5 +15,7 @@
 #import "TNNExamplesController.h"
 
 @interface TNNObjectDetectorController : TNNExamplesController
+- (UIImage *)drawText:(NSString *)text inImage:(UIImage *)image atPoint:(CGPoint)point;
 
+- (float)getValidPosition:(float)start limit:(float)limit;
 @end

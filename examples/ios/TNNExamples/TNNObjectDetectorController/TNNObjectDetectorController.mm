@@ -16,8 +16,9 @@
 #import "ObjectDetector.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
-#import <string>
+#import <cstdlib>
 #import <sstream>
+#import <string>
 #import <tnn/tnn.h>
 
 using namespace std;
@@ -148,38 +149,65 @@ using namespace TNN_NS;
         return;
     }
 
-    vector<int> distinct_classes;
-    for (auto &obj : obj_info) {
-        if (find(distinct_classes.begin(), distinct_classes.end(), obj.classid) == distinct_classes.end())
-            distinct_classes.push_back(obj.classid);
-    }
-    stringstream ss;
-    for (int i = 0; i < distinct_classes.size(); ++i) {
-        ss << voc_classes[distinct_classes[i]];
-        if (i != distinct_classes.size() - 1)
-            ss << ",";
-    }
-    auto bench_result = detector.GetBenchResult();
-    self.labelResult.text =
-        [NSString stringWithFormat:@"device: %@      obj count:%d\nclass=%s\ntime:\n%s",
-                                   compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)obj_info.size(), ss.str().c_str(), bench_result.Description().c_str()];
+    auto bench_result     = detector.GetBenchResult();
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
+                                                       compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       (int)obj_info.size(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     float scale_x               = image_orig_width / (float)target_width;
     float scale_y               = image_orig_height / (float)target_height;
     auto image_orig_data        = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
-
+    // draw boxes
     for (int i = 0; i < obj_info.size(); i++) {
         auto obj = obj_info[i];
         Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, obj.x1, obj.y1, obj.x2, obj.y2,
                   scale_x, scale_y);
     }
-
-    //    UIImage *output_image = [UIImage yt_imageWithCVMat:input_mat_rgba];
     UIImage *output_image =
         utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
+    // draw texts
+    stringstream descStr;
+    for (int i = 0; i < obj_info.size(); i++) {
+        ObjInfo &obj = obj_info[i];
+
+        descStr.precision(3);
+        descStr << voc_classes[obj.classid] << ",";
+        descStr << std::fixed << obj.score;
+        NSString *text = [NSString stringWithCString:descStr.str().c_str() encoding:[NSString defaultCStringEncoding]];
+        descStr.str("");
+
+        auto x    = obj.x1 * scale_x;
+        auto y    = [self getValidPosition:obj.y1 limit:image_orig_height] * scale_y;
+        CGPoint p = CGPointMake(x, y);
+
+        output_image = [self drawText:text inImage:output_image atPoint:p];
+    }
+
     self.imageView.image = output_image;
+}
+
+- (UIImage *)drawText:(NSString *)text inImage:(UIImage *)image atPoint:(CGPoint)point {
+    // set text fond and color
+    UIFont *font   = [UIFont boldSystemFontOfSize:15];
+    UIColor *color = [UIColor redColor];
+    UIGraphicsBeginImageContext(image.size);
+    [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+    CGRect rect       = CGRectMake(point.x, point.y, image.size.width, image.size.height);
+    NSDictionary *att = @{NSFontAttributeName : font, NSForegroundColorAttributeName : color};
+    [text drawInRect:rect withAttributes:att];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+
+    return newImage;
+}
+
+- (float)getValidPosition:(float)start limit:(float)limit {
+    // try upper first
+    if (start - 15 > 0)
+        return start - 15;
+    return start;
 }
 
 @end
