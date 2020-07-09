@@ -106,7 +106,7 @@ int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims
         printf("allocate memory failed!\n");
         return -1;
     }
-    printf("allocate input memory size: %d   addr: 0x%x\n", dim_size * sizeof(float), (unsigned long)img);
+    printf("allocate input memory size: %lu   addr: 0x%lx\n", dim_size * sizeof(float), (unsigned long)img);
 
     int N   = dims[0];
     int C   = dims[1];
