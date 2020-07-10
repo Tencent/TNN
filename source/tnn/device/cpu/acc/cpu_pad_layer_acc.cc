@@ -134,14 +134,14 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                         if (h < ht_border && w < wl_border) {
                             // left_top
                             output_data_ptr[h * output_width + w] = input_data_ptr[0 * input_width + 0];
-                        } else if (h < ht_border && w > wr_border) {
+                        } else if (h < ht_border && w >= wr_border) {
                             // right_top
-                            output_data_ptr[h * output_width + w] = input_data_ptr[0 * input_width + input_width];
+                            output_data_ptr[h * output_width + w] = input_data_ptr[0 * input_width + input_width - 1];
                         } else if (h > hb_border && w < wl_border) {
                             // left_bottom
                             output_data_ptr[h * output_width + w] =
                                 input_data_ptr[(input_height - 1) * input_width + 0];
-                        } else if (h > hb_border && w > wr_border) {
+                        } else if (h > hb_border && w >= wr_border) {
                             // right_bottom
                             output_data_ptr[h * output_width + w] =
                                 input_data_ptr[(input_height - 1) * input_width + input_width - 1];
@@ -152,7 +152,7 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                             // right
                             output_data_ptr[h * output_width + w] =
                                 input_data_ptr[(h - ht_border) * input_width + input_width - 1];
-                        } else if (h < ht_border && w <= wr_border) {
+                        } else if (h < ht_border && w < wr_border) {
                             // top
                             output_data_ptr[h * output_width + w] = input_data_ptr[0 * input_width + w];
                         } else if (h >= hb_border && w < wr_border) {
