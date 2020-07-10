@@ -27,7 +27,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                                             // beta
                                             testing::Values(1.0f, 0.0f, -1.0f),
                                             // gema
-                                            testing::Values(2.0f, 0.0f, -1.0f),
+                                            testing::Values(2.0f, -1.0f),
                                             // data type
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
 

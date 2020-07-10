@@ -60,7 +60,7 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     const int width    = output_dims[3];
 
     uint32_t idx = 0;
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(channels, 4)), static_cast<uint32_t>(width),
+    execute_units_[0].global_work_size = {static_cast<uint32_t>(width), static_cast<uint32_t>(UP_DIV(channels, 4)),
                                                 static_cast<uint32_t>(height * batch)};
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
@@ -69,7 +69,7 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, signed_mul_param->alpha);
     execute_units_[0].ocl_kernel.setArg(idx++, signed_mul_param->beta);
-    execute_units_[0].ocl_kernel.setArg(idx++, 1.0 / signed_mul_param->gamma);
+    execute_units_[0].ocl_kernel.setArg(idx++, 1.0f / signed_mul_param->gamma);
     execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
     return TNN_OK;
 }

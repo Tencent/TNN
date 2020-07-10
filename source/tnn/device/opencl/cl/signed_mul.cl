@@ -10,9 +10,12 @@ __kernel void SignedMul(GLOBAL_SIZE_3_DIMS __read_only image2d_t input, __write_
     const int pos = mad24(c_block_idx, width, w_idx);
 
     FLOAT4 value    = RI_F(input, SAMPLER, (int2)(pos, hb_idx));    
-    FLOAT4 mul   = RI_F(input, SAMPLER, (int2)(w_dix, hb_idx));
+    FLOAT mul_value   = RI_F(input, SAMPLER, (int2)(w_idx, hb_idx)).s0;
+    mul_value = mul_value - alpha;
     value = value - (FLOAT4)(alpha);
+    mul_value = select(select(mul_value, (FLOAT)(-1), mul_value<(FLOAT)0), (FLOAT)1, mul_value>(FLOAT)0);
     value = select(select(value,(FLOAT4)(-1),value<(FLOAT4)0),(FLOAT4)1,value>(FLOAT4)0);
-    value = (value + (FLOAT4)(beta)) * (FLOAT4)(gamma_inv * mul.s0);
-    WI_F(output, SAMPLER, (int2)(pos, hb_idx));    
+    mul_value = (mul_value + beta) * gamma_inv;
+    value = (value + (FLOAT4)(beta)) * (FLOAT4)(gamma_inv * mul_value);
+    WI_F(output, (int2)(pos, hb_idx), value);    
 }
