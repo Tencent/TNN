@@ -271,7 +271,7 @@ namespace test {
             config.params.push_back(buffer);
 
             if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
-                std::ifstream model_stream(model_path);
+                std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
                     return config;
@@ -295,7 +295,12 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
         
         // Device Type: ARM, OPENECL, ...
-        config.device_type = ConvertDeviceType(FLAGS_dt);
+        if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
+            std::cout << "ok" << std::endl;
+            config.device_type = DEVICE_X86;
+        } else {
+            config.device_type = ConvertDeviceType(FLAGS_dt);
+        }
         
         // use model type instead, may change later for same model type with
         // different network type

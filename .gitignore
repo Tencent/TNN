@@ -181,7 +181,8 @@ tags
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -484,5 +485,5 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
-source/tnn/device/openvino/thirdparty/
+source/tnn/network/openvino/thirdparty/
 
