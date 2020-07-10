@@ -20,6 +20,8 @@ else ()
     message(STATUS "env ACL_LIB_PATH: ${ACL_LIB_PATH}")
 endif()
 
+add_definitions(-DENABLE_DVPP_INTERFACE)
+
 # Header path
 include_directories(
     ${ASCEND_PATH}/acllib/include/

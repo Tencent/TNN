@@ -21,6 +21,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 

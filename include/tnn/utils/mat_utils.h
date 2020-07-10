@@ -37,10 +37,10 @@ struct PUBLIC ResizeParam {
 };
 
 struct PUBLIC CropParam {
-    int top_left     = 0;
-    int top_right    = 0;
-    int bottom_left  = 0;
-    int bottom_right = 0;
+    int top_left_x = 0;
+    int top_left_y = 0;
+    int width      = 0;
+    int height     = 0;
 };
 
 struct PUBLIC WarpAffineParam {

@@ -8,9 +8,9 @@
 #include <unordered_map>
 #include <vector>
 #include "acl/acl.h"
-#include "atlas_common_types.h"
 #include "tnn/core/abstract_network.h"
 #include "tnn/core/macro.h"
+#include "tnn/device/atlas/atlas_common_types.h"
 
 namespace TNN_NS {
 

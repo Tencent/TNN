@@ -13,19 +13,27 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/mat_converter.h"
 
 namespace TNN_NS {
 
 Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
-    return TNN_OK;
+    MatConverter convert(&src, &dst);
+    return convert.Resize(param, command_queue);
 }
 
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
-    return TNN_OK;
+    if (dst.GetHeight() != param.height || dst.GetWidth() != param.width) {
+        return Status(TNNERR_PARAM_ERR, "crop size not match with dst mat");
+    }
+
+    MatConverter convert(&src, &dst);
+    return convert.Crop(param, command_queue);
 }
 
 Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
-    return TNN_OK;
+    MatConverter convert(&src, &dst);
+    return convert.WarpAffine(param, command_queue);
 }
 
 }  // namespace TNN_NS

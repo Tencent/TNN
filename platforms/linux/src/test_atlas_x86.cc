@@ -30,6 +30,7 @@
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_utils.h"
 
 using namespace TNN_NS;
 TNN net_;
@@ -202,9 +203,9 @@ int main(int argc, char* argv[]) {
     BlobMap input_blobs_temp;
     error = instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
-    input_shapemap[input_blobs_temp.begin()->first] = input_blobs_temp.begin()->second->GetBlobDesc().dims;
+    input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
     input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    error = instance_->Reshape(input_shapemap);
+    error                                              = instance_->Reshape(input_shapemap);
 
     // Get input/output blobs
     BlobMap input_blobs, output_blobs;
@@ -222,16 +223,18 @@ int main(int argc, char* argv[]) {
     }
 
     // load input
-    float* input_data_ptr = nullptr;
-    //unsigned char* input_data_ptr = nullptr;
-    auto input_dims = input->GetBlobDesc().dims;
-    auto input_format = input->GetBlobDesc().data_format;
+    // float* input_data_ptr = nullptr;
+    unsigned char* input_data_ptr = nullptr;
+    auto input_dims               = input->GetBlobDesc().dims;
+    auto input_format             = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
-        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
+        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
-        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
+        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1],
+        // input_dims[2]}, false);
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2],
+                                          {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
         printf("invalid model input format\n");
         return -1;
@@ -239,7 +242,7 @@ int main(int argc, char* argv[]) {
     if (CheckResult("load input data", ret) != true)
         return -1;
     int index = 10;
-    printf("input_data_ptr[%d] = %f\n", index, input_data_ptr[index]);
+    printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -251,8 +254,18 @@ int main(int argc, char* argv[]) {
 
     Status tnn_ret;
     // copy input data into atlas
-    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
-    //Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
+    // Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
+    Mat input_mat_org(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
+    Mat input_mat(DEVICE_ATLAS, N8UC3, input->GetBlobDesc().dims);
+
+    // resize
+    ResizeParam param_resize;
+    tnn_ret = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
+    }
+
     MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
@@ -293,8 +306,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
-        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
-                      "dump_" + name_temp + ".txt");
+        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(), "dump_" + name_temp + ".txt");
         // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
         // output.second->GetBlobDesc().name + ".bin");
     }

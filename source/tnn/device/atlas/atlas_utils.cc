@@ -92,7 +92,7 @@ Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat&
 }
 
 bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name) {
-    size_t index = 0;
+    size_t index     = 0;
     aclError acl_ret = aclmdlGetInputIndexByName(model_desc, input_name.c_str(), &index);
     if (ACL_ERROR_NONE != acl_ret) {
         return false;
