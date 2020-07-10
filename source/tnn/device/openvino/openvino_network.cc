@@ -1,7 +1,6 @@
 // Copyright 2019 Tencent. All Rights Reserved
 
 #include "openvino_network.h"
-#include "node.h"
 #include <string.h>
 
 #include <inference_engine.hpp>
@@ -66,7 +65,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
     
     executable_network_ = ie_.LoadNetwork(*network_, "CPU");
-
+    
     infer_request_ = executable_network_.CreateInferRequest();
 
     auto input_map = executable_network_.GetInputsInfo();
@@ -259,7 +258,6 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         // set layer nodes
         std::vector<Blob *> inputs;
         std::vector<std::string> &input_names = layer_info->inputs;
-
         // get input nodes
         for (auto name : input_names) {
             ForeignBlob* blob = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name));
@@ -349,7 +347,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
            outputs.push_back(blob);
         }
         LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
-
+        
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
