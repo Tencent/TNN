@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include "acl/acl.h"
+#include "acl/ops/acl_dvpp.h"
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
@@ -27,6 +28,8 @@ Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& t
 Status ConvertFromAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat);
 
 Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat& aipp_input_format);
+
+Status ConvertFromMatTypeToDvppPixelFormat(MatType mat_type, acldvppPixelFormat& dvpp_pixel_format);
 
 bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name);
 

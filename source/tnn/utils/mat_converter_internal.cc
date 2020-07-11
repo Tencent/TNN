@@ -22,9 +22,6 @@
 namespace TNN_NS {
 
 MatConverter::MatConverter(Mat* src, Mat* dst) {
-    mat_src_ = src;
-    mat_dst_ = dst;
-
     DeviceType device_type = DEVICE_NAIVE;
     // get device type
     DeviceType src_dt = src->GetDeviceType();
@@ -43,28 +40,28 @@ MatConverter::MatConverter(Mat* src, Mat* dst) {
     impl_ = MatConverterManager::Shared()->CreateMatConverterAcc(device_type);
 }
 
-Status MatConverter::Resize(ResizeParam param, void* command_queue) {
+Status MatConverter::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     if (!impl_) {
         return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
     }
 
-    return impl_->Resize(mat_src_, mat_dst_, param, command_queue);
+    return impl_->Resize(src, dst, param, command_queue);
 }
 
-Status MatConverter::Crop(CropParam param, void* command_queue) {
+Status MatConverter::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     if (!impl_) {
         return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
     }
 
-    return impl_->Crop(mat_src_, mat_dst_, param, command_queue);
+    return impl_->Crop(src, dst, param, command_queue);
 }
 
-Status MatConverter::WarpAffine(WarpAffineParam param, void* command_queue) {
+Status MatConverter::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     if (!impl_) {
         return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
     }
 
-    return impl_->WarpAffine(mat_src_, mat_dst_, param, command_queue);
+    return impl_->WarpAffine(src, dst, param, command_queue);
 }
 
 std::shared_ptr<MatConverterManager>& MatConverterManager::Shared() {

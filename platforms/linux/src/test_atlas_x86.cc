@@ -255,8 +255,8 @@ int main(int argc, char* argv[]) {
     Status tnn_ret;
     // copy input data into atlas
     // Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
-    Mat input_mat_org(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
-    Mat input_mat(DEVICE_ATLAS, N8UC3, input->GetBlobDesc().dims);
+    Mat input_mat_org(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
+    Mat input_mat(DEVICE_ATLAS, NNV12, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, nullptr);
 
     // resize
     ResizeParam param_resize;
@@ -268,6 +268,7 @@ int main(int argc, char* argv[]) {
 
     MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
+    //tnn_ret = input_cvt->ConvertFromMat(input_mat_org, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
         return -1;

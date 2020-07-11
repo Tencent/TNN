@@ -19,7 +19,7 @@ namespace TNN_NS {
 
 Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     MatConverter convert(&src, &dst);
-    return convert.Resize(param, command_queue);
+    return convert.Resize(src, dst, param, command_queue);
 }
 
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
@@ -28,12 +28,12 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
     }
 
     MatConverter convert(&src, &dst);
-    return convert.Crop(param, command_queue);
+    return convert.Crop(src, dst, param, command_queue);
 }
 
 Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     MatConverter convert(&src, &dst);
-    return convert.WarpAffine(param, command_queue);
+    return convert.WarpAffine(src, dst, param, command_queue);
 }
 
 }  // namespace TNN_NS

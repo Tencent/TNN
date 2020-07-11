@@ -79,6 +79,7 @@ Status AtlasDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (ret != ACL_ERROR_NONE) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "atlas alloc memory failed");
     }
+    LOGD("atlas allocate memory addr: 0x%lx\n", *handle);
     return TNN_OK;
 }
 

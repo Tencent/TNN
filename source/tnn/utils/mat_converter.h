@@ -24,14 +24,12 @@ namespace TNN_NS {
 class MatConverter {
 public:
     MatConverter(Mat* src, Mat* dst);
-    virtual Status Resize(ResizeParam param, void* command_queue);
-    virtual Status Crop(CropParam param, void* command_queue);
-    virtual Status WarpAffine(WarpAffineParam param, void* command_queue);
+    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
+    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
+    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 
 private:
     std::shared_ptr<MatConverterAcc> impl_ = nullptr;
-    Mat* mat_src_                          = nullptr;
-    Mat* mat_dst_                          = nullptr;
 };
 
 }  // namespace TNN_NS

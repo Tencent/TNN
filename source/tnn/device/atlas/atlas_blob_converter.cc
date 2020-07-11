@@ -83,7 +83,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
     if (NCHW_FLOAT == mat.GetMatType()) {
         LOGD("Convert To Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(),
+            tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
                                            atlas_cmd_queue->stream, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
@@ -93,7 +93,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
                 if (nullptr == buffer_) {
                     buffer_.reset(new char[blob_bytesize_], [](char *p) { delete[] p; });
                 }
-                tnn_ret = AtlasMemoryCopyAsync(buffer_.get(), blob_->GetHandle().base, DEVICE_NAIVE,
+                tnn_ret = AtlasMemoryCopyAsync(buffer_.get(), blob_->GetHandle().base, DEVICE_NAIVE, blob_bytesize_,
                                                atlas_cmd_queue->stream, false);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
@@ -198,7 +198,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     if (NCHW_FLOAT == mat.GetMatType()) {
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           atlas_cmd_queue->stream, true);
+                                           blob_bytesize_, atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
@@ -214,7 +214,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
                                                                 blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
 
                 tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE,
-                                               atlas_cmd_queue->stream, true);
+                                               blob_bytesize_, atlas_cmd_queue->stream, true);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
             } else {
@@ -226,7 +226,16 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     } else if (N8UC3 == mat.GetMatType()) {
         if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           atlas_cmd_queue->stream, true);
+                                           blob_bytesize_, atlas_cmd_queue->stream, true);
+            if (tnn_ret != TNN_OK)
+                return tnn_ret;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+        }
+    } else if (NNV12 == mat.GetMatType()) {
+        if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
+                                           blob_bytesize_ / 2, atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -265,7 +274,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "data buffer ptr is invalid");
     }
 
-    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), atlas_cmd_queue->stream, true);
+    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), blob_bytesize_, atlas_cmd_queue->stream, true);
 
     return tnn_ret;
 }
@@ -285,25 +294,25 @@ bool AtlasBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
     return false;
 }
 
-Status AtlasBlobConverterAcc::AtlasMemoryCopyAsync(void *dst, void *src, DeviceType mat_device_type, void *stream,
+Status AtlasBlobConverterAcc::AtlasMemoryCopyAsync(void *dst, void *src, DeviceType mat_device_type, int bytes, void *stream,
                                                    bool from_mat) {
     aclError ret = ACL_ERROR_NONE;
     if (DEVICE_ATLAS == mat_device_type) {
         // need to copy from device to device
-        LOGD("acl memcpy: copy from device to device (%d bytes)\n", blob_bytesize_);
-        ret = aclrtMemcpyAsync(dst, blob_bytesize_, src, blob_bytesize_, ACL_MEMCPY_DEVICE_TO_DEVICE, stream);
+        LOGD("acl memcpy: copy from device to device (%d bytes)\n", bytes);
+        ret = aclrtMemcpyAsync(dst, bytes, src, bytes, ACL_MEMCPY_DEVICE_TO_DEVICE, stream);
         if (ACL_ERROR_NONE != ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
         }
     } else if (DEVICE_NAIVE == mat_device_type) {
         if (from_mat) {
             // need to copy from host to device
-            LOGD("acl memcpy: copy from host to device (%d bytes)\n", blob_bytesize_);
-            ret = aclrtMemcpyAsync(dst, blob_bytesize_, src, blob_bytesize_, ACL_MEMCPY_HOST_TO_DEVICE, stream);
+            LOGD("acl memcpy: copy from host to device (%d bytes)\n", bytes);
+            ret = aclrtMemcpyAsync(dst, bytes, src, bytes, ACL_MEMCPY_HOST_TO_DEVICE, stream);
         } else {
             // need to copy form device to host
-            LOGD("acl memcpy: copy from device to host (%d bytes)\n", blob_bytesize_);
-            ret = aclrtMemcpyAsync(dst, blob_bytesize_, src, blob_bytesize_, ACL_MEMCPY_DEVICE_TO_HOST, stream);
+            LOGD("acl memcpy: copy from device to host (%d bytes)\n", bytes);
+            ret = aclrtMemcpyAsync(dst, bytes, src, bytes, ACL_MEMCPY_DEVICE_TO_HOST, stream);
         }
         if (ACL_ERROR_NONE != ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
