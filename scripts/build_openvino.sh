@@ -46,7 +46,7 @@ cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlu
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
 cp -r openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
-cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.so ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.a ${thirdparty_dir}/openvino/lib/
 #cp -r openvinoInstall/deployment_tools/inference_engine/external/tbb/lib/* ${thirdparty_dir}/openvino/lib/
 cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
 
