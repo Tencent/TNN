@@ -24,7 +24,7 @@ Status CpuSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-Status CpuSignedMulLayerAcc::Forward(const std::vector<tnn::Blob *> &inputs, const std::vector<tnn::Blob *> &outputs) {
+Status CpuSignedMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: SignedMulLayerParam is nil\n");
