@@ -645,6 +645,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseGlobalAveragePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);

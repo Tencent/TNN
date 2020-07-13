@@ -248,13 +248,10 @@ namespace test {
             std::string network_path = FLAGS_mp;
             int size                 = static_cast<int>(network_path.size());
             std::string model_path;
-            /*
-             * TNN file names:
-             *  xxx.tnnproto  xxx.tnnmodel
-             * NCNN file names:
-             *  xxx.param xxx.bin
-             */
-            if (config.model_type == MODEL_TYPE_TNN || 
+            
+            // TNN file names: xxx.tnnproto  xxx.tnnmodel
+            // NCNN file names: xxx.param xxx.bin
+            if (config.model_type == MODEL_TYPE_TNN  ||
                 config.model_type == MODEL_TYPE_RAPIDNET) {
                 model_path = network_path.substr(0, size - 5) + "model";
             } else if (config.model_type == MODEL_TYPE_NCNN) {
@@ -345,7 +342,6 @@ namespace test {
         }
         return mat_map;
     }
-
 
     void InitInputMatMap(MatMap& mat_map) {
         for (auto iter : mat_map) {
