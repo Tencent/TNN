@@ -365,8 +365,8 @@ class Caffe2Onnx():
 
                     self.onnxNodeList.append(mul_node)
                 else:
-                    # Scale = Mul + Add
                     param_shape, param_data = self.GetParamsShapeAndData(Layers[i])
+                    # Scale = Mul + Add
                     if len(param_shape) == 2:
                         # create mul
                         param_scale_shape = [1, param_shape[0][0], 1, 1]
@@ -391,6 +391,23 @@ class Caffe2Onnx():
                         add_input_shape = [input_shape[0], param_bias_shape]
                         add_node = op.create_add_node(Layers[i], add_node_name, add_input_name, add_output_name, add_input_shape)
                         self.onnxNodeList.append(add_node)
+                    # Scale = Mul
+                    if len(param_shape) == 1:
+                        # create mul
+                        param_scale_shape = [1, param_shape[0][0], 1, 1]
+                        param_scale_data = param_data[0]
+                        param_scale_name = self.AddInputsTVIMannul(
+                            Layers[i], ["_scale"], [TensorProto.FLOAT],
+                            [param_scale_shape], [param_scale_data])
+
+                        mul_input_name = [input_name[0], param_scale_name[0]] 
+                        mul_input_shape = [input_shape[0], param_scale_shape]
+
+                        mul_node = op.create_mul_node(Layers[i], node_name,
+                                                      mul_input_name,
+                                                      output_name,
+                                                      mul_input_shape)
+                        self.onnxNodeList.append(mul_node)
 
             # Pooling
             elif Layers[i].type == "Pooling" or Layers[i].type == Layer_POOLING:
