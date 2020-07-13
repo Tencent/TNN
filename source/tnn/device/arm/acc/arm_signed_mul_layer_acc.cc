@@ -16,7 +16,7 @@
 
 namespace TNN_NS {
 
-Status ArmSignedMulLayerAcc::DoForward(const std::vector<tnn::Blob *> &inputs, const std::vector<tnn::Blob *> &outputs) {
+Status ArmSignedMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
     if (in_data_type == DATA_TYPE_FLOAT) {
         return Exec<float>(inputs, outputs);
