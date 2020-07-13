@@ -14,6 +14,13 @@ cd openvino
 
 # TNN/scripts/openvinoWrapper/openvino
 git submodule update --init --recursive
+
+sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
+sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
+sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
+sed -i 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
+sed -i 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
+
 mkdir build && cd build
 
 # TNN/scripts/openvinoWrapper/openvino/build
@@ -22,7 +29,7 @@ cmake ../ \
 -DCMAKE_INSTALL_PREFIX=${TNN_DIR}/scripts/openvinoWrapper/openvinoInstall \
 -DENABLE_CLDNN=OFF \
 -DENABLE_TBB_RELEASE_ONLY=OFF \
--DTHERDING=SEQ \
+-DTHREADING=SEQ \
 -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
 
 make -j8
@@ -31,10 +38,16 @@ cd ../../
 
 # TNN/scripts/openvinoWrapper/
 cp -r openvinoInstall/deployment_tools/inference_engine/include/ ${thirdparty_dir}/openvino/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/* ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine.a ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy.a ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations.a ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations.a ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
 cp -r openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
-cp -r openvinoInstall/deployment_tools/ngraph/lib64/* ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/external/tbb/lib/* ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.so ${thirdparty_dir}/openvino/lib/
+#cp -r openvinoInstall/deployment_tools/inference_engine/external/tbb/lib/* ${thirdparty_dir}/openvino/lib/
 cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
 
 cmake ../../ \
