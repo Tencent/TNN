@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNObjectDetectorController.h"
-#import "ObjectDetector.h"
+#import "TNNYoloObjectDetectorController.h"
+#import "ObjectDetectorYolo.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
 #import <cstdlib>
@@ -24,7 +24,7 @@
 using namespace std;
 using namespace TNN_NS;
 
-@interface TNNObjectDetectorController ()
+@interface TNNYoloObjectDetectorController ()
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
@@ -35,7 +35,7 @@ using namespace TNN_NS;
 @property(nonatomic, strong) NSArray<NSString *> *allClasses;
 @end
 
-@implementation TNNObjectDetectorController
+@implementation TNNYoloObjectDetectorController
 ;
 
 - (void)viewDidLoad {
@@ -45,7 +45,7 @@ using namespace TNN_NS;
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
-    self.image_orig      = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"004545.jpg"
+    self.image_orig      = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
                                                                                        ofType:nil]];
     self.imageView.image = self.image_orig;
 
@@ -72,19 +72,12 @@ using namespace TNN_NS;
 }
 
 - (IBAction)onBtnTNNExamples:(id)sender {
-    // check release mode at Product->Scheme when running
-    //运行时请在Product->Scheme中确认意见调整到release模式
-
-    // Get metallib path from app bundle
-    // PS：A script(Build Phases -> Run Script) is added to copy the metallib
-    // file from tnn framework project to TNNExamples app
-    //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
+    
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/yolov5/yolov5s.tnnmodel"
                                                       ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/yolov5/yolov5s-permute.tnnproto"
                                                       ofType:nil];
-
     if (proto_path.length <= 0 || model_path.length <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
         NSLog(@"Error: proto or model path is invalid");
@@ -100,16 +93,15 @@ using namespace TNN_NS;
         NSLog(@"Error: proto or model path is invalid");
         return;
     }
-    // SSD model requires input with size=(300, 300)
-    const int target_height = 300;
-    const int target_width  = 300;
+    const int target_height = 448;
+    const int target_width  = 640;
     DimsVector target_dims  = {1, 3, target_height, target_width};
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 
-    ObjectDetector detector(target_width, target_height);
+    ObjectDetectorYolo detector(target_width, target_height);
     auto status = detector.Init(proto_content, model_content, library_path.UTF8String, units);
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
@@ -118,7 +110,7 @@ using namespace TNN_NS;
     }
 
     BenchOption bench_option;
-    bench_option.forward_count = 20;
+    bench_option.forward_count = 1;
     detector.SetBenchOption(bench_option);
 
     std::vector<ObjInfo> obj_info;
@@ -153,7 +145,7 @@ using namespace TNN_NS;
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
                                                        compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
                                                        (int)obj_info.size(), bench_result.Description().c_str()];
-
+    
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     float scale_x               = image_orig_width / (float)target_width;
@@ -173,7 +165,7 @@ using namespace TNN_NS;
         ObjInfo &obj = obj_info[i];
 
         descStr.precision(3);
-        descStr << voc_classes[obj.classid] << ",";
+        descStr << coco_classes[obj.classid] << ",";
         descStr << std::fixed << obj.score;
         NSString *text = [NSString stringWithCString:descStr.str().c_str() encoding:[NSString defaultCStringEncoding]];
         descStr.str("");
