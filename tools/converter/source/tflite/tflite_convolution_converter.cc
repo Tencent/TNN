@@ -9,16 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef CONVERTER2ONNX_SRC_TFLITE_TF_LITE_OP_CONVERT_H_
-#define CONVERTER2ONNX_SRC_TFLITE_TF_LITE_OP_CONVERT_H_
-namespace TNN_CONVERTER {
-class tf_lite_op_convert {
 
-
-};
-}
-
-#endif  // CONVERTER2ONNX_SRC_TFLITE_TF_LITE_OP_CONVERT_H_

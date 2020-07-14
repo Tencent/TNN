@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "tflite-schema/schema_generated.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
 
@@ -33,7 +34,21 @@ TFLite2Tnn::TFLite2Tnn(std::string mode_path, std::string model_name, std::strin
     onnx_model_path_    = onnx_path;
 }
 
-bool TFLite2Tnn::Convert2Tnn() {
+static bool NeedExtractInput(uint32_t opCode) {
+#define NONEED(x) if (x == opCode) return false;
+    NONEED(tflite::BuiltinOperator_CONV_2D);
+    NONEED(tflite::BuiltinOperator_DEPTHWISE_CONV_2D);
+    NONEED(tflite::BuiltinOperator_SPLIT);
+    NONEED(tflite::BuiltinOperator_CONCATENATION);
+    NONEED(tflite::BuiltinOperator_CONV_2D);
+    NONEED(tflite::BuiltinOperator_RESHAPE);
+    NONEED(tflite::BuiltinOperator_RESIZE_BILINEAR);
+    NONEED(tflite::BuiltinOperator_SOFTMAX);
+
+    return true;
+}
+
+TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     ReadModel(tf_lite_model_path_);
     const auto& tf_lite_op_set       = tf_lite_model_->operator_codes;
     int sub_graphs_size              = tf_lite_model_->subgraphs.size();
@@ -48,33 +63,41 @@ bool TFLite2Tnn::Convert2Tnn() {
         std::vector<bool> extracted_tensors(tf_lite_model_->subgraphs[i]->tensors.size(), false);
 
         // set input
-        std::vector<std::string> input_list;
+        TNN_NS::InputShapesMap& inputs_shape_map = net_structure.inputs_shape_map;
         for (const auto index : tf_lite_model_->subgraphs[i]->inputs) {
             const auto& input_tensor         = tensors[index];
             const auto& name                 = input_tensor->name;
             const auto& shape                = input_tensor->shape;
-
-            input_list.push_back(name);
-
-            auto value_info = MakeValueInfo(name, shape, type);
+            if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
+                inputs_shape_map[name] = shape;
+            } else {
+                LOGE("The model conflict between same input names %s", name.c_str());
+                return TNN_NS::TNNERR_INVALID_MODEL;
+            }
         }
 
         // set output
-        std::vector<std::string> output_list;
+        auto& outputs = net_structure.outputs;
         for (const auto index : tf_lite_model_->subgraphs[i]->outputs) {
             const auto& output_tensor        = tensors[index];
             const auto& name                 = output_tensor->name;
             const auto& shape                = output_tensor->shape;
-
-            output_list.push_back(name);
-
-            auto value_info = MakeValueInfo(name, shape, type);
+            if (outputs.find(name) == outputs.end()) {
+                outputs.insert(name);
+            } else {
+                LOGE("The model conflict between same output names %s", name.c_str());
+                return TNN_NS::TNNERR_INVALID_MODEL;
+            }
         }
-
-        const int op_nums = operators.size();
-        for (int j = 0; j < op_nums; ++j) {
-            const int opcode_index = operators[j]->opcode_index;
-            const auto op_code     = tf_lite_op_set[opcode_index]->builtin_code;
+        // convert layer
+        for (int j = 0; j < operators.size(); ++j) {
+            const int op_code_index = operators[j]->opcode_index;
+            const auto op_code     = tf_lite_op_set[op_code_index]->builtin_code;
+            if (NeedExtractInput(op_code)) {
+                //TODO
+            }
+            auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
+            auto layer_type_name =
         }
     }
     return true;
@@ -91,7 +114,6 @@ void TFLite2Tnn::ReadModel(std::string tf_lite_model_path) {
     // TODO verify the mode
     flatbuffers::Verifier verify((uint8_t*)buffer, file_size);
     if (!tflite::VerifyModelBuffer(verify)) {
-        std::cout << "TensorFlow Lite model version ERROR!" << std::endl;
     }
 
     tf_lite_model_ = tflite::UnPackModel(buffer);

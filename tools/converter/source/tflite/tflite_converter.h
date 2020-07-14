@@ -15,8 +15,11 @@
 #ifndef TNNCONVERTER_SRC_TFLITE_TF_LITE_CONVERTER_H_
 #define TNNCONVERTER_SRC_TFLITE_TF_LITE_CONVERTER_H_
 
-#include "model_config.h"
+#include "utils/model_config.h"
 #include "tflite-schema/schema_generated.h"
+#include "tnn/core/status.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/net_resource.h"
 
 namespace TNN_CONVERTER {
 class TFLite2Tnn {
@@ -24,7 +27,7 @@ public:
     TFLite2Tnn(std::string model_path);
     TFLite2Tnn(std::string model_path, std::string onnx_path);
     TFLite2Tnn(std::string mode_path, std::string model_name, std::string onnx_path);
-    bool Convert2Tnn();
+    TNN_NS::Status Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 
 private:
     void ReadModel(std::string tf_lite_model_path);
