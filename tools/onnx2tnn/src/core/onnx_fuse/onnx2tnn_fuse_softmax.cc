@@ -30,7 +30,6 @@ int Onnx2TNN::FuseSoftmax(onnx::GraphProto* mutable_graph,
         // Softmax <= Exp - ReduceSum - Div
         do {
             if (node->op_type() == "Exp" && i + 2 < node_count) {
-                DLog("error::op convert failed onnx Exp test\n");
                 auto node_exp = node;
                 auto node_reducesum = index_nodes[i+1].node;
                 auto node_div = index_nodes[i+2].node;
