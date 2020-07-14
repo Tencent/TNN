@@ -158,7 +158,7 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                         Float4::save(output_data + h, r);
                     }
                     input_data += hw << 2;
-                    output_data += dims_in[3] << 2;
+                    output_data += dims_in[2] << 2;
                 }
             }
         }
