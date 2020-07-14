@@ -154,7 +154,7 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 #ifndef ABS
-#define ABS(x) ((x) > (0) ? (x) : (-x))
+#define ABS(x) ((x) > (0) ? (x) : (-(x)))
 #endif
 
 #if (__arm__ || __aarch64__) && (defined(__ARM_NEON__) || defined(__ARM_NEON))

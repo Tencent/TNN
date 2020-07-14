@@ -12,32 +12,44 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNFaceDetectorController.h"
+#import "TNNObjectDetectorController.h"
+#import "ObjectDetector.h"
 #import "UIImage+Utility.h"
-#import "UltraFaceDetector.h"
 #import <Metal/Metal.h>
+#import <cstdlib>
+#import <sstream>
+#import <string>
 #import <tnn/tnn.h>
 
 using namespace std;
 using namespace TNN_NS;
 
-@interface TNNFaceDetectorController ()
+@interface TNNObjectDetectorController ()
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
 @property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
 
 @property(nonatomic, strong) UIImage *image_orig;
+
+@property(nonatomic, strong) NSArray<NSString *> *allClasses;
 @end
 
-@implementation TNNFaceDetectorController
+@implementation TNNObjectDetectorController
+;
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+}
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
-    self.image_orig = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"test.jpg" ofType:nil]];
+    self.image_orig      = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"004545.jpg"
+                                                                                       ofType:nil]];
     self.imageView.image = self.image_orig;
-    auto view            = self.labelResult.superview;
+
+    auto view = self.labelResult.superview;
     [self.imageView removeFromSuperview];
     [self.labelResult removeFromSuperview];
     int screenWidth      = view.frame.size.width;
@@ -68,17 +80,11 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-#if TNN_SDK_USE_NCNN_MODEL
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.bin"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel"
                                                       ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.param"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto"
                                                       ofType:nil];
-#else
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
-                                                      ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
-                                                      ofType:nil];
-#endif
+
     if (proto_path.length <= 0 || model_path.length <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
         NSLog(@"Error: proto or model path is invalid");
@@ -94,16 +100,16 @@ using namespace TNN_NS;
         NSLog(@"Error: proto or model path is invalid");
         return;
     }
-
-    const int target_height = 240;
-    const int target_width  = 320;
+    // SSD model requires input with size=(300, 300)
+    const int target_height = 300;
+    const int target_width  = 300;
     DimsVector target_dims  = {1, 3, target_height, target_width};
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 
-    UltraFaceDetector detector(target_width, target_height, 1, 0.95, 0.15);
+    ObjectDetector detector(target_width, target_height);
     auto status = detector.Init(proto_content, model_content, library_path.UTF8String, units);
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
@@ -115,7 +121,7 @@ using namespace TNN_NS;
     bench_option.forward_count = 20;
     detector.SetBenchOption(bench_option);
 
-    std::vector<FaceInfo> face_info;
+    std::vector<ObjInfo> obj_info;
 
     auto compute_units = detector.GetComputeUnits();
     if (compute_units == TNNComputeUnitsGPU) {
@@ -132,36 +138,76 @@ using namespace TNN_NS;
                         mipmapLevel:0
                           withBytes:image_data.get()
                         bytesPerRow:target_width * 4];
-        status = detector.Detect(image_mat, target_height, target_width, face_info);
+        status = detector.Detect(image_mat, target_height, target_width, obj_info);
     } else if (compute_units == TNNComputeUnitsCPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status         = detector.Detect(image_mat, target_height, target_width, face_info);
+        status         = detector.Detect(image_mat, target_height, target_width, obj_info);
     }
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
+
     auto bench_result     = detector.GetBenchResult();
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
                                                        compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
-                                                       (int)face_info.size(), bench_result.Description().c_str()];
+                                                       (int)obj_info.size(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     float scale_x               = image_orig_width / (float)target_width;
     float scale_y               = image_orig_height / (float)target_height;
     auto image_orig_data        = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
-    for (int i = 0; i < face_info.size(); i++) {
-        auto face = face_info[i];
-        Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
-                  face.y2, scale_x, scale_y);
+    // draw boxes
+    for (int i = 0; i < obj_info.size(); i++) {
+        auto obj = obj_info[i];
+        Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, obj.x1, obj.y1, obj.x2, obj.y2,
+                  scale_x, scale_y);
     }
-
-    //    UIImage *output_image = [UIImage yt_imageWithCVMat:input_mat_rgba];
     UIImage *output_image =
         utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
+    // draw texts
+    stringstream descStr;
+    for (int i = 0; i < obj_info.size(); i++) {
+        ObjInfo &obj = obj_info[i];
+
+        descStr.precision(3);
+        descStr << voc_classes[obj.classid] << ",";
+        descStr << std::fixed << obj.score;
+        NSString *text = [NSString stringWithCString:descStr.str().c_str() encoding:[NSString defaultCStringEncoding]];
+        descStr.str("");
+
+        auto x    = obj.x1 * scale_x;
+        auto y    = [self getValidPosition:obj.y1 limit:image_orig_height] * scale_y;
+        CGPoint p = CGPointMake(x, y);
+
+        output_image = [self drawText:text inImage:output_image atPoint:p];
+    }
+
     self.imageView.image = output_image;
+}
+
+- (UIImage *)drawText:(NSString *)text inImage:(UIImage *)image atPoint:(CGPoint)point {
+    // set text fond and color
+    UIFont *font   = [UIFont boldSystemFontOfSize:15];
+    UIColor *color = [UIColor redColor];
+    UIGraphicsBeginImageContext(image.size);
+    [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+    CGRect rect       = CGRectMake(point.x, point.y, image.size.width, image.size.height);
+    NSDictionary *att = @{NSFontAttributeName : font, NSForegroundColorAttributeName : color};
+    [text drawInRect:rect withAttributes:att];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+
+    return newImage;
+}
+
+- (float)getValidPosition:(float)start limit:(float)limit {
+    // try upper first
+    if (start - 15 > 0)
+        return start - 15;
+    return start;
 }
 
 @end
