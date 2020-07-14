@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_utility.h"
-
+#include "half/macro.h"
 #include "onnx_op_converter.h"
 
 std::vector<int64_t> get_tensor_proto_reshape_shape(
@@ -109,13 +109,13 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         }
         assert(number >= 0);
         if (number > node.input_size() - 1) {
-            DLog("the number > node.input_size(), key:%s\n", key);
+            LOGD("the number > node.input_size(), key:%s\n", key);
             return array_i;
         }
         const string& name = node.input(number);
-        DLog("name :%s\n", name.c_str());
+        LOGD("name :%s\n", name.c_str());
         if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
-            DLog("input %d name:%s is not weight\n", number, name.c_str());
+            LOGD("input %d name:%s is not weight\n", number, name.c_str());
             assert(0);
         }
 
@@ -158,13 +158,13 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         }
         assert(number >= 0);
         if (number > node.input_size() - 1) {
-            DLog("the number > node.input_size(), key:%s\n", key);
+            LOGD("the number > node.input_size(), key:%s\n", key);
             return array_i;
         }
         const string& name = node.input(number);
-        DLog("name :%s\n", name.c_str());
+        LOGD("name :%s\n", name.c_str());
         if (weights_map.find(name) == weights_map.end()) {
-            DLog("input %d name:%s is not weight\n", number, name.c_str());
+            LOGD("input %d name:%s is not weight\n", number, name.c_str());
             assert(0);
         }
 
@@ -238,9 +238,9 @@ std::vector<float> get_node_attr_af(const onnx::NodeProto& node,
     }
 
     if (number < 0 || number >= node.input_size()) {
-        DLog("invalid number %d for input_size:%d\n", number,
+        LOGD("invalid number %d for input_size:%d\n", number,
              node.input_size());
-        DLog("node output %s key %s", node.output(0).c_str(), key);
+        LOGD("node output %s key %s", node.output(0).c_str(), key);
         assert(0);
         return v;
     }
@@ -248,7 +248,7 @@ std::vector<float> get_node_attr_af(const onnx::NodeProto& node,
     // get attribute from inputs
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
-        DLog("invalid name for input: %s\n", name.c_str());
+        LOGD("invalid name for input: %s\n", name.c_str());
         assert(0);
         return v;
     }
@@ -292,7 +292,7 @@ std::vector<double> get_node_attr_ad(const onnx::NodeProto& node,
         // get params from inputs
         assert(number >= 0);
         if (number > node.input_size() - 1) {
-            DLog("the number > node.input_size()\n");
+            LOGD("the number > node.input_size()\n");
             return v;
         }
         const string& name                   = node.input(number);
@@ -313,7 +313,7 @@ std::vector<double> get_node_attr_ad(const onnx::NodeProto& node,
                 v[i] = data[i];
             }
         } else {
-            DLog("not support the type");
+            LOGD("not support the type");
         }
     }
 
@@ -352,14 +352,14 @@ float get_node_attr_f(const onnx::NodeProto& node, const char* key,
     }
 
     if (number < 0 || number >= node.input_size()) {
-        DLog("invalid number for input\n");
+        LOGD("invalid number for input\n");
         return def;
     }
 
     // get attribute from inputs
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
-        DLog("invalid name for input: %s\n", name.c_str());
+        LOGD("invalid name for input: %s\n", name.c_str());
         assert(0);
         return def;
     }
@@ -370,7 +370,7 @@ float get_node_attr_f(const onnx::NodeProto& node, const char* key,
     if (size > 0) {
         return tensorData[0];
     } else {
-        DLog("TensorProto is invalid");
+        LOGD("TensorProto is invalid");
     }
     return def;
 }
@@ -388,14 +388,14 @@ double get_node_attr_d(const onnx::NodeProto& node, const char* key,
     // get attribute from inputs
 
     if (number < 0 || number >= node.input_size()) {
-        DLog("invalid number for input\n");
+        LOGD("invalid number for input\n");
         assert(0);
         return def;
     }
 
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
-        DLog("invalid name for input: %s\n", name.c_str());
+        LOGD("invalid name for input: %s\n", name.c_str());
         //        assert(0);
         return def;
     }
@@ -408,7 +408,7 @@ double get_node_attr_d(const onnx::NodeProto& node, const char* key,
     if (size > 0) {
         return tensorData[0];
     } else {
-        DLog("TensorProto is invalid");
+        LOGD("TensorProto is invalid");
     }
     return def;
 }
@@ -449,14 +449,14 @@ onnx::TensorProto get_node_attr_tensor(const onnx::NodeProto& node,
     }
 
     if (number < 0 || number >= node.input_size()) {
-        DLog("invalid number for input\n");
+        LOGD("invalid number for input\n");
         assert(0);
         return onnx::TensorProto();
     }
 
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
-        DLog("invalid name for input: %s\n", name.c_str());
+        LOGD("invalid name for input: %s\n", name.c_str());
         return onnx::TensorProto();
     }
 
@@ -502,7 +502,7 @@ int get_tensor_proto_data_size(const onnx::TensorProto& tp) {
         } else if (tp.data_type() == 11) {
             return (int)raw_data.size() / 8;
         } else {
-            DLog("unsupport data type: %d\n", tp.data_type());
+            LOGD("unsupport data type: %d\n", tp.data_type());
             assert(0);
         }
     } else {
@@ -515,7 +515,7 @@ int get_tensor_proto_data_size(const onnx::TensorProto& tp) {
         } else if (tp.data_type() == 11) {
             return tp.double_data_size();
         } else {
-            DLog("unsupport data type: %d\n", tp.data_type());
+            LOGD("unsupport data type: %d\n", tp.data_type());
             assert(0);
         }
     }

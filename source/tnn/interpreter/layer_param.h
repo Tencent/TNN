@@ -326,6 +326,12 @@ struct ConstLayerParam : public LayerParam {
     std::vector<int> dims;
 };
 
+struct SignedMulLayerParam : public LayerParam {
+    float alpha = 1.0f;
+    float beta  = 1.0f;
+    float gamma = 2.0f;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
