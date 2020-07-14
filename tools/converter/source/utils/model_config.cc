@@ -22,15 +22,15 @@ ModelConfig::ModelConfig(std::string model_type, std::string proto_path, std::st
     // TODO
     proto_path_ = proto_path;
     model_path_ = model_path;
-    tnn_path_  = tnn_path;
+    output_dir_  = tnn_path;
 }
-ModelConfig::ModelConfig(std::string model_type, std::string model_path, std::string tnn_path) {
+ModelConfig::ModelConfig(std::string model_type, std::string model_path, std::string output_dir) {
     // TODO
-    if (model_type == "TFLite") {
+    if (model_type == "TFLITE") {
         model_type_ = MODEL_TYPE_TF_LITE;
     }
     model_path_ = model_path;
-    tnn_path_  = tnn_path;
+    output_dir_  = output_dir;
 }
 
 bool ModelConfig::CheckPath(std::string path) {

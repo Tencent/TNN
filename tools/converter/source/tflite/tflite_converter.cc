@@ -12,12 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tf_lite_converter.h"
+#include "tflite_converter.h"
 
 #include <fstream>
 #include <utility>
 
 #include "tflite-schema/schema_generated.h"
+#include "tflite_op_converter.h"
 #include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
@@ -35,7 +36,9 @@ TFLite2Tnn::TFLite2Tnn(std::string mode_path, std::string model_name, std::strin
 }
 
 static bool NeedExtractInput(uint32_t opCode) {
-#define NONEED(x) if (x == opCode) return false;
+#define NONEED(x)                                                                                                      \
+    if (x == opCode)                                                                                                   \
+        return false;
     NONEED(tflite::BuiltinOperator_CONV_2D);
     NONEED(tflite::BuiltinOperator_DEPTHWISE_CONV_2D);
     NONEED(tflite::BuiltinOperator_SPLIT);
@@ -65,9 +68,9 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         // set input
         TNN_NS::InputShapesMap& inputs_shape_map = net_structure.inputs_shape_map;
         for (const auto index : tf_lite_model_->subgraphs[i]->inputs) {
-            const auto& input_tensor         = tensors[index];
-            const auto& name                 = input_tensor->name;
-            const auto& shape                = input_tensor->shape;
+            const auto& input_tensor = tensors[index];
+            const auto& name         = input_tensor->name;
+            const auto& shape        = input_tensor->shape;
             if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
                 inputs_shape_map[name] = shape;
             } else {
@@ -79,9 +82,9 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         // set output
         auto& outputs = net_structure.outputs;
         for (const auto index : tf_lite_model_->subgraphs[i]->outputs) {
-            const auto& output_tensor        = tensors[index];
-            const auto& name                 = output_tensor->name;
-            const auto& shape                = output_tensor->shape;
+            const auto& output_tensor = tensors[index];
+            const auto& name          = output_tensor->name;
+            const auto& shape         = output_tensor->shape;
             if (outputs.find(name) == outputs.end()) {
                 outputs.insert(name);
             } else {
@@ -90,14 +93,36 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             }
         }
         // convert layer
+        auto& layers = net_structure.layers;
         for (int j = 0; j < operators.size(); ++j) {
             const int op_code_index = operators[j]->opcode_index;
-            const auto op_code     = tf_lite_op_set[op_code_index]->builtin_code;
+            const auto op_code      = tf_lite_op_set[op_code_index]->builtin_code;
             if (NeedExtractInput(op_code)) {
-                //TODO
+                // TODO
+            }
+            auto converter = TFLiteOpConverterManager::get()->search(op_code);
+            if (converter == nullptr) {
+                LOGE("Unsupport tflite op type: %d", op_code);
+                return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
             auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
-            auto layer_type_name =
+            // TNN 默认使用每层op的第一个输出作为层的名称
+            cur_layer->name              = tensors[operators[j]->outputs[0]]->name;
+            std::string type_name        = converter->TNNOpType(quantized_mode);
+            TNN_NS::LayerType layer_type = TNN_NS::GlobalConvertLayerType(type_name);
+            cur_layer->type              = layer_type;
+            cur_layer->type_str          = type_name;
+            cur_layer->inputs.resize(operators[j]->inputs.size());
+            cur_layer->outputs.resize(operators[j]->outputs.size());
+            for (auto input_index : operators[j]->inputs) {
+                cur_layer->inputs.push_back(tensors[input_index]->name);
+            }
+            for (auto output_index : operators[j]->outputs) {
+                cur_layer->inputs.push_back(tensors[output_index]->name);
+            }
+            net_structure.layers.push_back(cur_layer);
+            converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer, tf_lite_op_set,
+                            quantized_mode);
         }
     }
     return true;

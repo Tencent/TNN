@@ -16,6 +16,8 @@
 
 namespace TNN_CONVERTER {
 
+TFLiteOpConverterManager* TFLiteOpConverterManager::tf_lite_op_converter_manager_ = nullptr;
+
 TFLiteOpConverterManager* TFLiteOpConverterManager::get() {
     if (tf_lite_op_converter_manager_ == nullptr) {
         tf_lite_op_converter_manager_ = new TFLiteOpConverterManager;
@@ -38,7 +40,7 @@ TFLiteOpConverterManager::~TFLiteOpConverterManager() {
 }
 
 void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TFLiteOpConverter* t) {
-    tf_lite_op_converter_manager_->insert(std::make_pair(op_index, t));
+    tf_lite_op_converter_map_.insert(std::make_pair(op_index, t));
 }
 
 }  // namespace TNN_CONVERTER

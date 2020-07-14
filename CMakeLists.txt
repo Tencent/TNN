@@ -294,12 +294,14 @@ if(TNN_COVERAGE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)
+    #add_subdirectory(third_party/gflags gflags.output EXCLUDE_FROM_ALL)
     add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
 endif()
 
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
-    # config gflg
-    add_subdirectory(third_party/gflags)
-    #add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/gflags  gflags.output EXCLUDE_FROM_ALL)
-endif ()
+#if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
+#    # config gflg
+#    #add_subdirectory(third_party/gflags)
+#    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/gflags  gflags.output EXCLUDE_FROM_ALL)
+#endif ()
+

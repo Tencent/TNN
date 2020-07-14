@@ -19,7 +19,7 @@ DEFINE_bool(h, false, help_message);
 
 DEFINE_string(mp, "", tf_path_message);
 
-DEFINE_string(op,"", onnx_path_message);
+DEFINE_string(od,"", output_dir_message);
 
 DEFINE_string(mt, "", model_type_message);
 

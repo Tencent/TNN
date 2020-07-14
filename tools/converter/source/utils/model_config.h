@@ -37,7 +37,7 @@ public:
 
     std::string proto_path_;
     std::string model_path_;
-    std::string tnn_path_;
+    std::string output_dir_;
     ModelType model_type_;
 private:
     bool CheckPath(std::string path);

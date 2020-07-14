@@ -9,12 +9,36 @@ else ()
 endif ()
 
 
-file(GLOB_RECURSE TNN_CONVERTER_SRC source/*.cc)
-include_directories(source/utils)
-include_directories(source/caffe)
-include_directories(source/onnx)
-include_directories(source/tflite)
-include_directories(source/tensorflow)
+file(GLOB_RECURSE TNN_CONVERTER_SRC source/*.cc source/*.h)
+include_directories(source)
+include_directories(${CMAKE_SOURCE_DIR}/source/tnn)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/gflags  gflags.output EXCLUDE_FROM_ALL)
 
 add_executable(TnnConverter ${TNN_CONVERTER_SRC} ${ONNX_PROTO_SRC} ${ONNX_PROTO_HEAD})
-target_link_libraries(TnnConverter TNN gflags ${Protobuf_LIBRARIES})
+
+target_link_libraries(TnnConverter
+        TNN
+        gflags
+        ${Protobuf_LIBRARIES})
+#if(TNN_BUILD_SHARED)
+#    target_link_libraries(TnnConverter
+#            TNN
+#            gflags
+#            ${Protobuf_LIBRARIES}
+#            )
+#elseif(SYSTEM.iOS OR SYSTEM.Darwin)
+#    target_link_libraries(TnnConverter
+#            -Wl,-force_load TNN
+#            gflags
+#            ${Protobuf_LIBRARIES}
+#            )
+#else()
+#    message("target link libraries whole-archive")
+#    target_link_libraries(TnnConverter
+#            -Wl,--whole-archive TNN -Wl,--no-whole-archive
+#            gflags
+#            ${Protobuf_LIBRARIES}
+#            )
+#endif()
+

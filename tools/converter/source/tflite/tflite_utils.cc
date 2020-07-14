@@ -12,14 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tf_lite_utils.h"
+#include "tflite_utils.h"
+
+#include "tnn/core/macro.h"
 
 bool ConvertDataFormatTflite(const float* src, float* dst, int KH, int KW, int CI, int CO) {
-    // DCHECK(KH > 0);
-    // DCHECK(KW > 0);
-    // DCHECK(CI > 0);
-    // DCHECK(CO > 0);
-    // DCHECK(src != nullptr);
+    ASSERT(KH > 0);
+    ASSERT(KW > 0);
+    ASSERT(CI > 0);
+    ASSERT(CO > 0);
+    ASSERT(src != nullptr);
     // CO KH KW CI --> CO CI KH KW
     for (int oc = 0; oc < CO; ++oc) {
         for (int ic = 0; ic < CI; ++ic) {

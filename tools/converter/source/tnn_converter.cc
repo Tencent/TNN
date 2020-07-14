@@ -12,19 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tflite/tflite_converter.h"
+#include "tnn/interpreter/net_resource.h"
+#include "tnn/interpreter/net_structure.h"
 #include "utils/command.h"
-#include "utils/model_config.h"
 #include "utils/flags.h"
-#include "tflite/tf_lite_converter.h"
+#include "utils/model_config.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
 
-    ModelConfig model_config(FLAGS_mt, FLAGS_mp, FLAGS_op);
+    TNN_NS::NetStructure net_structure;
+    TNN_NS::NetResource net_resource;
+    ModelConfig model_config(FLAGS_mt, FLAGS_mp, FLAGS_od);
     if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_TF_LITE) {
         TFLite2Tnn tf_lite_2_tnn(model_config.model_path_);
-        tf_lite_2_tnn.Convert2Tnn();
+        tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
     }
 
     return 0;

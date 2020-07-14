@@ -44,7 +44,7 @@ bool ParseCommandLine(int argc, char* argv[]) {
         ShowHelpMessage();
         return false;
     }
-    if (FLAGS_op.empty()) {
+    if (FLAGS_od.empty()) {
         ShowOnnxPathMessage();
         ShowHelpMessage();
         return false;

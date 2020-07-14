@@ -109,6 +109,9 @@ enum StatusCode {
     // Hiai
     TNNERR_HIAI_API_ERROR = 0xD001,
 
+    // TNN CONVERT
+    TNN_CONVERT_OK = 0xD000,
+    TNNERR_CONVERT_UNSUPPORT_LAYER = 0xD001,
     // Quantize
     TNNERR_QUANTIZE_ERROR = 0xF001,
 };

@@ -22,7 +22,7 @@ static const char help_message[] = "print a usage message.";
 
 static const char tf_path_message[] = "specify model path: <the>/<path>/<to>/<test.tflite>.";
 
-static const char onnx_path_message[] = "specify onnx path: <the>/<path>/<to>/<test.onnx>";
+static const char output_dir_message[] = "specify output path: <the>/<path>/<to>/<directory>.";
 
 static const char model_type_message[] = "specify model type: Caffe, TF, TFLite.";
 
@@ -30,7 +30,7 @@ DECLARE_bool(h);
 
 DECLARE_string(mp);
 
-DECLARE_string(op);
+DECLARE_string(od);
 
 DECLARE_string(mt);
 
