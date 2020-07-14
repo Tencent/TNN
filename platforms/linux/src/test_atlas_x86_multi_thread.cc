@@ -166,7 +166,6 @@ int ReadFromTxtToNHWCU8_Batch(unsigned char*& img, std::string file_path, std::v
         int temp;
         f >> temp;
         img[i] = (unsigned char)temp;
-        // img[i] = img[i] / 255.0;
     }
 
 
@@ -180,53 +179,36 @@ int ReadFromTxtToNHWCU8_Batch(unsigned char*& img, std::string file_path, std::v
     return 0;
 }
 
-int main(int argc, char* argv[]) {
-    printf("Run Atlas test ...\n");
-    if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename>\n");
-        return 0;
-    } else {
-        if (argc < 3) {
-            printf("invalid args\n");
-            return 0;
-        }
-        for (int i = 1; i < argc; i++) {
-            printf("arg%d: %s\n", i - 1, argv[i]);
-        }
-    }
+struct TNNParam {
+    std::string input_file;
+    int device_id = 0;
+    int thread_id = 0;
+    TNN* tnn_net;
+};
+
+void* RunTNN(void* param) {
+    TNNParam* tnn_param = (TNNParam*)param;
+    printf("thread (%d) in...\n", tnn_param->thread_id);
+
+    struct timeval time_begin, time_end;
+    struct timezone zone;
+    struct timeval time1;
+    struct timeval time2;
+    float delta = 0;
+
+    int ret;
+    Status error;
 
     NetworkConfig network_config;
     network_config.network_type = NETWORK_TYPE_ATLAS;
     network_config.device_type  = DEVICE_ATLAS;
-    network_config.device_id    = 0;
-
-    struct timezone zone;
-    struct timeval time1;
-    struct timeval time2;
-    struct timeval time_begin, time_end;
-    float delta = 0;
-
-    Status error;
-    int ret;
-    gettimeofday(&time1, NULL);
-    ModelConfig config;
-    config.model_type = MODEL_TYPE_ATLAS;
-    config.params.push_back(argv[1]);
-
-    error = net_.Init(config);  // init the net
-    if (TNN_OK != error) {
-        printf("TNN init failed\n");
-        return -1;
-    }
-    gettimeofday(&time2, NULL);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-    printf("init tnn time cost: %g ms\n", delta);
+    network_config.device_id    = tnn_param->device_id;
 
     gettimeofday(&time1, NULL);
-    auto instance_ = net_.CreateInst(network_config, error);
+    auto instance_ = tnn_param->tnn_net->CreateInst(network_config, error);
     if (CheckResult("create instance", error) != true) {
         printf("error info: %s\n", error.description().c_str());
-        return -1;
+        return nullptr;
     }
     gettimeofday(&time2, NULL);
     delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
@@ -265,19 +247,19 @@ int main(int argc, char* argv[]) {
     auto input_dims = input->GetBlobDesc().dims;
     auto input_format = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], input_dims);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
+        //ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, input_dims, false);
+        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
+        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], input_dims);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
+        //ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
+        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
+        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
         printf("invalid model input format\n");
-        return -1;
+        return nullptr;
     }
     if (CheckResult("load input data", ret) != true)
-        return -1;
+        return nullptr;
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, input_data_ptr[index]);
 
@@ -297,7 +279,7 @@ int main(int argc, char* argv[]) {
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
-        return -1;
+        return nullptr;
     }
 
     // Forward on atlas device.
@@ -332,17 +314,69 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+        char temp[16];
+        sprintf(temp, "%d", tnn_param->thread_id);
+        std::string thread_id_str = temp;
         std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
-                      "dump_" + name_temp + ".txt");
-        // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
-        // output.second->GetBlobDesc().name + ".bin");
+                      "dump_" + name_temp + "thread_" + thread_id_str + ".txt");
     }
 
     if (input_data_ptr != nullptr)
         free(input_data_ptr);
 
     instance_.reset();
+
+    printf("thread (%d) exit\n", tnn_param->thread_id);
+}
+
+int main(int argc, char* argv[]) {
+    printf("Run Atlas test ...\n");
+    if (argc == 1) {
+        printf("./AtlasTest <config_filename> <input_filename>\n");
+        return 0;
+    } else {
+        if (argc < 3) {
+            printf("invalid args\n");
+            return 0;
+        }
+        for (int i = 1; i < argc; i++) {
+            printf("arg%d: %s\n", i - 1, argv[i]);
+        }
+    }
+
+    Status error;
+    int ret;
+    ModelConfig config;
+    config.model_type = MODEL_TYPE_ATLAS;
+    config.params.push_back(argv[1]);
+
+    error = net_.Init(config);  // init the net
+    if (TNN_OK != error) {
+        printf("TNN init failed\n");
+        return -1;
+    }
+
+    TNNParam thread_param[4];
+    for (int i = 0; i < 4; ++i) {
+        thread_param[i].input_file = argv[2];
+        thread_param[i].device_id = 0;
+        thread_param[i].thread_id = i;
+        thread_param[i].tnn_net = &net_;
+    }
+
+    pthread_t thread[4];
+
+    for (int t = 0; t < 4; ++t) {
+        if (pthread_create(&thread[t], NULL, &RunTNN, (void *)&thread_param[t]) != 0){
+            return -1;
+        }
+    }
+
+    for(int t = 0; t < 4; t++) {
+        pthread_join(thread[t], NULL);
+    }
+
     net_.DeInit();
     return 0;
 }

@@ -131,7 +131,7 @@ AtlasRuntime::~AtlasRuntime() {
     LOGD("aclFinalize()\n");
     ret = aclFinalize();
     if (ret != ACL_ERROR_NONE) {
-        LOGE("acl finalize failed!\n");
+        LOGD("acl finalize failed!\n");
     }
 
     LOGD("~AtlasRuntime() end \n");
