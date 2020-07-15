@@ -27,13 +27,6 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image_write.h"
 
-void *MallocWrap(int byte_num){
-    void *MallocBuf = (void *)malloc(byte_num);
-    if(MallocBuf == NULL)
-        printf("\n Malloc Failed.\n");
-    return MallocBuf;	
-}
-
 // Helper functions
 std::string fdLoadFile(std::string path) {
     std::ifstream file(path, std::ios::in);
@@ -80,16 +73,12 @@ int main(int argc, char** argv) {
     printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
-    printf("The origin image_width:%d \n",int(image_width));
-    printf("The origin image_height:%d \n",int(image_height));
-    printf("The origin image_channel:%d \n",int(image_channel));
 
     CHECK_TNN_STATUS(detector->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
     auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
 
     std::vector<FaceInfo> face_info;
     CHECK_TNN_STATUS(detector->Detect(input_mat, h, w, face_info));
-    printf("Detect done!\n");
 
     const int image_orig_height = int(image_height);
     const int image_orig_width  = int(image_width);
@@ -97,9 +86,9 @@ int main(int argc, char** argv) {
     float scale_y               = image_orig_height / (float)h;
 
     //convert rgb to rgb-a
-    uint8_t *ifm_buf = (uint8_t *)MallocWrap(320*240*4);
+    uint8_t *ifm_buf = new uint8_t[320*240*4];
     for (int i = 0; i < 320*240; ++i) {
-        ifm_buf[i*4] = data[i*3];
+        ifm_buf[i*4]   = data[i*3];
         ifm_buf[i*4+1] = data[i*3+1];
         ifm_buf[i*4+2] = data[i*3+2];
         ifm_buf[i*4+3] = 255;
@@ -117,7 +106,7 @@ int main(int argc, char** argv) {
         return -1;
 
     fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
-    free(ifm_buf);
+    delete ifm_buf;
     free(data);
     return 0;
 }
