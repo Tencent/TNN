@@ -51,8 +51,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
     ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
 
-    return TNN_NS::TNN_OK;
+    return TNN_NS::TNN_CONVERT_OK;
 }
-
-REGISTER_CONVERTER(PRelu, tflite::BuiltinOperator_PRELU);
+using namespace tflite;
+REGISTER_CONVERTER(PRelu, BuiltinOperator_PRELU);
 }
