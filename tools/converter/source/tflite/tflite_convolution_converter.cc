@@ -32,7 +32,6 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
-
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
 
@@ -57,7 +56,6 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
         param->name           = cur_layer->name;
         param->type           = cur_layer->type_str;
         param->quantized      = false;
-        param->group          = 1;
         param->input_channel  = ci;
         param->output_channel = co;
         param->kernels.push_back(kw);
@@ -66,7 +64,10 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
         param->strides.push_back(conv_opt->stride_h);
         param->dialations.push_back(conv_opt->dilation_w_factor);
         param->dialations.push_back(conv_opt->dilation_h_factor);
-
+        param->group = 1;
+        if (tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code == tflite::BuiltinOperator_DEPTHWISE_CONV_2D) {
+            param->group = ci;
+        }
         param->pad_type = 0;
         if (conv_opt->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
@@ -110,6 +111,7 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, sizeof(float) * co);
         }
+        layer_resource->bias_handle                = bias_handle;
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
 
@@ -118,6 +120,10 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
     cur_layer->outputs.resize(1);
     cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
+    return TNN_NS::TNN_CONVERT_OK;
 }
-REGISTER_CONVERTER(Convolution, tflite::BuiltinOperator_CONV_2D);
+using namespace tflite;
+REGISTER_CONVERTER(Convolution, BuiltinOperator_CONV_2D);
+REGISTER_CONVERTER(Convolution, BuiltinOperator_DEPTHWISE_CONV_2D);
+
 }  // namespace TNN_CONVERTER
