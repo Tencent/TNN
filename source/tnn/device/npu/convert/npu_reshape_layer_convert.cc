@@ -28,10 +28,10 @@ Status NpuReshapeLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: ReshapeLayerParam is nil");
     }
 
-    auto input_data               = input_ops_[0];
     ge::AttrValue::LIST_INT shape = std::vector<int64_t>(param->shape.begin(), param->shape.end());
-    auto output                   = std::make_shared<ge::op::Reshape>(outputs_[0]);
-    output->set_input_tensor(*input_data->GetOperator());
+
+    auto output = std::make_shared<ge::op::Reshape>(outputs_name_[0]);
+    output->set_input_tensor(*input_ops_[0]->GetOperator());
     output->set_attr_shape(shape);
     output->set_attr_axis(param->axis);
     output->set_attr_num_axes(param->num_axes);

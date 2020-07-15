@@ -24,7 +24,6 @@ set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
-set(TNN_BENCHMARK_MODE ON CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -70,10 +69,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                         tnn_wrapper
                         -ljnigraphics
-<<<<<<< HEAD
-=======
                         hiai hiai_ir hiai_ir_build
->>>>>>> f481a7cf2916aedab305cd93acc0930ebd892859
                         -Wl,--whole-archive TNN -Wl,--no-whole-archive
                        # Links the target library to the log library
                        # included in the NDK.

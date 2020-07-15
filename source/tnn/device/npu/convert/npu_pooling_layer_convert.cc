@@ -27,7 +27,6 @@ Status NpuPoolLayer::Convert() {
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: PoolingLayerParam is nil");
     }
-    auto &input_data = input_ops_[0];
 
     int stride_w    = param->strides[0];
     int stride_h    = param->strides[1];
@@ -45,8 +44,8 @@ Status NpuPoolLayer::Convert() {
     int pad_mode = 0;
     NpuUtils::GetPadMode(pad_mode, param->pad_type, false);
 
-    auto output = std::make_shared<ge::op::Pooling>(outputs_[0]);
-    output->set_input_x(*input_data->GetOperator());
+    auto output = std::make_shared<ge::op::Pooling>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_mode(pool_mode);
     if (kernel_h == 0 || kernel_w == 0) {
         output->set_attr_global_pooling(ge::AttrValue::BOOL{true});

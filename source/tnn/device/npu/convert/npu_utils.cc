@@ -15,6 +15,7 @@
 #include "npu_utils.h"
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/utils/dims_vector_utils.h>
+#include <sstream>
 #include "tnn/core/macro.h"
 
 namespace tnn {
@@ -55,14 +56,6 @@ Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::s
     file.write(static_cast<char *>(model_buffer_data.data), model_buffer_data.length);
     file.close();
     return TNN_OK;
-}
-
-Status NpuUtils::CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<int> calculate_shape,
-                                 ge::TensorDesc input_desc) {
-    ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
-    input_size_tensor->SetData((uint8_t *)calculate_shape.data(), sizeof(int) * 4);
-    attr_value->set_attr_value(input_size_tensor);
-    return Status();
 }
 
 Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res, vector<int> &input) {
@@ -130,5 +123,39 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool de
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
     return TNN_OK;
+}
+int NpuUtils::checkNpuVersion(const char *version) {
+    // ddk version's format: xxx.xxx.xxx.xxx
+    std::string version_s(version);
+    size_t pos = std::string::npos;
+    int count = 0, update_index = 1;
+    while ((pos = version_s.find(".")) != std::string::npos) {
+        std::string curr_update = version_s.substr(0, pos);
+        if (count == update_index) {
+            return std::stoi(curr_update.c_str());
+        }
+        version_s.erase(0, pos + 1);
+        count++;
+    }
+    return 0;
+}
+
+std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
+    std::stringstream model_suffix_stream("");
+    for (auto iter : inputs_shape) {
+        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
+            instance_input_shapes_map[iter.first] = iter.second;
+            model_suffix_stream << "_" << iter.first << "[";
+            DimsVector value = iter.second;
+            for (size_t i = 0; i < value.size(); ++i) {
+                if (i != 0) {
+                    model_suffix_stream << "x";
+                }
+                model_suffix_stream << value[i];
+            }
+            model_suffix_stream << "]";
+        }
+    }
+    return model_suffix_stream.str();
 }
 }  // namespace tnn

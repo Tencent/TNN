@@ -52,6 +52,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     //add for npu
     private ToggleButton mNPUswitch;
     private boolean mUseNPU = false;
+    private TextView NpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -62,6 +63,8 @@ public class StreamFaceDetectFragment extends BaseFragment {
         System.loadLibrary("tnn_wrapper");
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
+        String modelPath = initModel();
+        NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -140,6 +143,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
                 onSwichGPU(b);
             }
         });
+
         $$(R.id.npu_switch);
         mNPUswitch = $(R.id.npu_switch);
         mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -148,6 +152,11 @@ public class StreamFaceDetectFragment extends BaseFragment {
                 onSwichNPU(b);
             }
         });
+        NpuTextView = $(R.id.npu_text);
+        if (!NpuEnable) {
+            NpuTextView.setVisibility(View.INVISIBLE);
+            mNPUswitch.setVisibility(View.INVISIBLE);
+        }
         init();
     }
 

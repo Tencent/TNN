@@ -33,7 +33,6 @@ protected:
         if (ret != TNN_OK || !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
-        auto &input_data             = input_ops_[0];
         std::vector<int> input_shape = input_ops_[0]->GetShape();
 
         // bool depthwise = group == input_shape[1] && group == output_channel;
@@ -44,17 +43,16 @@ protected:
             return ret;
 
         // weight
-        int total_data_size     = resource->filter_handle.GetDataCount();
-        int in_group            = total_data_size / (kernel_h * kernel_w * output_channel);
-        std::string weight_name = layer_name_ + "_weight";
+        int total_data_size = resource->filter_handle.GetDataCount();
+        int in_group        = total_data_size / (kernel_h * kernel_w * output_channel);
         ge::Shape weight_shape({output_channel, in_group, kernel_h, kernel_w});
-        auto weight_const = std::make_shared<ge::op::Const>(weight_name);
+        auto weight_const = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
 
         if (depthwise) {
-            auto output = std::make_shared<ge::op::ConvolutionDepthwise>(outputs_[0]);
-            output->set_input_x(*input_data->GetOperator());
+            auto output = std::make_shared<ge::op::ConvolutionDepthwise>(outputs_name_[0]);
+            output->set_input_x(*input_ops_[0]->GetOperator());
             output->set_input_filter(*weight_const);
             output->set_attr_num_output(output_channel);
             output->set_attr_group(group);
@@ -67,22 +65,21 @@ protected:
             return SetOutputOps();
 
         } else {
-            auto output = std::make_shared<ge::op::Convolution>(outputs_[0]);
+            auto output = std::make_shared<ge::op::Convolution>(outputs_name_[0]);
+            output->set_input_x(*input_ops_[0]->GetOperator());
+            output->set_input_w(*weight_const);
             // Init weights
             int bias_count = resource->bias_handle.GetDataCount();
             // bias
             if (bias_count != 0) {
                 // bias
-                std::string bias_name = layer_name_ + "_bias";
                 ge::Shape bias_shape({1, bias_count, 1, 1});
-                auto bias_const = std::make_shared<ge::op::Const>(bias_name);
+                auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
                 NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
                 weight_ops_.push_back(bias_const);
                 output->set_input_b(*bias_const);
             }
 
-            output->set_input_x(*input_data->GetOperator());
-            output->set_input_w(*weight_const);
             output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h, kernel_w}));
             output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
             output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));

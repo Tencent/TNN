@@ -18,6 +18,7 @@ import android.widget.ToggleButton;
 import com.tencent.tnn.demo.FaceDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
+import com.tencent.tnn.demo.ImageClassify;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
@@ -41,6 +42,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
     //add for npu
     private ToggleButton mNPUswitch;
     private boolean mUseNPU = false;
+    private TextView NpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -49,6 +51,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        String modelPath = initModel();
+        NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -120,6 +124,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
                 onSwichGPU(b);
             }
         });
+
         $$(R.id.npu_switch);
         mNPUswitch = $(R.id.npu_switch);
         mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -128,6 +133,13 @@ public class ImageFaceDetectFragment extends BaseFragment {
                 onSwichNPU(b);
             }
         });
+
+        NpuTextView = $(R.id.npu_text);
+
+        if (!NpuEnable) {
+            NpuTextView.setVisibility(View.INVISIBLE);
+            mNPUswitch.setVisibility(View.INVISIBLE);
+        }
         mDrawView = (DrawView) $(R.id.drawView);
         mRunButton = $(R.id.run_button);
         mRunButton.setOnClickListener(new View.OnClickListener() {

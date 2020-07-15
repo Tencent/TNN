@@ -95,35 +95,39 @@ public:
 
 private:
     // add for npu
-    virtual Status InitLayers(NetResource *net_resource);
+    Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 
-    virtual Status CreateGraphInputs(InputShapesMap &input_shape_map);
+    Status ConvertLayers(NetResource *net_resource);
 
-    virtual Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map);
+    Status CreateGraphInputs(InputShapesMap &input_shape_map);
 
-    virtual Status BuildModel(std::string &tnn_file_path);
+    Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map);
+
+    Status BuildModel(std::string model_path);
+
+    Status InitCheck();
 
     AbstractDevice *device_ = nullptr;
-    Context *context_       = nullptr;
+
+    Context *context_ = nullptr;
 
     std::vector<NpuBaseLayer *> layers_;
 
     BlobManager *blob_manager_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
-
     // add for npu
     std::map<std::string, shared_ptr<OperatorInfo>> global_operator_map_;
     ge::Graph graph_ = ge::Graph("graph");
 
+    bool from_path_ = true;
     std::string model_name_;
     std::shared_ptr<hiai::AiModelMngerClient> client_;
     std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
     std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;
     BlobMap input_blob_map_;
-    BlobMap output_blob_map_;
 
-    Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+    BlobMap output_blob_map_;
 };
 
 }  // namespace TNN_NS

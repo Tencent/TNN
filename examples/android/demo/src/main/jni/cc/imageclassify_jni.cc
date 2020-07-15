@@ -27,10 +27,13 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     } else if (gComputeUnitType == 1) {
         status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU);
     } else if (gComputeUnitType == 2) {
-        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, {}, modelPathStr);
+        LOGI("the device type  %d device npu" ,gComputeUnitType);
+        gDetector->setNpuModelPath(modelPathStr + "/");
+        gDetector->setCheckNpuSwitch(false);
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU);
     } else {
-        LOGI("the device type  %d" ,gComputeUnitType);
-        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, {}, modelPathStr);
+        LOGE("Wrong device type number");
+        return -1;
     }
 
     if (status != TNN_NS::TNN_OK) {
@@ -42,6 +45,19 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     gDetector->SetBenchOption(bench_option);
     return 0;
 }
+
+JNIEXPORT jboolean TNN_CLASSIFY(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+    ImageClassifier tmpDetector;
+    std::string protoContent, modelContent;
+    std::string modelPathStr(jstring2string(env, modelPath));
+    protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
+    tmpDetector.setNpuModelPath(modelPathStr + "/");
+    tmpDetector.setCheckNpuSwitch(true);
+    TNN_NS::Status ret = tmpDetector.Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, {});
+    return ret == TNN_NS::TNN_OK;
+}
+
 JNIEXPORT JNICALL jint TNN_CLASSIFY(deinit)(JNIEnv *env, jobject thiz)
 {
 
