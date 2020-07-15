@@ -68,7 +68,6 @@ Status MetalPriorBoxLayerAcc::SetKernelEncoderParam(
                                                 id<MTLComputeCommandEncoder> encoder,
                                                 const std::vector<Blob *> &inputs,
                                                 const std::vector<Blob *> &outputs) {
-    LOGE("MetalPriorBoxLayerAcc::SetKernelEncoderParam\n");
     auto input  = inputs[0];
     auto output = outputs[0];
     
