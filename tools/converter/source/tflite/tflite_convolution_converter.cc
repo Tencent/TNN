@@ -72,11 +72,13 @@ void TFLiteConvolutionConverter::exec(TNN_NS::NetStructure& net_structure, TNN_N
         param->pad_type = 0;
         if (conv_opt->padding == tflite::Padding_VALID) {
             param->pad_type = -1;
+            param->pads.push_back(0);
+            param->pads.push_back(0);
+            param->pads.push_back(0);
+            param->pads.push_back(0);
+        } else if (conv_opt->padding == tflite::Padding_SAME) {
+
         }
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
 
         const auto activation = conv_opt->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {
