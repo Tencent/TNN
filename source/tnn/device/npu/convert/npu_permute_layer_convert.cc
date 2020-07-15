@@ -33,7 +33,6 @@ Status NpuPermuteLayer::Convert() {
 
     auto output = std::make_shared<ge::op::Permute>(outputs_name_[0]);
     if (output == nullptr) {
-
     }
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_order(orders);

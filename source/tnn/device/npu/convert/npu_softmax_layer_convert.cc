@@ -30,7 +30,7 @@ Status NpuSoftmaxLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: SoftmaxLayerParam is unsupported");
     }
 
-    int axis         = param->axis;
+    int axis = param->axis;
 
     auto output = std::make_shared<ge::op::Softmax>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());

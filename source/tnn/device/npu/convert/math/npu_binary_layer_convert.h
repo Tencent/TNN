@@ -42,8 +42,8 @@ public:
 protected:
     template <class T>
     Status BinaryConvert() {
-        auto param       = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-        auto res         = dynamic_cast<EltwiseLayerResource *>(resource_);
+        auto param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+        auto res   = dynamic_cast<EltwiseLayerResource *>(resource_);
         if (!param) {
             LOGE("Error:Binary layer param is nil\n");
             return Status(TNNERR_PARAM_ERR, "Error: the Binary layer param is nil");

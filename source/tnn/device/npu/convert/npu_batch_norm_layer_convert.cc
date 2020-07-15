@@ -22,30 +22,30 @@ namespace TNN_NS {
 DECLARE_NPU_LAYER_WEIGHT_ARRAY(BatchNorm, LAYER_BATCH_NORM);
 
 Status NpuBatchNormLayer::Convert() {
-    auto resource = dynamic_cast<BatchNormLayerResource*>(resource_);
+    auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
 
     if (!resource) {
         LOGE("Error: BatchNorm layer resource is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
     }
 
-    //channel is the 1 element of NCHW
-    int channel = input_ops_[0]->GetShape()[1];
-    RawBuffer& scale_handle = resource->scale_handle;
-    bool share_channel     = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
-    auto *scale_data       = resource->scale_handle.force_to<float *>();
-    auto *bias_data        = resource->bias_handle.force_to<float *>();
+    // channel is the 1 element of NCHW
+    int channel             = input_ops_[0]->GetShape()[1];
+    RawBuffer &scale_handle = resource->scale_handle;
+    bool share_channel      = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
+    auto *scale_data        = resource->scale_handle.force_to<float *>();
+    auto *bias_data         = resource->bias_handle.force_to<float *>();
 
-    auto  mean_data = std::make_shared<std::vector<float>>();
-    auto variance_data = std::make_shared<std::vector<float>>();
+    auto mean_data        = std::make_shared<std::vector<float>>();
+    auto variance_data    = std::make_shared<std::vector<float>>();
     auto share_scale_data = std::make_shared<std::vector<float>>();
-    auto share_bias_data = std::make_shared<std::vector<float>>();
+    auto share_bias_data  = std::make_shared<std::vector<float>>();
     arrays.push_back(mean_data);
     arrays.push_back(variance_data);
     arrays.push_back(share_scale_data);
     arrays.push_back(share_bias_data);
 
-    for (int i = 0; i < channel; i ++) {
+    for (int i = 0; i < channel; i++) {
         mean_data->push_back(0);
         variance_data->push_back(1);
         if (share_channel) {
@@ -54,18 +54,17 @@ Status NpuBatchNormLayer::Convert() {
         }
     }
 
-
     ge::Shape shape({channel});
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
 
-    auto mean_const = std::make_shared<ge::op::Const>(layer_name_+"_mean");
+    auto mean_const = std::make_shared<ge::op::Const>(layer_name_ + "_mean");
     NpuUtils::CreateAttrArray(mean_const, *mean_data, desc, channel);
 
-    auto variance_const = std::make_shared<ge::op::Const>(layer_name_+"_variance");
+    auto variance_const = std::make_shared<ge::op::Const>(layer_name_ + "_variance");
     NpuUtils::CreateAttrArray(variance_const, *variance_data, desc, channel);
 
-    auto scale_const = std::make_shared<ge::op::Const>(layer_name_+"_scale");
-    auto bias_const = std::make_shared<ge::op::Const>(layer_name_+"_bias");
+    auto scale_const = std::make_shared<ge::op::Const>(layer_name_ + "_scale");
+    auto bias_const  = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
 
     if (share_channel) {
         NpuUtils::CreateAttrArray(scale_const, *share_scale_data, desc, channel);

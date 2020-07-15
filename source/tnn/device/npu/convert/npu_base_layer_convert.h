@@ -149,12 +149,12 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
         std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
     }
 
-#define DECLARE_NPU_LAYER_WEIGHT_ARRAY(type_string, layer_type)                                                                                                          \
+#define DECLARE_NPU_LAYER_WEIGHT_ARRAY(type_string, layer_type)                                                        \
     class Npu##type_string##Layer : public NpuBaseLayer {                                                              \
     public:                                                                                                            \
         Npu##type_string##Layer(LayerType ignore) : NpuBaseLayer(layer_type){};                                        \
         virtual ~Npu##type_string##Layer(){};                                                                          \
-        \
+                                                                                                                       \
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
         std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \

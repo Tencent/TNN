@@ -32,7 +32,7 @@ Status NpuInnerProductLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
     }
 
-    int has_bias     = param->has_bias;
+    int has_bias = param->has_bias;
 
     auto output    = std::make_shared<ge::op::FullConnection>(outputs_name_[0]);
     int bias_count = resource->bias_handle.GetDataCount();

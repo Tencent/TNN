@@ -31,7 +31,7 @@ Status NpuConcatLayer::Convert() {
         LOGE("Error: invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
-    int axis    = param->axis;
+    int axis = param->axis;
 
     auto output = std::make_shared<ge::op::Concat>(outputs_name_[0]);
     // multiple input

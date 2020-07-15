@@ -15,9 +15,9 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
 #define TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
 
+#include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/raw_buffer.h>
-#include <tnn/core/blob.h>
 
 #include "graph/op/array_defs.h"
 #include "graph/op/const_defs.h"
@@ -36,9 +36,9 @@ public:
 
     static Status CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
-    template<class T>
+    template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
-                                     ge::TensorDesc input_desc, int shape) {
+                                  ge::TensorDesc input_desc, int shape) {
         ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
         input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * shape);
         attr_value->set_attr_value(input_size_tensor);
@@ -57,9 +57,9 @@ public:
 
     static int checkNpuVersion(const char *version);
 
-    static std::string modifyModelInputSize(InputShapesMap& inputs_shape, InputShapesMap& instance_input_shapes_map);
+    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
 };
 
 }  // namespace TNN_NS
 
-#endif // TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_

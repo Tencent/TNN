@@ -49,16 +49,16 @@ protected:
                 output->set_attr_coef(param->alpha);
             } break;
             case LAYER_PRELU: {
-                mode       = 5;
-                auto param = dynamic_cast<PReluLayerParam *>(param_);
-                auto resource = dynamic_cast<PReluLayerResource *>(resource_);
+                mode                    = 5;
+                auto param              = dynamic_cast<PReluLayerParam *>(param_);
+                auto resource           = dynamic_cast<PReluLayerResource *>(resource_);
                 const float *slope_data = resource->slope_handle.force_to<float *>();
                 if (!param || !resource) {
                     LOGE("Error: prelu layer param or resource is nil\n");
                     return Status(TNNERR_PARAM_ERR, "Error: prelu layer param/resource is nil");
                 }
-                if (param->channel_shared ) {
-                    //if channel shared
+                if (param->channel_shared) {
+                    // if channel shared
                     output->set_attr_negative_slope(slope_data[0]);
                 } else {
                     LOGE("Error: Npu currently only supports channel-shared prelu\n");
@@ -82,7 +82,7 @@ protected:
                     return Status(TNNERR_PARAM_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
                 }
                 mode = 10;
-            }break;
+            } break;
             case LAYER_SELU:
                 mode = 12;
                 break;
@@ -121,7 +121,7 @@ REGISTER_NPU_LAYER(Tanh, LAYER_TANH);
 DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU);
 REGISTER_NPU_LAYER(Elu, LAYER_ELU)
 DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU);
-REGISTER_NPU_LAYER(Prelu,LAYER_PRELU);
+REGISTER_NPU_LAYER(Prelu, LAYER_PRELU);
 DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS);
 REGISTER_NPU_LAYER(Abs, LAYER_ABS);
 DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS);

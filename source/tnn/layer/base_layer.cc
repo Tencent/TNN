@@ -123,7 +123,7 @@ std::vector<Blob*> BaseLayer::GetOutputBlobs() {
     return output_blobs_;
 }
 
-#ifdef BENCHMARK
+//#ifdef BENCHMARK
 Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,
                                   LayerResource* resource) {
     input_blobs_  = input_blobs;
@@ -134,7 +134,7 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
     InferOutputShape();
     return TNN_OK;
 }
-#endif
+//#endif
 
 std::map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {
     // static shared_ptr of LayerCreatorMap.

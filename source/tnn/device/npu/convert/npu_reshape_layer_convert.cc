@@ -30,7 +30,7 @@ Status NpuReshapeLayer::Convert() {
 
     ge::AttrValue::LIST_INT shape = std::vector<int64_t>(param->shape.begin(), param->shape.end());
 
-    auto output                   = std::make_shared<ge::op::Reshape>(outputs_name_[0]);
+    auto output = std::make_shared<ge::op::Reshape>(outputs_name_[0]);
     output->set_input_tensor(*input_ops_[0]->GetOperator());
     output->set_attr_shape(shape);
     output->set_attr_axis(param->axis);

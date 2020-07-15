@@ -43,8 +43,8 @@ protected:
             return ret;
 
         // weight
-        int total_data_size     = resource->filter_handle.GetDataCount();
-        int in_group            = total_data_size / (kernel_h * kernel_w * output_channel);
+        int total_data_size = resource->filter_handle.GetDataCount();
+        int in_group        = total_data_size / (kernel_h * kernel_w * output_channel);
         ge::Shape weight_shape({output_channel, in_group, kernel_h, kernel_w});
         auto weight_const = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);

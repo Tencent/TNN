@@ -125,22 +125,22 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool de
     return TNN_OK;
 }
 int NpuUtils::checkNpuVersion(const char *version) {
-    //ddk version's format: xxx.xxx.xxx.xxx
+    // ddk version's format: xxx.xxx.xxx.xxx
     std::string version_s(version);
-    size_t pos =  std::string::npos;
+    size_t pos = std::string::npos;
     int count = 0, update_index = 1;
     while ((pos = version_s.find(".")) != std::string::npos) {
-        std::string curr_update = version_s.substr(0,pos);
-        if (count == update_index){
+        std::string curr_update = version_s.substr(0, pos);
+        if (count == update_index) {
             return std::stoi(curr_update.c_str());
         }
-        version_s.erase(0,pos + 1);
+        version_s.erase(0, pos + 1);
         count++;
     }
     return 0;
 }
 
-std::string NpuUtils::modifyModelInputSize (InputShapesMap& inputs_shape, InputShapesMap &instance_input_shapes_map) {
+std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
     std::stringstream model_suffix_stream("");
     for (auto iter : inputs_shape) {
         if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {

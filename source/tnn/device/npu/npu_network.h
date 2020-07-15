@@ -109,7 +109,7 @@ private:
 
     AbstractDevice *device_ = nullptr;
 
-    Context *context_       = nullptr;
+    Context *context_ = nullptr;
 
     std::vector<NpuBaseLayer *> layers_;
 

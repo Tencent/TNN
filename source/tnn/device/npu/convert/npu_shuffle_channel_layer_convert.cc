@@ -28,7 +28,7 @@ Status NpuShuffleChannelLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
     }
 
-    int group        = param->group;
+    int group = param->group;
 
     auto output = std::make_shared<ge::op::ShuffleChannel>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());

@@ -58,10 +58,10 @@ Status NpuNetwork::InitCheck() {
     const char *version = client_->GetVersion();
     if (version == nullptr) {
         LOGE("ERROR: GetRomVersion fail: npu is not installed or rom version is too low\n");
-        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low");
-
+        return Status(TNNERR_NPU_LOAD_ERROR,
+                      "ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low");
     }
-    //check if NPU version is greater than 300
+    // check if NPU version is greater than 300
     int version_num = NpuUtils::checkNpuVersion(version);
     LOGI("ddk current version: %s", version);
     if (version_num < 300) {
@@ -72,7 +72,7 @@ Status NpuNetwork::InitCheck() {
 }
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
-    client_ = std::make_shared<hiai::AiModelMngerClient>();
+    client_         = std::make_shared<hiai::AiModelMngerClient>();
     Status init_ret = InitCheck();
     if (init_ret != TNN_OK) {
         return init_ret;
@@ -84,8 +84,8 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
 
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
-    std::string path_to_om      = "";
-    //check if store the om file
+    std::string path_to_om         = "";
+    // check if store the om file
     if (model_config.params.size() == 3) {
         from_path_ = (model_config.params[2].compare("") != 0);
         path_to_om = model_config.params[2];
@@ -99,7 +99,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     std::string model_path = path_to_om + model_name_ + ".om";
     LOGI("the path %s\n", model_path.c_str());
 
-    auto model_builder = std::make_shared<hiai::AiModelBuilder>(client_);
+    auto model_builder                = std::make_shared<hiai::AiModelBuilder>(client_);
     hiai::MemBuffer *model_mem_buffer = nullptr;
     if (net_config.device_type == DEVICE_NPU && model_config.model_type == MODEL_TYPE_TNN) {
         if (from_path_ && NpuUtils::FileExits(model_path)) {
@@ -111,7 +111,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
                 return build_ret;
             }
             // Build Graph
-            build_ret = from_path_ ?BuildModel(model_path) : TNN_OK;
+            build_ret = from_path_ ? BuildModel(model_path) : TNN_OK;
             if (build_ret != TNN_OK) {
                 return build_ret;
             }
@@ -120,7 +120,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         LOGE("ERROR: not support device_type %d or model type %d\n", net_config.device_type, model_config.model_type);
         return Status(TNNERR_NULL_PARAM, "Npu not support device_type or model type");
     }
-    //From here, start load
+    // From here, start load
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData build_mem_buff;
     if (from_path_) {
@@ -181,7 +181,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     if (ret != hiai::AI_SUCCESS) {
         LOGE("ERROR: function GetModelIOTensorDim() failed\n");
         return Status(TNNERR_HIAI_API_ERROR, "ERROR: function GetModelIOTensorDim() failed");
-
     }
     if (input_dims.size() == 0) {
         LOGE("Npu the model input_dims.size() == 0");
@@ -205,7 +204,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         if (ret != hiai::AI_SUCCESS) {
             LOGE("ERROR:Get output tensor from loaded model failed\n");
             return Status(TNNERR_HIAI_API_ERROR, "ERROR:Get output tensor from loaded model failed");
-
         }
         output_tensor_.push_back(output);
     }
@@ -344,7 +342,7 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map) {
     return TNN_OK;
 }
 
-Status NpuNetwork::BuildModel(std::string model_path){
+Status NpuNetwork::BuildModel(std::string model_path) {
     // Set model parameters : model name and  model name + version
     ge::Model model(model_name_, model_name_ + "_v1");
     model.SetGraph(graph_);

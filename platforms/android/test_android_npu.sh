@@ -13,8 +13,8 @@ ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_npu
 
 MODEL_TYPE=tnn
-MODEL_NAME=face_detector.rapidproto
-INPUT_FILE_NAME=input_face.txt
+MODEL_NAME=mobilenet_lighthead0.opt.tnnproto
+INPUT_FILE_NAME=input.txt
 
 function usage() {
     echo "-64\tBuild 64bit."
@@ -48,7 +48,6 @@ function build_android() {
           -DCMAKE_BUILD_TYPE=Release \
           -DANDROID_ABI="${ABI}" \
           -DANDROID_STL=c++_shared \
-          -DTNN_BENCHMARK_MODE:BOOL="ON" \
 	      -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_TEST_ENABLE="ON" \

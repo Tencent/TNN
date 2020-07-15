@@ -51,9 +51,9 @@ NpuBaseLayer::~NpuBaseLayer(){};
 Status NpuBaseLayer::Init(Context *context, LayerParam *param, LayerResource *resource,
                           std::vector<std::shared_ptr<OperatorInfo>> input_ops, AbstractDevice *device,
                           std::vector<std::string> outputs) {
-    param_     = param;
-    resource_  = resource;
-    input_ops_ = input_ops;
+    param_        = param;
+    resource_     = resource;
+    input_ops_    = input_ops;
     outputs_name_ = outputs;
     // Convert all layers
     Status ret = Convert();
@@ -70,18 +70,12 @@ std::string NpuBaseLayer::GetLayerName() {
 
 Status NpuBaseLayer::SetOutputOps() {
     // calculate the output shape
-    // get blob
-    if (type_ == LAYER_UPSAMPLE) {
-        output_ops_[0]->SetShape(input_ops_[0]->GetShape());
-        return TNN_OK;
-    } else {
-        // all output index (output shape/ops) follow the outputs_name_ attribute
-        std::vector<std::vector<int>> output_shapes = NpuBaseLayer::GetOutputShapes();
-        for (int i = 0; i < outputs_name_.size(); i++) {
-            output_ops_[i]->SetShape(output_shapes[i]);
-        }
-        return TNN_OK;
+    // all output index (output shape/ops) follow the outputs_name_ attribute
+    std::vector<std::vector<int>> output_shapes = NpuBaseLayer::GetOutputShapes();
+    for (int i = 0; i < outputs_name_.size(); i++) {
+        output_ops_[i]->SetShape(output_shapes[i]);
     }
+    return TNN_OK;
 }
 
 std::vector<int> NpuBaseLayer::GetOutputShape(int i) {
