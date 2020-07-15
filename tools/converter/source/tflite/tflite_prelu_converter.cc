@@ -21,13 +21,15 @@ std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
     return "PRelu";
 }
 TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                                      const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-                                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-                                      const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-                                      const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                      bool quantizedModel) {
-    TNN_NS::PReluLayerParam* param = new TNN_NS::PReluLayerParam;
-    auto cur_layer                = net_structure.layers.back();
+                                          const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                          const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                          const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+                                          const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
+                                          bool quantizedModel) {
+    auto param =
+
+        new TNN_NS::PReluLayerParam;
+    auto cur_layer = net_structure.layers.back();
 
     // inputs: input tensor, weight
     const int input_size = tf_lite_operator->inputs.size();
@@ -37,7 +39,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     const auto& weight_tensor = tf_lite_tensors[weight_index];
 
     const auto& weight_shape = weight_tensor->shape;
-    const int co = weight_shape[2];
+    const int co             = weight_shape[2];
 
     param->name = cur_layer->name;
     param->type = cur_layer->type_str;
@@ -55,4 +57,4 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
 }
 using namespace tflite;
 REGISTER_CONVERTER(PRelu, BuiltinOperator_PRELU);
-}
+}  // namespace TNN_CONVERTER

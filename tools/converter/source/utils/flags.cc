@@ -12,7 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "flags.h"
+#include "tools/converter/source/utils/flags.h"
+
 namespace TNN_CONVERTER {
 
 DEFINE_bool(h, false, help_message);

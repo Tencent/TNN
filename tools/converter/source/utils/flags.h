@@ -15,7 +15,7 @@
 #ifndef TNNCONVERTER_SRC_FLAGS_H_
 #define TNNCONVERTER_SRC_FLAGS_H_
 #include "gflags/gflags.h"
-#include "gflags/gflags_declare.h"
+//#include "gflags/gflags_declare.h"
 namespace TNN_CONVERTER {
 
 static const char help_message[] = "print a usage message.";
