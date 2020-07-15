@@ -36,13 +36,15 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     TNN_NS::Status status;
     gComputeUnitType = computUnitType;
     if (gComputeUnitType == 0 ) {
-        gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsCPU, nchw);
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsCPU, nchw);
     } else if (gComputeUnitType == 1) {
-        gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU, nchw);
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsGPU, nchw);
     } else {
-        LOGI("the device type  %d" ,gComputeUnitType);
-        gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, nchw, modelPathStr);
         //add for npu store the om file
+        LOGI("the device type  %d device npu" ,gComputeUnitType);
+        gDetector->setNpuModelPath(modelPathStr + "/");
+        gDetector->setCheckNpuSwitch(false);
+        status = gDetector->Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU, nchw);
     }
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
@@ -64,6 +66,18 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     }
 
     return 0;
+}
+
+JNIEXPORT JNICALL jboolean TNN_FACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+    UltraFaceDetector tmpDetector(320, 240);
+    std::string protoContent, modelContent;
+    std::string modelPathStr(jstring2string(env, modelPath));
+    protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
+    tmpDetector.setNpuModelPath(modelPathStr + "/");
+    tmpDetector.setCheckNpuSwitch(true);
+    TNN_NS::Status ret = tmpDetector.Init(protoContent, modelContent, "", TNN_NS::TNNComputeUnitsNPU);
+    return ret == TNN_NS::TNN_OK;
 }
 
 JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(deinit)(JNIEnv *env, jobject thiz)

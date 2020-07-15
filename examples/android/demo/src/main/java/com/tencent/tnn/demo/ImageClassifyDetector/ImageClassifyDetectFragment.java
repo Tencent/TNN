@@ -42,6 +42,8 @@ public class ImageClassifyDetectFragment extends BaseFragment {
     //add for npu
     private ToggleButton mNPUswitch;
     private boolean mUseNPU = false;
+    private TextView NpuTextView;
+
     /**********************************     Get Preview Advised    **********************************/
 
     @Override
@@ -49,6 +51,8 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        String modelPath = initModel();
+        NpuEnable = mImageClassify.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -128,6 +132,13 @@ public class ImageClassifyDetectFragment extends BaseFragment {
                 onSwichNPU(b);
             }
         });
+
+        NpuTextView = $(R.id.npu_text);
+        if (!NpuEnable) {
+            NpuTextView.setVisibility(View.INVISIBLE);
+            mNPUswitch.setVisibility(View.INVISIBLE);
+        }
+
         mRunButton = $(R.id.run_button);
         mRunButton.setOnClickListener(new View.OnClickListener() {
             @Override

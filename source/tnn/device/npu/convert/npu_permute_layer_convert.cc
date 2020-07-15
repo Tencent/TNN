@@ -28,8 +28,13 @@ Status NpuPermuteLayer::Convert() {
         LOGE("Error: Permute param is null\n");
         return Status(TNNERR_LAYER_ERR, "Permute param is null");
     }
+
     std::vector<int64_t> orders(param->orders.begin(), param->orders.end());
-    auto output = std::make_shared<ge::op::Permute>(outputs_[0]);
+
+    auto output = std::make_shared<ge::op::Permute>(outputs_name_[0]);
+    if (output == nullptr) {
+
+    }
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_order(orders);
 

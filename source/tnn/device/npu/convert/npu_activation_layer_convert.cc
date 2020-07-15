@@ -26,7 +26,7 @@ class NpuActivationLayerConvert : public NpuBaseLayer {
 protected:
     int mode = 0;
     virtual Status Convert() {
-        auto output = std::make_shared<ge::op::Activation>(outputs_[0]);
+        auto output = std::make_shared<ge::op::Activation>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());
 
         switch (type_) {
@@ -48,14 +48,44 @@ protected:
                 }
                 output->set_attr_coef(param->alpha);
             } break;
+            case LAYER_PRELU: {
+                mode       = 5;
+                auto param = dynamic_cast<PReluLayerParam *>(param_);
+                auto resource = dynamic_cast<PReluLayerResource *>(resource_);
+                const float *slope_data = resource->slope_handle.force_to<float *>();
+                if (!param || !resource) {
+                    LOGE("Error: prelu layer param or resource is nil\n");
+                    return Status(TNNERR_PARAM_ERR, "Error: prelu layer param/resource is nil");
+                }
+                if (param->channel_shared ) {
+                    //if channel shared
+                    output->set_attr_negative_slope(slope_data[0]);
+                } else {
+                    LOGE("Error: Npu currently only supports channel-shared prelu\n");
+                    return Status(TNNERR_PARAM_ERR, "Error: npu currently only supports channel-shared prelu");
+                }
+            } break;
             case LAYER_ABS:
                 mode = 6;
                 break;
             case LAYER_SOFTPLUS:
                 mode = 9;
                 break;
+            case LAYER_HARDSIGMOID: {
+                auto param = dynamic_cast<HardSigmoidLayerParam *>(param_);
+                if (!param) {
+                    LOGE("Error: Hardsigmoid layer param is nil\n");
+                    return Status(TNNERR_PARAM_ERR, "Error: Hardsigmoid layer param is nil");
+                }
+                if (param->alpha != 1.0f || param->beta != 0.0f) {
+                    LOGE("Error: Npu currently only supports no coefficient hardsigmoid\n");
+                    return Status(TNNERR_PARAM_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
+                }
+                mode = 10;
+            }break;
             case LAYER_SELU:
                 mode = 12;
+                break;
             case LAYER_RELU6:
                 mode = 14;
                 break;
@@ -74,6 +104,7 @@ public:
     NpuActivationLayerConvert(LayerType layer_type) : NpuBaseLayer(layer_type) {}
     ~NpuActivationLayerConvert() {}
 };
+
 #define DECLARE_NPU_ACTIVATION_LAYER(type_string, layer_type)                                                          \
     class Npu##type_string##Layer : public NpuActivationLayerConvert {                                                 \
     public:                                                                                                            \
@@ -89,10 +120,14 @@ DECLARE_NPU_ACTIVATION_LAYER(Tanh, LAYER_TANH);
 REGISTER_NPU_LAYER(Tanh, LAYER_TANH);
 DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU);
 REGISTER_NPU_LAYER(Elu, LAYER_ELU)
+DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU);
+REGISTER_NPU_LAYER(Prelu,LAYER_PRELU);
 DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS);
 REGISTER_NPU_LAYER(Abs, LAYER_ABS);
 DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS);
 REGISTER_NPU_LAYER(Softplus, LAYER_SOFTPLUS);
+DECLARE_NPU_ACTIVATION_LAYER(HardSigmoid, LAYER_HARDSIGMOID);
+REGISTER_NPU_LAYER(HardSigmoid, LAYER_HARDSIGMOID);
 DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU);
 REGISTER_NPU_LAYER(Selu, LAYER_SELU);
 DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6);

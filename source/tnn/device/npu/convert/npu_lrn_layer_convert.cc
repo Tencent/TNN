@@ -12,35 +12,39 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <tnn/utils/data_type_utils.h>
 #include "graph/attr_value.h"
-#include "graph/op/all_ops.h"
 #include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Reshape, LAYER_RESHAPE);
+DECLARE_NPU_LAYER_WEIGHT(LRN, LAYER_LRN);
 
-Status NpuReshapeLayer::Convert() {
-    auto param = dynamic_cast<ReshapeLayerParam *>(param_);
+Status NpuLRNLayer::Convert() {
+    auto param = dynamic_cast<LRNLayerParam*>(param_);
     if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: ReshapeLayerParam is nil");
+        LOGE("Error: LRN layer param is nil\n");
+        return Status(TNNERR_MODEL_ERR, "Error: LRN layer param is nil");
     }
 
-    ge::AttrValue::LIST_INT shape = std::vector<int64_t>(param->shape.begin(), param->shape.end());
+    float alpha = param->alpha;
+    float beta  = param->beta;
+    float bias  = param->bias;
+    int size    = param->size;
 
-    auto output                   = std::make_shared<ge::op::Reshape>(outputs_name_[0]);
-    output->set_input_tensor(*input_ops_[0]->GetOperator());
-    output->set_attr_shape(shape);
-    output->set_attr_axis(param->axis);
-    output->set_attr_num_axes(param->num_axes);
-
+    auto output = std::make_shared<ge::op::LRN>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
+    output->set_attr_lrn_localsize(size);
+    output->set_attr_lrn_alpha(alpha);
+    output->set_attr_lrn_beta(beta);
+    output->set_attr_lrn_k(bias);
     std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
     output_ops_.push_back(output_op);
     return SetOutputOps();
 }
 
-REGISTER_NPU_LAYER(Reshape, LAYER_RESHAPE);
+REGISTER_NPU_LAYER(LRN, LAYER_LRN);
 
 }  // namespace TNN_NS

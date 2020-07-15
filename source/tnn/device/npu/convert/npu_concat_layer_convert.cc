@@ -32,7 +32,8 @@ Status NpuConcatLayer::Convert() {
         return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
     int axis    = param->axis;
-    auto output = std::make_shared<ge::op::Concat>(outputs_[0]);
+
+    auto output = std::make_shared<ge::op::Concat>(outputs_name_[0]);
     // multiple input
     output->create_dynamic_input_x(input_size);
     for (int i = 1; i < input_size + 1; i++) {

@@ -33,7 +33,7 @@ protected:
             printf("the Unary input size is not correct\n");
             return Status(TNNERR_PARAM_ERR, "Error: the Unary layer count is not correct");
         }
-        auto output = std::make_shared<T>(outputs_[0]);
+        auto output = std::make_shared<T>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());
         std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
         output_ops_.push_back(output_op);

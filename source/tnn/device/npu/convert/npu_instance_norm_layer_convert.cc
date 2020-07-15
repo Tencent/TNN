@@ -23,8 +23,8 @@ namespace TNN_NS {
 DECLARE_NPU_LAYER_WEIGHT(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 Status NpuInstanceNormLayer::Convert() {
-    auto layer_res = dynamic_cast<InstanceNormLayerResource*>(resource_);
-    if (!layer_res) {
+    auto resource = dynamic_cast<InstanceNormLayerResource*>(resource_);
+    if (!resource) {
         LOGE("Error: InstanceNorm layer resource is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: InstanceNorm layer resource is nil");
     }
@@ -34,17 +34,17 @@ Status NpuInstanceNormLayer::Convert() {
     std::string scale_name = layer_name_ + "_scale";
     ge::Shape scale_shape({1, input_channel, 1, 1});
     auto scale = std::make_shared<ge::op::Const>(scale_name);
-    NpuUtils::CreateAttrValue(scale, scale_shape, layer_res->scale_handle);
+    NpuUtils::CreateAttrValue(scale, scale_shape, resource->scale_handle);
     weight_ops_.push_back(scale);
 
     // bias data
     std::string bias_name = layer_name_ + "_bias";
     ge::Shape bias_shape({1, input_channel, 1, 1});
     auto bias_const = std::make_shared<ge::op::Const>(bias_name);
-    NpuUtils::CreateAttrValue(bias_const, bias_shape, layer_res->bias_handle);
+    NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
     weight_ops_.push_back(bias_const);
 
-    auto output = std::make_shared<ge::op::InstanceNorm>(outputs_[0]);
+    auto output = std::make_shared<ge::op::InstanceNorm>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_scale(*scale);
     output->set_input_bias(*bias_const);

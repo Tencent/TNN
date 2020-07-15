@@ -41,69 +41,109 @@ NpuNetwork::~NpuNetwork() {
     DeInit();
 }
 
+Status NpuNetwork::InitCheck() {
+    // Start to load HiAi API
+    if (client_ == nullptr) {
+        LOGE("ERROR: HiaiDDK API load error, check ddk\n");
+        return Status(TNNERR_HIAI_API_ERROR, "ERROR: HiaiDDK API load error, check ddk");
+    }
+
+    // init Ai Model Manager Client
+    hiai::AIStatus ret = client_->Init(nullptr);
+    if (ret != hiai::AI_SUCCESS) {
+        LOGE("ERROR: npu is not installed\n");
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: npu is not installed");
+    }
+    // get rom version
+    const char *version = client_->GetVersion();
+    if (version == nullptr) {
+        LOGE("ERROR: GetRomVersion fail: npu is not installed or rom version is too low\n");
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low");
+
+    }
+    //check if NPU version is greater than 300
+    int version_num = NpuUtils::checkNpuVersion(version);
+    LOGI("ddk current version: %s", version);
+    if (version_num < 300) {
+        LOGE("ERROR: npu is installed but is below 100.300.xxx.xxx\n");
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: npu is installed but is below 100.300.xxx.xxx");
+    }
+    return TNN_OK;
+}
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
+    client_ = std::make_shared<hiai::AiModelMngerClient>();
+    Status init_ret = InitCheck();
+    if (init_ret != TNN_OK) {
+        return init_ret;
+    }
+
     auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_            = default_interpreter->GetNetStructure();
     model_name_               = NpuUtils::GetFileHash(model_config);
+    std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
 
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
-
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
-            }
-            model_suffix_stream << "]";
-        }
+    std::string path_to_om      = "";
+    //check if store the om file
+    if (model_config.params.size() == 3) {
+        from_path_ = (model_config.params[2].compare("") != 0);
+        path_to_om = model_config.params[2];
+    } else {
+        from_path_ = false;
     }
-    std::string model_suffix = model_suffix_stream.str();
+
+    std::string model_suffix = NpuUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
     model_name_              = model_name_ + model_suffix;
 
-    std::string model_path = model_config.params[2] + model_name_ + ".om";
+    std::string model_path = path_to_om + model_name_ + ".om";
     LOGI("the path %s\n", model_path.c_str());
 
+    auto model_builder = std::make_shared<hiai::AiModelBuilder>(client_);
+    hiai::MemBuffer *model_mem_buffer = nullptr;
     if (net_config.device_type == DEVICE_NPU && model_config.model_type == MODEL_TYPE_TNN) {
-        if (NpuUtils::FileExits(model_path)) {
-            LOGI("The om file already exists in %s\n", model_config.params[2].c_str());
+        if (from_path_ && NpuUtils::FileExits(model_path)) {
+            LOGI("The om file already exists in %s\n", path_to_om.c_str());
         } else {
             // NPU IR Build
-            Status ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
+            Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
+            if (build_ret != TNN_OK) {
+                return build_ret;
+            }
             // Build Graph
-            if (ret != TNN_OK)
-                return ret;
-            ret = BuildModel(model_path);
-            if (ret != TNN_OK) {
-                printf("build om fail \n");
-                return ret;
+            build_ret = from_path_ ?BuildModel(model_path) : TNN_OK;
+            if (build_ret != TNN_OK) {
+                return build_ret;
             }
         }
     } else {
         LOGE("ERROR: not support device_type %d or model type %d\n", net_config.device_type, model_config.model_type);
-        return Status(TNNERR_NULL_PARAM, " not support  device_type or model type");
+        return Status(TNNERR_NULL_PARAM, "Npu not support device_type or model type");
     }
-    // Start to read from om
-    client_ = std::make_shared<hiai::AiModelMngerClient>();
-    assert(client_ != nullptr);
-    // init Ai Model Manager Client
-    hiai::AIStatus ret = client_->Init(nullptr);
-    assert(ret == hiai::AI_SUCCESS);
-    // get ddk version
-    const char *version = client_->GetVersion();
-    LOGI("ddk current version: %s", version);
-    auto model_builder = std::make_shared<hiai::AiModelBuilder>(client_);
-
-    std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
-
-    hiai::MemBuffer *model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
-    assert(model_mem_buffer != nullptr);
+    //From here, start load
+    domi::HiaiIrBuild ir_build;
+    domi::ModelBufferData build_mem_buff;
+    if (from_path_) {
+        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
+    } else {
+        ge::Model model(model_name_, model_name_ + "_v1");
+        model.SetGraph(graph_);
+        bool build_ret = ir_build.CreateModelBuff(model, build_mem_buff);
+        if (!build_ret) {
+            LOGE("ERROR: HIAI build model, CreateModelBuff() failed\n");
+            return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, CreateModelBuff() failed");
+        }
+        build_ret = ir_build.BuildIRModel(model, build_mem_buff);
+        if (!build_ret) {
+            LOGE("ERROR: HIAI build model, BuildIRModel() failed\n");
+            return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, BuildIRModel() failed");
+        }
+        model_mem_buffer = model_builder->InputMemBufferCreate(build_mem_buff.data, build_mem_buff.length);
+    }
+    if (model_mem_buffer == nullptr) {
+        LOGE("ERROR: function InputMemBufferCreate() failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "ERROR: function InputMemBufferCreate() failed");
+    }
 
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
         model_name_ + ".om", hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
@@ -113,23 +153,36 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // only load one model
     model_desc.push_back(desc);
     // load model
-    ret = client_->Load(model_desc);
-    assert(ret == hiai::AI_SUCCESS);
+    hiai::AIStatus ret = client_->Load(model_desc);
+    if (ret != hiai::AI_SUCCESS) {
+        LOGE("ERROR: Load model Load() failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "ERROR: Load model Load() failed");
+    }
+
     // check model
     bool isModelCompatibility = true;
     ret                       = client_->CheckModelCompatibility(*desc, isModelCompatibility);
     LOGI("isModelCompatibility: %s", isModelCompatibility ? "true" : "false");
     LOGI("ret value %d", ret);
-    assert(ret == hiai::AI_SUCCESS);
+    if (ret != hiai::AI_SUCCESS) {
+        LOGE("ERROR: Check model CheckModelCompatibility() failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "ERROR: check model CheckModelCompatibility() failed");
+    }
+
     // destroy unused memory
     model_builder->MemBufferDestroy(model_mem_buffer);
+    ir_build.ReleaseModelBuff(build_mem_buff);
 
     input_tensor_.clear();
     output_tensor_.clear();
     std::vector<hiai::TensorDimension> input_dims;
     std::vector<hiai::TensorDimension> output_dims;
     ret = client_->GetModelIOTensorDim(model_name_ + ".om", input_dims, output_dims);
-    assert(ret == hiai::AI_SUCCESS);
+    if (ret != hiai::AI_SUCCESS) {
+        LOGE("ERROR: function GetModelIOTensorDim() failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "ERROR: function GetModelIOTensorDim() failed");
+
+    }
     if (input_dims.size() == 0) {
         LOGE("Npu the model input_dims.size() == 0");
         return TNNERR_MODEL_ERR;
@@ -139,17 +192,24 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         std::shared_ptr<hiai::AiTensor> input = std::make_shared<hiai::AiTensor>();
         ret                                   = input->Init(&dim);
 
-        assert(ret == hiai::AI_SUCCESS);
+        if (ret != hiai::AI_SUCCESS) {
+            LOGE("ERROR:Get input tensor from loaded model failed\n");
+            return Status(TNNERR_HIAI_API_ERROR, "ERROR:Get input tensor from loaded model failed");
+        }
         input_tensor_.push_back(input);
     }
-    assert(input_tensor_.size() != 0);
+
     for (auto dim : output_dims) {
         std::shared_ptr<hiai::AiTensor> output = std::make_shared<hiai::AiTensor>();
         ret                                    = output->Init(&dim);
-        assert(ret == hiai::AI_SUCCESS);
+        if (ret != hiai::AI_SUCCESS) {
+            LOGE("ERROR:Get output tensor from loaded model failed\n");
+            return Status(TNNERR_HIAI_API_ERROR, "ERROR:Get output tensor from loaded model failed");
+
+        }
         output_tensor_.push_back(output);
     }
-    assert(output_tensor_.size() != 0);
+
     // init input buffers
     for (int i = 0; i < input_tensor_.size(); ++i) {
         hiai::TensorDimension dims = input_dims[i];
@@ -200,7 +260,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     }
     layers_.clear();
     return TNN_OK;
-}  // namespace tnn
+}
 
 Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
                                 InputShapesMap &inputs_shape) {
@@ -243,7 +303,7 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
     // Init layers
-    ret = InitLayers(net_resource);
+    ret = ConvertLayers(net_resource);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -284,30 +344,33 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map) {
     return TNN_OK;
 }
 
-Status NpuNetwork::BuildModel(std::string &model_path) {
-    Status ret = TNN_OK;
+Status NpuNetwork::BuildModel(std::string model_path){
     // Set model parameters : model name and  model name + version
     ge::Model model(model_name_, model_name_ + "_v1");
     model.SetGraph(graph_);
     // Build the ir model
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData om_model_buff;
-    ir_build.CreateModelBuff(model, om_model_buff);
-    bool build_ret = ir_build.BuildIRModel(model, om_model_buff);
+    bool build_ret = ir_build.CreateModelBuff(model, om_model_buff);
     if (!build_ret) {
-        LOGE("HIAI build model failed\n");
-        return TNNERR_HIAI_API_ERROR;
+        LOGE("HIAI build model, CreateModelBuff failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, CreateModelBuff failed");
     }
-    // Write to OM file
-    ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
+    build_ret = ir_build.BuildIRModel(model, om_model_buff);
+    if (!build_ret) {
+        LOGE("HIAI build model, BuildIRModel() failed\n");
+        return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, BuildIRModel() failed");
+    }
+
+    Status ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
     if (ret != TNN_OK) {
         return ret;
     }
     ir_build.ReleaseModelBuff(om_model_buff);
-    return ret;
+    return TNN_OK;
 }
 
-Status NpuNetwork::InitLayers(NetResource *net_resource) {
+Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     Status ret = TNN_OK;
     // loop net_structure
     for (auto layer_info : net_structure_->layers) {

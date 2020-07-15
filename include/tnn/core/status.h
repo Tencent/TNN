@@ -108,6 +108,7 @@ enum StatusCode {
 
     // Hiai
     TNNERR_HIAI_API_ERROR = 0xD001,
+    TNNERR_NPU_LOAD_ERROR = 0xE000,
 
     // Quantize
     TNNERR_QUANTIZE_ERROR = 0xF001,

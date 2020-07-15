@@ -54,10 +54,10 @@ Status NpuBaseLayer::Init(Context *context, LayerParam *param, LayerResource *re
     param_     = param;
     resource_  = resource;
     input_ops_ = input_ops;
-    outputs_   = outputs;
+    outputs_name_ = outputs;
     // Convert all layers
-    auto Status = Convert();
-    return TNN_OK;
+    Status ret = Convert();
+    return ret;
 }
 
 void NpuBaseLayer::SetLayerName(std::string layer_name) {
@@ -75,9 +75,9 @@ Status NpuBaseLayer::SetOutputOps() {
         output_ops_[0]->SetShape(input_ops_[0]->GetShape());
         return TNN_OK;
     } else {
-        // all output index (output shape/ops) follow the outputs_ attribute
+        // all output index (output shape/ops) follow the outputs_name_ attribute
         std::vector<std::vector<int>> output_shapes = NpuBaseLayer::GetOutputShapes();
-        for (int i = 0; i < outputs_.size(); i++) {
+        for (int i = 0; i < outputs_name_.size(); i++) {
             output_ops_[i]->SetShape(output_shapes[i]);
         }
         return TNN_OK;
@@ -98,13 +98,13 @@ std::vector<std::vector<int>> NpuBaseLayer::GetOutputShapes() {
         input_blobs.push_back(blob);
     }
     std::vector<Blob *> output_blobs;
-    for (int i = 0; i < outputs_.size(); i++) {
+    for (int i = 0; i < outputs_name_.size(); i++) {
         Blob *blob = new Blob(blob_desc);
         output_blobs.push_back(blob);
     }
     shape_calculator->InferShapeAhead(input_blobs, output_blobs, param_, resource_);
     std::vector<std::vector<int>> ret;
-    for (int i = 0; i < outputs_.size(); i++) {
+    for (int i = 0; i < outputs_name_.size(); i++) {
         ret.push_back(output_blobs[i]->GetBlobDesc().dims);
     }
     for (auto &blob : input_blobs) {

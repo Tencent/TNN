@@ -23,17 +23,17 @@ DECLARE_NPU_LAYER(Softmax, LAYER_SOFTMAX);
 
 Status NpuSoftmaxLayer::Convert() {
     // one of the activation
-    auto params = dynamic_cast<SoftmaxLayerParam *>(param_);
+    auto param = dynamic_cast<SoftmaxLayerParam *>(param_);
 
-    if (!params) {
+    if (!param) {
         LOGE("Error: SoftmaxLayerParam is unsupported\n");
         return Status(TNNERR_MODEL_ERR, "Error: SoftmaxLayerParam is unsupported");
     }
-    int axis         = params->axis;
-    auto &input_data = input_ops_[0];
 
-    auto output = std::make_shared<ge::op::Softmax>(outputs_[0]);
-    output->set_input_x(*input_data->GetOperator());
+    int axis         = param->axis;
+
+    auto output = std::make_shared<ge::op::Softmax>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_axis(axis);
 
     std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);

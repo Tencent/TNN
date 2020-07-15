@@ -29,8 +29,8 @@ Status NpuStridedSliceLayer::Convert() {
         LOGE("Error: StrideSlice param is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error:StrideSliceParam is nil");
     }
-    auto input_data                  = input_ops_[0];
-    std::vector<int> input_shape_vec = input_data->GetShape();
+
+    std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
 
     auto begins = param->begins;
     std::reverse(begins.begin(), begins.end());
@@ -49,28 +49,25 @@ Status NpuStridedSliceLayer::Convert() {
     ge::TensorDesc desc(input_shape, ge::FORMAT_NCHW, ge::DT_INT32);
 
     // begins
-    // printf("the begins are %d %d %d %d \n", begins[0], begins[1], begins[2], begins[3]);
     std::shared_ptr<ge::op::Const> begins_op = std::make_shared<ge::op::Const>(layer_name_ + "_begin");
-    NpuUtils::CreateAttrArray(begins_op, begins, desc);
+    NpuUtils::CreateAttrArray(begins_op, begins, desc, 4);
     weight_ops_.push_back(begins_op);
 
     // ends
     // in format nchw
-    //  printf("the ends are %d %d %d %d\n", ends[0], ends[1], ends[2], ends[3]);
     std::shared_ptr<ge::op::Const> ends_op = std::make_shared<ge::op::Const>(layer_name_ + "_end");
-    NpuUtils::CreateAttrArray(ends_op, ends, desc);
+    NpuUtils::CreateAttrArray(ends_op, ends, desc, 4);
     weight_ops_.push_back(ends_op);
 
     // strides
     // in format nchw
-    // printf("the strides are %d %d %d %d\n", strides[0], strides[1], strides[2], strides[3]);
     std::shared_ptr<ge::op::Const> strides_op = std::make_shared<ge::op::Const>(layer_name_ + "_stride");
-    NpuUtils::CreateAttrArray(strides_op, strides, desc);
+    NpuUtils::CreateAttrArray(strides_op, strides, desc, 4);
     weight_ops_.push_back(strides_op);
 
     // stride
-    auto output = std::make_shared<ge::op::StridedSlice>(outputs_[0]);
-    output->set_input_x(*input_data->GetOperator());
+    auto output = std::make_shared<ge::op::StridedSlice>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_begin(*begins_op);
     output->set_input_end(*ends_op);
     output->set_input_strides(*strides_op);
