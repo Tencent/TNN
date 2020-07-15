@@ -283,6 +283,8 @@
 		9D4C60CC246BF7A1006068D1 /* bbox_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4C60CA246BF7A1006068D1 /* bbox_util.cc */; };
 		9D4C60CF246BF826006068D1 /* profile.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4C60CD246BF826006068D1 /* profile.cc */; };
 		9D4C60D0246BF826006068D1 /* profile.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D4C60CE246BF826006068D1 /* profile.h */; };
+		9D5B716024BF0A300062DF64 /* metal_prior_box_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9D5B715E24BF0A300062DF64 /* metal_prior_box_layer_acc.metal */; };
+		9D5B716124BF0A300062DF64 /* metal_prior_box_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D5B715F24BF0A300062DF64 /* metal_prior_box_layer_acc.mm */; };
 		9D852BCB24584E6A003F4E41 /* bfp16_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D852BC924584E6A003F4E41 /* bfp16_utils.cc */; };
 		9D852BCC24584E6A003F4E41 /* bfp16.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D852BCA24584E6A003F4E41 /* bfp16.h */; };
 		9DB341FD249B0A9300F23F65 /* metal_cpu_adapter_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DB341FB249B0A9300F23F65 /* metal_cpu_adapter_acc.mm */; };
@@ -964,6 +966,8 @@
 		9D4C60CA246BF7A1006068D1 /* bbox_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bbox_util.cc; sourceTree = "<group>"; };
 		9D4C60CD246BF826006068D1 /* profile.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = profile.cc; sourceTree = "<group>"; };
 		9D4C60CE246BF826006068D1 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = profile.h; sourceTree = "<group>"; };
+		9D5B715E24BF0A300062DF64 /* metal_prior_box_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_prior_box_layer_acc.metal; sourceTree = "<group>"; };
+		9D5B715F24BF0A300062DF64 /* metal_prior_box_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_prior_box_layer_acc.mm; sourceTree = "<group>"; };
 		9D852BC924584E6A003F4E41 /* bfp16_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bfp16_utils.cc; sourceTree = "<group>"; };
 		9D852BCA24584E6A003F4E41 /* bfp16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bfp16.h; sourceTree = "<group>"; };
 		9DB341FB249B0A9300F23F65 /* metal_cpu_adapter_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_cpu_adapter_acc.mm; sourceTree = "<group>"; };
@@ -1857,6 +1861,8 @@
 				9DD1FABC247CE9BE00800139 /* metal_atan_layer_acc.metal */,
 				9DD1FAC3247CE9BE00800139 /* metal_atan_layer_acc.mm */,
 				9DD1FABE247CE9BE00800139 /* metal_batch_norm_layer_acc.metal */,
+				9D5B715E24BF0A300062DF64 /* metal_prior_box_layer_acc.metal */,
+				9D5B715F24BF0A300062DF64 /* metal_prior_box_layer_acc.mm */,
 				9DD1FACE247CE9BE00800139 /* metal_batch_norm_layer_acc.mm */,
 				9DD1FAA6247CE9BE00800139 /* metal_ceil_layer_acc.metal */,
 				9DD1FAB9247CE9BE00800139 /* metal_ceil_layer_acc.mm */,
@@ -2934,6 +2940,7 @@
 				9DD1FB6F247CE9BE00800139 /* metal_acos_layer_acc.mm in Sources */,
 				9D32FF3524557EED002DCDAB /* scale_layer_interpreter.cc in Sources */,
 				9DD1FB59247CE9BE00800139 /* metal_hard_swish_layer_acc.mm in Sources */,
+				9D5B716024BF0A300062DF64 /* metal_prior_box_layer_acc.metal in Sources */,
 				9DD1FB6C247CE9BE00800139 /* metal_reduce_layer_acc.mm in Sources */,
 				ECEF979A24AF2B2B0094CB8B /* cpu_prelu_layer_acc.cc in Sources */,
 				ECEF979D24AF2B2B0094CB8B /* cpu_min_layer_acc.cc in Sources */,
@@ -3063,6 +3070,7 @@
 				9D32FF1224557EED002DCDAB /* prelu_layer_interpreter.cc in Sources */,
 				9D32FCCF24557EEC002DCDAB /* pooling_3d_layer.cc in Sources */,
 				9D32FF7224557EED002DCDAB /* tnn_impl_default.cc in Sources */,
+				9D5B716124BF0A300062DF64 /* metal_prior_box_layer_acc.mm in Sources */,
 				9DD1FBC7247CE9BE00800139 /* metal_upsample_layer_acc.metal in Sources */,
 				9D32FCDD24557EEC002DCDAB /* prior_box_layer.cc in Sources */,
 				9D32FCF324557EEC002DCDAB /* hdrguide_layer.cc in Sources */,
