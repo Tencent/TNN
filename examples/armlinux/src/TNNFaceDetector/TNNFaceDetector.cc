@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
         return -1;
 
     fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
-    delete ifm_buf;
+    delete [] ifm_buf;
     free(data);
     return 0;
 }
