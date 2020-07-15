@@ -43,6 +43,8 @@ int TNNLib::Init(const std::string& proto_file,
         cpu_network_config.device_type = TNN_NS::DEVICE_ARM;
     } else if("OPENCL" == device){
         cpu_network_config.device_type = TNN_NS::DEVICE_OPENCL;
+    } else if ("NPU" == device) {
+        cpu_network_config.device_type = TNN_NS::DEVICE_NPU;
     }
     instance_ = tnn_.CreateInst(cpu_network_config, error);
     return (int)error;

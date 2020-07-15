@@ -965,12 +965,6 @@ class Caffe2Onnx():
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
                 
-            elif Layers[i].type == "Crop":
-                # Crop: Slice
-                # create Slice node
-                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
-                output_name = self.GetCurrentLayerOutName(Layers[i])
-                node_name = Layers[i].name
 
                 starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
                 

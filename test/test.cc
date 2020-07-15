@@ -56,19 +56,36 @@ namespace test {
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         g_tnn_dump_directory = FLAGS_op;
 #endif
-
-        // Set the cpu affinity.
-        // usually, -dl 0-3 for little core, -dl 4-7 for big core
-        // only works when -dl flags were set. benchmark script not set -dl flags
+        /*
+         * Set the cpu affinity.
+         * usually, -dl 0-3 for little core, -dl 4-7 for big core
+         */
+        /// only works when -dl flags were set. current not set in benchmark script
         SetCpuAffinity();
 
         ModelConfig model_config     = GetModelConfig();
         NetworkConfig network_config = GetNetworkConfig();
 
-        InputShapesMap input_shape = GetInputShapesMap();        
-
-        srand(102);
-
+        std::string input_shape_message(FLAGS_is);
+        std::string delimiter = "[";
+        std::vector<int> input_dim;
+        std::ptrdiff_t p1 = 0, p2;
+        p2 = input_shape_message.find(delimiter, p1);
+        std::string input_name = input_shape_message.substr(p1, p2 -p1);
+        p1 = p2 + 1;
+        delimiter = ",";
+        while (true) {
+            p2 = input_shape_message.find(delimiter, p1);
+            if (p2 != std::string::npos) {
+                input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
+                p1 = p2 + 1;
+            } else {
+                input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
+                break;
+            }
+        }
+        InputShapesMap input_shape;
+        input_shape[input_name] = input_dim;
         TNN net;
         Status ret = net.Init(model_config);
         if (CheckResult("init tnn", ret)) {
@@ -278,6 +295,7 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
                 config.params.push_back(model_content);
+		config.params.push_back("/data/local/tmp/npu_test/dump_data/");
             } else {
                 config.params.push_back(model_path);
             }
@@ -297,7 +315,7 @@ namespace test {
         
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_mt);
+        config.network_type = ConvertNetworkType(FLAGS_nt);
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }

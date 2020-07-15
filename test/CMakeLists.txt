@@ -25,6 +25,8 @@ else()
     )
 endif()
 
+add_subdirectory(benchmark)
+
 if(TNN_UNIT_TEST_ENABLE)
     add_subdirectory(unit_test)
 endif()

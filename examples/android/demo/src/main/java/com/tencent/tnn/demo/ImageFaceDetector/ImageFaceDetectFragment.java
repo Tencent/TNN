@@ -38,6 +38,10 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private ToggleButton mGPUSwitch;
     private Button mRunButton;
     private boolean mUseGPU = false;
+    //add for npu
+    private ToggleButton mNPUswitch;
+    private boolean mUseNPU = false;
+
     /**********************************     Get Preview Advised    **********************************/
 
     @Override
@@ -76,7 +80,22 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b)
     {
+        if(b && mNPUswitch.isChecked()){
+            mNPUswitch.setChecked(false);
+            mUseNPU = false;
+        }
         mUseGPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+    }
+
+    private void onSwichNPU(boolean b)
+    {
+        if(b && mGPUSwitch.isChecked()){
+            mGPUSwitch.setChecked(false);
+            mUseGPU = false;
+        }
+        mUseNPU = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
     }
@@ -99,6 +118,14 @@ public class ImageFaceDetectFragment extends BaseFragment {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 onSwichGPU(b);
+            }
+        });
+        $$(R.id.npu_switch);
+        mNPUswitch = $(R.id.npu_switch);
+        mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwichNPU(b);
             }
         });
         mDrawView = (DrawView) $(R.id.drawView);
@@ -141,7 +168,13 @@ public class ImageFaceDetectFragment extends BaseFragment {
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
-        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, mUseGPU?1:0);
+        int device = 0;
+        if(mUseNPU) {
+            device = 2;
+        }else if(mUseGPU) {
+            device = 1;
+        }
+        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
             FaceDetector.FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);

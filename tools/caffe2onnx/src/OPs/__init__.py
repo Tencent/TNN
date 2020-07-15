@@ -31,4 +31,3 @@ from src.OPs.LpNormalization import create_Lp_Normalization
 from src.OPs.Power import get_power_param, create_power_node
 from src.OPs.Add import create_add_node
 from src.OPs.Tanh import createTanh
-
