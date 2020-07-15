@@ -26,12 +26,13 @@ public:
     TFLiteOpConverter(){};
     virtual ~TFLiteOpConverter(){};
 
-    virtual void exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                      const std::unique_ptr<tflite::OperatorT>& tfliteOp,
-                      const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,
-                      const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,
-                      const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet, bool quantizedModel) = 0;
-    virtual std::string TNNOpType(bool quantized_mode)                                                             = 0;
+    virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+                                const std::unique_ptr<tflite::OperatorT>& tfliteOp,
+                                const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,
+                                const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,
+                                const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet,
+                                bool quantizedModel)   = 0;
+    virtual std::string TNNOpType(bool quantized_mode) = 0;
 
 protected:
     std::string tflite_op_type_;
@@ -64,12 +65,12 @@ public:
 #define DECLARE_OP_COVERTER(tf_lite_type)                                                                              \
     class TFLite##tf_lite_type##Converter : public TFLiteOpConverter {                                                 \
     public:                                                                                                            \
-        virtual void exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,                      \
-                          const std::unique_ptr<tflite::OperatorT>& tfliteOp,                                          \
-                          const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,                          \
-                          const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,                      \
-                          const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet,                      \
-                          bool quantizedModel);                                                                        \
+        virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,            \
+                                    const std::unique_ptr<tflite::OperatorT>& tfliteOp,                                \
+                                    const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,                \
+                                    const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,            \
+                                    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet,            \
+                                    bool quantizedModel);                                                              \
         TFLite##tf_lite_type##Converter() {}                                                                           \
         virtual ~TFLite##tf_lite_type##Converter() {}                                                                  \
         virtual std::string TNNOpType(bool quantizedModel);                                                            \

@@ -25,12 +25,14 @@ std::string TFLiteConvolutionConverter::TNNOpType(bool quantizedModel) {
     }
     return "Convolution";
 }
-void TFLiteConvolutionConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                                      const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-                                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-                                      const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-                                      const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                      bool quantizedModel) {
+
+TNN_NS::Status TFLiteConvolutionConverter::exec(
+    TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
+
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
 
@@ -59,25 +61,26 @@ void TFLiteConvolutionConverter::exec(TNN_NS::NetStructure& net_structure, TNN_N
         param->input_channel  = ci;
         param->output_channel = co;
         param->kernels.push_back(kw);
-        param->kernels.push_back(kw);
-        param->kernels.push_back(kh);
         param->kernels.push_back(kh);
         param->strides.push_back(conv_opt->stride_w);
         param->strides.push_back(conv_opt->stride_h);
         param->dialations.push_back(conv_opt->dilation_w_factor);
         param->dialations.push_back(conv_opt->dilation_h_factor);
 
-        // TODO pad need calculate
-        // default value "SAME_UPPER" : 0
         param->pad_type = 0;
         if (conv_opt->padding == tflite::Padding_VALID) {
+            // tensorflow pad valid
             param->pad_type = -1;
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
         } else if (conv_opt->padding == tflite::Padding_SAME) {
-
+            param->pad_type = 0;
+            param->pads.push_back(0);
+            param->pads.push_back(0);
+            param->pads.push_back(0);
+            param->pads.push_back(0);
         }
 
         const auto activation = conv_opt->fused_activation_function;
@@ -86,8 +89,8 @@ void TFLiteConvolutionConverter::exec(TNN_NS::NetStructure& net_structure, TNN_N
         } else if (activation == tflite::ActivationFunctionType_RELU6) {
             param->activation_type = TNN_NS::ActivationType_ReLU6;
         } else if (activation > tflite::ActivationFunctionType_NONE) {
-            LOGE("MNN Convolution do not Support fused_activation_function");
-            // return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+            LOGE("MNN Convolution do not Support fused_activation_function\n");
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         // update param
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);

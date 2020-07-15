@@ -105,7 +105,7 @@
     {                                                                                                                  \
         int res = (x);                                                                                                 \
         if (!res) {                                                                                                    \
-            LOGE("Error: assert failed");                                                                              \
+            LOGE("Error: assert failed\n");                                                                              \
             assert(res);                                                                                               \
         }                                                                                                              \
     }

@@ -74,8 +74,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
                 inputs_shape_map[name] = shape;
             } else {
-                LOGE("The model conflict between same input names %s", name.c_str());
-                return TNN_NS::TNNERR_INVALID_MODEL;
+                LOGE("The model conflict between same input names %s\n", name.c_str());
+                return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             }
         }
 
@@ -88,8 +88,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             if (outputs.find(name) == outputs.end()) {
                 outputs.insert(name);
             } else {
-                LOGE("The model conflict between same output names %s", name.c_str());
-                return TNN_NS::TNNERR_INVALID_MODEL;
+                LOGE("The model conflict between same output names %s\n", name.c_str());
+                return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             }
         }
         // convert layer
@@ -102,7 +102,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             }
             auto converter = TFLiteOpConverterManager::get()->search(op_code);
             if (converter == nullptr) {
-                LOGE("Unsupport tflite op type: %d", op_code);
+                LOGE("Unsupport tflite op type: %d\n", op_code);
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
             auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
@@ -121,8 +121,12 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 cur_layer->inputs.push_back(tensors[output_index]->name);
             }
             net_structure.layers.push_back(cur_layer);
-            converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer, tf_lite_op_set,
+            auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer, tf_lite_op_set,
                             quantized_mode);
+            if (status != TNN_NS::TNN_CONVERT_OK) {
+                LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
+                return status;
+            }
         }
     }
     return true;
