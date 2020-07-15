@@ -18,6 +18,7 @@
 #include "utils/command.h"
 #include "utils/flags.h"
 #include "utils/model_config.h"
+#include "utils/generate_model.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
@@ -30,7 +31,11 @@ int Run(int argc, char* argv[]) {
         TFLite2Tnn tf_lite_2_tnn(model_config.model_path_);
         tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
     }
-
+    // TODO optimize the model
+    // wright the model
+    std::string file_name = GetFileName(model_config.model_path_);
+    GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
+    
     return 0;
 }
 
