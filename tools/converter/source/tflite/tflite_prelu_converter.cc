@@ -26,9 +26,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
                                           const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                           const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
                                           bool quantizedModel) {
-    auto param =
-
-        new TNN_NS::PReluLayerParam;
+    auto param     = new TNN_NS::PReluLayerParam;
     auto cur_layer = net_structure.layers.back();
 
     // inputs: input tensor, weight
@@ -48,7 +46,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
     // weight
-    auto layer_resource = new TNN_NS::ConvLayerResource;
+    auto layer_resource            = new TNN_NS::ConvLayerResource;
     TNN_NS::RawBuffer alpha_handle = TNN_NS::RawBuffer(co * sizeof(float));
     auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
     ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
