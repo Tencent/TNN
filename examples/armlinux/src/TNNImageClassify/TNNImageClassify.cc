@@ -19,13 +19,14 @@
 #include "ImageClassifier.h"
 #include "utils.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../../../third_party/stb/stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "../../../../third_party/stb/stb_image_resize.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../../../../third_party/stb/stb_image_write.h"
 
-// 随机初始化 0~255 BGR图像数据
-static void InitRandom(uint8_t* ptr, size_t n) {
-    for (unsigned long long i = 0; i < n; i++) {
-        ptr[i] = static_cast<uint8_t>(rand() % 256);
-    }
-}
+
 // Helper functions
 std::string fdLoadFile(std::string path) {
     std::ifstream file(path, std::ios::in);
@@ -33,7 +34,6 @@ std::string fdLoadFile(std::string path) {
         file.seekg(0, file.end);
         int size      = file.tellg();
         char* content = new char[size];
-
         file.seekg(0, file.beg);
         file.read(content, size);
         std::string fileContent;
@@ -47,6 +47,7 @@ std::string fdLoadFile(std::string path) {
 }
 
 int main(int argc, char** argv) {
+// int main(int argc, char** argv) {
     if (argc < 3) {
         printf("how to run:  %s proto model height width\n", argv[0]);
         return -1;
@@ -60,17 +61,39 @@ int main(int argc, char** argv) {
 
     std::shared_ptr<ImageClassifier>  classifier = std::make_shared<ImageClassifier>();
     std::vector<int> nchw = {1, 3, h, w};
-
+    char* temp_p;
     auto proto = fdLoadFile(argv[1]);
     auto model = fdLoadFile(argv[2]);
 
+    char line[256];
+    FILE *fp_label;
+    if( (fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
+        return -1;
+    static unsigned char labels[1000][256];
+    for(int i = 0; i < 1000; i++){
+        temp_p = fgets(line, 256 ,fp_label);
+        memcpy(labels[i], line, 256);
+    }
+    fclose(fp_label);
+    char img_buff[256];
+    char *input_imgfn = img_buff;
+    if(argc < 6)
+        strncpy(input_imgfn, "../../assets/dog.png", 256);
+    else
+        strncpy(input_imgfn, argv[5], 256);
+    printf("Classify is about to start, and the picrture is %s\n",input_imgfn);
+
+    int image_width, image_height, image_channel;
+    unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+
     CHECK_TNN_STATUS(classifier->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw);
+    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
 
     int result;
     CHECK_TNN_STATUS(classifier->Classify(input_mat, w, h, result));
 
     //完成计算，获取任意输出点
-    fprintf(stdout, "Classify done, output argmax %d\n", result);
+    fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[result], result+1);
+    free(data);
     return 0;
 }
