@@ -77,7 +77,7 @@ public:
     }
 
 #define REGISTER_CONVERTER(converter_suffix, tf_lite_type)                                                             \
-    static TFLiteOpConverterRegister<TFLite##converter_suffix##Converter> g_converter_##tf_lite_type_(tf_lite_type);
+     TFLiteOpConverterRegister<TFLite##converter_suffix##Converter> g_converter_##tf_lite_type##_(tf_lite_type)
 };  // namespace TNN_CONVERTER
 
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_OP_CONVERTER_H_
