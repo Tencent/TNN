@@ -19,6 +19,9 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(PRelu);
 
 std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
+    if (quantizedModel) {
+        return "QuantizedPRelu";
+    }
     return "PRelu";
 }
 TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
@@ -40,17 +43,31 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     const auto& weight_shape = weight_tensor->shape;
     const int co             = weight_shape[2];
 
-    param->name = cur_layer->name;
-    param->type = cur_layer->type_str;
+    if (quantizedModel) {
+        // TODO
+    } else {
+        param->name = cur_layer->name;
+        param->type = cur_layer->type_str;
+        param->quantized = false;
+        param->channel_shared = 0;
 
-    // update param
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+        // update param
+        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
-    // weight
-    auto layer_resource            = new TNN_NS::ConvLayerResource;
-    TNN_NS::RawBuffer alpha_handle = TNN_NS::RawBuffer(co * sizeof(float));
-    auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-    ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
+        // weight
+        auto layer_resource            = new TNN_NS::PReluLayerResource;
+        TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(co * sizeof(float));
+        auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
+        ::memcpy(slope_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
+        layer_resource->slope_handle = slope_handle;
+
+        net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    }
+
+    cur_layer->inputs.resize(1);
+    cur_layer->outputs.resize(1);
+    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
 
     return TNN_NS::TNN_CONVERT_OK;
 }
