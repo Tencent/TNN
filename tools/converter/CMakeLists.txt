@@ -1,7 +1,3 @@
-get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..  ABSOLUTE)
-message("TNN ROOT : ${TNN_ROOT}")
-include_directories(${TNN_ROOT})
-
 find_package(Protobuf REQUIRED)
 if (PROTOBUF_FOUND)
     include_directories(${Protobuf_INCLUDE_DIRS})
@@ -13,6 +9,8 @@ else ()
 endif ()
 
 file(GLOB_RECURSE TNN_CONVERTER_SRC source/*.cc source/*.h)
+get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..  ABSOLUTE)
+include_directories(${TNN_ROOT})
 include_directories(source)
 
 add_executable(TnnConverter ${TNN_CONVERTER_SRC} ${ONNX_PROTO_SRC} ${ONNX_PROTO_HEAD})
@@ -38,4 +36,3 @@ else()
             ${Protobuf_LIBRARIES}
             )
 endif()
-

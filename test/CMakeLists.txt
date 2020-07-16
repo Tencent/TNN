@@ -5,8 +5,6 @@ get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..  ABSOLUTE)
 
 include_directories(${TNN_ROOT})
 
-#add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/gflags gflags.output EXCLUDE_FROM_ALL)
-
 add_executable(TNNTest ${TEST_SRCS})
 
 if(TNN_BUILD_SHARED)

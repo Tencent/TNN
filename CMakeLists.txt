@@ -286,11 +286,12 @@ endif()
 
 if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
     add_subdirectory(third_party/gflags)
+    get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+    include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 endif ()
 
 
 if(TNN_TEST_ENABLE)
-    #add_subdirectory(third_party/gflags)
     add_subdirectory(test)
 endif()
 
@@ -300,7 +301,6 @@ if(TNN_COVERAGE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)
-    #add_subdirectory(third_party/gflags)
     add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
 endif()

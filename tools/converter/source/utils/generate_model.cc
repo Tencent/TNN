@@ -17,16 +17,14 @@
 namespace TNN_CONVERTER {
 
 std::string GetFileName(std::string& file_path) {
-    unsigned int pos_s = file_path.rfind('/');
-    unsigned int pos_e = file_path.rfind('.');
-    int len            = 0;
+    auto pos_s = file_path.rfind('/');
+    auto pos_e = file_path.rfind('.');
     pos_s == std::string::npos ? (pos_s = 0) : (pos_s++);
 
     if (pos_e == std::string::npos) {
         pos_e = file_path.length();
     }
-
-    len = pos_e - pos_s;
+    auto len = pos_e - pos_s;
     return file_path.substr(pos_s, len);
 }
 
