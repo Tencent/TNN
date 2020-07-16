@@ -35,8 +35,9 @@ cmake ../ \
 -DENABLE_TBB_RELEASE_ONLY=OFF \
 -DTHREADING=SEQ \
 -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
+-DENABLE_MYRIAD=OFF \
 
-make -j8
+make -j4
 make install
 cd ../../
 
@@ -51,11 +52,12 @@ cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml 
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
 cp -r openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
 cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.a ${thirdparty_dir}/openvino/lib/
-#cp -r openvinoInstall/deployment_tools/inference_engine/external/tbb/lib/* ${thirdparty_dir}/openvino/lib/
+cp -r openvinoInstall/deployment_tools/ngraph/lib/libngraph.a ${thirdparty_dir}/openvino/lib/
 cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
+cp openvinoInstall/lib/libpugixml.a ${thirdparty_dir}/openvino/lib/
 
-rm -r openvinoInstall/deployment_tools/inference_engine/samples/
-rm -r openvino
+rm -rf openvinoInstall/deployment_tools/inference_engine/samples/
+rm -rf openvino
 
 cmake ../../ \
 -DTNN_OPENVINO_ENABLE=ON \
@@ -63,4 +65,4 @@ cmake ../../ \
 -DTNN_CPU_ENABLE=ON \
 -DDEBUG=ON \
 
-make -j8
+make -j4
