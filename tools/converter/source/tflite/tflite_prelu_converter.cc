@@ -47,16 +47,18 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     } else {
         param->name = cur_layer->name;
         param->type = cur_layer->type_str;
+        param->quantized = false;
+        param->channel_shared = 0;
 
         // update param
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
         // weight
-        auto layer_resource            = new TNN_NS::ConvLayerResource;
-        TNN_NS::RawBuffer alpha_handle = TNN_NS::RawBuffer(co * sizeof(float));
+        auto layer_resource            = new TNN_NS::PReluLayerResource;
+        TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(co * sizeof(float));
         auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-        ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
-        layer_resource->filter_handle = alpha_handle;
+        ::memcpy(slope_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
+        layer_resource->slope_handle = slope_handle;
 
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
