@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "command.h"
-#include "flags.h"
+#include "tools/converter/source/utils/flags.h"
 #include "gflags/gflags.h"
 #include <iostream>
 
@@ -34,7 +34,7 @@ void ShowOnnxPathMessage() {
 }
 
 bool ParseCommandLine(int argc, char* argv[]) {
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
     if (FLAGS_h) {
         ShowHelpMessage();
         return false;

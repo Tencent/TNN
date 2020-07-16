@@ -283,8 +283,14 @@ if(TNN_MODEL_CHECK_ENABLE)
     add_subdirectory(tools/model_check)
 endif()
 
+
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
+    add_subdirectory(third_party/gflags)
+endif ()
+
+
 if(TNN_TEST_ENABLE)
-#    add_subdirectory(third_party/gflags)
+    #add_subdirectory(third_party/gflags)
     add_subdirectory(test)
 endif()
 
@@ -294,14 +300,8 @@ if(TNN_COVERAGE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)
-    #add_subdirectory(third_party/gflags gflags.output EXCLUDE_FROM_ALL)
+    #add_subdirectory(third_party/gflags)
     add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
 endif()
-
-#if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
-#    # config gflg
-#    #add_subdirectory(third_party/gflags)
-#    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/gflags  gflags.output EXCLUDE_FROM_ALL)
-#endif ()
 

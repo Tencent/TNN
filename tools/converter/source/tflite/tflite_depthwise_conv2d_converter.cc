@@ -17,16 +17,16 @@
 
 namespace TNN_CONVERTER {
 
-DECLARE_OP_COVERTER(Convolution);
+DECLARE_OP_COVERTER(DepthwiseConv2D);
 
-std::string TFLiteConvolutionConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteDepthwiseConv2DConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {
         return "QuantizedConvolution";
     }
     return "Convolution";
 }
 
-TNN_NS::Status TFLiteConvolutionConverter::exec(
+TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
     TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
     const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
@@ -34,11 +34,13 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
+    auto tf_lite_op_type          = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
 
     // 3|2 inputs: input tensor, weight, (bias)
     const int input_size = tf_lite_operator->inputs.size();
     ASSERT(input_size == 2 || input_size == 3);
-    const auto& conv_opt = tf_lite_operator->builtin_options.AsConv2DOptions();
+
+    const auto& conv_opt = tf_lite_operator->builtin_options.AsDepthwiseConv2DOptions();
     // weight index
     const int weight_index    = tf_lite_operator->inputs[1];
     const auto& weight_tensor = tf_lite_tensors[weight_index];
@@ -64,10 +66,7 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
         param->strides.push_back(conv_opt->stride_h);
         param->dialations.push_back(conv_opt->dilation_w_factor);
         param->dialations.push_back(conv_opt->dilation_h_factor);
-        param->group = 1;
-        if (tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code == tflite::BuiltinOperator_DEPTHWISE_CONV_2D) {
-            param->group = ci;
-        }
+        param->group    = ci;
         param->pad_type = 0;
         if (conv_opt->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
@@ -90,7 +89,7 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
         } else if (activation == tflite::ActivationFunctionType_RELU6) {
             param->activation_type = TNN_NS::ActivationType_ReLU6;
         } else if (activation > tflite::ActivationFunctionType_NONE) {
-            LOGE("MNN Convolution do not Support fused_activation_function\n");
+            LOGE("MNN DepthwiseConv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         // update param
@@ -123,7 +122,6 @@ TNN_NS::Status TFLiteConvolutionConverter::exec(
     return TNN_NS::TNN_CONVERT_OK;
 }
 using namespace tflite;
-REGISTER_CONVERTER(Convolution, BuiltinOperator_CONV_2D);
-REGISTER_CONVERTER(Convolution, BuiltinOperator_DEPTHWISE_CONV_2D);
+REGISTER_CONVERTER(DepthwiseConv2D, BuiltinOperator_DEPTHWISE_CONV_2D);
 
 }  // namespace TNN_CONVERTER

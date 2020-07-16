@@ -18,16 +18,19 @@ namespace TNN_CONVERTER {
 DECLARE_OP_COVERTER(PRelu);
 
 std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
+    if (quantizedModel) {
+        return "QuantizedPRelu";
+    }
     return "PRelu";
 }
 TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                                      const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-                                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-                                      const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-                                      const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                      bool quantizedModel) {
-    TNN_NS::PReluLayerParam* param = new TNN_NS::PReluLayerParam;
-    auto cur_layer                = net_structure.layers.back();
+                                          const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                          const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                          const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+                                          const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
+                                          bool quantizedModel) {
+    auto param     = new TNN_NS::PReluLayerParam;
+    auto cur_layer = net_structure.layers.back();
 
     // inputs: input tensor, weight
     const int input_size = tf_lite_operator->inputs.size();
@@ -37,22 +40,34 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     const auto& weight_tensor = tf_lite_tensors[weight_index];
 
     const auto& weight_shape = weight_tensor->shape;
-    const int co = weight_shape[2];
+    const int co             = weight_shape[2];
 
-    param->name = cur_layer->name;
-    param->type = cur_layer->type_str;
+    if (quantizedModel) {
+        // TODO
+    } else {
+        param->name = cur_layer->name;
+        param->type = cur_layer->type_str;
 
-    // update param
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+        // update param
+        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
-    // weight
-    auto layer_resource = new TNN_NS::ConvLayerResource;
-    TNN_NS::RawBuffer alpha_handle = TNN_NS::RawBuffer(co * sizeof(float));
-    auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-    ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
+        // weight
+        auto layer_resource            = new TNN_NS::ConvLayerResource;
+        TNN_NS::RawBuffer alpha_handle = TNN_NS::RawBuffer(co * sizeof(float));
+        auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
+        ::memcpy(alpha_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
+        layer_resource->filter_handle = alpha_handle;
 
-    return TNN_NS::TNN_OK;
+        net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    }
+
+    cur_layer->inputs.resize(1);
+    cur_layer->outputs.resize(1);
+    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
+
+    return TNN_NS::TNN_CONVERT_OK;
 }
-
-REGISTER_CONVERTER(PRelu, tflite::BuiltinOperator_PRELU);
-}
+using namespace tflite;
+REGISTER_CONVERTER(PRelu, BuiltinOperator_PRELU);
+}  // namespace TNN_CONVERTER
