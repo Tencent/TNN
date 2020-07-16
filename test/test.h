@@ -17,10 +17,8 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
-#include "tnn/core/instance.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
-#include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
 
@@ -34,25 +32,18 @@ namespace test {
 
     void SetCpuAffinity();
 
-    InputShapesMap GetInputShapesMap();
-
     ModelConfig GetModelConfig();
 
     NetworkConfig GetNetworkConfig();
 
     bool CheckResult(std::string desc, Status result);
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int mat_type);
+    void InitInput(BlobMap& inputs, void* command_queue);
 
-    void InitInputMatMap(MatMap& mat_map);
+    template <typename T>
+    int PackC4(T* dst, const float* src, size_t area, size_t depth);
 
-    std::map<std::string, std::shared_ptr<BlobConverter>> CreateBlobConverterMap(BlobMap& blob_map);
-
-    std::map<std::string, MatConvertParam> CreateConvertParamMap(MatMap& mat_map); 
-
-    void WriteOutput(MatMap& outputs);
-
-    void FreeMatMapMemory(MatMap& mat_map);
+    void WriteOutput(BlobMap& outputs, void* command_queue);
 
 }  // namespace test
 

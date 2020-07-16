@@ -19,6 +19,8 @@
 #include <string.h>
 
 #include <cfloat>
+#include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -27,7 +29,6 @@
 
 #include "test/flags.h"
 #include "test/test_utils.h"
-#include "test/timer.h"
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/macro.h"
@@ -48,6 +49,8 @@ int main(int argc, char* argv[]) {
 namespace TNN_NS {
 
 namespace test {
+
+    using namespace std::chrono;
 
     int Run(int argc, char* argv[]) {
         // parse command line params
@@ -94,79 +97,57 @@ namespace test {
                 return 0;
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
+            // set cpu affinity, only work in arm mode
 
-            //get blob 
-            BlobMap input_blob_map;
-            BlobMap output_blob_map;
+            BlobMap input_blob_maps;
+            BlobMap output_blob_maps;
             void* command_queue;
-            instance->GetAllInputBlobs(input_blob_map);
-            instance->GetAllOutputBlobs(output_blob_map);
+            instance->GetAllInputBlobs(input_blob_maps);
+            instance->GetAllOutputBlobs(output_blob_maps);
             instance->GetCommandQueue(&command_queue);
-                
-            //create mat and converter
-            MatMap input_mat_map = CreateBlobMatMap(input_blob_map, FLAGS_it);
-            InitInputMatMap(input_mat_map);
-            auto input_converters_map = CreateBlobConverterMap(input_blob_map);
-            auto input_params_map = CreateConvertParamMap(input_mat_map);
+            if (CheckResult("create instance", ret)) {
+                srand(102);
+                InitInput(input_blob_maps, command_queue);
 
-            //mat format NCHW_FLOAT
-            MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
-            auto output_converters_map = CreateBlobConverterMap(output_blob_map);
-            auto output_params_map = CreateConvertParamMap(output_mat_map);
-
-            for (int i = 0; i < FLAGS_wc; ++i) {
-                for(auto element : input_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                for (int i = 0; i < FLAGS_wc; ++i) {
+                    ret = instance->Forward();
                 }
-                ret = instance->ForwardAsync(nullptr);
-                 
-                for(auto element : output_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
-                }
-            }
 #if TNN_PROFILE
-            instance->StartProfile();
+                instance->StartProfile();
 #endif
-            
-            std::string model_name = FLAGS_mp;
-            if(FLAGS_mp.find_last_of("/") != -1) {
-                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
-            }   
- 
-            Timer timer(model_name);
-
-            for (int i = 0; i < FLAGS_ic; ++i) {
-                timer.Start();
-                for(auto element : input_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                auto start = system_clock::now();
+                auto end   = system_clock::now();
+                float min = FLT_MAX, max = FLT_MIN, sum = 0.0f;
+                for (int i = 0; i < FLAGS_ic; ++i) {
+                    start       = system_clock::now();
+                    ret         = instance->Forward();
+                    end         = system_clock::now();
+                    float delta = duration_cast<microseconds>(end - start).count() / 1000.0f;
+                    min         = static_cast<float>(fmin(min, delta));
+                    max         = static_cast<float>(fmax(max, delta));
+                    sum += delta;
                 }
-                ret = instance->ForwardAsync(nullptr);
-                for(auto element : output_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
-                }
-                timer.Stop();
-            }
 #if TNN_PROFILE
-            instance->FinishProfile(true);
+                instance->FinishProfile(true);
 #endif
-            CheckResult("Forward", ret);
+                CheckResult("Forward", ret);
+                char min_str[16];
+                snprintf(min_str, 16, "%6.3f", min);
+                char max_str[16];
+                snprintf(max_str, 16, "%6.3f", max);
+                char avg_str[16];
+                snprintf(avg_str, 16, "%6.3f", sum / (float)FLAGS_ic);
+                std::string model_name = FLAGS_mp;
+                if (FLAGS_mp.find_last_of("/") != -1) {
+                    model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1);
+                }
+                if (!FLAGS_op.empty()) {
+                    WriteOutput(output_blob_maps, command_queue);
+                }
 
-            if (!FLAGS_op.empty()) {
-                WriteOutput(output_mat_map);
+                printf("%-45s time cost: min = %-8s ms  |  max = %-8s ms  |  avg = %-8s ms \n", model_name.c_str(),
+                       min_str, max_str, avg_str);
             }
- 
-            timer.Print();
- 
-            FreeMatMapMemory(input_mat_map);
-            FreeMatMapMemory(output_mat_map);
         }
         return 0;
     }
@@ -231,32 +212,6 @@ namespace test {
         }
     }
 
-    InputShapesMap GetInputShapesMap() {
-        InputShapesMap input_shape;
-        if(!FLAGS_is.empty()) {
-            std::string input_shape_message(FLAGS_is);
-            std::string delimiter = "[";
-            std::vector<int> input_dim;
-            std::ptrdiff_t p1 = 0, p2;
-            p2 = input_shape_message.find(delimiter, p1);
-            std::string input_name = input_shape_message.substr(p1, p2 -p1);
-            p1 = p2 + 1;
-            delimiter = ",";
-            while (true) {
-                p2 = input_shape_message.find(delimiter, p1);
-                if (p2 != std::string::npos) {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
-                    p1 = p2 + 1;
-                } else {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
-                    break;
-                }
-            }
-            input_shape[input_name] = input_dim;
-        }
-        return input_shape;
-    }
-
     ModelConfig GetModelConfig() {
         ModelConfig config;
         config.model_type = ConvertModelType(FLAGS_mt);
@@ -265,9 +220,12 @@ namespace test {
             std::string network_path = FLAGS_mp;
             int size                 = static_cast<int>(network_path.size());
             std::string model_path;
-            
-            // TNN file names: xxx.tnnproto  xxx.tnnmodel
-            // NCNN file names: xxx.param xxx.bin
+            /*
+             * TNN file names:
+             *  xxx.tnnproto  xxx.tnnmodel
+             * NCNN file names:
+             *  xxx.param xxx.bin
+             */
             if (config.model_type == MODEL_TYPE_TNN) {
                 model_path = network_path.substr(0, size - 5) + "model";
             } else if (config.model_type == MODEL_TYPE_NCNN) {
@@ -276,14 +234,16 @@ namespace test {
                 model_path = network_path.substr(0, size - 3) + "bin";
             }
 
-            std::ifstream proto_stream(network_path);
-            if (!proto_stream.is_open() || !proto_stream.good()) {
-                printf("read proto_file failed!\n");
-                return config;
-            }
-            auto buffer =
+            {
+                std::ifstream proto_stream(network_path);
+                if (!proto_stream.is_open() || !proto_stream.good()) {
+                    printf("read proto_file failed!\n");
+                    return config;
+                }
+                auto buffer =
                     std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
-            config.params.push_back(buffer);
+                config.params.push_back(buffer);
+            }
 
             if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
                 std::ifstream model_stream(model_path);
@@ -295,7 +255,7 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
                 config.params.push_back(model_content);
-		config.params.push_back("/data/local/tmp/npu_test/dump_data/");
+		        config.params.push_back("");
             } else {
                 config.params.push_back(model_path);
             }
@@ -307,12 +267,18 @@ namespace test {
 
     NetworkConfig GetNetworkConfig() {
         NetworkConfig config;
-        // Precision : HIGH for float computing.
+        /*
+         * Precision :
+         *  HIGH for float computing.
+         */
         config.precision = ConvertPrecision(FLAGS_pr);
-        
-        // Device Type: ARM, OPENECL, ...
+        /*
+         * Device Type:
+         *  ARM
+         *  OPENCL
+         *  ...
+         */
         config.device_type = ConvertDeviceType(FLAGS_dt);
-        
         // use model type instead, may change later for same model type with
         // different network type
         config.network_type = ConvertNetworkType(FLAGS_nt);
@@ -332,104 +298,82 @@ namespace test {
         }
     }
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int format_type) {
-        MatMap mat_map;
-        for (auto iter : blob_map) {
-            auto name = iter.first;
+    void InitInput(BlobMap& inputs, void* command_queue) {
+        MatConvertParam param;
+        for (auto iter : inputs) {
             Blob* device_blob = iter.second;
+            BlobConverter blob_converter(device_blob);
             BlobDesc blob_desc = device_blob->GetBlobDesc();
+            int data_count     = DimsVectorUtils::Count(blob_desc.dims);
 
-            // Format Types: (0: NCHW FLOAT), (1: 8UC3), (2: 8UC1)
-            DataType data_type = DATA_TYPE_INT8;
+            DataType dtype = DATA_TYPE_INT8;
+            /*
+             * Input Types:
+             *  0: NCHW FLOAT
+             *  1: 8UC3
+             *  2: 8UC1
+             */
             MatType mat_type;
-            if (format_type == 0) {
-                data_type = DATA_TYPE_FLOAT;
+            if (FLAGS_it == 0) {
+                dtype    = DATA_TYPE_FLOAT;
                 mat_type = NCHW_FLOAT;
-            } else if (format_type == 1) {
+            } else if (FLAGS_it == 1) {
                 mat_type = N8UC3;
-            } else if (format_type == 2) {
+            } else if (FLAGS_it == 2) {
                 mat_type = NGRAY;
             }
-           
-            int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type); 
-            void* mat_data = malloc(bytes);
-            auto mat = std::make_shared<Mat>(DEVICE_NAIVE, mat_type, blob_desc.dims, mat_data);
-            mat_map[name] = mat;  
-        }
-        return mat_map;
-    }
+            if (dtype == DATA_TYPE_INT8) {
+                std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
+                std::fill(param.bias.begin(), param.bias.end(), 0);
+            }
 
-
-    void InitInputMatMap(MatMap& mat_map) {
-        for (auto iter : mat_map) {
-            auto name = iter.first;
-            auto mat = iter.second;
-            void* mat_data = mat->GetData();       
-            int data_count     = DimsVectorUtils::Count(mat->GetDims());
-            auto mat_type = mat->GetMatType();
- 
+            auto size_in_bytes = data_count * DataTypeUtils::GetBytesSize(dtype);
+            void* img_data     = malloc(size_in_bytes);
+            // GET FLOAT
             if (FLAGS_ip.empty()) {
                 for (int i = 0; i < data_count; i++) {
-                    if (mat_type == NCHW_FLOAT) {
-                        reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
+                    if (dtype == DATA_TYPE_FLOAT) {
+                        reinterpret_cast<float*>(img_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
                     } else {
-                        reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
+                        reinterpret_cast<uint8_t*>(img_data)[i] = (rand() % 256);
                     }
                 }
             } else {
                 LOGD("input path: %s\n", FLAGS_ip.c_str());
                 std::ifstream input_stream(FLAGS_ip);
                 for (int i = 0; i < data_count; i++) {
-                    if (mat_type == NCHW_FLOAT) {
-                        input_stream >> reinterpret_cast<float*>(mat_data)[i];
+                    if (dtype == DATA_TYPE_FLOAT) {
+                        input_stream >> reinterpret_cast<float*>(img_data)[i];
                     } else {
-                        input_stream >> reinterpret_cast<uint8_t*>(mat_data)[i];
+                        input_stream >> reinterpret_cast<uint8_t*>(img_data)[i];
                     }
                 }
             }
-        }
-    }
 
-    std::map<std::string, std::shared_ptr<BlobConverter>> CreateBlobConverterMap(BlobMap& blob_map) {
-        std::map<std::string, std::shared_ptr<BlobConverter>> converter_map;
-        for(auto iter : blob_map) {
-            auto blob_converter = std::make_shared<BlobConverter>(iter.second);
-            converter_map[iter.first] = blob_converter;
-        }
-        return converter_map;
-    }
-
-    std::map<std::string, MatConvertParam> CreateConvertParamMap(MatMap& mat_map) {
-        std::map<std::string, MatConvertParam> param_map;
-        for(auto iter : mat_map) {
-            MatConvertParam param;
-            auto name = iter.first;
-            auto mat = iter.second;
-            auto mat_type = mat->GetMatType();
-            auto dims = mat->GetDims();
-            if(mat_type != NCHW_FLOAT) { 
-                std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f); 
-                std::fill(param.bias.begin(), param.bias.end(), 0);
-            } else if(dims[1] > 4) {
-                param.scale = std::vector<float>(dims[1], 1);
-                param.bias  = std::vector<float>(dims[1], 0);
+            if (dtype == DATA_TYPE_FLOAT && blob_desc.dims[1] > 4) {
+                param.scale = std::vector<float>(blob_desc.dims[1], 1);
+                param.bias  = std::vector<float>(blob_desc.dims[1], 0);
             }
-            param_map[name] = param;
+            TNN_NS::Mat img(DEVICE_NAIVE, mat_type, img_data);
+            Status ret = blob_converter.ConvertFromMat(img, param, command_queue);
+            if (ret != TNN_OK) {
+                LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
+            }
+            free(img_data);
         }
-        return param_map;
     }
 
-
-    void WriteOutput(MatMap& outputs) {
+    void WriteOutput(BlobMap& outputs, void* command_queue) {
         std::ofstream f(FLAGS_op);
-        LOGD("the output path: %s\n", FLAGS_op.c_str());
+        MatConvertParam param;
+
         if (!FLAGS_fc) {
             LOGD("output path: %s\n", FLAGS_op.c_str());
             f << outputs.size() << std::endl;
             for (auto output : outputs) {
                 f << output.first;
-                auto mat      = output.second;
-                DimsVector dims = mat->GetDims();
+                Blob* blob      = output.second;
+                DimsVector dims = blob->GetBlobDesc().dims;
                 f << " " << dims.size();
                 for (auto dim : dims) {
                     f << " " << dim;
@@ -437,10 +381,11 @@ namespace test {
                 f << std::endl;
             }
         } else {
+            MatConvertParam param;
             for (auto output : outputs) {
                 LOGD("the output name: %s\n", output.first.c_str());
-                auto mat        = output.second;
-                DimsVector dims   = mat->GetDims();
+                Blob* blob        = output.second;
+                DimsVector dims   = blob->GetBlobDesc().dims;
                 std::string shape = "( ";
                 for (auto dim : dims) {
                     shape += to_string(dim) + " ";
@@ -450,20 +395,27 @@ namespace test {
             }
         }
         for (auto output : outputs) {
-            auto mat  = output.second;
-            int data_count     = DimsVectorUtils::Count(mat->GetDims());
-            float* data = reinterpret_cast<float*>(mat->GetData());
+            Blob* device_blob  = output.second;
+            BlobDesc blob_desc = device_blob->GetBlobDesc();
+            int data_count     = DimsVectorUtils::Count(blob_desc.dims);
+            auto size_in_bytes = data_count * sizeof(float);
+
+            BlobConverter blob_converter(device_blob);
+            void* img_data = malloc(size_in_bytes);
+            TNN_NS::Mat img(DEVICE_NAIVE, NCHW_FLOAT, img_data);
+            Status ret = blob_converter.ConvertToMat(img, param, command_queue);
+            if (ret != TNN_OK) {
+                LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
+            }
+
+            float* data = static_cast<float*>(img_data);
             for (int c = 0; c < data_count; ++c) {
                 f << std::fixed << std::setprecision(6) << data[c] << std::endl;
             }
+            free(img_data);
         }
         f.close();
-    }
-
-    void FreeMatMapMemory(MatMap& mat_map) {
-        for(auto iter : mat_map) {
-            free(iter.second->GetData());
-        }
+        LOGD("the output path: %s\n", FLAGS_op.c_str());
     }
 
 }  // namespace test
