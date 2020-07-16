@@ -1,5 +1,6 @@
-
 # Code Architecture 
+
+[中文版本](../../cn/development/architecture.md)
 
 ## I. API Design 
 

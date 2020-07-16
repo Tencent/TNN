@@ -1,4 +1,7 @@
 # 模型转换
+
+[English Version](../../en/user/convert_en.md)
+
 ## 模型转换介绍
 
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
@@ -51,6 +54,8 @@ REPOSITORY          TAG                 IMAGE ID            CREATED             
 tnn-convert         latest              28c93a738b08        16 minutes ago      2.81GB
 ```
 
+#### 更新 docker 镜像
+重复 [__拉取构建好的 docker 镜像__](#拉取构建好的-docker-镜像推荐) 中的操作即可
 
 #### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
 ``` shell script
@@ -66,6 +71,8 @@ docker images
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
 tnn-convert         latest              9fb83110d2c9        26 minutes ago      2.79GB
 ```
+
+
 
 #### convert2tnn 工具进行转换
 
@@ -551,7 +558,7 @@ with open(output_path, "w") as f:
 ```
 
 
-# 模型转换详细介绍
+## 模型转换详细介绍
 convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 “模型转换介绍”中原理说明，你也可以先将原始模型转换成 ONNX，然后再将 ONNX 模型转换成 TNN 模型。我们提供了如何手动的将 Caffe、PyTorch、TensorFlow 模型转换成 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型的文档。如果你在使用 convert2tnn 转换工具遇到问题时，我们建议你了解下相关的内容，这有可能帮助你更加顺利的进行模型转换。
 
 - [onnx2tnn](onnx2tnn.md)

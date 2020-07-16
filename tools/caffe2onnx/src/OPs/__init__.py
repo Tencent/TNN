@@ -21,10 +21,14 @@ from src.OPs.Clip import *
 from src.OPs.Log import *
 from src.OPs.Mul import *
 from src.OPs.Interp import *
+from src.OPs.Crop import *
 from src.OPs.PriroBox import create_priorbox_node
 from src.OPs.DetectionOutput import create_detection_output
 from src.OPs.Flatten import create_flatten_node
 from src.OPs.Resize import create_resize_node
 from src.OPs.Axpy import create_axpy_add_node, create_axpy_mul_node
 from src.OPs.LpNormalization import create_Lp_Normalization
+from src.OPs.Power import get_power_param, create_power_node
+from src.OPs.Add import create_add_node
 from src.OPs.Tanh import createTanh
+

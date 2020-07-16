@@ -1,5 +1,7 @@
 # 测试方法
 
+[English Version](../../en/user/test_en.md)
+
 ## 一、编译
 参考[安装编译](./compile.md)。
 打开测试模型开关：  

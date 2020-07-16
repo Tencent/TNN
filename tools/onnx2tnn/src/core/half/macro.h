@@ -19,20 +19,32 @@
 #define PUBLIC __attribute__((visibility("default")))
 
 // Log
+#define DEFAULT_TAG "converter"
+
 #ifdef __ANDROID__
 #include <android/log.h>
-#define LOGD(fmt, ...)                                                         \
-    __android_log_print(ANDROID_LOG_DEBUG, "tnn", ("%s [Line %d] " fmt),  \
-                        __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define LOGE(fmt, ...)                                                         \
-    __android_log_print(ANDROID_LOG_ERROR, "tnn", ("%s [Line %d] " fmt),  \
-                        __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define LOGDT(fmt, tag, ...)                                                                                           \
+    __android_log_print(ANDROID_LOG_DEBUG, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,         \
+                        __LINE__, ##__VA_ARGS__)
+#define LOGIT(fmt, tag, ...)                                                                                           \
+    __android_log_print(ANDROID_LOG_INFO, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,          \
+                        __LINE__, ##__VA_ARGS__)
+#define LOGET(fmt, tag, ...)                                                                                           \
+    __android_log_print(ANDROID_LOG_ERROR, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,         \
+                        __LINE__, ##__VA_ARGS__);                                                                      \
+    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
-#define LOGD(fmt, ...)                                                         \
-    printf(("%s [Line %d] " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define LOGE(fmt, ...)                                                         \
-    printf(("%s [Line %d] " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define LOGDT(fmt, tag, ...)                                                                                           \
+    fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOGIT(fmt, tag, ...)                                                                                           \
+    fprintf(stdout, ("I/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOGET(fmt, tag, ...)                                                                                           \
+    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif  //__ANDROID__
+
+#define LOGD(fmt, ...) LOGDT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
+#define LOGI(fmt, ...) LOGIT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
+#define LOGE(fmt, ...) LOGET(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 
 #ifndef DEBUG
 #undef LOGD

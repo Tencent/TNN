@@ -23,10 +23,7 @@ ArmUnaryLayerAcc::~ArmUnaryLayerAcc() {}
 
 Status ArmUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     return op_->Init(param);
 }
 

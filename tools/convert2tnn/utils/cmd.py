@@ -18,6 +18,8 @@ import subprocess
 import datetime
 import time
 
+from converter import logging
+
 
 def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
     """
@@ -46,8 +48,8 @@ def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
                            cwd=work_dir,
                            close_fds=True)
     (stdout, stderr) = sub.communicate()
-    print(str(stdout.decode('utf-8')))
-    print(str(stderr.decode('utf-8')))
+    logging.debug(str(stdout.decode('utf-8')))
     rc = sub.poll()
+    if rc != 0:
+        logging.error(str(stderr.decode('utf-8')))
     return rc
-

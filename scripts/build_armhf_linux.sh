@@ -8,12 +8,13 @@ CC=arm-linux-gnueabihf-gcc
 CXX=arm-linux-gnueabihf-g++
 TARGET_ARCH=arm
 
-mkdir build_armhf_linux
-cd build_armhf_linux
 if [ -z $TNN_ROOT_PATH ]
 then
-      TNN_ROOT_PATH=../..
+    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
+
+mkdir build_armhf_linux
+cd build_armhf_linux
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \

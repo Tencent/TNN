@@ -58,9 +58,14 @@ class Caffe2Onnx():
             # 考虑到整个网络会有多输入情况
             for lay in self.netLayerCaffe:
                 if lay.type == "Input":
-                    in_tvi = helper.make_tensor_value_info(lay.name + "_input", TensorProto.FLOAT,
+                    if len(lay.top) == 1 and lay.top[0] != lay.name:
+                        input_layer_name = lay.top[0]
+                    else:
+                        input_layer_name = lay.name
+                        
+                    in_tvi = helper.make_tensor_value_info(input_layer_name + "_input", TensorProto.FLOAT,
                                                            lay.input_param.shape[0].dim)
-                    self.model_input_name.append(lay.name + "_input")
+                    self.model_input_name.append(input_layer_name + "_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
                 else:
@@ -197,6 +202,9 @@ class Caffe2Onnx():
     def GetLastLayerOutNameAndShape(self, layer):
         output_name = []
         outshape = []
+        # flag is True: 模型的输入没有被覆盖
+        # flag is False: 模型的输入已经被覆盖
+        flag = True
 
         # 如果结点列表为空，或者当前层的bottom在input_name中，那么上一层输入一定是 Input
         if self.onnxNodeList == []:
@@ -205,19 +213,26 @@ class Caffe2Onnx():
 
         else:
             for i in range(len(layer.bottom)):
-                for j in range(len(self.model_input_name)):
-                    if layer.bottom[i] + '_input' == self.model_input_name[j]:
-                        output_name.append(self.model_input_name[j])
-                        outshape.append(self.model_input_shape[j])
 
                 # 因为prototxt中存在top和bottom同名的情况，但是layer.bottom只能对应一个node，所以对每个layer.bottom，找到最末的那个同名节点作为上一层节点
                 name = None
                 shape = None
                 for node in self.onnxNodeList:
-                    for j in range(len(node.top) if node.node.op_type != "MaxPool" else 1):  # comment if statement for original maxpool and maxunpool
+                    for j in range(len(node.top) if node.node.op_type != "MaxPool" else 1):
                         if layer.bottom[i] == node.top[j]:
                             name = node.outputs_name[j]
                             shape = node.outputs_shape[j]
+                        for k in range(len(node.bottom)):
+                            if node.top[j] == node.bottom[k]:
+                                for w in range(len(self.model_input_name)):
+                                    if node.top[j] + '_input' == self.model_input_name[w]:
+                                        flag = False
+
+                for j in range(len(self.model_input_name)):
+                    if layer.bottom[i] + '_input' == self.model_input_name[j] and flag:
+                        output_name.append(self.model_input_name[j])
+                        outshape.append(self.model_input_shape[j])
+
                 if name:
                     output_name.append(name)
                     outshape.append(shape)
@@ -315,8 +330,13 @@ class Caffe2Onnx():
                 # signal scale
                 input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])  # 获取输入名列表和输入形状
                 output_name = self.GetCurrentLayerOutName(Layers[i])  # 获取输出名列表
-                node_name = Layers[i].name + random.choice('1234567890abcdefghijklmnopqrst')
-                if op.need_add_reshape(input_shape):
+                # node_name = Layers[i].name + random.choice('1234567890abcdefghijklmnopqrst')
+                node_name = Layers[i].name
+                has_two_input: bool = False
+                if len(input_name) > 1:
+                    has_two_input = True
+
+                if has_two_input and op.need_add_reshape(input_shape):
                     reshape_layer = copy.deepcopy(Layers[i])
                     # add reshape layer
                     reshape_node_name =  input_name[1] + '_reshap_' + random.choice('1234567890abcdefghijklmnopqrst')
@@ -345,9 +365,50 @@ class Caffe2Onnx():
 
                     self.onnxNodeList.append(mul_node)
                 else:
-                    mul_node = op.create_mul_node(Layers[i], node_name, input_name, output_name, input_shape)
+                    param_shape, param_data = self.GetParamsShapeAndData(Layers[i])
+                    # Scale = Mul + Add
+                    if len(param_shape) == 2:
+                        # create mul
+                        param_scale_shape = [1, param_shape[0][0], 1, 1]
+                        param_scale_data = param_data[0]
+                        param_scale_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [param_scale_shape], [param_scale_data])
 
-                    self.onnxNodeList.append(mul_node)
+                        mul_node_name = node_name + "_mul"
+                        mul_input_name = [input_name[0], param_scale_name[0]]
+                        mul_output_name = [output_name[0] + "_mul"]
+                        mul_input_shape = [input_shape[0], param_scale_shape]
+
+                        mul_node = op.create_mul_node(Layers[i], mul_node_name, mul_input_name, mul_output_name, mul_input_shape)
+                        self.onnxNodeList.append(mul_node)
+
+                        param_bias_shape = [1, param_shape[1][0], 1, 1]
+                        param_bias_data = param_data[1]
+                        param_bias_name = self.AddInputsTVIMannul(Layers[i], ["_bias"], [TensorProto.FLOAT], [param_bias_shape], [param_bias_data])
+
+                        add_node_name = node_name + "_add"
+                        add_input_name = [mul_output_name[0], param_bias_name[0]]
+                        add_output_name = output_name
+                        add_input_shape = [input_shape[0], param_bias_shape]
+                        add_node = op.create_add_node(Layers[i], add_node_name, add_input_name, add_output_name, add_input_shape)
+                        self.onnxNodeList.append(add_node)
+                    # Scale = Mul
+                    if len(param_shape) == 1:
+                        # create mul
+                        param_scale_shape = [1, param_shape[0][0], 1, 1]
+                        param_scale_data = param_data[0]
+                        param_scale_name = self.AddInputsTVIMannul(
+                            Layers[i], ["_scale"], [TensorProto.FLOAT],
+                            [param_scale_shape], [param_scale_data])
+
+                        mul_input_name = [input_name[0], param_scale_name[0]] 
+                        mul_input_shape = [input_shape[0], param_scale_shape]
+
+                        mul_node = op.create_mul_node(Layers[i], node_name,
+                                                      mul_input_name,
+                                                      output_name,
+                                                      mul_input_shape)
+                        self.onnxNodeList.append(mul_node)
+
             # Pooling
             elif Layers[i].type == "Pooling" or Layers[i].type == Layer_POOLING:
                 # TODO:
@@ -881,6 +942,31 @@ class Caffe2Onnx():
                 mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, output_name,
                                               mul_input_shape)
                 self.onnxNodeList.append(mul_node)
+            elif Layers[i].type == "Power":
+                # Power: Mul + Add + Pow
+                # create mul node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
+                power, scale, shift = op.get_power_param(Layers[i])
+                scale_node_name = self.AddInputsTVIMannul(Layers[i], ["_scale"], [TensorProto.FLOAT], [np.shape(scale)], [scale])
+                mul_input_name = [input_name[0], scale_node_name[0]]
+                mul_node = op.create_mul_node(Layers[i], node_name + "_mul", mul_input_name, [output_name[0] + "_mul"],
+                                              [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(mul_node)
+                # create Add node
+                shift_param_name = self.AddInputsTVIMannul(Layers[i], ["_shift"], [TensorProto.FLOAT], [np.shape(scale)],
+                                                        [shift])
+                add_input_name = [output_name[0] + "_mul", shift_param_name[0]]
+                add_node = op.create_add_node(Layers[i], node_name + "_add", add_input_name, [output_name[0] + "_add"], [input_shape[0], np.shape(shift)])
+                self.onnxNodeList.append(add_node)
+
+                # create Pow
+                power_param_name = self.AddInputsTVIMannul(Layers[i], ["_param_power"], [TensorProto.FLOAT], [np.shape(power)],[power])
+                power_input_name = [output_name[0] + "_add", power_param_name[0]]
+                power_node = op.create_power_node(Layers[i], node_name + "_power", power_input_name, output_name,
+                                                  [input_shape[0], np.shape(power)])
+                self.onnxNodeList.append(power_node)
 
             elif Layers[i].type == "TanH":
                 # 1.获取节点输入名、输入维度、输出名、节点名
@@ -895,7 +981,40 @@ class Caffe2Onnx():
 
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
+                
+            elif Layers[i].type == "Crop":
+                # Crop: Slice
+                # create Slice node
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
 
+                starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
+                
+                Crop_name=[]
+                Crop_name.append(input_name[0])
+                
+                starts_param = self.AddInputsTVIMannul(Layers[i],
+                                                       ['_starts' + str(i)],
+                                                       [TensorProto.INT64],
+                                                       [np.shape(starts)],
+                                                       [starts])
+                ends_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_ends' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(ends)], [ends])
+                axes_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_axes' + str(i)],
+                                                     [TensorProto.INT64],
+                                                     [np.shape(axes)], [axes])
+           
+                Crop_name.extend(starts_param)
+                Crop_name.extend(ends_param)
+                Crop_name.extend(axes_param)
+                crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
+                                                  input_shape)
+                self.onnxNodeList.append(crop_node)
+                
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)

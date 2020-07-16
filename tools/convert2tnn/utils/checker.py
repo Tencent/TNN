@@ -16,12 +16,16 @@
 import os
 import onnxruntime
 import re
+import sys
+
+from converter import logging
+from utils import return_code
 
 
 def check_file_exist(file_path):
     if os.path.exists(file_path) is False:
-        print("the " + file_path + " does not exist! please make sure the file exist!")
-        exit(-1)
+        logging.error("The " + file_path + " does not exist! please make sure the file exist!\n")
+        sys.exit(return_code.CONVERT_FAILED)
 
 
 def is_ssd_model(proto_path):
@@ -36,6 +40,7 @@ def is_ssd_model(proto_path):
         return False
 
 def check_onnx_dim(onnx_path : str):
+    onnxruntime.set_default_logger_severity(3)
     session = onnxruntime.InferenceSession(onnx_path)
     current_shape = []
     status = 0

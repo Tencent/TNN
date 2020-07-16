@@ -325,8 +325,9 @@ Status ArmConvLayer3x3::allocateBufferWeight(const std::vector<Blob *> &inputs, 
     return TNN_OK;
 }
 
-Status ArmConvLayer3x3::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmConvLayerCommon::Reshape(inputs, outputs);
+Status ArmConvLayer3x3::Init(Context *context, LayerParam *param, LayerResource *resource,
+                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmConvLayerCommon::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);

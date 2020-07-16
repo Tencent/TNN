@@ -13,9 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/device/arm/arm_device.h"
+
+#include <cmath>
 
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/arm_device.h"
 
 namespace TNN_NS {
 
@@ -34,8 +36,8 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
-        int pow = std::round(layer_param->exponent);
-        if (ABS(pow - layer_param->exponent) < 0.00001) {
+        int pow = round(layer_param->exponent);
+        if (ABS(pow - layer_param->exponent) < FLT_EPSILON) {
             bool reciprocal = pow < 0;
             if(reciprocal)
                 pow = -pow;

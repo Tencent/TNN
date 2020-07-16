@@ -23,6 +23,8 @@ include_directories(./../src/core/onnx_process_tf)
 # if convert onnx model from tf , you should uncomment below code .
 # add_definitions(-DPROCESS_TF)
 
+add_definitions(-DDEBUG)
+
 file(GLOB_RECURSE ONNX2TNN_SRC ./../src/core/*.h ./../src/core/*.cc)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")

@@ -416,6 +416,22 @@ struct MetalImageConverterParams {
     int bgra_to_rgba;
 };
 
+/** Signed Mul Param Struct **/
+struct MetalSignedMulParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int batch;
+    float alpha;
+    float beta;
+    float gamma_inv;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \

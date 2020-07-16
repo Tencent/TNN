@@ -1,5 +1,7 @@
 # NCNN Interface and Model Usage 
 
+[中文版本](../../cn/user/ncnn.md)
+
 ## ncnn model usage documentation
 
 When using the ncnn model, you need to specify the ModelType as MODEL_TYPE_NCNN in NetworkConfig parameters.
