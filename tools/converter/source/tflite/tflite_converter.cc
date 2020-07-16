@@ -112,13 +112,11 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             TNN_NS::LayerType layer_type = TNN_NS::GlobalConvertLayerType(type_name);
             cur_layer->type              = layer_type;
             cur_layer->type_str          = type_name;
-            cur_layer->inputs.resize(operators[j]->inputs.size());
-            cur_layer->outputs.resize(operators[j]->outputs.size());
             for (auto input_index : operators[j]->inputs) {
                 cur_layer->inputs.push_back(tensors[input_index]->name);
             }
             for (auto output_index : operators[j]->outputs) {
-                cur_layer->inputs.push_back(tensors[output_index]->name);
+                cur_layer->outputs.push_back(tensors[output_index]->name);
             }
             net_structure.layers.push_back(cur_layer);
             auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer, tf_lite_op_set,

@@ -20,9 +20,9 @@ DECLARE_OP_CONVERTER(PRelu);
 
 std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {
-        return "QuantizedPRelu";
+        // TODO
     }
-    return "PRelu";
+    return "PReLU";
 }
 TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                           const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
