@@ -33,8 +33,7 @@ protected:
         if (ret != TNN_OK || !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
-        auto input_data         = (input_ops_[0]);
-        const int input_channel = input_data->GetShape()[1];
+        const int input_channel = input_ops_[0]->GetShape()[1];
 
         int pad_mode = 0;
         ret          = NpuUtils::GetPadMode(pad_mode, pad_type, false);
@@ -53,13 +52,13 @@ protected:
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
         ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_UINT8);
-        NpuUtils::CreateAttrArray(input_size_const, calculate_shape, desc);
+        NpuUtils::CreateAttrArray(input_size_const, calculate_shape, desc, 4);
         weight_ops_.push_back(input_size_const);
 
-        auto output = std::make_shared<ge::op::Deconvolution>(outputs_[0]);
+        auto output = std::make_shared<ge::op::Deconvolution>(outputs_name_[0]);
+        output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_input_filter(*filter_const);
         output->set_input_input_sizes(*input_size_const);
-        output->set_input_x(*input_data->GetOperator());
         output->set_attr_group(group);
         output->set_attr_num_output(output_channel);
         output->set_attr_pad(ge::AttrValue::LIST_INT({

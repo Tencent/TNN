@@ -88,7 +88,7 @@ protected:
     LayerParam *param_;
     LayerResource *resource_;
 
-    std::vector<std::string> outputs_;
+    std::vector<std::string> outputs_name_;
     virtual Status Convert() = 0;
 };
 
@@ -146,8 +146,21 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
                                                                                                                        \
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
-        std::vector<shared_ptr<ge::Operator>> weight_ops_;                                                             \
+        std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
     }
+
+#define DECLARE_NPU_LAYER_WEIGHT_ARRAY(type_string, layer_type)                                                        \
+    class Npu##type_string##Layer : public NpuBaseLayer {                                                              \
+    public:                                                                                                            \
+        Npu##type_string##Layer(LayerType ignore) : NpuBaseLayer(layer_type){};                                        \
+        virtual ~Npu##type_string##Layer(){};                                                                          \
+                                                                                                                       \
+    protected:                                                                                                         \
+        virtual Status Convert();                                                                                      \
+        std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
+        std::vector<std::shared_ptr<std::vector<float>>> arrays;                                                       \
+    }
+
 #define REGISTER_NPU_LAYER(type_string, layer_type)                                                                    \
     TypeNpuLayerRegister<TypeNpuLayerCreator<Npu##type_string##Layer>> g_Npu##layer_type##_register(layer_type);
 

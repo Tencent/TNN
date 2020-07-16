@@ -62,7 +62,17 @@ TNNSDKSample::TNNSDKSample() {}
 
 TNNSDKSample::~TNNSDKSample() {}
 
-TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw, std::string modelPathStr)
+void TNNSDKSample::setCheckNpuSwitch(bool option)
+{
+    check_npu_ = option;
+}
+
+void TNNSDKSample::setNpuModelPath(std::string stored_path)
+{
+    model_path_str_ = stored_path;
+}
+
+TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw)
 {
     //网络初始化
     TNN_NS::Status status;
@@ -73,8 +83,7 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 #else
         config.model_type = TNN_NS::MODEL_TYPE_TNN;
 #endif
-
-        config.params = {proto_content, model_path, modelPathStr};
+        config.params = {proto_content, model_path, model_path_str_};
 
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
@@ -109,7 +118,7 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
             network_config.network_type = NETWORK_TYPE_NPU;
         }
         auto instance = net_->CreateInst(network_config, status, shapeMap);
-        if (status != TNN_NS::TNN_OK || !instance) {
+        if (!check_npu_ && (status != TNN_NS::TNN_OK || !instance)) {
             // try device_arm
             if (units >= TNNComputeUnitsGPU) {
                 device_type_                = TNN_NS::DEVICE_ARM;

@@ -27,9 +27,11 @@ Status NpuUpsampleLayer::Convert() {
         LOGE("Error: Upsample layer param is nil\n");
         return Status(TNNERR_PARAM_ERR, "Error: Upsample layer param is nil");
     }
+
     const int scale_h = param->scales[1];
     const int scale_w = param->scales[0];
-    auto output       = std::make_shared<ge::op::Upsample>(outputs_[0]);
+
+    auto output = std::make_shared<ge::op::Upsample>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_scale_h(scale_h);
     output->set_attr_scale_w(scale_w);

@@ -255,7 +255,7 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
                 config.params.push_back(model_content);
-		config.params.push_back("/data/local/tmp/npu_test/dump_data/");
+		        config.params.push_back("");
             } else {
                 config.params.push_back(model_path);
             }

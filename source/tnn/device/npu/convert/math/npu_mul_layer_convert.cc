@@ -33,7 +33,7 @@ Status NpuMulLayer::Convert() {
         printf("the mul input size is not correct\n");
         return Status(TNNERR_PARAM_ERR, "Error: the layer count is not correct");
     }
-    auto output = std::make_shared<ge::op::Mul>(outputs_[0]);
+    auto output = std::make_shared<ge::op::Mul>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_y(*input_ops_[1]->GetOperator());
     std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
