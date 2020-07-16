@@ -15,7 +15,7 @@
 #include "tflite_op_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_COVERTER(Pooling);
+DECLARE_OP_CONVERTER(Pooling);
 
 std::string TFLitePoolingConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {
