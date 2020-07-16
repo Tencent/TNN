@@ -49,24 +49,23 @@ DECLARE_BINARY_CONVERTER(Add);
 std::string TFLiteAddConverter::TNNOpType(bool quantizedModel) {
     return "Add";
 };
-
-//DECLARE_BINARY_CONVERTER(Sub);
-//std::string TFLiteSubConverter::TNNOpType(bool quantizedModel) {
-//    return "Sub";
-//};
-//DECLARE_BINARY_CONVERTER(Mul);
-//std::string TFLiteMulConverter::TNNOpType(bool quantizedModel) {
-//    return "Mul";
-//};
-//DECLARE_BINARY_CONVERTER(Div);
-//std::string TFLiteDivConverter::TNNOpType(bool quantizedModel) {
-//    return "Div";
-//};
+DECLARE_BINARY_CONVERTER(Sub);
+std::string TFLiteSubConverter::TNNOpType(bool quantizedModel) {
+    return "Sub";
+};
+DECLARE_BINARY_CONVERTER(Mul);
+std::string TFLiteMulConverter::TNNOpType(bool quantizedModel) {
+    return "Mul";
+};
+DECLARE_BINARY_CONVERTER(Div);
+std::string TFLiteDivConverter::TNNOpType(bool quantizedModel) {
+    return "Div";
+};
 
 using namespace tflite;
 REGISTER_CONVERTER(Add, BuiltinOperator_ADD);
-//REGISTER_CONVERTER(Sub, BuiltinOperator_SUB);
-//REGISTER_CONVERTER(Mul, BuiltinOperator_MUL);
-//REGISTER_CONVERTER(Div, BuiltinOperator_DIV);
+REGISTER_CONVERTER(Sub, BuiltinOperator_SUB);
+REGISTER_CONVERTER(Mul, BuiltinOperator_MUL);
+REGISTER_CONVERTER(Div, BuiltinOperator_DIV);
 
 }  // namespace TNN_CONVERTER

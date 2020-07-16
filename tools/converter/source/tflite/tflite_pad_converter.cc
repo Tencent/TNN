@@ -40,9 +40,10 @@ TNN_NS::Status TFLitePadConverter::exec(
             param->pads.push_back(0);
             break;
         }
-        default:
+        default:{
             LOGE("TFLitePadConverter do not support ");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+        }
     }
     // update param
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);

@@ -23,8 +23,8 @@ namespace TNN_CONVERTER {
 
 class TFLiteOpConverter {
 public:
-    TFLiteOpConverter()= default ;
-    virtual ~TFLiteOpConverter()= default;
+    TFLiteOpConverter() = default;
+    virtual ~TFLiteOpConverter()= default;;
 
     virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                 const std::unique_ptr<tflite::OperatorT>& tfliteOp,
@@ -54,7 +54,7 @@ private:
 template <class T>
 class TFLiteOpConverterRegister {
 public:
-    TFLiteOpConverterRegister(const tflite::BuiltinOperator op_index) {
+    explicit TFLiteOpConverterRegister(const tflite::BuiltinOperator op_index) {
         T* converter                                           = new T;
         TFLiteOpConverterManager* tf_lite_op_converter_manager = TFLiteOpConverterManager::get();
         tf_lite_op_converter_manager->insert(op_index, converter);
@@ -62,22 +62,22 @@ public:
     ~TFLiteOpConverterRegister(){};
 };
 
-#define DECLARE_OP_CONVERTER(tf_lite_type)                                                                              \
+#define DECLARE_OP_CONVERTER(tf_lite_type)                                                                             \
     class TFLite##tf_lite_type##Converter : public TFLiteOpConverter {                                                 \
     public:                                                                                                            \
+        TFLite##tf_lite_type##Converter() {}                                                                           \
+        virtual ~TFLite##tf_lite_type##Converter() {}                                                                  \
         virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,            \
                                     const std::unique_ptr<tflite::OperatorT>& tfliteOp,                                \
                                     const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,                \
                                     const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,            \
                                     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet,            \
                                     bool quantizedModel);                                                              \
-        TFLite##tf_lite_type##Converter() {}                                                                           \
-        virtual ~TFLite##tf_lite_type##Converter() {}                                                                  \
         virtual std::string TNNOpType(bool quantizedModel);                                                            \
-    }
+    }  // namespace TNN_CONVERTER
 
 #define REGISTER_CONVERTER(converter_suffix, tf_lite_type)                                                             \
-     TFLiteOpConverterRegister<TFLite##converter_suffix##Converter> g_converter_##tf_lite_type##_(tf_lite_type)
+    TFLiteOpConverterRegister<TFLite##converter_suffix##Converter> g_converter_##tf_lite_type##_(tf_lite_type)
 };  // namespace TNN_CONVERTER
 
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_OP_CONVERTER_H_
