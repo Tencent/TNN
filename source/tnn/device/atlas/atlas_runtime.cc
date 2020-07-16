@@ -82,6 +82,7 @@ Status AtlasRuntime::Init() {
 }
 
 Status AtlasRuntime::SetDevice(int device_id) {
+    std::unique_lock<std::mutex> lck(g_mtx);
     if (device_list_.find(device_id) == device_list_.end()) {
         LOGD("set device: %d\n", device_id);
         aclError acl_ret = aclrtSetDevice(device_id);
