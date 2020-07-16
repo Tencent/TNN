@@ -23,8 +23,8 @@ namespace TNN_CONVERTER {
 
 class TFLiteOpConverter {
 public:
-    TFLiteOpConverter(){};
-    virtual ~TFLiteOpConverter(){};
+    TFLiteOpConverter()= default ;
+    virtual ~TFLiteOpConverter()= default;
 
     virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                 const std::unique_ptr<tflite::OperatorT>& tfliteOp,
@@ -62,7 +62,7 @@ public:
     ~TFLiteOpConverterRegister(){};
 };
 
-#define DECLARE_OP_COVERTER(tf_lite_type)                                                                              \
+#define DECLARE_OP_CONVERTER(tf_lite_type)                                                                              \
     class TFLite##tf_lite_type##Converter : public TFLiteOpConverter {                                                 \
     public:                                                                                                            \
         virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,            \

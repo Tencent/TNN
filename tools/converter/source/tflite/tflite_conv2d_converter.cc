@@ -17,7 +17,7 @@
 
 namespace TNN_CONVERTER {
 
-DECLARE_OP_COVERTER(Conv2D);
+DECLARE_OP_CONVERTER(Conv2D);
 
 std::string TFLiteConv2DConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {

@@ -15,7 +15,8 @@
 #include "tflite_op_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_COVERTER(PRelu);
+
+DECLARE_OP_CONVERTER(PRelu);
 
 std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
     return "PRelu";
