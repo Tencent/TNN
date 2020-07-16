@@ -66,7 +66,7 @@ rm -rf *
 mkdir lib
 cd ..
 if [ "$SHARED_LIB" = "ON" ];then
-cp build_atlas/libTNN.so release_atlas/lib
+cp -d build_atlas/libTNN.so* release_atlas/lib
 else
 cp build_atlas/libTNN.a release_atlas/lib
 fi
