@@ -32,5 +32,8 @@ if(TNN_ATLAS_ENABLE)
 
         add_executable(AtlasTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_thread.cc)
         target_link_libraries(AtlasTestMultiThread TNN)
+
+        add_executable(AtlasTestMultiModel ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_model.cc)
+        target_link_libraries(AtlasTestMultiModel TNN)
     endif()
 endif()
