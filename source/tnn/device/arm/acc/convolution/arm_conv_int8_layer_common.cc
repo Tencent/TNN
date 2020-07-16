@@ -97,11 +97,11 @@ Status ArmConvInt8LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
             memcpy(temp_buffer.force_to<int32_t *>(), conv_res->bias_handle.force_to<int32_t *>(), bias_handle_size);
 
             buffer_bias_ = temp_buffer;
+        } else if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+            // int 8 kernel always add bias, if not, set zeros
+            buffer_bias_ = RawBuffer(ROUND_UP(dims_output[1], 4) * sizeof(int32_t));
         }
-    } else if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        // int 8 kernel always add bias, if not, set zeros
-        buffer_bias_ = RawBuffer(ROUND_UP(dims_output[1], 4) * sizeof(int32_t));
-    }
+    } 
 
     return TNN_OK;
 }
@@ -310,6 +310,7 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     for (int n = 0; n < batch; ++n) {
         const auto input_batch = input_data + n * k_param_->iw * k_param_->ih * k_param_->ic_r4;
         auto output_batch      = output_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4;
+
         OMP_PARALLEL_FOR_GUIDED_
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
             int thread_id          = OMP_TID_;
