@@ -65,10 +65,12 @@ class TNNSDKSample {
 public:
     TNNSDKSample();
     virtual ~TNNSDKSample();
-    virtual TNN_NS::Status Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw = {}, std::string modelPathStr = "");
+    virtual TNN_NS::Status Init(const std::string &proto_content, const std::string &model_path, const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw = {});
     TNNComputeUnits GetComputeUnits();
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
+    void setNpuModelPath(std::string stored_path);
+    void setCheckNpuSwitch(bool option);
 
 protected:
     BenchOption bench_option_;
@@ -78,6 +80,9 @@ protected:
     std::shared_ptr<TNN_NS::TNN> net_           = nullptr;
     std::shared_ptr<TNN_NS::Instance> instance_ = nullptr;
     TNN_NS::DeviceType device_type_             = DEVICE_ARM;
+    std::string model_path_str_                 = "";
+    bool check_npu_                             = false;
+
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,

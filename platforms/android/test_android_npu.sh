@@ -48,12 +48,11 @@ function build_android() {
           -DCMAKE_BUILD_TYPE=Release \
           -DANDROID_ABI="${ABI}" \
           -DANDROID_STL=c++_shared \
-          -DTNN_BENCHMARK_MODE:BOOL="ON" \
-	      -DANDROID_NATIVE_API_LEVEL=android-14  \
+          -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_TEST_ENABLE="ON" \
-	      -DTNN_NPU_ENABLE:BOOL=$NPU \
-	      -DBUILD_FOR_ANDROID_COMMAND=true
+          -DTNN_NPU_ENABLE:BOOL=$NPU \
+          -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
 

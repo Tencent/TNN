@@ -15,6 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
 #define TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
 
+#include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/raw_buffer.h>
 
@@ -35,8 +36,14 @@ public:
 
     static Status CreateAttrValue(shared_ptr<ge::op::Const> attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
-    static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<int> calculate_shape,
-                                  ge::TensorDesc input_desc);
+    template <class T>
+    static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
+                                  ge::TensorDesc input_desc, int shape) {
+        ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
+        input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * shape);
+        attr_value->set_attr_value(input_size_tensor);
+        return TNN_OK;
+    }
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
@@ -47,8 +54,12 @@ public:
     static bool FileExits(string model_path);
 
     static Status GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same = false);
+
+    static int checkNpuVersion(const char *version);
+
+    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
 };
 
 }  // namespace TNN_NS
 
-#endif // TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_NPU_NPU_UTILS_H_
