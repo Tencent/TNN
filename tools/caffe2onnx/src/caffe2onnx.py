@@ -1014,6 +1014,21 @@ class Caffe2Onnx():
                 crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
                                                   input_shape)
                 self.onnxNodeList.append(crop_node)
+               # MVN
+            elif Layers[i].type == "MVN":
+                # 1.获取节点输入名、输入维度、输出名、节点名
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(
+                    Layers[i])  # 获取输入名列表和输入形状
+                output_name = self.GetCurrentLayerOutName(Layers[i])  # 获取输出名列表
+                node_name = Layers[i].name
+
+                # 2.构建mvn_node
+                mvn_node = op.create_MVN_op(Layers[i], node_name,
+                                                 input_name, output_name,
+                                                 input_shape)
+
+                # 3.添加节点到节点列表
+                self.onnxNodeList.append(mvn_node) 
                 
             else:
                 print("Failed type not support: " + Layers[i].type)
