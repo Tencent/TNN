@@ -15,7 +15,6 @@ NetworkImplFactoryRegister<NetworkImplFactory<AtlasNetwork>> g_network_impl_atla
 
 AtlasNetwork::~AtlasNetwork() {
     DeInit();
-    AtlasRuntime::DecreaseRef();
 }
 
 Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
@@ -103,6 +102,12 @@ Status AtlasNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
+    aclError ret = aclrtSetCurrentContext(context_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("set context failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
+    }
+
     for (auto item : inputs) {
         if (input_blob_map_.find(item.first) != input_blob_map_.end()) {
             auto dims_org = input_blob_map_[item.first]->GetBlobDesc().dims;
@@ -140,6 +145,12 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
 }
 
 Status AtlasNetwork::DeInit() {
+    aclError ret = aclrtSetCurrentContext(context_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("set context failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
+    }
+
     for (auto item : input_blob_map_) {
         if (nullptr != item.second) {
             // delete model info
@@ -162,7 +173,6 @@ Status AtlasNetwork::DeInit() {
 
     UnloadModel();
 
-    aclError ret;
     if (nullptr != stream_) {
         ret = aclrtDestroyStream(stream_);
         LOGD("acl destroy stream\n");
@@ -181,6 +191,7 @@ Status AtlasNetwork::DeInit() {
         context_ = nullptr;
     }
 
+    AtlasRuntime::DecreaseRef();
     return TNN_OK;
 }
 
