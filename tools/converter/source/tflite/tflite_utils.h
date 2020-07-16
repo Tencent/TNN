@@ -12,9 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNCONVERTER_SRC_TFLITE_TF_LITE_UTILS_H_
-#define TNNCONVERTER_SRC_TFLITE_TF_LITE_UTILS_H_
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
+#include <vector>
 
-bool ConvertDataFormatTflite(const float* src, float* dst, int KH, int KW, int CI, int CO);
+namespace TNN_CONVERTER {
 
-#endif  // TNNCONVERTER_SRC_TFLITE_TF_LITE_UTILS_H_
+bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int CI, int CO);
+
+bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape);
+
+}
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_

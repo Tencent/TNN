@@ -20,6 +20,7 @@
 #include "tflite-schema/schema_generated.h"
 #include "tflite_op_converter.h"
 #include "tnn/core/macro.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 
@@ -70,7 +71,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         for (const auto index : tf_lite_model_->subgraphs[i]->inputs) {
             const auto& input_tensor = tensors[index];
             const auto& name         = input_tensor->name;
-            const auto& shape        = input_tensor->shape;
+            std::vector<int32_t> shape(input_tensor->shape);
+            ConvertShapeFormatTFLite(shape);
             if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
                 inputs_shape_map[name] = shape;
             } else {
@@ -84,7 +86,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         for (const auto index : tf_lite_model_->subgraphs[i]->outputs) {
             const auto& output_tensor = tensors[index];
             const auto& name          = output_tensor->name;
-            const auto& shape         = output_tensor->shape;
+            std::vector<int32_t> shape(output_tensor->shape);
+            ConvertShapeFormatTFLite(shape);
             if (outputs.find(name) == outputs.end()) {
                 outputs.insert(name);
             } else {

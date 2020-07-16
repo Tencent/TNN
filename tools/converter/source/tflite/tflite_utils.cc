@@ -16,7 +16,9 @@
 
 #include "tnn/core/macro.h"
 
-bool ConvertDataFormatTflite(const float* src, float* dst, int KH, int KW, int CI, int CO) {
+namespace TNN_CONVERTER {
+
+bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int CI, int CO) {
     ASSERT(KH > 0);
     ASSERT(KW > 0);
     ASSERT(CI > 0);
@@ -32,6 +34,17 @@ bool ConvertDataFormatTflite(const float* src, float* dst, int KH, int KW, int C
             }
         }
     }
-
     return true;
 }
+
+bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
+    ASSERT(shape.size() == 4);
+    auto h   = shape[1];
+    auto w   = shape[2];
+    auto c   = shape[3];
+    shape[1] = c;
+    shape[2] = h;
+    shape[3] = w;
+    return true;
+}
+}  // namespace TNN_CONVERTER
