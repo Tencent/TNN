@@ -197,8 +197,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
     if (NCHW_FLOAT == mat.GetMatType()) {
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           blob_bytesize_, atlas_cmd_queue->stream, true);
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+                                           atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
@@ -213,8 +213,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
                 DataFormatConverter::ConvertFromNCHWToNHWCFloat((float *)mat.GetData(), (float *)buffer_.get(),
                                                                 blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
 
-                tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE,
-                                               blob_bytesize_, atlas_cmd_queue->stream, true);
+                tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE, blob_bytesize_,
+                                               atlas_cmd_queue->stream, true);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
             } else {
@@ -225,8 +225,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         }
     } else if (N8UC3 == mat.GetMatType()) {
         if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           blob_bytesize_, atlas_cmd_queue->stream, true);
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+                                           atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -274,7 +274,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "data buffer ptr is invalid");
     }
 
-    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), blob_bytesize_, atlas_cmd_queue->stream, true);
+    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+                                   atlas_cmd_queue->stream, true);
 
     return tnn_ret;
 }
@@ -294,8 +295,8 @@ bool AtlasBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
     return false;
 }
 
-Status AtlasBlobConverterAcc::AtlasMemoryCopyAsync(void *dst, void *src, DeviceType mat_device_type, int bytes, void *stream,
-                                                   bool from_mat) {
+Status AtlasBlobConverterAcc::AtlasMemoryCopyAsync(void *dst, void *src, DeviceType mat_device_type, int bytes,
+                                                   void *stream, bool from_mat) {
     aclError ret = ACL_ERROR_NONE;
     if (DEVICE_ATLAS == mat_device_type) {
         // need to copy from device to device

@@ -39,7 +39,8 @@ private:
     Status ConvertFromMatAsyncWithAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
 
     bool NeedDoScaleBias(MatConvertParam& param);
-    Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream, bool from_mat);
+    Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream,
+                                bool from_mat);
     Status SetDynamicAipp(Mat& mat, MatConvertParam& param);
 
     bool do_scale_bias_           = true;
