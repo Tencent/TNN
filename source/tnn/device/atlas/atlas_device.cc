@@ -40,6 +40,9 @@ Status AtlasDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     int H = dims[2];
     int W = dims[3];
 
+    H = (H + 1) / 2 * 2;
+    W = (W + 15) / 16 * 16;
+
     if (NCHW_FLOAT == mat_type) {
         size_info.data_type = DATA_TYPE_FLOAT;
         size_info.dims.push_back(N * C * W * H);

@@ -325,6 +325,9 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
     aclError acl_ret;
     Status tnn_ret;
 
+    int width_original = mat.GetWidth();
+    int height_original = mat.GetHeight();
+
     int width_aligned  = 0;
     int height_aligned = 0;
     int buffer_size    = 0;
@@ -337,7 +340,7 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
 
     DeviceType device_type = mat.GetDeviceType();
     if (nullptr == mat.GetData()) {
-        Mat mat_temp(device_type, mat.GetMatType(), {mat.GetBatch(), mat.GetChannel(), height_aligned, width_aligned});
+        Mat mat_temp(device_type, mat.GetMatType(), {mat.GetBatch(), mat.GetChannel(), height_original, width_original});
         mat = mat_temp;
     }
 
@@ -373,8 +376,8 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
         buffer_size);
     acldvppSetPicDescData(output_desc_, dvpp_output_buffer_ptr_);
     acldvppSetPicDescFormat(output_desc_, dvpp_pixel_format);
-    acldvppSetPicDescWidth(output_desc_, mat.GetWidth());
-    acldvppSetPicDescHeight(output_desc_, mat.GetHeight());
+    acldvppSetPicDescWidth(output_desc_, width_original);
+    acldvppSetPicDescHeight(output_desc_, height_original);
     acldvppSetPicDescWidthStride(output_desc_, width_stride);
     acldvppSetPicDescHeightStride(output_desc_, height_aligned);
     acldvppSetPicDescSize(output_desc_, buffer_size);
