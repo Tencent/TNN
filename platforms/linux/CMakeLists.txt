@@ -29,5 +29,8 @@ if(TNN_ATLAS_ENABLE)
     if(LINUX_TEST_ENABLE)
         add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86.cc)
         target_link_libraries(AtlasTest TNN)
+
+        add_executable(AtlasTestResizeCrop ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_resize_crop_x86.cc)
+        target_link_libraries(AtlasTestResizeCrop TNN)
     endif()
 endif()

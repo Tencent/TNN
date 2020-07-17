@@ -225,7 +225,10 @@ int main(int argc, char* argv[]) {
     // load input
     // float* input_data_ptr = nullptr;
     unsigned char* input_data_ptr = nullptr;
-    auto input_dims               = input->GetBlobDesc().dims;
+    //auto input_dims             = input->GetBlobDesc().dims;
+    std::vector<int> input_dims   = {1,683,1024,3};
+    std::vector<int> mid_dims     = {1,641,360,3};
+    std::vector<int> output_dims  = {1,641,360,3};
     auto input_format             = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
         // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
@@ -244,79 +247,48 @@ int main(int argc, char* argv[]) {
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
-    // BlobConvert
-    std::shared_ptr<BlobConverter> input_cvt;
-    std::map<std::string, std::shared_ptr<BlobConverter>> output_cvt_map;
-    input_cvt.reset(new BlobConverter(input));
-    for (auto item : output_blobs) {
-        output_cvt_map[item.first].reset(new BlobConverter(item.second));
-    }
-
     Status tnn_ret;
     // copy input data into atlas
     // Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
     Mat input_mat_org(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
-    Mat input_mat(DEVICE_ATLAS, NNV12, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, nullptr);
+    Mat input_mat(DEVICE_ATLAS, NNV12, {mid_dims[0], mid_dims[3], mid_dims[1], mid_dims[2]}, nullptr);
+    Mat output_mat(DEVICE_ARM, NNV12, {output_dims[0], output_dims[3], output_dims[1], output_dims[2]}, nullptr);
 
     // resize
+    //printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
     //ResizeParam param_resize;
     //tnn_ret = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    //if (tnn_ret != TNN_OK) {
+    //    printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
+    //    return -1;
+    //}
+
+    // crop
+    printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
     CropParam param_crop;
     param_crop.top_left_x = 0;
     param_crop.top_left_y = 0;
-    param_crop.width = input_dims[2];
-    param_crop.height = input_dims[1];
+    param_crop.width = mid_dims[2];
+    param_crop.height = mid_dims[1];
     tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
+    }
+    printf("actual output:  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
+
+    // resize
+    printf("resize form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
+    ResizeParam param_resize2;
+    tnn_ret = MatUtils::Resize(input_mat, output_mat, param_resize2, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
-    MatConvertParam input_param;
-    tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
-    //tnn_ret = input_cvt->ConvertFromMat(input_mat_org, input_param, command_queue);
-    if (tnn_ret != TNN_OK) {
-        printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
-        return -1;
-    }
+    printf("actual output:  %d x %d\n", (output_mat.GetWidth() + 15) / 16 * 16, (output_mat.GetHeight() + 1) / 2 * 2);
 
-    // Forward on atlas device.
-    // Also check the running time.
-    srand(102);
-    std::vector<float> costs;
-    const int loopcnt = 10;
-    gettimeofday(&time1, &zone);
-    for (int i = 0; i < loopcnt; ++i) {
-        gettimeofday(&time_begin, NULL);
-        tnn_ret = instance_->Forward();
-        if (tnn_ret != TNN_OK) {
-            printf("instance Forward falied (%s)\n", tnn_ret.description().c_str());
-        }
-        gettimeofday(&time_end, NULL);
-        costs.push_back((time_end.tv_sec - time_begin.tv_sec) * 1000.0 +
-                        (time_end.tv_usec - time_begin.tv_usec) / 1000.0);
-    }
-    gettimeofday(&time2, &zone);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-    printf("time cost: %g ms\n", delta / (float)loopcnt);
-    DisplayStats("", costs);
-
-    // copy data from atlas buffer
-    // then dump to files
-    for (auto output : output_blobs) {
-        Mat output_mat(DEVICE_NAIVE, NCHW_FLOAT, output.second->GetBlobDesc().dims);
-        MatConvertParam output_param;
-        tnn_ret = output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
-        if (tnn_ret != TNN_OK) {
-            printf("ConvertToMat falied (%s)\n", tnn_ret.description().c_str());
-            continue;
-        }
-
-        std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
-        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(), "dump_" + name_temp + ".txt");
-        // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
-        // output.second->GetBlobDesc().name + ".bin");
-    }
+    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, (output_mat.GetWidth() + 15) / 16 * 16 * (output_mat.GetHeight() + 1) / 2 * 2 * 3 / 2}, "dump_data/output.bin");
 
     if (input_data_ptr != nullptr)
         free(input_data_ptr);
