@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
-
 #include <limits.h>
 #include <stdlib.h>
+
+#include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 
 namespace TNN_NS {
 
@@ -33,10 +33,10 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
         int n2 = atoi(layer_cfg_arr[index++].c_str());
     }
 
-    int pad_t = INT_MIN;
-    int pad_b = INT_MIN;
-    int pad_l = INT_MIN;
-    int pad_r = INT_MIN;
+    int pad_t   = INT_MIN;
+    int pad_b   = INT_MIN;
+    int pad_l   = INT_MIN;
+    int pad_r   = INT_MIN;
     int pad_c_b = INT_MIN;
     int pad_c_e = INT_MIN;
     if (index < layer_cfg_arr.size()) {
@@ -83,7 +83,8 @@ Status PadLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* 
     }
 
     output_stream << "0 0 " << layer_param->pads[2] << " " << layer_param->pads[3] << " " << layer_param->pads[0] << " "
-                  << layer_param->pads[1] << " 0 0 " << layer_param->type << " ";
+                  << layer_param->pads[1] << " " << layer_param->pads[4] << " " << layer_param->pads[5] << " "
+                  << layer_param->type << " ";
 
     return TNN_OK;
 }

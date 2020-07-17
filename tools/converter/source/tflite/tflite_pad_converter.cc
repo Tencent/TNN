@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tflite_op_converter.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Pad);
@@ -21,36 +22,44 @@ std::string TFLitePadConverter::TNNOpType(bool quantizedModel) {
     return "Pad";
 }
 
-TNN_NS::Status TFLitePadConverter::exec(
-    TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
+TNN_NS::Status TFLitePadConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+                                        const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                        const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                        const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+                                        const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
+                                        bool quantizedModel) {
     TNN_NS::PadLayerParam* param = new TNN_NS::PadLayerParam;
-    auto cur_layer                = net_structure.layers.back();
-    auto tf_lite_op_type          = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
-
+    auto cur_layer               = net_structure.layers.back();
+    cur_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(param);
+    // pad value
+    const int pad_value_index    = tf_lite_operator->inputs[1];
+    const auto& pad_value_tensor = tf_lite_tensors[pad_value_index];
+    const auto& pad_value_shape = pad_value_tensor->shape;
+    auto pad_value_ptr = reinterpret_cast<int32_t *>(tf_lite_model_buffer[pad_value_tensor->buffer]->data.data());
+    param->pads.resize(6);
+    ConvertConstFormatTFLite(param->pads.data(), pad_value_ptr, pad_value_shape);
+    auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     switch (tf_lite_op_type) {
+        case tflite::BuiltinOperator_PADV2:
         case tflite::BuiltinOperator_PAD: {
             param->type = 0;
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
             break;
         }
-        default:{
+        default: {
             LOGE("TFLitePadConverter do not support ");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
     }
-    // update param
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+
+    cur_layer->inputs.resize(1);
+    cur_layer->outputs.resize(1);
+    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
 using namespace tflite;
 REGISTER_CONVERTER(Pad, BuiltinOperator_PAD);
-}
+REGISTER_CONVERTER(Pad, BuiltinOperator_PADV2);
+}  // namespace TNN_CONVERTER

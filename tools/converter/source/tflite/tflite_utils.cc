@@ -38,6 +38,7 @@ bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int C
 }
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
+    // shape [n, h , w, c] -> shape [n, c, h, w]
     ASSERT(shape.size() == 4);
     auto h   = shape[1];
     auto w   = shape[2];
@@ -45,6 +46,18 @@ bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
     shape[1] = c;
     shape[2] = h;
     shape[3] = w;
+    return true;
+}
+
+//template <typename T>
+bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const * src, std::vector<int32_t> shape) {
+    ASSERT(shape.size() == 2);
+    ASSERT(shape[0] == 4);
+    int data_size = shape[1];
+    //std::memcpy((void*)(dst + 0 * data_size), src + 0 * data_size, data_size*sizeof(int32_t));
+    std::memcpy((void*)(dst + 0 * data_size), src + 2 * data_size, data_size*sizeof(int32_t));
+    std::memcpy((void*)(dst + 1 * data_size), src + 1 * data_size, data_size*sizeof(int32_t));
+    std::memcpy((void*)(dst + 2 * data_size), src + 3 * data_size, data_size*sizeof(int32_t));
     return true;
 }
 }  // namespace TNN_CONVERTER

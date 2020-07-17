@@ -100,6 +100,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(
         auto original_weight_ptr =
             reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         ConvertDataFormatTFLite(original_weight_ptr, filter_handle.force_to<float*>(), kh, kw, ci, co);
+        //::memcpy(filter_handle.force_to<float*>(), original_weight_ptr, sizeof(kh*kw));
         layer_resource->filter_handle = filter_handle;
         // bias
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(co * sizeof(float));

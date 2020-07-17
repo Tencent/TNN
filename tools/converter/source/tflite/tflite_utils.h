@@ -22,5 +22,8 @@ bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int C
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape);
 
+//template <typename T>
+bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const * src, std::vector<int32_t> shape);
+
 }
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
