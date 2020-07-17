@@ -18,8 +18,8 @@
 #include "acl/acl.h"
 #include "acl/ops/acl_dvpp.h"
 #include "tnn/core/macro.h"
-#include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 
@@ -34,25 +34,30 @@ public:
 private:
     Status PrepareInput(Mat& mat);
     Status PrepareOutput(Mat& mat);
+    Status ProcessOutput(Mat& mat);
 
-    Status GetAlignedBufferSize(Mat& mat, int width_align_to, int height_align_to, int& buffer_size, int& width_aligned, int& height_aligned);
+    Status GetAlignedBufferSize(Mat& mat, int width_align_to, int height_align_to, int& buffer_size, int& width_aligned,
+                                int& height_aligned);
     Status MallocDeviceMemory(void** buffer, int& size, int desired_size);
     Status CopyFromHostToDeviceAligned(Mat& src, void* dst, int width_align_to, int height_align_to);
+    Status CopyFromDeviceToHostAligned(void* src, Mat& dst, int width_align_to, int height_align_to);
     int GetWidthStride(MatType mat_type, int width);
+    int GetMatByteSize(Mat& mat);
+    CropParam ProcessCropParam(CropParam param);
 
 private:
-    bool init_success_ = false;
-    acldvppChannelDesc *dvpp_channel_desc_ = nullptr;
-    acldvppResizeConfig *resize_config_ = nullptr;
-    acldvppPicDesc *input_desc_ = nullptr;
-    acldvppPicDesc *output_desc_ = nullptr;
+    bool init_success_                     = false;
+    acldvppChannelDesc* dvpp_channel_desc_ = nullptr;
+    acldvppResizeConfig* resize_config_    = nullptr;
+    acldvppPicDesc* input_desc_            = nullptr;
+    acldvppPicDesc* output_desc_           = nullptr;
 
-    void* dvpp_input_buffer_ = nullptr;
-    void* dvpp_input_buffer_ptr_ = nullptr;
-    int input_buffer_size_ = 0;
-    void* dvpp_output_buffer_ = nullptr;
+    void* dvpp_input_buffer_      = nullptr;
+    void* dvpp_input_buffer_ptr_  = nullptr;
+    int input_buffer_size_        = 0;
+    void* dvpp_output_buffer_     = nullptr;
     void* dvpp_output_buffer_ptr_ = nullptr;
-    int output_buffer_size_ = 0;
+    int output_buffer_size_       = 0;
 };
 
 }  // namespace TNN_NS
