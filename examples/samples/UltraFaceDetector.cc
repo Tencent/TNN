@@ -20,39 +20,6 @@
 #define clip(x, y) (x < 0 ? 0 : (x > y ? y : x))
 
 /*
- * Adjust face info to original size
- */
-std::vector<FaceInfo> AdjustFaceInfoToOriginalSize(std::vector<FaceInfo> face_info,
-                                                int detect_image_height, int detect_image_width,
-                                                int orig_image_height, int orig_image_width)
-{
-    float scale_x = orig_image_width/(float)detect_image_width;
-    float scale_y = orig_image_height/(float)detect_image_height;
-    
-    std::vector<FaceInfo>  face_info_orig;
-    for (int i = 0; i < face_info.size(); i++) {
-        auto face = face_info[i];
-        int x_min = std::min(face.x1, face.x2)*scale_x;
-        int x_max = std::max(face.x1, face.x2)*scale_x;
-        int y_min = std::min(face.y1, face.y2)*scale_y;
-        int y_max = std::max(face.y1, face.y2)*scale_y;
-        
-        x_min = std::min(std::max(x_min, 0), orig_image_width-1);
-        x_max = std::min(std::max(x_max, 0), orig_image_width-1);
-        y_min = std::min(std::max(y_min, 0), orig_image_height-1);
-        y_max = std::min(std::max(y_max, 0), orig_image_height-1);
-        
-        face.x1 = x_min;
-        face.x2 = x_max;
-        face.y1 = y_min;
-        face.y2 = y_max;
-        
-        face_info_orig.push_back(face);
-    }
-    return face_info_orig;
-}
-
-/*
  * Initializing the FaceDetector.
  */
 UltraFaceDetector::UltraFaceDetector(int input_width, int input_length, int num_thread_, float score_threshold_,
@@ -187,6 +154,9 @@ void UltraFaceDetector::GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN
     for (int i = 0; i < num_anchors; i++) {
         if (scores_data[i * 2 + 1] > score_threshold) {
             FaceInfo rects;
+            rects.image_width = image_w;
+            rects.image_height = image_h;
+            
             float x_center = boxes_data[i * 4] * center_variance * priors[i][2] + priors[i][0];
             float y_center = boxes_data[i * 4 + 1] * center_variance * priors[i][3] + priors[i][1];
             float w        = exp(boxes_data[i * 4 + 2] * size_variance) * priors[i][2];
@@ -277,6 +247,9 @@ void UltraFaceDetector::NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> 
                     rects.x2 += buf[i].x2 * rate;
                     rects.y2 += buf[i].y2 * rate;
                     rects.score += buf[i].score * rate;
+                    
+                    rects.image_height = buf[i].image_height;
+                    rects.image_width = buf[i].image_width;
                 }
                 output.push_back(rects);
                 break;

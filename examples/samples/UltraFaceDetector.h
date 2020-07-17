@@ -26,19 +26,9 @@
 #define hard_nms 1
 #define blending_nms 2 /* mix nms was been proposaled in paper blaze face, aims to minimize the temporal jitter*/
 
-typedef struct FaceInfo {
-    float x1;
-    float y1;
-    float x2;
-    float y2;
-    float score;
-
+struct FaceInfo : TNN_NS::ObjectInfo {
     float *landmarks = nullptr;
-} FaceInfo;
-
-std::vector<FaceInfo> AdjustFaceInfoToOriginalSize(std::vector<FaceInfo> face_info,
-                                                   int detect_image_height, int detect_image_width,
-                                                   int orig_image_height, int orig_image_width);
+} ;
 
 class UltraFaceDetector : public TNN_NS::TNNSDKSample {
 public:

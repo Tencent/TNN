@@ -18,6 +18,100 @@
 #endif
 
 namespace TNN_NS {
+ObjectInfo ObjectInfo::flipX() {
+    ObjectInfo  info;
+    info.score = this->score;
+    info.class_index = this->class_index;
+    info.image_width = this->image_width;
+    info.image_height = this->image_width;
+    
+    info.x1 = this->image_width - this->x2;
+    info.x2 = this->image_width - this->x1;
+    info.y1 = this->y1;
+    info.y2 = this->y2;
+    return info;
+}
+
+ObjectInfo ObjectInfo::adjustToImageSize(int orig_image_height, int orig_image_width) {
+    float scale_x = orig_image_width/(float)this->image_width;
+    float scale_y = orig_image_height/(float)this->image_height;
+    
+    ObjectInfo  info_orig;
+    info_orig.score = this->score;
+    info_orig.class_index = this->class_index;
+    info_orig.image_width = orig_image_width;
+    info_orig.image_height = orig_image_height;
+    
+    int x_min = std::min(this->x1, this->x2)*scale_x;
+    int x_max = std::max(this->x1, this->x2)*scale_x;
+    int y_min = std::min(this->y1, this->y2)*scale_y;
+    int y_max = std::max(this->y1, this->y2)*scale_y;
+    
+    x_min = std::min(std::max(x_min, 0), orig_image_width-1);
+    x_max = std::min(std::max(x_max, 0), orig_image_width-1);
+    y_min = std::min(std::max(y_min, 0), orig_image_height-1);
+    y_max = std::min(std::max(y_max, 0), orig_image_height-1);
+    
+    info_orig.x1 = x_min;
+    info_orig.x2 = x_max;
+    info_orig.y1 = y_min;
+    info_orig.y2 = y_max;
+    return info_orig;
+}
+
+ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gravity) {
+    ObjectInfo  info;
+    info.score = this->score;
+    info.class_index = this->class_index;
+    info.image_width = view_width;
+    info.image_height = view_height;
+    
+    if (gravity == 2) {
+        float view_aspect = view_height/(float)view_width;
+        float object_aspect = this->image_height/(float)this->image_width;
+        if (view_aspect > object_aspect) {
+            float object_aspect_width = view_height / object_aspect;
+            auto info_aspect = adjustToImageSize(view_height, object_aspect_width);
+            float offset_x = (object_aspect_width - view_width) / 2;
+            info.x1 = info_aspect.x1 - offset_x;
+            info.x2 = info_aspect.x2 - offset_x;
+            info.y1 = info_aspect.y1;
+            info.y2 = info_aspect.y2;
+        } else {
+            float object_aspect_height = view_width * object_aspect;
+            auto info_aspect = adjustToImageSize(object_aspect_height, view_width);
+            float offset_y = (object_aspect_height - view_height) / 2;
+            info.x1 = info_aspect.x1;
+            info.x2 = info_aspect.x2;
+            info.y1 = info_aspect.y1 - offset_y;
+            info.y2 = info_aspect.y2 - offset_y;
+        }
+    } else if (gravity == 1) {
+        float view_aspect = view_height/(float)view_width;
+        float object_aspect = this->image_height/(float)this->image_width;
+        if (view_aspect > object_aspect) {
+            float object_aspect_height = view_width * object_aspect;
+            auto info_aspect = adjustToImageSize(object_aspect_height, view_width);
+            float offset_y = (object_aspect_height - view_height) / 2;
+            info.x1 = info_aspect.x1;
+            info.x2 = info_aspect.x2;
+            info.y1 = info_aspect.y1 - offset_y;
+            info.y2 = info_aspect.y2 - offset_y;
+        } else {
+            float object_aspect_width = view_height / object_aspect;
+            auto info_aspect = adjustToImageSize(view_height, object_aspect_width);
+            float offset_x = (object_aspect_width - view_width) / 2;
+            info.x1 = info_aspect.x1 - offset_x;
+            info.x2 = info_aspect.x2 - offset_x;
+            info.y1 = info_aspect.y1;
+            info.y2 = info_aspect.y2;
+        }
+    } else {
+        return adjustToImageSize(view_height, view_width);
+    }
+    return info;
+}
+
 std::string BenchOption::Description() {
     std::ostringstream ostr;
     ostr << "create_count = " << create_count << "  warm_count = " << warm_count

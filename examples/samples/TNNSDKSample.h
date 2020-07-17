@@ -27,6 +27,24 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 namespace TNN_NS {
+struct ObjectInfo {
+    int image_width = 0;
+    int image_height = 0;
+    
+    float x1 = 0;
+    float y1 = 0;
+    float x2 = 0;
+    float y2 = 0;
+    
+    float score = 0;
+    int class_index = -1;
+    
+    ObjectInfo adjustToImageSize(int image_height, int image_width);
+    /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
+    ObjectInfo adjustToViewSize(int view_height, int view_width, int gravity = 2);
+    ObjectInfo flipX();
+};
+
 struct BenchOption {
     int warm_count    = 0;
     int forward_count = 1;
