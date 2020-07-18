@@ -48,7 +48,6 @@ private:
 private:
     bool init_success_                     = false;
     acldvppChannelDesc* dvpp_channel_desc_ = nullptr;
-    acldvppResizeConfig* resize_config_    = nullptr;
     acldvppPicDesc* input_desc_            = nullptr;
     acldvppPicDesc* output_desc_           = nullptr;
 

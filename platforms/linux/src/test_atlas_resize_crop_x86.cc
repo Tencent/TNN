@@ -35,21 +35,6 @@
 using namespace TNN_NS;
 TNN net_;
 
-std::string ReplaceString(std::string s) {
-    char temp[128];
-    memset(temp, 0, 128);
-    memcpy(temp, s.c_str(), s.length());
-
-    for (int i = 0; i < s.length(); ++i) {
-        if ('/' == temp[i] || '\\' == temp[i]) {
-            temp[i] = '_';
-        }
-    }
-
-    std::string ret = temp;
-    return ret;
-}
-
 /* read input from text files */
 int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std::vector<int> dims) {
     printf("read from txt file! (%s)\n", file_path.c_str());
@@ -163,15 +148,8 @@ int main(int argc, char* argv[]) {
     network_config.device_type  = DEVICE_ATLAS;
     network_config.device_id    = 0;
 
-    struct timezone zone;
-    struct timeval time1;
-    struct timeval time2;
-    struct timeval time_begin, time_end;
-    float delta = 0;
-
     Status error;
     int ret;
-    gettimeofday(&time1, NULL);
     ModelConfig config;
     config.model_type = MODEL_TYPE_ATLAS;
     config.params.push_back(argv[1]);
@@ -181,46 +159,20 @@ int main(int argc, char* argv[]) {
         printf("TNN init failed\n");
         return -1;
     }
-    gettimeofday(&time2, NULL);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-    printf("init tnn time cost: %g ms\n", delta);
 
-    gettimeofday(&time1, NULL);
     auto instance_ = net_.CreateInst(network_config, error);
     if (CheckResult("create instance", error) != true) {
         printf("error info: %s\n", error.description().c_str());
         return -1;
     }
-    gettimeofday(&time2, NULL);
-    delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-    printf("tnn create instance time cost: %g ms\n", delta);
 
     // Get command queue
     void* command_queue;
     instance_->GetCommandQueue(&command_queue);
 
-    // Reshape
-    BlobMap input_blobs_temp;
-    error = instance_->GetAllInputBlobs(input_blobs_temp);
-    InputShapesMap input_shapemap;
-    input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
-    input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    error                                              = instance_->Reshape(input_shapemap);
-
-    // Get input/output blobs
-    BlobMap input_blobs, output_blobs;
+    BlobMap input_blobs;
     error       = instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
-    for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
-        printf("input(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
-               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
-    }
-    instance_->GetAllOutputBlobs(output_blobs);
-
-    for (auto it = output_blobs.begin(); it != output_blobs.end(); ++it) {
-        printf("output(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
-               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
-    }
 
     // load input
     // float* input_data_ptr = nullptr;
@@ -255,26 +207,29 @@ int main(int argc, char* argv[]) {
     Mat output_mat(DEVICE_ARM, NNV12, {output_dims[0], output_dims[3], output_dims[1], output_dims[2]}, nullptr);
 
     // resize
-    //printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
-    //ResizeParam param_resize;
-    //tnn_ret = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
+    ResizeParam param_resize;
+    param_resize.scale_w = 0.3;
+    param_resize.scale_h = 0.3;
+    tnn_ret = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
+    }
+
+    // crop
+    //printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
+    //CropParam param_crop;
+    //param_crop.top_left_x = 0;
+    //param_crop.top_left_y = 0;
+    //param_crop.width = mid_dims[2];
+    //param_crop.height = mid_dims[1];
+    //tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
     //if (tnn_ret != TNN_OK) {
     //    printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
     //    return -1;
     //}
 
-    // crop
-    printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
-    CropParam param_crop;
-    param_crop.top_left_x = 0;
-    param_crop.top_left_y = 0;
-    param_crop.width = mid_dims[2];
-    param_crop.height = mid_dims[1];
-    tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
-    if (tnn_ret != TNN_OK) {
-        printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
-        return -1;
-    }
     printf("actual output:  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
 
     // resize
@@ -286,7 +241,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    printf("actual output:  %d x %d\n", (output_mat.GetWidth() + 15) / 16 * 16, (output_mat.GetHeight() + 1) / 2 * 2);
+    printf("actual output:  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
+    printf("actual output memory:  %d x %d\n", (output_mat.GetWidth() + 15) / 16 * 16, (output_mat.GetHeight() + 1) / 2 * 2);
 
     DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, (output_mat.GetWidth() + 15) / 16 * 16 * (output_mat.GetHeight() + 1) / 2 * 2 * 3 / 2}, "dump_data/output.bin");
 
