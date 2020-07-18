@@ -20,6 +20,7 @@ const int target_width = 480;
 
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::shared_ptr<UltraFaceDetector> _detector;
+    std::vector<FaceInfo> _faces_last;
     std::shared_ptr<TNNFPSCounter> _fps_counter;
 }
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
@@ -59,6 +60,7 @@ const int target_width = 480;
     }
     self.colors = colors;
     
+    _faces_last = {};
     _fps_counter = std::make_shared<TNNFPSCounter>();
     
     _boundingBoxes = [NSArray array];
@@ -282,6 +284,8 @@ const int target_width = 480;
 }
 
 - (void)showObjectInfo:(std::vector<FaceInfo>)faces withStatus:(Status)status {
+    faces = [self reorder:faces];
+    
     //Object
     auto camera_pos = [self.cameraDevice cameraPosition];
     for (int i=0; i<_boundingBoxes.count; i++) {
@@ -290,9 +294,9 @@ const int target_width = 480;
             auto view_width = self.cameraPreview.bounds.size.width;
             auto view_height = self.cameraPreview.bounds.size.height;
             auto label = [NSString stringWithFormat:@"%.2f", face.score];
-            auto view_face = face.adjustToViewSize(view_height, view_width, 2);
+            auto view_face = face.AdjustToViewSize(view_height, view_width, 2);
             if (camera_pos == AVCaptureDevicePositionFront) {
-                view_face = view_face.flipX();
+                view_face = view_face.FlipX();
             }
             [_boundingBoxes[i] showText:label
                               withColor:self.colors[i]
@@ -307,6 +311,44 @@ const int target_width = 480;
     //status
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+    }
+}
+
+- (std::vector<FaceInfo>)reorder:(std::vector<FaceInfo>) faces {
+    if (_faces_last.size() > 0 && faces.size() > 0) {
+        std::vector<FaceInfo> faces_reorder;
+        //按照原有排序插入faces中原先有的元素
+        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
+            auto face_last = _faces_last[index_last];
+            //寻找最匹配元素
+            int index_target = 0;
+            float area_target = -1;
+            for (int index=0; index<faces.size(); index++) {
+                auto face = faces[index];
+                auto area = face_last.IntersectionRatio(&face);
+                if (area > area_target) {
+                    area_target = area;
+                    index_target = index;
+                }
+            }
+            
+            if (area_target > 0) {
+                faces_reorder.push_back(faces[index_target]);
+                //删除指定下标元素
+                faces.erase(faces.begin() + index_target);
+            }
+        }
+        
+        //插入原先没有的元素
+        if (faces.size() > 0) {
+            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
+        }
+        
+        _faces_last = faces_reorder;
+        return faces_reorder;
+    } else{
+        _faces_last = faces;
+        return faces;
     }
 }
 

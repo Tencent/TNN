@@ -18,7 +18,7 @@
 #endif
 
 namespace TNN_NS {
-ObjectInfo ObjectInfo::flipX() {
+ObjectInfo ObjectInfo::FlipX() {
     ObjectInfo  info;
     info.score = this->score;
     info.class_index = this->class_index;
@@ -32,7 +32,29 @@ ObjectInfo ObjectInfo::flipX() {
     return info;
 }
 
-ObjectInfo ObjectInfo::adjustToImageSize(int orig_image_height, int orig_image_width) {
+float ObjectInfo::IntersectionRatio(ObjectInfo *obj) {
+    if (!obj) {
+        return 0;
+    }
+    
+    float area1 = std::abs((this->x2 - this->x1) * (this->y2 - this->y1));
+    float area2 = std::abs((obj->x2 - obj->x1) * (obj->y2 - obj->y1));
+    
+    float x1 = std::max(obj->x1, this->x1);
+    float x2 = std::min(obj->x2, this->x2);
+    float y1 = std::max(obj->y1, this->y1);
+    float y2 = std::min(obj->y2, this->y2);
+    
+    float area = (x2 > x1 && y2 > y1) ? std::abs((x2 - x1) * (y2 - y1)) : 0;
+    
+    auto ss = 2*area / (area1 + area2);
+    if (ss > 1) {
+        printf("\n");
+    }
+    return ss;
+}
+
+ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_width) {
     float scale_x = orig_image_width/(float)this->image_width;
     float scale_y = orig_image_height/(float)this->image_height;
     
@@ -59,7 +81,7 @@ ObjectInfo ObjectInfo::adjustToImageSize(int orig_image_height, int orig_image_w
     return info_orig;
 }
 
-ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gravity) {
+ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gravity) {
     ObjectInfo  info;
     info.score = this->score;
     info.class_index = this->class_index;
@@ -71,7 +93,7 @@ ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gra
         float object_aspect = this->image_height/(float)this->image_width;
         if (view_aspect > object_aspect) {
             float object_aspect_width = view_height / object_aspect;
-            auto info_aspect = adjustToImageSize(view_height, object_aspect_width);
+            auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
             info.x1 = info_aspect.x1 - offset_x;
             info.x2 = info_aspect.x2 - offset_x;
@@ -79,7 +101,7 @@ ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gra
             info.y2 = info_aspect.y2;
         } else {
             float object_aspect_height = view_width * object_aspect;
-            auto info_aspect = adjustToImageSize(object_aspect_height, view_width);
+            auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
@@ -91,7 +113,7 @@ ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gra
         float object_aspect = this->image_height/(float)this->image_width;
         if (view_aspect > object_aspect) {
             float object_aspect_height = view_width * object_aspect;
-            auto info_aspect = adjustToImageSize(object_aspect_height, view_width);
+            auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
@@ -99,7 +121,7 @@ ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gra
             info.y2 = info_aspect.y2 - offset_y;
         } else {
             float object_aspect_width = view_height / object_aspect;
-            auto info_aspect = adjustToImageSize(view_height, object_aspect_width);
+            auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
             info.x1 = info_aspect.x1 - offset_x;
             info.x2 = info_aspect.x2 - offset_x;
@@ -107,7 +129,7 @@ ObjectInfo ObjectInfo::adjustToViewSize(int view_height, int view_width, int gra
             info.y2 = info_aspect.y2;
         }
     } else {
-        return adjustToImageSize(view_height, view_width);
+        return AdjustToImageSize(view_height, view_width);
     }
     return info;
 }

@@ -8,7 +8,7 @@
     if (self != nil) {
         _shapeLayer = [[CAShapeLayer alloc] init];
         _shapeLayer.fillColor = [UIColor clearColor].CGColor;
-        _shapeLayer.lineWidth = 4;
+        _shapeLayer.lineWidth = 2;
         _shapeLayer.hidden = YES;
 
         _textLayer =[[CATextLayer alloc] init];
@@ -58,9 +58,9 @@
                                     attributes:attributes
                                        context:nil];
     
-    _textLayer.frame = CGRectMake(frame.origin.x - 2,
+    _textLayer.frame = CGRectMake(frame.origin.x - 1,
                                   frame.origin.y - textRect.size.height,
-                                  textRect.size.width + 12,
+                                  textRect.size.width + 10,
                                   textRect.size.height);
 }
 

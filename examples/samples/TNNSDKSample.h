@@ -39,10 +39,11 @@ struct ObjectInfo {
     float score = 0;
     int class_index = -1;
     
-    ObjectInfo adjustToImageSize(int image_height, int image_width);
+    ObjectInfo AdjustToImageSize(int image_height, int image_width);
     /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
-    ObjectInfo adjustToViewSize(int view_height, int view_width, int gravity = 2);
-    ObjectInfo flipX();
+    ObjectInfo AdjustToViewSize(int view_height, int view_width, int gravity = 2);
+    ObjectInfo FlipX();
+    float IntersectionRatio(ObjectInfo *obj);
 };
 
 struct BenchOption {
