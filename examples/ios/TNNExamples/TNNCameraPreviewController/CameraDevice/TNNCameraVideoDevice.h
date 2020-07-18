@@ -49,12 +49,14 @@ typedef void(^CameraSetupCallback)(BOOL);
 @interface TNNCameraVideoDevice : NSObject
 @property (nonatomic, weak) NSObject<TNNCameraVideoDeviceDelegate> *delegate;
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
 
-- (id)initWithPreviewView:(UIView *)view;
+- (instancetype)init;
 - (void)startSession;
 - (void)stopSession;
-- (AVCaptureDevicePosition)rotateCamera;
-- (void)setupCamera:(AVCaptureSessionPreset)sessionPreset
+
+- (void)switchCamera:(AVCaptureDevicePosition)sessionPreset
+          withPreset:(AVCaptureSessionPreset)sessionPreset
          completion:(CameraSetupCallback)completion;
 
 -(id<MTLTexture>)getMTLTexture:(CMSampleBufferRef)sampleBuffer;

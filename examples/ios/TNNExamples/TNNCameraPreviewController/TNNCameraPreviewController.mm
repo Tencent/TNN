@@ -30,12 +30,8 @@ const int target_width = 480;
 @property (nonatomic, weak) IBOutlet UIButton *rotateCamera;
 
 @property (nonatomic, strong) TNNCameraVideoDevice *cameraDevice;
-@property (nonatomic, assign) uint64_t frameCount;
 @property (nonatomic, strong) NSString *label;
-@property (nonatomic, assign) Boolean isFront;
-@property (nonatomic, assign) Boolean useGPU;
 
-@property (nonatomic, strong) dispatch_group_t startupGroup;
 @property (nonatomic, strong) dispatch_semaphore_t inflightSemaphore;
 
 @property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
@@ -64,48 +60,38 @@ const int target_width = 480;
     _fps_counter = std::make_shared<TNNFPSCounter>();
     
     _boundingBoxes = [NSArray array];
-    _startupGroup = dispatch_group_create();
     _inflightSemaphore = dispatch_semaphore_create(kMaxBuffersInFlight);
     
-    self.cameraDevice = [[TNNCameraVideoDevice alloc] initWithPreviewView:self.cameraPreview];
+    self.cameraDevice = [[TNNCameraVideoDevice alloc] init];
     self.cameraDevice.delegate = self;
+    if (self.cameraDevice.videoPreviewLayer) {
+        [self.cameraPreview.layer addSublayer:self.cameraDevice.videoPreviewLayer];
+        [self resizePreviewLayer];
+    }
+    
+    // add the bounding box layers to the UI, on top of the video preview.
+    [self setupBoundingBox:12];
     
     //set up camera
-    dispatch_group_enter(_startupGroup);
-    [_cameraDevice setupCamera:AVCaptureSessionPreset640x480
-                    completion:^(BOOL) {
-        if (self.cameraDevice.videoPreviewLayer) {
-            [self.cameraPreview.layer addSublayer:self.cameraDevice.videoPreviewLayer];
-            [self resizePreviewLayer];
-        }
-        dispatch_group_leave(self.startupGroup);
+    [_cameraDevice switchCamera:AVCaptureDevicePositionBack
+                     withPreset:AVCaptureSessionPreset640x480
+                     completion:^(BOOL) {
     }];
     
     //init network
-    dispatch_group_enter(_startupGroup);
-    [self createNeuralNetwork:^(Status status) {
+    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
             [self showObjectInfo:std::vector<FaceInfo>() withStatus:status];
         }
-        dispatch_group_leave(self.startupGroup);
     }];
     
-    dispatch_group_notify(_startupGroup, dispatch_get_main_queue(), ^{
-        // add the bounding box layers to the UI, on top of the video preview.
-        [self setupBoundingBox:12];
-        
-        [self.cameraDevice startSession];
-    });
-    
-    self.isFront = YES;
-    self.useGPU = YES;
-    self.frameCount = 0;
 }
 
-- (void)viewWillAppear:(BOOL)animated
-{
-    [super viewWillAppear:animated];
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self resizePreviewLayer];
 }
 
 - (void)viewWillDisappear:(BOOL)animated
@@ -133,13 +119,16 @@ const int target_width = 480;
 }
 
 - (void)resizePreviewLayer {
-    _cameraDevice.videoPreviewLayer.frame = _cameraPreview.bounds;
+    if (_cameraDevice && _cameraPreview) {
+        _cameraDevice.videoPreviewLayer.frame = _cameraPreview.bounds;
+    }
 }
 
-- (void)createNeuralNetwork:(CommonCallback)callback {
+- (void)loadNeuralNetwork:(TNNComputeUnits)units
+                 callback:(CommonCallback)callback {
     //异步加载模型
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        Status status = [self loadNeuralNetworkModel];
+        Status status = [self loadNeuralNetworkModel:units];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (callback) {
                 callback(status);
@@ -148,7 +137,7 @@ const int target_width = 480;
     });
 }
 
--(Status)loadNeuralNetworkModel {
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
     Status status = TNN_OK;
     
     //Get metallib path from app bundle
@@ -185,11 +174,9 @@ const int target_width = 480;
         return status;
     }
     
-    TNNComputeUnits units = self.useGPU ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-    
-    _detector = std::make_shared<UltraFaceDetector>(target_width, target_height, 1, 0.975, 0.23, 1);
+    auto detector = std::make_shared<UltraFaceDetector>(target_width, target_height, 1, 0.975, 0.23, 1);
     std::vector<int> nchw = {1, 3, target_height, target_width};
-    status = _detector->Init(proto_content, model_content, library_path.UTF8String, units, nchw);
+    status = detector->Init(proto_content, model_content, library_path.UTF8String, units, nchw);
     if (status != TNN_OK) {
         NSLog(@"Error: %s", status.description().c_str());
         return status;
@@ -197,7 +184,11 @@ const int target_width = 480;
     
     BenchOption bench_option;
     bench_option.forward_count = 1;
-    _detector->SetBenchOption(bench_option);
+    detector->SetBenchOption(bench_option);
+    
+    //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
+    //for muti-thread safety, copy to member variable after allocate
+    _detector = detector;
     return status;
 }
 
@@ -205,13 +196,25 @@ const int target_width = 480;
 
 - (IBAction)onSwitchGPU:(id)sender
 {
-    self.useGPU = !self.useGPU;
-    self.frameCount = 0;
+    //init network
+    auto units = self.switchGPU.isOn ? TNNComputeUnitsCPU : TNNComputeUnitsGPU;
+    [self loadNeuralNetwork:units callback:^(Status status) {
+        if (status != TNN_OK) {
+            //刷新界面
+            [self showObjectInfo:std::vector<FaceInfo>() withStatus:status];
+        }
+    }];
 }
 
 - (IBAction)onCameraRotate:(id)sender {
-    self.isFront = !self.isFront;
-    [self.cameraDevice rotateCamera];
+    auto position = [self.cameraDevice cameraPosition];
+    position = (position == AVCaptureDevicePositionBack) ?
+    AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
+    
+    [self.cameraDevice switchCamera:position
+                         withPreset:AVCaptureSessionPreset640x480
+                         completion:^(BOOL succes) {
+    }];
 }
 
 #pragma mark - predict Interfaces
@@ -353,7 +356,8 @@ const int target_width = 480;
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
-    NSMutableString *fps = [NSMutableString string];
+    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
+                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@"%@%s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
@@ -366,7 +370,6 @@ const int target_width = 480;
      didCaptureVideo:(CMSampleBufferRef)videoBuffer
         withPosition:(AVCaptureDevicePosition)position
          atTimestamp:(CMTime)time {
-    NSLog(@"didCaptureVideo");
 //    auto texture = [camera getMTLTexture:videoBuffer];
 //    NSLog(@"texture:%p", texture);
     auto imageBuffer = CMSampleBufferGetImageBuffer(videoBuffer);
