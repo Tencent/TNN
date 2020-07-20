@@ -401,7 +401,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         if (onnx_op == "Constant") {
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
             weights[node.output(0)]  = tensor;
-            fprintf(stderr, "const node = %s\n", name.c_str());
+            LOGD("const node = %s\n", name.c_str());
             continue;
         } else if (onnx_op == "Cast") {
         } else if (onnx_op == "Reshape") {
@@ -573,6 +573,16 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
                         assert(0);
                     }
                 }
+                for (int graph_output_index = 0; graph_output_index < graph.output_size(); graph_output_index++) {
+                    auto graph_output_node = graph.output(graph_output_index);
+                    if (graph_output_node.name() == node->output(0)) {
+                        for (int j = 0; j < node_input->output_size(); ++j) {
+                            if (node_input->output(j) == node->input(0)) {
+                                node_input->set_output(j, node->output(0));
+                            }
+                        }
+                    }
+                }
             }
         } while (0);
 
@@ -645,6 +655,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseGlobalAveragePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);

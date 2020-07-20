@@ -48,11 +48,11 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
-    // Normal precision, may run with bfp16.
+    // reserved
     PRECISION_NORMAL = 0,
     // High precision, run with fp32.
     PRECISION_HIGH = 1,
-    // Low precision, may run with int8, not supported now.
+    // Low precision, run with bfp16.
     PRECISION_LOW = 2,
 } Precision;
 
