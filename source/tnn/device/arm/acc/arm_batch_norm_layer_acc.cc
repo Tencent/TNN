@@ -85,32 +85,70 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 
     auto batch = dims_output[0];
 
-    float *input_orign  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
-    float *output_orign = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+    if (output->GetBlobDesc().data_type != DATA_TYPE_BFP16) {
+        float *input_orign  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+        float *output_orign = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
 
-    float *k_data = buffer_scale_.force_to<float *>();
-    float *b_data = buffer_bias_.force_to<float *>();
+        float *k_data = buffer_scale_.force_to<float *>();
+        float *b_data = buffer_bias_.force_to<float *>();
 
-    auto src_z_step = input_width * input_height * 4;
-    auto dst_z_step = output_width * output_height * 4;
+        auto src_z_step = input_width * input_height * 4;
+        auto dst_z_step = output_width * output_height * 4;
 
-    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr  = input_orign + batch_idx * input_slice * 4 * input_width * input_height;
-        auto output_ptr = output_orign + batch_idx * output_slice * 4 * output_width * output_height;
+        for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+            auto input_ptr  = input_orign + batch_idx * input_slice * 4 * input_width * input_height;
+            auto output_ptr = output_orign + batch_idx * output_slice * 4 * output_width * output_height;
 
-        if (!shared_channel_) {
-            for (int dz = 0; dz < output_slice; dz++) {
-                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
-                                    Float4::load(b_data + dz * 4));
+            if (!shared_channel_) {
+                for (int dz = 0; dz < output_slice; dz++) {
+                    for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                        Float4::save(
+                            output_ptr + dz * dst_z_step + x_i * 4,
+                            Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
+                                Float4::load(b_data + dz * 4));
+                    }
+                }
+            } else {
+                for (int dz = 0; dz < output_slice; dz++) {
+                    for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                        Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
+                                     Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+                    }
                 }
             }
-        } else {
-            for (int dz = 0; dz < output_slice; dz++) {
-                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+        }
+    } else {
+        bfp16_t *input_orign     = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+        bfp16_t *output_orign    = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output->GetHandle()));
+        const DataType data_type = buffer_scale_.GetDataType();
+
+        printf("data type %d\n", data_type);
+
+        float *k_data = buffer_scale_.force_to<float *>();
+        float *b_data = buffer_bias_.force_to<float *>();
+
+        auto src_z_step = input_width * input_height * 4;
+        auto dst_z_step = output_width * output_height * 4;
+
+        for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+            auto input_ptr  = input_orign + batch_idx * input_slice * 4 * input_width * input_height;
+            auto output_ptr = output_orign + batch_idx * output_slice * 4 * output_width * output_height;
+
+            if (!shared_channel_) {
+                for (int dz = 0; dz < output_slice; dz++) {
+                    for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                        Float4::save(
+                            output_ptr + dz * dst_z_step + x_i * 4,
+                            Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
+                                Float4::load(b_data + dz * 4));
+                    }
+                }
+            } else {
+                for (int dz = 0; dz < output_slice; dz++) {
+                    for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                        Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
+                                     Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+                    }
                 }
             }
         }
