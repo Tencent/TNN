@@ -19,7 +19,7 @@ const int target_height = 640;
 const int target_width = 480;
 
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
-
+    std::vector<TNN_NS::FaceInfo> _faces_last;
 }
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
@@ -335,42 +335,41 @@ const int target_width = 480;
 }
 
 - (std::vector<FaceInfo>)reorder:(std::vector<FaceInfo>) faces {
-    return faces;
-//    if (_faces_last.size() > 0 && faces.size() > 0) {
-//        std::vector<FaceInfo> faces_reorder;
-//        //按照原有排序插入faces中原先有的元素
-//        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
-//            auto face_last = _faces_last[index_last];
-//            //寻找最匹配元素
-//            int index_target = 0;
-//            float area_target = -1;
-//            for (int index=0; index<faces.size(); index++) {
-//                auto face = faces[index];
-//                auto area = face_last.IntersectionRatio(&face);
-//                if (area > area_target) {
-//                    area_target = area;
-//                    index_target = index;
-//                }
-//            }
-//
-//            if (area_target > 0) {
-//                faces_reorder.push_back(faces[index_target]);
-//                //删除指定下标元素
-//                faces.erase(faces.begin() + index_target);
-//            }
-//        }
-//
-//        //插入原先没有的元素
-//        if (faces.size() > 0) {
-//            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
-//        }
-//
-//        _faces_last = faces_reorder;
-//        return faces_reorder;
-//    } else{
-//        _faces_last = faces;
-//        return faces;
-//    }
+    if (_faces_last.size() > 0 && faces.size() > 0) {
+        std::vector<FaceInfo> faces_reorder;
+        //按照原有排序插入faces中原先有的元素
+        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
+            auto face_last = _faces_last[index_last];
+            //寻找最匹配元素
+            int index_target = 0;
+            float area_target = -1;
+            for (int index=0; index<faces.size(); index++) {
+                auto face = faces[index];
+                auto area = face_last.IntersectionRatio(&face);
+                if (area > area_target) {
+                    area_target = area;
+                    index_target = index;
+                }
+            }
+
+            if (area_target > 0) {
+                faces_reorder.push_back(faces[index_target]);
+                //删除指定下标元素
+                faces.erase(faces.begin() + index_target);
+            }
+        }
+
+        //插入原先没有的元素
+        if (faces.size() > 0) {
+            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
+        }
+
+        _faces_last = faces_reorder;
+        return faces_reorder;
+    } else{
+        _faces_last = faces;
+        return faces;
+    }
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
