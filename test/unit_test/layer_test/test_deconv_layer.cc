@@ -28,21 +28,21 @@ class DeconvLayerTest
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 3, 9), testing::Values(2, 3, 7, 16),
+                         ::testing::Combine(testing::Values(1), testing::Values(256, 512), testing::Values(8, 16, 32, 64),
                                             // group
-                                            testing::Values(1, 3, 8, 11),
+                                            testing::Values(1),
                                             // kernel
-                                            testing::Values(1, 2, 3),
+                                            testing::Values(4),
                                             // dilation
                                             testing::Values(1),
                                             // stride
-                                            testing::Values(1, 2),
+                                            testing::Values(2),
                                             // pads
-                                            testing::Values(0, 1),
+                                            testing::Values(1),
                                             // output_pads
-                                            testing::Values(0, 1),
+                                            testing::Values(0),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(DeconvLayerTest, DeconvLayer) {
     // get param
