@@ -13,15 +13,19 @@
 // specific language governing permissions and limitations under the License.
 
 #include "TNNSDKSample.h"
+#include <sys/time.h>
+
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
 
 namespace TNN_NS {
+const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
+
 ObjectInfo ObjectInfo::FlipX() {
     ObjectInfo  info;
     info.score = this->score;
-    info.class_index = this->class_index;
+    info.class_id = this->class_id;
     info.image_width = this->image_width;
     info.image_height = this->image_width;
     
@@ -47,11 +51,7 @@ float ObjectInfo::IntersectionRatio(ObjectInfo *obj) {
     
     float area = (x2 > x1 && y2 > y1) ? std::abs((x2 - x1) * (y2 - y1)) : 0;
     
-    auto ss = 2*area / (area1 + area2);
-    if (ss > 1) {
-        printf("\n");
-    }
-    return ss;
+    return 2*area / (area1 + area2);
 }
 
 ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_width) {
@@ -60,7 +60,7 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
     
     ObjectInfo  info_orig;
     info_orig.score = this->score;
-    info_orig.class_index = this->class_index;
+    info_orig.class_id = this->class_id;
     info_orig.image_width = orig_image_width;
     info_orig.image_height = orig_image_height;
     
@@ -84,7 +84,7 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
 ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gravity) {
     ObjectInfo  info;
     info.score = this->score;
-    info.class_index = this->class_index;
+    info.class_id = this->class_id;
     info.image_width = view_width;
     info.image_height = view_height;
     
@@ -174,12 +174,59 @@ std::string BenchResult::Description() {
     return ostr.str();
 }
 
+#pragma mark - TNNSDKInput
+TNNSDKInput::TNNSDKInput(std::shared_ptr<TNN_NS::Mat> mat) {
+    if (mat) {
+        mat_map_[kTNNSDKDefaultName] = mat;
+    }
+}
+
+TNNSDKInput::~TNNSDKInput() {}
+
+bool TNNSDKInput::IsEmpty() {
+    if (mat_map_.size() <= 0) {
+        return true;
+    }
+    return false;
+}
+
+bool TNNSDKInput::AddMat(std::shared_ptr<TNN_NS::Mat> mat, std::string name) {
+    if (name.empty() || !mat) {
+        return false;
+    }
+    
+    mat_map_[name] = mat;
+    return true;
+}
+
+std::shared_ptr<TNN_NS::Mat> TNNSDKInput::GetMat(std::string name) {
+    std::shared_ptr<TNN_NS::Mat> mat = nullptr;
+    if (name == kTNNSDKDefaultName && mat_map_.size() > 0) {
+        return mat_map_.begin()->second;
+    }
+    
+    if (mat_map_.find(name) != mat_map_.end()) {
+        mat = mat_map_[name];
+    }
+    return mat;
+}
+
+#pragma mark - TNNSDKOutput
+TNNSDKOutput::~TNNSDKOutput() {}
+
+#pragma mark - TNNSDKOption
+TNNSDKOption::TNNSDKOption() {}
+
+TNNSDKOption::~TNNSDKOption() {}
+
+#pragma mark - TNNSDKSample
 TNNSDKSample::TNNSDKSample() {}
 
 TNNSDKSample::~TNNSDKSample() {}
 
-TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::string &model_path,
-                                const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw) {
+TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
+    option_ = option;
+    
     //网络初始化
     TNN_NS::Status status;
     if (!net_) {
@@ -189,7 +236,7 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 #else
         config.model_type = TNN_NS::MODEL_TYPE_TNN;
 #endif
-        config.params = {proto_content, model_path};
+        config.params = {option->proto_content, option->model_content};
 
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
@@ -202,29 +249,26 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 
     // network init
     device_type_ = TNN_NS::DEVICE_ARM;
-    if (units >= TNNComputeUnitsGPU) {
+    if (option->compute_units >= TNNComputeUnitsGPU) {
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
         device_type_      = TNN_NS::DEVICE_OPENCL;
 #endif
     }
-    InputShapesMap shapeMap;
-    if (nchw.size() == 4) {
-        shapeMap.insert(std::pair<std::string, DimsVector>("input", nchw));
-    }
+    
     //创建实例instance
     {
         TNN_NS::NetworkConfig network_config;
-        network_config.library_path = {library_path};
+        network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
-        auto instance               = net_->CreateInst(network_config, status, shapeMap);
+        auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
         if (status != TNN_NS::TNN_OK || !instance) {
             // try device_arm
-            if (units >= TNNComputeUnitsGPU) {
+            if (option->compute_units >= TNNComputeUnitsGPU) {
                 device_type_               = TNN_NS::DEVICE_ARM;
                 network_config.device_type = TNN_NS::DEVICE_ARM;
-                instance                   = net_->CreateInst(network_config, status, shapeMap);
+                instance                   = net_->CreateInst(network_config, status,  option->input_shapes);
             }
         }
         instance_ = instance;
@@ -249,6 +293,139 @@ void TNNSDKSample::SetBenchOption(BenchOption option) {
 
 BenchResult TNNSDKSample::GetBenchResult() {
     return bench_result_;
+}
+
+DimsVector TNNSDKSample::GetInputShape(std::string name) {
+    DimsVector shape = {};
+    BlobMap blob_map = {};
+    if (instance_) {
+        instance_->GetAllInputBlobs(blob_map);
+    }
+    
+    if (kTNNSDKDefaultName == name && blob_map.size() > 0) {
+        if (blob_map.begin()->second) {
+            shape = blob_map.begin()->second->GetBlobDesc().dims;
+        }
+    }
+    
+    if (blob_map.find(name) != blob_map.end() && blob_map[name]) {
+        shape = blob_map[name]->GetBlobDesc().dims;
+    }
+    return shape;
+}
+
+std::vector<std::string> TNNSDKSample::GetInputNames() {
+    std::vector<std::string> names;
+    if (instance_) {
+        BlobMap blob_map;
+        instance_->GetAllInputBlobs(blob_map);
+        for (const auto& item : blob_map) {
+            names.push_back(item.first);
+        }
+    }
+    return names;
+}
+
+std::vector<std::string> TNNSDKSample::GetOutputNames() {
+    std::vector<std::string> names;
+    if (instance_) {
+        BlobMap blob_map;
+        instance_->GetAllOutputBlobs(blob_map);
+        for (const auto& item : blob_map) {
+            names.push_back(item.first);
+        }
+    }
+    return names;
+}
+
+TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForInput(std::string name) {
+    return TNN_NS::MatConvertParam();
+}
+
+TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForOutput(std::string name) {
+    return TNN_NS::MatConvertParam();
+}
+
+std::shared_ptr<TNNSDKOutput> TNNSDKSample::CreateSDKOutput() {
+    return std::make_shared<TNNSDKOutput>();
+}
+
+TNN_NS::Status TNNSDKSample::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output) {
+    return TNN_OK;
+}
+
+TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output) {
+    Status status = TNN_OK;
+    if (!input || input->IsEmpty()) {
+        status = Status(TNNERR_PARAM_ERR, "input image is empty ,please check!");
+        LOGE("input image is empty ,please check!\n");
+        return status;
+    }
+    
+#if TNN_SDK_ENABLE_BENCHMARK
+    bench_result_.Reset();
+    for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
+        timeval tv_begin, tv_end;
+        gettimeofday(&tv_begin, NULL);
+#endif
+        
+        // step 1. set input mat
+        auto input_names = GetInputNames();
+        if (input_names.size() == 1) {
+            auto input_convert_param = GetConvertParamForInput();
+            auto input_mat = input->GetMat();
+            auto status = instance_->SetInputMat(input_mat, input_convert_param);
+            RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+        } else {
+            for (auto name : input_names) {
+                auto input_convert_param = GetConvertParamForInput(name);
+                auto input_mat = input->GetMat(name);
+                auto status = instance_->SetInputMat(input_mat, input_convert_param, name);
+                RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+            }
+        }
+
+
+        // step 2. Forward
+        status = instance_->ForwardAsync(nullptr);
+        if (status != TNN_NS::TNN_OK) {
+            LOGE("instance.Forward Error: %s\n", status.description().c_str());
+            return status;
+        }
+
+        // step 3. get output mat
+        output = CreateSDKOutput();
+        auto output_names = GetOutputNames();
+        if (output_names.size() == 1) {
+            auto output_convert_param = GetConvertParamForOutput();
+            std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+            status = instance_->GetOutputMat(output_mat, output_convert_param);
+            RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+            output->AddMat(output_mat, output_names[0]);
+        } else {
+            for (auto name : output_names) {
+                  auto output_convert_param = GetConvertParamForOutput(name);
+                  std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+                  status = instance_->GetOutputMat(output_mat, output_convert_param, name);
+                  RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+                  output->AddMat(output_mat, name);
+              }
+        }
+  
+        
+#if TNN_SDK_ENABLE_BENCHMARK
+        gettimeofday(&tv_end, NULL);
+        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+        bench_result_.AddTime(elapsed);
+#endif
+        
+        ProcessSDKOutput(output);
+#if TNN_SDK_ENABLE_BENCHMARK
+    }
+#endif
+    // Detection done
+    
+    return status;
 }
 
 /*

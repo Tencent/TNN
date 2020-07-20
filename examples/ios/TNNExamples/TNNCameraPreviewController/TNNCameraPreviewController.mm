@@ -19,9 +19,7 @@ const int target_height = 640;
 const int target_width = 480;
 
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
-    std::shared_ptr<UltraFaceDetector> _detector;
-    std::vector<FaceInfo> _faces_last;
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
+
 }
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
@@ -98,7 +96,7 @@ const int target_width = 480;
 {
     [super viewWillDisappear:animated];
     
-    //for safety, set _detector nullptr after stop camera
+    //for safety, set _predictor nullptr after stop camera
     [self.cameraDevice stopSession];
 }
 
@@ -174,21 +172,37 @@ const int target_width = 480;
         return status;
     }
     
-    auto detector = std::make_shared<UltraFaceDetector>(target_width, target_height, 1, 0.975, 0.23, 1);
-    std::vector<int> nchw = {1, 3, target_height, target_width};
-    status = detector->Init(proto_content, model_content, library_path.UTF8String, units, nchw);
+    auto option = std::make_shared<UltraFaceDetectorOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+        //only one input, ignore the input name
+        option->input_shapes = {{"ignore", {1,3,target_height,target_width}}};
+        
+        option->input_width = target_width;
+        option->input_height = target_height;
+        option->score_threshold = 0.975;
+        option->iou_threshold = 0.23;
+        option->topk = 1;
+    }
+    
+    auto predictor = std::make_shared<UltraFaceDetector>();
+    status = predictor->Init(option);
     if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return status;
     }
     
     BenchOption bench_option;
     bench_option.forward_count = 1;
-    detector->SetBenchOption(bench_option);
+    predictor->SetBenchOption(bench_option);
     
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
-    _detector = detector;
+    _predictor = predictor;
     return status;
 }
 
@@ -219,17 +233,17 @@ const int target_width = 480;
 
 #pragma mark - predict Interfaces
 - (void)predict:(CVImageBufferRef)image_buffer {
-    if (_detector == nullptr) return;
+    if (_predictor == nullptr) return;
     
     const DimsVector target_dims = {1, 3, target_height, target_width};
     
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
-    //for muti-thread safety, increase ref count, to insure detector is not released while detecting face
+    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting face
     auto fps_counter_async_thread = _fps_counter;
-    auto detector_async_thread = _detector;
-    auto compute_units = detector_async_thread->GetComputeUnits();
+    auto predictor_async_thread = _predictor;
+    auto compute_units = predictor_async_thread->GetComputeUnits();
     
     //异步运行模型
     CVBufferRetain(image_buffer);
@@ -244,6 +258,7 @@ const int target_width = 480;
         fps_counter_async_thread->End("resize");
         CVBufferRelease(image_buffer);
         
+        std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
             if (compute_units == TNNComputeUnitsGPU) {
                  auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
@@ -259,20 +274,22 @@ const int target_width = 480;
                                   withBytes:image_data.get()
                                 bytesPerRow:target_width*4];
                 fps_counter_async_thread->Begin("detect");
-                status = detector_async_thread->Detect(image_mat, target_height, target_width, face_info);
+                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
                 fps_counter_async_thread->End("detect");
             }
             else if (compute_units == TNNComputeUnitsCPU)
             {
                 auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
                 fps_counter_async_thread->Begin("detect");
-                status = detector_async_thread->Detect(image_mat, target_height, target_width, face_info);
+                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
                 fps_counter_async_thread->End("detect");
             }
             map_fps = fps_counter_async_thread->GetAllFPS();
-    
-//            face_info = AdjustFaceInfoToOriginalSize(face_info, target_height, target_width,
-//                                                     image_buffer_size.height, image_buffer_size.width);
+            
+            if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
+                auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
+                face_info = face_output->face_list;
+            }
         } while (0);
         
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -318,41 +335,42 @@ const int target_width = 480;
 }
 
 - (std::vector<FaceInfo>)reorder:(std::vector<FaceInfo>) faces {
-    if (_faces_last.size() > 0 && faces.size() > 0) {
-        std::vector<FaceInfo> faces_reorder;
-        //按照原有排序插入faces中原先有的元素
-        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
-            auto face_last = _faces_last[index_last];
-            //寻找最匹配元素
-            int index_target = 0;
-            float area_target = -1;
-            for (int index=0; index<faces.size(); index++) {
-                auto face = faces[index];
-                auto area = face_last.IntersectionRatio(&face);
-                if (area > area_target) {
-                    area_target = area;
-                    index_target = index;
-                }
-            }
-            
-            if (area_target > 0) {
-                faces_reorder.push_back(faces[index_target]);
-                //删除指定下标元素
-                faces.erase(faces.begin() + index_target);
-            }
-        }
-        
-        //插入原先没有的元素
-        if (faces.size() > 0) {
-            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
-        }
-        
-        _faces_last = faces_reorder;
-        return faces_reorder;
-    } else{
-        _faces_last = faces;
-        return faces;
-    }
+    return faces;
+//    if (_faces_last.size() > 0 && faces.size() > 0) {
+//        std::vector<FaceInfo> faces_reorder;
+//        //按照原有排序插入faces中原先有的元素
+//        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
+//            auto face_last = _faces_last[index_last];
+//            //寻找最匹配元素
+//            int index_target = 0;
+//            float area_target = -1;
+//            for (int index=0; index<faces.size(); index++) {
+//                auto face = faces[index];
+//                auto area = face_last.IntersectionRatio(&face);
+//                if (area > area_target) {
+//                    area_target = area;
+//                    index_target = index;
+//                }
+//            }
+//
+//            if (area_target > 0) {
+//                faces_reorder.push_back(faces[index_target]);
+//                //删除指定下标元素
+//                faces.erase(faces.begin() + index_target);
+//            }
+//        }
+//
+//        //插入原先没有的元素
+//        if (faces.size() > 0) {
+//            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
+//        }
+//
+//        _faces_last = faces_reorder;
+//        return faces_reorder;
+//    } else{
+//        _faces_last = faces;
+//        return faces;
+//    }
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
@@ -360,7 +378,7 @@ const int target_width = 480;
                             self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
     int index = 0;
     for (auto item : map_fps) {
-        [fps appendFormat:@"%@%s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
     }
     self.labelFPS.text = fps;
 }

@@ -106,6 +106,11 @@ Status Instance::SetCpuNumThreads(int num_threads) {
 // set input Mat
 Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
                              std::string input_name) {
+    if (!mat) {
+        LOGE("input mat is empty ,please check!\n");
+        return Status(TNNERR_PARAM_ERR, "input mat is empty ,please check!");;
+    }
+    
     //get input blobs
     BlobMap input_blobs;
     auto status = network_->GetAllInputBlobs(input_blobs);

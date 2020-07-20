@@ -20,15 +20,7 @@
 #include <string>
 #include <vector>
 
-
-typedef struct ObjInfo {
-    float x1;
-    float y1;
-    float x2;
-    float y2;
-    float score;
-    int classid;
-} ObjInfo;
+namespace TNN_NS {
 
 constexpr const char* coco_classes[] = {
 "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
@@ -41,23 +33,24 @@ constexpr const char* coco_classes[] = {
 "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
 "hair drier", "toothbrush"};
 
+class ObjectDetectorYoloOutput : public TNNSDKOutput {
+public:
+    ObjectDetectorYoloOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~ObjectDetectorYoloOutput();
+    std::vector<ObjectInfo> object_list;
+};
+
 class ObjectDetectorYolo : public TNN_NS::TNNSDKSample {
 public:
     ~ObjectDetectorYolo();
-    ObjectDetectorYolo(int input_width, int input_length, int num_thread_ = 4);
+    virtual MatConvertParam GetConvertParamForInput(std::string name = "");
+    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     
-    int Detect(std::shared_ptr<TNN_NS::Mat> image, int image_height, int image_width, std::vector<ObjInfo>& obj_list);
 private:
-    void GenerateDetectResult(std::vector<ObjInfo>& detects);
-    void NMS(std::vector<ObjInfo>& objs, std::vector<ObjInfo>& results);
+    void GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs, std::vector<ObjectInfo>& detects);
+    void NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results);
     void Sigmoid(float* v, const unsigned int count);
-    
-    int num_thread;
-    int in_w;
-    int in_h;
-    
-    std::vector<std::shared_ptr<TNN_NS::Mat>> outputs_;
-    std::vector<std::string> output_blob_names_ = {"428", "427", "426"};
     
     float conf_thres = 0.4;
     float iou_thres = 0.5;
@@ -79,4 +72,5 @@ private:
     
 };
 
+}
 #endif /* ObjectDetectorYolo_h */

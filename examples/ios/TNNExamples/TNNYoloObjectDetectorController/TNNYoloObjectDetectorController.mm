@@ -100,9 +100,16 @@ using namespace TNN_NS;
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-
-    ObjectDetectorYolo detector(target_width, target_height);
-    auto status = detector.Init(proto_content, model_content, library_path.UTF8String, units);
+    auto option = std::make_shared<TNNSDKOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+    }
+    
+    auto predictor = std::make_shared<ObjectDetectorYolo>();
+    auto status = predictor->Init(option);
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
@@ -111,11 +118,10 @@ using namespace TNN_NS;
 
     BenchOption bench_option;
     bench_option.forward_count = 1;
-    detector.SetBenchOption(bench_option);
+    predictor->SetBenchOption(bench_option);
 
-    std::vector<ObjInfo> obj_info;
-
-    auto compute_units = detector.GetComputeUnits();
+    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+    auto compute_units = predictor->GetComputeUnits();
     if (compute_units == TNNComputeUnitsGPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
 
@@ -130,10 +136,10 @@ using namespace TNN_NS;
                         mipmapLevel:0
                           withBytes:image_data.get()
                         bytesPerRow:target_width * 4];
-        status = detector.Detect(image_mat, target_height, target_width, obj_info);
+        status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
     } else if (compute_units == TNNComputeUnitsCPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status         = detector.Detect(image_mat, target_height, target_width, obj_info);
+        status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
     }
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
@@ -141,10 +147,16 @@ using namespace TNN_NS;
         return;
     }
 
-    auto bench_result     = detector.GetBenchResult();
+    std::vector<ObjectInfo> object_list;
+    if (sdk_output && dynamic_cast<ObjectDetectorYoloOutput *>(sdk_output.get())) {
+        auto obj_output = dynamic_cast<ObjectDetectorYoloOutput *>(sdk_output.get());
+        object_list = obj_output->object_list;
+    }
+    
+    auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
                                                        compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
-                                                       (int)obj_info.size(), bench_result.Description().c_str()];
+                                                       (int)object_list.size(), bench_result.Description().c_str()];
     
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -152,8 +164,8 @@ using namespace TNN_NS;
     float scale_y               = image_orig_height / (float)target_height;
     auto image_orig_data        = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
     // draw boxes
-    for (int i = 0; i < obj_info.size(); i++) {
-        auto obj = obj_info[i];
+    for (int i = 0; i < object_list.size(); i++) {
+        auto obj = object_list[i];
         Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, obj.x1, obj.y1, obj.x2, obj.y2,
                   scale_x, scale_y);
     }
@@ -161,11 +173,11 @@ using namespace TNN_NS;
         utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
     // draw texts
     stringstream descStr;
-    for (int i = 0; i < obj_info.size(); i++) {
-        ObjInfo &obj = obj_info[i];
+    for (int i = 0; i < object_list.size(); i++) {
+        auto &obj = object_list[i];
 
         descStr.precision(3);
-        descStr << coco_classes[obj.classid] << ",";
+        descStr << coco_classes[obj.class_id] << ",";
         descStr << std::fixed << obj.score;
         NSString *text = [NSString stringWithCString:descStr.str().c_str() encoding:[NSString defaultCStringEncoding]];
         descStr.str("");

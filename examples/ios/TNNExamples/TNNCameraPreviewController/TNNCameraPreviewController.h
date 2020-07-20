@@ -13,7 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNExamplesController.h"
+#import "TNNSDKSample.h"
+#include "TNNFPSCounter.h"
 
-@interface TNNCameraPreviewController : TNNExamplesController
+@interface TNNCameraPreviewController : TNNExamplesController {
+    std::shared_ptr<TNN_NS::TNNSDKSample> _predictor;
+    std::vector<TNN_NS::ObjectInfo> _faces_last;
+    std::shared_ptr<TNNFPSCounter> _fps_counter;
+}
 
 @end

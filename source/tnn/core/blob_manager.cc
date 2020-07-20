@@ -51,11 +51,17 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     }
 
     net_structure_ = net_structure;
-    // modify input shape, only set invalid net input shape
+    
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
-    for (auto iter : inputs_shape_map) {
-        if (instance_input_shapes_map.count(iter.first) > 0) {
-            instance_input_shapes_map[iter.first] = iter.second;
+    if (instance_input_shapes_map.size() == 1 && inputs_shape_map.size() == 1) {
+        // modify input shape if only one input, ignore the key
+        instance_input_shapes_map.begin()->second = inputs_shape_map.begin()->second;
+    } else {
+        // modify input shape, only set invalid net input shape
+        for (auto iter : inputs_shape_map) {
+            if (instance_input_shapes_map.count(iter.first) > 0) {
+                instance_input_shapes_map[iter.first] = iter.second;
+            }
         }
     }
 

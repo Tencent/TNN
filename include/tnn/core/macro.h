@@ -163,16 +163,16 @@
 
 #define RETURN_VALUE_ON_NEQ(status, expected, value)                  \
     do {                                                                                                         \
-        auto _status = status;                                                                         \
-        if (_status != expected) {                                                                     \
-            return value;                                                                                 \
+        auto _status = (status);                                                                         \
+        if (_status != (expected)) {                                                                     \
+            return (value);                                                                                 \
         }                                                                                                          \
     } while (0)
 
 #define RETURN_ON_NEQ(status, expected)                                         \
     do {                                                                                                        \
-        auto _status = status;                                                                        \
-        if (_status != expected) {                                                                    \
+        auto _status = (status);                                                                        \
+        if (_status != (expected)) {                                                                    \
             return _status;                                                                               \
         }                                                                                                         \
     } while (0)

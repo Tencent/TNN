@@ -21,13 +21,19 @@
 #include <vector>
 #include "TNNSDKSample.h"
 
+namespace TNN_NS {
+
 class FaceGrayTransfer : public TNN_NS::TNNSDKSample {
 public:
     ~FaceGrayTransfer();
-    FaceGrayTransfer();
-    TNN_NS::Status Trasfer(std::shared_ptr<TNN_NS::Mat> input_mat,
-                   std::shared_ptr<TNN_NS::Mat>&output_mat,
-                   int input_width, int input_length);
+    virtual MatConvertParam GetConvertParamForInput(std::string tag = "");
+//    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+//    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+//    
+////    TNN_NS::Status Trasfer(std::shared_ptr<TNN_NS::Mat> input_mat,
+////                   std::shared_ptr<TNN_NS::Mat>&output_mat,
+////                   int input_width, int input_length);
 };
 
+}
 #endif /* FaceGrayTransfer_hpp */

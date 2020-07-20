@@ -20,6 +20,48 @@
 #include <unordered_set>
 #include <sys/time.h>
 
+
+namespace TNN_NS {
+ObjectDetectorYoloOutput::~ObjectDetectorYoloOutput() {}
+
+MatConvertParam ObjectDetectorYolo::GetConvertParamForInput(std::string name) {
+    MatConvertParam input_convert_param;
+    input_convert_param.scale = {1.0 / 255, 1.0 / 255, 1.0 / 255, 0.0};
+    input_convert_param.bias  = {0.0, 0.0, 0.0, 0.0};
+    return input_convert_param;
+}
+
+std::shared_ptr<TNNSDKOutput> ObjectDetectorYolo::CreateSDKOutput() {
+    return std::make_shared<ObjectDetectorYoloOutput>();
+}
+
+Status ObjectDetectorYolo::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
+    Status status = TNN_OK;
+    
+    auto output = dynamic_cast<ObjectDetectorYoloOutput *>(output_.get());
+    RETURN_VALUE_ON_NEQ(!output, false,
+                        Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
+    
+    auto output_mat_0 = output->GetMat("428");
+    RETURN_VALUE_ON_NEQ(!output_mat_0, false,
+                        Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
+    auto output_mat_1 = output->GetMat("427");
+    RETURN_VALUE_ON_NEQ(!output_mat_1, false,
+                        Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
+    auto output_mat_2 = output->GetMat("426");
+    RETURN_VALUE_ON_NEQ(!output_mat_2, false,
+                        Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
+    
+    auto input_shape = GetInputShape();
+    RETURN_VALUE_ON_NEQ(input_shape.size() ==4, true,
+                        Status(TNNERR_PARAM_ERR, "GetInputShape is invalid"));
+    
+    std::vector<ObjectInfo> object_list;
+    GenerateDetectResult({output_mat_0, output_mat_1, output_mat_2}, object_list);
+    output->object_list = object_list;
+    return status;
+}
+
 void ObjectDetectorYolo::Sigmoid(float* v, const unsigned int count) {
     for(int i=0; i<count; ++i){
         float in = v[i];
@@ -28,8 +70,8 @@ void ObjectDetectorYolo::Sigmoid(float* v, const unsigned int count) {
     }
 }
 
-void ObjectDetectorYolo::NMS(std::vector<ObjInfo>& objs, std::vector<ObjInfo>& results) {
-    std::sort(objs.begin(), objs.end(), [](const ObjInfo &a, const ObjInfo &b) { return a.score > b.score; });
+void ObjectDetectorYolo::NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results) {
+    std::sort(objs.begin(), objs.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
     
     results.clear();
     auto box_num = objs.size();
@@ -74,70 +116,14 @@ void ObjectDetectorYolo::NMS(std::vector<ObjInfo>& objs, std::vector<ObjInfo>& r
     }
 }
 
-ObjectDetectorYolo::ObjectDetectorYolo(int input_width, int input_length, int num_thread_) {
-    num_thread = num_thread_;
-    in_w  = input_width;
-    in_h = input_length;
-}
-
 ObjectDetectorYolo::~ObjectDetectorYolo() {}
 
-int ObjectDetectorYolo::Detect(std::shared_ptr<tnn::Mat> image, int image_height, int image_width, std::vector<ObjInfo> &obj_list) {
-    if(!image || !image->GetData()) {
-        std::cout << "image is empty, please check!" << std::endl;
-        return -1;
-    }
-#if TNN_SDK_ENABLE_BENCHMARK
-    bench_result_.Reset();
-    for(int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
-#endif
-        obj_list.clear();
-        
-        TNN_NS::MatConvertParam input_convert_param;
-        input_convert_param.scale = {1.0 / 255, 1.0 / 255, 1.0 / 255, 0.0};
-        input_convert_param.bias  = {0.0, 0.0, 0.0, 0.0};
-        auto status = instance_->SetInputMat(image, input_convert_param);
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("input_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
-            return status;
-        }
-        
-        status = instance_->ForwardAsync(nullptr);
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("instance.Forward Error: %s\n", status.description().c_str());
-            return status;
-        }
-        
-        for(auto& name:output_blob_names_) {
-            TNN_NS::MatConvertParam output_convert_param;
-            std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-            status = instance_->GetOutputMat(output_mat, output_convert_param, name);
-            if (status != TNN_NS::TNN_OK) {
-                LOGE("GetOutputMat:%s Error: %s\n", name.c_str(), status.description().c_str());
-                return status;
-            }
-            outputs_.push_back(output_mat);
-        }
-        
-#if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double time_elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
-        bench_result_.AddTime(time_elapsed);
-#endif
-        GenerateDetectResult(obj_list);
-#if TNN_SDK_ENABLE_BENCHMARK
-    }
-#endif
-    return 0;
-}
-
-void ObjectDetectorYolo::GenerateDetectResult(std::vector<ObjInfo>& detecs) {
-    std::vector<ObjInfo> extracted_objs;
+void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs,
+                                              std::vector<ObjectInfo>& detecs) {
+    std::vector<ObjectInfo> extracted_objs;
     int blob_index = 0;
     
-    for(auto& output:outputs_){
+    for(auto& output:outputs){
         auto dim = output->GetDims();
   
         if(dim[3] != num_anchor_ * detect_dim_) {
@@ -176,9 +162,18 @@ void ObjectDetectorYolo::GenerateDetectResult(std::vector<ObjInfo>& detecs) {
             int conf_idx = static_cast<int>(std::distance(conf_start, max_conf_iter));
             float score = (*max_conf_iter) * objectness;
             
-            extracted_objs.push_back(ObjInfo({x1, y1, x2, y2, score, conf_idx}));
+            ObjectInfo obj_info;
+            obj_info.x1 = x1;
+            obj_info.y1 = y1;
+            obj_info.x2 = x2;
+            obj_info.y2 = y2;
+            obj_info.score = score;
+            obj_info.class_id = conf_idx;
+            extracted_objs.push_back(obj_info);
         }
         blob_index += 1;
     }
     NMS(extracted_objs, detecs);
+}
+
 }

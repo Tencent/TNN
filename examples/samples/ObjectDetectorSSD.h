@@ -19,14 +19,7 @@
 #include <memory>
 #include <string>
 
-typedef struct ObjInfo {
-    float x1;
-    float y1;
-    float x2;
-    float y2;
-    float score;
-    int classid;
-} ObjInfo;
+namespace TNN_NS {
 
 constexpr const char* voc_classes[] = {
     "background",
@@ -52,22 +45,26 @@ constexpr const char* voc_classes[] = {
     "tvmonitor"
 };
 
-class ObjectDetector : public TNN_NS::TNNSDKSample {
+class ObjectDetectorSSDOutput : public TNNSDKOutput {
 public:
-    ~ObjectDetector();
-    ObjectDetector(int input_width, int input_length, int num_thread_ = 4);
+    ObjectDetectorSSDOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~ObjectDetectorSSDOutput();
+    std::vector<ObjectInfo> object_list;
+};
+
+class ObjectDetectorSSD : public TNNSDKSample {
+public:
+    ~ObjectDetectorSSD();
+    virtual MatConvertParam GetConvertParamForInput(std::string name = "");
+    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     
-    int Detect(std::shared_ptr<TNN_NS::Mat> image, int image_height, int image_width, std::vector<ObjInfo>& obj_list);
 private:
-    void GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output, std::vector<ObjInfo>& detects);
-    
-    int num_thread;
-    int in_w;
-    int in_h;
-    
-    int num_detections_;
-    std::string detection_output_name_ = "detection_out";
+    void GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output, std::vector<ObjectInfo>& detects,
+                              int num_detections, int image_width, int image_height);
     
 };
+
+}
 
 #endif /* ObjectDetector_h */

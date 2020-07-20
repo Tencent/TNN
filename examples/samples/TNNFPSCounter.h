@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef TNNFPSCounter_hpp
+#define TNNFPSCounter_hpp
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -35,3 +37,4 @@ private:
     double GetStartTime(std::string tag);
 };
 
+#endif

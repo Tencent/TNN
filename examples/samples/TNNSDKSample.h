@@ -37,7 +37,7 @@ struct ObjectInfo {
     float y2 = 0;
     
     float score = 0;
-    int class_index = -1;
+    int class_id = -1;
     
     ObjectInfo AdjustToImageSize(int image_height, int image_width);
     /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
@@ -84,24 +84,71 @@ typedef  struct{
     unsigned char r,g,b,a;
 }RGBA;
 
+
+extern const std::string kTNNSDKDefaultName;
+class TNNSDKInput {
+public:
+    TNNSDKInput(std::shared_ptr<TNN_NS::Mat> mat = nullptr);
+    virtual ~TNNSDKInput();
+    
+    bool IsEmpty();
+    std::shared_ptr<TNN_NS::Mat> GetMat(std::string name = kTNNSDKDefaultName);
+    bool AddMat(std::shared_ptr<TNN_NS::Mat> mat, std::string name);
+    
+protected:
+    std::map<std::string, std::shared_ptr<TNN_NS::Mat> > mat_map_ = {};
+};
+
+class TNNSDKOutput : public TNNSDKInput {
+public:
+    TNNSDKOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
+    virtual ~TNNSDKOutput();
+};
+
+class TNNSDKOption {
+public:
+    TNNSDKOption();
+    virtual ~TNNSDKOption();
+    
+    std::string proto_content = "";
+    std::string model_content = "";
+    std::string library_path = "";
+    TNNComputeUnits compute_units = TNNComputeUnitsCPU;
+    InputShapesMap input_shapes = {};
+};
+
 class TNNSDKSample {
 public:
     TNNSDKSample();
     virtual ~TNNSDKSample();
-    virtual TNN_NS::Status Init(const std::string &proto_content, const std::string &model_path,
-                                const std::string &library_path, TNNComputeUnits units, std::vector<int> nchw = {});
     TNNComputeUnits GetComputeUnits();
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
-
+    DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
+    
+    
+    virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
+    
+    virtual Status Init(std::shared_ptr<TNNSDKOption> option);
+    virtual MatConvertParam GetConvertParamForInput(std::string name = "");
+    virtual MatConvertParam GetConvertParamForOutput(std::string name = "");
+    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    
+    
+    
 protected:
     BenchOption bench_option_;
     BenchResult bench_result_;
 
+    std::vector<std::string> GetInputNames();
+    std::vector<std::string> GetOutputNames();
+    
 protected:
-    std::shared_ptr<TNN_NS::TNN> net_           = nullptr;
-    std::shared_ptr<TNN_NS::Instance> instance_ = nullptr;
-    TNN_NS::DeviceType device_type_             = DEVICE_ARM;
+    std::shared_ptr<TNN> net_           = nullptr;
+    std::shared_ptr<Instance> instance_ = nullptr;
+    std::shared_ptr<TNNSDKOption> option_ = nullptr;
+    DeviceType device_type_             = DEVICE_ARM;
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
