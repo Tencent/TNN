@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_MAT_CONVERTER_H_
-#define TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_MAT_CONVERTER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_BLOB_CONVERTER_H_
+#define TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_BLOB_CONVERTER_H_
 
 #include "acl/acl.h"
 #include "tnn/core/macro.h"
@@ -39,7 +39,8 @@ private:
     Status ConvertFromMatAsyncWithAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
 
     bool NeedDoScaleBias(MatConvertParam& param);
-    Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, void* stream, bool from_mat);
+    Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream,
+                                bool from_mat);
     Status SetDynamicAipp(Mat& mat, MatConvertParam& param);
 
     bool do_scale_bias_           = true;
@@ -55,4 +56,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_MAT_CONVERTER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ATLAS_ATLAS_BLOB_CONVERTER_H_

@@ -25,9 +25,19 @@
 
 bool CheckResult(std::string desc, int ret);
 
+std::string ReplaceString(std::string s);
+
 int ReadFromTxt(float*& img, std::string file_path, std::vector<int> dims, bool nchw_to_nhwc = false);
 
+// Read input data from text files and copy to multi batch.
+int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims, bool nchw_to_nhwc);
+
+// Read input data from text files and copy to multi batch.
+int ReadFromTxtToNHWCU8_Batch(unsigned char*& img, std::string file_path, std::vector<int> dims);
+
 int LoadRgbaFromTxt(unsigned char*& data, std::string file_path, std::vector<int> dims);
+
+int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std::vector<int> dims);
 
 int ReadFromBin(float*& img, std::string file_path, std::vector<int> dims);
 

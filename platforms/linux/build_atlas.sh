@@ -2,6 +2,7 @@
 
 DEBUG=0
 ATLAS="ON"
+ARM="ON"
 CLEAN=""
 
 BUILD_DIR=build
@@ -31,6 +32,7 @@ function build_atlas() {
           -DLINUX_TEST_ENABLE=1 \
           -DTNN_CPU_ENABLE:BOOL="ON"  \
           -DTNN_X86_ENABLE:BOOL="OFF"  \
+          -DTNN_ARM_ENABLE:BOOL=$ARM \
           -DTNN_ATLAS_ENABLE:BOOL=$ATLAS
     make -j4
 }

@@ -1,12 +1,12 @@
 // Copyright 2019 Tencent. All Rights Reserved
 
-#include "atlas_network.h"
+#include "tnn/device/atlas/atlas_network.h"
 #include <time.h>
 #include <chrono>
-#include "atlas_common_types.h"
-#include "atlas_model_interpreter.h"
-#include "atlas_runtime.h"
-#include "atlas_utils.h"
+#include "tnn/device/atlas/atlas_common_types.h"
+#include "tnn/device/atlas/atlas_model_interpreter.h"
+#include "tnn/device/atlas/atlas_runtime.h"
+#include "tnn/device/atlas/atlas_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -111,8 +111,9 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
     for (auto item : inputs) {
         if (input_blob_map_.find(item.first) != input_blob_map_.end()) {
             auto dims_org = input_blob_map_[item.first]->GetBlobDesc().dims;
-            auto dims = item.second;
-            LOGD("reshape input %s form [%d,%d,%d,%d] to [%d,%d,%d,%d]\n", item.first.c_str(), dims_org[0], dims_org[1], dims_org[2], dims_org[3], dims[0], dims[1], dims[2], dims[3]);
+            auto dims     = item.second;
+            LOGD("reshape input %s form [%d,%d,%d,%d] to [%d,%d,%d,%d]\n", item.first.c_str(), dims_org[0], dims_org[1],
+                 dims_org[2], dims_org[3], dims[0], dims[1], dims[2], dims[3]);
             input_blob_map_[item.first]->GetBlobDesc().dims = dims;
         }
     }
@@ -120,8 +121,8 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
     for (auto item : input_blob_map_) {
         if (IsDynamicBatch(model_desc_, item.first) && dynamic_batch_name_.size() > 0) {
             // set dynamic batch
-            int batch = item.second->GetBlobDesc().dims[0];
-            size_t index = 0;
+            int batch        = item.second->GetBlobDesc().dims[0];
+            size_t index     = 0;
             aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, dynamic_batch_name_[0].c_str(), &index);
             if (acl_ret != ACL_ERROR_NONE) {
                 LOGE("get dynamic batch input index falied!\n");
@@ -389,8 +390,8 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
         // in dynamic batch input, reset batch
         if (-1 == acl_dims.dims[0]) {
-            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index); 
-            int chw_size = aclDataTypeSize(data_type);
+            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index);
+            int chw_size     = aclDataTypeSize(data_type);
             for (int i = 1; i < acl_dims.dimCount; ++i) {
                 chw_size *= acl_dims.dims[i];
             }

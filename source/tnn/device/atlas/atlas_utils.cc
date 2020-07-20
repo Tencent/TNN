@@ -85,14 +85,31 @@ Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat&
         aipp_input_format = ACL_YUV420SP_U8;
     } else {
         LOGE("not support convert from mat type (%d) to aipp input format\n", mat_type);
-        return Status(TNNERR_COMMON_ERROR, "the mat type is not support");
+        return Status(TNNERR_ATLAS_AIPP_NOT_SUPPORT, "the mat type is not support");
+    }
+
+    return TNN_OK;
+}
+
+Status ConvertFromMatTypeToDvppPixelFormat(MatType mat_type, acldvppPixelFormat& dvpp_pixel_format) {
+    if (N8UC3 == mat_type) {
+        dvpp_pixel_format = PIXEL_FORMAT_RGB_888;
+    } else if (N8UC4 == mat_type) {
+        dvpp_pixel_format = PIXEL_FORMAT_RGBA_8888;
+    } else if (NNV12 == mat_type) {
+        dvpp_pixel_format = PIXEL_FORMAT_YUV_SEMIPLANAR_420;
+    } else if (NNV21 == mat_type) {
+        dvpp_pixel_format = PIXEL_FORMAT_YVU_SEMIPLANAR_420;
+    } else {
+        LOGE("not support convert from mat type (%d) to dvpp pixel format\n", mat_type);
+        return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "the mat type is not support");
     }
 
     return TNN_OK;
 }
 
 bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name) {
-    size_t index = 0;
+    size_t index     = 0;
     aclError acl_ret = aclmdlGetInputIndexByName(model_desc, input_name.c_str(), &index);
     if (ACL_ERROR_NONE != acl_ret) {
         return false;

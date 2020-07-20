@@ -24,7 +24,7 @@ if(TNN_CUDA_ENABLE)
 endif()
 
 if(TNN_ATLAS_ENABLE)
-    target_link_libraries(TNN ascendcl)
+    target_link_libraries(TNN ascendcl acl_dvpp)
 
     if(LINUX_TEST_ENABLE)
         add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86.cc)
@@ -35,5 +35,8 @@ if(TNN_ATLAS_ENABLE)
 
         add_executable(AtlasTestMultiModel ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_model.cc)
         target_link_libraries(AtlasTestMultiModel TNN)
+
+        add_executable(AtlasTestResizeCrop ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_resize_crop_x86.cc)
+        target_link_libraries(AtlasTestResizeCrop TNN)
     endif()
 endif()

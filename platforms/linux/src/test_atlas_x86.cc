@@ -29,156 +29,10 @@
 #include "test_common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_utils.h"
 
 using namespace TNN_NS;
 TNN net_;
-
-std::string ReplaceString(std::string s) {
-    char temp[128];
-    memset(temp, 0, 128);
-    memcpy(temp, s.c_str(), s.length());
-
-    for (int i = 0; i < s.length(); ++i) {
-        if ('/' == temp[i] || '\\' == temp[i]) {
-            temp[i] = '_';
-        }
-    }
-
-    std::string ret = temp;
-    return ret;
-}
-
-/* read input from text files */
-int ReadFromNchwtoNhwcU8FromTxt(unsigned char*& img, std::string file_path, std::vector<int> dims) {
-    printf("read from txt file! (%s)\n", file_path.c_str());
-    std::ifstream f(file_path);
-    int dim_size = DimsVectorUtils::Count(dims, 0);
-    int chw_size = DimsVectorUtils::Count(dims, 1);
-    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
-
-    img = (unsigned char*)malloc(dim_size);
-    if (img == NULL) {
-        printf("allocate memory failed!\n");
-        return -1;
-    }
-
-    std::shared_ptr<unsigned char> img_org(new unsigned char[chw_size], [](unsigned char* p) { delete[] p; });
-
-    float tmp = 0;
-    for (int i = 0; i < chw_size; i++) {
-        f >> tmp;
-        *(img_org.get() + i) = (unsigned char)tmp;
-    }
-
-    int channel = dims[1];
-    int height  = dims[2];
-    int width   = dims[3];
-    for (int c = 0; c < channel; ++c) {
-        for (int h = 0; h < height; ++h) {
-            for (int w = 0; w < width; ++w) {
-                int src_idx  = c * height * width + h * width + w;
-                int dst_idx  = h * width * channel + w * channel + c;
-                img[dst_idx] = *(img_org.get() + src_idx);
-            }
-        }
-    }
-
-    int offset = chw_size;
-    for (int n = 1; n < dims[0]; ++n) {
-        memcpy(img + offset, img, chw_size);
-        offset += chw_size;
-    }
-
-    f.close();
-    return 0;
-}
-
-// Read input data from text files and copy to multi batch.
-int ReadFromTxtToBatch(float*& img, std::string file_path, std::vector<int> dims, bool nchw_to_nhwc) {
-    printf("read from txt file! (%s)\n", file_path.c_str());
-    std::ifstream f(file_path);
-    int dim_size = TNN_NS::DimsVectorUtils::Count(dims);
-    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
-
-    img = (float*)malloc(dim_size * sizeof(float));
-    if (img == NULL) {
-        printf("allocate memory failed!\n");
-        return -1;
-    }
-    printf("allocate input memory size: %d   addr: 0x%x\n", dim_size * sizeof(float), (unsigned long)img);
-
-    int N   = dims[0];
-    int C   = dims[1];
-    int H   = dims[2];
-    int W   = dims[3];
-    int chw = C * H * W;
-
-    if (nchw_to_nhwc) {
-        // convert from nchw to nhwc
-        for (int c = 0; c < C; ++c) {
-            for (int h = 0; h < H; ++h) {
-                for (int w = 0; w < W; ++w) {
-                    int idx = h * W * C + w * C + c;
-                    f >> img[idx];
-    //                img[idx] = img[idx] / 255.0;
-                }
-            }
-        }
-    } else {
-        for (int i = 0; i < chw; i++) {
-            f >> img[i];
-    //        img[i] = img[i] / 255.0;
-        }
-    }
-
-    int offset = chw;
-    for (int n = 1; n < N; ++n) {
-        memcpy(img + offset, img, chw * sizeof(float));
-        offset += chw;
-    }
-
-    f.close();
-    return 0;
-}
-
-// Read input data from text files and copy to multi batch.
-int ReadFromTxtToNHWCU8_Batch(unsigned char*& img, std::string file_path, std::vector<int> dims) {
-    printf("read from txt file! (%s)\n", file_path.c_str());
-    std::ifstream f(file_path);
-    int dim_size = TNN_NS::DimsVectorUtils::Count(dims);
-    printf("\tdim:[%d,%d,%d,%d]  size:%d\n", dims[0], dims[1], dims[2], dims[3], dim_size);
-
-    img = (unsigned char*)malloc(dim_size);
-    if (img == NULL) {
-        printf("allocate memory failed!\n");
-        return -1;
-    }
-    printf("allocate input memory size: %d   addr: 0x%x\n", dim_size, (unsigned long)img);
-
-    int N   = dims[0];
-    int C   = dims[1];
-    int H   = dims[2];
-    int W   = dims[3];
-    int chw = C * H * W;
-
-    for (int i = 0; i < chw; i++) {
-        int temp;
-        f >> temp;
-        img[i] = (unsigned char)temp;
-        // img[i] = img[i] / 255.0;
-    }
-
-
-    int offset = chw;
-    for (int n = 1; n < N; ++n) {
-        memcpy(img + offset, img, chw);
-        offset += chw;
-    }
-
-    f.close();
-    return 0;
-}
 
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
@@ -240,9 +94,9 @@ int main(int argc, char* argv[]) {
     BlobMap input_blobs_temp;
     error = instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
-    input_shapemap[input_blobs_temp.begin()->first] = input_blobs_temp.begin()->second->GetBlobDesc().dims;
+    input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
     input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    error = instance_->Reshape(input_shapemap);
+    error                                              = instance_->Reshape(input_shapemap);
 
     // Get input/output blobs
     BlobMap input_blobs, output_blobs;
@@ -260,18 +114,18 @@ int main(int argc, char* argv[]) {
     }
 
     // load input
-    //float* input_data_ptr = nullptr;
+    // float* input_data_ptr = nullptr;
     unsigned char* input_data_ptr = nullptr;
-    auto input_dims = input->GetBlobDesc().dims;
-    auto input_format = input->GetBlobDesc().data_format;
+    auto input_dims               = input->GetBlobDesc().dims;
+    auto input_format             = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], input_dims);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
+        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], input_dims);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
+        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1],
+        // input_dims[2]}, false);
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2],
+                                          {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
         printf("invalid model input format\n");
         return -1;
@@ -279,7 +133,7 @@ int main(int argc, char* argv[]) {
     if (CheckResult("load input data", ret) != true)
         return -1;
     int index = 10;
-    printf("input_data_ptr[%d] = %f\n", index, input_data_ptr[index]);
+    printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -292,7 +146,7 @@ int main(int argc, char* argv[]) {
     Status tnn_ret;
     // copy input data into atlas
     //Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
-    Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
+    Mat input_mat(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
     MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
@@ -333,8 +187,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
-        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
-                      "dump_" + name_temp + ".txt");
+        DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(), "dump_" + name_temp + ".txt");
         // DumpDataToBin(output_mat.GetData(), output_mat.GetDims(), "../dump_data/dump_" +
         // output.second->GetBlobDesc().name + ".bin");
     }
