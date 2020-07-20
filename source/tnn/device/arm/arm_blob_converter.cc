@@ -367,7 +367,7 @@ void RGBAChannelReverse(uint8_t *ptr, int channel, int hw) {
     }
 #endif
     for (; i < hw; i++) {
-        std::swap(ptr[i * channel], ptr[i * channel + 2]);
+        std::swap(ptr[i * 4], ptr[i * 4 + 2]);
     }
 }
 
