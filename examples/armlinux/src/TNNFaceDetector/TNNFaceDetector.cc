@@ -27,6 +27,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image_write.h"
 
+using namespace TNN_NS;
+
 // Helper functions
 std::string fdLoadFile(std::string path) {
     std::ifstream file(path, std::ios::in);
@@ -52,17 +54,28 @@ int main(int argc, char** argv) {
         return -1;
     }
     // 创建tnn实例
+    auto proto_content = fdLoadFile(argv[1]);
+    auto model_content = fdLoadFile(argv[2]);
     int h = 240, w = 320;
     if(argc >= 5) {
         h = std::atoi(argv[3]);
         w = std::atoi(argv[4]);
     }
-    //UltraFaceDetector detector(target_width, target_height, 1, 0.95, 0.15);
-    std::shared_ptr<UltraFaceDetector>  detector = std::make_shared<UltraFaceDetector>(w, h, 1, 0.95, 0.15);
+    auto option = std::make_shared<UltraFaceDetectorOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    
+        option->input_width = w;
+        option->input_height = h;
+        option->score_threshold = 0.95;
+        option->iou_threshold = 0.15;
+    }
+    
+    auto predictor = std::make_shared<UltraFaceDetector>();
     std::vector<int> nchw = {1, 3, h, w};
-
-    auto proto = fdLoadFile(argv[1]);
-    auto model = fdLoadFile(argv[2]);
 
     char img_buff[256];
     char *input_imgfn = img_buff;
@@ -71,14 +84,21 @@ int main(int argc, char** argv) {
     else
         strncpy(input_imgfn, argv[5], 256);
     printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
+
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
 
-    CHECK_TNN_STATUS(detector->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
-
+    //Init
+    std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
+    CHECK_TNN_STATUS(predictor->Init(option));
+    //Predict
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
     std::vector<FaceInfo> face_info;
-    CHECK_TNN_STATUS(detector->Detect(input_mat, h, w, face_info));
+    if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
+        auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
+        face_info = face_output->face_list;
+    }
 
     const int image_orig_height = int(image_height);
     const int image_orig_width  = int(image_width);
