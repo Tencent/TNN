@@ -34,9 +34,8 @@ protected:
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
         }
         const int input_channel = input_ops_[0]->GetShape()[1];
-
-        int pad_mode = 0;
-        ret          = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        int pad_mode            = 0;
+        ret                     = NpuUtils::GetPadMode(pad_mode, pad_type, false);
         if (ret != TNN_OK)
             return ret;
 
@@ -47,7 +46,9 @@ protected:
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
 
-        std::vector<int> calculate_shape = NpuBaseLayer::GetOutputShape(0);
+        std::vector<int> calculate_shape;
+        ret = NpuBaseLayer::GetOutputShape(0, calculate_shape);
+        if (ret != TNN_OK) return ret;
 
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
@@ -74,10 +75,9 @@ protected:
 
         std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, calculate_shape);
         output_ops_.push_back(output_op);
-        return TNN_OK;
+        return ret;
     }
 };
-
 REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION);
 
 }  // namespace TNN_NS

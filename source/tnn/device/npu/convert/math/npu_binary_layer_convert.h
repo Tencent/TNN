@@ -42,15 +42,15 @@ public:
 protected:
     template <class T>
     Status BinaryConvert() {
-        auto param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-        auto res   = dynamic_cast<EltwiseLayerResource *>(resource_);
+        auto param    = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+        auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
         if (!param) {
             LOGE("Error:Binary layer param is nil\n");
             return Status(TNNERR_PARAM_ERR, "Error: the Binary layer param is nil");
         }
 
         int input_size = input_ops_.size();
-        if (!((input_size == 1 && res) || input_size == 2)) {
+        if (!((input_size == 1 && resource) || input_size == 2)) {
             LOGE("the Binary input size is not correct\n");
             return Status(TNNERR_PARAM_ERR, "Error: the Binary layer count is not correct");
         }
@@ -63,11 +63,14 @@ protected:
             output->set_input_x2(*input_ops_[1]->GetOperator());
         } else {
             auto weight_const             = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
-            std::vector<int> weight_shape = res->element_shape;
+            std::vector<int> weight_shape = resource->element_shape;
             std::vector<int> input_shape  = input_ops_[0]->GetShape();
-            NpuUtils::CalculateBroadcastSize(weight_shape, res, input_shape);
+            NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
             ge::Shape weight_shape_op({weight_shape[0], weight_shape[1], weight_shape[2], weight_shape[3]});
-            NpuUtils::CreateAttrValue(weight_const, weight_shape_op, res->element_handle);
+            Status calculate_ret = NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
+            if (calculate_ret != TNN_OK) {
+                return calculate_ret;
+            }
             weight_ops_.push_back(weight_const);
 
             if (param->weight_input_index == 0) {
@@ -85,6 +88,8 @@ protected:
         output_ops_.push_back(output_op);
         return SetOutputOps();
     }
+
+private:
     std::vector<shared_ptr<ge::Operator>> weight_ops_;
 };
 

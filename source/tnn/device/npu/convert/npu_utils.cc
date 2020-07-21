@@ -74,6 +74,8 @@ Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResourc
             weight[1] = input[1];
             weight[2] = input[2];
             weight[3] = input[3];
+        } else if (layer_res_size == input[3]) {
+            weight[3] = input[3];
         } else {
             LOGE("Error: unsupported broadcast type\n");
             return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");

@@ -15,6 +15,7 @@
 #include "npu_network.h"
 
 #include <tnn/device/npu/convert/npu_base_layer_convert.h>
+#include <tnn/interpreter/layer_resource_generator.h>
 #include <sstream>
 
 #include "HiAiModelManagerService.h"
@@ -372,10 +373,9 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     Status ret = TNN_OK;
     // loop net_structure
     for (auto layer_info : net_structure_->layers) {
-        LayerType type = layer_info->type;
-
+        LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
-        if (cur_layer == nullptr) {
+        if (cur_layer == NULL) {
             LOGE("Error: CreateLayer failed, type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
@@ -384,10 +384,30 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
-
+#ifdef BENCHMARK
+        std::vector<Blob *> input_blobs;
+        BlobDesc blob_desc;
+#endif
         for (std::string &name : layer_info->inputs) {
             input_ops.push_back(global_operator_map_[name]);
+#ifdef BENCHMARK
+            blob_desc.dims = global_operator_map_[name]->GetShape();
+            Blob *blob     = new Blob(blob_desc);
+            input_blobs.push_back(blob);
+#endif
         }
+#ifdef BENCHMARK
+        // generate resource if null
+        if (net_resource->resource_map.count(layer_name) == 0) {
+            LayerParam *layer_param  = layer_info->param.get();
+            LayerResource *layer_res = nullptr;
+            GenerateRandomResource(type, layer_param, &layer_res, input_blobs);
+            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
+        }
+        for (auto &blob : input_blobs) {
+            delete (blob);
+        }
+#endif
         LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
         /*
          * cur_layer->convert

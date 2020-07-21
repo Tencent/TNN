@@ -22,20 +22,41 @@ namespace TNN_NS {
 DECLARE_NPU_LAYER_WEIGHT(Mul, LAYER_MUL);
 
 Status NpuMulLayer::Convert() {
-    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    if (!layer_param) {
-        LOGE("Error:layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: the layer param is nil");
+    auto param    = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+    auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
+    if (!param) {
+        LOGE("Error:Multiply layer param is nil\n");
+        return Status(TNNERR_PARAM_ERR, "Error: the Multiply layer param is nil");
     }
+
     int input_size = input_ops_.size();
-    if (input_size != 2) {
-        printf("the layer nae is %s \n", layer_name_.c_str());
-        printf("the mul input size is not correct\n");
-        return Status(TNNERR_PARAM_ERR, "Error: the layer count is not correct");
+    if (!((input_size == 1 && resource) || input_size == 2)) {
+        LOGE("the Multiply input size is not correct\n");
+        return Status(TNNERR_PARAM_ERR, "Error: the Multiply layer count is not correct");
     }
-    auto output = std::make_shared<ge::op::Mul>(outputs_name_[0]);
-    output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_input_y(*input_ops_[1]->GetOperator());
+
+    vector<int> s = input_ops_[0]->GetShape();
+    auto output   = std::make_shared<ge::op::Mul>(outputs_name_[0]);
+
+    if (input_size == 2) {
+        output->set_input_x(*input_ops_[0]->GetOperator());
+        output->set_input_y(*input_ops_[1]->GetOperator());
+    } else {
+        auto weight_const             = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
+        std::vector<int> weight_shape = resource->element_shape;
+        std::vector<int> input_shape  = input_ops_[0]->GetShape();
+        Status calculate_ret          = NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
+        if (calculate_ret != TNN_OK) {
+            return calculate_ret;
+        }
+        ge::Shape weight_shape_op({weight_shape[0], weight_shape[1], weight_shape[2], weight_shape[3]});
+        NpuUtils::CreateAttrValue(weight_const, weight_shape_op, resource->element_handle);
+        weight_ops_.push_back(weight_const);
+
+        output->set_input_x(*weight_const);
+        output->set_input_y(*input_ops_[0]->GetOperator());
+    }
+
     std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
     output_ops_.push_back(output_op);
     return SetOutputOps();

@@ -37,7 +37,8 @@ Status NpuPoolLayer::Convert() {
     int kernel_w    = param->kernels[0];
     int kernel_h    = param->kernels[1];
     int pool_mode   = param->pool_type;
-    // max pooling type 0; other : avg
+
+    // max pooling type 0; other avg
     if (pool_mode != 0) {
         pool_mode = 1;
     }

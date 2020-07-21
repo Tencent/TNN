@@ -90,8 +90,8 @@ protected:
                 mode = 14;
                 break;
             default:
-                LOGE("Activation is not defined");
-                return Status(TNNERR_UNKNOWN_LAYER, "Activation is not defined");
+                LOGE("Activation is not defined in NPU");
+                return Status(TNNERR_UNKNOWN_LAYER, "Activation is not defined in NPU");
         }
 
         output->set_attr_mode(mode);

@@ -19,7 +19,7 @@
 #include "npu_utils.h"
 
 namespace TNN_NS {
-DECLARE_NPU_LAYER_WEIGHT_ARRAY(BatchNorm, LAYER_BATCH_NORM);
+DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM);
 
 Status NpuBatchNormLayer::Convert() {
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
@@ -40,10 +40,6 @@ Status NpuBatchNormLayer::Convert() {
     auto variance_data    = std::make_shared<std::vector<float>>();
     auto share_scale_data = std::make_shared<std::vector<float>>();
     auto share_bias_data  = std::make_shared<std::vector<float>>();
-    arrays.push_back(mean_data);
-    arrays.push_back(variance_data);
-    arrays.push_back(share_scale_data);
-    arrays.push_back(share_bias_data);
 
     for (int i = 0; i < channel; i++) {
         mean_data->push_back(0);

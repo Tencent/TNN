@@ -13,8 +13,8 @@ ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_npu
 
 MODEL_TYPE=tnn
-MODEL_NAME=face_detector.rapidproto
-INPUT_FILE_NAME=input_face.txt
+MODEL_NAME=conv+reducesum.tnnproto
+INPUT_FILE_NAME=input_128.txt
 
 function usage() {
     echo "-64\tBuild 64bit."
@@ -51,7 +51,8 @@ function build_android() {
           -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_TEST_ENABLE="ON" \
-          -DTNN_NPU_ENABLE:BOOL=$NPU \
+          -DTNN_BENCHMARK_MODE:BOOL="ON" \
+	  -DTNN_NPU_ENABLE:BOOL=$NPU \
           -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
