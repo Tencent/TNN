@@ -18,17 +18,13 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Concat, LAYER_CONCAT);
+DECLARE_NPU_LAYER(Concat, LAYER_CONCAT)
 
 Status NpuConcatLayer::Convert() {
     int input_size = input_ops_.size();
     auto param     = dynamic_cast<ConcatLayerParam *>(param_);
-    if (!param) {
-        LOGE("Error: ConcatLayerParam is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: ConcatLayerParam is nil");
-    }
+    CHECK_PARAM_NULL(param);
     if (input_size < 2) {
-        LOGE("Error: invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
     int axis = param->axis;
@@ -40,12 +36,9 @@ Status NpuConcatLayer::Convert() {
         output->set_dynamic_input_x(i, *(input_ops_[i - 1]->GetOperator()));
     }
     output->set_attr_axis(axis);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Concat, LAYER_CONCAT);
+REGISTER_NPU_LAYER(Concat, LAYER_CONCAT)
 
 }  // namespace TNN_NS

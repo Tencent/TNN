@@ -19,13 +19,12 @@
 #include "npu_utils.h"
 
 namespace TNN_NS {
-DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM);
+
+DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM)
 
 Status NpuBatchNormLayer::Convert() {
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
-
     if (!resource) {
-        LOGE("Error: BatchNorm layer resource is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
     }
 
@@ -81,12 +80,9 @@ Status NpuBatchNormLayer::Convert() {
     output->set_input_mean(*mean_const);
     output->set_input_scale(*scale_const);
     output->set_input_b(*bias_const);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM)
 
 }  // namespace TNN_NS

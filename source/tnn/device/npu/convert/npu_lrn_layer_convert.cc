@@ -20,14 +20,11 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(LRN, LAYER_LRN);
+DECLARE_NPU_LAYER_WEIGHT(LRN, LAYER_LRN)
 
 Status NpuLRNLayer::Convert() {
     auto param = dynamic_cast<LRNLayerParam*>(param_);
-    if (!param) {
-        LOGE("Error: LRN layer param is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: LRN layer param is nil");
-    }
+    CHECK_PARAM_NULL(param);
 
     float alpha = param->alpha;
     float beta  = param->beta;
@@ -40,11 +37,10 @@ Status NpuLRNLayer::Convert() {
     output->set_attr_lrn_alpha(alpha);
     output->set_attr_lrn_beta(beta);
     output->set_attr_lrn_k(bias);
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(LRN, LAYER_LRN);
+REGISTER_NPU_LAYER(LRN, LAYER_LRN)
 
 }  // namespace TNN_NS

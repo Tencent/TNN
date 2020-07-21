@@ -23,14 +23,13 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(ReduceProd, LAYER_REDUCE_PROD);
+DECLARE_NPU_LAYER_WEIGHT(ReduceProd, LAYER_REDUCE_PROD)
 
 Status NpuReduceProdLayer::Convert() {
     // parameter and weight of the pooling layer
     auto param = dynamic_cast<ReduceLayerParam *>(param_);
-    if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: ReduceProd layer param is nil");
-    }
+    CHECK_PARAM_NULL(param);
+
     std::vector<int> axes_32         = param->axis;
     std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
 
@@ -54,11 +53,9 @@ Status NpuReduceProdLayer::Convert() {
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_axes(axes);
     output->set_attr_keep_dims(param->keep_dims);
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(ReduceProd, LAYER_REDUCE_PROD);
+REGISTER_NPU_LAYER(ReduceProd, LAYER_REDUCE_PROD)
 
 }  // namespace TNN_NS

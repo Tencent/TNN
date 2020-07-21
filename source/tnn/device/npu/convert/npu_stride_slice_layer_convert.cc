@@ -24,11 +24,7 @@ DECLARE_NPU_LAYER_WEIGHT(StridedSlice, LAYER_STRIDED_SLICE);
 
 Status NpuStridedSliceLayer::Convert() {
     auto param    = dynamic_cast<StrideSliceLayerParam *>(param_);
-    auto resource = dynamic_cast<StrideSliceLayerParam *>(resource_);
-    if (!param) {
-        LOGE("Error: StrideSlice param is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error:StrideSliceParam is nil");
-    }
+    CHECK_PARAM_NULL(param);
 
     std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
 
@@ -76,9 +72,7 @@ Status NpuStridedSliceLayer::Convert() {
     output->set_attr_ellipsis_mask(0);
     output->set_attr_new_axis_mask(0);
     output->set_attr_shrink_axis_mask(0);
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output);
 }
 
 REGISTER_NPU_LAYER(StridedSlice, LAYER_STRIDED_SLICE);

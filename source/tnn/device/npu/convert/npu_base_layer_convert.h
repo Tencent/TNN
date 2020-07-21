@@ -136,7 +136,7 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
                                                                                                                        \
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
-    }
+    };
 
 #define DECLARE_NPU_LAYER_WEIGHT(type_string, layer_type)                                                              \
     class Npu##type_string##Layer : public NpuBaseLayer {                                                              \
@@ -147,10 +147,15 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
         std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
-    }
+    };
 
 #define REGISTER_NPU_LAYER(type_string, layer_type)                                                                    \
     TypeNpuLayerRegister<TypeNpuLayerCreator<Npu##type_string##Layer>> g_Npu##layer_type##_register(layer_type);
+
+#define ADD_OUTPUT_OP(output)                                                                                          \
+    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);                                  \
+    output_ops_.push_back(output_op);                                                                                  \
+    return SetOutputOps();
 
 }  // namespace TNN_NS
 

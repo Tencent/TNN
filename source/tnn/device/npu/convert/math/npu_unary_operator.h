@@ -35,9 +35,7 @@ protected:
         }
         auto output = std::make_shared<T>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());
-        std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-        output_ops_.push_back(output_op);
-        return SetOutputOps();
+        ADD_OUTPUT_OP(output)
     }
 };
 

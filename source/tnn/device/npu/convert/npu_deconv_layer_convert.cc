@@ -31,11 +31,17 @@ protected:
         Status ret    = ObtainParam();
         auto resource = dynamic_cast<ConvLayerResource *>(resource_);
         if (ret != TNN_OK || !resource) {
-            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+            return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerParam or DeConvLayerResource is empty");
         }
+        // check if group > 1
+        if (group > 1) {
+            return Status(TNNERR_LAYER_ERR, "Error: Current npu rom does not support deconv group > 1");
+        }
+
+        // build now
         const int input_channel = input_ops_[0]->GetShape()[1];
         int pad_mode            = 0;
-        ret                     = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        ret                     = NpuUtils::GetPadMode(pad_mode, pad_type);
         if (ret != TNN_OK)
             return ret;
 
@@ -46,9 +52,11 @@ protected:
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
 
+        // calculate deconv output shape
         std::vector<int> calculate_shape;
         ret = NpuBaseLayer::GetOutputShape(0, calculate_shape);
-        if (ret != TNN_OK) return ret;
+        if (ret != TNN_OK)
+            return ret;
 
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
@@ -78,6 +86,6 @@ protected:
         return ret;
     }
 };
-REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION);
+REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION)
 
 }  // namespace TNN_NS

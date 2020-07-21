@@ -19,14 +19,11 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Upsample, LAYER_UPSAMPLE);
+DECLARE_NPU_LAYER(Upsample, LAYER_UPSAMPLE)
 
 Status NpuUpsampleLayer::Convert() {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
-    if (!param) {
-        LOGE("Error: Upsample layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: Upsample layer param is nil");
-    }
+    CHECK_PARAM_NULL(param);
 
     const int scale_h = param->scales[1];
     const int scale_w = param->scales[0];
@@ -35,11 +32,9 @@ Status NpuUpsampleLayer::Convert() {
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_scale_h(scale_h);
     output->set_attr_scale_w(scale_w);
-    auto output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Upsample, LAYER_UPSAMPLE);
+REGISTER_NPU_LAYER(Upsample, LAYER_UPSAMPLE)
 
 }  // namespace TNN_NS

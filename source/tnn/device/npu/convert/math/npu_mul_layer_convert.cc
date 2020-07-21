@@ -19,23 +19,18 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(Mul, LAYER_MUL);
+DECLARE_NPU_LAYER_WEIGHT(Mul, LAYER_MUL)
 
 Status NpuMulLayer::Convert() {
     auto param    = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
-    if (!param) {
-        LOGE("Error:Multiply layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: the Multiply layer param is nil");
-    }
+    CHECK_PARAM_NULL(param);
 
     int input_size = input_ops_.size();
     if (!((input_size == 1 && resource) || input_size == 2)) {
-        LOGE("the Multiply input size is not correct\n");
-        return Status(TNNERR_PARAM_ERR, "Error: the Multiply layer count is not correct");
+        return Status(TNNERR_MODEL_ERR, "Error: the Multiply layer input number is not correct");
     }
 
-    vector<int> s = input_ops_[0]->GetShape();
     auto output   = std::make_shared<ge::op::Mul>(outputs_name_[0]);
 
     if (input_size == 2) {
@@ -57,11 +52,9 @@ Status NpuMulLayer::Convert() {
         output->set_input_y(*input_ops_[0]->GetOperator());
     }
 
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Mul, LAYER_MUL);
+REGISTER_NPU_LAYER(Mul, LAYER_MUL)
 
 }  // namespace TNN_NS

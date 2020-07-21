@@ -73,7 +73,8 @@ Status NpuBaseLayer::SetOutputOps() {
     // all output index (output shape/ops) follow the outputs_name_ attribute
     std::vector<std::vector<int>> output_shapes;
     Status ret = NpuBaseLayer::CalculateOutputShape(output_shapes);
-    if (ret != TNN_OK) return ret;
+    if (ret != TNN_OK)
+        return ret;
     for (int i = 0; i < outputs_name_.size(); i++) {
         output_ops_[i]->SetShape(output_shapes[i]);
     }
@@ -83,7 +84,8 @@ Status NpuBaseLayer::SetOutputOps() {
 Status NpuBaseLayer::GetOutputShape(int i, std::vector<int> &output_shape) {
     std::vector<std::vector<int>> output_shapes;
     Status ret = CalculateOutputShape(output_shapes);
-    if (ret != TNN_OK) return ret;
+    if (ret != TNN_OK)
+        return ret;
     output_shape = output_shapes[i];
     return TNN_OK;
 }

@@ -20,13 +20,11 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Reshape, LAYER_RESHAPE);
+DECLARE_NPU_LAYER(Reshape, LAYER_RESHAPE)
 
 Status NpuReshapeLayer::Convert() {
     auto param = dynamic_cast<ReshapeLayerParam *>(param_);
-    if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: ReshapeLayerParam is nil");
-    }
+    CHECK_PARAM_NULL(param);
 
     ge::AttrValue::LIST_INT shape = std::vector<int64_t>(param->shape.begin(), param->shape.end());
 
@@ -35,12 +33,9 @@ Status NpuReshapeLayer::Convert() {
     output->set_attr_shape(shape);
     output->set_attr_axis(param->axis);
     output->set_attr_num_axes(param->num_axes);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Reshape, LAYER_RESHAPE);
+REGISTER_NPU_LAYER(Reshape, LAYER_RESHAPE)
 
 }  // namespace TNN_NS

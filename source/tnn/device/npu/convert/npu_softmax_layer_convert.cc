@@ -19,28 +19,18 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Softmax, LAYER_SOFTMAX);
+DECLARE_NPU_LAYER(Softmax, LAYER_SOFTMAX)
 
 Status NpuSoftmaxLayer::Convert() {
-    // one of the activation
     auto param = dynamic_cast<SoftmaxLayerParam *>(param_);
-
-    if (!param) {
-        LOGE("Error: SoftmaxLayerParam is unsupported\n");
-        return Status(TNNERR_MODEL_ERR, "Error: SoftmaxLayerParam is unsupported");
-    }
-
-    int axis = param->axis;
+    CHECK_PARAM_NULL(param);
 
     auto output = std::make_shared<ge::op::Softmax>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_attr_axis(axis);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    output->set_attr_axis(param->axis);
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Softmax, LAYER_SOFTMAX);
+REGISTER_NPU_LAYER(Softmax, LAYER_SOFTMAX)
 
 }  // namespace TNN_NS
