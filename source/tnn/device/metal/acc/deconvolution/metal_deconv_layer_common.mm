@@ -42,7 +42,22 @@ MetalDeconvLayerCommon::~MetalDeconvLayerCommon() {}
 
 Status MetalDeconvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &inputs,
                                                     const std::vector<Blob *> &outputs) {
-    return MetalConvLayerCommon::AllocateBufferWeight(inputs, outputs);
+    ConvLayerParam *layer_param  = dynamic_cast<ConvLayerParam *>(param_);
+    ConvLayerResource *layer_res = dynamic_cast<ConvLayerResource *>(resource_);
+    auto dims_input              = inputs[0]->GetBlobDesc().dims;
+    auto dims_output             = outputs[0]->GetBlobDesc().dims;
+    const int input_channel      = dims_input[1];
+    const int output_channel     = dims_output[1];
+
+    Status status = TNN_OK;
+    if (!buffer_weight_) {
+        int kw = layer_param->kernels[0];
+        int kh = layer_param->kernels[1];
+
+        buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
+            layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+    }
+    return status;
 }
 
 Status MetalDeconvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inputs,
