@@ -12,18 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
+#import <Foundation/Foundation.h>
 #import "TNNSDKSample.h"
-#import "TNNFPSCounter.h"
-#import "TNNViewModel.h"
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
-}
+using namespace::TNN_NS;
 
-@property (nonatomic, strong) TNNViewModel *viewModel;
+@interface TNNViewModel : NSObject
+@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
 
-- (void)showSDKOutput:(std::shared_ptr<TNN_NS::TNNSDKOutput>)output
-           withStatus:(TNN_NS::Status)status;
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
+//Object Detection
+-(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 @end

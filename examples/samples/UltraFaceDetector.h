@@ -23,8 +23,8 @@
 
 namespace TNN_NS {
 
-struct FaceInfo : TNN_NS::ObjectInfo {
-    float *landmarks = nullptr;
+struct FaceInfo : ObjectInfo {
+    std::shared_ptr<float> landmarks = nullptr;
 } ;
 
 class UltraFaceDetectorInput : public TNNSDKInput {

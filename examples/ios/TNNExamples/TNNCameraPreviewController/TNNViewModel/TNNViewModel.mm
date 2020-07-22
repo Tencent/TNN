@@ -12,18 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "TNNSDKSample.h"
-#import "TNNFPSCounter.h"
 #import "TNNViewModel.h"
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
+@implementation TNNViewModel
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
+    [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func loadNeuralNetworkModel"];
+    return TNN_OK;
 }
 
-@property (nonatomic, strong) TNNViewModel *viewModel;
 
-- (void)showSDKOutput:(std::shared_ptr<TNN_NS::TNNSDKOutput>)output
-           withStatus:(TNN_NS::Status)status;
+-(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)sdk_output {
+    [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func getObjectList"];
+    return {};
+}
 
+-(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
+    [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func labelForObject"];
+    return nil;
+}
 @end

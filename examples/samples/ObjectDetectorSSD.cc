@@ -67,6 +67,8 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
     
     for(int i=0; i<num_detections; ++i) {
         ObjectInfo info;
+        info.image_width = image_width;
+        info.image_height = image_height;
         
         info.class_id = data[i*7+1];
         if(info.class_id < 0 || info.class_id >= sizeof(voc_classes)/sizeof(*voc_classes)) {

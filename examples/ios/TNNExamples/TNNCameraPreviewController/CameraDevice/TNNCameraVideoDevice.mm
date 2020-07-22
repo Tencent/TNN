@@ -33,7 +33,7 @@ AVCapturePhotoCaptureDelegate> {
         _device = MTLCreateSystemDefaultDevice();
         
         _videoPreviewLayer = [AVCaptureVideoPreviewLayer layerWithSession:_captureSession];
-        _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+        _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
         _videoPreviewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
         
         _textureCache = nil;

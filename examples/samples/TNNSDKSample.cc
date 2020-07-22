@@ -14,6 +14,7 @@
 
 #include "TNNSDKSample.h"
 #include <sys/time.h>
+#include <float.h>
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
@@ -51,7 +52,7 @@ float ObjectInfo::IntersectionRatio(ObjectInfo *obj) {
     
     float area = (x2 > x1 && y2 > y1) ? std::abs((x2 - x1) * (y2 - y1)) : 0;
     
-    return 2*area / (area1 + area2);
+    return area / (area1 + area2 - area);
 }
 
 ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_width) {
@@ -88,9 +89,10 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
     info.image_width = view_width;
     info.image_height = view_height;
     
+    float view_aspect = view_height/(float)(view_width + FLT_EPSILON);
+    float object_aspect = this->image_height/(float)(this->image_width + FLT_EPSILON);
+    
     if (gravity == 2) {
-        float view_aspect = view_height/(float)view_width;
-        float object_aspect = this->image_height/(float)this->image_width;
         if (view_aspect > object_aspect) {
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
@@ -109,8 +111,6 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.y2 = info_aspect.y2 - offset_y;
         }
     } else if (gravity == 1) {
-        float view_aspect = view_height/(float)view_width;
-        float object_aspect = this->image_height/(float)this->image_width;
         if (view_aspect > object_aspect) {
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
