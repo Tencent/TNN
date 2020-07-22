@@ -57,12 +57,15 @@ using namespace std;
     } else if (indexPath.section == 3){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
-//        cameraViewController.viewModel = [TNNFaceDetectorViewModel new];
-        cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
+        cameraViewController.viewModel = [TNNFaceDetectorViewModel new];
     } else if (indexPath.section == 4) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNObjectDetectorController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNSSDObjectDetectorViewModel new];
     } else if (indexPath.section == 5) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoloObjectDetectorController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
     }
 
     if (!vc) {

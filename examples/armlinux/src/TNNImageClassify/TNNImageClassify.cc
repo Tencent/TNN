@@ -26,7 +26,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image_write.h"
 
-
+using namespace TNN_NS;
 // Helper functions
 std::string fdLoadFile(std::string path) {
     std::ifstream file(path, std::ios::in);
@@ -53,21 +53,28 @@ int main(int argc, char** argv) {
         return -1;
     }
     // 创建tnn实例
+    auto proto_content = fdLoadFile(argv[1]);
+    auto model_content = fdLoadFile(argv[2]);
     int h = 224, w = 224;
     if(argc >= 5) {
         h = std::atoi(argv[3]);
         w = std::atoi(argv[4]);
     }
+    auto option = std::make_shared<TNNSDKOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    }
 
-    std::shared_ptr<ImageClassifier>  classifier = std::make_shared<ImageClassifier>();
+    auto predictor = std::make_shared<ImageClassifier>();
     std::vector<int> nchw = {1, 3, h, w};
-    char* temp_p;
-    auto proto = fdLoadFile(argv[1]);
-    auto model = fdLoadFile(argv[2]);
 
+    char* temp_p;
     char line[256];
     FILE *fp_label;
-    if( (fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
+    if((fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
         return -1;
     static unsigned char labels[1000][256];
     for(int i = 0; i < 1000; i++){
@@ -75,6 +82,7 @@ int main(int argc, char** argv) {
         memcpy(labels[i], line, 256);
     }
     fclose(fp_label);
+
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
@@ -86,14 +94,20 @@ int main(int argc, char** argv) {
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
 
-    CHECK_TNN_STATUS(classifier->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+    //Init
+    std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
+    CHECK_TNN_STATUS(predictor->Init(option));
+    //Predict
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
 
-    int result;
-    CHECK_TNN_STATUS(classifier->Classify(input_mat, w, h, result));
-
+    int class_id = -1;
+    if (sdk_output && dynamic_cast<ImageClassifierOutput *>(sdk_output.get())) {
+        auto classfy_output = dynamic_cast<ImageClassifierOutput *>(sdk_output.get());
+        class_id = classfy_output->class_id;
+    }
     //完成计算，获取任意输出点
-    fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[result], result+1);
+    fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[class_id], class_id+1);
     free(data);
     return 0;
 }

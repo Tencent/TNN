@@ -136,7 +136,7 @@ std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int t
                                                         kCGImageAlphaNoneSkipLast | kCGBitmapByteOrderDefault);
 
         CGContextSetInterpolationQuality(context_target, kCGInterpolationHigh);
-        CGContextDrawImage(context_target, CGRectMake(0, 0, width, height), cgmage_orig);
+        CGContextDrawImage(context_target, CGRectMake(0, 0, target_width, target_height), cgmage_orig);
         CGContextRelease(context_target);
     }
     

@@ -16,7 +16,7 @@ using namespace TNN_NS;
 typedef void(^CommonCallback)(Status);
 #define kMaxBuffersInFlight 1
 
-#define TEST_IMAGE_SSD 1
+#define TEST_IMAGE_SSD 0
 
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
@@ -196,8 +196,12 @@ typedef void(^CommonCallback)(Status);
         auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
                                                                                           ofType:nil]];
         auto image_data = utility::UIImageGetData(image_png, target_height, target_width);
+        
+        
 #else
         auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
+//        auto image_terget = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
+//        UIImageWriteToSavedPhotosAlbum(image_terget, nil, nil, nil);
 #endif
         
         fps_counter_async_thread->End("resize");
