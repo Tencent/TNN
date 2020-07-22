@@ -129,6 +129,9 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     auto input_bytes             = input_width * input_height * input_slice * 4 * data_byte_size;
     auto input_bytes_per_group   = input_bytes / group;
 
+    auto input_slice_per_group = input_slice / group;
+    input_slice_per_group      = input_slice_per_group > 0 ? input_slice_per_group : 1;
+
     auto output_width             = dims_output[3];
     auto output_height            = dims_output[2];
     auto output_channel           = dims_output[1];
@@ -139,6 +142,10 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
 
     auto output_slice_per_group = output_slice / group;
     output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
+
+    auto kernel_size = deconv_param->kernels[0] * deconv_param->kernels[1];
+    auto weight_bytes_per_group = output_slice_per_group * input_slice_per_group * kernel_size * 16 * data_byte_size;
+    auto bias_bytes_per_group   = output_slice_per_group * 4 * data_byte_size;
 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
@@ -181,8 +188,8 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
                         offset:(NSUInteger)output->GetHandle().bytes_offset + g * output_bytes_per_group
                        atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-            [encoder setBuffer:buffer_weight_ offset:0 atIndex:3];
-            [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
+            [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
+            [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
 
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
