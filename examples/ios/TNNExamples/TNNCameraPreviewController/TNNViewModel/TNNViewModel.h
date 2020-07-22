@@ -20,6 +20,8 @@ using namespace::TNN_NS;
 @interface TNNViewModel : NSObject
 @property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
 
+@property (nonatomic, strong) NSString *title;
+
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
 //Object Detection

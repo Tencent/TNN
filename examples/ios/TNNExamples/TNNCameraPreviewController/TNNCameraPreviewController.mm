@@ -40,6 +40,8 @@ typedef void(^CommonCallback)(Status);
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.navigationItem.title = _viewModel.title;
+    
     //colors for each class
     auto colors = [NSMutableArray array];
     for (NSNumber *r in @[@(0.2), @(0.4), @(0.6), @(0.8), @(1.0)]) {

@@ -15,6 +15,14 @@
 #import "TNNViewModel.h"
 
 @implementation TNNViewModel
+- (NSString *)title {
+    if (_title.length <= 0) {
+        return NSStringFromClass(self.class);
+    } else {
+        return _title;
+    }
+}
+
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
     [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func loadNeuralNetworkModel"];
     return TNN_OK;
