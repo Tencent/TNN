@@ -15,8 +15,9 @@ Enable the test options：
 TNNTest 
 required parameters： 
     -mp path to model and proto(The proto and model should have the same prefix in the same folder)
-    -dt device type (ARM, OPENCL)
+    -dt device type (ARM, OPENCL,NPU)
 optional parameters：
+    -nt network type（default naive， npu needs to be specified -nt NPU）
     -op path of the output  
     -ic loop counter
     -wc warmup counter 

@@ -29,9 +29,12 @@ public:
 protected:
     virtual Status Convert() {
         Status ret    = ObtainParam();
+        if (ret != TNN_OK){
+            return ret;
+        }
         auto resource = dynamic_cast<ConvLayerResource *>(resource_);
-        if (ret != TNN_OK || !resource) {
-            return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerParam or DeConvLayerResource is empty");
+        if( !resource) {
+            return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
         }
         // check if group > 1
         if (group > 1) {

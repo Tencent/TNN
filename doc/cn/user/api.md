@@ -53,6 +53,13 @@ tnn.Init(model_config);
 ```
 
 TNN模型解析需配置ModelConfig params参数，传入proto和model文件内容，并调用TNN Init接口即可完成模型解析。
+NPU 需要增加一个参数，为存om文件的路径,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用ir翻译并从内存读入模型。
+```cpp
+
+//存om的路径
+std::string path_to_om = "";
+model_config.params.push_back(path_to_om);
+```
 
 ### 步骤2. 网络构建
 
@@ -64,7 +71,11 @@ auto net_instance = tnn.CreateInst(config, error);
 ```
 
 TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， METAL等多种加速方式，通过CreateInst接口完成网络的构建。
+NPU需要特殊指定network类型。
 
+```cpp
+config.network_type = TNN_NS::NETWORK_TYPE_NPU;
+```
 
 ### 步骤3. 输入设定
 

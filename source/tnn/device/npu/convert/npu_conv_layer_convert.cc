@@ -30,8 +30,11 @@ protected:
     virtual Status Convert() {
         Status ret    = ObtainParam();
         auto resource = dynamic_cast<ConvLayerResource *>(resource_);
-        if (ret != TNN_OK || !resource) {
-            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+        if (ret != TNN_OK){
+           return ret;
+        }
+        if (!resource) {
+            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerResource is empty");
         }
 
         // pad mode
