@@ -395,6 +395,9 @@ struct MetalPadParams {
     int pad_r;
     int pad_t;
     int pad_b;
+    int pad_c_b;
+    int pad_c_e;
+    int input_channel;
 };
 
 /** Image Converter Param Struct **/
