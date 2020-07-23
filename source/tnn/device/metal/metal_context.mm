@@ -21,7 +21,7 @@
 #define kMetalCommandBufferDepth 1
 #else
 //for balance of cpu uage and perfermence, suggest 32 or 64
-#define kMetalCommandBufferDepth 32
+#define kMetalCommandBufferDepth 32000
 #endif
 
 static NSUInteger smallest_log2(NSUInteger integer) {
