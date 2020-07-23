@@ -15,9 +15,10 @@ option(TNN_X86_ENABLE  "Enable X86" OFF)
 option(TNN_ARM_ENABLE "Enable Arm" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
-option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
+option(TNN_CUDA_ENABLE "Enable CUDA" ON)
 option(TNN_DSP_ENABLE "Enable DSP" OFF)
 option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
+option(TNN_TENSORRT_ENABLE "Enable TensorRT" OFF)
 option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
 option(TNN_NPU_ENABLE "Enable NPU" OFF)
 
@@ -144,6 +145,7 @@ message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
 message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
 message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
+message(STATUS "\tTensorRT:\t${TNN_TENSORRT_ENABLE}")
 message(STATUS "\tOpenVINO:\t${TNN_OPENVINO_ENABLE}")
 message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
@@ -172,7 +174,9 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/extern_wrapper/*.h"
                       "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
-                      "source/tnn/memory_manager/*.cc")
+                      "source/tnn/memory_manager/*.cc"
+                      "source/tnn/network/*.h"
+                      "source/tnn/network/*.cc")
 
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
@@ -210,6 +214,11 @@ endif()
 
 if(TNN_CUDA_ENABLE)
     add_subdirectory(source/tnn/device/cuda)
+    if(TNN_TENSORRT_ENABLE)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/include)
+        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/lib/nvinfer)
+        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/lib/nvinfer_plugin)
+    endif()
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 

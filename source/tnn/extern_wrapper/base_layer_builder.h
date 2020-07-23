@@ -42,7 +42,7 @@ public:
 
     // @brief layer init
     // @param ...
-    Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
+    virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
 
     //@brief Reshape recalculate the output tensor dims
