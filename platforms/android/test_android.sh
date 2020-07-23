@@ -13,7 +13,7 @@ INPUT_PATH=
 
 if $NEED_REBUILD
 then
-    ../../scripts/build_android.sh
+    ../../scripts/build_android.sh -ic
 fi
 
 if $NEED_PUSH
