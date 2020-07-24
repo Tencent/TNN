@@ -22,6 +22,34 @@
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
 
+/*
+template <typename T>
+void SaveDataTo(const T* ptr, const std::string& path, TNN_NS::DimsVector shape, size_t count) {
+    std::ofstream out(path.c_str());
+    if(!out.good()){
+        printf("\n open:%s failed!\n", path.c_str());
+        return;
+    }
+    if(shape.size() == 4){
+        int index = 0;
+        for(int n=0; n<shape[0]; ++n){
+            for(int c=0; c<shape[1]; ++c){
+                for(int h=0; h<shape[2]; ++h){
+                    for(int w=0; w<shape[3]; ++w){
+                        out << n <<"," << c << "," <<h <<"," << w <<":"<<ptr[index++] << std::endl;
+                    }
+                }
+            }
+        }
+    } else{
+        for(int i = 0; i<count; ++i){
+            out << ptr[i] << std::endl;
+        }
+    }
+    out.close();
+}
+ */
+
 ObjectInfo ObjectInfo::FlipX() {
     ObjectInfo  info;
     info.score = this->score;
@@ -384,8 +412,50 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
-
-
+        /*
+        typedef std::map<std::string, TNN_NS::DimsVector> NameShapeMap;
+        typedef std::map<std::string, std::shared_ptr<char>> NameMemoryMap;
+        NameShapeMap shapeMap;
+        NameMemoryMap memMap;
+        shapeMap.clear();
+        memMap.clear();
+        // step 2. Forward
+        auto dump_blob = [&](std::vector<Blob*>& blobs, TNN_NS::LayerInfo* info) {
+            for(auto blob: blobs) {
+                auto blobDesc = blob->GetBlobDesc();
+                std::string blobName = blobDesc.name;
+                if(shapeMap.find(blobName) != shapeMap.end()){
+                    assert(memMap.find(blobName) != memMap.end());
+                    printf("\n%s has been dumped before!\n", blobName.c_str());
+                }
+                int blobDataBytes = DimsVectorUtils::Count(blobDesc.dims) * sizeof(float);
+                memMap[blobName] = std::shared_ptr<char>(new char[blobDataBytes], [] (char*p){delete[] p;});
+                        
+                void* commandQueue;
+                instance_->GetCommandQueue(&commandQueue);
+                TNN_NS::MatConvertParam param;
+                TNN_NS::BlobConverter blobConverter(blob);
+                        
+                TNN_NS::Mat mat(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, blobDesc.dims, memMap[blobName].get());
+                TNN_NS::Status ret = blobConverter.ConvertToMat(mat, param, commandQueue);
+                if(ret != TNN_NS::TNN_OK) {
+                    printf("cpu blob (name:%s) converte failed (%s)\n", blobName.c_str(), ret.description().c_str());
+                }
+                shapeMap[blobName] = blobDesc.dims;
+            }
+        };
+                
+        status = instance_->ForwardWithCallback(dump_blob, nullptr);
+        
+        //dump to file
+        for(auto pair:shapeMap) {
+            auto name = pair.first;
+            auto shape = pair.second;
+            float* data= reinterpret_cast<float*>(memMap[name].get());
+            printf("\n%s:(%d,%d,%d,%d)\n", name.c_str(), shape[0], shape[1], shape[2], shape[3]);
+            SaveDataTo(data, "/Users/devandong/Desktop/iter"+std::to_string(fcount)+"/"+name+".txt", shape, -1);
+        }
+        */
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -468,6 +538,36 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
         offset                 = y * image_width + x_max;
         image_rgba[offset]     = {0, 255, 0, 0};
         image_rgba[offset - 1] = {0, 255, 0, 0};
+    }
+}
+
+/*
+ * Point
+ */
+void Point(void *data_rgba, int image_height, int image_width,
+int x, int y, float scale_x, float scale_y)
+{
+    RGBA *image_rgba = (RGBA *)data_rgba;
+    int x_center = x * scale_x;
+    int y_center = y * scale_y;
+    int x_start = (x-1) * scale_x;
+    int x_end   = (x+1) * scale_x;
+    int y_start = (y-1) * scale_y;
+    int y_end   = (y+1) * scale_y;
+    
+    x_start = std::min(std::max(0, x_start), image_width - 1);
+    x_end   = std::min(std::max(0, x_end), image_width - 1);
+    y_start = std::min(std::max(0, y_start), image_height - 1);
+    y_end   = std::min(std::max(0, y_end), image_height - 1);
+    
+    for(int x = x_start; x<=x_end; ++x) {
+        int offset                       = y_center * image_width + x;
+        image_rgba[offset]               = {255, 0, 255, 0};
+    }
+    
+    for(int y = y_start; y<=y_end; ++y) {
+        int offset                       = y * image_width + x_center;
+        image_rgba[offset]               = {255, 0, 255, 0};
     }
 }
 

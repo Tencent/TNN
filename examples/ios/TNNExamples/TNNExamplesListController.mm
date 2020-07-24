@@ -62,6 +62,8 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNObjectDetectorController"];
     } else if (indexPath.section == 5) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoloObjectDetectorController"];
+    } else if (indexPath.section == 6) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
     }
 
     if (!vc) {
