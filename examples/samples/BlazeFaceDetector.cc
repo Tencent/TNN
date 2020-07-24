@@ -180,20 +180,6 @@ void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vect
         rects.key_points = buf[0].key_points;
         output.push_back(rects);
     }
-    //print output face list
-    for(auto& face:output) {
-        int x1 = face.x1;
-        int y1 = face.y1;
-        int x2 = face.x2;
-        int y2 = face.y2;
-        float score = face.score;
-        printf(" ==== face ====\n");
-        printf("%d, %d, %d, %d, %f\n", x1, y1, x2, y2, score);
-        printf("==== keypoints ====\n");
-        for(auto&p:face.key_points) {
-            printf("%f, %f\n", p.first, p.second);
-        }
-    }
 }
 
 void BlazeFaceDetector::ClampSigmoid(float* dataPtr, size_t count){
