@@ -56,6 +56,10 @@ cd <path_to_tnn>/scripts
  OPENCL="ON"                    # ON to build for GPU
  SHARING_MEM_WITH_OPENGL=0      # 1 for sharing OpenGL texture with openCL
 ```
+
+2.1) NPU ：You need to download the so files and copy them to the specified directory. See:
+    NPU part of [FAQ](../faq_en.md).
+    
 3）execute the building script
 ```
 ./build_android.sh

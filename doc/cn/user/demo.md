@@ -95,9 +95,15 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 
    PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
 
+1.1  NPU 
+ 运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md)中NPU 相关。
+ 
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程。
+   
+   NPU ：第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
+   Clean Project 再重新运行。
 
 ### 运行效果
 1. 人脸检测-图片

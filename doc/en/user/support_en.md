@@ -13,37 +13,38 @@ TNN currently support main-stream CNN networks：
 - Detection: Yolo-v2 MobileNet-YOLOV3 ...
 - Segmentation: FCN PSPNet
 
-| model name                | onnx2tnn | cpu | armv7 | armv8 | opencl | metal |
-|---------------------------|----------|-----|-------|-------|--------|-------|
-| AlexNet                   | yes      | yes |       |       |        |       |
-| DenseNet(121)             | yes      | yes |       |       |        |       |
-| FCN                       | Yes      | yes |       |       |        |       |
-| GoogleNet-v1              | yes      | yes |       |       |        |       |
-| GoogleNet-v2              | yes      | yes |       |       |        |       |
-| GoogleNet-v3(inception)   | yes      | yes |       |       |        |       |
-| MnasNet                   | yes      | yes |       |       |        |       |
-| MobileNet-v1-ssd(caffe)   | yes      | yes | -     | -     | -      | -     |
-| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       |        |       |
-| MobileNet-v2-SSDLite      | yes      | yes |       |       |        |       |
-| MobileNet-yolov3          | ?        | ?   |       |       |        |       |
-| MobileNet-v1              | yes      | yes |       |       |        |       |
-| MobileNet-v2              | yes      | yes |       |       |        |       |
-| MobileNet-v3(small,large) | yes      | yes |       |       |        |       |
-| Mtcnn-v2                  | yes      | yes |       |       |        |       |
-| PSPNet                    | yes      | yes |       |       |        |       |
-| ResNet50                  | yes      | yes |       |       |        |       |
-| SENet(154)                | yes      | yes |       |       |        |       |
-| ShuffleNet-v1             | yes      | yes |       |       |        |       |
-| ShuffleNet-v2             | yes      | yes |       |       |        |       |
-| SqueezeNet-ssd            | No       | -   | -     | -     | -      | -     |
-| SqueezeNet-v1             | yes      | yes |       |       |        |       |
-| UNet                      | yes      | yes |       |       |        |       |
-| Vgg-ssd                   | yes      | yes |       |       |        |       |
-| Vgg16                     | yes      | yes |       |       |        |       |
-| Yolo-v3-tiny              | yes      | yes |       |       |        |       |
-| Yolo-v2                   | ?        | ?   |       |       |        |       |
-| Yolo-v2-tiny              | yes      | yes |       |       |        |       |
-| Yolo-v3                   | yes      | yes |       |       |        |       |
+
+| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | NPU |
+|---------------------------|----------|-----|-------|-------|--------|-------|------|
+| AlexNet                   | yes      | yes |       |       |        |       |      |
+| DenseNet(121)             | yes      | yes |       |       |        |       |      |
+| FCN                       | Yes      | yes |       |       |        |       |      |
+| GoogleNet-v1              | yes      | yes |       |       |        |       |      |
+| GoogleNet-v2              | yes      | yes |       |       |        |       |      |
+| GoogleNet-v3(inception)   | yes      | yes |       |       |        |       |      |
+| MnasNet                   | yes      | yes |       |       |        |       |      |
+| MobileNet-v1-ssd(caffe)   | yes      | yes | -     | -     | -      | -     |      |
+| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       |        |       |      |
+| MobileNet-v2-SSDLite      | yes      | yes |       |       |        |       |      |
+| MobileNet-yolov3          | ?        | ?   |       |       |        |       |      |
+| MobileNet-v1              | yes      | yes |       |       |        |       |      |
+| MobileNet-v2              | yes      | yes |       |       |        |       |      |
+| MobileNet-v3(small,large) | yes      | yes |       |       |        |       |      |
+| Mtcnn-v2                  | yes      | yes |       |       |        |       |      |
+| PSPNet                    | yes      | yes |       |       |        |       |      |
+| ResNet50                  | yes      | yes |       |       |        |       |      |
+| SENet(154)                | yes      | yes |       |       |        |       |      |
+| ShuffleNet-v1             | yes      | yes |       |       |        |       |      |
+| ShuffleNet-v2             | yes      | yes |       |       |        |       |      |
+| SqueezeNet-ssd            | No       | -   | -     | -     | -      | -     |      |
+| SqueezeNet-v1             | yes      | yes |       |       |        |       |      |
+| UNet                      | yes      | yes |       |       |        |       |      |
+| Vgg-ssd                   | yes      | yes |       |       |        |       |      |
+| Vgg16                     | yes      | yes |       |       |        |       |      |
+| Yolo-v3-tiny              | yes      | yes |       |       |        |       |      |
+| Yolo-v2                   | ?        | ?   |       |       |        |       |      |
+| Yolo-v2-tiny              | yes      | yes |       |       |        |       |      |
+| Yolo-v3                   | yes      | yes |       |       |        |       |      |
 
 
 1. Regarding the upsample calculation of upsample, when the parameter mode == "bilinear" or mode == "linear", the onnx model exported by pytorch has some issues, and the calculation results of pytorch and onnx are not aligned. This is a bug of onnx itself, which deserves special attention. But don't worry about this problem. After converting the converted ONNX model to TNN, we ensure that the calculation results of TNN and Pytorch are aligned. In our testing, FCN and PSPNet have such problems.

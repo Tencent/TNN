@@ -279,7 +279,8 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
-- `METAL`: GPU显存（metal)， NC4HW4.  
+- `METAL`: GPU显存（metal)， NC4HW4.
+-   
 其中最后4代表pack 4, C4代表最后1位4由4个C进行pack。  
 
 ### 5. core/instance.h

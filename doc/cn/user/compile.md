@@ -64,10 +64,14 @@ cd <path_to_tnn>/scripts
  OPENCL="ON"                    # ON表示编译带有Arm GPU版本的库
  SHARING_MEM_WITH_OPENGL=0      # 1表示OpenGL的Texture可以与OpenCL共享
 ```
+2.1)NPU 需要将从网站上下的ddk复制到指定文件夹。 具体请参考:
+[FAQ](../faq.md)中NPU相关。
+
 3）执行编译脚本
 ```
 ./build_android.sh
 ```
+
 编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。
 
 ## 三、ARM Linux跨平台交叉编译

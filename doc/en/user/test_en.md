@@ -6,7 +6,7 @@
 Refer to [Install and Compile](./compile_en.md).
 Enable the test options：
 * `TNN_TEST_ENABLE:BOOL=ON`  
-* set corresponding devices，such as `TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`
+* set corresponding devices，such as `TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`, `TNN_NPU_ENABLE`
 * After the compilation is completed, an executable file 'test/ TNNTest' will be generated in the build directory, which can be run directly in Linux, Android ADB and other environments
 
 ## II. Usage 
@@ -17,7 +17,7 @@ required parameters：
     -mp path to model and proto(The proto and model should have the same prefix in the same folder)
     -dt device type (ARM, OPENCL,NPU)
 optional parameters：
-    -nt network type（default naive， npu needs to be specified -nt NPU）
+    -nt network type（default naive， npu needs to be specified as -nt NPU）
     -op path of the output  
     -ic loop counter
     -wc warmup counter 
