@@ -43,7 +43,6 @@ MatConvertParam BlazeFaceDetector::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / 127.5, 1.0 / 127.5, 1.0 / 127.5, 0.0};
     input_convert_param.bias  = {-1.0, -1.0, -1.0, 0.0};
-    //input_convert_param.reverse_channel = true;
     return input_convert_param;
 }
 
@@ -66,10 +65,8 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     std::vector<BlazeFaceInfo> bbox_collection;
     //decode bbox
     GenerateBBox(bbox_collection, *(scores.get()), *(boxes.get()), option->input_width, option->input_height, option->min_score_threshold);
-    LOGE("\n\n ===== \n find:%d faces\n ===== \n\n", bbox_collection.size());
     std::vector<BlazeFaceInfo> face_list;
     BlendingNMS(bbox_collection, face_list, option->min_suppression_threshold);
-    LOGE("\n\n ===== \n find:%d faces\n ===== \n\n", face_list.size());
     output->face_list = face_list;
     
     return status;
