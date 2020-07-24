@@ -12,6 +12,59 @@
         onnxruntime>=1.1
         onnx-simplifier>=0.2.4
         protobuf >= 3.0
+
+##NPU 相关
+* 我们如何拿到NPU ddk? 
+* 到华为开发者联盟下载DDK[https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
+* 解压缩
+* 进入到下载文件夹下的`ddk`目录
+* 将ddk目录下的lib文件夹中所有文件复制搭到 `TNN/third_party/npu/hiai_ddk_latest/armeabi-v7a`
+* 将ddk目录下的lib64文件夹中所有文件复制到 `TNN/third_party/npu/hiai_ddk_latest/arm64-v8a`
+* 将ddk目录下include`文件夹`复制到 `TNN/third_party/npu/hiai_ddk_latest/`目录下
+* 最终 `TNN/third_party/npu/hiai_ddk_latest/`文件结构应该如下：
+
+hiai_ddk_latest\
+├── arm64-v8a \
+│   ├── libcpucl.so \
+│   ├── libhcl.so\
+│   ├── libhiai.so\
+│   ├── libhiai_ir.so\
+│   └── libhiai_ir_build.so\
+├── armeabi-v7a\
+│   ├── libcpucl.so\
+│   ├── libhcl.so\
+│   ├── libhiai.so\
+│   ├── libhiai_ir.so\
+│   └── libhiai_ir_build.so\
+└── include\
+    ├── HiAiAippPara.h\
+    ├── HiAiModelManagerService.h\
+    ├── HiAiModelManagerType.h\
+    ├── graph\
+    │   ├── attr_value.h\
+    │   ├── buffer.h\
+    │   ├── common\
+    │   │   └── secures\tl.h\
+    │   ├── debug\
+    │   │   └── ge_error_codes.h\
+    │   ├── detail\
+    │   │   └── attributes_holder.h\
+    │   ├── graph.h\
+    │   ├── model.h\
+    │   ├── op\
+    │   │   ├── all_ops.h\
+    │   │   ├── array_defs.h\
+    │   │   ├── const_defs.h\
+    │   │   ├── detection_defs.h\
+    │   │   ├── image_defs.h\
+    │   │   ├── math_defs.h\
+    │   │   ├── nn_defs.h\
+    │   │   └── random_defs.h\
+    │   ├── operator.h\
+    │   ├── operator_reg.h\
+    │   ├── tensor.h \
+    │   └── types.h\
+    └── hiai_ir_build.h\
         
 ## 模型支持：
 

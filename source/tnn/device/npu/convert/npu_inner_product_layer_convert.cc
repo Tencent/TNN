@@ -20,23 +20,30 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(InnerProduct, LAYER_INNER_PRODUCT);
+DECLARE_NPU_LAYER_WEIGHT(InnerProduct, LAYER_INNER_PRODUCT)
 
 Status NpuInnerProductLayer::Convert() {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);
-    if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerParam is nil");
-    }
+    CHECK_PARAM_NULL(param);
     if (!resource) {
         return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
     }
 
-    int has_bias = param->has_bias;
+    // weight
+    vector<int> input_shape = input_ops_[0]->GetShape();
+    std::string weight_name = layer_name_ + "_weight";
+    ge::Shape weight_shape({param->num_output, input_shape[1], 1, 1});
+    auto weight_const = std::make_shared<ge::op::Const>(weight_name);
+    NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->weight_handle);
+    weight_ops_.push_back(weight_const);
 
-    auto output    = std::make_shared<ge::op::FullConnection>(outputs_name_[0]);
+    // bias
+    auto output = std::make_shared<ge::op::FullConnection>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
+    output->set_input_w(*weight_const);
     int bias_count = resource->bias_handle.GetDataCount();
-    if (has_bias) {
+    if (param->has_bias) {
         std::string bias_name = layer_name_ + "_bias";
         ge::Shape bias_shape({1, bias_count, 1, 1});
         auto bias_const = std::make_shared<ge::op::Const>(bias_name);
@@ -44,21 +51,9 @@ Status NpuInnerProductLayer::Convert() {
         weight_ops_.push_back(bias_const);
         output->set_input_b(*bias_const);
     }
-    vector<int> input_shape = input_ops_[0]->GetShape();
-    // weight
-    std::string weight_name = layer_name_ + "_weight";
-    ge::Shape weight_shape({param->num_output, input_shape[1], 1, 1});
-    auto weight_const = std::make_shared<ge::op::Const>(weight_name);
-    NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->weight_handle);
-
-    weight_ops_.push_back(weight_const);
-    output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_input_w(*weight_const);
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(InnerProduct, LAYER_INNER_PRODUCT);
+REGISTER_NPU_LAYER(InnerProduct, LAYER_INNER_PRODUCT)
 
 }  // namespace TNN_NS

@@ -13,12 +13,11 @@ ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_npu
 
 MODEL_TYPE=tnn
-MODEL_NAME=face_detector.rapidproto
-INPUT_FILE_NAME=input_face.txt
+MODEL_NAME=deconv+reducesum.tnnproto
+INPUT_FILE_NAME=input_128.txt
 
 function usage() {
     echo "-64\tBuild 64bit."
-    echo "-c\tClean up build folders."
     echo "-p\tPush models to device"
     echo "-b\tbuild targets only"
 }
@@ -27,48 +26,17 @@ function die() {
     exit 1
 }
 
-function clean_build() {
-    echo $1 | grep "$BUILD_DIR\b" > /dev/null
-    if [[ "$?" != "0" ]]; then
-        die "Warnning: $1 seems not to be a BUILD folder."
-    fi
-    rm -rf $1
-    mkdir $1
-    adb shell "rm -r $ANDROID_DIR/dump_data"
-}
-
-function build_android() {
-    if [ "-c" == "$CLEAN" ]; then
-        clean_build $BUILD_DIR
-    fi
-    mkdir -p build
-    cd $BUILD_DIR
-    cmake ../../../ \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DANDROID_ABI="${ABI}" \
-          -DANDROID_STL=c++_shared \
-          -DANDROID_NATIVE_API_LEVEL=android-14  \
-          -DANDROID_TOOLCHAIN=clang \
-          -DTNN_TEST_ENABLE="ON" \
-          -DTNN_NPU_ENABLE:BOOL=$NPU \
-          -DBUILD_FOR_ANDROID_COMMAND=true
-    make -j4
-}
-
-function push_hiai_lib() {
+function push_tnn() {
+    adb shell "rm -rf $ANDROID_DIR/$ABI/lib"
     adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
-	if [ $ABI == "arm64-v8a" ]; then
-		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/arm64-v8a/* $ANDROID_DIR/$ABI/lib
-		adb push $WORK_DIR/../../third_party/npu/cpp_lib/arm64-v8a/* $ANDROID_DIR/$ABI/lib
-	else
-		adb push $WORK_DIR/../../third_party/npu/hiai_ddk_320/armeabi-v7a/* $ANDROID_DIR/$ABI/lib
-		adb push $WORK_DIR/../../third_party/npu/cpp_lib/armeabi-v7a/* $ANDROID_DIR/$ABI/lib
-	fi
+    adb push $WORK_DIR/../../third_party/npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/$ABI/lib
+		adb push $WORK_DIR/../../third_party/npu/cpp_lib/$ABI/* $ANDROID_DIR/$ABI/lib
+    adb push ./build${1}/libTNN.so  $ANDROID_DIR
+    adb push  $WORK_DIR/build${1}/test/TNNTest $ANDROID_DIR
+    adb shell chmod 0777 $ANDROID_DIR/TNNTest
 }
-
 function run_android() {
-    build_android
+    ../../scripts/build_android.sh
     if [ "" != "$BUILD_ONLY" ]; then
         echo "build done!"
         exit 0
@@ -76,17 +44,17 @@ function run_android() {
     mkdir -p $DUMP_DIR
 
     adb shell "mkdir -p $ANDROID_DIR"
-    find . -name "*.so" | while read solib; do
-        adb push $solib  $ANDROID_DIR
-    done
-    adb push  $WORK_DIR/build/test/TNNTest $ANDROID_DIR
-    adb shell chmod 0777 $ANDROID_DIR/TNNTest
+    
+    if [ $ABI == "arm64-v8a" ]; then
+        push_tnn 64
+    else
+    	  push_tnn 32
+    fi
 
     if [ "" != "$PUSH_MODEL" ]; then
         adb shell "rm -r $ANDROID_DATA_DIR"
         adb shell "mkdir -p $ANDROID_DATA_DIR"
         adb push $MODEL_DIR/* $ANDROID_DATA_DIR
-        push_hiai_lib
     fi
     adb shell "echo > $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
@@ -102,10 +70,6 @@ while [ "$1" != "" ]; do
         -64)
             shift
             ABI="arm64-v8a"
-            ;;
-        -c)
-            shift
-            CLEAN="-c"
             ;;
         -p)
             shift

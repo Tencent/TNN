@@ -59,6 +59,8 @@ static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
 static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
+static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);

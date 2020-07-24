@@ -19,38 +19,32 @@
 #include "npu_utils.h"
 
 namespace TNN_NS {
-DECLARE_NPU_LAYER_WEIGHT_ARRAY(BatchNorm, LAYER_BATCH_NORM);
+
+DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM)
 
 Status NpuBatchNormLayer::Convert() {
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
-
     if (!resource) {
-        LOGE("Error: BatchNorm layer resource is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
     }
 
     // channel is the 1 element of NCHW
     int channel             = input_ops_[0]->GetShape()[1];
-    RawBuffer &scale_handle = resource->scale_handle;
-    bool share_channel      = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
+    bool share_channel      = resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
     auto *scale_data        = resource->scale_handle.force_to<float *>();
     auto *bias_data         = resource->bias_handle.force_to<float *>();
 
-    auto mean_data        = std::make_shared<std::vector<float>>();
-    auto variance_data    = std::make_shared<std::vector<float>>();
-    auto share_scale_data = std::make_shared<std::vector<float>>();
-    auto share_bias_data  = std::make_shared<std::vector<float>>();
-    arrays.push_back(mean_data);
-    arrays.push_back(variance_data);
-    arrays.push_back(share_scale_data);
-    arrays.push_back(share_bias_data);
+    std::vector<float> mean_data;
+    std::vector<float> variance_data;
+    std::vector<float> share_scale_data;
+    std::vector<float> share_bias_data;
 
     for (int i = 0; i < channel; i++) {
-        mean_data->push_back(0);
-        variance_data->push_back(1);
+        mean_data.push_back(0.0f);
+        variance_data.push_back(1.0f);
         if (share_channel) {
-            share_scale_data->push_back(scale_data[0]);
-            share_bias_data->push_back(bias_data[0]);
+            share_scale_data.push_back(scale_data[0]);
+            share_bias_data.push_back(bias_data[0]);
         }
     }
 
@@ -58,17 +52,17 @@ Status NpuBatchNormLayer::Convert() {
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
 
     auto mean_const = std::make_shared<ge::op::Const>(layer_name_ + "_mean");
-    NpuUtils::CreateAttrArray(mean_const, *mean_data, desc, channel);
+    NpuUtils::CreateAttrArray(mean_const, mean_data, desc, channel);
 
     auto variance_const = std::make_shared<ge::op::Const>(layer_name_ + "_variance");
-    NpuUtils::CreateAttrArray(variance_const, *variance_data, desc, channel);
+    NpuUtils::CreateAttrArray(variance_const, variance_data, desc, channel);
 
     auto scale_const = std::make_shared<ge::op::Const>(layer_name_ + "_scale");
     auto bias_const  = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
 
     if (share_channel) {
-        NpuUtils::CreateAttrArray(scale_const, *share_scale_data, desc, channel);
-        NpuUtils::CreateAttrArray(bias_const, *share_bias_data, desc, channel);
+        NpuUtils::CreateAttrArray(scale_const, share_scale_data, desc, channel);
+        NpuUtils::CreateAttrArray(bias_const, share_bias_data, desc, channel);
     } else {
         NpuUtils::CreateAttrValue(scale_const, shape, resource->scale_handle);
         NpuUtils::CreateAttrValue(bias_const, shape, resource->bias_handle);
@@ -79,18 +73,16 @@ Status NpuBatchNormLayer::Convert() {
     weight_ops_.push_back(scale_const);
     weight_ops_.push_back(bias_const);
 
-    auto output = std::make_shared<ge::op::BatchNorm>(outputs_name_[0]);
+    auto output = std::make_shared<ge::op::BatchNormExt2>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_variance(*variance_const);
     output->set_input_mean(*mean_const);
     output->set_input_scale(*scale_const);
-    output->set_input_b(*bias_const);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    output->set_input_offset(*bias_const);
+    output->set_attr_mode(1);
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM)
 
 }  // namespace TNN_NS

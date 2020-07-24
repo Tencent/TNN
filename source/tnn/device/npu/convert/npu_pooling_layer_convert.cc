@@ -19,14 +19,22 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Pool, LAYER_POOLING);
+DECLARE_NPU_LAYER(Pool, LAYER_POOLING)
 
 Status NpuPoolLayer::Convert() {
     // parameter and weight of the pooling layer
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
-    if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: PoolingLayerParam is nil");
+    CHECK_PARAM_NULL(param);
+
+    // max pooling type 0; other avg
+    int pool_mode = param->pool_type;
+    if (pool_mode != 0) {
+        pool_mode = 1;
     }
+    int pad_mode = 0;
+    Status ret   = NpuUtils::GetPadMode(pad_mode, param->pad_type);
+    if (ret != TNN_OK)
+        return ret;
 
     int stride_w    = param->strides[0];
     int stride_h    = param->strides[1];
@@ -36,13 +44,6 @@ Status NpuPoolLayer::Convert() {
     int pad_h_end   = param->pads[3];
     int kernel_w    = param->kernels[0];
     int kernel_h    = param->kernels[1];
-    int pool_mode   = param->pool_type;
-    // max pooling type 0; other : avg
-    if (pool_mode != 0) {
-        pool_mode = 1;
-    }
-    int pad_mode = 0;
-    NpuUtils::GetPadMode(pad_mode, param->pad_type, false);
 
     auto output = std::make_shared<ge::op::Pooling>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
@@ -57,11 +58,9 @@ Status NpuPoolLayer::Convert() {
     output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
     output->set_attr_ceil_mode(0);
     output->set_attr_data_mode(1);
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Pool, LAYER_POOLING);
+REGISTER_NPU_LAYER(Pool, LAYER_POOLING)
 
 }  // namespace TNN_NS

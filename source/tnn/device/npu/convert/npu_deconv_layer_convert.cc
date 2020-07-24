@@ -29,25 +29,41 @@ public:
 protected:
     virtual Status Convert() {
         Status ret    = ObtainParam();
-        auto resource = dynamic_cast<ConvLayerResource *>(resource_);
-        if (ret != TNN_OK || !resource) {
-            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+        if (ret != TNN_OK){
+            return ret;
         }
-        const int input_channel = input_ops_[0]->GetShape()[1];
+        auto resource = dynamic_cast<ConvLayerResource *>(resource_);
+        if( !resource) {
+            return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
+        }
+        // check if group > 1
+        if (group > 1) {
+            return Status(TNNERR_LAYER_ERR, "Error: Current npu rom does not support deconv group > 1");
+        }
 
-        int pad_mode = 0;
-        ret          = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        // build now
+        const int input_channel = input_ops_[0]->GetShape()[1];
+        int pad_mode            = 0;
+        ret                     = NpuUtils::GetPadMode(pad_mode, pad_type);
         if (ret != TNN_OK)
             return ret;
 
         // filter
         int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h * kernel_w * input_channel));
-        ge::Shape filter_shape({input_channel, filter_channel, kernel_h, kernel_w});
+        ge::Shape filter_shape({kernel_h, kernel_w, input_channel, filter_channel});
         auto filter_const = std::make_shared<ge::op::Const>(layer_name_ + "filter");
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
 
-        std::vector<int> calculate_shape = NpuBaseLayer::GetOutputShape(0);
+
+        // calculate deconv output shape
+        std::vector<int> calculate_shape;
+        ret = NpuBaseLayer::GetOutputShape(0, calculate_shape);
+        printf("THE CALculate shape %d %d %d %d \n", calculate_shape[0],calculate_shape[1],calculate_shape[2],calculate_shape[3]);
+
+        if (ret != TNN_OK) {
+            return ret;
+        }
 
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
@@ -56,6 +72,17 @@ protected:
         weight_ops_.push_back(input_size_const);
 
         auto output = std::make_shared<ge::op::Deconvolution>(outputs_name_[0]);
+        // Init bias
+        int bias_count = resource->bias_handle.GetDataCount();
+        // check bias
+        if (bias_count != 0) {
+            // bias
+            ge::Shape bias_shape({1, bias_count, 1, 1});
+            auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
+            NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
+            weight_ops_.push_back(bias_const);
+            output->set_input_bias(*bias_const);
+        }
         output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_input_filter(*filter_const);
         output->set_input_input_sizes(*input_size_const);
@@ -74,10 +101,9 @@ protected:
 
         std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, calculate_shape);
         output_ops_.push_back(output_op);
-        return TNN_OK;
+        return ret;
     }
 };
-
-REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION);
+REGISTER_NPU_LAYER(Deconv, LAYER_DECONVOLUTION)
 
 }  // namespace TNN_NS

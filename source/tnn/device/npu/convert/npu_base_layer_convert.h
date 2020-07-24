@@ -76,8 +76,8 @@ public:
     std::vector<std::shared_ptr<OperatorInfo>> &GetOutputOps();
 
     Status SetOutputOps();
-    std::vector<int> GetOutputShape(int output_size);
-    std::vector<std::vector<int>> GetOutputShapes();
+    Status GetOutputShape(int i, std::vector<int> &output_shape);
+    Status CalculateOutputShape(std::vector<std::vector<int>> &output_shapes);
 
 protected:
     LayerType type_;
@@ -136,7 +136,7 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
                                                                                                                        \
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
-    }
+    };
 
 #define DECLARE_NPU_LAYER_WEIGHT(type_string, layer_type)                                                              \
     class Npu##type_string##Layer : public NpuBaseLayer {                                                              \
@@ -147,22 +147,15 @@ NpuBaseLayer *CreateNpuBaseLayer(LayerType type);
     protected:                                                                                                         \
         virtual Status Convert();                                                                                      \
         std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
-    }
-
-#define DECLARE_NPU_LAYER_WEIGHT_ARRAY(type_string, layer_type)                                                        \
-    class Npu##type_string##Layer : public NpuBaseLayer {                                                              \
-    public:                                                                                                            \
-        Npu##type_string##Layer(LayerType ignore) : NpuBaseLayer(layer_type){};                                        \
-        virtual ~Npu##type_string##Layer(){};                                                                          \
-                                                                                                                       \
-    protected:                                                                                                         \
-        virtual Status Convert();                                                                                      \
-        std::vector<std::shared_ptr<ge::Operator>> weight_ops_;                                                        \
-        std::vector<std::shared_ptr<std::vector<float>>> arrays;                                                       \
-    }
+    };
 
 #define REGISTER_NPU_LAYER(type_string, layer_type)                                                                    \
     TypeNpuLayerRegister<TypeNpuLayerCreator<Npu##type_string##Layer>> g_Npu##layer_type##_register(layer_type);
+
+#define ADD_OUTPUT_OP(output)                                                                                          \
+    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);                                  \
+    output_ops_.push_back(output_op);                                                                                  \
+    return SetOutputOps();
 
 }  // namespace TNN_NS
 

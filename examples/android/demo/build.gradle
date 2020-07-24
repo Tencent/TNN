@@ -43,6 +43,12 @@ android {
     }
 }
 
+task deleteFiles(type: Delete) {
+    delete 'src/main/jni/thirdparty/hiai_ddk/arm64-v8a', 'src/main/jni/thirdparty/hiai_ddk/armeabi-v7a',
+    'src/main/jni/thirdparty/hiai_ddk/include'
+}
+clean.dependsOn(deleteFiles)
+
 task copyFiles(type: Copy) {
     from '../../../third_party/npu/hiai_ddk_latest'
     into 'src/main/jni/thirdparty/hiai_ddk'

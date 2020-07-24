@@ -94,9 +94,15 @@
 
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
 
+1.1 NPU 
+You need to download the NPU DDK libraries first. See NPU part in [FAQ](../faq_en.md).
+
 2. Open the TNNExamples project
 
    Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNNExamples project.
+   
+   NPU ：If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
+      Clean Project and rerun.
 
 ### Running result
 1. Face Detection-Pictures

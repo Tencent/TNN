@@ -20,28 +20,21 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Permute, LAYER_PERMUTE);
+DECLARE_NPU_LAYER(Permute, LAYER_PERMUTE)
 
 Status NpuPermuteLayer::Convert() {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (!param) {
-        LOGE("Error: Permute param is null\n");
-        return Status(TNNERR_LAYER_ERR, "Permute param is null");
-    }
+    CHECK_PARAM_NULL(param);
 
     std::vector<int64_t> orders(param->orders.begin(), param->orders.end());
 
     auto output = std::make_shared<ge::op::Permute>(outputs_name_[0]);
-    if (output == nullptr) {
-    }
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_order(orders);
 
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(Permute, LAYER_PERMUTE);
+REGISTER_NPU_LAYER(Permute, LAYER_PERMUTE)
 
 }  // namespace TNN_NS

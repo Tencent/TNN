@@ -53,7 +53,7 @@ public:
 
     static bool FileExits(string model_path);
 
-    static Status GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same = false);
+    static Status GetPadMode(int &pad_mode, int pad_type);
 
     static int checkNpuVersion(const char *version);
 

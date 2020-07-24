@@ -53,7 +53,11 @@ tnn.Init(model_config);
 ```
 
 TNN model analysis needs to configure the ModelConfig parameter, pass in the content of proto and model files, and call the TNN Init interface to complete the model analysis.
-
+One more parameter needs to be added for NPU : the path to store and read om model file, such as("/data/local/tmp/")，empty string illustrates that the model is built from memory.
+```cpp
+std::string path_to_om = "";
+model_config.params.push_back(path_to_om);
+```
 ### Step2. Network construction
 
 ```cpp
@@ -64,7 +68,11 @@ auto net_instance = tnn.CreateInst(config, error);
 ```
 
 TNN network construction needs configure the NetworkConfig parameter，and device_type could be set as ARM, OPENCL, METAL or other acceleration method，the construction of the network is completed through CreateInst interface
+Specific npu type needs to be specified for NPU。
 
+```cpp
+config.network_type = TNN_NS::NETWORK_TYPE_NPU;
+```
 
 ### Step3. Input
 

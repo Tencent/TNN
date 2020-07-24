@@ -42,27 +42,23 @@ protected:
             case LAYER_ELU: {
                 mode       = 4;
                 auto param = dynamic_cast<EluLayerParam *>(param_);
-                if (!param) {
-                    LOGE("Error: elu layer param is nil\n");
-                    return Status(TNNERR_PARAM_ERR, "Error: elu layer param is nil");
-                }
+                CHECK_PARAM_NULL(param);
                 output->set_attr_coef(param->alpha);
             } break;
             case LAYER_PRELU: {
-                mode                    = 5;
-                auto param              = dynamic_cast<PReluLayerParam *>(param_);
-                auto resource           = dynamic_cast<PReluLayerResource *>(resource_);
-                const float *slope_data = resource->slope_handle.force_to<float *>();
-                if (!param || !resource) {
-                    LOGE("Error: prelu layer param or resource is nil\n");
-                    return Status(TNNERR_PARAM_ERR, "Error: prelu layer param/resource is nil");
+                mode          = 5;
+                auto param    = dynamic_cast<PReluLayerParam *>(param_);
+                auto resource = dynamic_cast<PReluLayerResource *>(resource_);
+                CHECK_PARAM_NULL(param);
+                if (!resource) {
+                    return Status(TNNERR_MODEL_ERR, "Error: prelu layer resource is nil");
                 }
+                const float *slope_data = resource->slope_handle.force_to<float *>();
                 if (param->channel_shared) {
                     // if channel shared
                     output->set_attr_negative_slope(slope_data[0]);
                 } else {
-                    LOGE("Error: Npu currently only supports channel-shared prelu\n");
-                    return Status(TNNERR_PARAM_ERR, "Error: npu currently only supports channel-shared prelu");
+                    return Status(TNNERR_LAYER_ERR, "Error: npu currently only supports shared-channel prelu");
                 }
             } break;
             case LAYER_ABS:
@@ -73,13 +69,9 @@ protected:
                 break;
             case LAYER_HARDSIGMOID: {
                 auto param = dynamic_cast<HardSigmoidLayerParam *>(param_);
-                if (!param) {
-                    LOGE("Error: Hardsigmoid layer param is nil\n");
-                    return Status(TNNERR_PARAM_ERR, "Error: Hardsigmoid layer param is nil");
-                }
+                CHECK_PARAM_NULL(param);
                 if (param->alpha != 1.0f || param->beta != 0.0f) {
-                    LOGE("Error: Npu currently only supports no coefficient hardsigmoid\n");
-                    return Status(TNNERR_PARAM_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
+                    return Status(TNNERR_LAYER_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
                 }
                 mode = 10;
             } break;
@@ -90,14 +82,11 @@ protected:
                 mode = 14;
                 break;
             default:
-                LOGE("Activation is not defined");
-                return Status(TNNERR_UNKNOWN_LAYER, "Activation is not defined");
+                return Status(TNNERR_UNKNOWN_LAYER, "This activation is not defined in NPU");
         }
 
         output->set_attr_mode(mode);
-        auto output_op = std::make_shared<OperatorInfo>(output);
-        output_ops_.push_back(output_op);
-        return SetOutputOps();
+        ADD_OUTPUT_OP(output)
     }
 
 public:
@@ -110,28 +99,28 @@ public:
     public:                                                                                                            \
         Npu##type_string##Layer(LayerType ignore) : NpuActivationLayerConvert(layer_type){};                           \
         ~Npu##type_string##Layer(){};                                                                                  \
-    }
+    };
 
-DECLARE_NPU_ACTIVATION_LAYER(Sigmoid, LAYER_SIGMOID);
-REGISTER_NPU_LAYER(Sigmoid, LAYER_SIGMOID);
-DECLARE_NPU_ACTIVATION_LAYER(Relu, LAYER_RELU);
-REGISTER_NPU_LAYER(Relu, LAYER_RELU);
-DECLARE_NPU_ACTIVATION_LAYER(Tanh, LAYER_TANH);
-REGISTER_NPU_LAYER(Tanh, LAYER_TANH);
-DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU);
+DECLARE_NPU_ACTIVATION_LAYER(Sigmoid, LAYER_SIGMOID)
+REGISTER_NPU_LAYER(Sigmoid, LAYER_SIGMOID)
+DECLARE_NPU_ACTIVATION_LAYER(Relu, LAYER_RELU)
+REGISTER_NPU_LAYER(Relu, LAYER_RELU)
+DECLARE_NPU_ACTIVATION_LAYER(Tanh, LAYER_TANH)
+REGISTER_NPU_LAYER(Tanh, LAYER_TANH)
+DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU)
 REGISTER_NPU_LAYER(Elu, LAYER_ELU)
-DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU);
-REGISTER_NPU_LAYER(Prelu, LAYER_PRELU);
-DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS);
-REGISTER_NPU_LAYER(Abs, LAYER_ABS);
-DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS);
-REGISTER_NPU_LAYER(Softplus, LAYER_SOFTPLUS);
-DECLARE_NPU_ACTIVATION_LAYER(HardSigmoid, LAYER_HARDSIGMOID);
-REGISTER_NPU_LAYER(HardSigmoid, LAYER_HARDSIGMOID);
-DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU);
-REGISTER_NPU_LAYER(Selu, LAYER_SELU);
-DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6);
-REGISTER_NPU_LAYER(Relu6, LAYER_RELU6);
+DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU)
+REGISTER_NPU_LAYER(Prelu, LAYER_PRELU)
+DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS)
+REGISTER_NPU_LAYER(Abs, LAYER_ABS)
+DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS)
+REGISTER_NPU_LAYER(Softplus, LAYER_SOFTPLUS)
+DECLARE_NPU_ACTIVATION_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
+REGISTER_NPU_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
+DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU)
+REGISTER_NPU_LAYER(Selu, LAYER_SELU)
+DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6)
+REGISTER_NPU_LAYER(Relu6, LAYER_RELU6)
 
 }  // namespace TNN_NS
 

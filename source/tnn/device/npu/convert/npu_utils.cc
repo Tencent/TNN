@@ -74,8 +74,9 @@ Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResourc
             weight[1] = input[1];
             weight[2] = input[2];
             weight[3] = input[3];
+        } else if (layer_res_size == input[3]) {
+            weight[3] = input[3];
         } else {
-            LOGE("Error: unsupported broadcast type\n");
             return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
         }
         layer_res->element_shape = weight;
@@ -95,7 +96,7 @@ bool NpuUtils::FileExits(std::string model_path) {
     return infile.good();
 }
 
-Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool depthwise_same) {
+Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
     // npu pad mode
     if (pad_type == 0) {
         // pad_type : SAME_UPPER or SAME_LOWER
@@ -107,23 +108,13 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type, bool depthwise, bool de
         pad_mode = 5;
     } else if (pad_type == -1) {
         // pad_type : NOSET
-        if (depthwise) {
-            if (depthwise_same) {
-                pad_mode = 6;
-                return TNN_OK;
-            }
-            LOGE("Error: Npu ConvLayerDepthwise does not support current pad type, neither valid nor same\n");
-            return Status(TNNERR_PARAM_ERR,
-                          "Error: Npu ConvLayerDepthwise dont support current pad type, neither valid nor same");
-        } else {
-            pad_mode = 0;
-        }
+        pad_mode = 0;
     } else {
-        LOGE("Error: ConvLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
     return TNN_OK;
 }
+
 int NpuUtils::checkNpuVersion(const char *version) {
     // ddk version's format: xxx.xxx.xxx.xxx
     std::string version_s(version);

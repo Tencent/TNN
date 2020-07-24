@@ -30,15 +30,16 @@ protected:
     virtual Status Convert() {
         Status ret    = ObtainParam();
         auto resource = dynamic_cast<ConvLayerResource *>(resource_);
-        if (ret != TNN_OK || !resource) {
-            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+        if (ret != TNN_OK){
+           return ret;
         }
-        std::vector<int> input_shape = input_ops_[0]->GetShape();
+        if (!resource) {
+            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerResource is empty");
+        }
 
-        // bool depthwise = group == input_shape[1] && group == output_channel;
-        bool depthwise = false;
-        int pad_mode   = 0;
-        ret            = NpuUtils::GetPadMode(pad_mode, pad_type, false);
+        // pad mode
+        int pad_mode = 0;
+        ret          = NpuUtils::GetPadMode(pad_mode, pad_type);
         if (ret != TNN_OK)
             return ret;
 
@@ -50,50 +51,32 @@ protected:
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
 
-        if (depthwise) {
-            auto output = std::make_shared<ge::op::ConvolutionDepthwise>(outputs_name_[0]);
-            output->set_input_x(*input_ops_[0]->GetOperator());
-            output->set_input_filter(*weight_const);
-            output->set_attr_num_output(output_channel);
-            output->set_attr_group(group);
-            output->set_attr_pad_mode(pad_mode);
-            output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-            output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
-
-            auto output_op = std::make_shared<OperatorInfo>(output);
-            output_ops_.push_back(output_op);
-            return SetOutputOps();
-
-        } else {
-            auto output = std::make_shared<ge::op::Convolution>(outputs_name_[0]);
-            output->set_input_x(*input_ops_[0]->GetOperator());
-            output->set_input_w(*weight_const);
-            // Init weights
-            int bias_count = resource->bias_handle.GetDataCount();
+        auto output = std::make_shared<ge::op::Convolution>(outputs_name_[0]);
+        output->set_input_x(*input_ops_[0]->GetOperator());
+        output->set_input_w(*weight_const);
+        // Init bias
+        int bias_count = resource->bias_handle.GetDataCount();
+        // check bias
+        if (bias_count != 0) {
             // bias
-            if (bias_count != 0) {
-                // bias
-                ge::Shape bias_shape({1, bias_count, 1, 1});
-                auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
-                NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
-                weight_ops_.push_back(bias_const);
-                output->set_input_b(*bias_const);
-            }
-
-            output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h, kernel_w}));
-            output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-            output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
-            output->set_attr_group(group);
-            output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end, pad_w_begin, pad_w_end}));
-            output->set_attr_pad_mode(pad_mode);
-            output->set_attr_num_output(output_channel);
-            auto output_op = std::make_shared<OperatorInfo>(output);
-            output_ops_.push_back(output_op);
-            return SetOutputOps();
+            ge::Shape bias_shape({1, bias_count, 1, 1});
+            auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
+            NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
+            weight_ops_.push_back(bias_const);
+            output->set_input_b(*bias_const);
         }
+        output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h, kernel_w}));
+        output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
+        output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
+        output->set_attr_group(group);
+        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end, pad_w_begin, pad_w_end}));
+        output->set_attr_pad_mode(pad_mode);
+        output->set_attr_num_output(output_channel);
+
+        ADD_OUTPUT_OP(output)
     }
 };
 
-REGISTER_NPU_LAYER(Conv, LAYER_CONVOLUTION);
+REGISTER_NPU_LAYER(Conv, LAYER_CONVOLUTION)
 
 }  // namespace TNN_NS

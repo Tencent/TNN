@@ -19,26 +19,18 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL);
+DECLARE_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL)
 
 Status NpuShuffleChannelLayer::Convert() {
     auto param = dynamic_cast<ShuffleLayerParam *>(param_);
-    if (!param) {
-        LOGE("Error: ShuffleLayerParam is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
-    }
-
-    int group = param->group;
+    CHECK_PARAM_NULL(param);
 
     auto output = std::make_shared<ge::op::ShuffleChannel>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_attr_group(group);
-
-    std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output);
-    output_ops_.push_back(output_op);
-    return SetOutputOps();
+    output->set_attr_group(param->group);
+    ADD_OUTPUT_OP(output)
 }
 
-REGISTER_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL);
+REGISTER_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL)
 
 }  // namespace TNN_NS

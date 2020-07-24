@@ -234,11 +234,11 @@ if(TNN_NPU_ENABLE)
     add_subdirectory(source/tnn/device/npu)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-                ./third_party/npu/hiai_ddk_320/armeabi-v7a/
+                ./third_party/npu/hiai_ddk_latest/armeabi-v7a/
         )
     else()
         link_directories(
-                ./third_party/npu/hiai_ddk_320/arm64-v8a/
+                ./third_party/npu/hiai_ddk_latest/arm64-v8a/
         )
     endif()
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")

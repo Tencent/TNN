@@ -71,18 +71,26 @@ std::string NpuBaseLayer::GetLayerName() {
 Status NpuBaseLayer::SetOutputOps() {
     // calculate the output shape
     // all output index (output shape/ops) follow the outputs_name_ attribute
-    std::vector<std::vector<int>> output_shapes = NpuBaseLayer::GetOutputShapes();
+    std::vector<std::vector<int>> output_shapes;
+    Status ret = NpuBaseLayer::CalculateOutputShape(output_shapes);
+    if (ret != TNN_OK)
+        return ret;
     for (int i = 0; i < outputs_name_.size(); i++) {
         output_ops_[i]->SetShape(output_shapes[i]);
     }
     return TNN_OK;
 }
 
-std::vector<int> NpuBaseLayer::GetOutputShape(int i) {
-    return NpuBaseLayer::GetOutputShapes()[i];
+Status NpuBaseLayer::GetOutputShape(int i, std::vector<int> &output_shape) {
+    std::vector<std::vector<int>> output_shapes;
+    Status ret = CalculateOutputShape(output_shapes);
+    if (ret != TNN_OK)
+        return ret;
+    output_shape = output_shapes[i];
+    return TNN_OK;
 }
 
-std::vector<std::vector<int>> NpuBaseLayer::GetOutputShapes() {
+Status NpuBaseLayer::CalculateOutputShape(std::vector<std::vector<int>> &output_shapes) {
     BaseLayer *shape_calculator = CreateLayer(type_);
     std::vector<Blob *> input_blobs;
     BlobDesc blob_desc;
@@ -96,11 +104,13 @@ std::vector<std::vector<int>> NpuBaseLayer::GetOutputShapes() {
         Blob *blob = new Blob(blob_desc);
         output_blobs.push_back(blob);
     }
-    shape_calculator->InferShapeAhead(input_blobs, output_blobs, param_, resource_);
-    std::vector<std::vector<int>> ret;
-    for (int i = 0; i < outputs_name_.size(); i++) {
-        ret.push_back(output_blobs[i]->GetBlobDesc().dims);
+    Status ret = shape_calculator->InferShapeAhead(input_blobs, output_blobs, param_, resource_);
+    if (ret == TNN_OK) {
+        for (int i = 0; i < outputs_name_.size(); i++) {
+            output_shapes.push_back(output_blobs[i]->GetBlobDesc().dims);
+        }
     }
+
     for (auto &blob : input_blobs) {
         delete (blob);
     }

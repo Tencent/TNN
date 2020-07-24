@@ -30,9 +30,7 @@ public:
 protected:
     Status ObtainParam() {
         auto param = dynamic_cast<ConvLayerParam *>(param_);
-        if (!param) {
-            return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam is empty");
-        }
+        CHECK_PARAM_NULL(param);
         stride_w = param->strides[0];
         stride_h = param->strides[1];
 
