@@ -34,12 +34,15 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     int c_r4           = ROUND_UP(output_dims[1], 4);
     int oh             = output_dims[2];
     int ow             = output_dims[3];
+    int ic             = input_dims[1];
     int ih             = input_dims[2];
     int iw             = input_dims[3];
     int pad_l          = layer_param->pads[0];
     int pad_r          = layer_param->pads[1];
     int pad_t          = layer_param->pads[2];
     int pad_b          = layer_param->pads[3];
+    int pad_c_b = layer_param->pads[4];
+    int pad_c_e = layer_param->pads[5];
     int byte_size      = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
     const int iw_bytes = iw * byte_size * 4;
 
@@ -47,29 +50,67 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
+        float value = layer_param->value;
+
         if (layer_param->type == 0) {
-            Float4 vzero(0);
-            for (int c = 0; c < batch * c_r4; c += 4) {
-                auto input_ptr_c  = input_data + c * ih * iw;
-                auto output_ptr_c = output_data + c * oh * ow;
+            if (pad_c_b == 0 && pad_c_e == 0) {
+                Float4 vvalue(value);
+                for (int c = 0; c < batch * c_r4; c += 4) {
+                    auto input_ptr_c  = input_data + c * ih * iw;
+                    auto output_ptr_c = output_data + c * oh * ow;
 
-                if (pad_t)
-                    memset(output_ptr_c, 0, ow * pad_t * byte_size * 4);
+                    if (pad_t)
+                        for (int i = 0; i < ow * pad_t * 4; ++i)
+                            output_ptr_c[i] = value;
 
-                for (int h = 0; h < ih; ++h) {
-                    auto output_ptr_h = output_ptr_c + ow * (h + pad_t) * 4;
-                    auto input_ptr_h  = input_ptr_c + iw * h * 4;
-                    for (int i = 0; i < pad_l; i++)
-                        Float4::save(output_ptr_h + i * 4, vzero);
+                    for (int h = 0; h < ih; ++h) {
+                        auto output_ptr_h = output_ptr_c + ow * (h + pad_t) * 4;
+                        auto input_ptr_h  = input_ptr_c + iw * h * 4;
+                        for (int i = 0; i < pad_l; i++)
+                            Float4::save(output_ptr_h + i * 4, vvalue);
 
-                    memcpy(output_ptr_h + pad_l * 4, input_ptr_h, iw_bytes);
+                        memcpy(output_ptr_h + pad_l * 4, input_ptr_h, iw_bytes);
 
-                    for (int i = iw + pad_l; i < ow; i++)
-                        Float4::save(output_ptr_h + i * 4, vzero);
+                        for (int i = iw + pad_l; i < ow; i++)
+                            Float4::save(output_ptr_h + i * 4, vvalue);
+                    }
+
+                    if (pad_b)
+                        for (int i = 0; i < ow * pad_b * 4; ++i)
+                            output_ptr_c[ow * (ih + pad_t) * 4 + i] = value;
                 }
+            } else {
+                int cb_border = pad_c_b;
+                int ce_border = pad_c_b + ic;
+                int ht_border = pad_t;
+                int hb_border = pad_t + ih;
+                int wl_border = pad_l;
+                int wr_border = pad_l + iw;
 
-                if (pad_b)
-                    memset(output_ptr_c + ow * (ih + pad_t) * 4, 0, ow * pad_b * byte_size * 4);
+                for (int n = 0; n < batch; ++n) {
+                    auto output_ptr_n = output_data + n * c_r4 * oh * ow;
+                    auto input_ptr_n = input_data + n * ROUND_UP(ic, 4) * ih * iw;
+                    for (int c = 0; c < c_r4; c += 4) {
+                        auto output_ptr_c = output_ptr_n + c * oh * ow;
+                        for (int h = 0; h < oh; ++h) {
+                            for (int w = 0; w < ow; ++w) {
+                                for (int i = 0; i < 4; ++i) {
+                                    int ic_r4 = (c + i - cb_border) / 4;
+                                    auto input_ptr_c  = input_ptr_n + ic_r4 * ih * iw * 4;
+                                    int output_idx = (h * ow + w) * 4 + i;
+                                    if (c+i < cb_border || c+i >= ce_border ||
+                                        h < ht_border || h >= hb_border ||
+                                        w < wl_border || w >= wr_border ) {
+                                            output_ptr_c[output_idx] = value;
+                                    } else {
+                                        int input_idx  = ((h - ht_border) * iw + w - wl_border) * 4 + (c + i - cb_border) % 4;
+                                        output_ptr_c[output_idx] = input_ptr_c[input_idx];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } else if (layer_param->type == 1) {
             for (int c = 0; c < batch * c_r4; c += 4) {
