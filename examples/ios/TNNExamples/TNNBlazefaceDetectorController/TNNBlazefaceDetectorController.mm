@@ -134,8 +134,8 @@ using namespace TNN_NS;
     }
 
     BenchOption bench_option;
-    //TODO: we cannot set an even number
-    bench_option.forward_count = 2;
+    
+    bench_option.forward_count = 20;
     predictor->SetBenchOption(bench_option);
         
     std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
