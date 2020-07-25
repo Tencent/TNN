@@ -81,7 +81,7 @@ private:
     Status AddBlobToMap(size_t index, void *data, bool is_input);
 
     // @brief destory dataset
-    void DestroyDataset(aclmdlDataset *data_set);
+    void DestroyDataset(aclmdlDataset *&data_set);
 
     AtlasModelConfig atlas_config_;
 

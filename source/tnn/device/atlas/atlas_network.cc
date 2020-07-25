@@ -396,6 +396,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
                 chw_size *= acl_dims.dims[i];
             }
             acl_dims.dims[0] = buffer_size / chw_size;
+            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
         }
         LOGD("input shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
@@ -456,7 +457,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     return TNN_OK;
 }
 
-void AtlasNetwork::DestroyDataset(aclmdlDataset *data_set) {
+void AtlasNetwork::DestroyDataset(aclmdlDataset *&data_set) {
     if (nullptr == data_set) {
         return;
     }
@@ -469,6 +470,7 @@ void AtlasNetwork::DestroyDataset(aclmdlDataset *data_set) {
     }
 
     (void)aclmdlDestroyDataset(data_set);
+    data_set = nullptr;
 }
 
 }  // namespace TNN_NS
