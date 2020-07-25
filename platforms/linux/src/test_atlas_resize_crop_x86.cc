@@ -82,19 +82,14 @@ int main(int argc, char* argv[]) {
     Blob* input = input_blobs.begin()->second;
 
     // load input
-    // float* input_data_ptr = nullptr;
     unsigned char* input_data_ptr = nullptr;
-    //auto input_dims             = input->GetBlobDesc().dims;
     std::vector<int> input_dims   = {1,683,1024,3};
     std::vector<int> mid_dims     = {1,641,360,3};
     std::vector<int> output_dims  = {1,641,360,3};
     auto input_format             = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
-        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
         ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
-        // ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1],
-        // input_dims[2]}, false);
         ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2],
                                           {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
@@ -108,7 +103,6 @@ int main(int argc, char* argv[]) {
 
     Status tnn_ret;
     // copy input data into atlas
-    // Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
     Mat input_mat_org(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
     Mat input_mat(DEVICE_ATLAS, NNV12, {mid_dims[0], mid_dims[3], mid_dims[1], mid_dims[2]}, nullptr);
     Mat output_mat(DEVICE_ARM, NNV12, {output_dims[0], output_dims[3], output_dims[1], output_dims[2]}, nullptr);

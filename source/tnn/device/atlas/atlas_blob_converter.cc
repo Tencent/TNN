@@ -33,7 +33,7 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
     if (model_info_map.find(blob) != model_info_map.end()) {
         model_info_      = model_info_map[blob];
         aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &input_index_);
-        LOGD("acl ret: %d  input_index: %d\n", acl_ret);
+        LOGD("acl ret: %d  input_index: %d\n", acl_ret, input_index_);
         if (ACL_ERROR_NONE == acl_ret) {
             use_dynamic_aipp_ = true;
         } else {
@@ -255,8 +255,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
         LOGE("set dynamic aipp failed!\n");
         return tnn_ret;
     }
-
-    auto data_buffer = aclmdlGetDatasetBuffer(model_info_.input_dataset, input_index_);
+    auto data_buffer = aclmdlGetDatasetBuffer(model_info_.input_dataset, 0);
     if (nullptr == data_buffer) {
         LOGE("get data buffer from dataset failed!\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get data buffer failed");
@@ -329,9 +328,13 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     aclError acl_ret = ACL_ERROR_NONE;
     Status tnn_ret   = TNN_OK;
 
-    if (mat.GetBatch() != blob_batchsize_) {
-        aipp_dynamic_set_ = aclmdlCreateAIPP(blob_batchsize_);
-        blob_batchsize_   = mat.GetBatch();
+    if (nullptr == aipp_dynamic_set_) {
+        aipp_mat_batchsize_ = GetMaxBatchSize(model_info_.model_desc);
+        aipp_dynamic_set_   = aclmdlCreateAIPP(aipp_mat_batchsize_);
+        if (nullptr == aipp_dynamic_set_) {
+            LOGE("create aipp info failed\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "create aipp info failed!\n");
+        }
     }
 
     int height = mat.GetHeight();
@@ -342,6 +345,7 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     if (ACL_ERROR_NONE != acl_ret) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set image size failed!\n");
     }
+    LOGD("set aipp input image size: w = %d  h = %d\n", width, height);
 
     // set aipp input format
     aclAippInputFormat aipp_input_format;
@@ -349,22 +353,29 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     if (TNN_OK != tnn_ret) {
         return tnn_ret;
     }
+    acl_ret = aclmdlSetAIPPInputFormat(aipp_dynamic_set_, aipp_input_format);
+    if (ACL_ERROR_NONE != acl_ret) {
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set image format failed!\n");
+    }
+    LOGD("set aipp input format: %d\n", aipp_input_format);
 
     // set aipp mean and var
     int16_t aipp_mean0 = (int16_t)((-1.0) * param.bias[0] / param.scale[0]);
     int16_t aipp_mean1 = (int16_t)((-1.0) * param.bias[1] / param.scale[1]);
     int16_t aipp_mean2 = (int16_t)((-1.0) * param.bias[2] / param.scale[2]);
     int16_t aipp_mean3 = (int16_t)((-1.0) * param.bias[3] / param.scale[3]);
-    for (int i = 0; i < blob_batchsize_; ++i) {
+    for (int i = 0; i < mat.GetBatch(); ++i) {
         acl_ret = aclmdlSetAIPPDtcPixelMean(aipp_dynamic_set_, aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3, i);
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set mean failed!\n");
         }
+        LOGD("set aipp input mean: %d, %d, %d, %d\n", aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3);
         acl_ret = aclmdlSetAIPPPixelVarReci(aipp_dynamic_set_, param.scale[0], param.scale[1], param.scale[2],
                                             param.scale[3], i);
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set var failed!\n");
         }
+        LOGD("set aipp input scale: %f, %f, %f, %f\n", param.scale[0], param.scale[1], param.scale[2], param.scale[3]);
     }
 
     // set aipp ax swap
@@ -373,12 +384,43 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set ax swap failed!\n");
         }
+        LOGD("set aipp ax swap switch: 1\n");
     }
 
-    // set aipp swap
-    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
-    if (ACL_ERROR_NONE != acl_ret) {
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set swap failed!\n");
+    // convert format
+    {
+        // if input is yuv, then use csc to convert from yuv to rgb
+        if (ACL_YUV420SP_U8 == aipp_input_format) {
+            acl_ret = aclmdlSetAIPPCscParams(aipp_dynamic_set_, 1, 256, 0, 359, 256, -88, -183, 256, 454, 0, 0, 0, 0, 0, 128, 128);
+            if (ACL_ERROR_NONE != acl_ret) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set csc failed!\n");
+            }
+            LOGD("set aipp csc params\n");
+        } 
+
+        // set aipp swap
+        if (ACL_RGB888_U8 == aipp_input_format || ACL_XRGB8888_U8 == aipp_input_format) {
+            acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
+            LOGD("set aipp rbuv swap switch: %d\n", param.reverse_channel);
+        } else if (ACL_YUV420SP_U8 == aipp_input_format) {
+            if (NNV12 == mat.GetMatType()) {
+                acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
+                LOGD("set aipp rbuv swap switch: %d\n", param.reverse_channel);
+            } else if (NNV21 == mat.GetMatType()) {
+                // opposite with param.reverse_channel
+                if (param.reverse_channel) {
+                    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, 0);
+                    LOGD("set aipp rbuv swap switch: %d\n", 0);
+                } else {
+                    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, 1);
+                    LOGD("set aipp rbuv swap switch: %d\n", 1);
+                }
+            }
+        }
+
+        if (ACL_ERROR_NONE != acl_ret) {
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set swap failed!\n");
+        }
     }
 
     // set input aipp
@@ -388,6 +430,26 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     }
 
     return TNN_OK;
+}
+
+int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc* desc) {
+    aclmdlBatch batch_info;
+
+    aclError acl_ret = aclmdlGetDynamicBatch(desc, &batch_info);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("get dynamic batch info failed\n");
+        return 0;
+    }
+
+    int max_batchsize = 0;
+    for (int i = 0; i < batch_info.batchCount; ++i) {
+        if (batch_info.batch[i] > max_batchsize) {
+            max_batchsize = batch_info.batch[i];
+        }
+    }
+
+    LOGD("get max batch size: %d\n", max_batchsize);
+    return max_batchsize;
 }
 
 DECLARE_BLOB_CONVERTER_CREATER(Atlas);

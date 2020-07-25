@@ -49,10 +49,10 @@ void AtlasRuntime::IncreaseRef() {
 void AtlasRuntime::DecreaseRef() {
     std::unique_lock<std::mutex> lck(g_mtx);
     ref_count_--;
+    LOGD("AtlasRuntime::DecreaseRef() count=%d\n", ref_count_);
     if (0 == ref_count_) {
         atlas_runtime_singleton_.reset();
     }
-    LOGD("AtlasRuntime::DecreaseRef() count=%d\n", ref_count_);
 }
 
 AtlasRuntime::AtlasRuntime() {
