@@ -177,8 +177,8 @@ typedef void(^CommonCallback)(Status);
     auto predictor_async_thread = _viewModel.predictor;
     auto compute_units = _viewModel.predictor->GetComputeUnits();
     
-    int origin_width = CVPixelBufferGetWidth(image_buffer);
-    int origin_height = CVPixelBufferGetHeight(image_buffer);
+    int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
+    int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
 
 #if TEST_IMAGE_SSD
@@ -265,6 +265,13 @@ typedef void(^CommonCallback)(Status);
     
     //Object
     auto camera_pos = [self.cameraDevice cameraPosition];
+    auto camera_gravity = [self.cameraDevice.videoPreviewLayer videoGravity];
+    int video_gravity = 0;
+    if (camera_gravity == AVLayerVideoGravityResizeAspectFill) {
+        video_gravity = 2;
+    } else if(camera_gravity == AVLayerVideoGravityResizeAspect) {
+        video_gravity = 1;
+    }
     for (int i=0; i<_boundingBoxes.count; i++) {
         if ( i < object_list.size()) {
             auto object = object_list[i];
@@ -272,7 +279,7 @@ typedef void(^CommonCallback)(Status);
             auto view_height = self.cameraPreview.bounds.size.height;
             auto label = [self.viewModel labelForObject:object];
             auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
-            view_face = view_face.AdjustToViewSize(view_height, view_width, 1);
+            view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
             if (camera_pos == AVCaptureDevicePositionFront) {
                 view_face = view_face.FlipX();
             }
