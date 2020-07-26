@@ -55,11 +55,12 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
     if (quantizedModel) {
         // TODO
     } else {
-        param->name           = cur_layer->name;
-        param->type           = cur_layer->type_str;
-        param->quantized      = false;
-        param->input_channel  = ci;
-        param->output_channel = co;
+        param->name      = cur_layer->name;
+        param->type      = cur_layer->type_str;
+        param->quantized = false;
+
+        param->input_channel  = co;
+        param->output_channel = ci;
         param->kernels.push_back(kw);
         param->kernels.push_back(kh);
         param->strides.push_back(conv_opt->stride_w);
@@ -89,7 +90,7 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
         } else if (activation == tflite::ActivationFunctionType_RELU6) {
             param->activation_type = TNN_NS::ActivationType_ReLU6;
         } else if (activation > tflite::ActivationFunctionType_NONE) {
-            LOGE("MNN DepthwiseConv2D do not Support fused_activation_function\n");
+            LOGE("TNN DepthwiseConv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         // update param

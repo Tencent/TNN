@@ -30,12 +30,12 @@ TNN_NS::Status TFLitePadConverter::exec(TNN_NS::NetStructure& net_structure, TNN
                                         bool quantizedModel) {
     TNN_NS::PadLayerParam* param = new TNN_NS::PadLayerParam;
     auto cur_layer               = net_structure.layers.back();
-    cur_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(param);
+    cur_layer->param             = std::shared_ptr<TNN_NS::LayerParam>(param);
     // pad value
     const int pad_value_index    = tf_lite_operator->inputs[1];
     const auto& pad_value_tensor = tf_lite_tensors[pad_value_index];
-    const auto& pad_value_shape = pad_value_tensor->shape;
-    auto pad_value_ptr = reinterpret_cast<int32_t *>(tf_lite_model_buffer[pad_value_tensor->buffer]->data.data());
+    const auto& pad_value_shape  = pad_value_tensor->shape;
+    auto pad_value_ptr = reinterpret_cast<int32_t*>(tf_lite_model_buffer[pad_value_tensor->buffer]->data.data());
     param->pads.resize(6);
     ConvertConstFormatTFLite(param->pads.data(), pad_value_ptr, pad_value_shape);
     auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;

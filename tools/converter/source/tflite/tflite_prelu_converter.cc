@@ -50,6 +50,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
         param->type = cur_layer->type_str;
         param->quantized = false;
         param->channel_shared = 0;
+        param->has_filler = 0;
 
         // update param
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
