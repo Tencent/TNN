@@ -17,7 +17,7 @@
 #include <string>
 
 
-static void sanitize_name(char* name)
+static void SanitizeName(char* name)
 {
     for (std::size_t i = 0; i < strlen(name); i++)
     {
@@ -28,18 +28,18 @@ static void sanitize_name(char* name)
     }
 }
 
-static std::string path_to_varname(const char* path)
+static std::string PathtoVarname(const char* path)
 {
     const char* lastslash = strrchr(path, '/');
     const char* name = lastslash == NULL ? path : lastslash + 1;
 
     std::string varname = name;
-    sanitize_name((char*)varname.c_str());
+    SanitizeName((char*)varname.c_str());
 
     return varname;
 }
 
-static int dump_proto(const char* protopath, const char* modelpath, const char* idcpppath)
+static int DumpProto(const char* protopath, const char* modelpath, const char* idcpppath)
 {
     FILE* fp = fopen(protopath, "rb");
     FILE* mp = fopen(modelpath, "rb");
@@ -55,9 +55,9 @@ static int dump_proto(const char* protopath, const char* modelpath, const char* 
         fprintf(stderr, "fopen %s failed\n", modelpath);
         return -1;
     }
-    std::string proto_var = path_to_varname(protopath);
-    std::string model_var = path_to_varname(modelpath);
-    std::string include_guard_var = path_to_varname(idcpppath);
+    std::string proto_var = PathtoVarname(protopath);
+    std::string model_var = PathtoVarname(modelpath);
+    std::string include_guard_var = PathtoVarname(idcpppath);
 
     FILE* ip = fopen(idcpppath, "wb");
 
@@ -140,6 +140,6 @@ int main(int argc, char** argv)
     const char* protopath = argv[1];
     const char* modelpath = argv[2];
     const char* memcpppath = argv[3];
-    dump_proto(protopath, modelpath, memcpppath);
+    DumpProto(protopath, modelpath, memcpppath);
     return 0;
 }
