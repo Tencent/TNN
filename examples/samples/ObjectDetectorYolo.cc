@@ -57,7 +57,7 @@ Status ObjectDetectorYolo::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
                         Status(TNNERR_PARAM_ERR, "GetInputShape is invalid"));
     
     std::vector<ObjectInfo> object_list;
-    GenerateDetectResult({output_mat_0, output_mat_1, output_mat_2}, object_list);
+    GenerateDetectResult({output_mat_0, output_mat_1, output_mat_2}, object_list, input_shape[3], input_shape[2]);
     output->object_list = object_list;
     return status;
 }
@@ -119,7 +119,7 @@ void ObjectDetectorYolo::NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectIn
 ObjectDetectorYolo::~ObjectDetectorYolo() {}
 
 void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs,
-                                              std::vector<ObjectInfo>& detecs) {
+                                              std::vector<ObjectInfo>& detecs, int image_width, int image_height) {
     std::vector<ObjectInfo> extracted_objs;
     int blob_index = 0;
     
@@ -163,6 +163,8 @@ void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >
             float score = (*max_conf_iter) * objectness;
             
             ObjectInfo obj_info;
+            obj_info.image_width = image_width;
+            obj_info.image_height = image_height;
             obj_info.x1 = x1;
             obj_info.y1 = y1;
             obj_info.x2 = x2;

@@ -189,7 +189,6 @@ typedef void(^CommonCallback)(Status);
     CVBufferRetain(image_buffer);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
-        std::vector<FaceInfo> face_info;
         std::map<std::string, double> map_fps;
         
         //resize

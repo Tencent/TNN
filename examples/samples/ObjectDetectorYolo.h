@@ -48,7 +48,8 @@ public:
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     
 private:
-    void GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs, std::vector<ObjectInfo>& detects);
+    void GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs, std::vector<ObjectInfo>& detects,
+                              int image_width, int image_height);
     void NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results);
     void Sigmoid(float* v, const unsigned int count);
     
