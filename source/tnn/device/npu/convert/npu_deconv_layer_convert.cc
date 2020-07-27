@@ -36,9 +36,9 @@ protected:
         if( !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
         }
-        // check if group > 1
-        if (group > 1) {
-            return Status(TNNERR_LAYER_ERR, "Error: Current npu rom does not support deconv group > 1");
+    if (resource->bias_handle.GetDataCount() > 0 || group > 1) {
+            LOGE("Current IR deconv does not support bias \n");
+            return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
         }
 
         // build now
@@ -50,42 +50,27 @@ protected:
 
         // filter
         int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h * kernel_w * input_channel));
-        ge::Shape filter_shape({kernel_h, kernel_w, input_channel, filter_channel});
+        ge::Shape filter_shape({ input_channel, filter_channel, kernel_h, kernel_w});
         auto filter_const = std::make_shared<ge::op::Const>(layer_name_ + "filter");
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
-
-
+        printf("the filter %d %d %d %d\n",input_channel, filter_channel, kernel_h, kernel_w );
         // calculate deconv output shape
         std::vector<int> calculate_shape;
         ret = NpuBaseLayer::GetOutputShape(0, calculate_shape);
-        printf("THE CALculate shape %d %d %d %d \n", calculate_shape[0],calculate_shape[1],calculate_shape[2],calculate_shape[3]);
-
         if (ret != TNN_OK) {
             return ret;
         }
 
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
-        ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_UINT8);
+        ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_INT32);
         NpuUtils::CreateAttrArray(input_size_const, calculate_shape, desc, 4);
         weight_ops_.push_back(input_size_const);
-
         auto output = std::make_shared<ge::op::Deconvolution>(outputs_name_[0]);
-        // Init bias
-        int bias_count = resource->bias_handle.GetDataCount();
-        // check bias
-        if (bias_count != 0) {
-            // bias
-            ge::Shape bias_shape({1, bias_count, 1, 1});
-            auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
-            NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
-            weight_ops_.push_back(bias_const);
-            output->set_input_bias(*bias_const);
-        }
-        output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_input_filter(*filter_const);
         output->set_input_input_sizes(*input_size_const);
+        output->set_input_filter(*filter_const);
+        output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_attr_group(group);
         output->set_attr_num_output(output_channel);
         output->set_attr_pad(ge::AttrValue::LIST_INT({
@@ -97,7 +82,6 @@ protected:
         output->set_attr_pad_mode(pad_mode);
         output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
         output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
-        output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h, kernel_w}));
 
         std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, calculate_shape);
         output_ops_.push_back(output_op);

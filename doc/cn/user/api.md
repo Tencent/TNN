@@ -198,6 +198,10 @@ struct PUBLIC ModelConfig {
 ModelConfig参数说明：  
 - `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`两种模型格式。  
 - `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径。  
+   NPU : 除了param文件内容以及bin文件路径， 还可以放入第三个参数，为IR(Intermediate Representation)模型构建后生成的om文件的存储位置，
+   empty string 或是null 皆不保存om文件，每次运行重新用IR 构建一遍，并直接从内存读构建好的graph。
+
+
 
 ### 3. core/status.h
 `Status`定义于status.h头文件中。
@@ -280,7 +284,7 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
 - `METAL`: GPU显存（metal)， NC4HW4.
--   
+- `NPU` CPU内存（ION), NC4HW4.
 其中最后4代表pack 4, C4代表最后1位4由4个C进行pack。  
 
 ### 5. core/instance.h

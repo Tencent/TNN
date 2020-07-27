@@ -3,8 +3,7 @@
 #ABIA32="armeabi-v7a with NEON"
 ABIA32="armeabi-v7a"
 ABIA64="arm64-v8a"
-STL="c++_shared"
-#STL="c++_static"
+STL="c++_static"
 #STL="gnustl_static"
 SHARED_LIB="ON"
 ARM="ON"
@@ -45,7 +44,7 @@ if [ -x "build32" ];then
 rm -r build32
 fi
 
-新建build目录
+#新建build目录
 mkdir build32
 cd build32
 echo $ABIA32
@@ -59,7 +58,6 @@ cmake ${TNN_ROOT_PATH} \
       -DBUILD_FOR_ANDROID_COMMAND=true \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
-      -DTNN_NPU_ENABLE:BOOL=$NPU  \
       -DTNN_BENCHMARK_MODE:BOOL=$BENMARK_MODE \
       -DTNN_TEST_ENABLE:BOOL=ON \
       -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
@@ -88,7 +86,6 @@ cmake ${TNN_ROOT_PATH} \
       -DANDROID_TOOLCHAIN=clang \
       -DBUILD_FOR_ANDROID_COMMAND=true \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
-      -DTNN_NPU_ENABLE:BOOL=$NPU\
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
       -DTNN_TEST_ENABLE:BOOL=ON \
       -DTNN_BENCHMARK_MODE:BOOL=$BENMARK_MODE \
