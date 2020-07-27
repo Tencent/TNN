@@ -18,7 +18,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Pad);
 
-std::string TFLitePadConverter::TNNOpType(bool quantizedModel) {
+std::string TFLitePadConverter::TNNOpType(bool quantized_model) {
     return "Pad";
 }
 
@@ -27,7 +27,7 @@ TNN_NS::Status TFLitePadConverter::exec(TNN_NS::NetStructure& net_structure, TNN
                                         const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                         const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                         const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                        bool quantizedModel) {
+                                        bool quantized_model) {
     TNN_NS::PadLayerParam* param = new TNN_NS::PadLayerParam;
     auto cur_layer               = net_structure.layers.back();
     cur_layer->param             = std::shared_ptr<TNN_NS::LayerParam>(param);

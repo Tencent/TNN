@@ -19,8 +19,8 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(DepthwiseConv2D);
 
-std::string TFLiteDepthwiseConv2DConverter::TNNOpType(bool quantizedModel) {
-    if (quantizedModel) {
+std::string TFLiteDepthwiseConv2DConverter::TNNOpType(bool quantized_model) {
+    if (quantized_model) {
         return "QuantizedConvolution";
     }
     return "Convolution";
@@ -31,7 +31,7 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
     const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
+    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantized_model) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
     auto tf_lite_op_type          = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
@@ -57,7 +57,7 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
         LOGE("TNN DepthwiseConv2D do not Support chanel_multipler != 1.\n");
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
-    if (quantizedModel) {
+    if (quantized_model) {
         // TODO
     } else {
         param->name           = cur_layer->name;

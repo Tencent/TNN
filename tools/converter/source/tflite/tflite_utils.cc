@@ -39,14 +39,24 @@ bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int C
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
     // shape [n, h , w, c] -> shape [n, c, h, w]
-    ASSERT(shape.size() == 4);
-    auto h   = shape[1];
-    auto w   = shape[2];
-    auto c   = shape[3];
-    shape[1] = c;
-    shape[2] = h;
-    shape[3] = w;
-    return true;
+    if (shape.size() == 4){
+        auto h   = shape[1];
+        auto w   = shape[2];
+        auto c   = shape[3];
+        shape[1] = c;
+        shape[2] = h;
+        shape[3] = w;
+        return true;
+    } else if (shape.size() < 4 && shape.size() > 0){
+        int shape_size = shape.size();
+        for (int i = 0; i < 4 - shape_size; i++) {
+            shape.push_back(1);
+        }
+        return true;
+    } else {
+        LOGE("TNN Converter do not support wrong shape!\n");
+        return false;
+    }
 }
 
 //template <typename T>

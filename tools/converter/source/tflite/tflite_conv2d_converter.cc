@@ -19,8 +19,8 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(Conv2D);
 
-std::string TFLiteConv2DConverter::TNNOpType(bool quantizedModel) {
-    if (quantizedModel) {
+std::string TFLiteConv2DConverter::TNNOpType(bool quantized_model) {
+    if (quantized_model) {
         return "QuantizedConvolution";
     }
     return "Convolution";
@@ -31,7 +31,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(
     const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
+    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantized_model) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
 
@@ -50,7 +50,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(
     const int kw          = weight_shape[2];
     const int ci          = weight_shape[3];
     const int weight_size = co * kh * kw * ci;
-    if (quantizedModel) {
+    if (quantized_model) {
         // TODO
     } else {
         param->name           = cur_layer->name;

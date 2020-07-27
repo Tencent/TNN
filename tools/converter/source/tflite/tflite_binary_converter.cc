@@ -35,7 +35,7 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
                                            const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                            const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                            const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                           bool quantizedModel) {
+                                           bool quantized_model) {
     auto param     = new TNN_NS::MultidirBroadcastLayerParam;
     auto cur_layer = net_structure.layers.back();
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
@@ -46,19 +46,19 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
 }
 
 DECLARE_BINARY_CONVERTER(Add);
-std::string TFLiteAddConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteAddConverter::TNNOpType(bool quantized_model) {
     return "Add";
 };
 DECLARE_BINARY_CONVERTER(Sub);
-std::string TFLiteSubConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteSubConverter::TNNOpType(bool quantized_model) {
     return "Sub";
 };
 DECLARE_BINARY_CONVERTER(Mul);
-std::string TFLiteMulConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteMulConverter::TNNOpType(bool quantized_model) {
     return "Mul";
 };
 DECLARE_BINARY_CONVERTER(Div);
-std::string TFLiteDivConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteDivConverter::TNNOpType(bool quantized_model) {
     return "Div";
 };
 

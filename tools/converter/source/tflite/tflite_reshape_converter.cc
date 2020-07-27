@@ -13,12 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tflite_op_converter.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reshape);
 
-std::string TFLiteReshapeConverter::TNNOpType(bool quantizedModel) {
-    if (quantizedModel) {
+std::string TFLiteReshapeConverter::TNNOpType(bool quantized_model) {
+    if (quantized_model) {
         return "QuantizedReshape";
     }
     return "Reshape";
@@ -29,18 +30,17 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
                                             const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                             const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                             const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                            bool quantizedModel) {
+                                            bool quantized_model) {
     TNN_NS::ReshapeLayerParam* param = new TNN_NS::ReshapeLayerParam;
     auto cur_layer                   = net_structure.layers.back();
-    auto tf_lite_op_type             = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
-    const auto& reshape_option       = tf_lite_operator->builtin_options.AsReshapeOptions();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name      = cur_layer->name;
+    param->type      = cur_layer->type_str;
+    param->quantized = false;
 
-    if (quantizedModel) {
+    if (quantized_model) {
         // TODO
     } else {
-        param->name      = cur_layer->name;
-        param->type      = cur_layer->type_str;
-        param->quantized = false;
         param->axis      = 0;
         param->num_axes  = 4;
 
@@ -51,19 +51,19 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         for (int i = 0; i < shape_tensor->shape.size(); ++i) {
             shape_size *= shape_tensor->shape[i];
         }
-
         const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
         ASSERT(shape_size == shape_data.size() / 4);
 
         auto dimPtr = reinterpret_cast<const int32_t*>(shape_data.data());
         std::vector<int> reshape_dim(dimPtr, dimPtr + shape_size);
+        reshape_dim[0] = 0;
+        ConvertShapeFormatTFLite(reshape_dim);
+        param->shape = reshape_dim;
     }
 
     // set input output index
     cur_layer->inputs.resize(1);
-    cur_layer->outputs.resize(1);
     cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
-    cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
 }
 

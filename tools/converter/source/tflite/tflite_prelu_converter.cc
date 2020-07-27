@@ -18,8 +18,8 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(PRelu);
 
-std::string TFLitePReluConverter::TNNOpType(bool quantizedModel) {
-    if (quantizedModel) {
+std::string TFLitePReluConverter::TNNOpType(bool quantized_model) {
+    if (quantized_model) {
         // TODO
     }
     return "PReLU";
@@ -29,7 +29,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
                                           const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                           const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                           const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                          bool quantizedModel) {
+                                          bool quantized_model) {
     auto param     = new TNN_NS::PReluLayerParam;
     auto cur_layer = net_structure.layers.back();
 
@@ -43,7 +43,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     const auto& weight_shape = weight_tensor->shape;
     const int co             = weight_shape[2];
 
-    if (quantizedModel) {
+    if (quantized_model) {
         // TODO
     } else {
         param->name = cur_layer->name;
