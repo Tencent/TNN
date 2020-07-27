@@ -13,10 +13,10 @@
 - (instancetype)init {
     self = [super init];
     if (self != nil) {
-        _shapeLayer = [[CAShapeLayer alloc] init];
-        _shapeLayer.fillColor = [UIColor clearColor].CGColor;
-        _shapeLayer.lineWidth = 2;
-        _shapeLayer.hidden = YES;
+        _boxLayer = [[CAShapeLayer alloc] init];
+        _boxLayer.fillColor = [UIColor clearColor].CGColor;
+        _boxLayer.lineWidth = 2;
+        _boxLayer.hidden = YES;
 
         _textLayer =[[CATextLayer alloc] init];
         _textLayer.foregroundColor = [UIColor blackColor].CGColor;
@@ -41,24 +41,27 @@
 - (void)addToLayer:(CALayer *)layer {
     [layer addSublayer:_boxLayer];
     [layer addSublayer:_textLayer];
+    
+    auto markLayers = _markLayers;
+    for (CAShapeLayer * item in markLayers) {
+        [layer addSublayer:item];
+    }
 }
 
 -(void)removeFromSuperLayer {
     [_boxLayer removeFromSuperlayer];
     [_textLayer removeFromSuperlayer];
+    
+    auto markLayers = _markLayers;
+    for (CAShapeLayer * item in markLayers) {
+        [item removeFromSuperlayer];
+    }
 }
 
 - (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame {
     [CATransaction setDisableActions:YES];
     
-    auto path = [UIBezierPath bezierPath];
-    [path moveToPoint:CGPointMake(frame.origin.x-2, frame.origin.y)];
-    [path addLineToPoint:CGPointMake(frame.origin.x+2, frame.origin.y)];
-    [path moveToPoint:CGPointMake(frame.origin.x, frame.origin.y-2)];
-    [path addLineToPoint:CGPointMake(frame.origin.x, frame.origin.y+2)];
-    [path closePath];
-    
-//    auto path = [UIBezierPath bezierPathWithRect:frame];
+    auto path = [UIBezierPath bezierPathWithRect:frame];
     _boxLayer.path = path.CGPath;
     _boxLayer.strokeColor = color.CGColor;
     _boxLayer.hidden = NO;
@@ -97,8 +100,14 @@
         [newMarkLayers addObject:boxLayer];
     }
     
+    auto super_layer = _boxLayer.superlayer;
     for (auto i=0; i<newMarkLayers.count; i++) {
         auto layer = newMarkLayers[i];
+        if (layer.superlayer != super_layer) {
+            [layer removeFromSuperlayer];
+            [super_layer addSublayer:layer];
+        }
+        
         if (i < points.size()) {
             auto pt = points[i];
             auto path = [UIBezierPath bezierPath];
@@ -115,6 +124,7 @@
             layer.hidden = YES;
         }
     }
+    _markLayers = newMarkLayers;
     
     [CATransaction setDisableActions:NO];
 }
