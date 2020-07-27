@@ -15,11 +15,11 @@ using namespace TNN_NS;
 
 typedef void(^CommonCallback)(Status);
 #define kMaxBuffersInFlight 1
-const int target_height = 640;
-const int target_width = 480;
+
+#define TEST_IMAGE_SSD 0
 
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
-    std::vector<TNN_NS::FaceInfo> _faces_last;
+    std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
@@ -40,6 +40,8 @@ const int target_width = 480;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.navigationItem.title = _viewModel.title;
+    
     //colors for each class
     auto colors = [NSMutableArray array];
     for (NSNumber *r in @[@(0.2), @(0.4), @(0.6), @(0.8), @(1.0)]) {
@@ -54,7 +56,7 @@ const int target_width = 480;
     }
     self.colors = colors;
     
-    _faces_last = {};
+    _object_list_last = {};
     _fps_counter = std::make_shared<TNNFPSCounter>();
     
     _boundingBoxes = [NSArray array];
@@ -81,7 +83,7 @@ const int target_width = 480;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
-            [self showObjectInfo:std::vector<FaceInfo>() withStatus:status];
+            [self showSDKOutput:nullptr withStatus:status];
         }
     }];
     
@@ -126,84 +128,13 @@ const int target_width = 480;
                  callback:(CommonCallback)callback {
     //异步加载模型
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        Status status = [self loadNeuralNetworkModel:units];
+        Status status = [self.viewModel loadNeuralNetworkModel:units];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (callback) {
                 callback(status);
             }
         });
     });
-}
-
--(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
-    Status status = TNN_OK;
-    
-    //Get metallib path from app bundle
-    //PS：A script(Build Phases -> Run Script) is added to copy the metallib file from tnn framework project to TNNExamples app
-    //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
-    auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib"
-    ofType:nil];
-#if TNN_SDK_USE_NCNN_MODEL
-        auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.bin"
-                                                           ofType:nil];
-        auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.param"
-                                                           ofType:nil];
-#else
-        auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
-                                                           ofType:@""];
-        auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
-                                                           ofType:@""];
-#endif
-    if (model_path.length <= 0 || proto_path.length <= 0) {
-        status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
-        NSLog(@"Error: proto or model path is invalid");
-        return status;
-    }
-
-    NSString *protoFormat = [NSString stringWithContentsOfFile:proto_path
-                                                   encoding:NSUTF8StringEncoding
-                                                      error:nil];
-    string proto_content = protoFormat.UTF8String;
-    NSData *data = [NSData dataWithContentsOfFile:model_path];
-    string model_content = [data length] > 0 ? string((const char *)[data bytes], [data length]) : "";
-    if (proto_content.size() <= 0 || model_content.size() <=0) {
-        status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
-        NSLog(@"Error: proto or model path is invalid");
-        return status;
-    }
-    
-    auto option = std::make_shared<UltraFaceDetectorOption>();
-    {
-        option->proto_content = proto_content;
-        option->model_content = model_content;
-        option->library_path = library_path.UTF8String;
-        option->compute_units = units;
-        //only one input, ignore the input name
-        option->input_shapes = {{"ignore", {1,3,target_height,target_width}}};
-        
-        option->input_width = target_width;
-        option->input_height = target_height;
-        option->score_threshold = 0.975;
-        option->iou_threshold = 0.23;
-        option->topk = 1;
-    }
-    
-    auto predictor = std::make_shared<UltraFaceDetector>();
-    status = predictor->Init(option);
-    if (status != TNN_OK) {
-        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
-        NSLog(@"Error: %s", status.description().c_str());
-        return status;
-    }
-    
-    BenchOption bench_option;
-    bench_option.forward_count = 1;
-    predictor->SetBenchOption(bench_option);
-    
-    //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
-    //for muti-thread safety, copy to member variable after allocate
-    _predictor = predictor;
-    return status;
 }
 
 #pragma mark - IBAction Interfaces
@@ -215,7 +146,7 @@ const int target_width = 480;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
-            [self showObjectInfo:std::vector<FaceInfo>() withStatus:status];
+            [self showSDKOutput:nullptr withStatus:status];
         }
     }];
 }
@@ -233,17 +164,26 @@ const int target_width = 480;
 
 #pragma mark - predict Interfaces
 - (void)predict:(CVImageBufferRef)image_buffer {
-    if (_predictor == nullptr) return;
+    if (!_viewModel || !_viewModel.predictor) return;
     
-    const DimsVector target_dims = {1, 3, target_height, target_width};
-    
+    const auto target_dims = self.viewModel.predictor->GetInputShape();
+    auto target_height = target_dims[2];
+    auto target_width = target_dims[3];
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
-    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting face
+    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
-    auto predictor_async_thread = _predictor;
-    auto compute_units = predictor_async_thread->GetComputeUnits();
+    auto predictor_async_thread = _viewModel.predictor;
+    auto compute_units = _viewModel.predictor->GetComputeUnits();
+    
+    int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
+    int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
+    CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
+
+#if TEST_IMAGE_SSD
+    origin_image_size = CGSizeMake(768, 538);
+#endif
     
     //异步运行模型
     CVBufferRetain(image_buffer);
@@ -254,7 +194,18 @@ const int target_width = 480;
         
         //resize
         fps_counter_async_thread->Begin("resize");
+#if TEST_IMAGE_SSD
+        auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
+                                                                                          ofType:nil]];
+        auto image_data = utility::UIImageGetData(image_png, target_height, target_width);
+        
+        
+#else
         auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
+//        auto image_terget = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
+//        UIImageWriteToSavedPhotosAlbum(image_terget, nil, nil, nil);
+#endif
+        
         fps_counter_async_thread->End("resize");
         CVBufferRelease(image_buffer);
         
@@ -286,15 +237,12 @@ const int target_width = 480;
             }
             map_fps = fps_counter_async_thread->GetAllFPS();
             
-            if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
-                auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
-                face_info = face_output->face_list;
-            }
         } while (0);
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSLog(@"face count:%d", (int)face_info.size());
-            [self showObjectInfo:face_info withStatus:status];
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self showSDKOutput:sdk_output
+            withOriginImageSize:origin_image_size
+                     withStatus:status];
             [self showFPS:map_fps];
         });
         
@@ -303,18 +251,35 @@ const int target_width = 480;
 
 }
 
-- (void)showObjectInfo:(std::vector<FaceInfo>)faces withStatus:(Status)status {
-    faces = [self reorder:faces];
+- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
+       withOriginImageSize:(CGSize)size
+           withStatus:(Status)status {
+    auto object_list = [self.viewModel getObjectList:output];
+    [self showObjectInfo:object_list withOriginImageSize:size withStatus:status];
+}
+
+- (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
+            withOriginImageSize:(CGSize)origin_size
+            withStatus:(Status)status {
+    object_list = [self reorder:object_list];
     
     //Object
     auto camera_pos = [self.cameraDevice cameraPosition];
+    auto camera_gravity = [self.cameraDevice.videoPreviewLayer videoGravity];
+    int video_gravity = 0;
+    if (camera_gravity == AVLayerVideoGravityResizeAspectFill) {
+        video_gravity = 2;
+    } else if(camera_gravity == AVLayerVideoGravityResizeAspect) {
+        video_gravity = 1;
+    }
     for (int i=0; i<_boundingBoxes.count; i++) {
-        if ( i < faces.size()) {
-            auto face = faces[i];
+        if ( i < object_list.size()) {
+            auto object = object_list[i];
             auto view_width = self.cameraPreview.bounds.size.width;
             auto view_height = self.cameraPreview.bounds.size.height;
-            auto label = [NSString stringWithFormat:@"%.2f", face.score];
-            auto view_face = face.AdjustToViewSize(view_height, view_width, 2);
+            auto label = [self.viewModel labelForObject:object];
+            auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
+            view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
             if (camera_pos == AVCaptureDevicePositionFront) {
                 view_face = view_face.FlipX();
             }
@@ -334,18 +299,18 @@ const int target_width = 480;
     }
 }
 
-- (std::vector<FaceInfo>)reorder:(std::vector<FaceInfo>) faces {
-    if (_faces_last.size() > 0 && faces.size() > 0) {
-        std::vector<FaceInfo> faces_reorder;
-        //按照原有排序插入faces中原先有的元素
-        for (int index_last = 0; index_last < _faces_last.size(); index_last++) {
-            auto face_last = _faces_last[index_last];
+- (std::vector<std::shared_ptr<ObjectInfo> >)reorder:(std::vector<std::shared_ptr<ObjectInfo> >) object_list {
+    if (_object_list_last.size() > 0 && object_list.size() > 0) {
+        std::vector<std::shared_ptr<ObjectInfo> > object_list_reorder;
+        //按照原有排序插入object_list中原先有的元素
+        for (int index_last = 0; index_last < _object_list_last.size(); index_last++) {
+            auto object_last = _object_list_last[index_last];
             //寻找最匹配元素
             int index_target = 0;
             float area_target = -1;
-            for (int index=0; index<faces.size(); index++) {
-                auto face = faces[index];
-                auto area = face_last.IntersectionRatio(&face);
+            for (int index=0; index<object_list.size(); index++) {
+                auto object = object_list[index];
+                auto area = object_last->IntersectionRatio(object.get());
                 if (area > area_target) {
                     area_target = area;
                     index_target = index;
@@ -353,22 +318,22 @@ const int target_width = 480;
             }
 
             if (area_target > 0) {
-                faces_reorder.push_back(faces[index_target]);
+                object_list_reorder.push_back(object_list[index_target]);
                 //删除指定下标元素
-                faces.erase(faces.begin() + index_target);
+                object_list.erase(object_list.begin() + index_target);
             }
         }
 
         //插入原先没有的元素
-        if (faces.size() > 0) {
-            faces_reorder.insert(faces_reorder.end(), faces.begin(), faces.end());
+        if (object_list.size() > 0) {
+            object_list_reorder.insert(object_list_reorder.end(), object_list.begin(), object_list.end());
         }
 
-        _faces_last = faces_reorder;
-        return faces_reorder;
+        _object_list_last = object_list_reorder;
+        return object_list_reorder;
     } else{
-        _faces_last = faces;
-        return faces;
+        _object_list_last = object_list;
+        return object_list;
     }
 }
 

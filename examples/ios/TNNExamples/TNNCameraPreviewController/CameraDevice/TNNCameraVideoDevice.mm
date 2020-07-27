@@ -14,7 +14,7 @@ AVCapturePhotoCaptureDelegate> {
 @property (nonatomic, strong) AVCaptureDeviceInput *captureDeviceInput;
 @property (nonatomic, strong) AVCaptureVideoDataOutput *videoOutput;
 @property (nonatomic, strong) AVCapturePhotoOutput *photoOutput;
-@property (nonatomic, weak) UIView *previewView;
+@property (nonatomic, strong) AVCaptureVideoPreviewLayer *videoPreviewLayer;
 
 @property (nonatomic, strong) dispatch_queue_t queue;
 @property (nonatomic, strong) id <MTLDevice> device;

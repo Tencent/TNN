@@ -13,12 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNExamplesListController.h"
-#include <cmath>
-#include <float.h>
-#include <fstream>
-#include <sstream>
-#include <sys/time.h>
-#import <tnn/tnn.h>
+#import "TNNCameraPreviewController.h"
+#import "TNNFaceDetectorViewModel.h"
+#import "TNNSSDObjectDetectorViewModel.h"
+#import "TNNYoloObjectDetectorViewModel.h"
 
 using namespace std;
 
@@ -58,14 +56,22 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageColourController"];
     } else if (indexPath.section == 3){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNFaceDetectorViewModel new];
+        cameraViewController.viewModel.title = @"人脸检测 - mbv2+SSD";
     } else if (indexPath.section == 4) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNObjectDetectorController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNSSDObjectDetectorViewModel new];
+        cameraViewController.viewModel.title = @"物体检测 - mbv2+SSD";
     } else if (indexPath.section == 5) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoloObjectDetectorController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
+        cameraViewController.viewModel.title = @"物体检测 - yolov5";
     } else if (indexPath.section == 6) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
     }
-
     if (!vc) {
         return;
     }
