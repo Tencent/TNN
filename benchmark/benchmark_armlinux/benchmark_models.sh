@@ -22,17 +22,15 @@ WORK_DIR=`pwd`
 BENCHMARK_MODEL_DIR=$WORK_DIR/../benchmark-model
 BUILD_DIR=build
 OUTPUT_LOG_FILE=benchmark_models_result.txt
-LOOP_COUNT=2
-WARM_UP_COUNT=2
+LOOP_COUNT=16
+WARM_UP_COUNT=8
 
 benchmark_model_list=(
 #test.tnnproto \
-    squeezenet_v1.0.tnnproto \
-    squeezenet_v1.1.tnnproto \
 )
 
 function usage() {
-    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>"
+    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-t] <CPU/GPU>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
@@ -114,7 +112,7 @@ function bench_armlinux() {
     fi
 
     if [ "ON" == $PROFILING ]; then
-        WARM_UP_COUNT=2
+        WARM_UP_COUNT=5
         LOOP_COUNT=1
     fi
 
