@@ -87,7 +87,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="j8N-8N-DvR" userLabel="BtnTNN Exampls">
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="j8N-8N-DvR" userLabel="BtnTNN Examples">
                                 <rect key="frame" x="188" y="563" width="120" height="40"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                 <color key="backgroundColor" systemColor="systemBlueColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -498,6 +498,39 @@
                                     </tableViewCell>
                                 </cells>
                             </tableViewSection>
+                            <tableViewSection id="7jS-PF-WNV">
+                                <cells>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" rowHeight="80" id="bUF-nE-JbI">
+                                        <rect key="frame" x="0.0" y="844" width="375" height="80"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="bUF-nE-JbI" id="Kk5-nV-Ebw">
+                                            <rect key="frame" x="0.0" y="0.0" width="375" height="80"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="人脸检测(Blazeface)" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="MaR-tQ-I5k">
+                                                    <rect key="frame" x="21" y="15" width="163" height="21"/>
+                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="单输入多输出" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wxs-nL-xmp">
+                                                    <rect key="frame" x="20" y="43.5" width="104" height="21"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="MaR-tQ-I5k" firstAttribute="top" secondItem="Kk5-nV-Ebw" secondAttribute="top" constant="15" id="5jF-KF-foV"/>
+                                                <constraint firstItem="wxs-nL-xmp" firstAttribute="top" secondItem="MaR-tQ-I5k" secondAttribute="bottom" constant="7.5" id="ejT-NZ-QAN"/>
+                                                <constraint firstItem="wxs-nL-xmp" firstAttribute="leading" secondItem="Kk5-nV-Ebw" secondAttribute="leading" constant="20" id="iEi-wP-Tza"/>
+                                                <constraint firstAttribute="bottom" secondItem="wxs-nL-xmp" secondAttribute="bottom" priority="250" constant="15.5" id="jgA-lp-R8K"/>
+                                                <constraint firstItem="MaR-tQ-I5k" firstAttribute="leading" secondItem="Kk5-nV-Ebw" secondAttribute="leading" constant="20" id="rJ9-9h-BVs"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                </cells>
+                            </tableViewSection>
                         </sections>
                         <connections>
                             <outlet property="dataSource" destination="jDT-gM-iHE" id="ggX-Ye-BF7"/>
@@ -511,6 +544,7 @@
                         <segue destination="AwB-4D-ExP" kind="show" id="gjf-d3-x5D"/>
                         <segue destination="PJc-D7-Ivv" kind="show" id="1wx-bU-IUG"/>
                         <segue destination="gtC-O2-E5m" kind="show" id="CMy-Kf-o5J"/>
+                        <segue destination="aqD-Jk-Yfl" kind="show" id="uBb-25-v2q"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="9yb-bE-TQ2" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -645,7 +679,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cky-D9-xqF" userLabel="BtnTNN Exampls">
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cky-D9-xqF" userLabel="BtnTNN Examples">
                                 <rect key="frame" x="188" y="543" width="120" height="40"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                 <color key="backgroundColor" systemColor="systemBlueColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -684,7 +718,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <viewLayoutGuide key="safeArea" id="4Ge-z1-DzP"/>
                     </view>
                     <navigationItem key="navigationItem" title="TNNYoloiObjectDetectorController" id="o4x-jf-Ymw" userLabel="TNNYoloObjectDetectorController">
@@ -705,9 +739,79 @@
             </objects>
             <point key="canvasLocation" x="2080.8000000000002" y="798.35082458770626"/>
         </scene>
+        <!--TNNBlazefaceDetectorController-->
+        <scene sceneID="rjo-Ks-7TZ">
+            <objects>
+                <viewController storyboardIdentifier="TNNBlazefaceDetectorController" id="aqD-Jk-Yfl" userLabel="TNNBlazefaceDetectorController" customClass="TNNBlazefaceDetectorController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="DzL-jw-jBn">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mto-2t-9aH">
+                                <rect key="frame" x="15" y="59" width="345" height="509"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </imageView>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="CGw-IB-KII" userLabel="SwitchGPU">
+                                <rect key="frame" x="81" y="588" width="49" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="onSwitchChanged:" destination="aqD-Jk-Yfl" eventType="valueChanged" id="ABP-6u-ivp"/>
+                                </connections>
+                            </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="GPU" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="4" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2vr-dI-RkP">
+                                <rect key="frame" x="30" y="595" width="35" height="17"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="0.5" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="" lineBreakMode="tailTruncation" numberOfLines="4" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mis-ec-az7" userLabel="Label Result">
+                                <rect key="frame" x="30" y="474" width="315" height="54"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="0.5" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="URz-fZ-By3" userLabel="BtnTNN Examples">
+                                <rect key="frame" x="187" y="581" width="120" height="40"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" systemColor="systemBlueColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <state key="normal" title="Run">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </state>
+                                <connections>
+                                    <action selector="onBtnTNNExamples:" destination="aqD-Jk-Yfl" eventType="touchUpInside" id="HCC-GO-7kH"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <viewLayoutGuide key="safeArea" id="ATJ-Vt-f8Y"/>
+                    </view>
+                    <navigationItem key="navigationItem" title="TNNBlazefaceDetectorController" id="ka2-J5-iXt" userLabel="TNNBlazefaceDetectorController">
+                        <barButtonItem key="rightBarButtonItem" systemItem="compose" id="4zv-q4-iwU">
+                            <connections>
+                                <segue destination="jDT-gM-iHE" kind="show" id="KKB-gT-RBT"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="btnExample" destination="URz-fZ-By3" id="7jT-IM-FFo"/>
+                        <outlet property="imageView" destination="Mto-2t-9aH" id="ina-KE-gYP"/>
+                        <outlet property="labelGPU" destination="2vr-dI-RkP" id="JsF-Ja-IMs"/>
+                        <outlet property="labelResult" destination="mis-ec-az7" id="n4i-Rp-lKe"/>
+                        <outlet property="switchGPU" destination="CGw-IB-KII" id="vAU-1T-tB8"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="tvY-8u-yZu" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="3106.4000000000001" y="787.55622188905556"/>
+        </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="lkg-b7-2yB"/>
+        <segue reference="eRu-Rx-vNT"/>
     </inferredMetricsTieBreakers>
     <resources>
         <image name="camera_rotate_fill.png" width="200" height="200"/>

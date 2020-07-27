@@ -384,8 +384,7 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
-
-
+        
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -468,6 +467,36 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
         offset                 = y * image_width + x_max;
         image_rgba[offset]     = {0, 255, 0, 0};
         image_rgba[offset - 1] = {0, 255, 0, 0};
+    }
+}
+
+/*
+ * Point
+ */
+void Point(void *data_rgba, int image_height, int image_width,
+int x, int y, float scale_x, float scale_y)
+{
+    RGBA *image_rgba = (RGBA *)data_rgba;
+    int x_center = x * scale_x;
+    int y_center = y * scale_y;
+    int x_start = (x-1) * scale_x;
+    int x_end   = (x+1) * scale_x;
+    int y_start = (y-1) * scale_y;
+    int y_end   = (y+1) * scale_y;
+    
+    x_start = std::min(std::max(0, x_start), image_width - 1);
+    x_end   = std::min(std::max(0, x_end), image_width - 1);
+    y_start = std::min(std::max(0, y_start), image_height - 1);
+    y_end   = std::min(std::max(0, y_end), image_height - 1);
+    
+    for(int x = x_start; x<=x_end; ++x) {
+        int offset                       = y_center * image_width + x;
+        image_rgba[offset]               = {255, 0, 255, 0};
+    }
+    
+    for(int y = y_start; y<=y_end; ++y) {
+        int offset                       = y * image_width + x_center;
+        image_rgba[offset]               = {255, 0, 255, 0};
     }
 }
 

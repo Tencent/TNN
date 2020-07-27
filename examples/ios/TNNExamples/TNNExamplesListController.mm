@@ -69,8 +69,9 @@ using namespace std;
         auto cameraViewController = (TNNCameraPreviewController*)vc;
         cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
         cameraViewController.viewModel.title = @"物体检测 - yolov5";
+    } else if (indexPath.section == 6) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
     }
-
     if (!vc) {
         return;
     }
