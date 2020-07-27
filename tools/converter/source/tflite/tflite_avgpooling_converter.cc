@@ -15,21 +15,21 @@
 #include "tflite_op_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(MaxPooling);
+DECLARE_OP_CONVERTER(AvgPooling);
 
-std::string TFLiteMaxPoolingConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteAvgPoolingConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {
         return "QuantizedPooling";
     }
     return "Pooling";
 }
 
-TNN_NS::Status TFLiteMaxPoolingConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-                                            const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-                                            const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-                                            const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                            bool quantizedModel) {
+TNN_NS::Status TFLiteAvgPoolingConverter::exec(
+    TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantizedModel) {
     TNN_NS::PoolingLayerParam* param = new TNN_NS::PoolingLayerParam;
     auto cur_layer                   = net_structure.layers.back();
     auto tf_lite_op_type             = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
@@ -85,5 +85,5 @@ TNN_NS::Status TFLiteMaxPoolingConverter::exec(TNN_NS::NetStructure& net_structu
 }
 
 using namespace tflite;
-REGISTER_CONVERTER(MaxPooling, BuiltinOperator_MAX_POOL_2D);
+REGISTER_CONVERTER(AvgPooling, BuiltinOperator_AVERAGE_POOL_2D);
 }  // namespace TNN_CONVERTER

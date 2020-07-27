@@ -15,64 +15,48 @@
 #include "tflite_op_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(MaxPooling);
+DECLARE_OP_CONVERTER(Reshape);
 
-std::string TFLiteMaxPoolingConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteReshapeConverter::TNNOpType(bool quantizedModel) {
     if (quantizedModel) {
-        return "QuantizedPooling";
+        return "QuantizedReshape";
     }
-    return "Pooling";
+    return "Reshape";
 }
 
-TNN_NS::Status TFLiteMaxPoolingConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                             const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                             const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                             const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                             const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
                                             bool quantizedModel) {
-    TNN_NS::PoolingLayerParam* param = new TNN_NS::PoolingLayerParam;
+    TNN_NS::ReshapeLayerParam* param = new TNN_NS::ReshapeLayerParam;
     auto cur_layer                   = net_structure.layers.back();
     auto tf_lite_op_type             = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
-    const auto& pool_option          = tf_lite_operator->builtin_options.AsPool2DOptions();
+    const auto& reshape_option       = tf_lite_operator->builtin_options.AsReshapeOptions();
 
     if (quantizedModel) {
         // TODO
     } else {
-        ASSERT(pool_option->fused_activation_function == tflite::ActivationFunctionType_NONE);
-
         param->name      = cur_layer->name;
         param->type      = cur_layer->type_str;
         param->quantized = false;
+        param->axis      = 0;
+        param->num_axes  = 4;
 
-        param->kernels_params.push_back(pool_option->filter_width);
-        param->kernels_params.push_back(pool_option->filter_height);
+        const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
+        ASSERT(shape_tensor->type == tflite::TensorType_INT32);
 
-        param->strides.push_back(pool_option->stride_w);
-        param->strides.push_back(pool_option->stride_h);
-
-        // default: Padding_SAME
-        param->pad_type = 0;
-        if (pool_option->padding == tflite::Padding_VALID) {
-            // tensorflow pad valid
-            param->pad_type = 1;
-        }
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-
-        param->pool_type    = 1;
-        const auto op_index = tf_lite_operator->opcode_index;
-        auto op_type        = tf_lite_op_set[op_index]->builtin_code;
-        if (op_type == tflite::BuiltinOperator_MAX_POOL_2D) {
-            param->pool_type = 0;
+        int shape_size = 1;
+        for (int i = 0; i < shape_tensor->shape.size(); ++i) {
+            shape_size *= shape_tensor->shape[i];
         }
 
-        param->kernel_indexs.push_back(-1);
-        param->kernel_indexs.push_back(-1);
+        const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
+        ASSERT(shape_size == shape_data.size() / 4);
 
-        // update param
-        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+        auto dimPtr = reinterpret_cast<const int32_t*>(shape_data.data());
+        std::vector<int> reshape_dim(dimPtr, dimPtr + shape_size);
     }
 
     // set input output index
@@ -80,10 +64,9 @@ TNN_NS::Status TFLiteMaxPoolingConverter::exec(TNN_NS::NetStructure& net_structu
     cur_layer->outputs.resize(1);
     cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
-
     return TNN_NS::TNN_CONVERT_OK;
 }
 
 using namespace tflite;
-REGISTER_CONVERTER(MaxPooling, BuiltinOperator_MAX_POOL_2D);
+REGISTER_CONVERTER(Reshape, BuiltinOperator_RESHAPE);
 }  // namespace TNN_CONVERTER
