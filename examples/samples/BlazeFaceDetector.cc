@@ -92,10 +92,6 @@ void BlazeFaceDetector::GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS
         info.y1 = (y_center - height / 2.0) * image_h;
         info.x2 = (x_center + width / 2.0) * image_w;
         info.y2 = (y_center + height / 2.0) * image_h;
-        //info.x1 = x_center - width / 2.0;
-        //info.y1 = y_center - height / 2.0;
-        //info.x2 = x_center + width / 2.0;
-        //info.y2 = y_center + height / 2.0;
         // key points
         for(int j=0; j<num_keypoints; ++j) {
             int offset = j * 2 + 4;
