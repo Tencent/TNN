@@ -231,7 +231,6 @@ if(TNN_ATLAS_ENABLE)
     include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
 endif()
 if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
                 ./third_party/npu/hiai_ddk_latest/armeabi-v7a/
@@ -241,6 +240,7 @@ if(TNN_NPU_ENABLE)
                 ./third_party/npu/hiai_ddk_latest/arm64-v8a/
         )
     endif()
+    add_subdirectory(source/tnn/device/npu)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
 endif()
 

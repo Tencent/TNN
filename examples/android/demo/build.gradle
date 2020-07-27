@@ -17,7 +17,7 @@ android {
             }
         }
         ndk {
-            abiFilters "arm64-v8a"
+            abiFilters "armeabi-v7a"
         }
 
     }
@@ -44,14 +44,22 @@ android {
 }
 
 task deleteFiles(type: Delete) {
-    delete 'src/main/jni/thirdparty/hiai_ddk/arm64-v8a', 'src/main/jni/thirdparty/hiai_ddk/armeabi-v7a',
-    'src/main/jni/thirdparty/hiai_ddk/include'
+    if ( file('src/main/jni/thirdparty/hiai_ddk/arm64-v8a').exists()) {
+        delete 'src/main/jni/thirdparty/hiai_ddk/arm64-v8a'
+    }
+    if (file('src/main/jni/thirdparty/hiai_ddk/armeabi-v7a').exists()) {
+        delete 'src/main/jni/thirdparty/hiai_ddk/armeabi-v7a'
+    }
+    if (file('src/main/jni/thirdparty/hiai_ddk/include').exists())
+        delete'src/main/jni/thirdparty/hiai_ddk/include'
 }
 clean.dependsOn(deleteFiles)
 
 task copyFiles(type: Copy) {
-    from '../../../third_party/npu/hiai_ddk_latest'
-    into 'src/main/jni/thirdparty/hiai_ddk'
+    if (file('../../../third_party/npu/hiai_ddk_latest').exists()) {
+        from '../../../third_party/npu/hiai_ddk_latest'
+        into 'src/main/jni/thirdparty/hiai_ddk'
+    }
 }
 
 preBuild.dependsOn(copyFiles)

@@ -14,7 +14,7 @@
         protobuf >= 3.0
         
 
-##NPU 相关
+## NPU : How we obtain the DDK and compile the project?
 * Where is NPU ddk? 
 * Downlaod DDK from the following path [https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
 * unzip 
@@ -66,7 +66,15 @@ hiai_ddk_latest\
     │   ├── tensor.h \
     │   └── types.h\
     └── hiai_ir_build.h\
-    
+
+## Current NPU support situation 
+* If the NPU is of the version below 100.320.xxxxxxx
+  ERROR: npu is installed but is below 100.320.xxx.xxx
+* If the phone does not belong to Huawei or ROM version is too low：
+  ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low
+  
+## How to update the latest ROM version ?
+* Go to Settings > System and Update > Software Update
     
 ## Model support:
 

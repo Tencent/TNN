@@ -13,8 +13,8 @@
         onnx-simplifier>=0.2.4
         protobuf >= 3.0
 
-##NPU 相关
-* 我们如何拿到NPU ddk? 
+## 我们如何拿到NPU DDK以及编译NPU? 
+* 我们如何拿到NPU DDK? 
 * 到华为开发者联盟下载DDK[https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
 * 解压缩
 * 进入到下载文件夹下的`ddk`目录
@@ -65,6 +65,17 @@ hiai_ddk_latest\
     │   ├── tensor.h \
     │   └── types.h\
     └── hiai_ir_build.h\
+    
+## 当前NPU的支持情况?
+* 如果手机的ROM是在300以下即二代NPU 
+  报错：
+  ERROR: npu is installed but is below 100.320.xxx.xxx
+* 如果没有npu或是非华为手机 ：
+  报错 ：
+  ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low
+  
+## 如何更新到最新的RO？ 
+*到 设置 》 系统和更新 》 软件更新 中检查￿最新的rom版本并更新。
         
 ## 模型支持：
 

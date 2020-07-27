@@ -62,8 +62,8 @@ Status NpuNetwork::InitCheck() {
     // check if NPU version is greater than 300
     int version_num = NpuUtils::checkNpuVersion(version);
     LOGI("ddk current version: %s", version);
-    if (version_num < 300) {
-        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: npu is installed but is below 100.300.xxx.xxx");
+    if (version_num < 320) {
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: npu is installed but is below 100.320.xxx.xxx");
     }
     return TNN_OK;
 }
@@ -360,7 +360,7 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     for (auto layer_info : net_structure_->layers) {
         LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
-        if (cur_layer == NULL) {
+        if (cur_layer == nullptr) {
             LOGE("Error: CreateLayer failed, type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
