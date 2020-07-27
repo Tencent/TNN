@@ -94,15 +94,26 @@
 
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
 
-1.1 NPU 
-You need to download the NPU DDK libraries first. See NPU part in [FAQ](../faq_en.md).
+####  NPU 
+  You need to download the DDK before run the demo. Refer to： [FAQ](../faq.md): How we obtain the DDK and compile the project.
+ 
 
 2. Open the TNNExamples project
 
-   Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNNExamples project.
+   Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project.
    
-   NPU ：If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
-      Clean Project and rerun.
+#### NPU ：
+   1.  After opening the TNN example project，you need to uncomment the code  in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use NPU ：
+   
+   ````
+        #set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
+      
+  2. If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
+  Clean Project and rerun.
+  
+  3. Only Huawei phones of rom version >= 100.320.xxx.xxxx supportS building the example TNN models.
+  To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq.md) to check the current NPU support situation and how to update the rom.
 
 ### Running result
 1. Face Detection-Pictures
@@ -112,6 +123,11 @@ You need to download the NPU DDK libraries first. See NPU part in [FAQ](../faq_e
    Effect example: Huawei P30, ARM single thread 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "50%" height = " 50%"/>
+   
+       
+   Example： Huawei P30, NPU rom 100.320.010.022 9.04ms
+       
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "50%" height = "50%"/>
 
 2. Face detection-video
    Model source: https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
@@ -120,6 +136,10 @@ You need to download the NPU DDK libraries first. See NPU part in [FAQ](../faq_e
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "50%" height = " 50%"/>
 
+    Example： Huawei P30, NPU rom 100.320.010.022 28ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "50%" height = "50%"/>
+
 3. Image classification
 
    Model source: https://github.com/forresti/SqueezeNet
@@ -127,7 +147,11 @@ You need to download the NPU DDK libraries first. See NPU part in [FAQ](../faq_e
    Effect example: Huawei P30, ARM single thread 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "50%" height = " 50%"/>
-
+   
+   Example： Huawei P30, NPU rom 100.320.010.022 2.48ms
+    
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
+   
 ## III. Introduction to Armlinux Demo
 
 ### Ability

@@ -57,8 +57,11 @@ cd <path_to_tnn>/scripts
  SHARING_MEM_WITH_OPENGL=0      # 1 for sharing OpenGL texture with openCL
 ```
 
-2.1) NPU ：You need to download the so files and copy them to the specified directory. See:
-    NPU part of [FAQ](../faq_en.md).
+2.1) NPU ：The NPU build script is under the folder <path_to_tnn>/platforms/android/test_android_npu.sh.
+You need to download the DDK library files and copy them to the specified directory. See:
+    NPU: How we obtain the DDK and compile the project[FAQ](../faq_en.md).
+    
+    
     
 3）execute the building script
 ```

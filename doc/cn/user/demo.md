@@ -95,16 +95,27 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 
    PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
 
-1.1  NPU 
- 运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md)中NPU 相关。
+####  华为NPU 
+   运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md): 我们如何拿到NPU DDK以及编译NPU。
+
  
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程。
    
-   NPU ：第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
+####  华为NPU ：
+   1.  打开工程后，需要设置打开NPU：
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 删除下面命令的注释符号，使用NPU。
+   ````
+        #set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
+   2. 第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
    Clean Project 再重新运行。
-
+   
+   当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持ir构建事例模型。
+   运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md): 当前NPU的支持情况和如何更新到最新rom。
+      
+ 
 ### 运行效果
 1. 人脸检测-图片
 
@@ -113,6 +124,11 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "50%" height = "50%"/>
+    
+    效果示例： 华为P30, NPU rom 100.320.010.022 9.04ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "50%" height = "50%"/>
+    
 
 2. 人脸检测-视频
    模型来源：https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
@@ -120,6 +136,10 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 122.296ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "50%" height = "50%"/>
+    
+    效果示例： 华为P30, NPU rom 100.320.010.022 28ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "50%" height = "50%"/>
 
 3. 图像分类
 
@@ -128,7 +148,11 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "50%" height = "50%"/>
-
+    
+   效果示例： 华为P30, NPU rom 100.320.010.022 2.48ms
+    
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
+    
 ## 三、Armlinux Demo 介绍
 
 ### 功能
