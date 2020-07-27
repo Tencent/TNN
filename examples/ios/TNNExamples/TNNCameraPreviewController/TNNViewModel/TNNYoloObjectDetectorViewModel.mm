@@ -91,7 +91,7 @@ using namespace std;
 
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
     if (object) {
-        return [NSString stringWithFormat:@"%s", coco_classes[object->class_id]];
+        return [NSString stringWithFormat:@"%s %.1f", coco_classes[object->class_id], object->score];
     }
     return nil;
 }
