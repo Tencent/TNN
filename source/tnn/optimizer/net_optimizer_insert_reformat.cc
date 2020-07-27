@@ -115,7 +115,7 @@ namespace optimizer {
                     auto new_out = cur_out + reformat_name_suffix;
                     new_layer->outputs.push_back(new_out);
                     structure->blobs.insert(new_out);
-                    // change the inputs of successed layers
+                    // change the inputs of successed int8 layers
                     for (int next_id = index + 1; next_id < count; next_id++) {
                         auto next_layer = layers_orig[next_id];
                         for (auto &next_in : next_layer->inputs) {
@@ -135,6 +135,15 @@ namespace optimizer {
                     structure->blobs.insert(new_out);
                     for (auto &cur_layer_out : cur_layer->outputs) {
                         cur_layer_out = new_out;
+                    }
+                    // change the inputs of successed float layers
+                    for (int next_id = index + 1; next_id < count; next_id++) {
+                        auto next_layer = layers_orig[next_id];
+                        for (auto &next_in : next_layer->inputs) {
+                            if (next_in == cur_out && !next_layer->param->quantized) {
+                                next_in = new_out;
+                            }
+                        }
                     }
                 }
             }
