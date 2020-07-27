@@ -344,7 +344,7 @@ optional arguments:
 示例：
 ```shell script
 python3 converter.py onnx2tnn \
-    ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx \
+    ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.onnx \
     -optimize \
     -v=v3.0 \
     -o ~/mobilenetv3/ \
