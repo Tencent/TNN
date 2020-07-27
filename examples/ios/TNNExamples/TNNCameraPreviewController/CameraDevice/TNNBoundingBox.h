@@ -14,10 +14,14 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#include <memory>
+#include <vector>
 
 @interface TNNBoundingBox : NSObject
-@property (nonatomic, strong) CAShapeLayer *shapeLayer;
-@property (nonatomic, strong) CATextLayer *textLayer;
+@property (nonatomic, strong, readonly) CAShapeLayer *boxLayer;
+@property (nonatomic, strong, readonly) CATextLayer *textLayer;
+
+@property (nonatomic, strong, readonly) NSArray<CAShapeLayer *> *markLayer;
 
 - (instancetype)init;
 
@@ -25,7 +29,7 @@
 -(void)removeFromSuperLayer;
 
 - (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame;
-
+- (void)showMarkAtPoints:(std::vector<std::pair<float, float>>)points withColor:(UIColor *)color;
 - (void)hide;
 @end
 
