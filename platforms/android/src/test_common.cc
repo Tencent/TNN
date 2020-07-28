@@ -20,6 +20,7 @@
 #include <string.h>
 #include <fstream>
 #include <memory>
+#include <dirent.h>
 
 // Check the returned status code, print it if != 0
 bool CheckResult(std::string desc, int ret) {
@@ -45,6 +46,30 @@ std::string ReplaceString(std::string s) {
 
     std::string ret = temp;
     return ret;
+}
+
+std::vector<std::string> GetFileList(std::string folder_path) {
+    std::vector<std::string> filenames;
+    filenames.clear();
+
+    DIR* dp;
+    struct dirent* dirp;
+    if ((dp = opendir(folder_path.c_str())) == NULL) {
+        printf("Can't open %s\n", folder_path.c_str());
+        return filenames;
+    }
+    while ((dirp = readdir(dp)) != NULL) {
+        if (dirp->d_type == DT_REG) {
+            char name[256];
+            sprintf(name, "%s/%s", folder_path.c_str(), dirp->d_name);
+            filenames.push_back(name);
+            // printf("push %s\n", name);
+        }
+    }
+    closedir(dp);
+
+    printf("get %lu filenames\n", filenames.size());
+    return filenames;
 }
 
 // Read input data from text files.

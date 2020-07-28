@@ -172,7 +172,7 @@ void* RunTNN(void* param) {
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename>\n");
+        printf("./AtlasTest <om_file> <input_filename>\n");
         return 0;
     } else {
         if (argc < 3) {

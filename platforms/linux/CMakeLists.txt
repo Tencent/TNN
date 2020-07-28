@@ -30,6 +30,9 @@ if(TNN_ATLAS_ENABLE)
         add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86.cc)
         target_link_libraries(AtlasTest TNN)
 
+        add_executable(AtlasTestList ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_list.cc)
+        target_link_libraries(AtlasTestList TNN)
+
         add_executable(AtlasTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_thread.cc)
         target_link_libraries(AtlasTestMultiThread TNN)
 

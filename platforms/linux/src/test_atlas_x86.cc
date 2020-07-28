@@ -37,7 +37,7 @@ TNN net_;
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename>\n");
+        printf("./AtlasTest <om_file> <input_filename>\n");
         return 0;
     } else {
         if (argc < 3) {
@@ -114,19 +114,20 @@ int main(int argc, char* argv[]) {
     }
 
     // load input
-    float* input_data_ptr = nullptr;
-    //unsigned char* input_data_ptr = nullptr;
+    //float* input_data_ptr = nullptr;
+    unsigned char* input_data_ptr = nullptr;
     auto input_dims               = input->GetBlobDesc().dims;
     auto input_format             = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format) {
         printf("input format is NCHW\n");
-        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
+        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], input_dims, false);
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
         //ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], input_dims);
     } else if (DATA_FORMAT_NHWC == input_format) {
         printf("input format is NHWC\n");
-        ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
+        //ret = ReadFromTxtToBatch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
         //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
+        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
         //ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, argv[2], {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
     } else {
         printf("invalid model input format\n");
@@ -147,9 +148,12 @@ int main(int argc, char* argv[]) {
 
     Status tnn_ret;
     // copy input data into atlas
-    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input_dims, input_data_ptr);
+    //Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input_dims, input_data_ptr);
     //Mat input_mat(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
+    Mat input_mat(DEVICE_NAIVE, N8UC3, input_dims, input_data_ptr);
     MatConvertParam input_param;
+    input_param.scale = {0.00392156862745, 0.00392156862745, 0.00392156862745, 0.00392156862745};
+    input_param.reverse_channel = true;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
