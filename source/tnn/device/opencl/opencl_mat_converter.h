@@ -25,6 +25,9 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
+
+private:
+    std::map<std::string, OpenCLExecuteUnit> execute_map_; 
 };
 
 }  // namespace TNN_NS

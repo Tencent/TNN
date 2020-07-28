@@ -14,18 +14,62 @@
 
 #include "tnn/device/opencl/opencl_mat_converter.h"
 
+#include "tnn/device/opencl/opencl_utils.h"
+
 namespace TNN_NS {
 
 Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) {
+    Status ret            = TNN_OK;
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    }
+    const std::string key = "Resize";
+    OpenCLExecuteUnit unit;
+    if(execute_map_.count(key) == 0) {
+        std::string program_name = "normalize";
+        std::string kernel_name = "Bilinear";
+        ret = CreateExecuteUnit(unit, program_name, kernel_name);
+        if(ret != TNN_OK) {
+            return ret;
+        }
+        execute_map_[key] = unit; 
+    }
 
+    
+    
 }
 
 Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) {
-
+    Status ret            = TNN_OK;
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    }
+    const std::string key = "Crop"; 
+    if(execute_map_.count(key) == 0) {
+        std::string program_name = "copy";
+        std::string kernel_name = "CopyImage";
+        ret = CreateExecuteUnit(unit, program_name, kernel_name);
+        if(ret != TNN_OK) {
+            return ret;
+        }
+        execute_map_[key] = unit; 
+    }
 }
 
 Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) {
+    Status ret            = TNN_OK;
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    } 
+    if(execute_map_.count("WarpAffine") == 0) {        
 
+    }
 }
 
 }  // namespace TNN_NS
