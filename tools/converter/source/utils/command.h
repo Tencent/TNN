@@ -21,6 +21,6 @@ bool ParseCommandLine(int argc, char* argv[]);
 void ShowHelpMessage();
 
 void ShowModelPathMessage();
-}
+}  // namespace TNN_CONVERTER
 
 #endif  // TNNCONVERTER_SRC_UTILS_COMMAND_H_

@@ -17,8 +17,8 @@
 #include "tnn/interpreter/net_structure.h"
 #include "utils/command.h"
 #include "utils/flags.h"
-#include "utils/model_config.h"
 #include "utils/generate_model.h"
+#include "utils/model_config.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
@@ -35,7 +35,7 @@ int Run(int argc, char* argv[]) {
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
     GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
-    
+
     return 0;
 }
 

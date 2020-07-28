@@ -13,19 +13,21 @@
 // specific language governing permissions and limitations under the License.
 
 #include "command.h"
-#include "tools/converter/source/utils/flags.h"
-#include "gflags/gflags.h"
+
 #include <iostream>
+
+#include "gflags/gflags.h"
+#include "tools/converter/source/utils/flags.h"
 
 namespace TNN_CONVERTER {
 
 void ShowHelpMessage() {
     // TODO
-    std::cout << "show help message!"<< std::endl;
+    std::cout << "show help message!" << std::endl;
 }
 
 void ShowModelPathMessage() {
-    //TODO
+    // TODO
     std::cout << "please special the tensorflow lite path!" << std::endl;
 }
 
@@ -49,7 +51,7 @@ bool ParseCommandLine(int argc, char* argv[]) {
         ShowHelpMessage();
         return false;
     }
-    //TODO
+    // TODO
     return true;
 }
 }  // namespace TNN_CONVERTER

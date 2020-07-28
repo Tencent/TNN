@@ -39,10 +39,10 @@ public:
     std::string model_path_;
     std::string output_dir_;
     ModelType model_type_;
+
 private:
     bool CheckPath(std::string path);
     bool CheckDir(std::string dir);
-
 };
 
 }  // namespace TNN_CONVERTER
