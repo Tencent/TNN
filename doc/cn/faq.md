@@ -23,6 +23,7 @@
 * 将ddk目录下include`文件夹`复制到 `TNN/third_party/npu/hiai_ddk_latest/`目录下
 * 最终 `TNN/third_party/npu/hiai_ddk_latest/`文件结构应该如下：
 
+```
 hiai_ddk_latest\
 ├── arm64-v8a \
 │   ├── libcpucl.so \
@@ -65,7 +66,8 @@ hiai_ddk_latest\
     │   ├── tensor.h \
     │   └── types.h\
     └── hiai_ir_build.h\
-    
+```
+
 ## 当前NPU的支持情况?
 * 如果手机的ROM是在300以下即二代NPU 
   报错：
