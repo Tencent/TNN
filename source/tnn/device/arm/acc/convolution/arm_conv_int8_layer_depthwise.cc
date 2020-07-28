@@ -54,7 +54,7 @@ Status ArmConvInt8LayerDepthwise::allocateBufferParam(const std::vector<Blob *> 
         int kh             = conv_param->kernels[1];
         const int channel  = inputs[0]->GetBlobDesc().dims[1];
         const int c_4      = ROUND_UP(channel, 4);
-        int data_byte_size = c_4 * kw * kw;
+        int data_byte_size = c_4 * kh * kw;
         RawBuffer temp_buffer(data_byte_size);
         int8_t *temp_ptr = temp_buffer.force_to<int8_t *>();
 
