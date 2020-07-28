@@ -27,13 +27,13 @@ class DeconvLayerTest
     : public LayerTest,
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, int, DataType>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 8, 9, 16, 256), testing::Values(1, 2, 3, 4, 8, 9, 16, 256),
+                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4), testing::Values(1, 2, 3, 4),
                                             // input_size
-                                            testing::Values(2, 3, 7, 8, 16, 32),
+                                            testing::Values(2, 3, 8),
                                             // group
-                                            testing::Values(1, 2, 3, 8, 11),
+                                            testing::Values(1, 2),
                                             // kernel
-                                            testing::Values(1, 2, 3, 4),
+                                            testing::Values(1, 2, 4),
                                             // dilation
                                             testing::Values(1),
                                             // stride
