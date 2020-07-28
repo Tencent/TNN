@@ -21,16 +21,21 @@ std::string TFLiteConcatConverter::TNNOpType(bool quantized_model) {
     return "Concat";
 }
 
-TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource, const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, const std::vector<std::unique_ptr<tflite::TensorT> > &tf_lite_tensors, const std::vector<std::unique_ptr<tflite::BufferT> > &tf_lite_model_buffer, const std::vector<std::unique_ptr<tflite::OperatorCodeT> > &tf_lite_op_set, bool quantized_model) {
-    auto param = new TNN_NS::ConcatLayerParam;
-    auto cur_layer =  net_structure.layers.back();
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    auto tf_lite_op_type             = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
-    const auto& reshape_option       = tf_lite_operator->builtin_options.AsReshapeOptions();
-    param->name      = cur_layer->name;
-    param->type      = cur_layer->type_str;
-    param->quantized = false;
-    auto option = tf_lite_operator->builtin_options.AsConcatenationOptions();
+TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+                                           const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
+                                           const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
+                                           const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
+                                           const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set,
+                                           bool quantized_model) {
+    auto param                 = new TNN_NS::ConcatLayerParam;
+    auto cur_layer             = net_structure.layers.back();
+    cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
+    auto tf_lite_op_type       = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
+    const auto &reshape_option = tf_lite_operator->builtin_options.AsReshapeOptions();
+    param->name                = cur_layer->name;
+    param->type                = cur_layer->type_str;
+    param->quantized           = false;
+    auto option                = tf_lite_operator->builtin_options.AsConcatenationOptions();
     if (quantized_model) {
         // TODO
     } else {
@@ -39,8 +44,7 @@ TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-
 using namespace tflite;
 REGISTER_CONVERTER(Concat, BuiltinOperator_CONCATENATION);
 
-}
+}  // namespace TNN_CONVERTER

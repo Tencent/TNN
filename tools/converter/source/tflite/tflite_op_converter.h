@@ -23,8 +23,8 @@ namespace TNN_CONVERTER {
 
 class TFLiteOpConverter {
 public:
-    TFLiteOpConverter() = default;
-    virtual ~TFLiteOpConverter()= default;;
+    TFLiteOpConverter()          = default;
+    virtual ~TFLiteOpConverter() = default;
 
     virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                 const std::unique_ptr<tflite::OperatorT>& tfliteOp,
@@ -68,10 +68,10 @@ public:
         TFLite##tf_lite_type##Converter() {}                                                                           \
         virtual ~TFLite##tf_lite_type##Converter() {}                                                                  \
         virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,            \
-                                    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,                                \
-                                    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,                \
-                                    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,            \
-                                    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,            \
+                                    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,                        \
+                                    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,              \
+                                    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,         \
+                                    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,         \
                                     bool quantizedModel);                                                              \
         virtual std::string TNNOpType(bool quantizedModel);                                                            \
     }  // namespace TNN_CONVERTER

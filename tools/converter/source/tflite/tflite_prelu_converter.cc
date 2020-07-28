@@ -30,8 +30,9 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
                                           const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                           const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
                                           bool quantized_model) {
-    auto param     = new TNN_NS::PReluLayerParam;
-    auto cur_layer = net_structure.layers.back();
+    auto param       = new TNN_NS::PReluLayerParam;
+    auto cur_layer   = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
     // inputs: input tensor, weight
     const int input_size = tf_lite_operator->inputs.size();
@@ -42,21 +43,17 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
 
     const auto& weight_shape = weight_tensor->shape;
     const int co             = weight_shape[2];
-
+    param->name              = cur_layer->name;
+    param->type              = cur_layer->type_str;
+    param->quantized         = false;
+    param->channel_shared    = 0;
+    param->has_filler        = 0;
     if (quantized_model) {
         // TODO
     } else {
-        param->name = cur_layer->name;
-        param->type = cur_layer->type_str;
-        param->quantized = false;
-        param->channel_shared = 0;
-        param->has_filler = 0;
-
-        // update param
-        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-
         // weight
         auto layer_resource            = new TNN_NS::PReluLayerResource;
+        layer_resource->name           = cur_layer->name;
         TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(co * sizeof(float));
         auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         ::memcpy(slope_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
@@ -66,9 +63,7 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     }
 
     cur_layer->inputs.resize(1);
-    cur_layer->outputs.resize(1);
-    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
-    cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
+    cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
 
     return TNN_NS::TNN_CONVERT_OK;
 }

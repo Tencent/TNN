@@ -19,8 +19,8 @@
 
 #include "tflite-schema/schema_generated.h"
 #include "tflite_op_converter.h"
-#include "tnn/core/macro.h"
 #include "tflite_utils.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
 
@@ -122,8 +122,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 cur_layer->outputs.push_back(tensors[output_index]->name);
             }
             net_structure.layers.push_back(cur_layer);
-            auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer, tf_lite_op_set,
-                            quantized_mode);
+            auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer,
+                                          tf_lite_op_set, quantized_mode);
             if (status != TNN_NS::TNN_CONVERT_OK) {
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;

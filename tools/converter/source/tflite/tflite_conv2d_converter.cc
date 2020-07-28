@@ -26,12 +26,12 @@ std::string TFLiteConv2DConverter::TNNOpType(bool quantized_model) {
     return "Convolution";
 }
 
-TNN_NS::Status TFLiteConv2DConverter::exec(
-    TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
-    const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
-    const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
-    const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantized_model) {
+TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
+                                           const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                           const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                           const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+                                           const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
+                                           bool quantized_model) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
 
@@ -64,7 +64,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(
         param->strides.push_back(conv_opt->stride_h);
         param->dialations.push_back(conv_opt->dilation_w_factor);
         param->dialations.push_back(conv_opt->dilation_h_factor);
-        param->group = 1;
+        param->group    = 1;
         param->pad_type = 0;
         if (conv_opt->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
@@ -94,13 +94,13 @@ TNN_NS::Status TFLiteConv2DConverter::exec(
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
         // weight
-        auto layer_resource = new TNN_NS::ConvLayerResource;
+        auto layer_resource  = new TNN_NS::ConvLayerResource;
+        layer_resource->name = cur_layer->name;
 
         TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
         auto original_weight_ptr =
             reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         ConvertDataFormatTFLite(original_weight_ptr, filter_handle.force_to<float*>(), kh, kw, ci, co);
-        //::memcpy(filter_handle.force_to<float*>(), original_weight_ptr, sizeof(kh*kw));
         layer_resource->filter_handle = filter_handle;
         // bias
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(co * sizeof(float));

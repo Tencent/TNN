@@ -53,7 +53,7 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
     const int kw          = weight_shape[2];
     const int ci          = weight_shape[3];
     const int weight_size = kh * kw * ci;
-    if (cm != 1){
+    if (cm != 1) {
         LOGE("TNN DepthwiseConv2D do not Support chanel_multipler != 1.\n");
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
@@ -101,7 +101,8 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
         // weight
-        auto layer_resource = new TNN_NS::ConvLayerResource;
+        auto layer_resource  = new TNN_NS::ConvLayerResource;
+        layer_resource->name = cur_layer->name;
 
         TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
         auto original_weight_ptr =
@@ -111,10 +112,10 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
         if (input_size == 3) {
             // bias
             TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
-            const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
+            const auto& bias_tensor       = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, param->output_channel * sizeof(float));
-            layer_resource->bias_handle                = bias_handle;
+            layer_resource->bias_handle = bias_handle;
         }
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }

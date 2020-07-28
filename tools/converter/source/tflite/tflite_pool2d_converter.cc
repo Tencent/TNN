@@ -49,7 +49,7 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
                 param->pool_type = 0;
                 break;
             }
-            case tflite::BuiltinOperator_AVERAGE_POOL_2D:{
+            case tflite::BuiltinOperator_AVERAGE_POOL_2D: {
                 param->pool_type = 1;
                 break;
             }
@@ -76,7 +76,6 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->pads.push_back(0);
         param->pads.push_back(0);
         param->pads.push_back(0);
-
 
         param->kernel_indexs.push_back(-1);
         param->kernel_indexs.push_back(-1);

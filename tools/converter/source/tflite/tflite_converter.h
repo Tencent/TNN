@@ -27,8 +27,7 @@ public:
     TFLite2Tnn(std::string model_path);
     TFLite2Tnn(std::string model_path, std::string onnx_path);
     TFLite2Tnn(std::string mode_path, std::string model_name, std::string onnx_path);
-    TNN_NS::Status Convert2Tnn(TNN_NS::NetStructure& net_structure,
-                               TNN_NS::NetResource& net_resource);
+    TNN_NS::Status Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 
 private:
     void ReadModel(std::string tf_lite_model_path);

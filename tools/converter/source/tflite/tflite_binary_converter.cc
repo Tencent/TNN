@@ -36,8 +36,8 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
                                            const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                            const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
                                            bool quantized_model) {
-    auto param     = new TNN_NS::MultidirBroadcastLayerParam;
-    auto cur_layer = net_structure.layers.back();
+    auto param       = new TNN_NS::MultidirBroadcastLayerParam;
+    auto cur_layer   = net_structure.layers.back();
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
 
     // TODO support resource

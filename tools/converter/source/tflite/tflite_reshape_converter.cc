@@ -33,16 +33,16 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
                                             bool quantized_model) {
     TNN_NS::ReshapeLayerParam* param = new TNN_NS::ReshapeLayerParam;
     auto cur_layer                   = net_structure.layers.back();
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name      = cur_layer->name;
-    param->type      = cur_layer->type_str;
-    param->quantized = false;
+    cur_layer->param                 = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name                      = cur_layer->name;
+    param->type                      = cur_layer->type_str;
+    param->quantized                 = false;
 
     if (quantized_model) {
         // TODO
     } else {
-        param->axis      = 0;
-        param->num_axes  = 4;
+        param->axis     = 0;
+        param->num_axes = 4;
 
         const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
         ASSERT(shape_tensor->type == tflite::TensorType_INT32);
@@ -63,7 +63,7 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
 
     // set input output index
     cur_layer->inputs.resize(1);
-    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
 }
 
