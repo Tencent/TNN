@@ -49,17 +49,14 @@ TNN_NS::ModelConfig model_config;
 model_config.params.push_back(proto_buffer);
 //model文件内容存入model_buffer
 model_config.params.push_back(model_buffer);
+//NPU可选：存om的路径
+std::string path_to_om = "";
+model_config.params.push_back(path_to_om);
 tnn.Init(model_config);
 ```
 
 TNN模型解析需配置ModelConfig params参数，传入proto和model文件内容，并调用TNN Init接口即可完成模型解析。
-NPU 需要增加一个参数，为存om文件的路径,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用ir翻译并从内存读入模型。
-```cpp
-
-//存om的路径
-std::string path_to_om = "";
-model_config.params.push_back(path_to_om);
-```
+NPU 需要增加一个参数，为存om文件的路径,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用IR翻译并从内存读入模型。
 
 ### 步骤2. 网络构建
 
@@ -284,7 +281,8 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
 - `METAL`: GPU显存（metal)， NC4HW4.
-- `NPU` CPU内存（ION), NC4HW4.
+- `NPU: CPU内存, NCHW.
+
 其中最后4代表pack 4, C4代表最后1位4由4个C进行pack。  
 
 ### 5. core/instance.h

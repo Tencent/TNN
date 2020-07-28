@@ -32,6 +32,6 @@ TNNTest
 
 ```
 ### 2.  NPU
-NPU需要把hiai so动态库push到手机上，并export LD_LIBRARY_PATH.
+NPU需要把HiAI so动态库push到手机上，并将他们添加到LD_LIBRARY_PATH环境变量中.
 可以参考 TNN/platform/android/test_android_npu.sh 运行TNNTest
  

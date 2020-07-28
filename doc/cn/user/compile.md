@@ -62,11 +62,12 @@ cd <path_to_tnn>/scripts
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
  OPENCL="ON"                    # ON表示编译带有Arm GPU版本的库
+ NPU="ON"                       # ON表示编译带有Arm NPU版本的库
  SHARING_MEM_WITH_OPENGL=0      # 1表示OpenGL的Texture可以与OpenCL共享
 ```
-2.1)NPU没有使用`<path_to_tnn>/scripts/build_android.sh`, 使用`<path_to_tnn>/platforms/android/test_android_npu.sh`进行编译和运行。
+NPU PS: 
 运行前需要下载DDK, 并放到指定文件夹。 具体请参考:
-[FAQ](../faq.md)中我们如何拿到NPU DDK以及编译NPU? 
+[FAQ](../faq.md)如何创建NPU编译环境? 
 
 3）执行编译脚本
 ```

@@ -43,22 +43,24 @@ The API call mainly introduces the four steps: model analysis, network construct
 ### Step1. Model analysis
 
 ```cpp
+
 TNN tnn;
 TNN_NS::ModelConfig model_config;
 //proto file content saved to proto_buffer
 model_config.params.push_back(proto_buffer);
 //model file content saved to model_buffer
 model_config.params.push_back(model_buffer);
+//Optional(NPU): path to store OM model 
+std::string path_to_om = "";
+model_config.params.push_back(path_to_om);
 tnn.Init(model_config);
+
 ```
 
 TNN model analysis needs to configure the ModelConfig parameter, pass in the content of proto and model files, and call the TNN Init interface to complete the model analysis.
 
 One more parameter needs to be added for NPU : the path to store and read om model file, such as("/data/local/tmp/")，empty string illustrates that the model is built from memory.
-```cpp
-std::string path_to_om = "";
-model_config.params.push_back(path_to_om);
-```
+
 ### Step2. Network construction
 
 ```cpp
@@ -279,7 +281,7 @@ The current input and output data types and arrangements of blobs for different 
 -`OPENCL`: GPU graphics memory (clImage), NHC4W4. Among which NH is clImage high, C4W4 is clImage wide.
 -`METAL`: GPU video memory (metal), NC4HW4.
 Among them, the last 4 represents pack 4 and C4 represents the last 1 bit 4 is packed by 4 Cs.
-- `NPU` :CPU memory, NC4HW4.
+- `NPU` :CPU memory, NCHW.
 
 ### 5. core/instance.h
 

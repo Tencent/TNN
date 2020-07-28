@@ -54,12 +54,13 @@ cd <path_to_tnn>/scripts
  ARM="ON"                       # ON to build for ARM CPU
  OPENMP="ON"                    # ON to build for OpenMP
  OPENCL="ON"                    # ON to build for GPU
+ NPU="ON"                       # ON to enable NPU
  SHARING_MEM_WITH_OPENGL=0      # 1 for sharing OpenGL texture with openCL
 ```
 
-2.1) NPU ：The NPU build script is under the folder <path_to_tnn>/platforms/android/test_android_npu.sh.
-You need to download the DDK library files and copy them to the specified directory. See:
-    NPU: How we obtain the DDK and compile the project[FAQ](../faq_en.md).
+  NPU PS: 
+    You need to download the DDK library files and copy them to the specified directory. See:
+    NPU Compilation Prerequisite in [FAQ](../faq_en.md).
     
     
     
