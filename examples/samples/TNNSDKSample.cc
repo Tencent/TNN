@@ -134,7 +134,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
-            info_aspect.AddOffset(-offset_x, 0);
+            info_aspect = info_aspect.AddOffset(-offset_x, 0);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
@@ -144,7 +144,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
-            info_aspect.AddOffset(0, -offset_y);
+            info_aspect = info_aspect.AddOffset(0, -offset_y);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
@@ -156,7 +156,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
-            info_aspect.AddOffset(0, -offset_y);
+            info_aspect = info_aspect.AddOffset(0, -offset_y);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
@@ -166,7 +166,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
-            info_aspect.AddOffset(-offset_x, 0);
+            info_aspect = info_aspect.AddOffset(-offset_x, 0);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;

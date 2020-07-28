@@ -68,7 +68,7 @@
 
     _textLayer.string = text;
     _textLayer.backgroundColor = color.CGColor;
-    _textLayer.hidden = YES;
+    _textLayer.hidden = NO;
 
     auto attributes = @{NSFontAttributeName:[UIFont systemFontOfSize:14]};
 
