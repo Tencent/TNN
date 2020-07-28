@@ -86,6 +86,9 @@ void BlazeFaceDetector::GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS
         float width    = boxes_data[i * detect_dims + 2] / image_w * anchors[i * 4 + 2] ;
         float height   = boxes_data[i * detect_dims + 3] / image_h * anchors[i * 4 + 3] ;
         BlazeFaceInfo info;
+        info.image_width = image_w;
+        info.image_height = image_h;
+        
         info.score = score_data[i];
         // bbox
         info.x1 = (x_center - width / 2.0) * image_w;
@@ -162,6 +165,8 @@ void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vect
             total += exp(buf[i].score);
         }
         BlazeFaceInfo rects;
+        rects.image_width = buf[0].image_width;
+        rects.image_height = buf[0].image_height;
         for (int i = 0; i < buf.size(); i++) {
             float rate = exp(buf[i].score) / total;
             rects.x1 += buf[i].x1 * rate;

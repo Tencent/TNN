@@ -15,6 +15,7 @@
 #import "TNNExamplesListController.h"
 #import "TNNCameraPreviewController.h"
 #import "TNNFaceDetectorViewModel.h"
+#import "TNNBlazeFaceDetectorViewModel.h"
 #import "TNNSSDObjectDetectorViewModel.h"
 #import "TNNYoloObjectDetectorViewModel.h"
 
@@ -57,8 +58,9 @@ using namespace std;
     } else if (indexPath.section == 3){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
-        cameraViewController.viewModel = [TNNFaceDetectorViewModel new];
-        cameraViewController.viewModel.title = @"人脸检测 - mbv2+SSD";
+        cameraViewController.viewModel = [TNNBlazeFaceDetectorViewModel new];
+        cameraViewController.viewModel.title = @"人脸检测 - BalzeFace";
+        cameraViewController.viewModel.preferFrontCamera = true;
     } else if (indexPath.section == 4) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;

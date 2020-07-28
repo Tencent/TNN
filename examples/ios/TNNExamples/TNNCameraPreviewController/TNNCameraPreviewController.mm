@@ -73,7 +73,8 @@ typedef void(^CommonCallback)(Status);
     [self setupBoundingBox:12];
     
     //set up camera
-    [_cameraDevice switchCamera:AVCaptureDevicePositionBack
+    auto camera = _viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
+    [_cameraDevice switchCamera:camera
                      withPreset:AVCaptureSessionPreset640x480
                      completion:^(BOOL) {
     }];
@@ -142,7 +143,7 @@ typedef void(^CommonCallback)(Status);
 - (IBAction)onSwitchGPU:(id)sender
 {
     //init network
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsCPU : TNNComputeUnitsGPU;
+    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面

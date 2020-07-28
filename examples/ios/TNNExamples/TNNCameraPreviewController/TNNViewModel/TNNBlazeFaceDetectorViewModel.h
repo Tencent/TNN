@@ -13,15 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #import <Foundation/Foundation.h>
-#import "TNNSDKSample.h"
+#import "TNNViewModel.h"
 
-using namespace::TNN_NS;
-
-@interface TNNViewModel : NSObject
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
-
-@property (nonatomic, strong) NSString *title;
-@property (nonatomic, assign) bool preferFrontCamera;
+@interface TNNBlazeFaceDetectorViewModel : TNNViewModel
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
