@@ -36,6 +36,9 @@ struct ObjectInfo {
     float x2 = 0;
     float y2 = 0;
     
+    //key_points <x y>
+    std::vector<std::pair<float, float>> key_points = {};
+    
     float score = 0;
     int class_id = -1;
     
@@ -43,6 +46,7 @@ struct ObjectInfo {
     /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
     ObjectInfo AdjustToViewSize(int view_height, int view_width, int gravity = 2);
     ObjectInfo FlipX();
+    ObjectInfo AddOffset(float offset_x, float offset_y);
     float IntersectionRatio(ObjectInfo *obj);
 };
 

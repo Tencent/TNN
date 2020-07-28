@@ -25,8 +25,6 @@
 namespace TNN_NS {
 
 struct BlazeFaceInfo : TNN_NS::ObjectInfo {
-    //6 face keypoints
-    std::vector<std::pair<float, float>>key_points;
 };
 
 class BlazeFaceDetectorInput : public TNNSDKInput {

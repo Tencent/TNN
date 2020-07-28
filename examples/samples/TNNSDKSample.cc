@@ -34,6 +34,34 @@ ObjectInfo ObjectInfo::FlipX() {
     info.x2 = this->image_width - this->x1;
     info.y1 = this->y1;
     info.y2 = this->y2;
+    
+    //key points
+    std::vector<std::pair<float, float>> key_points;
+    for (auto item : this->key_points) {
+        key_points.push_back(std::make_pair(this->image_width - item.first, item.second));
+    }
+    info.key_points = key_points;
+    return info;
+}
+
+ObjectInfo ObjectInfo::AddOffset(float offset_x, float offset_y) {
+    ObjectInfo  info;
+    info.score = this->score;
+    info.class_id = this->class_id;
+    info.image_width = this->image_width;
+    info.image_height = this->image_width;
+    
+    info.x1 = this->x2 + offset_x;
+    info.x2 = this->x1 + offset_x;
+    info.y1 = this->y1 + offset_y;
+    info.y2 = this->y2 + offset_y;
+    
+    //key points
+    std::vector<std::pair<float, float>> key_points;
+    for (auto item : this->key_points) {
+        key_points.push_back(std::make_pair(item.first + offset_x, item.second + offset_y));
+    }
+    info.key_points = key_points;
     return info;
 }
 
@@ -79,6 +107,15 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
     info_orig.x2 = x_max;
     info_orig.y1 = y_min;
     info_orig.y2 = y_max;
+    
+    
+    //key points
+    std::vector<std::pair<float, float>> key_points;
+    for (auto item : this->key_points) {
+        key_points.push_back(std::make_pair(item.first*scale_x, item.second*scale_y));
+    }
+    info_orig.key_points = key_points;
+    
     return info_orig;
 }
 
@@ -97,36 +134,44 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
-            info.x1 = info_aspect.x1 - offset_x;
-            info.x2 = info_aspect.x2 - offset_x;
+            info_aspect.AddOffset(-offset_x, 0);
+            info.x1 = info_aspect.x1;
+            info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
+            info.key_points = info_aspect.key_points;
         } else {
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
+            info_aspect.AddOffset(0, -offset_y);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
-            info.y1 = info_aspect.y1 - offset_y;
-            info.y2 = info_aspect.y2 - offset_y;
+            info.y1 = info_aspect.y1;
+            info.y2 = info_aspect.y2;
+            info.key_points = info_aspect.key_points;
         }
     } else if (gravity == 1) {
         if (view_aspect > object_aspect) {
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
             float offset_y = (object_aspect_height - view_height) / 2;
+            info_aspect.AddOffset(0, -offset_y);
             info.x1 = info_aspect.x1;
             info.x2 = info_aspect.x2;
-            info.y1 = info_aspect.y1 - offset_y;
-            info.y2 = info_aspect.y2 - offset_y;
+            info.y1 = info_aspect.y1;
+            info.y2 = info_aspect.y2;
+            info.key_points = info_aspect.key_points;
         } else {
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
             float offset_x = (object_aspect_width - view_width) / 2;
-            info.x1 = info_aspect.x1 - offset_x;
-            info.x2 = info_aspect.x2 - offset_x;
+            info_aspect.AddOffset(-offset_x, 0);
+            info.x1 = info_aspect.x1;
+            info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
+            info.key_points = info_aspect.key_points;
         }
     } else {
         return AdjustToImageSize(view_height, view_width);
