@@ -13,7 +13,7 @@ NPU="ON"
 BENMARK_MODE="OFF"
 DEBUG="OFF"
 SHARING_MEM_WITH_OPENGL=0
-
+ANDROID_API_LEVEL="android-14"
 # check ANDROID_NDK whether set.
 if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
    echo -e "Not found: build/cmake/android.toolchain.cmake in ANDROID_NDK:$ANDROID_NDK"
@@ -22,6 +22,23 @@ if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
 fi
 
 TNN_BUILD_PATH=$PWD
+if [ $NPU == "ON" ] 
+then
+    echo "NPU Enable"
+    # set c++ shared 
+    STL="c++_shared"
+    # set android API 
+    ANDROID_API_LEVEL="android-19"
+    #start to cp 
+    if [ ! -d $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/ ]; then
+         mkdir $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/
+    fi
+    mkdir $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/armeabi-v7a
+    mkdir $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/arm64-v8a
+    cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_shared.so  $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/armeabi-v7a/
+    cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so $TNN_BUILD_PATH/../../third_party/npu/cpp_lib/arm64-v8a/
+fi
+
 if [ -z $TNN_ROOT_PATH ]
 then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
@@ -53,10 +70,11 @@ cmake ${TNN_ROOT_PATH} \
       -DDEBUG:BOOL=$DEBUG \
       -DANDROID_ABI="${ABIA32}" \
       -DANDROID_STL=${STL} \
-      -DANDROID_NATIVE_API_LEVEL=android-14  \
+      -DANDROID_NATIVE_API_LEVEL=${ANDROID_API_LEVEL}  \
       -DANDROID_TOOLCHAIN=clang \
       -DBUILD_FOR_ANDROID_COMMAND=true \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
+      -DTNN_NPU_ENABLE:BOOL=$NPU \
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
       -DTNN_BENCHMARK_MODE:BOOL=$BENMARK_MODE \
       -DTNN_TEST_ENABLE:BOOL=ON \
@@ -82,10 +100,11 @@ cmake ${TNN_ROOT_PATH} \
       -DDEBUG:BOOL=$DEBUG \
       -DANDROID_ABI="${ABIA64}" \
       -DANDROID_STL=${STL} \
-      -DANDROID_NATIVE_API_LEVEL=android-14  \
+      -DANDROID_NATIVE_API_LEVEL=${ANDROID_API_LEVEL}  \
       -DANDROID_TOOLCHAIN=clang \
       -DBUILD_FOR_ANDROID_COMMAND=true \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
+      -DTNN_NPU_ENABLE:BOOL=$NPU \
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
       -DTNN_TEST_ENABLE:BOOL=ON \
       -DTNN_BENCHMARK_MODE:BOOL=$BENMARK_MODE \
@@ -123,5 +142,8 @@ cp build32/libTNN.a release/armeabi-v7a
 cp build64/libTNN.a release/arm64-v8a
 fi
 cp -r ${TNN_ROOT_PATH}/include release
-
+if [ $NPU = "ON" ]; then   
+    cp $TNN_BUILD_PATH/../../third_party/npu/hiai_ddk_latest/armeabi-v7a/* release/armeabi-v7a/
+    cp $TNN_BUILD_PATH/../../third_party/npu/hiai_ddk_latest/arm64-v8a/* release/arm64-v8a/
+fi
 echo "build done!"
