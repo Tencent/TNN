@@ -76,7 +76,7 @@ hiai_ddk_latest
   ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low
   
 ## 如何更新到最新的ROM去支持NPU？ 
-* 到 设置 >> 系统和更新 >> 软件更新中检查￿最新的ROM版本并更新。
+* 到 设置 >> 系统和更新 >> 软件更新中检查最新的ROM版本并更新。
         
 ## 模型支持：
 
