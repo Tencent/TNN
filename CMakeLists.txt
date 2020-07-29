@@ -31,7 +31,7 @@ option(TNN_QUANTIZATION_ENABLE "Enable Test" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
-option(TNN_MEM_ENABLE "Enable tnn2mem" OFF)
+option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -133,7 +133,7 @@ if(TNN_METAL_ENABLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
 endif()
 
-if(TNN_MEM_ENABLE)
+if(TNN_TNN2MEM_ENABLE)
     add_subdirectory(tools/tnn2mem)
 endif()
 
