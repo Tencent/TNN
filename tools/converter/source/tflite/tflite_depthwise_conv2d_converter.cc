@@ -34,9 +34,9 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set, bool quantized_model) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
     auto tf_lite_op_type          = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
 
-    // 3|2 inputs: input tensor, weight, (bias)
     const int input_size = tf_lite_operator->inputs.size();
     ASSERT(input_size == 2 || input_size == 3);
 
@@ -97,9 +97,6 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
             LOGE("TNN DepthwiseConv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        // update param
-        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-
         // weight
         auto layer_resource  = new TNN_NS::ConvLayerResource;
         layer_resource->name = cur_layer->name;
@@ -111,6 +108,7 @@ TNN_NS::Status TFLiteDepthwiseConv2DConverter::exec(
         layer_resource->filter_handle = filter_handle;
         if (input_size == 3) {
             // bias
+            param->bias = 1;
             TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
             const auto& bias_tensor       = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());

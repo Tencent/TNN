@@ -50,6 +50,8 @@ TNN_NS::Status TFLitePadConverter::exec(TNN_NS::NetStructure& net_structure, TNN
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
     }
+    cur_layer->inputs.resize(1);
+    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
 }
 

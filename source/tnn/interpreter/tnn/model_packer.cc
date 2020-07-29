@@ -197,25 +197,26 @@ Status ModelPacker::PackModel(std::string file_path) {
     header.serialize(*serializer);
 
     auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
-    for (auto iter = net_resource->resource_map.begin(); iter != net_resource->resource_map.end(); ++iter) {
+    auto layers = net_struct->layers;
+    auto resource_map = net_resource->resource_map;
+    for (auto layer_info : layers) {
+        std::string layer_name = layer_info->name;
+        if (resource_map.find(layer_name) == resource_map.end()){
+            continue;
+        }
+        auto iter = resource_map.find(layer_name);
         if (iter->second == nullptr) {
             continue;
         }
         layer_header ly_head;
         ly_head.name_   = iter->first;
-        auto layer_info = FindLayerInfo(ly_head.name_);
-        if (layer_info == nullptr) {
-            LOGE("layer_packer: can't find layer(%s) in net struct!\n", ly_head.name_.c_str());
-            return Status(TNNERR_PACK_MODEL, "layer_packer: can't find layer in net struct");
-        }
-
         ly_head.type_     = LAYER_NOT_SUPPORT;  // just use type_str_ to judge
         ly_head.type_str_ = layer_info->type_str;
         ly_head.serialize(*serializer);
 
         LayerResource *layer_resource = iter->second.get();
         auto layer_interpreter        = layer_interpreter_map[layer_info->type];
-        if (layer_interpreter != NULL) {
+        if (layer_interpreter != nullptr) {
             Status result = layer_interpreter->SaveResource(*serializer, layer_info->param.get(), layer_resource);
             if (result != TNN_OK) {
                 write_stream.close();
@@ -228,7 +229,6 @@ Status ModelPacker::PackModel(std::string file_path) {
                 "type_from_str:%s type:%d)\n",
                 ly_head.name_.c_str(), ly_head.type_str_.c_str(), ly_head.type_);
             return Status(TNNERR_LOAD_MODEL, "model content is invalid");
-            ;
         }
     }
 

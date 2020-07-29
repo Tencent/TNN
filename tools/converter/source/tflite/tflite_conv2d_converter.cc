@@ -34,7 +34,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
                                            bool quantized_model) {
     TNN_NS::ConvLayerParam* param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
-
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
     // 3|2 inputs: input tensor, weight, (bias)
     const int input_size = tf_lite_operator->inputs.size();
     ASSERT(input_size == 2 || input_size == 3);
@@ -90,9 +90,6 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             LOGE("TNN Conv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        // update param
-        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-
         // weight
         auto layer_resource  = new TNN_NS::ConvLayerResource;
         layer_resource->name = cur_layer->name;
@@ -103,13 +100,14 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         ConvertDataFormatTFLite(original_weight_ptr, filter_handle.force_to<float*>(), kh, kw, ci, co);
         layer_resource->filter_handle = filter_handle;
         // bias
-        TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(co * sizeof(float));
         if (input_size == 3) {
+            param->bias = 1;
+            TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(co * sizeof(float));
             const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, sizeof(float) * co);
+            layer_resource->bias_handle                = bias_handle;
         }
-        layer_resource->bias_handle                = bias_handle;
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
 
