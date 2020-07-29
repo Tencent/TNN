@@ -27,8 +27,11 @@ function die() {
 
 
 function run_android() {
-    ../../scripts/build_android.sh
-    
+    BUILD_DIR=../../scripts
+    cd $BUILD_DIR
+    ./build_android.sh
+    cd ../platforms/android
+     
     if [ "" != "$BUILD_ONLY" ]; then
         echo "build done!"
         exit 0
@@ -36,7 +39,7 @@ function run_android() {
     mkdir -p $DUMP_DIR
 
     adb shell "mkdir -p $ANDROID_DIR"
-    adb push  $WORK_DIR/build${BUILD}/test/TNNTest $ANDROID_DIR
+    adb push  $BUILD_DIR/build${BUILD}/test/TNNTest $ANDROID_DIR
     adb shell chmod 0777 $ANDROID_DIR/TNNTest
 
     if [ "" != "$PUSH_MODEL" ]; then
@@ -45,7 +48,7 @@ function run_android() {
         adb push $MODEL_DIR/* $ANDROID_DATA_DIR
 	adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
         adb push $WORK_DIR/../../third_party/npu/cpp_lib/$ABI/* $ANDROID_DIR/$ABI/lib
-	adb push release/$ABI/* $ANDROID_DIR/$ABI/lib
+	adb push ${BUILD_DIR}/release/$ABI/* $ANDROID_DIR/$ABI/lib
     fi
     adb shell "echo > $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"
