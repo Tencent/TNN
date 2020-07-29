@@ -19,7 +19,7 @@ RUN apt-get -y install python3 python3-dev python3-pip
 
 #RUN mkdir -p  /root/.pip && echo "[global]\n index-url = https://mirrors.tencent.com/pypi/simple/" >> /root/.pip/pip.conf
 
-RUN python3 -m pip install --upgrade pip && pip3 install -U onnx onnxruntime numpy onnx-simplifier setuptools protobuf
+RUN python3 -m pip install --upgrade pip && pip3 install -U onnx==1.6.0 onnxruntime numpy onnx-simplifier setuptools protobuf
 
 
 RUN pip3 install tensorflow==1.15.0 tf2onnx
