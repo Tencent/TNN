@@ -29,3 +29,6 @@ optional parameters：
 The test will output the timing info as：time cost: min = xx   ms  |  max = xx   ms  |  avg = xx   ms
 
 It can also be used as a benchmark tool. When you use it, you need to formulate wc> = 1, because the first run will prepare memory, context, etc.,which increases time consumption
+```
+### 2.  NPU
+The HiAI so libraries needs to be pushed to the phone，and which 
