@@ -29,4 +29,4 @@ ModelConfig model_config;
 model_config.GetConfig(mobilenetv2_tnnproto_longth,mobilenetv2_tnnmodel_longth,mobilenetv2_tnnproto,mobilenetv2_tnnmodel)
 ```
 
-变量model_config中储存在模型信息，之后便可按照所需要的补齐其他参数进行推理
+在变量model_config中储存模型信息，之后便可按照所需要的补齐其他参数进行推理
