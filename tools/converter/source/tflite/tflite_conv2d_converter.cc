@@ -122,7 +122,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         } else if (activation == tflite::ActivationFunctionType_RELU6) {
             param->activation_type = TNN_NS::ActivationType_ReLU6;
         } else if (activation > tflite::ActivationFunctionType_NONE) {
-            LOGE("TNN Conv2D do not Support fused_activation_function\n");
+            LOGE("TNN Depthwise Conv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
     } else {

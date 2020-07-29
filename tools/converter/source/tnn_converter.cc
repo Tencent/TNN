@@ -19,6 +19,7 @@
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
+#include "optimizer/tnn_optimizer.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
@@ -32,6 +33,8 @@ int Run(int argc, char* argv[]) {
         tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
     }
     // TODO optimize the model
+    TnnOptimizer tnn_optimizer;
+    tnn_optimizer.Optimize(net_structure, net_resource);
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
     GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);

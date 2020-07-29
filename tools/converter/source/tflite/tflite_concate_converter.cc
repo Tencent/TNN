@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tflite_op_converter.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Concat);
@@ -36,11 +37,7 @@ TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn
     param->type                = cur_layer->type_str;
     param->quantized           = false;
     auto option                = tf_lite_operator->builtin_options.AsConcatenationOptions();
-    if (quantized_model) {
-        // TODO
-    } else {
-        param->axis = option->axis;
-    }
+    param->axis                = ConvertAxisFormatTFLite(option->axis);
     return TNN_NS::TNN_CONVERT_OK;
 }
 

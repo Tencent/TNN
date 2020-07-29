@@ -12,32 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNCONVERTER_SRC_TFLITE_TF_LITE_CONVERTER_H_
-#define TNNCONVERTER_SRC_TFLITE_TF_LITE_CONVERTER_H_
-
-#include "tflite-schema/schema_generated.h"
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_OPTIMIZER_TNN_OPTIMIZER_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_OPTIMIZER_TNN_OPTIMIZER_H_
 #include "tnn/core/status.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
-#include "utils/model_config.h"
 
 namespace TNN_CONVERTER {
-class TFLite2Tnn {
+class TnnOptimizer {
 public:
-    TFLite2Tnn(std::string model_path);
-    TFLite2Tnn(std::string model_path, std::string onnx_path);
-    TFLite2Tnn(std::string mode_path, std::string model_name, std::string onnx_path);
-    ~TFLite2Tnn(){};
-    TNN_NS::Status Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
-
-private:
-    void ReadModel(std::string tf_lite_model_path);
-    bool IsQuantized();
-    std::string tf_lite_model_name_;
-    std::string tf_lite_model_path_;
-    std::string onnx_model_path_;
-    std::unique_ptr<tflite::ModelT> tf_lite_model_;
+    TnnOptimizer(){};
+    ~TnnOptimizer(){};
+    TNN_NS::Status Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 };
-};  // namespace TNN_CONVERTER
+}  // namespace TNN_CONVERTER
 
-#endif  // TNNCONVERTER_SRC_TFLITE_TF_LITE_CONVERTER_H_
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_OPTIMIZER_TNN_OPTIMIZER_H_

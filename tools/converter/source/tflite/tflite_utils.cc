@@ -70,4 +70,17 @@ bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vecto
     std::memcpy((void*)(dst + 2 * data_size), src + 3 * data_size, data_size * sizeof(int32_t));
     return true;
 }
+
+int ConvertAxisFormatTFLite(int axis) {
+    assert(axis > -4&& axis < 4);
+    if (axis < 0) {
+        axis +=4;
+    }
+    switch (axis) {
+        case 0: return 0;
+        case 1: return 2;
+        case 2: return 3;
+        default: return 1;
+    }
+}
 }  // namespace TNN_CONVERTER

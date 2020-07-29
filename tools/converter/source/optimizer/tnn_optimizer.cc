@@ -12,20 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
-#define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
-#include <vector>
+#include "tnn_optimizer.h"
+
+#include "tnn_optimize_pass.h"
 
 namespace TNN_CONVERTER {
 
-bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int CI, int CO);
-
-bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape);
-
-// template <typename T>
-bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vector<int32_t> shape);
-
-int ConvertAxisFormatTFLite(int axis);
-
+TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
+    std::vector<std::string> optimize_pass = {"SeparateReluAndRelu6"};
+    for (auto pass_name : optimize_pass) {
+        auto pass = TnnOptimizePassManager::get()->search(pass_name);
+        if (pass == nullptr) {
+            LOGE("Unsupport optimize pass %s\n", pass_name.c_str());
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
+        }
+        pass->exec(net_structure, net_resource);
+    }
+    return TNN_NS::TNN_CONVERT_OK;
+}
 }  // namespace TNN_CONVERTER
-#endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_

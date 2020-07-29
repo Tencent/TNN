@@ -1,0 +1,75 @@
+namespace TNN_CONVERTER {
+
+class TnnOptimizePass {
+public:
+    TnnOptimizePass() = default;
+    virtual ~TnnOptimizePass() = default;
+
+    virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) = 0;
+    virtual std::string PassName() = 0;
+};
+
+class TnnOptimizePassManager {
+public:
+    TnnOptimizePassManager() = default;
+    ~TnnOptimizePassManager();
+    static TnnOptimizePassManager* get();
+    TnnOptimizePass* search(const std::string pass_name);
+    void insert(const std::string pass_name, TnnOptimizePass* t);
+
+private:
+    static TnnOptimizePassManager* tnn_optimize_pass_manager_;
+    std::map<const std::string, TnnOptimizePass*> tnn_optimize_pass_map_;
+};
+
+template <class T>
+class TnnOptimizePassRegister {
+public:
+    explicit TnnOptimizePassRegister(const std::string pass_name) {
+        T* pass = new T;
+        TnnOptimizePassManager* tnn_optimize_pass_manager = TnnOptimizePassManager::get();
+        tnn_optimize_pass_manager->insert(pass_name, pass);
+    }
+    ~TnnOptimizePassRegister() = default;
+};
+}
+namespace TNN_CONVERTER {
+
+class TnnOptimizeSeparateReluAndRelu6Pass : public TnnOptimizePass { public: TnnOptimizeSeparateReluAndRelu6Pass(){}; virtual ~TnnOptimizeSeparateReluAndRelu6Pass(){}; virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource); virtual std::string PassName(); };
+
+std::string TnnOptimizeSeparateReluAndRelu6Pass::PassName() {
+    return "SeparateReluAndRelu6";
+}
+
+TNN_NS::Status TnnOptimizeSeparateReluAndRelu6Pass::exec(tnn::NetStructure& net_structure,
+                                                         tnn::NetResource& net_resource) {
+    auto& layers = net_structure.layers;
+    const std::string conv_output_suffix = "_output";
+    const std::string activation_suffix = "_activation";
+    for (int i = 0; i < layers.size(); i++) {
+        auto& layer = layers[i];
+        if (layer->type == TNN_NS::LAYER_CONVOLUTION) {
+            auto param = dynamic_cast<TNN_NS::ConvLayerParam*>(layer->param.get());
+            if (param->activation_type == TNN_NS::ActivationType_None) {
+                continue;
+            } else if (param->activation_type == TNN_NS::ActivationType_ReLU ||
+                       param->activation_type == TNN_NS::ActivationType_ReLU6) {
+                auto activation_layer = new TNN_NS::LayerInfo;
+                activation_layer->type =
+                    param->activation_type == TNN_NS::ActivationType_ReLU ? TNN_NS::LAYER_RELU : TNN_NS::LAYER_RELU6;
+                activation_layer->type_str = param->activation_type == TNN_NS::ActivationType_ReLU ? "ReLu" : "ReLU6";
+                activation_layer->name = layer->name + activation_suffix;
+                activation_layer->inputs.push_back(layer->outputs[0] + conv_output_suffix);
+                activation_layer->outputs.push_back(layer->outputs[0]);
+
+                layer->outputs[0] = layer->outputs[0] + conv_output_suffix;
+                layers.insert(layers.begin() + i, std::shared_ptr<TNN_NS::LayerInfo>(activation_layer));
+            }
+        }
+    }
+    return TNN_NS::TNN_CONVERT_OK;
+}
+
+TnnOptimizePassRegister<TnnOptimizeSeparateReluAndRelu6Pass> g_tnn_optimize_SeparateReluAndRelu6_pass_("SeparateReluAndRelu6");
+
+}
