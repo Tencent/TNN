@@ -1,37 +1,28 @@
-#include <cstddef>
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <string>
-#include <vector>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <cfloat>
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 
-
-static void SanitizeName(char* name)
-{
-    for (std::size_t i = 0; i < strlen(name); i++)
-    {
-        if (!isalnum(name[i]))
-        {
+static void SanitizeName(char* name) {
+    for (std::size_t i = 0; i < strlen(name); i++) {
+        if (!isalnum(name[i])) {
             name[i] = '_';
         }
     }
 }
 
-static std::string PathtoVarname(const char* path)
-{
+static std::string PathtoVarname(const char* path) {
     const char* lastslash = strrchr(path, '/');
-    const char* name = lastslash == NULL ? path : lastslash + 1;
+    const char* name      = lastslash == NULL ? path : lastslash + 1;
 
     std::string varname = name;
     SanitizeName((char*)varname.c_str());
@@ -39,24 +30,21 @@ static std::string PathtoVarname(const char* path)
     return varname;
 }
 
-static int DumpProto(const char* protopath, const char* modelpath, const char* idcpppath)
-{
+static int DumpProto(const char* protopath, const char* modelpath, const char* idcpppath) {
     FILE* fp = fopen(protopath, "rb");
     FILE* mp = fopen(modelpath, "rb");
 
-    if (!fp)
-    {
+    if (!fp) {
         fprintf(stderr, "fopen %s failed\n", protopath);
         return -1;
     }
 
-    if (!mp)
-    {
+    if (!mp) {
         fprintf(stderr, "fopen %s failed\n", modelpath);
         return -1;
     }
-    std::string proto_var = PathtoVarname(protopath);
-    std::string model_var = PathtoVarname(modelpath);
+    std::string proto_var         = PathtoVarname(protopath);
+    std::string model_var         = PathtoVarname(modelpath);
     std::string include_guard_var = PathtoVarname(idcpppath);
 
     FILE* ip = fopen(idcpppath, "wb");
@@ -70,43 +58,34 @@ static int DumpProto(const char* protopath, const char* modelpath, const char* i
     int i = 0;
     int j = 0;
     int c;
- 
-    while(1)
-    {
+
+    while (1) {
         c = fgetc(fp);
-        if( feof(fp) )
-        { 
-            break ;
+        if (feof(fp)) {
+            break;
         }
         fprintf(ip, "0x%02x,", c);
         j++;
-        if (j % 16 == 0)
-        {
+        if (j % 16 == 0) {
             fprintf(ip, "\n");
         }
     }
     fprintf(ip, "};\n");
 
-
     std::ifstream model_stream(modelpath);
     std::string model_content =
-                    std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
-
+        std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
     fprintf(ip, "static const unsigned char %s[] = {\n", model_var.c_str());
 
-
-    while(1)
-    {
+    while (1) {
         c = fgetc(mp);
-        if( feof(mp) )
-        { 
-            break ;
+        if (feof(mp)) {
+            break;
         }
         fprintf(ip, "0x%02x,", c);
         i++;
-        if (i % 16 == 0)
-        {
+        if (i % 16 == 0) {
             fprintf(ip, "\n");
         }
     }
@@ -128,17 +107,14 @@ static int DumpProto(const char* protopath, const char* modelpath, const char* i
     return 0;
 }
 
-
-int main(int argc, char** argv)
-{
-    if (argc != 4)
-    {
+int main(int argc, char** argv) {
+    if (argc != 4) {
         fprintf(stderr, "Usage: %s [tnnproto] [tnnmodel] [memcpppath]\n", argv[0]);
         return -1;
     }
 
-    const char* protopath = argv[1];
-    const char* modelpath = argv[2];
+    const char* protopath  = argv[1];
+    const char* modelpath  = argv[2];
     const char* memcpppath = argv[3];
     DumpProto(protopath, modelpath, memcpppath);
     return 0;

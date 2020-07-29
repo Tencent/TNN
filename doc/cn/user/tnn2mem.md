@@ -1,7 +1,9 @@
 TNN为使用者提供了内存读取的模型的转换工具。首先，在TNN编译时打开开关
 
 ```
--DTNN_TNN2MEM_ENABLE=ON 
+mkdir build
+cd build
+cmake ..  -DTNN_TNN2MEM_ENABLE=ON 
 ```
 
 然后就可以在tools/tnn2mem 目录下得到可执行工具tnn2mem,这里我们以常见的mobilenetv2为例
