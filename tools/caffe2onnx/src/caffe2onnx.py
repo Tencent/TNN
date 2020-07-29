@@ -1019,7 +1019,7 @@ class Caffe2Onnx():
             elif Layers[i].type == "MVN":
                 # MVN: InstanceNormalization
                 # create InstanceNormalization
-                if Layers[i].mvn_param.normalize_variance  == 0 or Layers[i].mvn_param.across_channels  == True:
+                if Layers[i].mvn_param.normalize_variance  == False or Layers[i].mvn_param.across_channels  == True:
                                print("Failed type not support: " + Layers[i].type)
                                exit(-1)
                               
