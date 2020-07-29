@@ -1,6 +1,5 @@
 #!/bin/bash
 ABI="armeabi-v7a"
-NPU="ON"
 CLEAN=""
 PUSH_MODEL=""
 BUILD_ONLY=""
@@ -14,6 +13,8 @@ DUMP_DIR=$WORK_DIR/dump_data_npu
 MODEL_TYPE=tnn
 MODEL_NAME=version-slim-320_simplified.tnnproto
 #INPUT_FILE_NAME=input_128.txt
+
+NEED_REBUILD=true
 
 function usage() {
     echo "-64\tBuild 64bit."
@@ -29,9 +30,15 @@ function die() {
 function run_android() {
     BUILD_DIR=../../scripts
     cd $BUILD_DIR
-    ./build_android.sh
+    export NPU="ON"
+    if $NEED_REBUILD; then
+        ./build_android.sh -ic
+    else
+        ./build_android.sh
+    fi
+
     cd ../platforms/android
-     
+
     if [ "" != "$BUILD_ONLY" ]; then
         echo "build done!"
         exit 0
@@ -46,9 +53,9 @@ function run_android() {
         adb shell "rm -r $ANDROID_DATA_DIR"
         adb shell "mkdir -p $ANDROID_DATA_DIR"
         adb push $MODEL_DIR/* $ANDROID_DATA_DIR
-	adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
+        adb shell "mkdir -p $ANDROID_DIR/$ABI/lib"
         adb push $WORK_DIR/../../third_party/npu/cpp_lib/$ABI/* $ANDROID_DIR/$ABI/lib
-	adb push ${BUILD_DIR}/release/$ABI/* $ANDROID_DIR/$ABI/lib
+        adb push ${BUILD_DIR}/release/$ABI/* $ANDROID_DIR/$ABI/lib
     fi
     adb shell "echo > $ANDROID_DIR/test_log.txt"
     adb shell "mkdir -p $ANDROID_DIR/dump_data"

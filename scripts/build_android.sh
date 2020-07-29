@@ -9,7 +9,9 @@ SHARED_LIB="ON"
 ARM="ON"
 OPENMP="ON"
 OPENCL="ON"
-NPU="OFF"
+if [ -z "$NPU" ]; then
+    NPU="OFF"
+fi
 BENMARK_MODE="OFF"
 DEBUG="OFF"
 INCREMENTAL_COMPILE="OFF"
@@ -24,11 +26,11 @@ fi
 
 while [ "$1" != "" ]; do
     case $1 in
-        -ic) 
+        -ic)
             shift
             INCREMENTAL_COMPILE="ON"
-            ;;  
-        *)  
+            ;;
+        *)
             usage
             exit 1
     esac
@@ -36,14 +38,14 @@ done
 
 
 TNN_BUILD_PATH=$PWD
-if [ $NPU == "ON" ] 
+if [ $NPU == "ON" ]
 then
     echo "NPU Enable"
-    # set c++ shared 
+    # set c++ shared
     STL="c++_shared"
-    # set android API 
+    # set android API
     ANDROID_API_LEVEL="android-19"
-    #start to cp 
+    #start to cp
     if [ ! -d $TNN_BUILD_PATH/../third_party/npu/cpp_lib/ ]; then
          mkdir $TNN_BUILD_PATH/../third_party/npu/cpp_lib/
     fi
@@ -106,7 +108,7 @@ if [ -x "build64" ];then
     if [ "${INCREMENTAL_COMPILE}" = "OFF" ];then
         rm -r build64
         mkdir build64
-    fi  
+    fi
 else
     mkdir build64
 fi
@@ -153,14 +155,14 @@ mkdir armeabi-v7a
 mkdir arm64-v8a
 cd ..
 if [ "$SHARED_LIB" = "ON" ];then
-cp build32/libTNN.so release/armeabi-v7a
-cp build64/libTNN.so release/arm64-v8a
+    cp build32/libTNN.so release/armeabi-v7a
+    cp build64/libTNN.so release/arm64-v8a
 else
-cp build32/libTNN.a release/armeabi-v7a
-cp build64/libTNN.a release/arm64-v8a
+    cp build32/libTNN.a release/armeabi-v7a
+    cp build64/libTNN.a release/arm64-v8a
 fi
 cp -r ${TNN_ROOT_PATH}/include release
-if [ $NPU = "ON" ]; then   
+if [ $NPU = "ON" ]; then
     cp $TNN_BUILD_PATH/../third_party/npu/hiai_ddk_latest/armeabi-v7a/* release/armeabi-v7a/
     cp $TNN_BUILD_PATH/../third_party/npu/hiai_ddk_latest/arm64-v8a/* release/arm64-v8a/
 fi
