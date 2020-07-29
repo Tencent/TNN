@@ -78,7 +78,6 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         output_dir = os.path.dirname(onnx_path)
     checker.check_file_exist(output_dir)
     command = command + " -o " + output_dir
-    logging.debug("The onnx2tnn command:" + command + "\n")
 
     if input_names is not None:
         new_input_names = ""
@@ -89,6 +88,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
                 continue
             new_input_names += char
         command = command + " -input_shape " + new_input_names
+    logging.debug("The onnx2tnn command:" + command + "\n")
 
     work_dir = "../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)

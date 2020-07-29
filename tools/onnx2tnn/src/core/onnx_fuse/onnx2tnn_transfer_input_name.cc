@@ -21,10 +21,17 @@
 int Onnx2TNN::TransferInputName(onnx::GraphProto* mutable_graph) {
     // for input name
     // images_0 <- images:0
+    std::set<std::string> initializers;
+    const int initializer_count = mutable_graph->initializer_size();
+    for (int i = 0; i < initializer_count; i++) {
+        const auto& initializer_name = mutable_graph->initializer(i).name();
+        initializers.insert(initializer_name);
+    }
+
     std::map<std::string, std::string> hack_names_map;
     for (int i = 0; i < mutable_graph->input_size(); ++i) {
         const std::string& name = mutable_graph->mutable_input(i)->name();
-        if (name.find(':') != std::string::npos) {
+        if (name.find(':') != std::string::npos && initializers.find(name) == initializers.end()) {
             // graph input's name has special character ':'
             std::string hack_name = name;
             std::replace(hack_name.begin(), hack_name.end(), ':', '_');

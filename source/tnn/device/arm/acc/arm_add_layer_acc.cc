@@ -31,7 +31,7 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
     auto _input0   = input0_ptr;
     auto _input1   = input1_ptr;
 
-    if (DimsVectorUtils::Equal(dims0, dims1, 2, 3)) {
+    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {
         dims_broadcast.clear();
         type = ADD_ELEMENT;
         if (dims0[0] != dims[0] || dims0[1] != dims[1])

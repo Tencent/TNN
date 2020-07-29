@@ -12,6 +12,7 @@ OPENCL="ON"
 NPU="OFF"
 BENMARK_MODE="OFF"
 DEBUG="OFF"
+INCREMENTAL_COMPILE="OFF"
 SHARING_MEM_WITH_OPENGL=0
 ANDROID_API_LEVEL="android-14"
 # check ANDROID_NDK whether set.
@@ -20,6 +21,19 @@ if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
    echo -e "Please download android ndk and set ANDROID_NDK environment variable."
    exit -1
 fi
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -ic) 
+            shift
+            INCREMENTAL_COMPILE="ON"
+            ;;  
+        *)  
+            usage
+            exit 1
+    esac
+done
+
 
 TNN_BUILD_PATH=$PWD
 if [ $NPU == "ON" ] 
@@ -55,14 +69,16 @@ source $TNN_VERSION_PATH/add_version_attr.sh
 
 echo ' '
 echo '******************** step 2: start build rpn arm32 ********************'
-#删除旧SDK文件
 cd $TNN_BUILD_PATH
 if [ -x "build32" ];then
-rm -r build32
+    if [ "${INCREMENTAL_COMPILE}" = "OFF" ];then
+        rm -r build32
+        mkdir build32
+    fi
+else
+    mkdir build32
 fi
 
-#新建build目录
-mkdir build32
 cd build32
 echo $ABIA32
 cmake ${TNN_ROOT_PATH} \
@@ -85,14 +101,16 @@ make -j32
 
 echo ' '
 echo '******************** step 3: start build rpn arm64 ********************'
-#删除旧SDK文件
 cd $TNN_BUILD_PATH
 if [ -x "build64" ];then
-rm -r build64
+    if [ "${INCREMENTAL_COMPILE}" = "OFF" ];then
+        rm -r build64
+        mkdir build64
+    fi  
+else
+    mkdir build64
 fi
 
-#新建build目录
-mkdir build64
 cd build64
 echo $ABIA64
 cmake ${TNN_ROOT_PATH} \
