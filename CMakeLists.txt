@@ -159,7 +159,7 @@ message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
-message(STATUS "\tTNN2MEM:\t${TNN_MEM_ENABLE}")
+message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 
 include_directories(include)
 include_directories(source)

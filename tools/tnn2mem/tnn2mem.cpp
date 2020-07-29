@@ -50,7 +50,7 @@ static int DumpProto(const char* protopath, const char* modelpath, const char* i
         return -1;
     }
 
-    if (!fp)
+    if (!mp)
     {
         fprintf(stderr, "fopen %s failed\n", modelpath);
         return -1;
