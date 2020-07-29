@@ -51,8 +51,8 @@ ObjectInfo ObjectInfo::AddOffset(float offset_x, float offset_y) {
     info.image_width = this->image_width;
     info.image_height = this->image_width;
     
-    info.x1 = this->x2 + offset_x;
-    info.x2 = this->x1 + offset_x;
+    info.x1 = this->x1 + offset_x;
+    info.x2 = this->x2 + offset_x;
     info.y1 = this->y1 + offset_y;
     info.y2 = this->y2 + offset_y;
     
