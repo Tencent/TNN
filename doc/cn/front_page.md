@@ -39,14 +39,14 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 
 >  麒麟970：
 
-   | model                     | cpu 1 thread(ms) | gpu time(ms) |
-   |---------------------------|--------------|--------------|
-   | Mobilenet_v1              | 88           |   12         |
-   | Mobilenet_v1_int8         | 55           |              |
-   | Mobilenet_v2              | 58           |   11         |
-   | Mobilenet_v2_int8         | 41           |              |
-   | squeezenet_v1.0           | 127          |   20         |
-   | squeezenet_v1.0_int8      | 82           |              |
+| model                     | cpu time(single thread, ms) | gpu time(ms) | npu time(ms)
+|---------------------------|--------------|--------------|---------------|
+| Mobilenet_v1              | 88           |   12         |       4.9     |
+| Mobilenet_v1_int8         | 55           |              |               |
+| Mobilenet_v2              | 58           |   11         |       8.0     |
+| Mobilenet_v2_int8         | 41           |              |               |
+| squeezenet_v1.0           | 127          |   20         |       5.1     |
+| squeezenet_v1.0_int8      | 82           |              |               |
 
 
 >  骁龙835：

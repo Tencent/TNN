@@ -93,27 +93,29 @@
    ```
 
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
-
-####  NPU 
-  You need to download the DDK before run the demo. Refer to： [FAQ](../faq.md): How we obtain the DDK and compile the project.
+  
+   PS for NPU :
+   You need to download the DDK before run the demo. Refer to： [FAQ](../faq_en.md): NPU Compilation Prerequisite.
  
 
 2. Open the TNNExamples project
 
    Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project.
    
-#### NPU ：
-   1.  After opening the TNN example project，you need to uncomment the code  in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use NPU ：
+   PS for NPU ：
+   
+   1).  After opening the TNN example project，you need to uncomment the code  in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use NPU ：
    
    ````
         #set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
       
-  2. If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
-  Clean Project and rerun.
+   2). If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
+   Clean Project and rerun.
   
-  3. Only Huawei phones of rom version >= 100.320.xxx.xxxx supportS building the example TNN models.
-  To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq.md) to check the current NPU support situation and how to update the rom.
+   3). Only Huawei phones of rom version >= 100.320.xxx.xxxx supportS building the example TNN models.
+  
+   To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq_en.md) to check the current NPU support and how to update the ROM.
 
 ### Running result
 1. Face Detection-Pictures

@@ -14,66 +14,67 @@
         protobuf >= 3.0
         
 
-## NPU : How we obtain the DDK and compile the project?
-* Where is NPU ddk? 
-* Downlaod DDK from the following path [https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
-* unzip 
-* Go to the `ddk` directory undere the downloaded folder 
-* Copy all files under the `lib` directory to `TNN/third_party/npu/hiai_ddk_latest/armeabi-v7a`
-* Copy all files under the `lib64` directory to  `TNN/third_party/npu/hiai_ddk_latest/arm64-v8a`
-* Copy the `include` direcoty to `TNN/third_party/npu/hiai_ddk_latest/`
-* The structure of the `TNN/third_party/npu/hiai_ddk_latest/` should be like：
+## NPU Compilation Prerequisite:
+1. Downlaod DDK from the following path [https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
+2. unzip 
+3. Go to the `ddk` directory undere the downloaded folder 
+4. Copy all files under the `lib` directory to `TNN/third_party/npu/hiai_ddk_latest/armeabi-v7a`
+5. Copy all files under the `lib64` directory to  `TNN/third_party/npu/hiai_ddk_latest/arm64-v8a`
+6. Copy the `include` direcoty to `TNN/third_party/npu/hiai_ddk_latest/`
+7. The structure of the `TNN/third_party/npu/hiai_ddk_latest/` should be like：
 
-hiai_ddk_latest\
-├── arm64-v8a \
-│   ├── libcpucl.so \
-│   ├── libhcl.so\
-│   ├── libhiai.so\
-│   ├── libhiai_ir.so\
-│   └── libhiai_ir_build.so\
-├── armeabi-v7a\
-│   ├── libcpucl.so\
-│   ├── libhcl.so\
-│   ├── libhiai.so\
-│   ├── libhiai_ir.so\
-│   └── libhiai_ir_build.so\
-└── include\
-    ├── HiAiAippPara.h\
-    ├── HiAiModelManagerService.h\
-    ├── HiAiModelManagerType.h\
-    ├── graph\
-    │   ├── attr_value.h\
-    │   ├── buffer.h\
-    │   ├── common\
-    │   │   └── secures\tl.h\
-    │   ├── debug\
-    │   │   └── ge_error_codes.h\
-    │   ├── detail\
-    │   │   └── attributes_holder.h\
-    │   ├── graph.h\
-    │   ├── model.h\
-    │   ├── op\
-    │   │   ├── all_ops.h\
-    │   │   ├── array_defs.h\
-    │   │   ├── const_defs.h\
-    │   │   ├── detection_defs.h\
-    │   │   ├── image_defs.h\
-    │   │   ├── math_defs.h\
-    │   │   ├── nn_defs.h\
-    │   │   └── random_defs.h\
-    │   ├── operator.h\
-    │   ├── operator_reg.h\
-    │   ├── tensor.h \
-    │   └── types.h\
-    └── hiai_ir_build.h\
+```
+hiai_ddk_latest
+├── arm64-v8a 
+│   ├── libcpucl.so 
+│   ├── libhcl.so
+│   ├── libhiai.so
+│   ├── libhiai_ir.so
+│   └── libhiai_ir_build.so
+├── armeabi-v7a
+│   ├── libcpucl.so
+│   ├── libhcl.so
+│   ├── libhiai.so
+│   ├── libhiai_ir.so
+│   └── libhiai_ir_build.so
+└── include
+    ├── HiAiAippPara.h
+    ├── HiAiModelManagerService.h
+    ├── HiAiModelManagerType.h
+    ├── graph
+    │   ├── attr_value.h
+    │   ├── buffer.h
+    │   ├── common
+    │   │   └── secures\tl.h
+    │   ├── debug
+    │   │   └── ge_error_codes.h
+    │   ├── detail
+    │   │   └── attributes_holder.h
+    │   ├── graph.h
+    │   ├── model.h
+    │   ├── op
+    │   │   ├── all_ops.h
+    │   │   ├── array_defs.h
+    │   │   ├── const_defs.h
+    │   │   ├── detection_defs.h
+    │   │   ├── image_defs.h
+    │   │   ├── math_defs.h
+    │   │   ├── nn_defs.h
+    │   │   └── random_defs.h
+    │   ├── operator.h
+    │   ├── operator_reg.h
+    │   ├── tensor.h 
+    │   └── types.h
+    └── hiai_ir_build.h
+```
 
-## Current NPU support situation 
+## NPU Restriction
 * If the NPU is of the version below 100.320.xxxxxxx
   ERROR: npu is installed but is below 100.320.xxx.xxx
 * If the phone does not belong to Huawei or ROM version is too low：
   ERROR: GetRomVersion(ROM): npu is not installed or rom version is too low
   
-## How to update the latest ROM version ?
+## How to update the latest ROM version to support NPU?
 * Go to Settings > System and Update > Software Update
     
 ## Model support:

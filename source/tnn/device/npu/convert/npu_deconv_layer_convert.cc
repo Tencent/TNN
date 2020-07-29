@@ -36,7 +36,7 @@ protected:
         if( !resource) {
             return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
         }
-    if (resource->bias_handle.GetDataCount() > 0 || group > 1) {
+        if (resource->bias_handle.GetDataCount() > 0) {
             LOGE("Current IR deconv does not support bias \n");
             return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
         }
@@ -50,11 +50,10 @@ protected:
 
         // filter
         int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h * kernel_w * input_channel));
-        ge::Shape filter_shape({ input_channel, filter_channel, kernel_h, kernel_w});
+        ge::Shape filter_shape({input_channel, filter_channel, kernel_h, kernel_w});
         auto filter_const = std::make_shared<ge::op::Const>(layer_name_ + "filter");
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
-        printf("the filter %d %d %d %d\n",input_channel, filter_channel, kernel_h, kernel_w );
         // calculate deconv output shape
         std::vector<int> calculate_shape;
         ret = NpuBaseLayer::GetOutputShape(0, calculate_shape);

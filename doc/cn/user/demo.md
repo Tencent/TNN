@@ -93,27 +93,29 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    sh download_model.sh
    ```
 
-   PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+   PS: 
+   
+   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载.
+   
+    想要使用NPU运行demo需要需首先下载NPU ddk。详情参考: [FAQ](../faq.md): 创建NPU编译环境。
 
-####  华为NPU 
-   运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md): 我们如何拿到NPU DDK以及编译NPU。
-
- 
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程。
    
-####  华为NPU ：
-   1.  打开工程后，需要设置打开NPU：
+   PS ：
+   
+   1).  想要使用NPU, 打开工程后，需要手动设置打开NPU：
    在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 删除下面命令的注释符号，使用NPU。
    ````
         #set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
-   2. 第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
+   2). 第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
    Clean Project 再重新运行。
    
-   当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持ir构建事例模型。
-   运行demo需要需首先下载NPU DDK。详情参考 ： [FAQ](../faq.md): 当前NPU的支持情况和如何更新到最新rom。
+   3). 当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持IR构建事例模型。参考：[FAQ](../faq.md): 更新到最新的ROM支持NPU。
+   
+   4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建NPU编译环境。
       
  
 ### 运行效果
