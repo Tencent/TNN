@@ -1,8 +1,6 @@
-# 模型转换
+# 模型转换介绍
 
 [English Version](../../en/user/convert_en.md)
-
-## 模型转换介绍
 
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
 
@@ -17,7 +15,7 @@
 
 目前 TNN 目前仅支持 CNN 等常用网络结构，RNN、GAN等网络结构正在逐步开发中。
 
-## TNN 模型转换工具
+# TNN 模型转换工具
 
 通过上面的模型转换的总体介绍，可以发现如果想将 TensorFlow 模型转换成 TNN 模型需要最少两步，稍显麻烦，所以我们提供了 convert2tnn 工具。这个工具提供了集成的转换工具，可以将 TensorFlow、Caffe 和 ONNX 模型转换成 TNN 模型。由于 PyTorch 可以直接导出为 ONNX 模型，然后再将 ONNX 模型转换成 TNN 模型，所以本工具不再提供对于 PyTorch 模型的模型转换，
 
@@ -27,11 +25,11 @@
 - 通过 docker image 的方式使用 covnert2tnn 转换工具；
 - 手动安装依赖工具和编译工具的方式使用 convert2tnn 转换工具；
 
-### Convert2tnn Docker (推荐)
+## Convert2tnn Docker (推荐)
 
 为了简化 convert2tnn转换工具的安装和编译步骤，目前 TNN 提供了 Dockerfile 文件以及 Docker image 的方式，你可以自己根据 Dockerfile 文件自己构建 docker 镜像，也可以从 Docker Hub 上直接拉取已经构建好的镜像。你可以选择自己喜欢的方式获取 docker 的镜像。
 
-#### 拉取构建好的 docker 镜像（推荐）
+### 拉取构建好的 docker 镜像（推荐）
 
 目前 TNN 已经在 docker hub 上准备好了构建好的 docker image，我们建议直接从 docker hub 上拉取镜像。
 
@@ -57,7 +55,7 @@ tnn-convert         latest              28c93a738b08        16 minutes ago      
 #### 更新 docker 镜像
 重复 [__拉取构建好的 docker 镜像__](#拉取构建好的-docker-镜像推荐) 中的操作即可
 
-#### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
+### 构建 docker 镜像(如果上面已经拉取了 image，这一步，可直接跳过)
 ``` shell script
 cd <path-to-tnn>/
 docker build -t tnn-convert:latest .
@@ -74,7 +72,7 @@ tnn-convert         latest              9fb83110d2c9        26 minutes ago      
 
 
 
-#### convert2tnn 工具进行转换
+### convert2tnn 工具进行转换
 
 首先验证下 docker 镜像能够正常使用，首先我们通过下面的命令来看下 convert2tnn 的帮助信息：
 
@@ -199,24 +197,15 @@ convert2tnn 的完整环境搭建包含下面的所有的工具的安装和编�
 
 针对 Linux 系统下的环境配置，我使用 Centos 7.2 为例，Ubuntu 系统也可以适用，只要将相应的安装命令修改为 Ubuntu 上的对应命令即可。  
 
-#### 环境搭建及编译
-##### 1. ONNX模型转换工具搭建（必须）
-
+### 环境搭建及编译
+#### 1. ONNX模型转换工具搭建（必须）
 - 安装protobuf(version >= 3.4.0)  
 Macos:
 ```shell script
 brew install protobuf
 ```
-## 设置代理（可选)
-export http_proxy=http://{addr}:{port}
-export https_proxy=http://{addr}:{port}
-## 编译
-cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
-./build.sh
-```
 
 - 安装python (version >=3.6)  
-
 Macos
 ```shell script
 brew install python3
@@ -225,14 +214,14 @@ centos:
 ```shell script
 yum install  python3 python3-devel
 ```
-
 - 安装 python 依赖库
 onnx=1.6.0  
 onnxruntime>=1.1.0   
 numpy>=1.17.0  
 onnx-simplifier>=0.2.4  
+protobuf>=3.4.0
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf
 ```
 
 - cmake （version >= 3.0）
@@ -245,7 +234,8 @@ cd <path-to-tnn>/tools/convert2tnn
 ./build.sh
  ```
 
-##### 2. TensorFlow 模型转换（可选）
+#### 2. TensorFlow 模型转换（可选）
+
 
 - tensorflow (version == 1.15.0)
 建议使用 TensorFlow 1.15.0 的版本，目前 TensorFlow 2.+ 的版本的兼容性不好， 不建议使用。
@@ -261,7 +251,8 @@ pip3 install tf2onnx
 ```shell script
 pip3 install onnxruntime
 ```
-##### 3. Caffe 模型转换（可选）
+
+#### 3. Caffe 模型转换（可选）
 
 - 安装protobuf(version >= 3.4.0)  
 
@@ -354,7 +345,7 @@ optional arguments:
 示例：
 ```shell script
 python3 converter.py onnx2tnn \
-    ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx \
+    ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.onnx \
     -optimize \
     -v=v3.0 \
     -o ~/mobilenetv3/ \
@@ -469,8 +460,8 @@ python3 converter.py tf2tnn \
     -ref_file ref.txt
 ```
 
-#### 输入输出文件格式示例
-##### 输入
+## 输入输出文件格式示例
+### 输入
 ```text
 输入数据按一维排列
 
@@ -481,7 +472,7 @@ python3 converter.py tf2tnn \
 
 ```
 
-##### 输出
+### 输出
 ```text
 
 输出数量 
@@ -506,7 +497,7 @@ python3 converter.py tf2tnn \
 
 ```
 
-##### 生成输出示例代码
+### 生成输出示例代码
 ```python
 """
 
