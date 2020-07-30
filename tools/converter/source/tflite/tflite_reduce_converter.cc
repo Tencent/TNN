@@ -45,6 +45,9 @@ TNN_NS::Status TFLiteReduceConverter::exec(tnn::NetStructure &net_structure, tnn
         param->axis.push_back(ConvertAxisFormatTFLite(*axes_ptr));
         axes_ptr++;
     }
+    cur_layer->inputs.resize(1);
+    cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 
