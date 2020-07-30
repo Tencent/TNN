@@ -442,10 +442,16 @@ int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc* desc) {
     }
 
     int max_batchsize = 0;
-    for (int i = 0; i < batch_info.batchCount; ++i) {
-        if (batch_info.batch[i] > max_batchsize) {
-            max_batchsize = batch_info.batch[i];
+    if (batch_info.batchCount > 0) {
+        // dynamic batch
+        for (int i = 0; i < batch_info.batchCount; ++i) {
+            if (batch_info.batch[i] > max_batchsize) {
+                max_batchsize = batch_info.batch[i];
+            }
         }
+    } else {
+        // static batch
+        max_batchsize = blob_->GetBlobDesc().dims[0];
     }
 
     LOGD("get max batch size: %d\n", max_batchsize);

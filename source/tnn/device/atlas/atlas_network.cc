@@ -230,6 +230,7 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
         LOGE("query model failed, model file is %s\n", om_file.c_str());
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
+    LOGD("model mem size:  %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
