@@ -105,31 +105,35 @@ optional arguments:
 
 ## 3. caffe2onnx 支持的算子
 
-| Number | caffe layer            | onnx operator                                         |
-| ------ | ---------------------- | ----------------------------------------------------- |
-| 1      | BatchNorm              | BatchNormalization                                    |
-| 2      | BatchNorm + Scale      | BatchNormalization                                    |
-| 3      | Concat                 | Concat                                                |
-| 4      | Convolution            | Conv                                                  |
-| 5      | ConvolutionDepthwise   | Conv                                                  |
-| 6      | Deconvolution          | ConvTranspose                                         |
-| 7      | DetectionOutput        | DetectionOutput(customer defination)                  |
-| 8      | Dropout                | Dropout                                               |
-| 9      | Eltwise                | Mul/Add/Max                                           |
-| 10     | Flatten                | Reshape                                               |
-| 11     | InnerProduct           | Reshape + Gemm                                        |
-| 12     | LRN                    | LRN                                                   |
-| 13     | MaxUnPool              | MaxUnPool                                             |
-| 14     | PReLU                  | PRelu                                                 |
-| 15     | Permute                | Transpose                                             |
-| 16     | Pooling                | MaxPool/AveragePool/GlobalMaxPool/GlobalAveragePool   |
-| 17     | PriorBox               | PriorBox(customer defination)                         |
-| 18     | ReLU                   | Relu/LeakyRelu                                        |
-| 19     | ReLU6                  | Clip                                                  |
-| 20     | Reshape                | Reshape                                               |
-| 21     | Scale                  | Mul + Reshape                                         |
-| 22     | ShuffleChannel         | Reshape + Transpose + Reshape                         |
-| 23     | Sigmoid                | Sigmoid                                               |
-| 24     | Slice                  | Slice                                                 |
-| 25     | Softmax                | Softmax                                               |
-| 26     | Upsample               | Resize                                                |
+| Number | caffe layer          | onnx operator                                       |
+| ------ | -------------------- | --------------------------------------------------- |
+| 1      | BatchNorm            | BatchNormalization                                  |
+| 2      | BatchNorm + Scale    | BatchNormalization                                  |
+| 3      | Concat               | Concat                                              |
+| 4      | Convolution          | Conv                                                |
+| 5      | ConvolutionDepthwise | Conv                                                |
+| 6      | Crop                 | Slice                                               |
+| 7      | Deconvolution        | ConvTranspose                                       |
+| 8      | DetectionOutput      | DetectionOutput(customer defination)                |
+| 9      | Dropout              | Dropout                                             |
+| 10     | Eltwise              | Mul/Add/Max                                         |
+| 11     | Flatten              | Reshape                                             |
+| 12     | InnerProduct         | Reshape + Gemm                                      |
+| 13     | LRN                  | LRN                                                 |
+| 14     | MaxUnPool            | MaxUnPool                                           |
+| 15     | MVN                  | InstanceNorm                                        |
+| 16     | PReLU                | PRelu                                               |
+| 17     | Permute              | Transpose                                           |
+| 18     | Pooling              | MaxPool/AveragePool/GlobalMaxPool/GlobalAveragePool |
+| 19     | Power                | Mul/Add/Pow                                         |
+| 20     | PriorBox             | PriorBox(customer defination)                       |
+| 21     | ReLU                 | Relu/LeakyRelu                                      |
+| 22     | ReLU6                | Clip                                                |
+| 23     | Reshape              | Reshape                                             |
+| 24     | Scale                | Mul + Reshape                                       |
+| 25     | ShuffleChannel       | Reshape + Transpose + Reshape                       |
+| 26     | Sigmoid              | Sigmoid                                             |
+| 27     | Slice                | Slice                                               |
+| 28     | Softmax              | Softmax                                             |
+| 29     | Upsample             | Resize                                              |
+

@@ -1014,7 +1014,41 @@ class Caffe2Onnx():
                 crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
                                                   input_shape)
                 self.onnxNodeList.append(crop_node)
-                
+
+            # MVN
+            elif Layers[i].type == "MVN":
+                # MVN: InstanceNormalization
+                # create InstanceNormalization
+                if Layers[i].mvn_param.normalize_variance  == False or Layers[i].mvn_param.across_channels  == True:
+                               print("Failed type not support: " + Layers[i].type)
+                               exit(-1)
+                              
+
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(
+                    Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
+
+                MVN_name = []
+                MVN_name.append(input_name[0])
+                scale, bias = op.get_InstanceNorm_param(Layers[i],input_shape)
+
+                scale_param = self.AddInputsTVIMannul(Layers[i],
+                                                       ['_scale' + str(i)],
+                                                       [TensorProto.FLOAT],
+                                                       [np.shape(scale)],
+                                                       [scale])
+                bias_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_bias' + str(i)],
+                                                     [TensorProto.FLOAT],
+                                                     [np.shape(bias)], [bias])
+
+                MVN_name.extend(scale_param)
+                MVN_name.extend(bias_param)
+                MVN_node = op.create_InstanceNorm_op(Layers[i], node_name,
+                                                MVN_name, output_name,
+                                                input_shape)
+                self.onnxNodeList.append(MVN_node)
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)
