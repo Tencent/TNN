@@ -19,6 +19,11 @@
 
 namespace TNN_NS {
 
+Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    Status ret = TNN_OK;
+    return ret;
+}
+
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
@@ -88,7 +93,7 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");
         }
         // crop y
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * param.width);
+        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth());
         auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
         mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
         // crop uv
@@ -130,5 +135,8 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 
     return ret;
 }
+
+DECLARE_MAT_CONVERTER_CREATER(Arm);
+REGISTER_MAT_CONVERTER(Arm, DEVICE_ARM);
 
 }  // namespace TNN_NS
