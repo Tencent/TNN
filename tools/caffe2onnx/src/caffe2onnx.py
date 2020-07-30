@@ -62,7 +62,7 @@ class Caffe2Onnx():
                         input_layer_name = lay.top[0]
                     else:
                         input_layer_name = lay.name
-                        
+
                     in_tvi = helper.make_tensor_value_info(input_layer_name + "_input", TensorProto.FLOAT,
                                                            lay.input_param.shape[0].dim)
                     self.model_input_name.append(input_layer_name + "_input")
@@ -400,7 +400,7 @@ class Caffe2Onnx():
                             Layers[i], ["_scale"], [TensorProto.FLOAT],
                             [param_scale_shape], [param_scale_data])
 
-                        mul_input_name = [input_name[0], param_scale_name[0]] 
+                        mul_input_name = [input_name[0], param_scale_name[0]]
                         mul_input_shape = [input_shape[0], param_scale_shape]
 
                         mul_node = op.create_mul_node(Layers[i], node_name,
@@ -980,7 +980,7 @@ class Caffe2Onnx():
 
                 # 3.添加节点到节点列表
                 self.onnxNodeList.append(tanh_node)
-                
+
             elif Layers[i].type == "Crop":
                 # Crop: Slice
                 # create Slice node
@@ -989,10 +989,10 @@ class Caffe2Onnx():
                 node_name = Layers[i].name
 
                 starts, ends, axes = op.get_crop_param(Layers[i],input_shape)
-                
+
                 Crop_name=[]
                 Crop_name.append(input_name[0])
-                
+
                 starts_param = self.AddInputsTVIMannul(Layers[i],
                                                        ['_starts' + str(i)],
                                                        [TensorProto.INT64],
@@ -1006,14 +1006,14 @@ class Caffe2Onnx():
                                                      ['_axes' + str(i)],
                                                      [TensorProto.INT64],
                                                      [np.shape(axes)], [axes])
-           
+
                 Crop_name.extend(starts_param)
                 Crop_name.extend(ends_param)
                 Crop_name.extend(axes_param)
                 crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
                                                   input_shape)
                 self.onnxNodeList.append(crop_node)
-                
+
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)
