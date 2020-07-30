@@ -12,27 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
-#define TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_CONVERTER_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_CONVERTER_H_
 
-#include "tnn/core/status.h"
 #include "tnn/utils/mat_converter_internal.h"
-#include "tnn/utils/mat_utils.h"
+#include "tnn/core/macro.h"
+#include "tnn/device/arm/arm_util.h"
 
 namespace TNN_NS {
 
-class MatConverter {
+class ArmMatConverterAcc : public MatConverterAcc {
 public:
-    MatConverter(Mat* src, Mat* dst);
-    virtual Status Copy(Mat& src, Mat& dst, void* command_queue);
-    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
-    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
-    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
-
-private:
-    std::shared_ptr<MatConverterAcc> impl_ = nullptr;
+    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
+    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
+    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_CONVERTER_H_

@@ -13,12 +13,16 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/opencl_mat_converter.h"
-
 #include "tnn/device/opencl/opencl_utils.h"
 
 namespace TNN_NS {
 
-Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) {
+Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    Status ret            = TNN_OK;
+    return ret; 
+}
+
+Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret            = TNN_OK;
     auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     if (cl_command_queue == nullptr) {
@@ -36,12 +40,10 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
         }
         execute_map_[key] = unit; 
     }
-
-    
-    
+    return ret;
 }
 
-Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) {
+Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret            = TNN_OK;
     auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     if (cl_command_queue == nullptr) {
@@ -49,6 +51,7 @@ Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* co
         return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
     }
     const std::string key = "Crop"; 
+    OpenCLExecuteUnit unit;
     if(execute_map_.count(key) == 0) {
         std::string program_name = "copy";
         std::string kernel_name = "CopyImage";
@@ -58,9 +61,10 @@ Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* co
         }
         execute_map_[key] = unit; 
     }
+    return ret;
 }
 
-Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) {
+Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     Status ret            = TNN_OK;
     auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     if (cl_command_queue == nullptr) {
@@ -70,6 +74,7 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     if(execute_map_.count("WarpAffine") == 0) {        
 
     }
+    return ret;
 }
 
 }  // namespace TNN_NS

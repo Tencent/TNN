@@ -16,12 +16,14 @@
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
 
 #include "tnn/core/macro.h"
+#include "tnn/utils/mat_converter_internal.h"
 #include "tnn/device/opencl/opencl_utils.h"
 
 namespace TNN_NS {
 
 class OpenCLMatConverterAcc : public MatConverterAcc {
 public:
+    virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);

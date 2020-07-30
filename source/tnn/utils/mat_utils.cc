@@ -12,21 +12,41 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter.h"
 
 namespace TNN_NS {
 
+Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
+    DimsVector src_dims = src.GetDims();
+    DimsVector dst_dims = dst.GetDims();
+    if(DimsVectorUtils::Equal(src_dims, dst_dims)) {
+        MatConverter convert(&src, &dst);
+        return convert.Copy(src, dst, command_queue);
+    }else {
+        return Status(TNNERR_PARAM_ERR, "src and dst dims not equal"); 
+    }
+}
+
 Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
+    if(param.scale_w == 0) {
+         param.scale_w = (double)dst.GetWidth() / src.GetWidth();
+    }
+    if(param.scale_h == 0) {
+         param.scale_h = (double)dst.GetHeight() / src.GetHeight();
+    }
     MatConverter convert(&src, &dst);
     return convert.Resize(src, dst, param, command_queue);
 }
 
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
-    if (dst.GetHeight() != param.height || dst.GetWidth() != param.width) {
-        return Status(TNNERR_PARAM_ERR, "crop size not match with dst mat");
+    if(param.width == 0) {
+         param.width = dst.GetWidth();
     }
-
+    if(param.height == 0) {
+         param.height = dst.GetHeight();
+    }
     MatConverter convert(&src, &dst);
     return convert.Crop(src, dst, param, command_queue);
 }
