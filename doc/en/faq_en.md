@@ -17,11 +17,11 @@
 ## NPU Compilation Prerequisite:
 1. Downlaod DDK from the following path [https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
 2. unzip 
-3. Go to the `ddk` directory undere the downloaded folder 
-4. Copy all files under the `lib` directory to `TNN/third_party/npu/hiai_ddk_latest/armeabi-v7a`
-5. Copy all files under the `lib64` directory to  `TNN/third_party/npu/hiai_ddk_latest/arm64-v8a`
-6. Copy the `include` direcoty to `TNN/third_party/npu/hiai_ddk_latest/`
-7. The structure of the `TNN/third_party/npu/hiai_ddk_latest/` should be like：
+3. Go to the `ddk/ai_ddk_lib` directory under the downloaded folder 
+4. Copy all files under the `ddk/ai_ddk_lib/lib` directory to `<path_to_tnn>/third_party/npu/hiai_ddk_latest/armeabi-v7a`
+5. Copy all files under the `ddk/ai_ddk_lib/lib64` directory to  `<path_to_tnn>/third_party/npu/hiai_ddk_latest/arm64-v8a`
+6. Copy the `include` directory to `<path_to_tnn>>/third_party/npu/hiai_ddk_latest/`
+7. The structure of the `<path_to_tnn>/third_party/npu/hiai_ddk_latest/` should be like：
 
 ```
 hiai_ddk_latest
