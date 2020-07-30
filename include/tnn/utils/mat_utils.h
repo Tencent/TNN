@@ -32,8 +32,9 @@ typedef enum {
 } PUBLIC BorderType;
 
 struct PUBLIC ResizeParam {
-    float scale_w = 1.0f;
-    float scale_h = 1.0f;
+    float scale_w = 0.0f;
+    float scale_h = 0.0f;
+    InterpType type = INTERP_TYPE_LINEAR;
 };
 
 struct PUBLIC CropParam {
@@ -52,10 +53,18 @@ struct PUBLIC WarpAffineParam {
 
 class PUBLIC MatUtils {
 public:
+    //copy cpu <-> device, cpu<->cpu, device<->device, src and dst dims must be equal.
+    static Status Copy(Mat& src, Mat& dst, void* command_queue);
+
+    //src and dst device type must be same. when param scale_w or scale_h is 0, it is computed as
+    // (double)dst.GetWidth() / src.GetWidth() or (double)dst.GetHeight() / src.GetHeight().
     static Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
 
+    //src and dst device type must be same. when param width or height is 0, it is equal to
+    //dst.GetWidth() or dst.GetHeight().
     static Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
 
+    //src and dst device type must be same.
     static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 };
 

@@ -24,6 +24,7 @@ namespace TNN_NS {
 class MatConverter {
 public:
     MatConverter(Mat* src, Mat* dst);
+    virtual Status Copy(Mat& src, Mat& dst, void* command_queue);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);

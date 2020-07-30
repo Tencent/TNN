@@ -40,6 +40,14 @@ MatConverter::MatConverter(Mat* src, Mat* dst) {
     impl_ = MatConverterManager::Shared()->CreateMatConverterAcc(device_type);
 }
 
+Status MatConverter::Copy(Mat& src, Mat& dst, void* command_queue) {
+    if (!impl_) {
+        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
+    }
+
+    return impl_->Copy(src, dst, command_queue);
+}
+
 Status MatConverter::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     if (!impl_) {
         return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
