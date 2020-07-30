@@ -14,8 +14,6 @@ MODEL_TYPE=tnn
 MODEL_NAME=version-slim-320_simplified.tnnproto
 #INPUT_FILE_NAME=input_128.txt
 
-NEED_REBUILD=true
-
 function usage() {
     echo "-64\tBuild 64bit."
     echo "-p\tPush models to device"
@@ -31,7 +29,7 @@ function run_android() {
     BUILD_DIR=../../scripts
     cd $BUILD_DIR
     export NPU="ON"
-    if $NEED_REBUILD; then
+    if [ "$CLEAN" == "" ]; then
         ./build_android.sh -ic
     else
         ./build_android.sh
