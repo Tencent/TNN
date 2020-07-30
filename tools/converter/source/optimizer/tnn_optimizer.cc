@@ -19,7 +19,7 @@
 namespace TNN_CONVERTER {
 
 TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
-    std::vector<std::string> optimize_pass = {"SeparateReluAndRelu6"};
+    std::vector<std::string> optimize_pass = {"SeparateReluAndRelu6", "EliminateSqueeze"};
     for (auto pass_name : optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {

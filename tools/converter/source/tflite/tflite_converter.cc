@@ -59,6 +59,10 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
     const auto& tf_lite_model_buffer = tf_lite_model_->buffers;
     bool quantized_mode              = IsQuantized();
     auto& buffer                     = tf_lite_model_->buffers;
+    if (quantized_mode) {
+        LOGE("TNN do not support tflite quantized mode\n");
+        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+    }
     for (int i = 0; i < sub_graphs_size; ++i) {
         const auto& operators = tf_lite_model_->subgraphs[i]->operators;
         const auto& tensors   = tf_lite_model_->subgraphs[i]->tensors;
@@ -105,7 +109,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             }
             auto converter = TFLiteOpConverterManager::get()->search(op_code);
             if (converter == nullptr) {
-                LOGE("Unsupport tflite op type: %d\n", op_code);
+                LOGE("The TFLite mode has unsupport layer(%d)\n", op_code);
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
             auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();

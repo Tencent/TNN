@@ -333,6 +333,10 @@ struct SignedMulLayerParam : public LayerParam {
     float gamma = 2.0f;
 };
 
+struct SqueezeLayerParam : public LayerParam {
+    std::vector<int> axes;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
