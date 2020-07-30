@@ -128,7 +128,9 @@ Status ModelPacker::PackProto(std::string file_path) {
         // layer type
         std::string layer_type_str = item->type_str;
         if (item->param->quantized) {
-            layer_type_str = "Quantized" + layer_type_str;
+            if (layer_type_str.compare(0, 9, "Quantized") != 0) {
+                layer_type_str = "Quantized" + layer_type_str;
+            }
         }
         layer_type_str = Transfer(layer_type_str);
         write_stream << layer_type_str << " ";
