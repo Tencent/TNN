@@ -31,7 +31,7 @@ public:
                                 const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                 const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                 const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                bool quantizedModel)   = 0;
+                                bool quantized_model)  = 0;
     virtual std::string TNNOpType(bool quantized_mode) = 0;
 
 protected:
@@ -72,8 +72,8 @@ public:
                                     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,              \
                                     const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,         \
                                     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,         \
-                                    bool quantizedModel);                                                              \
-        virtual std::string TNNOpType(bool quantizedModel);                                                            \
+                                    bool quantized_model);                                                             \
+        virtual std::string TNNOpType(bool quantized_model);                                                           \
     }  // namespace TNN_CONVERTER
 
 #define REGISTER_CONVERTER(converter_suffix, tf_lite_type)                                                             \

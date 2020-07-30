@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "optimizer/tnn_optimizer.h"
 #include "tflite/tflite_converter.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
@@ -19,7 +20,6 @@
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
-#include "optimizer/tnn_optimizer.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {

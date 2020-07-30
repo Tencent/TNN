@@ -19,7 +19,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(Squeeze);
 
-std::string TFLiteSqueezeConverter::TNNOpType(bool quantizedModel) {
+std::string TFLiteSqueezeConverter::TNNOpType(bool quantized_model) {
     return "Squeeze";
 }
 
@@ -28,15 +28,15 @@ TNN_NS::Status TFLiteSqueezeConverter::exec(tnn::NetStructure &net_structure, tn
                                             const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
                                             const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
                                             const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set,
-                                            bool quantizedModel) {
-    TNN_NS::SqueezeLayerParam* param = new TNN_NS::SqueezeLayerParam;
-    auto cur_layer = net_structure.layers.back();
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name = cur_layer->name;
-    param->type = cur_layer->type_str;
-    param->quantized = false;
-    auto option = tf_lite_operator->builtin_options.AsSqueezeOptions();
-    for (auto axis: option->squeezeDims) {
+                                            bool quantized_model) {
+    TNN_NS::SqueezeLayerParam *param = new TNN_NS::SqueezeLayerParam;
+    auto cur_layer                   = net_structure.layers.back();
+    cur_layer->param                 = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name                      = cur_layer->name;
+    param->type                      = cur_layer->type_str;
+    param->quantized                 = false;
+    auto option                      = tf_lite_operator->builtin_options.AsSqueezeOptions();
+    for (auto axis : option->squeezeDims) {
         param->axes.push_back(ConvertAxisFormatTFLite(axis));
     }
     return TNN_NS::TNN_CONVERT_OK;

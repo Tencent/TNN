@@ -28,7 +28,7 @@ public:
                                 const std::vector<std::unique_ptr<tflite::TensorT>>& tfliteTensors,
                                 const std::vector<std::unique_ptr<tflite::BufferT>>& tfliteModelBuffer,
                                 const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tfliteOpSet,
-                                bool quantizedModel);
+                                bool quantized_model);
     virtual std::string TNNOpType(bool quantimized_mode) = 0;
 };
 
@@ -37,7 +37,7 @@ public:
     public:                                                                                                            \
         TFLite##tf_lite_type##Converter() : TFLiteBinaryConverter(){};                                                 \
         virtual ~TFLite##tf_lite_type##Converter(){};                                                                  \
-        virtual std::string TNNOpType(bool quantizedModel);                                                            \
+        virtual std::string TNNOpType(bool quantized_model);                                                           \
     }  // namespace TNN_CONVERTER
 
 }  // namespace TNN_CONVERTER

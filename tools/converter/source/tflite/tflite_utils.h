@@ -27,5 +27,7 @@ bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vecto
 
 int ConvertAxisFormatTFLite(int axis);
 
+int Count(std::vector<int> shape);
+
 }  // namespace TNN_CONVERTER
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_

@@ -72,15 +72,30 @@ bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vecto
 }
 
 int ConvertAxisFormatTFLite(int axis) {
-    assert(axis > -4&& axis < 4);
+    assert(axis > -4 && axis < 4);
     if (axis < 0) {
-        axis +=4;
+        axis += 4;
     }
     switch (axis) {
-        case 0: return 0;
-        case 1: return 2;
-        case 2: return 3;
-        default: return 1;
+        case 0:
+            return 0;
+        case 1:
+            return 2;
+        case 2:
+            return 3;
+        default:
+            return 1;
     }
+}
+
+int Count(std::vector<int> shape) {
+    if (shape.empty()) {
+        return 0;
+    }
+    int count = 1;
+    for (auto i : shape) {
+        count *= i;
+    }
+    return count;
 }
 }  // namespace TNN_CONVERTER
