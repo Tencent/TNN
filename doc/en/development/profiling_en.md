@@ -100,7 +100,6 @@ Parameters：
     -c    clean and recompile
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
-    -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected(Armlinux does not have this option)
     -t    add <CPU/GPU> to indicate the platform to run.
 ```
 
