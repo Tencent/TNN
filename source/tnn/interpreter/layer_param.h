@@ -108,7 +108,7 @@ struct RoiPoolingLayerParam : public LayerParam {
 };
 
 struct UpsampleLayerParam : public LayerParam {
-    //1: nereast 2:bilinear/linear
+    // 1: nereast 2:bilinear/linear
     int type          = 0;
     int align_corners = 0;
 
@@ -330,6 +330,13 @@ struct SignedMulLayerParam : public LayerParam {
     float alpha = 1.0f;
     float beta  = 1.0f;
     float gamma = 2.0f;
+};
+
+struct RoiAlignLayerParam : public LayerParam {
+    int output_height   = 1;
+    int output_width    = 1;
+    int sampling_ratio  = 0;
+    float spatial_scale = 1.0f;
 };
 
 }  // namespace TNN_NS

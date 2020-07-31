@@ -14,12 +14,12 @@
 
 #include "onnx2tnn.h"
 
+#include <execinfo.h>
 #include <math.h>
 #include <stdio.h>
-#include <execinfo.h>
 
-#include <set>
 #include <exception>
+#include <set>
 
 #include "onnx2tnn_prefix.h"
 
@@ -526,6 +526,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseRoiAlign(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     for (int i = 0; i < node_count; i++) {
         onnx::NodeProto* node = mutable_graph->mutable_node(i);
@@ -725,10 +726,10 @@ int Onnx2TNN::ClearEmptyNode(std::vector<IndexNode>& index_nodes) {
 std::string get_backtrack() {
     const int MAX_SIZE = 10;
     std::string backtrace_str;
-    char **strings = nullptr;
-    void *array[MAX_SIZE] = {0};
-    size_t size = backtrace(array, MAX_SIZE);
-    strings = backtrace_symbols(array, size);
+    char** strings        = nullptr;
+    void* array[MAX_SIZE] = {0};
+    size_t size           = backtrace(array, MAX_SIZE);
+    strings               = backtrace_symbols(array, size);
     for (size_t i = 0; i < size; i++)
         backtrace_str += std::string(strings[i]) + std::string("\n");
     free(strings);
