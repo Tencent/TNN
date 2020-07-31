@@ -360,12 +360,12 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     LOGD("set aipp input format: %d\n", aipp_input_format);
 
     // set aipp mean and var
-    int16_t aipp_mean0 = (int16_t)((-1.0) * param.bias[0] / param.scale[0]);
-    int16_t aipp_mean1 = (int16_t)((-1.0) * param.bias[1] / param.scale[1]);
-    int16_t aipp_mean2 = (int16_t)((-1.0) * param.bias[2] / param.scale[2]);
-    int16_t aipp_mean3 = (int16_t)((-1.0) * param.bias[3] / param.scale[3]);
+    float aipp_mean0 = (-1.0f) * param.bias[0] / param.scale[0];
+    float aipp_mean1 = (-1.0f) * param.bias[1] / param.scale[1];
+    float aipp_mean2 = (-1.0f) * param.bias[2] / param.scale[2];
+    float aipp_mean3 = (-1.0f) * param.bias[3] / param.scale[3];
     for (int i = 0; i < mat.GetBatch(); ++i) {
-        acl_ret = aclmdlSetAIPPDtcPixelMean(aipp_dynamic_set_, aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3, i);
+        acl_ret = aclmdlSetAIPPDtcPixelMin(aipp_dynamic_set_, aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3, i);
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set mean failed!\n");
         }
