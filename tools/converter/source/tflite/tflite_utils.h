@@ -14,6 +14,7 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
+#include <cstdint>
 #include <vector>
 
 namespace TNN_CONVERTER {

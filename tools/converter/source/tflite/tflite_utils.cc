@@ -14,6 +14,8 @@
 
 #include "tflite_utils.h"
 
+#include <cstring>
+
 #include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
