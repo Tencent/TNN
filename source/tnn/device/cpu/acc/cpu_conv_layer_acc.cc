@@ -106,7 +106,7 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
             param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
             param->activation_type, scale_ptr, buffer_scale_.GetDataCount());
     } else {
-        return TNNERR_LAYER_ERR;
+        return Status(TNNERR_LAYER_ERR, "data type not support in conv");
     }
     return TNN_OK;
 }
