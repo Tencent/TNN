@@ -43,28 +43,10 @@ void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, 
 
 }
 
-void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c1(src, src_w, src_h, src_w, dst, w, h, w);
-}
-
-void resize_bilinear_c2(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c2(src, src_w, src_h, src_w * 2, dst, w, h, w * 2);
-}
-
-void resize_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c3(src, src_w, src_h, src_w * 3, dst, w, h, w * 3);
-}
-
-void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c4(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
-}
-
-void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
-                        int stride) {
-#if 0
+void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+                             uint8_t* dst, int w, int h, int stride) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-    //     const int ONE=INTER_RESIZE_COEF_SCALE;
 
     double scale_x = (double)src_w / w;
     double scale_y = (double)src_h / h;
@@ -81,8 +63,6 @@ void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride
     float fy;
     int sx;
     int sy;
-
-// #define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)(X + (X >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX);
 
     for (int dx = 0; dx < w; dx++) {
         fx = (float)((dx + 0.5) * scale_x - 0.5);
@@ -130,13 +110,9 @@ void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride
         ibeta[dy * 2 + 1] = SATURATE_CAST_SHORT(b1);
     }
 
-// #undef SATURATE_CAST_SHORT
-
     // loop body
-    Mat rowsbuf0(w, (size_t)2u);
-    Mat rowsbuf1(w, (size_t)2u);
-    short* rows0 = (short*)rowsbuf0.data;
-    short* rows1 = (short*)rowsbuf1.data;
+    short* rows0 = new short[w];
+    short* rows1 = new short[w];
 
     int prev_sy1 = -2;
 
@@ -196,15 +172,8 @@ void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride
         short* rows1p = rows1;
         uint8_t* Dp   = dst + stride * (dy);
 
-#if __ARM_NEON
+#ifdef TNN_USE_NEON
         int nn = w >> 3;
-#else
-        int nn = 0;
-#endif
-        int remain = w - (nn << 3);
-
-#if __ARM_NEON
-#if __aarch64__
         int16x4_t _b0 = vdup_n_s16(b0);
         int16x4_t _b1 = vdup_n_s16(b1);
         int32x4_t _v2 = vdupq_n_s32(2);
@@ -239,52 +208,9 @@ void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride
             rows1p += 8;
         }
 #else
-        if (nn > 0) {
-            asm volatile(
-                "vdup.s16   d16, %8         \n"
-                "mov        r4, #2          \n"
-                "vdup.s16   d17, %9         \n"
-                "vdup.s32   q12, r4         \n"
-                "pld        [%0, #128]      \n"
-                "vld1.s16   {d2-d3}, [%0 :128]!\n"
-                "pld        [%1, #128]      \n"
-                "vld1.s16   {d6-d7}, [%1 :128]!\n"
-                "0:                         \n"
-                "vmull.s16  q0, d2, d16     \n"
-                "vmull.s16  q1, d3, d16     \n"
-                "vorr.s32   q10, q12, q12   \n"
-                "vorr.s32   q11, q12, q12   \n"
-                "vmull.s16  q2, d6, d17     \n"
-                "vmull.s16  q3, d7, d17     \n"
-                "vsra.s32   q10, q0, #16    \n"
-                "vsra.s32   q11, q1, #16    \n"
-                "pld        [%0, #128]      \n"
-                "vld1.s16   {d2-d3}, [%0 :128]!\n"
-                "vsra.s32   q10, q2, #16    \n"
-                "vsra.s32   q11, q3, #16    \n"
-                "pld        [%1, #128]      \n"
-                "vld1.s16   {d6-d7}, [%1 :128]!\n"
-                "vshrn.s32  d20, q10, #2    \n"
-                "vshrn.s32  d21, q11, #2    \n"
-                "vqmovun.s16 d20, q10        \n"
-                "vst1.8     {d20}, [%2]!    \n"
-                "subs       %3, #1          \n"
-                "bne        0b              \n"
-                "sub        %0, #16         \n"
-                "sub        %1, #16         \n"
-                : "=r"(rows0p),  // %0
-                  "=r"(rows1p),  // %1
-                  "=r"(Dp),      // %2
-                  "=r"(nn)       // %3
-                : "0"(rows0p), "1"(rows1p), "2"(Dp), "3"(nn),
-                  "r"(b0),  // %8
-                  "r"(b1)   // %9
-                : "cc", "memory", "r4", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12");
-        }
-#endif  // __aarch64__
-#endif  // __ARM_NEON
-        for (; remain; --remain) {
-            //             D[x] = (rows0[x]*b0 + rows1[x]*b1) >> INTER_RESIZE_COEF_BITS;
+        int nn = 0;
+#endif
+        for (int remain = w - (nn << 3); remain; --remain) {
             *Dp++ = (uint8_t)(
                 ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
         }
@@ -292,11 +218,12 @@ void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, int src_stride
         ibeta += 2;
     }
 
+    delete[] rows0;
+    delete[] rows1;
     delete[] buf;
-#endif
 }
 
-void resize_bilinear_c2(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
+void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
                         int stride) {
 #if 0
     const int INTER_RESIZE_COEF_BITS  = 11;
@@ -589,7 +516,7 @@ void resize_bilinear_c2(const uint8_t* src, int src_w, int src_h, int src_stride
 #endif
 }
 
-void resize_bilinear_c3(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
+void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
                         int stride) {
 #if 0
     const int INTER_RESIZE_COEF_BITS  = 11;
@@ -892,7 +819,7 @@ void resize_bilinear_c3(const uint8_t* src, int src_w, int src_h, int src_stride
 #endif
 }
 
-void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
+void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
                         int stride) {
 #if 0
     const int INTER_RESIZE_COEF_BITS  = 11;
@@ -2092,6 +2019,22 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
 
     free(buffer);
 #endif
+}
+
+void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c1_impl(src, src_w, src_h, src_w, dst, w, h, w);
+}
+
+void resize_bilinear_c2(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c2_impl(src, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+}
+
+void resize_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c3_impl(src, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+}
+
+void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c4_impl(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
 }  // namespace TNN_NS
