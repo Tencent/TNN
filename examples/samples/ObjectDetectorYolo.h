@@ -51,7 +51,6 @@ private:
     void GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs, std::vector<ObjectInfo>& detects,
                               int image_width, int image_height);
     void NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results);
-    void Sigmoid(float* v, const unsigned int count);
     
     float conf_thres = 0.4;
     float iou_thres = 0.5;

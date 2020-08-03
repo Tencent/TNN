@@ -62,14 +62,6 @@ Status ObjectDetectorYolo::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
     return status;
 }
 
-void ObjectDetectorYolo::Sigmoid(float* v, const unsigned int count) {
-    for(int i=0; i<count; ++i){
-        float in = v[i];
-        float rst = 1.0f / (1.0f + exp(-in));
-        v[i] = rst;
-    }
-}
-
 void ObjectDetectorYolo::NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results) {
     std::sort(objs.begin(), objs.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
     
@@ -131,9 +123,9 @@ void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >
             return;
         }
         float* data = static_cast<float*>(output->GetData());
-        unsigned int count = dim[0]*dim[1]*dim[2]*dim[3];
+//        unsigned int count = dim[0]*dim[1]*dim[2]*dim[3];
         
-        Sigmoid(data, count);
+//        Sigmoid(data, count);
         
         int num_potential_detecs = dim[1] * dim[2] * num_anchor_;
         for(int i=0; i<num_potential_detecs; ++i){
