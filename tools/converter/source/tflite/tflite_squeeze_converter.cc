@@ -19,7 +19,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(Squeeze);
 
-std::string TFLiteSqueezeConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteSqueezeConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "Squeeze";
 }
 

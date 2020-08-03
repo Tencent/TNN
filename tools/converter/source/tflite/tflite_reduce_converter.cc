@@ -19,7 +19,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(Reduce);
 
-std::string TFLiteReduceConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteReduceConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "ReduceMean";
 }
 

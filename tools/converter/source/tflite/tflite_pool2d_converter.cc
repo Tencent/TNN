@@ -17,7 +17,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Pool2D);
 
-std::string TFLitePool2DConverter::TNNOpType(bool quantized_model) {
+std::string TFLitePool2DConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     if (quantized_model) {
         return "QuantizedPooling";
     }

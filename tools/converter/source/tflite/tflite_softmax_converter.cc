@@ -18,7 +18,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(Softmax);
 
-std::string TFLiteSoftmaxConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteSoftmaxConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     if (quantized_model) {
         return "QuantizedSoftmax";
     }

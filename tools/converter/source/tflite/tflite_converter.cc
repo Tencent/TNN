@@ -57,10 +57,10 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
     const auto& tf_lite_op_set       = tf_lite_model_->operator_codes;
     int sub_graphs_size              = tf_lite_model_->subgraphs.size();
     const auto& tf_lite_model_buffer = tf_lite_model_->buffers;
-    bool quantized_mode              = IsQuantized();
+    bool quantized_model             = IsQuantized();
     auto& buffer                     = tf_lite_model_->buffers;
-    if (quantized_mode) {
-        LOGE("TNN do not support tflite quantized mode\n");
+    if (quantized_model) {
+        LOGE("TNN do not support TFLite quantized mode\n");
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
     for (int i = 0; i < sub_graphs_size; ++i) {
@@ -109,13 +109,14 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             }
             auto converter = TFLiteOpConverterManager::get()->search(op_code);
             if (converter == nullptr) {
-                LOGE("The TFLite mode has unsupport layer(%d)\n", op_code);
+                LOGE("The TFLiteConverter do not support layer:%s\n", tensors[operators[j]->outputs[0]]->name.c_str());
+                LOGE("The unsupported operator type is:%s\n", tflite::EnumNameBuiltinOperator(tf_lite_op_set[operators[j]->opcode_index]->builtin_code));
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
             auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
             // TNN 默认使用每层op的第一个输出作为层的名称
             cur_layer->name              = tensors[operators[j]->outputs[0]]->name;
-            std::string type_name        = converter->TNNOpType(quantized_mode);
+            std::string type_name        = converter->TNNOpType(op_code, quantized_model);
             TNN_NS::LayerType layer_type = TNN_NS::GlobalConvertLayerType(type_name);
             cur_layer->type              = layer_type;
             cur_layer->type_str          = type_name;
@@ -127,7 +128,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             }
             net_structure.layers.push_back(cur_layer);
             auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer,
-                                          tf_lite_op_set, quantized_mode);
+                                          tf_lite_op_set, quantized_model);
             if (status != TNN_NS::TNN_CONVERT_OK) {
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;

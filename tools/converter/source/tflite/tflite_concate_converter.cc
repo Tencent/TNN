@@ -18,7 +18,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Concat);
 
-std::string TFLiteConcatConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteConcatConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "Concat";
 }
 

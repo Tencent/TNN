@@ -19,7 +19,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(FullyConnected);
 
-std::string TFLiteFullyConnectedConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteFullyConnectedConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "InnerProduct";
 };
 

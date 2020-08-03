@@ -18,7 +18,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reshape);
 
-std::string TFLiteReshapeConverter::TNNOpType(bool quantized_model) {
+std::string TFLiteReshapeConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     if (quantized_model) {
         return "QuantizedReshape";
     }

@@ -18,7 +18,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Pad);
 
-std::string TFLitePadConverter::TNNOpType(bool quantized_model) {
+std::string TFLitePadConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "Pad";
 }
 

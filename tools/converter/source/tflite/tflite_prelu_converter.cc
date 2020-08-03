@@ -18,7 +18,7 @@ namespace TNN_CONVERTER {
 
 DECLARE_OP_CONVERTER(PRelu);
 
-std::string TFLitePReluConverter::TNNOpType(bool quantized_model) {
+std::string TFLitePReluConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     if (quantized_model) {
         // TODO
     }

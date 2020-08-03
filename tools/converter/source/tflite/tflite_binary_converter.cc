@@ -26,11 +26,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tflite_binary_converter.h"
-
+#include "tflite_op_converter.h"
 #include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
+DECLARE_OP_CONVERTER(Binary);
+
+std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
+    switch (op_code) {
+        case tflite::BuiltinOperator_ADD:
+            return "Add";
+        case tflite::BuiltinOperator_SUB:
+            return "Sub";
+        case tflite::BuiltinOperator_MUL:
+            return "Mul";
+        case tflite::BuiltinOperator_DIV:
+            return "Div";
+        default:
+            return "";
+    }
+}
 
 TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
@@ -74,27 +89,10 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-DECLARE_BINARY_CONVERTER(Add);
-std::string TFLiteAddConverter::TNNOpType(bool quantized_model) {
-    return "Add";
-};
-DECLARE_BINARY_CONVERTER(Sub);
-std::string TFLiteSubConverter::TNNOpType(bool quantized_model) {
-    return "Sub";
-};
-DECLARE_BINARY_CONVERTER(Mul);
-std::string TFLiteMulConverter::TNNOpType(bool quantized_model) {
-    return "Mul";
-};
-DECLARE_BINARY_CONVERTER(Div);
-std::string TFLiteDivConverter::TNNOpType(bool quantized_model) {
-    return "Div";
-};
-
 using namespace tflite;
-REGISTER_CONVERTER(Add, BuiltinOperator_ADD);
-REGISTER_CONVERTER(Sub, BuiltinOperator_SUB);
-REGISTER_CONVERTER(Mul, BuiltinOperator_MUL);
-REGISTER_CONVERTER(Div, BuiltinOperator_DIV);
+REGISTER_CONVERTER(Binary, BuiltinOperator_ADD);
+REGISTER_CONVERTER(Binary, BuiltinOperator_SUB);
+REGISTER_CONVERTER(Binary, BuiltinOperator_MUL);
+REGISTER_CONVERTER(Binary, BuiltinOperator_DIV);
 
 }  // namespace TNN_CONVERTER
