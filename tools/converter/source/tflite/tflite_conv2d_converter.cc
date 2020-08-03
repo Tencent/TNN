@@ -26,6 +26,20 @@ std::string TFLiteConv2DConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
     return "Convolution";
 }
 
+tflite::ActivationFunctionType TFLiteConv2DConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    switch (op_code) {
+        case tflite::BuiltinOperator_CONV_2D:
+            return tf_lite_operator->builtin_options.AsConv2DOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_DEPTHWISE_CONV_2D:
+            return tf_lite_operator->builtin_options.AsDepthwiseConv2DOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_TRANSPOSE_CONV:
+            return tflite::ActivationFunctionType_NONE;
+        default:
+            return tflite::ActivationFunctionType_NONE;
+    }
+}
+
 TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                            const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
@@ -153,8 +167,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
         }
         param->activation_type = TNN_NS::ActivationType_None;
-    }
-    else {
+    } else {
         LOGE("TNN Conv2D do not Support operator\n");
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
@@ -184,11 +197,16 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         }
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
-
-    // set input output index
-    cur_layer->inputs.resize(1);
+    if (tf_lite_op_type == tflite::BuiltinOperator_TRANSPOSE_CONV) {
+        // set input output index
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[2]]->name;
+    } else {
+        // set input output index
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    }
     cur_layer->outputs.resize(1);
-    cur_layer->inputs[0]  = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
 }

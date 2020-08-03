@@ -24,6 +24,10 @@ std::string TFLiteReshapeConverter::TNNOpType(tflite::BuiltinOperator op_code, b
     }
     return "Reshape";
 }
+tflite::ActivationFunctionType TFLiteReshapeConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tflite::ActivationFunctionType_NONE;
+}
 
 TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                             const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,

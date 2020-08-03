@@ -23,6 +23,11 @@ std::string TFLiteFullyConnectedConverter::TNNOpType(tflite::BuiltinOperator op_
     return "InnerProduct";
 };
 
+tflite::ActivationFunctionType TFLiteFullyConnectedConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tf_lite_operator->builtin_options.AsFullyConnectedOptions()->fused_activation_function;
+}
+
 TNN_NS::Status TFLiteFullyConnectedConverter::exec(
     tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,

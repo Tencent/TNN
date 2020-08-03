@@ -28,7 +28,7 @@ TNN_NS::Status TnnOptimizeSeparateReluAndRelu6Pass::exec(tnn::NetStructure& net_
     const std::string activation_suffix  = "_activation";
     for (int i = 0; i < layers.size(); i++) {
         auto& layer = layers[i];
-        if (layer->type == TNN_NS::LAYER_CONVOLUTION) {
+        if (layer->type == TNN_NS::LAYER_CONVOLUTION || layer->type == TNN_NS::LAYER_CONVOLUTION) {
             auto conv_param = dynamic_cast<TNN_NS::ConvLayerParam*>(layer->param.get());
             if (conv_param->activation_type == TNN_NS::ActivationType_None) {
                 continue;

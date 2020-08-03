@@ -24,6 +24,12 @@ std::string TFLitePReluConverter::TNNOpType(tflite::BuiltinOperator op_code, boo
     }
     return "PReLU";
 }
+
+tflite::ActivationFunctionType TFLitePReluConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tflite::ActivationFunctionType_NONE;
+}
+
 TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                           const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                           const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,

@@ -43,4 +43,40 @@ void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TF
     tf_lite_op_converter_map_.insert(std::make_pair(op_index, t));
 }
 
+TNN_NS::Status TFLiteOpConverter::SeparateActivation(tnn::NetStructure& net_structure,
+                                                     tflite::ActivationFunctionType activation_function_type) {
+    if (activation_function_type == tflite::ActivationFunctionType_NONE) {
+        return TNN_NS::TNN_CONVERT_OK;
+    }
+    auto& layers                         = net_structure.layers;
+    const std::string conv_output_suffix = "_output";
+    const std::string activation_suffix  = "_activation";
+    auto& layer                          = layers.back();
+    if (activation_function_type == tflite::ActivationFunctionType_RELU ||
+        activation_function_type == tflite::ActivationFunctionType_RELU6) {
+        auto activation_layer = new TNN_NS::LayerInfo;
+        activation_layer->type =
+            activation_function_type == tflite::ActivationFunctionType_RELU ? TNN_NS::LAYER_RELU : TNN_NS::LAYER_RELU6;
+        activation_layer->type_str = activation_function_type == tflite::ActivationFunctionType_RELU ? "ReLU" : "ReLU6";
+        activation_layer->name     = layer->name + activation_suffix;
+        activation_layer->inputs.push_back(layer->outputs[0] + conv_output_suffix);
+        activation_layer->outputs.push_back(layer->outputs[0]);
+
+        // modify layer
+        layer->outputs[0] = layer->outputs[0] + conv_output_suffix;
+        // create activation layer
+        // create relu param
+        auto activation_param       = new TNN_NS::LayerParam;
+        activation_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(activation_param);
+        activation_param->type      = activation_layer->type_str;
+        activation_param->name      = layer->name + activation_suffix;
+        activation_param->quantized = false;
+        // insert activation layer
+        layers.push_back(std::shared_ptr<TNN_NS::LayerInfo>(activation_layer));
+    } else {
+        LOGE("TNN Converter unsupport activation function\n");
+        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+    }
+    return TNN_NS::TNN_CONVERT_OK;
+}
 }  // namespace TNN_CONVERTER

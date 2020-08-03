@@ -24,6 +24,11 @@ std::string TFLitePool2DConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
     return "Pooling";
 }
 
+tflite::ActivationFunctionType TFLitePool2DConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tf_lite_operator->builtin_options.AsPool2DOptions()->fused_activation_function;
+}
+
 TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                            const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,

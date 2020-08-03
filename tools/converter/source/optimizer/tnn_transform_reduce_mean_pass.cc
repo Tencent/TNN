@@ -24,7 +24,7 @@ std::string TnnOptimizeTransformReduceMeanPass::PassName() {
 TNN_NS::Status TnnOptimizeTransformReduceMeanPass::exec(tnn::NetStructure& net_structure,
                                                         tnn::NetResource& net_resource) {
     auto& layers = net_structure.layers;
-    for (auto iter = layers.begin(); iter != layers.end();iter++) {
+    for (auto iter = layers.begin(); iter != layers.end(); iter++) {
         auto& layer = *iter;
         if (layer->type != TNN_NS::LAYER_REDUCE_MEAN) {
             continue;
@@ -35,23 +35,23 @@ TNN_NS::Status TnnOptimizeTransformReduceMeanPass::exec(tnn::NetStructure& net_s
               reduce_mean_param->axis[1] == 3)) {
             continue;
         }
-        auto pooling_layer_param = new TNN_NS::PoolingLayerParam;
-        pooling_layer_param->type = "Pooling";
-        pooling_layer_param->name = reduce_mean_param->name;
+        auto pooling_layer_param       = new TNN_NS::PoolingLayerParam;
+        pooling_layer_param->type      = "Pooling";
+        pooling_layer_param->name      = reduce_mean_param->name;
         pooling_layer_param->quantized = reduce_mean_param->quantized;
         // pool_type 1 meaning: AveragePool
-        pooling_layer_param->pool_type = 1;
-        pooling_layer_param->kernels = {0, 0};
+        pooling_layer_param->pool_type      = 1;
+        pooling_layer_param->kernels        = {0, 0};
         pooling_layer_param->kernels_params = pooling_layer_param->kernels;
-        pooling_layer_param->strides = {1, 1};
-        pooling_layer_param->pads = {0, 0, 0, 0};
-        pooling_layer_param->kernel_indexs = {-1, -1};
-        pooling_layer_param->pad_type = -1;
-        pooling_layer_param->ceil_mode = 0;
+        pooling_layer_param->strides        = {1, 1};
+        pooling_layer_param->pads           = {0, 0, 0, 0};
+        pooling_layer_param->kernel_indexs  = {-1, -1};
+        pooling_layer_param->pad_type       = -1;
+        pooling_layer_param->ceil_mode      = 0;
         // update layer
-        layer->type = TNN_NS::LAYER_POOLING;
+        layer->type     = TNN_NS::LAYER_POOLING;
         layer->type_str = "Pooling";
-        layer->param = std::shared_ptr<TNN_NS::LayerParam>(pooling_layer_param);
+        layer->param    = std::shared_ptr<TNN_NS::LayerParam>(pooling_layer_param);
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

@@ -22,6 +22,10 @@ DECLARE_OP_CONVERTER(Reduce);
 std::string TFLiteReduceConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "ReduceMean";
 }
+tflite::ActivationFunctionType TFLiteReduceConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tflite::ActivationFunctionType_NONE;
+}
 
 TNN_NS::Status TFLiteReduceConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                            const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,

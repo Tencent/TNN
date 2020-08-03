@@ -31,8 +31,12 @@ public:
                                 const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
                                 const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                 const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
-                                bool quantized_model)                                    = 0;
-    virtual std::string TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) = 0;
+                                bool quantized_model)                                      = 0;
+    virtual std::string TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model)   = 0;
+    virtual tflite::ActivationFunctionType ActivationType(const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                                          tflite::BuiltinOperator op_code) = 0;
+    TNN_NS::Status SeparateActivation(tnn::NetStructure& net_structure,
+                                      tflite::ActivationFunctionType activation_function_type);
 
 protected:
     std::string tflite_op_type_;
@@ -74,6 +78,8 @@ public:
                                     const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,         \
                                     bool quantized_model);                                                             \
         virtual std::string TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model);                          \
+        virtual tflite::ActivationFunctionType ActivationType(                                                         \
+            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code);              \
     }  // namespace TNN_CONVERTER
 
 #define REGISTER_CONVERTER(converter_suffix, tf_lite_type)                                                             \

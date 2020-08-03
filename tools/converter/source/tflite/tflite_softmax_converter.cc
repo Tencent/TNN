@@ -25,6 +25,11 @@ std::string TFLiteSoftmaxConverter::TNNOpType(tflite::BuiltinOperator op_code, b
     return "Softmax";
 }
 
+tflite::ActivationFunctionType TFLiteSoftmaxConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tflite::ActivationFunctionType_NONE;
+}
+
 TNN_NS::Status TFLiteSoftmaxConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                             const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                             const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,

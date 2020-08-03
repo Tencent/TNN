@@ -47,6 +47,22 @@ std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
     }
 }
 
+tflite::ActivationFunctionType TFLiteBinaryConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT>& tf_lite_operator, tflite::BuiltinOperator op_code) {
+    switch (op_code) {
+        case tflite::BuiltinOperator_ADD:
+            return tf_lite_operator->builtin_options.AsAddOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_SUB:
+            return tf_lite_operator->builtin_options.AsSubOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_MUL:
+            return tf_lite_operator->builtin_options.AsMulOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_DIV:
+            return tf_lite_operator->builtin_options.AsDivOptions()->fused_activation_function;
+        default:
+            return tflite::ActivationFunctionType_NONE;
+    }
+}
+
 TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                            const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
@@ -82,9 +98,9 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
             ::memcpy(element_handle.force_to<float*>(), weight_ptr, weight_size * sizeof(float));
             layer_resource->element_handle             = element_handle;
             net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+            cur_layer->inputs.resize(1);
+            cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
         }
-        cur_layer->inputs.resize(1);
-        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

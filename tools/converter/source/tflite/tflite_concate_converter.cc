@@ -22,6 +22,11 @@ std::string TFLiteConcatConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
     return "Concat";
 }
 
+tflite::ActivationFunctionType TFLiteConcatConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tf_lite_operator->builtin_options.AsConcatenationOptions()->fused_activation_function;
+}
+
 TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                            const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
                                            const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,

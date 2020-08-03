@@ -110,7 +110,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             auto converter = TFLiteOpConverterManager::get()->search(op_code);
             if (converter == nullptr) {
                 LOGE("The TFLiteConverter do not support layer:%s\n", tensors[operators[j]->outputs[0]]->name.c_str());
-                LOGE("The unsupported operator type is:%s\n", tflite::EnumNameBuiltinOperator(tf_lite_op_set[operators[j]->opcode_index]->builtin_code));
+                LOGE("The unsupported operator type is:%s\n",
+                     tflite::EnumNameBuiltinOperator(tf_lite_op_set[operators[j]->opcode_index]->builtin_code));
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
             auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
@@ -129,6 +130,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             net_structure.layers.push_back(cur_layer);
             auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer,
                                           tf_lite_op_set, quantized_model);
+            tflite::ActivationFunctionType activation_function_type = converter->ActivationType(operators[j], op_code);
+            converter->SeparateActivation(net_structure, activation_function_type);
             if (status != TNN_NS::TNN_CONVERT_OK) {
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;

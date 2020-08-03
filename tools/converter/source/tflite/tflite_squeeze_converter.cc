@@ -23,6 +23,11 @@ std::string TFLiteSqueezeConverter::TNNOpType(tflite::BuiltinOperator op_code, b
     return "Squeeze";
 }
 
+tflite::ActivationFunctionType TFLiteSqueezeConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
+    return tflite::ActivationFunctionType_NONE;
+}
+
 TNN_NS::Status TFLiteSqueezeConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                             const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
                                             const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
