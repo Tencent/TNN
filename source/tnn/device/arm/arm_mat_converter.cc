@@ -47,14 +47,26 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC3) {
-        // resize_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), src.GetWidth() * 3, dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), dst.GetWidth() * 3);
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                               (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == N8UC4) {
-        // resize_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), src.GetWidth() * 4, dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), dst.GetWidth() * 4);
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_c4((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                               (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
-        // resize_bilinear_yuv420sp(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(), dst.GetWidth(),
-        //                          dst.GetHeight());
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_yuv420sp((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                     (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
