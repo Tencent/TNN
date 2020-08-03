@@ -25,29 +25,10 @@ if(TNN_OPENCL_ENABLE)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/opencl)
+endif()
 
-elseif(TNN_DSP_ENABLE)
-    message(STATUS "Build TNN DSP")
-
-    target_link_libraries(TNN SNPE EGL GLESv2 symphony-cpu c++_shared)
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/dsp)
-
-    if(ANDROID_TEST_ENABLE)
-        add_executable(AndroidTest ${COMMON_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_dsp_android.cc)
-        target_link_libraries(AndroidTest TNN)
-    endif()
-
-elseif(TNN_NPU_ENABLE)
+if(TNN_NPU_ENABLE)
     message(STATUS "Build TNN NPU")
-
-    target_link_libraries(TNN hiai)
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/npu)
-
-    if(ANDROID_TEST_ENABLE)
-        add_executable(AndroidTest ${COMMON_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_npu_android.cc)
-        target_link_libraries(AndroidTest TNN)
-    endif()
-
+    target_link_libraries(TNN hiai hiai_ir hiai_ir_build hcl)
+    include_directories(${PROJECT_SOURCE_DIR}/source/tnn/device/npu)
 endif()

@@ -174,6 +174,7 @@ void PrintConfig() {
         "\t-s, --scale        \t(optional) scale val when preprocess image "
         "input, ie, "
         "1.0,1.0,1.0 \n"
+        "\t\tformula: y = (x - bias) * scale\n"
         "\t-c, --merge_channel\t(optional) merge blob channel when quantize "
         "blob\n");
 }

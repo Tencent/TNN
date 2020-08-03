@@ -16,8 +16,6 @@ option(TNN_ARM_ENABLE "Enable Arm" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
-option(TNN_DSP_ENABLE "Enable DSP" OFF)
-option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
 option(TNN_NPU_ENABLE "Enable NPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
@@ -31,6 +29,7 @@ option(TNN_QUANTIZATION_ENABLE "Enable Test" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
+option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -132,6 +131,10 @@ if(TNN_METAL_ENABLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
 endif()
 
+if(TNN_TNN2MEM_ENABLE)
+    add_subdirectory(tools/tnn2mem)
+endif()
+
 message(STATUS ">>>>>>>>>>>>>")
 message(STATUS "TNN BUILD INFO:")
 message(STATUS "\tSystem: ${CMAKE_SYSTEM_NAME}")
@@ -142,8 +145,6 @@ message(STATUS "\tArm:\t${TNN_ARM_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
-message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
-message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
 message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
@@ -154,6 +155,7 @@ message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
+message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -205,44 +207,18 @@ if(TNN_CUDA_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
-if(TNN_DSP_ENABLE)
-    add_subdirectory(source/tnn/device/dsp)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNDSP>")
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/arm-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
-    else()
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/aarch64-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
-    endif()
-endif()
-
-if(TNN_ATLAS_ENABLE)
-    add_subdirectory(source/tnn/device/atlas)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
-
-    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake)
-    find_package(DDK REQUIRED)
-    include_directories(${DDK_INCLUDE_DIRS} ${DDK_CEREAL_INCLUDE_DIRS} ${DDK_PROTOBUF_INCLUDE_DIRS})
-    include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
-endif()
-
 if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib
-            )
+                ./third_party/npu/hiai_ddk_latest/armeabi-v7a/
+        )
     else()
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib64
-            )
+                ./third_party/npu/hiai_ddk_latest/arm64-v8a/
+        )
     endif()
+    add_subdirectory(source/tnn/device/npu)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
 endif()
 
 if(TNN_SYMBOL_HIDE AND UNIX)

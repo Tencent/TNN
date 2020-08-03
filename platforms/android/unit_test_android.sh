@@ -73,6 +73,7 @@ function run() {
         exit 0
     fi
 
+    adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
     adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
     adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     cat $DUMP_DIR/test_log.txt
