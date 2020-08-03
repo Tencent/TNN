@@ -68,3 +68,15 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnproto" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnmodel" \
     "shufflenet_v2"
+
+# download mobilenet_v2-ssd tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" \
+    "mobilenet_v2-ssd"
+
+# download yolov5 tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s-permute.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
+    "yolov5"
