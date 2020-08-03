@@ -304,8 +304,14 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 
     // network init
     device_type_ = TNN_NS::DEVICE_ARM;
-    if(option->compute_units == TNNComputeUnitsGPU) device_type_ = TNN_NS::DEVICE_OPENCL;
-    if (option->compute_units == TNNComputeUnitsNPU) {
+    if(option->compute_units == TNNComputeUnitsGPU) {
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+        device_type_ = TNN_NS::DEVICE_METAL;
+#else
+        device_type_ = TNN_NS::DEVICE_OPENCL;
+#endif
+    }
+    else if (option->compute_units == TNNComputeUnitsNPU) {
         device_type_      = TNN_NS::DEVICE_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
@@ -313,6 +319,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         device_type_      = TNN_NS::DEVICE_NPU;
 #endif
     }
+    
     //创建实例instance
     {
         TNN_NS::NetworkConfig network_config;
