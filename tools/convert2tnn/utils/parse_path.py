@@ -13,11 +13,18 @@
 # specific language governing permissions and limitations under the License.
 
 import os
+import sys
+
+from converter import logging
+from utils import return_code
 
 
 def parse_path(path: str):
     if path is None:
         return None
+    if " " in path or " " in os.getcwd():
+        logging.error("The path can not contain spaces!")
+        sys.exit(return_code.SPACE_IN_PATH)
     if path.startswith("/"):
         return path
     elif path.startswith("./"):

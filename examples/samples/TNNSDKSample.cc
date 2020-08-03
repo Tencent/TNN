@@ -269,9 +269,19 @@ TNNSDKSample::TNNSDKSample() {}
 
 TNNSDKSample::~TNNSDKSample() {}
 
+
+void TNNSDKSample::setCheckNpuSwitch(bool option)
+{
+    check_npu_ = option;
+}
+
+void TNNSDKSample::setNpuModelPath(std::string stored_path)
+{
+    model_path_str_ = stored_path;
+}
+
 TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     option_ = option;
-    
     //网络初始化
     TNN_NS::Status status;
     if (!net_) {
@@ -281,7 +291,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         config.model_type = TNN_NS::MODEL_TYPE_TNN;
 #endif
-        config.params = {option->proto_content, option->model_content};
+        config.params = {option->proto_content, option->model_content, model_path_str_};
 
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
@@ -294,21 +304,26 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 
     // network init
     device_type_ = TNN_NS::DEVICE_ARM;
-    if (option->compute_units >= TNNComputeUnitsGPU) {
+    if(option->compute_units == TNNComputeUnitsGPU) device_type_ = TNN_NS::DEVICE_OPENCL;
+    if (option->compute_units == TNNComputeUnitsNPU) {
+        device_type_      = TNN_NS::DEVICE_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
-        device_type_      = TNN_NS::DEVICE_OPENCL;
+        device_type_      = TNN_NS::DEVICE_NPU;
 #endif
     }
-    
     //创建实例instance
     {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
+        if(device_type_ == TNN_NS::DEVICE_NPU){
+            network_config.network_type = NETWORK_TYPE_NPU;
+        }
         auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
-        if (status != TNN_NS::TNN_OK || !instance) {
+
+        if (!check_npu_ && (status != TNN_NS::TNN_OK || !instance)) {
             // try device_arm
             if (option->compute_units >= TNNComputeUnitsGPU) {
                 device_type_               = TNN_NS::DEVICE_ARM;
@@ -318,12 +333,13 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         }
         instance_ = instance;
     }
-
     return status;
 }
 
 TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
+        case DEVICE_NPU:
+            return TNNComputeUnitsNPU;
         case DEVICE_METAL:
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;

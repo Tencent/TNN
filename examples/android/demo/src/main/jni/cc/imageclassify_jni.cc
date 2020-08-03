@@ -29,12 +29,17 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     option->library_path="";
     option->proto_content = protoContent;
     option->model_content = modelContent;
-    if (gComputeUnitType == 0) {
-        status = gDetector->Init(option);
-    } else {
+    if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status = gDetector->Init(option);
+    } else if (gComputeUnitType == 2) {
+        LOGI("the device type  %d device npu" ,gComputeUnitType);
+        gDetector->setNpuModelPath(modelPathStr + "/");
+        gDetector->setCheckNpuSwitch(false);
+        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    } else {
+	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
     }
+    status = gDetector->Init(option);
 
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
@@ -45,6 +50,27 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     gDetector->SetBenchOption(bench_option);
     return 0;
 }
+
+JNIEXPORT jboolean TNN_CLASSIFY(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+    TNN_NS::ImageClassifier tmpDetector;
+    std::string protoContent, modelContent;
+    std::string modelPathStr(jstring2string(env, modelPath));
+    protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
+
+    auto option = std::make_shared<TNN_NS::TNNSDKOption>();
+    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->input_shapes = {};
+    option->library_path="";
+    option->proto_content = protoContent;
+    option->model_content = modelContent;
+
+    tmpDetector.setNpuModelPath(modelPathStr + "/");
+    tmpDetector.setCheckNpuSwitch(true);
+    TNN_NS::Status ret = tmpDetector.Init(option);
+    return ret == TNN_NS::TNN_OK;
+}
+
 JNIEXPORT JNICALL jint TNN_CLASSIFY(deinit)(JNIEnv *env, jobject thiz)
 {
 
@@ -86,7 +112,13 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
         return 0;
     }
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime: ", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime: ", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + gDetector->GetBenchResult().Description());
     setBenchResult(resultTips);

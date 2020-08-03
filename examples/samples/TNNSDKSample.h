@@ -30,18 +30,18 @@ namespace TNN_NS {
 struct ObjectInfo {
     int image_width = 0;
     int image_height = 0;
-    
+
     float x1 = 0;
     float y1 = 0;
     float x2 = 0;
     float y2 = 0;
-    
+
     //key_points <x y>
     std::vector<std::pair<float, float>> key_points = {};
-    
+
     float score = 0;
     int class_id = -1;
-    
+
     ObjectInfo AdjustToImageSize(int image_height, int image_width);
     /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
     ObjectInfo AdjustToViewSize(int view_height, int view_width, int gravity = 2);
@@ -94,11 +94,11 @@ class TNNSDKInput {
 public:
     TNNSDKInput(std::shared_ptr<TNN_NS::Mat> mat = nullptr);
     virtual ~TNNSDKInput();
-    
+
     bool IsEmpty();
     std::shared_ptr<TNN_NS::Mat> GetMat(std::string name = kTNNSDKDefaultName);
     bool AddMat(std::shared_ptr<TNN_NS::Mat> mat, std::string name);
-    
+
 protected:
     std::map<std::string, std::shared_ptr<TNN_NS::Mat> > mat_map_ = {};
 };
@@ -113,7 +113,7 @@ class TNNSDKOption {
 public:
     TNNSDKOption();
     virtual ~TNNSDKOption();
-    
+
     std::string proto_content = "";
     std::string model_content = "";
     std::string library_path = "";
@@ -129,30 +129,34 @@ public:
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
     DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
-    
-    
+
+
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
-    
+
     virtual Status Init(std::shared_ptr<TNNSDKOption> option);
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual MatConvertParam GetConvertParamForOutput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
-    
-    
-    
+
+
+    void setNpuModelPath(std::string stored_path);
+    void setCheckNpuSwitch(bool option);
+
 protected:
     BenchOption bench_option_;
     BenchResult bench_result_;
 
     std::vector<std::string> GetInputNames();
     std::vector<std::string> GetOutputNames();
-    
+
 protected:
-    std::shared_ptr<TNN> net_           = nullptr;
-    std::shared_ptr<Instance> instance_ = nullptr;
+    std::shared_ptr<TNN> net_             = nullptr;
+    std::shared_ptr<Instance> instance_   = nullptr;
     std::shared_ptr<TNNSDKOption> option_ = nullptr;
-    DeviceType device_type_             = DEVICE_ARM;
+    DeviceType device_type_               = DEVICE_ARM;
+    std::string model_path_str_           = "";
+    bool check_npu_                       = false;
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,

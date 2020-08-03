@@ -10,7 +10,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<TNN_NS::UltraFaceDetector> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
 static jclass clsFaceInfo;
 static jmethodID midconstructorFaceInfo;
 static jfieldID fidx1;
@@ -32,6 +32,7 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
+    gComputeUnitType = computUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
@@ -42,12 +43,22 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     option->model_content = modelContent;
     option->input_width = width;
     option->input_height= height;
-    if (gComputeUnitType == 0) {
-        status = gDetector->Init(option);
-    } else {
+    LOGE("the device type  %d device npu" ,gComputeUnitType);
+    if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
+    } else if (gComputeUnitType == 2) {
+        //add for npu store the om file
+        LOGE("the device type  %d device npu" ,gComputeUnitType);
+        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        gDetector->setNpuModelPath(modelPathStr + "/");
+        gDetector->setCheckNpuSwitch(false);
+        status = gDetector->Init(option);
+    } else {
+	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    	status = gDetector->Init(option);
     }
+
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
         return -1;
@@ -68,6 +79,25 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     }
 
     return 0;
+}
+
+JNIEXPORT JNICALL jboolean TNN_FACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+    TNN_NS::UltraFaceDetector tmpDetector;
+    std::string protoContent, modelContent;
+    std::string modelPathStr(jstring2string(env, modelPath));
+    protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
+    auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
+    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    option->library_path = "";
+    option->proto_content = protoContent;
+    option->model_content = modelContent;
+    option->input_height= 240;
+    option->input_width = 320;
+    tmpDetector.setNpuModelPath(modelPathStr + "/");
+    tmpDetector.setCheckNpuSwitch(true);
+    TNN_NS::Status ret = tmpDetector.Init(option);
+    return ret == TNN_NS::TNN_OK;
 }
 
 JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
@@ -113,7 +143,13 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
 
     LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime:", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);
@@ -184,7 +220,13 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     }
     LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
     char temp[128] = "";
-    sprintf(temp, " device: %s \ntime:", (gComputeUnitType==0)?"arm":"gpu");
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "npu";
+    }
+    sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);

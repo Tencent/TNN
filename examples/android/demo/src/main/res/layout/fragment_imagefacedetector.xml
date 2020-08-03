@@ -63,6 +63,23 @@
                 android:textOn=""
                 android:textOff=""
                 android:text="" />
+            <TextView
+                android:id ="@+id/npu_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text = "NPU"/>
+
+            <ToggleButton
+                android:id="@+id/npu_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="10dp"
+                android:background="@drawable/toggle_selector"
+                android:checked="false"
+                android:text=""
+                android:textOff=""
+                android:textOn="" />
+
             <Button
                 android:id="@+id/run_button"
                 android:layout_width="wrap_content"
