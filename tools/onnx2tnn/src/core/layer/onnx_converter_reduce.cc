@@ -39,6 +39,8 @@ string OnnxConverterReduce::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+REGISTER_OP_CONVERTER_REDUCE(ReduceL1, ReduceL1);
+
 REGISTER_OP_CONVERTER_REDUCE(ReduceL2, ReduceL2);
 
 REGISTER_OP_CONVERTER_REDUCE(ReduceLogSum, ReduceLogSum);
