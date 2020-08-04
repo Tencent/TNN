@@ -57,6 +57,16 @@ bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW
 }
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
+    if (shape.size() == 0){
+        LOGE("TNN Converter do not support wrong shape!\n");
+        return false;
+    }
+    if (shape.size() < 4 && !shape.empty()) {
+        int shape_size = shape.size();
+        for (int i = 0; i < 4 - shape_size; i++) {
+            shape.push_back(1);
+        }
+    }
     // shape [n, h , w, c] -> shape [n, c, h, w]
     if (shape.size() == 4) {
         auto h   = shape[1];
@@ -65,17 +75,8 @@ bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
         shape[1] = c;
         shape[2] = h;
         shape[3] = w;
-        return true;
-    } else if (shape.size() < 4 && shape.size() > 0) {
-        int shape_size = shape.size();
-        for (int i = 0; i < 4 - shape_size; i++) {
-            shape.push_back(1);
-        }
-        return true;
-    } else {
-        LOGE("TNN Converter do not support wrong shape!\n");
-        return false;
     }
+    return true;
 }
 
 // template <typename T>

@@ -46,7 +46,7 @@ int Run(int argc, char* argv[]) {
     }
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
-    GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
+    status = GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("TFLite converter generate tnn model failed!\n");
         return status;

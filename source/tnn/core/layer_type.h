@@ -181,6 +181,7 @@ enum LayerType {
     LAYER_REDUCE_SUM_SQUARE                                 = 194,
     LAYER_CEIL                                              = 195,
     LAYER_SIGNED_MUL                                        = 196,
+    LAYER_DETECTION_POST_PROCESS                            = 197,
 
     LAYER_CONVOLUTION_3D = 201,
     LAYER_POOLING_3D     = 202,

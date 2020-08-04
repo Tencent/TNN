@@ -311,6 +311,19 @@ struct DetectionOutputLayerParam : public LayerParam {
     float eta;
 };
 
+struct DetectionPostProcessLayerParam : public LayerParam {
+    int max_detections;
+    int max_classes_per_detection;
+    int detections_per_class;
+    bool use_regular_nms;
+    float nms_score_threshold;
+    float nms_iou_threshold;
+    int num_classes;
+    //
+    std::vector<float> center_size_encoding;
+    bool has_anchors;
+};
+
 struct LRNLayerParam : public LayerParam {
     float alpha;
     float beta;
