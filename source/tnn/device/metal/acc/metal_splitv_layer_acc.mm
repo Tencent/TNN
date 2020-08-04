@@ -76,12 +76,10 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         auto batch          = dims_output[0];
 
         auto encoder = [context_impl encoder];
-        if (param_) {
-            encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-        }
+        encoder.label = GetKernelLabel();
 
         do {
-            status = [context_impl load:[NSString stringWithFormat:@"splitv_axis_1_common"]
+            status = [context_impl load: @"splitv_axis_1_common"
                                 encoder:encoder
                               bandwidth:bandwidth];
             BREAK_IF(status != TNN_OK);

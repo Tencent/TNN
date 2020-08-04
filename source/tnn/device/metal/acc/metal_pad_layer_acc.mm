@@ -107,9 +107,7 @@ Status MetalPadLayerAcc::Forward(const std::vector<Blob *> &inputs,
     
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
     
     do {
         MetalBandwidth bandwidth;
