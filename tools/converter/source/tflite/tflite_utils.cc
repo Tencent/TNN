@@ -30,7 +30,7 @@ bool TFLiteConvertOHWI2OIHW(const float* src, float* dst, int CO, int KH, int KW
         for (int ci = 0; ci < CI; ++ci) {
             for (int h = 0; h < KH; ++h) {
                 for (int w = 0; w < KW; ++w) {
-                    dst[(co * CI + ci) * KW * KW + h * KW + w] = src[(co * KH + h) * KW * CI + w * CI + ci];
+                    dst[(co * CI + ci) * KH * KW + h * KW + w] = src[(co * KH + h) * KW * CI + w * CI + ci];
                 }
             }
         }

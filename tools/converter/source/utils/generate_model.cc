@@ -33,6 +33,8 @@ TNN_NS::Status GenerateModel(TNN_NS::NetStructure& net_structure, TNN_NS::NetRes
                              std::string& output_dir, std::string& file_name) {
     std::string proto_path = output_dir + file_name + PROTO_SUFFIX;
     std::string model_path = output_dir + file_name + MODEL_SUFFIX;
+    printf("TNN Converter generate TNN proto path %s\n", proto_path.c_str());
+    printf("TNN Converter generate TNN model path %s\n", model_path.c_str());
     TNN_NS::ModelPacker model_packer(&net_structure, &net_resource);
     Status status = model_packer.Pack(proto_path, model_path);
     if (status != TNN_OK) {

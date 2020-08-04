@@ -58,7 +58,6 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
     int sub_graphs_size              = tf_lite_model_->subgraphs.size();
     const auto& tf_lite_model_buffer = tf_lite_model_->buffers;
     bool quantized_model             = IsQuantized();
-    quantized_model                  = false;
     auto& buffer                     = tf_lite_model_->buffers;
     if (quantized_model) {
         LOGE("TNN do not support TFLite quantized mode\n");
@@ -131,15 +130,19 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             net_structure.layers.push_back(cur_layer);
             auto status = converter->exec(net_structure, net_resource, operators[j], tensors, tf_lite_model_buffer,
                                           tf_lite_op_set, quantized_model);
+            if (status != TNN_NS::TNN_CONVERT_OK) {
+                LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
+                return status;
+            }
             tflite::ActivationFunctionType activation_function_type = converter->ActivationType(operators[j], op_code);
-            converter->SeparateActivation(net_structure, activation_function_type);
+            status = converter->SeparateActivation(net_structure, activation_function_type);
             if (status != TNN_NS::TNN_CONVERT_OK) {
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;
             }
         }
     }
-    return true;
+    return TNN_NS::TNN_CONVERT_OK;
 }
 void TFLite2Tnn::ReadModel(std::string tf_lite_model_path) {
     std::ifstream input_file(tf_lite_model_path, std::ios::binary);

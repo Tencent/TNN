@@ -28,17 +28,29 @@ int Run(int argc, char* argv[]) {
     TNN_NS::NetStructure net_structure;
     TNN_NS::NetResource net_resource;
     ModelConfig model_config(FLAGS_mt, FLAGS_mp, FLAGS_od);
+    TNN_NS::Status status;
     if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_TF_LITE) {
         TFLite2Tnn tf_lite_2_tnn(model_config.model_path_);
-        tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
+        status = tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
+    }
+    if (status != TNN_NS::TNN_CONVERT_OK) {
+        LOGE("TFLite converter %s failed!\n", FLAGS_mp.c_str());
+        return status;
     }
     // TODO optimize the model
     TnnOptimizer tnn_optimizer;
-    tnn_optimizer.Optimize(net_structure, net_resource);
+    status = tnn_optimizer.Optimize(net_structure, net_resource);
+    if (status != TNN_NS::TNN_CONVERT_OK) {
+        LOGE("TFLite converter optimize %s failed!\n", FLAGS_mp.c_str());
+        return status;
+    }
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
     GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
-
+    if (status != TNN_NS::TNN_CONVERT_OK) {
+        LOGE("TFLite converter generate tnn model failed!\n");
+        return status;
+    }
     return 0;
 }
 
