@@ -65,7 +65,7 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
     
     
-    auto scores = output->GetMat("525");
+    auto scores = output->GetMat("546");
     auto boxes  = output->GetMat("544");
     std::vector<BlazeFaceInfo> bbox_collection;
     //decode bbox
@@ -80,8 +80,6 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
 void BlazeFaceDetector::GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS::Mat &scores, TNN_NS::Mat &boxes, int image_w, int image_h, float min_score_threshold) {
     float *boxes_data = static_cast<float*>(boxes.GetData());
     float *score_data = static_cast<float*>(scores.GetData());
-    
-    ClampSigmoid(score_data, num_anchors);
     
     for(int i=0; i<num_anchors; ++i) {
         if(score_data[i] < min_score_threshold)
@@ -186,15 +184,6 @@ void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vect
             }
         }
         output.push_back(rects);
-    }
-}
-
-void BlazeFaceDetector::ClampSigmoid(float* dataPtr, size_t count) {
-    for(int i=0; i < count; ++i) {
-        float val = dataPtr[i];
-        val = std::min(std::max(-score_clipping_threshold, val), score_clipping_threshold);
-        float rst = 1.0f / (1.0f + exp(-val));
-        dataPtr[i] = rst;
     }
 }
 
