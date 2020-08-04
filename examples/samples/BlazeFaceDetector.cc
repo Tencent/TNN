@@ -29,7 +29,6 @@ Status BlazeFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    //TODO: load anchors
     std::ifstream inFile(option->anchor_path);
     RETURN_VALUE_ON_NEQ(inFile.good(), true, Status(TNNERR_PARAM_ERR, "TNNSDKOption.anchor_path is invalid"));
     std::string line;

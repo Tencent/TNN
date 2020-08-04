@@ -73,6 +73,8 @@ using namespace std;
         cameraViewController.viewModel.title = @"物体检测 - yolov5";
     } else if (indexPath.section == 6) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
+    } else if (indexPath.section == 7) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
     }
     if (!vc) {
         return;
