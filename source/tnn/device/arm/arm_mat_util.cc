@@ -174,6 +174,7 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
 #ifdef TNN_USE_NEON
         int nn = w >> 3;
+        int remain = w - (nn << 3);
         int16x4_t _b0 = vdup_n_s16(b0);
         int16x4_t _b1 = vdup_n_s16(b1);
         int32x4_t _v2 = vdupq_n_s32(2);
@@ -208,9 +209,9 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
             rows1p += 8;
         }
 #else
-        int nn = 0;
+        int remain = w;
 #endif
-        for (int remain = w - (nn << 3); remain; --remain) {
+        for (; remain; --remain) {
             *Dp++ = (uint8_t)(
                 ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
         }
@@ -223,8 +224,8 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
-                        int stride) {
+void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+                             uint8_t* dst, int w, int h, int stride) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
 
@@ -410,7 +411,7 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
 #ifdef TNN_USE_NEON
         int nn = (w * 2) >> 3;
-
+        int remain = (w * 2) - (nn << 3);
         int16x4_t _b0 = vdup_n_s16(b0);
         int16x4_t _b1 = vdup_n_s16(b1);
         int32x4_t _v2 = vdupq_n_s32(2);
@@ -445,9 +446,9 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
             rows1p += 8;
         }
 #else
-        int nn = 0;
+        int remain = w * 2;
 #endif
-        for (int remain = (w * 2) - (nn << 3); remain; --remain) {
+        for (; remain; --remain) {
             *Dp++ = (uint8_t)(
                 ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
         }
@@ -460,8 +461,8 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
-                        int stride) {
+void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+                             uint8_t* dst, int w, int h, int stride) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
 
@@ -657,7 +658,7 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
 #ifdef TNN_USE_NEON
         int nn = (w * 3) >> 3;
-
+        int remain = (w * 3) - (nn << 3);
         int16x4_t _b0 = vdup_n_s16(b0);
         int16x4_t _b1 = vdup_n_s16(b1);
         int32x4_t _v2 = vdupq_n_s32(2);
@@ -692,10 +693,9 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
             rows1p += 8;
         }
 #else
-        int nn = 0;
+        int remain = (w * 3);
 #endif
-        for (int remain = (w * 3) - (nn << 3); remain; --remain) {
-            //             D[x] = (rows0[x]*b0 + rows1[x]*b1) >> INTER_RESIZE_COEF_BITS;
+        for (; remain; --remain) {
             *Dp++ = (uint8_t)(
                 ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
         }
@@ -708,8 +708,8 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_stride, uint8_t* dst, int w, int h,
-                        int stride) {
+void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+                             uint8_t* dst, int w, int h, int stride) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
 
@@ -885,7 +885,7 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
 #ifdef TNN_USE_NEON
         int nn = (w * 4) >> 3;
-
+        int remain = (w * 4) - (nn << 3);
         int16x4_t _b0 = vdup_n_s16(b0);
         int16x4_t _b1 = vdup_n_s16(b1);
         int32x4_t _v2 = vdupq_n_s32(2);
@@ -921,10 +921,9 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
         }
 
 #else
-        int nn = 0;
+        int remain = (w * 4);
 #endif
-        for (int remain = (w * 4) - (nn << 3); remain; --remain) {
-            //             D[x] = (rows0[x]*b0 + rows1[x]*b1) >> INTER_RESIZE_COEF_BITS;
+        for (; remain; --remain) {
             *Dp++ = (uint8_t)(
                 ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
         }
