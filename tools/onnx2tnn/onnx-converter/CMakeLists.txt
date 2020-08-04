@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 project(onnx2tnn)
 
-include(script/protobuf.cmake)
+# include(script/protobuf.cmake)
 
-add_subdirectory(pybind11)
+# add_subdirectory(pybind11)
 
 if(APPLE)
     find_library(MAC_ACCE Accelerate)
@@ -32,18 +32,21 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-ignore
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11")
-SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -rdynamic")
+# SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -rdynamic")
 
-add_library(onnx2tnn MODULE
-                             onnx2tnn_convert.cc
-                             ${ONNX2TNN_SRC}
-                             ${ONNX_PROTO_SRC}
-                             ${ONNX_PROTO_HEAD})
-set_target_properties(onnx2tnn PROPERTIES CXX_STANDARD 11)
-if (MAC_ACCE)
-    target_link_libraries(onnx2tnn PRIVATE ${MAC_ACCE})
-endif()
-target_link_libraries(onnx2tnn PRIVATE pybind11::module)
-target_link_libraries(onnx2tnn PRIVATE ${PROTOBUF_LIBRARIES})
-set_target_properties(onnx2tnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
+add_source(onnx2tnn_convert.cc
+    ${ONNX2TNN_SRC})
+
+# add_library(onnx2tnn MODULE
+#                              onnx2tnn_convert.cc
+#                              ${ONNX2TNN_SRC}
+#                              ${ONNX_PROTO_SRC}
+#                              ${ONNX_PROTO_HEAD})
+# set_target_properties(onnx2tnn PROPERTIES CXX_STANDARD 11)
+# if (MAC_ACCE)
+#     target_link_libraries(onnx2tnn PRIVATE ${MAC_ACCE})
+# endif()
+# target_link_libraries(onnx2tnn PRIVATE pybind11::module)
+# target_link_libraries(onnx2tnn PRIVATE ${PROTOBUF_LIBRARIES})
+# set_target_properties(onnx2tnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+#                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
