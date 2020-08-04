@@ -84,7 +84,7 @@ typedef void(^CommonCallback)(Status);
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
-            [self showSDKOutput:nullptr withStatus:status];
+            [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
         }
     }];
     
@@ -147,7 +147,7 @@ typedef void(^CommonCallback)(Status);
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
-            [self showSDKOutput:nullptr withStatus:status];
+            [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
         }
     }];
 }
@@ -195,10 +195,12 @@ typedef void(^CommonCallback)(Status);
         //resize
         fps_counter_async_thread->Begin("resize");
 #if TEST_IMAGE_SSD
-        auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
-                                                                                          ofType:nil]];
-        auto image_data = utility::UIImageGetData(image_png, target_height, target_width);
-        
+        static std::shared_ptr<char> image_data = nullptr;
+        if (!image_data) {
+            auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
+                                                                                              ofType:nil]];
+            image_data = utility::UIImageGetData(image_png, target_height, target_width);
+        }
         
 #else
         auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
@@ -261,43 +263,47 @@ typedef void(^CommonCallback)(Status);
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
             withOriginImageSize:(CGSize)origin_size
             withStatus:(Status)status {
-    object_list = [self reorder:object_list];
-    
-    //Object
-    auto camera_pos = [self.cameraDevice cameraPosition];
-    auto camera_gravity = [self.cameraDevice.videoPreviewLayer videoGravity];
-    int video_gravity = 0;
-    if (camera_gravity == AVLayerVideoGravityResizeAspectFill) {
-        video_gravity = 2;
-    } else if(camera_gravity == AVLayerVideoGravityResizeAspect) {
-        video_gravity = 1;
-    }
-    for (int i=0; i<_boundingBoxes.count; i++) {
-        if ( i < object_list.size()) {
-            auto object = object_list[i];
-            auto view_width = self.cameraPreview.bounds.size.width;
-            auto view_height = self.cameraPreview.bounds.size.height;
-            auto label = [self.viewModel labelForObject:object];
-            auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
-            view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
-            if (camera_pos == AVCaptureDevicePositionFront) {
-                view_face = view_face.FlipX();
-            }
-            [_boundingBoxes[i] showText:label
-                              withColor:self.colors[i]
-                                atFrame:CGRectMake(view_face.x1, view_face.y1,
-                                                   view_face.x2-view_face.x1,
-                                                   view_face.y2-view_face.y1)];
-//            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
-            [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor orangeColor]];
-        } else {
-            [_boundingBoxes[i] hide];
-        }
-    }
-    
     //status
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        
+        for (int i=0; i<_boundingBoxes.count; i++) {
+            [_boundingBoxes[i] hide];
+        }
+    } else {
+        object_list = [self reorder:object_list];
+        
+        //Object
+        auto camera_pos = [self.cameraDevice cameraPosition];
+        auto camera_gravity = [self.cameraDevice.videoPreviewLayer videoGravity];
+        int video_gravity = 0;
+        if (camera_gravity == AVLayerVideoGravityResizeAspectFill) {
+            video_gravity = 2;
+        } else if(camera_gravity == AVLayerVideoGravityResizeAspect) {
+            video_gravity = 1;
+        }
+        for (int i=0; i<_boundingBoxes.count; i++) {
+            if ( i < object_list.size()) {
+                auto object = object_list[i];
+                auto view_width = self.cameraPreview.bounds.size.width;
+                auto view_height = self.cameraPreview.bounds.size.height;
+                auto label = [self.viewModel labelForObject:object];
+                auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
+                view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
+                if (camera_pos == AVCaptureDevicePositionFront) {
+                    view_face = view_face.FlipX();
+                }
+                [_boundingBoxes[i] showText:label
+                                  withColor:self.colors[i]
+                                    atFrame:CGRectMake(view_face.x1, view_face.y1,
+                                                       view_face.x2-view_face.x1,
+                                                       view_face.y2-view_face.y1)];
+    //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor orangeColor]];
+            } else {
+                [_boundingBoxes[i] hide];
+            }
+        }
     }
 }
 
