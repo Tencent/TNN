@@ -54,7 +54,7 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     // check if global_pooling
-    //use_global_pooling_ = (pool_param->kernels[0] == dims_input[3]) && \
+    use_global_pooling_ = (pool_param->kernels[0] == dims_input[3]) && \
                             (pool_param->kernels[1] == dims_input[2] && \
                             (pool_param->pads[0] == 0) && \
                             (pool_param->pads[2] == 0));
