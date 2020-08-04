@@ -20,9 +20,6 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Conv2D);
 
 std::string TFLiteConv2DConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
-    if (op_code == tflite::BuiltinOperator_TRANSPOSE_CONV) {
-        return "Deconvolution";
-    }
     return "Convolution";
 }
 
@@ -33,8 +30,6 @@ tflite::ActivationFunctionType TFLiteConv2DConverter::ActivationType(
             return tf_lite_operator->builtin_options.AsConv2DOptions()->fused_activation_function;
         case tflite::BuiltinOperator_DEPTHWISE_CONV_2D:
             return tf_lite_operator->builtin_options.AsDepthwiseConv2DOptions()->fused_activation_function;
-        case tflite::BuiltinOperator_TRANSPOSE_CONV:
-            return tflite::ActivationFunctionType_NONE;
         default:
             return tflite::ActivationFunctionType_NONE;
     }
@@ -139,34 +134,6 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             LOGE("TNN Depthwise Conv2D do not Support fused_activation_function\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-    } else if (tf_lite_op_type == tflite::BuiltinOperator_TRANSPOSE_CONV) {
-        const auto option     = tf_lite_operator->builtin_options.AsTransposeConvOptions();
-        param->input_channel  = ci;
-        param->output_channel = co;
-        param->kernels.push_back(kw);
-        param->kernels.push_back(kh);
-        param->strides.push_back(option->stride_w);
-        param->strides.push_back(option->stride_h);
-
-        param->dialations.push_back(1);
-        param->dialations.push_back(1);
-        param->group    = 1;
-        param->pad_type = 0;
-        if (option->padding == tflite::Padding_VALID) {
-            // tensorflow pad valid
-            param->pad_type = -1;
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-        } else if (option->padding == tflite::Padding_SAME) {
-            param->pad_type = 0;
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-            param->pads.push_back(0);
-        }
-        param->activation_type = TNN_NS::ActivationType_None;
     } else {
         LOGE("TNN Conv2D do not Support operator\n");
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
@@ -182,30 +149,23 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
         auto original_weight_ptr =
             reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-        ConvertDataFormatTFLite(original_weight_ptr, filter_handle.force_to<float*>(), kh, kw, ci, co);
+        TFLiteConvertOHWI2OIHW(original_weight_ptr, filter_handle.force_to<float*>(), co, kh, kw, ci);
         layer_resource->filter_handle = filter_handle;
         // bias
         if (input_size == 3) {
-            param->bias                   = 1;
-            TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
-            const auto& bias_tensor       = tf_lite_tensors[tf_lite_operator->inputs[2]];
+            const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             if (bias_data_ptr != nullptr) {
+                param->bias                   = 1;
+                TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
                 ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, param->output_channel * sizeof(float));
+                layer_resource->bias_handle = bias_handle;
             }
-            layer_resource->bias_handle = bias_handle;
         }
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
-    if (tf_lite_op_type == tflite::BuiltinOperator_TRANSPOSE_CONV) {
-        // set input output index
-        cur_layer->inputs.resize(1);
-        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[2]]->name;
-    } else {
-        // set input output index
-        cur_layer->inputs.resize(1);
-        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
-    }
+    cur_layer->inputs.resize(1);
+    cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     cur_layer->outputs.resize(1);
     cur_layer->outputs[0] = tf_lite_tensors[tf_lite_operator->outputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
@@ -213,6 +173,5 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
 using namespace tflite;
 REGISTER_CONVERTER(Conv2D, BuiltinOperator_CONV_2D);
 REGISTER_CONVERTER(Conv2D, BuiltinOperator_DEPTHWISE_CONV_2D);
-REGISTER_CONVERTER(Conv2D, BuiltinOperator_TRANSPOSE_CONV);
 
 }  // namespace TNN_CONVERTER

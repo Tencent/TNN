@@ -19,7 +19,9 @@
 
 namespace TNN_CONVERTER {
 
-bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int CI, int CO);
+bool TFLiteConvertOHWI2OIHW(const float* src, float* dst, int CO, int KH, int KW, int CI);
+
+bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW, int CI);
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape);
 

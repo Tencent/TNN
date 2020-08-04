@@ -20,18 +20,35 @@
 
 namespace TNN_CONVERTER {
 
-bool ConvertDataFormatTFLite(const float* src, float* dst, int KH, int KW, int CI, int CO) {
+bool TFLiteConvertOHWI2OIHW(const float* src, float* dst, int CO, int KH, int KW, int CI) {
+    ASSERT(CO > 0);
     ASSERT(KH > 0);
     ASSERT(KW > 0);
     ASSERT(CI > 0);
-    ASSERT(CO > 0);
     ASSERT(src != nullptr);
-    // CO KH KW CI --> CO CI KH KW
-    for (int oc = 0; oc < CO; ++oc) {
-        for (int ic = 0; ic < CI; ++ic) {
+    for (int co = 0; co < CO; ++co) {
+        for (int ci = 0; ci < CI; ++ci) {
             for (int h = 0; h < KH; ++h) {
                 for (int w = 0; w < KW; ++w) {
-                    dst[(oc * CI + ic) * KH * KW + h * KW + w] = src[(oc * KH + h) * KW * CI + w * CI + ic];
+                    dst[(co * CI + ci) * KW * KW + h * KW + w] = src[(co * KH + h) * KW * CI + w * CI + ci];
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW, int CI) {
+    ASSERT(CI > 0);
+    ASSERT(KH > 0);
+    ASSERT(KW > 0);
+    ASSERT(CO > 0);
+    ASSERT(src != nullptr);
+    for (int ci = 0; ci < CI; ++ci) {
+        for (int co = 0; co < CO; ++co) {
+            for (int h = 0; h < KH; ++h) {
+                for (int w = 0; w < KW; ++w) {
+                    dst[(ci * CO + co) * KH * KW + h * KW + w] = src[(co * KH + h) * KW * CI + w * CI + ci];
                 }
             }
         }
