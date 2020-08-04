@@ -31,7 +31,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private final static String TAG = ImageFaceDetectFragment.class.getSimpleName();
     private FaceDetector mFaceDetector = new FaceDetector();
 
-    private static final String IMAGE = "test.jpg";
+    private static final String IMAGE = "test_face.jpg";
     private static final int NET_H_INPUT = 240;
     private static final int NET_W_INPUT = 320;
     private Paint mPaint = new Paint();
