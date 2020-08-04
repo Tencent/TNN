@@ -69,6 +69,12 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnmodel" \
     "shufflenet_v2"
 
+# download blazeface tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnmodel" \
+    "blazeface"
+
 # download mobilenet_v2-ssd tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
