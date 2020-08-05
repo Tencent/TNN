@@ -67,6 +67,11 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     
     auto scores = output->GetMat("546");
     auto boxes  = output->GetMat("544");
+    RETURN_VALUE_ON_NEQ(!scores, false,
+                           Status(TNNERR_PARAM_ERR, "scores mat is nil"));
+    RETURN_VALUE_ON_NEQ(!boxes, false,
+                           Status(TNNERR_PARAM_ERR, "boxes mat is nil"));
+    
     std::vector<BlazeFaceInfo> bbox_collection;
     //decode bbox
     GenerateBBox(bbox_collection, *(scores.get()), *(boxes.get()), option->input_width, option->input_height, option->min_score_threshold);
