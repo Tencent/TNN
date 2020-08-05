@@ -51,7 +51,7 @@ Two files will be generated in the current directory where the command is execut
 ### 5. Note  
 （1）-n and -s parameter only works when the input is a picture；  
 （2）When the input is a picture，it will be converted to RGB format for processing internally;
-(3) When the input is txt, the input data storage method is NCHW, and of type float. The storage format stores one data in one line, in total of N*C*H*W lines. E.g,
+ (3) When the input is txt, the input data storage method is NCHW, and of type float. The storage format stores one data in one line, in total of N*C*H*W lines. E.g,
 ```
 0.01
 1.1
@@ -59,3 +59,4 @@ Two files will be generated in the current directory where the command is execut
 255.0
 ...
 ```
+ (4) scale and mean need to be the value after calculation. For example, 1.0/128.0 is invalid and 0.0078125 is ok.  
