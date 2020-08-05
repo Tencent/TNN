@@ -227,7 +227,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         int h                      = dims.GetHeight();
         int w                      = dims.GetWidth();
         // add blob
-        std::advance(it, i);
         std::string name = *it;
         char layer_name[name.size() + 1];
         strcpy(layer_name, name.c_str());
@@ -240,7 +239,8 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         desc.dims.push_back(w);
         BlobHandle handle;
         handle.base                 = output_tensor_[i]->GetBuffer();
-        output_blob_map_[desc.name] = new Blob(desc, handle);
+        output_blob_map_[desc.name] = new Blob(desc, handle);\
+        it++;
     }
     for (auto &layer : layers_) {
         delete (layer);
