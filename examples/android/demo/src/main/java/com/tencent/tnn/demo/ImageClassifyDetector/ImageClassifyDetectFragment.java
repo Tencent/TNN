@@ -1,12 +1,10 @@
 package com.tencent.tnn.demo.ImageClassifyDetector;
 
 import android.graphics.Bitmap;
-import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -19,12 +17,8 @@ import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.ImageClassify;
 import com.tencent.tnn.demo.R;
-import com.tencent.tnn.demo.common.component.CameraSetting;
-import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
-import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 
