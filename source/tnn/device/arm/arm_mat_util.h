@@ -36,9 +36,9 @@ void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, 
 void resize_bilinear_yuv420sp(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h);
 
 void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3]);
+                            const float (*transform)[3], const float border_val = 0.0);
 void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3]);
+                            const float (*transform)[3], const float border_val = 0.0);
 
 }  // namespace TNN_NS
 

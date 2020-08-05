@@ -27,9 +27,9 @@
 
 namespace TNN_NS {
 
-#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)(X + (X >= 0.f ? 0.5f : -0.5f)), 0), UCHAR_MAX)
-#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)(X + (X >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
-#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)(X + (X >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
+#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), 0), UCHAR_MAX)
+#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
+#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
 
 void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
@@ -967,10 +967,12 @@ void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, 
     return resize_bilinear_c4_impl(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-#if 0
+
 static short BilinearTab_i[1024][2][2];
-#define INTER_REMAP_COEF_BITS 15
-#define INTER_REMAP_COEF_SCALE (1 << 15)
+#define INTER_REMAP_COEF_BITS  15
+#define INTER_REMAP_COEF_SCALE (1<<INTER_REMAP_COEF_BITS)
+#define INTER_BITS      5
+#define INTER_TAB_SIZE  (1<<INTER_BITS)
 
 static inline void interpolateLinear(float x, float* coeffs) {
     coeffs[0] = 1.f - x;
@@ -988,11 +990,11 @@ static void initInterTab2D() {
     int ksize   = 0;
     itab = BilinearTab_i[0][0], ksize = 2;
 
-    float* _tab = new float[8 * cv::INTER_TAB_SIZE];
+    float* _tab = new float[8 * INTER_TAB_SIZE];
     int i, j, k1, k2;
-    initInterTab1D(_tab, cv::INTER_TAB_SIZE);
-    for (i = 0; i < cv::INTER_TAB_SIZE; i++) {
-        for (j = 0; j < cv::INTER_TAB_SIZE; j++, itab += ksize * ksize) {
+    initInterTab1D(_tab, INTER_TAB_SIZE);
+    for (i = 0; i < INTER_TAB_SIZE; i++) {
+        for (j = 0; j < INTER_TAB_SIZE; j++, itab += ksize * ksize) {
             int isum = 0;
 
             for (k1 = 0; k1 < ksize; k1++) {
@@ -1024,16 +1026,18 @@ static void initInterTab2D() {
     delete[] _tab;
 }
 
-#define AB_SCALE (1 << 10)
-#define round_delta 16
-#define SIMD_LENGTH 2
-#endif
-
 void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3]) {
-#if 0
+                            const float (*transform)[3], const float border_val) {
     int dst_w = w;
     int dst_h = h;
+    uint8_t border_ival = (uint8_t)border_val;
+    if (border_ival) {
+        for (int i = 0; i < dst_h * dst_w; ++i) {
+            dst[i] = border_ival;
+        }
+    } else {
+        memset(dst, 0, dst_h * dst_w);
+    }
 
     // Init LookUp Table
     initInterTab2D();
@@ -1047,29 +1051,20 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     M[4] = transform[1][1];
     M[5] = transform[1][2];
 
-    if (!(flags & cv::WARP_INVERSE_MAP)) {
-        double D   = M[0] * M[4] - M[1] * M[3];
-        D          = D != 0 ? 1. / D : 0;
-        double A11 = M[4] * D, A22 = M[0] * D;
-        m[0]      = A11;
-        m[1]      = M[1] * (-D);
-        m[3]      = M[3] * (-D);
-        m[4]      = A22;
-        double b1 = -A11 * M[2] - m[1] * M[5];
-        double b2 = -m[3] * M[2] - A22 * M[5];
-        m[2]      = b1;
-        m[5]      = b2;
-    } else {
-        m[0] = M[0];
-        m[1] = M[1];
-        m[2] = M[2];
-        m[3] = M[3];
-        m[4] = M[4];
-        m[5] = M[5];
-    }
+    double D   = M[0] * M[4] - M[1] * M[3];
+    D          = D != 0 ? 1. / D : 0;
+    double A11 = M[4] * D, A22 = M[0] * D;
+    m[0]      = A11;
+    m[1]      = M[1] * (-D);
+    m[3]      = M[3] * (-D);
+    m[4]      = A22;
+    double b1 = -A11 * M[2] - m[1] * M[5];
+    double b2 = -m[3] * M[2] - A22 * M[5];
+    m[2]      = b1;
+    m[5]      = b2;
 
     int* buffer;
-    posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
+    int status = posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
 
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
@@ -1096,7 +1091,7 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     short* tab_loc        = new short[dst_w];
 
     unsigned short* buf_point = (unsigned short*)buf_loc;
-    uchar* src2               = src + stmp;
+    const unsigned char* src2 = src + stmp;
 
     for (int y = 0; y < dst_h; ++y) {
         int x_count        = 0;
@@ -1104,8 +1099,6 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
         int final_loc_base = y * dst_w;
         for (int x = 0; x < dst_w; ++x) {
             int final_loc = final_loc_base + x;
-            // int new_x = adelta[x] + offsets[2 * y] + 16;
-            // int new_y = bdelta[x] + offsets[2 * y + 1] + 16;
             int new_x      = adelta[2 * x] + bdelta[2 * y] + 16;
             int new_y      = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
             int new_x_full = new_x >> 5;
@@ -1155,225 +1148,17 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
         }
 
         int x      = end_x - x_count + 1;
-        uchar* ptr = (uchar*)(buf_loc + x);
-
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-
-        int32x4_t DELTA_vec = vdupq_n_s32(DELTA);
-        uchar* dst_loc      = dst + final_loc_base + x;
-
-#if __aarch64__
-        short* BilinearTab_ptr = BilinearTab_i[0][0];
-        int cmp_flag           = end_x - 8 + 1;
-        int simd_loop          = x_count >> 3;
-        if (simd_loop > 0) {
-            asm volatile(
-                "subs x12, %7, #1\n\t"
-                "blt 1f\n\t"
-                "#load from tab_loc\n\t"
-                "add x7, %4, %5, lsl #1\n\t"
-                "ldrsh x8, [x7]\n\t"
-                "ldrsh x9, [x7, #2]\n\t"
-                "ldrsh x10, [x7, #4]\n\t"
-                "ldrsh x11, [x7, #6]\n\t"
-                "#load from ptr\n\t"
-                "ld1 {v0.4s}, [%0], #16\n\t"
-                "add x8, %3, x8, lsl #3\n\t"
-                "add x9, %3, x9, lsl #3\n\t"
-                "add x10, %3, x10, lsl #3\n\t"
-                "add x11, %3, x11, lsl #3\n\t"
-                "0:\n\t"
-                "ld1 {v1.4s}, [%0], #16\n\t"
-                "ins v2.s[0], v0.s[1]\n\t"
-                "ins v3.s[0], v0.s[2]\n\t"
-                "ins v4.s[0], v0.s[3]\n\t"
-                "#load from BilinearTab\n\t"
-                "ld1 {v8.4h}, [x8]\n\t"
-                "ld1 {v9.4h}, [x9]\n\t"
-                "ld1 {v10.4h}, [x10]\n\t"
-                "ld1 {v11.4h}, [x11]\n\t"
-                "ldrsh x8, [x7, #8]\n\t"
-                "ldrsh x9, [x7, #10]\n\t"
-                "ldrsh x10, [x7, #12]\n\t"
-                "ldrsh x11, [x7, #14]\n\t"
-                "add x7, x7, #16\n\t"
-                "#start calculation\n\t"
-                "ushll v0.8h, v0.8b, #0\n\t"
-                "ushll v2.8h, v2.8b, #0\n\t"
-                "ushll v3.8h, v3.8b, #0\n\t"
-                "ushll v4.8h, v4.8b, #0\n\t"
-                "ins v5.s[0], v1.s[1]\n\t"
-                "ins v6.s[0], v1.s[2]\n\t"
-                "ins v7.s[0], v1.s[3]\n\t"
-                "add x8, %3, x8, lsl #3\n\t"
-                "add x9, %3, x9, lsl #3\n\t"
-                "add x10, %3, x10, lsl #3\n\t"
-                "add x11, %3, x11, lsl #3\n\t"
-                "smull v0.4s, v0.4h, v8.4h\n\t"
-                "smull v2.4s, v2.4h, v9.4h\n\t"
-                "smull v3.4s, v3.4h, v10.4h\n\t"
-                "smull v4.4s, v4.4h, v11.4h\n\t"
-                "ld1 {v8.4h}, [x8]\n\t"
-                "ld1 {v9.4h}, [x9]\n\t"
-                "ld1 {v10.4h}, [x10]\n\t"
-                "ld1 {v11.4h}, [x11]\n\t"
-                "ushll v1.8h, v1.8b, #0\n\t"
-                "ushll v5.8h, v5.8b, #0\n\t"
-                "ushll v6.8h, v6.8b, #0\n\t"
-                "ushll v7.8h, v7.8b, #0\n\t"
-                "addp v0.4s, v0.4s, v2.4s\n\t"
-                "addp v3.4s, v3.4s, v4.4s\n\t"
-                "smull v1.4s, v1.4h, v8.4h\n\t"
-                "smull v5.4s, v5.4h, v9.4h\n\t"
-                "smull v6.4s, v6.4h, v10.4h\n\t"
-                "smull v7.4s, v7.4h, v11.4h\n\t"
-                "addp v0.4s, v0.4s, v3.4s\n\t"
-                "ldrsh x8, [x7]\n\t"
-                "ldrsh x9, [x7, #2]\n\t"
-                "ldrsh x10, [x7, #4]\n\t"
-                "ldrsh x11, [x7, #6]\n\t"
-                "addp v1.4s, v1.4s, v5.4s\n\t"
-                "addp v6.4s, v6.4s, v7.4s\n\t"
-                "add v2.4s, v0.4s, %6.4s\n\t"
-                "ld1 {v0.4s}, [%0], #16\n\t"
-                "add x8, %3, x8, lsl #3\n\t"
-                "add x9, %3, x9, lsl #3\n\t"
-                "add x10, %3, x10, lsl #3\n\t"
-                "add x11, %3, x11, lsl #3\n\t"
-                "addp v1.4s, v1.4s, v6.4s\n\t"
-                "shrn v2.4h, v2.4s, #15\n\t"
-                "add v1.4s, v1.4s, %6.4s\n\t"
-                "subs x12, x12, #1\n\t"
-                "shrn v1.4h, v1.4s, #15\n\t"
-                "ins v2.d[1], v1.d[0]\n\t"
-                "sqxtun v2.8b, v2.8h\n\t"
-                "st1 {v2.8b}, [%2], #8\n\t"
-                "bge 0b\n\t"
-                "sub %0, %0, #16\n\t"
-                "1:\n\t"
-                : "=r"(ptr)
-                : "0"(ptr), "r"(dst_loc), "r"(BilinearTab_ptr), "r"(tab_loc), "r"(x), "w"(DELTA_vec), "r"(simd_loop)
-                : "cc", "memory", "x7", "x8", "x9", "x10", "x11", "x12", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
-                  "v8", "v9", "v10", "v11");
-            x = x + (simd_loop << 3);
-        }
-#else
-        short* BilinearTab_ptr = BilinearTab_i[0][0];
-        for (; x <= end_x - 8 + 1; x += 8) {
-            asm volatile(
-                "#a32 mark1\n\t"
-                "#load from tab_loc\n\t"
-                "add r7, %5, %6, lsl #1\n\t"
-                "vld1.16 {d8}, [r7]!\n\t"
-                "#load from ptr\n\t"
-                "vld1.32 {d0[0]}, [%0]!\n\t"
-                "#load from BilinearTab\n\t"
-                "vmov.s16 r8, d8[0]\n\t"
-                "vld1.32 {d2[0]}, [%0]!\n\t"
-                "vmov.s16 r9, d8[1]\n\t"
-                "vld1.32 {d4[0]}, [%0]!\n\t"
-                "vmov.s16 r10, d8[2]\n\t"
-                "vld1.32 {d6[0]}, [%0]!\n\t"
-                // "vmov.s16 r11, d8[3]\n\t"
-                "vld1.16 {d12}, [r7]\n\t"
-                "vmov.s16 r7, d8[3]\n"
-                "add r8, %4, r8, lsl #3\n\t"
-                "add r9, %4, r9, lsl #3\n\t"
-                "add r10, %4, r10, lsl #3\n\t"
-                // "add r11, %4, r11, lsl #3\n\t"
-                "add r7, %4, r7, lsl #3\n\t"
-                "vld1.16 {d8}, [r8]\n\t"
-                "vld1.16 {d9}, [r9]\n\t"
-                "vld1.16 {d10}, [r10]\n\t"
-                "vld1.16 {d11}, [r7]\n\t"
-                "vmov.s16 r8, d12[0]\n\t"
-                "vmov.s16 r9, d12[1]\n\t"
-                "vmov.s16 r10, d12[2]\n\t"
-                "vmov.s16 r7, d12[3]\n\t"
-
-                "vld1.32 {d12[0]}, [%0]!\n\t"
-                "add r8, %4, r8, lsl #3\n\t"
-                "add r9, %4, r9, lsl #3\n\t"
-                "add r10, %4, r10, lsl #3\n\t"
-                "add r7, %4, r7, lsl #3\n\t"
-                "vld1.32 {d14[0]}, [%0]!\n\t"
-
-                "#calculate p0*w0\n\t"
-                "vmovl.u8 q0, d0\n\t"
-                "vld1.32 {d16[0]}, [%0]!\n\t"
-                "vmovl.u8 q1, d2\n\t"
-                "vmovl.u8 q2, d4\n\t"
-                "vmovl.u8 q3, d6\n\t"
-                "vld1.32 {d18[0]}, [%0]!\n\t"
-
-                "vld1.16 {d20}, [r8]\n\t"
-                "vld1.16 {d21}, [r9]\n\t"
-                "vld1.16 {d22}, [r10]\n\t"
-                "vld1.16 {d23}, [r7]\n\t"
-
-                "vmull.s16 q0, d0, d8\n\t"
-                "vmull.s16 q1, d2, d9\n\t"
-                "vmull.s16 q2, d4, d10\n\t"
-                "vmull.s16 q3, d6, d11\n\t"
-
-                "vpadd.i32 d0, d0, d1\n\t"
-                "vpadd.i32 d1, d2, d3\n\t"
-                "vpadd.i32 d2, d4, d5\n\t"
-                "vpadd.i32 d3, d6, d7\n\t"
-
-                "vmovl.u8 q6, d12\n\t"
-                "vmovl.u8 q7, d14\n\t"
-                "vmovl.u8 q8, d16\n\t"
-                "vmovl.u8 q9, d18\n\t"
-
-                "vpadd.i32 d0, d0, d1\n\t"
-                "vpadd.i32 d1, d2, d3\n\t"
-
-                "vmull.s16 q6, d12, d20\n\t"
-                "vmull.s16 q7, d14, d21\n\t"
-                "vmull.s16 q8, d16, d22\n\t"
-                "vmull.s16 q9, d18, d23\n\t"
-
-                "vadd.i32 q0, q0, %q7\n\t"
-                "vshrn.i32 d0, q0, #15\n\t"
-
-                "vpadd.i32 d12, d12, d13\n\t"
-                "vpadd.i32 d13, d14, d15\n\t"
-                "vpadd.i32 d14, d16, d17\n\t"
-                "vpadd.i32 d15, d18, d19\n\t"
-
-                "vpadd.i32 d12, d12, d13\n\t"
-                "vpadd.i32 d13, d14, d15\n\t"
-
-                "vadd.i32 q6, q6, %q7\n\t"
-                "vshrn.i32 d1, q6, #15\n\t"
-
-                "vmovn.i16 d0, q0\n\t"
-                "vst1.8 {d0}, [%1]!\n\t"
-
-                : "=r"(ptr), "=r"(dst_loc)
-                : "0"(ptr), "1"(dst_loc), "r"(BilinearTab_ptr), "r"(tab_loc), "r"(x), "w"(DELTA_vec)
-                : "cc", "memory", "r7", "r8", "r9", "r10", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9",
-                  "q10", "q11");
-        }
-#endif  // a64
-#endif  // end of NEON
+        unsigned char* ptr = (unsigned char*)(buf_loc + x);
 
         for (; x <= end_x; x++) {
             int final_loc = final_loc_base + x;
             short* wtab   = BilinearTab_i[tab_loc[x]][0];
 
-            // uchar * ptr = (uchar*)(buf_loc + x);
             int point0 = ptr[0];
             int point1 = ptr[1];
             int point2 = ptr[2];
             int point3 = ptr[3];
             ptr += 4;
-
-            // int point0 = src[loc_buffer];
-            // int point1 = src[loc_buffer + 1];
-            // int point2 = src[loc_buffer2];
-            // int point3 = src[loc_buffer2 + 1];
 
             int val_xy0    = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
             dst[final_loc] = SATURATE_CAST_UCHAR((val_xy0 + DELTA) >> 15);
@@ -1383,14 +1168,20 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     delete[] tab_loc;
 
     free(buffer);
-#endif
 }
 
 void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3]) {
-#if 0
+                            const float (*transform)[3], const float border_val) {
     int dst_w = w;
     int dst_h = h;
+    uint8_t border_ival = (uint8_t)border_val;
+    if (border_ival) {
+        for (int i = 0; i < dst_h * dst_w * 3; ++i) {
+            dst[i] = border_ival;
+        }
+    } else {
+        memset(dst, 0, dst_h * dst_w * 3);
+    }
 
     // Init LookUp Table
     initInterTab2D();
@@ -1404,29 +1195,20 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
     M[4] = transform[1][1];
     M[5] = transform[1][2];
 
-    if (!(flags & cv::WARP_INVERSE_MAP)) {
-        double D   = M[0] * M[4] - M[1] * M[3];
-        D          = D != 0 ? 1. / D : 0;
-        double A11 = M[4] * D, A22 = M[0] * D;
-        m[0]      = A11;
-        m[1]      = M[1] * (-D);
-        m[3]      = M[3] * (-D);
-        m[4]      = A22;
-        double b1 = -A11 * M[2] - m[1] * M[5];
-        double b2 = -m[3] * M[2] - A22 * M[5];
-        m[2]      = b1;
-        m[5]      = b2;
-    } else {
-        m[0] = M[0];
-        m[1] = M[1];
-        m[2] = M[2];
-        m[3] = M[3];
-        m[4] = M[4];
-        m[5] = M[5];
-    }
+    double D   = M[0] * M[4] - M[1] * M[3];
+    D          = D != 0 ? 1. / D : 0;
+    double A11 = M[4] * D, A22 = M[0] * D;
+    m[0]      = A11;
+    m[1]      = M[1] * (-D);
+    m[3]      = M[3] * (-D);
+    m[4]      = A22;
+    double b1 = -A11 * M[2] - m[1] * M[5];
+    double b2 = -m[3] * M[2] - A22 * M[5];
+    m[2]      = b1;
+    m[5]      = b2;
 
     int* buffer;
-    posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
+    int status = posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
 
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
@@ -1445,14 +1227,14 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
 
     int DELTA = 1 << 14;
 
-    int scols      = srcMat.cols;
-    int srows      = srcMat.rows;
-    int schannel   = srcMat.channels();
+    int scols      = src_w;
+    int srows      = src_h;
+    int schannel   = 3;
     int stmp       = scols * schannel;
     int* buf_loc   = new int[dst_w + 4];
     short* tab_loc = new short[dst_w + 4];
 
-    uchar* src2 = src + stmp;
+    const unsigned char* src2 = src + stmp;
 
     short xy_loc_buf[dst_w * 2];
     short xy_float_buf[dst_w];
@@ -1462,50 +1244,15 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
         int end_x          = 0;
         int final_loc_base = y * dst_w * 3;
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-        int32x4_t off_vec    = vdupq_n_s32(16);
-        int16x4_t mask31     = vdup_n_s16(31);
-        int16x8_t mask_mull  = {1, 32, 1, 32, 1, 32, 1, 32};
-        int32x4_t bdelta_vec = {bdelta[2 * y], bdelta[2 * y + 1], bdelta[2 * y], bdelta[2 * y + 1]};
-        int idx              = 0;
-        for (; idx < dst_w - 4 + 1; idx += 4) {
-            int32x4_t adelta0 = vaddq_s32(vld1q_s32(adelta + 2 * idx), off_vec);
-            int32x4_t adelta1 = vaddq_s32(vld1q_s32(adelta + 2 * idx + 4), off_vec);
-            // x0y0,x1y1
-            int32x4_t x0y0 = vaddq_s32(adelta0, bdelta_vec);
-            // x2y2,x3y3
-            int32x4_t x2y2     = vaddq_s32(adelta1, bdelta_vec);
-            int16x4_t x0y0sh   = vshrn_n_s32(x0y0, 5);
-            int16x4_t x2y2sh   = vshrn_n_s32(x2y2, 5);
-            int16x8_t xy_float = vcombine_s16(vand_s16(x0y0sh, mask31), vand_s16(x2y2sh, mask31));
-            xy_float           = vmulq_s16(xy_float, mask_mull);
-            int16x8_t xy       = vcombine_s16(vshrn_n_s32(x0y0, 10), vshrn_n_s32(x2y2, 10));
-            // xy_float = vpaddq_s16(xy_float, xy_float);
-            int16x4_t xy_float0 = vpadd_s16(vget_low_s16(xy_float), vget_high_s16(xy_float));
-            vst1q_s16(xy_loc_buf + idx * 2, xy);
-            vst1_s16(xy_float_buf + idx, xy_float0);
-            // vst1q_lane_s64((int64_t*)(xy_float_buf + idx), vreinterpretq_s64_s16(xy_float), 0);
-        }
-        for (; idx < dst_w; idx++) {
-            int new_x               = adelta[2 * idx] + bdelta[2 * y] + 16;
-            int new_y               = adelta[2 * idx + 1] + bdelta[2 * y + 1] + 16;
+        for (int x = 0; x < dst_w; ++x) {
+            int new_x               = adelta[2 * x] + bdelta[2 * y] + 16;
+            int new_y               = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
             int new_x_full          = new_x >> 5;
             int new_y_full          = new_y >> 5;
-            xy_loc_buf[idx * 2]     = (new_x >> 10);
-            xy_loc_buf[idx * 2 + 1] = (new_y >> 10);
-            xy_float_buf[idx]       = (new_x_full & 31) + (new_y_full & 31) * 32;
-        }
+            xy_loc_buf[x * 2]     = (new_x >> 10);
+            xy_loc_buf[x * 2 + 1] = (new_y >> 10);
+            xy_float_buf[x]       = (new_x_full & 31) + (new_y_full & 31) * 32;
 
-        for (int x = 0; x < dst_w; ++x) {
-            // int new_x = adelta[2 * x] + bdelta[2 * y] + 16;
-            // int new_y = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
-            // int new_x_full = new_x >> 5;
-            // int new_y_full = new_y >> 5;
-            // int new_x_loc = new_x >> 10;
-            // int new_y_loc = new_y >> 10;
-            //
-            // short new_xy_float = (new_x_full & 31) + (new_y_full & 31) * 32;
-            // short *wtab = BilinearTab_i[new_xy_float][0];
             int new_x_loc    = xy_loc_buf[x * 2];
             int new_y_loc    = xy_loc_buf[x * 2 + 1];
             int new_xy_float = xy_float_buf[x];
@@ -1561,286 +1308,13 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
                 }
             }
         }
-#endif
 
         int x = end_x - x_count + 1;
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-
-        int32x4_t DELTA_vec = vdupq_n_s32(DELTA);
-        uint8x8_t tb        = {0, 1, 2, 4, 5, 6, 0, 0};
-        uchar* dst_loc      = dst + final_loc_base + x * 3;
-
-#if __aarch64__
-        short* BilinearTab_ptr = BilinearTab_i[0][0];
-        int simd_loop          = x_count >> 2;
-        int cmp_flag           = end_x - 4 + 1;
-        if (simd_loop > 0) {
-            asm volatile(
-                "subs x25, %2, #1\n\t"
-                "blt 1f\n\t"
-                "add x17, %4, %3, lsl #1\n\t"
-                "add x18, %5, %3, lsl #2\n\t"
-                "ldrsh x19, [x17]\n\t"
-                "ldrsh x20, [x17, #2]\n\t"
-                "add x17, x17, #4\n\t"
-                "ldpsw x21, x22, [x18], #8\n\t"
-                "add x19, %6, x19, lsl #3\n\t"
-                "add x20, %6, x20, lsl #3\n\t"
-                "0:\n\t"
-                "ldrsh x23, [x17]\n\t"
-                "ldrsh x24, [x17, #2]\n\t"
-                "add x17, x17, #4\n\t"
-                // vec00 vec01 vec10 vec11
-                "ldr d2, [%7, x21]\n\t"
-                "ldr d4, [%7, x22]\n\t"
-                "ldr d3, [%8, x21]\n\t"
-                "ldr d5, [%8, x22]\n\t"
-                // wtab0 and wtab1
-                "ld1 {v0.4h}, [x19]\n\t"
-                "ld1 {v1.4h}, [x20]\n\t"
-                "ldpsw x21, x22, [x18], #8\n\t"
-                "add x23, %6, x23, lsl #3\n\t"
-                "add x24, %6, x24, lsl #3\n\t"
-                // calculation of vec00,01,10,11
-                "ushll v2.8h, v2.8b, #0\n\t"
-                "ushll v3.8h, v3.8b, #0\n\t"
-                "ushll v4.8h, v4.8b, #0\n\t"
-                "ushll v5.8h, v5.8b, #0\n\t"
-                "mov v6.d[0], v2.d[1]\n\t"
-                "mov v7.d[0], v3.d[1]\n\t"
-                "mov v8.d[0], v4.d[1]\n\t"
-                "mov v9.d[0], v5.d[1]\n\t"
-                // vec20 vec21 vec30 vec31
-                "ldr d16, [%7, x21]\n\t"
-                "ldr d18, [%7, x22]\n\t"
-                "ldr d17, [%8, x21]\n\t"
-                "ldr d19, [%8, x22]\n\t"
-                "ext v6.8b, v2.8b, v6.8b, #6\n\t"
-                "ext v7.8b, v3.8b, v7.8b, #6\n\t"
-                "ext v8.8b, v4.8b, v8.8b, #6\n\t"
-                "ext v9.8b, v5.8b, v9.8b, #6\n\t"
-                // wtab2 and wtab3
-                "ld1 {v14.4h}, [x23]\n\t"
-                "ld1 {v15.4h}, [x24]\n\t"
-                "smull v10.4s, v2.4h, v0.h[0]\n\t"
-                "smull v11.4s, v3.4h, v0.h[2]\n\t"
-                "smull v12.4s, v4.4h, v1.h[0]\n\t"
-                "smull v13.4s, v5.4h, v1.h[2]\n\t"
-                "smlal v10.4s, v6.4h, v0.h[1]\n\t"
-                "smlal v11.4s, v7.4h, v0.h[3]\n\t"
-                "smlal v12.4s, v8.4h, v1.h[1]\n\t"
-                "smlal v13.4s, v9.4h, v1.h[3]\n\t"
-                // next loop
-                "ldrsh x19, [x17]\n\t"
-                "ldrsh x20, [x17, #2]\n\t"
-                "add x17, x17, #4\n\t"
-                "ldpsw x21, x22, [x18], #8\n\t"
-                // calculation of vec00,01,10,11
-                "ushll v16.8h, v16.8b, #0\n\t"
-                "ushll v17.8h, v17.8b, #0\n\t"
-                "ushll v18.8h, v18.8b, #0\n\t"
-                "ushll v19.8h, v19.8b, #0\n\t"
-                "add x19, %6, x19, lsl #3\n\t"
-                "add x20, %6, x20, lsl #3\n\t"
-                "mov v6.d[0], v16.d[1]\n\t"
-                "mov v7.d[0], v17.d[1]\n\t"
-                "mov v8.d[0], v18.d[1]\n\t"
-                "mov v9.d[0], v19.d[1]\n\t"
-                "ext v6.8b, v16.8b, v6.8b, #6\n\t"
-                "ext v7.8b, v17.8b, v7.8b, #6\n\t"
-                "ext v8.8b, v18.8b, v8.8b, #6\n\t"
-                "ext v9.8b, v19.8b, v9.8b, #6\n\t"
-                "smull v20.4s, v16.4h, v14.h[0]\n\t"
-                "smull v21.4s, v17.4h, v14.h[2]\n\t"
-                "smull v22.4s, v18.4h, v15.h[0]\n\t"
-                "smull v23.4s, v19.4h, v15.h[2]\n\t"
-                "smlal v20.4s, v6.4h, v14.h[1]\n\t"
-                "smlal v21.4s, v7.4h, v14.h[3]\n\t"
-                "smlal v22.4s, v8.4h, v15.h[1]\n\t"
-                "smlal v23.4s, v9.4h, v15.h[3]\n\t"
-                // results calculation
-                "add v10.4s, v10.4s, v11.4s\n\t"
-                "add v12.4s, v12.4s, v13.4s\n\t"
-                "add v20.4s, v20.4s, v21.4s\n\t"
-                "add v22.4s, v22.4s, v23.4s\n\t"
-                "add v10.4s, v10.4s, %9.4s\n\t"
-                "add v12.4s, v12.4s, %9.4s\n\t"
-                "add v20.4s, v20.4s, %9.4s\n\t"
-                "add v22.4s, v22.4s, %9.4s\n\t"
-                "shrn v10.4h, v10.4s, #15\n\t"
-                "shrn v11.4h, v12.4s, #15\n\t"
-                "shrn v12.4h, v20.4s, #15\n\t"
-                "shrn v13.4h, v22.4s, #15\n\t"
-                "ins v10.d[1], v11.d[0]\n\t"
-                "ins v12.d[1], v13.d[0]\n\t"
-                "sqxtun v10.8b, v10.8h\n\t"
-                "sqxtun v12.8b, v12.8h\n\t"
-                "subs x25, x25, #1\n\t"
-                "tbl v10.8b, {v10.16b}, %10.8b\n\t"
-                "tbl v12.8b, {v12.16b}, %10.8b\n\t"
-                "st1 {v10.s}[0], [%0], #4\n\t"
-                "st1 {v10.h}[2], [%0], #2\n\t"
-                "st1 {v12.s}[0], [%0], #4\n\t"
-                "st1 {v12.h}[2], [%0], #2\n\t"
-                "bge 0b\n\t"
-                "1:\n\t"
-                : "=r"(dst_loc)
-                : "r"(dst_loc), "r"(simd_loop), "r"(x), "r"(tab_loc), "r"(buf_loc), "r"(BilinearTab_ptr), "r"(src),
-                  "r"(src2), "w"(DELTA_vec), "w"(tb), "r"(cmp_flag)
-                : "cc", "memory", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "v0", "v1", "v2", "v3",
-                  "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18",
-                  "v19", "v20", "v21", "v22", "v23");
-            x = x + (simd_loop << 2);
-        }
-#else
-        short* BilinearTab_ptr = BilinearTab_i[0][0];
-        int* buf_loc_base      = &buf_loc[x];
-        short* tab_loc_base    = &tab_loc[x];
-        for (; x <= end_x - 4 + 1; x += 4) {
-            asm volatile(
-                "#load from tab_loc and buf_loc\n\t"
-                // "add r7, %1, %7, lsl #1\n\t"
-                // "add r8, %2, %7, lsl #2\n\t"
-                "vld1.16 {d0}, [%1]!\n\t"
-                "vld1.32 {q1}, [%2]!\n\t"
-
-                "vmov.s16 r1, d0[0]\n\t"
-                "vmov.s16 r4, d0[1]\n\t"
-                "vmov.32 r2, d2[0]\n\t"
-                // "vmov.32 r11, d2[1]\n\t"
-                "add r1, %6, r1, lsl #3\n\t"
-                "add r4, %6, r4, lsl #3\n\t"
-                "add r3, %8, r2\n\t"
-                // "add r12, %5, r11\n\t"
-                "add r2, %7, r2\n\t"
-                // "add r11, %4, r11\n\t"
-                "#wtab0 and wtab1\n\t"
-                "vld1.16 {d4}, [r1]\n\t"
-                "vmov.32 r1, d2[1]\n\t"  // new
-                "vld1.16 {d1}, [r4]\n\t"
-                "add r4, %8, r1\n\t"  // new
-                "add r1, %7, r1\n\t"  // new
-                "#point_vec00 and point_vec01\n\t"
-                "vld1.8 {d6}, [r2]\n\t"
-                "vld1.8 {d8}, [r3]\n\t"
-                "#point_vec10 and point_vec10\n\t"
-                "vld1.8 {d12}, [r1]\n\t"  // new
-                "vld1.8 {d14}, [r4]\n\t"  // new
-
-                "vmov.s16 r1, d0[2]\n\t"
-                "vmov.s16 r4, d0[3]\n\t"
-                "vmov.32 r2, d3[0]\n\t"
-                // "vmov.32 r11, d3[1]\n\t"
-
-                "#calculate vec00 and vec01\n\t"
-                "vmovl.u8 q3, d6\n\t"
-                "vmovl.u8 q4, d8\n\t"
-                "#calculate vec10 and vec11\n\t"
-                "vmovl.u8 q6, d12\n\t"
-                "vmovl.u8 q7, d14\n\t"
-
-                "add r1, %6, r1, lsl #3\n\t"
-                "add r4, %6, r4, lsl #3\n\t"
-                "add r3, %8, r2\n\t"
-                // "add r12, %5, r11\n\t"
-                "add r2, %7, r2\n\t"
-                // "add r11, %4, r11\n\t"
-
-                "vext.8 d7, d6, d7, #6\n\t"
-                "vext.8 d9, d8, d9, #6\n\t"
-                "vext.8 d13, d12, d13, #6\n\t"
-                "vext.8 d15, d14, d15, #6\n\t"
-
-                "vmull.s16 q10, d6, d4[0]\n\t"
-                "vmull.s16 q11, d8, d4[2]\n\t"
-                "vmlal.s16 q10, d7, d4[1]\n\t"
-                "vmlal.s16 q11, d9, d4[3]\n\t"
-
-                "#wtab2\n\t"
-                "vld1.16 {d4}, [r1]\n\t"
-                "vmov.32 r1, d3[1]\n\t"  // new
-                "#point_vec20 and point_vec21\n\t"
-                "vld1.8 {d6}, [r2]\n\t"
-                "vld1.8 {d8}, [r3]\n\t"
-
-                "vmull.s16 q12, d12, d1[0]\n\t"
-                "vmull.s16 q13, d14, d1[2]\n\t"
-                "vmlal.s16 q12, d13, d1[1]\n\t"
-                "vmlal.s16 q13, d15, d1[3]\n\t"
-                "vadd.i32 q10, q11, q10\n\t"
-                "vadd.i32 q12, q12, q13\n\t"
-
-                "#wtab3\n\t"
-                "vld1.16 {d1}, [r4]\n\t"
-                "add r4, %8, r1\n\t"  // new
-                "add r1, %7, r1\n\t"  // new
-                "#point_vec30 and point_vec31\n\t"
-                "vld1.8 {d12}, [r1]\n\t"  // new
-                "vld1.8 {d14}, [r4]\n\t"  // new
-
-                "vadd.i32 q10, q10, %q9\n\t"
-                "vadd.i32 q12, q12, %q9\n\t"
-                "vshrn.i32 d20, q10, #15\n\t"
-                "vshrn.i32 d21, q12, #15\n\t"
-
-                "#calculate vec20 and vec21\n\t"
-                "vmovl.u8 q3, d6\n\t"
-                "vmovl.u8 q4, d8\n\t"
-
-                "#store results\n\t"
-                "vmovn.i16 d20, q10\n\t"
-                "vtbl.8 d20, {d20}, %10\n\t"
-
-                "#calculate vec30 and vec31\n\t"
-                "vmovl.u8 q6, d12\n\t"
-                "vmovl.u8 q7, d14\n\t"
-
-                "vext.8 d7, d6, d7, #6\n\t"
-                "vext.8 d9, d8, d9, #6\n\t"
-                "vext.8 d13, d12, d13, #6\n\t"
-                "vext.8 d15, d14, d15, #6\n\t"
-
-                "vst1.32 {d20[0]}, [%0]!\n\t"
-                "vst1.16 {d20[2]}, [%0]!\n\t"
-
-                "vmull.s16 q10, d6, d4[0]\n\t"
-                "vmull.s16 q11, d8, d4[2]\n\t"
-                "vmlal.s16 q10, d7, d4[1]\n\t"
-                "vmlal.s16 q11, d9, d4[3]\n\t"
-                "vmull.s16 q12, d12, d1[0]\n\t"
-                "vmull.s16 q13, d14, d1[2]\n\t"
-                "vmlal.s16 q12, d13, d1[1]\n\t"
-                "vmlal.s16 q13, d15, d1[3]\n\t"
-
-                "vadd.i32 q10, q11, q10\n\t"
-                "vadd.i32 q12, q12, q13\n\t"
-                "vadd.i32 q10, q10, %q9\n\t"
-                "vadd.i32 q12, q12, %q9\n\t"
-                "vshrn.i32 d20, q10, #15\n\t"
-                "vshrn.i32 d21, q12, #15\n\t"
-                "vmovn.i16 d20, q10\n\t"
-                "vtbl.8 d20, {d20}, %10\n\t"
-
-                "vst1.32 {d20[0]}, [%0]!\n\t"
-                "vst1.16 {d20[2]}, [%0]!\n\t"
-                : "=r"(dst_loc), "=r"(tab_loc_base), "=r"(buf_loc_base)
-                : "0"(dst_loc), "1"(tab_loc_base), "2"(buf_loc_base), "r"(BilinearTab_ptr), "r"(src), "r"(src2),
-                  "w"(DELTA_vec), "w"(tb)
-                : "cc", "memory", "r1", "r2", "r3", "r4", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q10", "q11",
-                  "q12", "q13");
-            // dst_loc += 12;
-        }
-#endif  // a64
-#endif  // end of NEON
-
         for (; x <= end_x; x++) {
-            // int final_loc = (y * dst_w + x)*schannel;
             int final_loc  = final_loc_base + x * 3;
             int loc_buffer = buf_loc[x];
-            // int loc_buffer = xy_loc_buf[2 * x] * 3 + xy_loc_buf[2 * x + 1] * stmp;
             short* wtab = BilinearTab_i[tab_loc[x]][0];
-            // short *wtab = BilinearTab_i[xy_float_buf[x]][0];
 
             int point00 = src[loc_buffer];
             int point01 = src[loc_buffer + 1];
@@ -1868,7 +1342,6 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
     delete[] tab_loc;
 
     free(buffer);
-#endif
 }
 
 }  // namespace TNN_NS

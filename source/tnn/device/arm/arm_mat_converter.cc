@@ -140,11 +140,21 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     }
 
     if (src.GetMatType() == NGRAY) {
-        // warpaffine_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), param.transform);
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            warpaffine_bilinear_c1((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                   param.transform, param.border_val);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
     } else if (src.GetMatType() == N8UC3) {
-        // warpaffine_bilinear_c3(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), param.transform);
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            warpaffine_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                   param.transform, param.border_val);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
