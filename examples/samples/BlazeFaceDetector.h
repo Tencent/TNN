@@ -64,10 +64,8 @@ public:
 private:
     void GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS::Mat &scores, TNN_NS::Mat &boxes, int image_w, int image_h, float min_score_threshold);
     void BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vector<BlazeFaceInfo> &output, float min_suppression_threshold);
-    void ClampSigmoid(float* dataPtr, size_t count);
     
     std::vector<float> anchors;
-    float score_clipping_threshold = 100.0;
     
     int num_anchors = 896;
     int detect_dims = 16;

@@ -1,10 +1,16 @@
+// Tencent is pleased to support the open source community by making TNN available.
 //
-//  BlazeFaceDetector.cpp
-//  TNNExamples
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
 //
-//  Created by devandong on 2020/7/23.
-//  Copyright © 2020 tencent. All rights reserved.
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
 //
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
 #include "BlazeFaceDetector.h"
 #include <sys/time.h>
@@ -23,7 +29,6 @@ Status BlazeFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    //TODO: load anchors
     std::ifstream inFile(option->anchor_path);
     RETURN_VALUE_ON_NEQ(inFile.good(), true, Status(TNNERR_PARAM_ERR, "TNNSDKOption.anchor_path is invalid"));
     std::string line;
@@ -60,7 +65,7 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
     
     
-    auto scores = output->GetMat("525");
+    auto scores = output->GetMat("546");
     auto boxes  = output->GetMat("544");
     std::vector<BlazeFaceInfo> bbox_collection;
     //decode bbox
@@ -75,8 +80,6 @@ Status BlazeFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
 void BlazeFaceDetector::GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS::Mat &scores, TNN_NS::Mat &boxes, int image_w, int image_h, float min_score_threshold) {
     float *boxes_data = static_cast<float*>(boxes.GetData());
     float *score_data = static_cast<float*>(scores.GetData());
-    
-    ClampSigmoid(score_data, num_anchors);
     
     for(int i=0; i<num_anchors; ++i) {
         if(score_data[i] < min_score_threshold)
@@ -165,6 +168,7 @@ void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vect
             total += exp(buf[i].score);
         }
         BlazeFaceInfo rects;
+        rects.key_points.resize(num_keypoints, std::make_pair(0, 0));
         rects.image_width = buf[0].image_width;
         rects.image_height = buf[0].image_height;
         for (int i = 0; i < buf.size(); i++) {
@@ -174,18 +178,12 @@ void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vect
             rects.x2 += buf[i].x2 * rate;
             rects.y2 += buf[i].y2 * rate;
             rects.score += buf[i].score * rate;
+            for(int j = 0; j < buf[i].key_points.size(); ++j) {
+                rects.key_points[j].first += buf[i].key_points[j].first * rate;
+                rects.key_points[j].second += buf[i].key_points[j].second * rate;
+            }
         }
-        rects.key_points = buf[0].key_points;
         output.push_back(rects);
-    }
-}
-
-void BlazeFaceDetector::ClampSigmoid(float* dataPtr, size_t count){
-    for(int i=0; i<count; ++i) {
-        float val = dataPtr[i];
-        val = std::min(std::max(-score_clipping_threshold, val), score_clipping_threshold);
-        float rst = 1.0f / (1.0f + exp(-val));
-        dataPtr[i] = rst;
     }
 }
 

@@ -47,7 +47,7 @@ Status ObjectDetectorSSD::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
                         Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
     
     auto input_shape = GetInputShape();
-    RETURN_VALUE_ON_NEQ(input_shape.size() ==4, true,
+    RETURN_VALUE_ON_NEQ(input_shape.size() == 4, true,
                         Status(TNNERR_PARAM_ERR, "GetInputShape is invalid"));
     
     auto num_detections = output_mat->GetHeight();
@@ -72,7 +72,7 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
         
         info.class_id = data[i*7+1];
         if(info.class_id < 0 || info.class_id >= sizeof(voc_classes)/sizeof(*voc_classes)) {
-            LOGE("invalid object classid:%dn", info.class_id);
+            LOGE("invalid object classid:%d\n", info.class_id);
             continue;
         }
         info.score = data[i*7+2];
