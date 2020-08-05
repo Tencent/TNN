@@ -129,7 +129,7 @@ kernel void pooling_global_max(const device ftype4 *in            [[buffer(0)]],
     //compute local maximum value
     ftype4 max_x = ftype4(-FTYPE_MAX);
     for (int index = t_index; index < params.input_size; index+=32) {
-        auto temp = float4(in[index + input_index_c]);
+        auto temp = in[index + input_index_c];
         max_x = max(max_x, temp);
     }
     x_group[t_index] = max_x;
