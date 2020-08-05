@@ -87,7 +87,7 @@ kernel void pooling_global_sharedmemory(const device ftype4 *in            [[buf
     //do not use setThreadgroupMemoryLength, unknown bug will raise
     threadgroup float4 x_group[32];
     
-    //compute sum x
+    //compute sum
     float4 sum_x = float4(0);
     for (int index = t_index; index < params.input_size; index+=32) {
         auto temp = float4(in[index + input_index_c]);

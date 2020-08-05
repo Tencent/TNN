@@ -18,7 +18,6 @@
 
 namespace TNN_NS {
 
-//DECLARE_METAL_ACC(Pooling, LAYER_POOLING);
 class MetalPoolingLayerAcc : public MetalLayerAcc {
 public:                                                                                                            
     virtual ~MetalPoolingLayerAcc(){};                                                                     
@@ -53,12 +52,11 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    // check if global_pooling
+    // check if global average pooling
     use_global_pooling_ = (pool_param->kernels[0] == dims_input[3]) && \
                             (pool_param->kernels[1] == dims_input[2] && \
                             (pool_param->pads[0] == 0) && \
                             (pool_param->pads[2] == 0));
-    //LOGE("\nis_global_pooling:%d, \n", use_global_pooling_);
     // buffer_param_
     {
         MetalPoolParams metal_params;
@@ -82,7 +80,6 @@ std::string MetalPoolingLayerAcc::KernelName() {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     const int pool_type = param->pool_type;
     return pool_type == 0 ? "pooling_max" : use_global_pooling_ ? "pooling_global_sharedmemory" : "pooling_avg";
-    //return pool_type == 0 ? "pooling_max" : "pooling_avg";
 }
 
 Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -93,7 +90,6 @@ Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     }
     // global average pooling
     if (use_global_pooling_ && param->pool_type == 1) {
-        //LOGE("use specialized global average pooling kernel!\n");
         Status status = TNN_OK;
         auto output = outputs[0];
         auto dims_output  = output->GetBlobDesc().dims;
