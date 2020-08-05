@@ -104,7 +104,7 @@ kernel void pooling_global_sharedmemory(const device ftype4 *in            [[buf
             sum_x += x_group[index];
         }
         auto mean_x = sum_x / params.input_size;
-        out[output_index_c] = mean_x;
+        out[output_index_c] = ftype4(mean_x);
     }
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
