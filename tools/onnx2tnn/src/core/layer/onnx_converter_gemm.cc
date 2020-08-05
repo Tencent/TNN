@@ -20,23 +20,23 @@
 
 #include "half_utils.h"
 
- template <class T>
- onnx::TensorProto MakeTensor(const std::string &name, const std::vector<T> &v,
-                              const std::vector<int> &shape, onnx::TensorProto_DataType data_type)
+template <class T>
+onnx::TensorProto MakeTensor(const std::string &name, const std::vector<T> &v,
+                          const std::vector<int> &shape, onnx::TensorProto_DataType data_type)
+{
+ onnx::TensorProto tensor;
+
+ tensor.set_name(name);
+ for (auto dim : shape)
  {
-     onnx::TensorProto tensor;
-
-     tensor.set_name(name);
-     for (auto dim : shape)
-     {
-         tensor.add_dims(dim);
-     }
-     tensor.set_data_type(data_type);
-     tensor.mutable_raw_data()->assign(
-         reinterpret_cast<const char *>(v.data()), v.size() * sizeof(T));
-
-     return tensor;
+     tensor.add_dims(dim);
  }
+ tensor.set_data_type(data_type);
+ tensor.mutable_raw_data()->assign(
+     reinterpret_cast<const char *>(v.data()), v.size() * sizeof(T));
+
+ return tensor;
+}
 
 DECLARE_OP_CONVERTER(Gemm);
 
@@ -66,6 +66,12 @@ string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
     int broadcast = (int)get_node_attr_i(node, "broadcast", 0);
     int transA    = (int)get_node_attr_i(node, "transA", 0);
     int transB    = (int)get_node_attr_i(node, "transB", 0);
+
+    if (!(beta == 1 || beta == 0)) {
+        DLog("error::Gemm convert failed: beta should be 0 or 1\n");
+        assert(0);
+    }
+
     if (alpha == 1.f) {
         // InnerProduct-like A * B + C
         if (transA == 0) {
@@ -139,12 +145,13 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
                 num_bias = B.dims(0);
             }
 
-            std::vector<int> bias_shape = {num_bias};
-            std::vector<float> bias_data(num_bias, 0.0f);
-
-            auto bias = MakeTensor("C", bias_data, bias_shape, onnx::TensorProto::FLOAT);
+            onnx::TensorProto bias;
             if (node.input_size() == 3) {
                 bias = get_node_attr_tensor(node, "C", net_info, 2);
+            } else {
+                std::vector<int> bias_shape = {num_bias};
+                std::vector<float> bias_data(num_bias, 0.0f);
+                bias = MakeTensor("C", bias_data, bias_shape, onnx::TensorProto::FLOAT);
             }
             WriteTensorData(bias, net_writer, net_info.data_type);
         }
