@@ -79,7 +79,7 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
 std::string MetalPoolingLayerAcc::KernelName() {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     const int pool_type = param->pool_type;
-    return pool_type == 0 ? "pooling_max" : use_global_pooling_ ? "pooling_global_sharedmemory" : "pooling_avg";
+    return pool_type == 0 ? use_global_pooling_ ? "pooling_global_max" : "pooling_max" : use_global_pooling_ ? "pooling_global_average" : "pooling_avg";
 }
 
 Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -89,7 +89,7 @@ Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         return Status(TNNERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
     }
     // global average pooling
-    if (use_global_pooling_ && param->pool_type == 1) {
+    if (use_global_pooling_) {
         Status status = TNN_OK;
         auto output = outputs[0];
         auto dims_output  = output->GetBlobDesc().dims;
@@ -104,6 +104,7 @@ Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
         encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
         auto kernel_name = KernelName();
+        LOGE("use specialized kernel:%s\n", kernel_name.c_str());
         if (kernel_name.length() <= 0) {
             status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             return status;
