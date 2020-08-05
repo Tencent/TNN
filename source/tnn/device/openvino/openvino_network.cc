@@ -111,7 +111,7 @@ Status OpenVINONetwork_::SetNetInputNode(NetStructure *net_structure, NetResourc
     for (size_t i = 0; i < input_node_shape.size(); i++) {
         ngraphInputShape.push_back(input_node_shape.at(i));
     }
-    
+    `
     std::shared_ptr<ngraph::op::Parameter> input_node = std::make_shared<ngraph::op::Parameter>(
                         ngraph::element::f32, ngraph::Shape(ngraphInputShape));
     input_node->set_friendly_name(input_name);

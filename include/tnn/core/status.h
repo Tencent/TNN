@@ -109,6 +109,11 @@ enum StatusCode {
     // Hiai
     TNNERR_HIAI_API_ERROR = 0xD001,
 
+    // Cuda
+    TNNERR_CUDA_TENSORRT_ERROR = 0xE001,
+    TNNERR_CUDA_SYNC_ERROR = 0xE002,
+    TNNERR_CUDA_MEMCPY_ERROR = 0xE003,
+
     // Quantize
     TNNERR_QUANTIZE_ERROR = 0xF001,
 };
