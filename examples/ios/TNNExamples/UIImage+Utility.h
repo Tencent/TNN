@@ -22,8 +22,12 @@ namespace utility {
 @param image uimage
 @param height target image height
 @param width target image width
-*/
-std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width);
+ @param gravity
+ * 0:resize
+ * 1:resize fit the view and keep aspect, empty space may be remained zero
+ *  2:resize to fill the view and keep aspect, no empty space remain
+ */
+std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int gravity = 0);
 
 /**
  @brief convert image rgba raw data to uiimage

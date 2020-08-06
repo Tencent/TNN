@@ -43,7 +43,11 @@ struct ObjectInfo {
     int class_id = -1;
 
     ObjectInfo AdjustToImageSize(int image_height, int image_width);
-    /**gravity 0:resize 1:resize and keep aspect 2:resize to fill the view and keep aspect*/
+    /**gravity
+     * 0:resize
+     * 1:resize fit the view and keep aspect, empty space may be remained zero
+     *  2:resize to fill the view and keep aspect, no empty space remain
+     */
     ObjectInfo AdjustToViewSize(int view_height, int view_width, int gravity = 2);
     ObjectInfo FlipX();
     ObjectInfo AddOffset(float offset_x, float offset_y);
@@ -160,10 +164,10 @@ protected:
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
-               int x0, int y0, int x1, int y1, float scale_x, float scale_y);
+               int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
 
 void Point(void *data_rgba, int image_height, int image_width,
-           int x, int y, float z, float scale_x, float scale_y);
+           int x, int y, float z, float scale_x = 1.0, float scale_y = 1.0);
 }  // namespace TNN_NS
 
 #endif /* TNNSDKSample_hpp */

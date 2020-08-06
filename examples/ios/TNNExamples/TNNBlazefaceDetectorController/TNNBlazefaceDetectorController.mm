@@ -105,7 +105,9 @@ using namespace TNN_NS;
     const int target_width  = 128;
     DimsVector target_dims  = {1, 3, target_height, target_width};
 
-    auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
+    auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width, 1);
+//    auto image_crop_resized = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
+//    UIImageWriteToSavedPhotosAlbum(image_crop_resized, nil, nil, nil);
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<BlazeFaceDetectorOption>();
@@ -178,15 +180,14 @@ using namespace TNN_NS;
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
-    float scale_x               = image_orig_width / (float)target_width;
-    float scale_y               = image_orig_height / (float)target_height;
     auto image_orig_data        = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
     for (int i = 0; i < face_info.size(); i++) {
         auto face = face_info[i];
-        Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
-                      face.y2, scale_x, scale_y);
-        for(auto& p:face.key_points) {
-            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, p.first, p.second, 1, scale_x, scale_y);
+        auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
+        Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, face_orig.x1, face_orig.y1, face_orig.x2,
+                      face_orig.y2);
+        for(auto& p:face_orig.key_points) {
+            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, p.first, p.second, 1);
         }
     }
     
