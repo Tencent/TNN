@@ -319,9 +319,11 @@ struct DetectionPostProcessLayerParam : public LayerParam {
     float nms_score_threshold;
     float nms_iou_threshold;
     int num_classes;
-    //
+    // y_scale, x_scale, h_scale, w_scale
     std::vector<float> center_size_encoding;
     bool has_anchors;
+    int num_anchors;
+    int anchors_coord_num;
 };
 
 struct LRNLayerParam : public LayerParam {

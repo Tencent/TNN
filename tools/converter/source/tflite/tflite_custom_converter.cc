@@ -65,15 +65,19 @@ TNN_NS::Status TFLiteCustomConverter::exec(tnn::NetStructure &net_structure, tnn
     if (tf_lite_operator->inputs.size() == 3) {
         auto layer_resource        = std::make_shared<TNN_NS::DetectionPostProcessLayerResource>();
         layer_resource->name       = cur_layer->name;
-        const auto& anchors_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
-        auto anchors_data_ptr = reinterpret_cast<const float *>(tf_lite_model_buffer[anchors_tensor->buffer]->data.data());
+        const auto &anchors_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
+        auto anchors_data_ptr =
+            reinterpret_cast<const float *>(tf_lite_model_buffer[anchors_tensor->buffer]->data.data());
         if (anchors_data_ptr != nullptr) {
-            param->has_anchors                         = true;
-            auto anchors_tensor_shape                  = anchors_tensor->shape;
-            auto anchors_size                          = Count(anchors_tensor_shape);
-            TNN_NS::RawBuffer anchors_handle           = TNN_NS::RawBuffer(anchors_size * sizeof(float));
+            param->has_anchors        = true;
+            auto anchors_tensor_shape = anchors_tensor->shape;
+            auto anchors_size         = Count(anchors_tensor_shape);
+            assert(anchors_tensor_shape.size() == 2);
+            param->num_anchors               = anchors_tensor_shape[0];
+            param->anchors_coord_num         = anchors_tensor_shape[1];
+            TNN_NS::RawBuffer anchors_handle = TNN_NS::RawBuffer(anchors_size * sizeof(float));
             ::memcpy(anchors_handle.force_to<float *>(), anchors_data_ptr, anchors_size * sizeof(float));
-            layer_resource->anchors_handle                  = anchors_handle;
+            layer_resource->anchors_handle = anchors_handle;
         }
         net_resource.resource_map[cur_layer->name] = layer_resource;
     }

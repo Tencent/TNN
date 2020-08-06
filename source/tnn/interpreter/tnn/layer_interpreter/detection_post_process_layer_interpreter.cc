@@ -30,9 +30,7 @@ Status DetectionPostProcessLayerInterpreter::InterpretProto(str_arr layer_cfg_ar
     p->use_regular_nms = use_regular_nms == 0 ? false : true;
     GET_FLOAT_1(p->nms_score_threshold);
     GET_FLOAT_1(p->nms_iou_threshold);
-    int num_classes = 0;
     GET_INT_1(p->num_classes);
-    p->num_classes = num_classes == 0 ? false : true;
     float y_scale, x_scale, h_scale, w_scale;
     GET_FLOAT_1(y_scale);
     GET_FLOAT_1(x_scale);
@@ -45,6 +43,8 @@ Status DetectionPostProcessLayerInterpreter::InterpretProto(str_arr layer_cfg_ar
     int has_anchors = 0;
     GET_INT_1(has_anchors);
     p->has_anchors = has_anchors == 0 ? false : true;
+    GET_INT_1(p->num_anchors);
+    GET_INT_1(p->anchors_coord_num);
     return TNN_OK;
 }
 
@@ -70,7 +70,8 @@ Status DetectionPostProcessLayerInterpreter::SaveProto(std::ofstream &output_str
         output_stream << scale << " ";
     }
     output_stream << layer_param->has_anchors << " ";
-
+    output_stream << layer_param->num_anchors << " ";
+    output_stream << layer_param->anchors_coord_num << " ";
     return TNN_OK;
 }
 
