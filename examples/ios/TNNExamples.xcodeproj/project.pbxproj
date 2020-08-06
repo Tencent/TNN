@@ -269,7 +269,6 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
-				ECAD84F724D7EFCC0074EA95 /* TNNFacemeshController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
 				9DDED30B2429A839000C09EA /* samples */,
 				9DDED3092429A0BE000C09EA /* model */,
@@ -283,6 +282,7 @@
 				9DD579F423B5A20500A96E63 /* TNNExamplesController.mm */,
 				9D961FE8241163EE009B3FB1 /* TNNExamplesListController.h */,
 				9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */,
+				ECAD84F724D7EFCC0074EA95 /* TNNFacemeshController */,
 				EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */,
 				9D71E7B724C5685F00074C1A /* TNNYoloObjectDetectorController */,
 				9D71E7A524C560C800074C1A /* TNNObjectDetectorController */,

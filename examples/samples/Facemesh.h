@@ -26,7 +26,6 @@
 namespace TNN_NS {
 
 struct FacemeshInfo : TNN_NS::ObjectInfo {
-    std::vector<std::tuple<float,float,float>> landmarks = {};
 };
 
 struct FaceRect {

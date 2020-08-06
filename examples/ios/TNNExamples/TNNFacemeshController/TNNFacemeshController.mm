@@ -13,14 +13,16 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNFacemeshController.h"
-#import "Facemesh.h"
-#import "UIImage+Utility.h"
 #import <Metal/Metal.h>
 #import <cstdlib>
 #import <sstream>
 #import <string>
 #import <tuple>
 #import <tnn/tnn.h>
+
+#import "BlazeFaceDetector.h"
+#import "Facemesh.h"
+#import "UIImage+Utility.h"
 
 using namespace std;
 using namespace TNN_NS;
@@ -74,7 +76,9 @@ using namespace TNN_NS;
     self.labelResult.text = nil;
 }
 
-- (IBAction)onBtnTNNExamples:(id)sender {
+- (std::shared_ptr<BlazeFaceDetector>)loadBalzeFace {
+    std::shared_ptr<BlazeFaceDetector> predictor = nullptr;
+    
     // check release mode at Product->Scheme when running
     //运行时请在Product->Scheme中确认意见调整到release模式
     
@@ -83,14 +87,14 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/facemesh/face_landmark.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/blazeface/blazeface.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/facemesh/face_landmark.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/blazeface/blazeface.tnnproto"
                                                           ofType:nil];
     if (proto_path.length <= 0 || model_path.length <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
         NSLog(@"Error: proto or model path is invalid");
-        return;
+        return predictor;
     }
 
     string proto_content =
@@ -100,14 +104,74 @@ using namespace TNN_NS;
     if (proto_content.size() <= 0 || model_content.size() <= 0) {
         self.labelResult.text = @"proto or model path is invalid";
         NSLog(@"Error: proto or model path is invalid");
-        return;
+        return predictor;
     }
-    //facemesh requires input with shape 192*192
-    const int target_height = 192;
-    const int target_width  = 192;
+    //blazeface requires input with shape 128*128
+    const int target_height = 128;
+    const int target_width  = 128;
     DimsVector target_dims  = {1, 3, target_height, target_width};
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
+
+    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto option = std::make_shared<BlazeFaceDetectorOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+        
+        option->input_width = target_width;
+        option->input_height = target_height;
+        //min_score_thresh
+        option->min_score_threshold = 0.75;
+        //min_suppression_thresh
+        option->min_suppression_threshold = 0.3;
+        //predefined anchor file path
+        option->anchor_path = string([[[NSBundle mainBundle] pathForResource:@"blazeface_anchors.txt" ofType:nil] UTF8String]);
+    }
+        
+    predictor = std::make_shared<BlazeFaceDetector>();
+    auto status = predictor->Init(option);
+    if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        NSLog(@"Error: %s", status.description().c_str());
+        return nullptr;
+    }
+    
+    return predictor;
+}
+
+- (std::shared_ptr<Facemesh>)loadFaceMesh {
+    std::shared_ptr<Facemesh> predictor = nullptr;
+    
+    // check release mode at Product->Scheme when running
+    //运行时请在Product->Scheme中确认意见调整到release模式
+    
+    // Get metallib path from app bundle
+    // PS：A script(Build Phases -> Run Script) is added to copy the metallib
+    // file from tnn framework project to TNNExamples app
+    //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
+    auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_mesh/face_mesh.tnnmodel"
+                                                          ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_mesh/face_mesh.tnnproto"
+                                                          ofType:nil];
+    if (proto_path.length <= 0 || model_path.length <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+
+    string proto_content =
+        [NSString stringWithContentsOfFile:proto_path encoding:NSUTF8StringEncoding error:nil].UTF8String;
+    NSData *data_mode    = [NSData dataWithContentsOfFile:model_path];
+    string model_content = [data_mode length] > 0 ? string((const char *)[data_mode bytes], [data_mode length]) : "";
+    if (proto_content.size() <= 0 || model_content.size() <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<FacemeshOption>();
@@ -117,8 +181,8 @@ using namespace TNN_NS;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
         
-        option->input_width = target_width;
-        option->input_height = target_height;
+        option->input_width = 192;
+        option->input_height = 192;
         //TODO: set parameters
         option->face_presence_threshold = 0.1;
         option->flip_vertically = false;
@@ -127,75 +191,157 @@ using namespace TNN_NS;
         option->ignore_rotation = false;
     }
         
-    auto predictor = std::make_shared<Facemesh>();
+    predictor = std::make_shared<Facemesh>();
     auto status = predictor->Init(option);
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
-            return;
+        return nullptr;
     }
 
-    BenchOption bench_option;
+    return predictor;
+}
+
+- (IBAction)onBtnTNNExamples:(id)sender {
+    Status status = TNN_OK;
     
-    bench_option.forward_count = 20;
-    predictor->SetBenchOption(bench_option);
-        
-    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-    auto compute_units = predictor->GetComputeUnits();
-    if (compute_units == TNNComputeUnitsGPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-
-        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-        if (!texture_rgba) {
-            self.labelResult.text = @"Error texture input rgba is nil";
-            NSLog(@"Error texture input rgba is nil");
-            return;
-        }
-
-        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
-                        mipmapLevel:0
-                        withBytes:image_data.get()
-                        bytesPerRow:target_width * 4];
-            
-        status = predictor->Predict(std::make_shared<FacemeshInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = predictor->Predict(std::make_shared<FacemeshInput>(image_mat), sdk_output);
-    }
-    if (status != TNN_OK) {
-        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
-        NSLog(@"Error: %s", status.description().c_str());
-            return;
-    }
+    auto predictor_face_detector = [self loadBalzeFace];
+    //blazeface requires input with shape 128*128
+    const int target_face_detector_height = 128;
+    const int target_face_detector_width  = 128;
+    DimsVector target_face_detector_dims  = {1, 3, target_face_detector_height, target_face_detector_width};
     
-    std::vector<FacemeshInfo> face_info;
-    if (sdk_output && dynamic_cast<FacemeshOutput *>(sdk_output.get()))
+    auto predictor_face_mesh = [self loadFaceMesh];
+    //facemesh requires input with shape 192*192
+    const int target_face_mesh_height = 192;
+    const int target_face_mesh_width  = 192;
+    DimsVector target_face_mesh_dims  = {1, 3, target_face_mesh_height, target_face_mesh_width};
+    
+    
+    //face detect
+    std::vector<BlazeFaceInfo> face_info;
     {
-        auto face_output = dynamic_cast<FacemeshOutput *>(sdk_output.get());
-        face_info = face_output->face_list;
+        //scale image
+        auto image_data_for_detector = utility::UIImageGetData(self.image_orig,
+                                                               target_face_detector_height, target_face_detector_width, 1);
+        
+        
+        std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+        auto compute_units = predictor_face_detector->GetComputeUnits();
+        if (compute_units == TNNComputeUnitsGPU) {
+            auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_face_detector_dims);
+
+            id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+            if (!texture_rgba) {
+                self.labelResult.text = @"Error texture input rgba is nil";
+                NSLog(@"Error texture input rgba is nil");
+                return;
+            }
+
+            [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_face_detector_width, target_face_detector_height)
+                            mipmapLevel:0
+                            withBytes:image_data_for_detector.get()
+                            bytesPerRow:target_face_detector_width * 4];
+                
+            status = predictor_face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output);
+        } else if (compute_units == TNNComputeUnitsCPU) {
+            auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_face_detector_dims, image_data_for_detector.get());
+            status = predictor_face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output);
+        }
+        if (status != TNN_OK) {
+            self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+            NSLog(@"Error: %s", status.description().c_str());
+                return;
+        }
+        
+        if (sdk_output && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get()))
+        {
+            auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get());
+            face_info = face_output->face_list;
+        }
+        
+        auto bench_result     = predictor_face_detector->GetBenchResult();
+        self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
     }
     
-    auto bench_result     = predictor->GetBenchResult();
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
-
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
-    float scale_x               = image_orig_width / (float)target_width;
-    float scale_y               = image_orig_height / (float)target_height;
-    auto image_orig_data        = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
-    for (int i = 0; i < face_info.size(); i++) {
-        auto face = face_info[i];
-        Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
-                      face.y2, scale_x, scale_y);
-        //TODO: how to draw 2d points accoring to the 3d landmark
-        for(auto& p:face.landmarks) {
-            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, std::get<0>(p), std::get<1>(p), std::get<2>(p)*(-7), scale_x, scale_y);
+    //face mesh
+    {
+        for (auto face : face_info) {
+            auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
+            //1.5*crop
+            int crop_h = face_orig.y2 - face_orig.y1;
+            int crop_w = face_orig.x2 - face_orig.x1;
+            auto crop_rect = CGRectMake(face_orig.x1-0.25*crop_w,
+                                        face_orig.y1-0.25*crop_h,
+                                        1.5*crop_w,
+                                        1.5*crop_h);
+            
+            auto crop_image = utility::UIImageCrop(self.image_orig, crop_rect);
+            
+            //scale image
+            auto image_data_crop_resize = utility::UIImageGetData(crop_image,
+                                                                  target_face_mesh_height, target_face_mesh_width, 1);
+            
+            std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+            auto compute_units = predictor_face_mesh->GetComputeUnits();
+            if (compute_units == TNNComputeUnitsGPU) {
+                auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_face_mesh_dims);
+        
+                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+                if (!texture_rgba) {
+                    self.labelResult.text = @"Error texture input rgba is nil";
+                    NSLog(@"Error texture input rgba is nil");
+                    return;
+                }
+        
+                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_face_mesh_width, target_face_mesh_height)
+                                mipmapLevel:0
+                                withBytes:image_data_crop_resize.get()
+                                bytesPerRow:target_face_mesh_width * 4];
+        
+                status = predictor_face_mesh->Predict(std::make_shared<FacemeshInput>(image_mat), sdk_output);
+            } else if (compute_units == TNNComputeUnitsCPU) {
+                auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_face_mesh_dims, image_data_crop_resize.get());
+                status = predictor_face_mesh->Predict(std::make_shared<FacemeshInput>(image_mat), sdk_output);
+            }
+            if (status != TNN_OK) {
+                self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+                NSLog(@"Error: %s", status.description().c_str());
+                    return;
+            }
+        
+            std::vector<FacemeshInfo> face_mesh_info;
+            if (sdk_output && dynamic_cast<FacemeshOutput *>(sdk_output.get()))
+            {
+                auto face_output = dynamic_cast<FacemeshOutput *>(sdk_output.get());
+                face_mesh_info = face_output->face_list;
+            }
+            
+            auto image_orig_data  = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
+            Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width,
+                      crop_rect.origin.x,  crop_rect.origin.y,
+                      crop_rect.origin.x+crop_rect.size.width,
+                      crop_rect.origin.y+crop_rect.size.height);
+            
+            if (face_mesh_info.size() > 0) {
+                auto face_mesh = face_mesh_info[0];
+                auto face_mesh_crop = face_mesh.AdjustToViewSize(crop_rect.size.height, crop_rect.size.width, 2);
+                face_mesh_crop = face_mesh_crop.AddOffset(crop_rect.origin.x, crop_rect.origin.y);
+                //TODO: how to draw 2d points accoring to the 3d landmark
+                for(auto& p:face_mesh_crop.key_points_3d) {
+                    TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, std::get<0>(p), std::get<1>(p), std::get<2>(p)*(-7));
+                }
+            }
+            
+            
+            UIImage *output_image =
+                utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
+            self.imageView.image = output_image;
         }
     }
-    
-    UIImage *output_image =
-        utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
-    self.imageView.image = output_image;
+
 }
 
 @end

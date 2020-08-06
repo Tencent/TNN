@@ -99,6 +99,9 @@ void Facemesh::GenerateLandmarks(std::vector<FacemeshInfo> &detects, TNN_NS::Mat
     float* rawLandmarkData = static_cast<float*>(landmark_mat.GetData());
     
     FacemeshInfo info;
+    info.image_width = image_w;
+    info.image_height = image_h;
+    
     for(int i=0; i < num_landmarks; ++i) {
         int offset = i * landmark_dimensions;
         
@@ -131,7 +134,7 @@ void Facemesh::GenerateLandmarks(std::vector<FacemeshInfo> &detects, TNN_NS::Mat
         x = round(x * image_w);
         y = round(y * image_h);
         
-        info.landmarks.push_back(std::make_tuple(x, y, z));
+        info.key_points_3d.push_back(std::make_tuple(x, y, z));
     }
     detects.push_back(std::move(info));
 }

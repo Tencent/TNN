@@ -29,6 +29,8 @@ namespace utility {
  */
 std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int gravity = 0);
 
+UIImage * UIImageCrop(UIImage *image, CGRect rect);
+
 /**
  @brief convert image rgba raw data to uiimage
  @param image_data rgba raw data pointer

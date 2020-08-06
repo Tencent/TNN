@@ -27,6 +27,10 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 namespace TNN_NS {
+
+template<typename T1, typename T2, typename T3>
+using triple = std::tuple<T1, T2, T3>;
+
 struct ObjectInfo {
     int image_width = 0;
     int image_height = 0;
@@ -38,7 +42,9 @@ struct ObjectInfo {
 
     //key_points <x y>
     std::vector<std::pair<float, float>> key_points = {};
-
+    //key_points_3d <x y z>
+    std::vector<triple<float,float,float>> key_points_3d = {};
+    
     float score = 0;
     int class_id = -1;
 

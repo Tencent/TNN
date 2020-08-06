@@ -86,6 +86,13 @@ std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int 
     return data;
 }
 
+UIImage * UIImageCrop(UIImage *image, CGRect rect) {
+    CGImageRef imageRef = CGImageCreateWithImageInRect([image CGImage], rect);
+    UIImage *croppedImage = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return croppedImage;
+}
+
 UIImage *UIImageWithDataRGBA(void *image_data, int height, int width) {
     UIImage *image = nullptr;
     if (image_data == nil || height <= 0 || width <= 0) {

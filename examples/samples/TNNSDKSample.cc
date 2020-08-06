@@ -41,6 +41,15 @@ ObjectInfo ObjectInfo::FlipX() {
         key_points.push_back(std::make_pair(this->image_width - item.first, item.second));
     }
     info.key_points = key_points;
+    
+    //key points 3d
+    std::vector<triple<float, float, float>> key_points_3d;
+    for (auto item : this->key_points_3d) {
+        key_points_3d.push_back(std::make_tuple(this->image_width - std::get<0>(item),
+                                                                     std::get<1>(item),
+                                                                     std::get<2>(item)));
+    }
+    info.key_points_3d = key_points_3d;
     return info;
 }
 
@@ -62,6 +71,15 @@ ObjectInfo ObjectInfo::AddOffset(float offset_x, float offset_y) {
         key_points.push_back(std::make_pair(item.first + offset_x, item.second + offset_y));
     }
     info.key_points = key_points;
+    
+    //key points 3d
+    std::vector<triple<float, float, float>> key_points_3d;
+    for (auto item : this->key_points_3d) {
+        key_points_3d.push_back(std::make_tuple(std::get<0>(item) + offset_x,
+                                                                     std::get<1>(item) + offset_y,
+                                                                     std::get<2>(item)));
+    }
+    info.key_points_3d = key_points_3d;
     return info;
 }
 
@@ -116,6 +134,15 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
     }
     info_orig.key_points = key_points;
     
+    //key points 3d
+    std::vector<triple<float, float, float>> key_points_3d;
+    for (auto item : this->key_points_3d) {
+        key_points_3d.push_back(std::make_tuple(std::get<0>(item) * scale_x,
+                                                                     std::get<1>(item) * scale_y,
+                                                                     std::get<2>(item)));
+    }
+    info_orig.key_points_3d = key_points_3d;
+    
     return info_orig;
 }
 
@@ -140,6 +167,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
             info.key_points = info_aspect.key_points;
+            info.key_points_3d = info_aspect.key_points_3d;
         } else {
             float object_aspect_height = view_width * object_aspect;
             auto info_aspect = AdjustToImageSize(object_aspect_height, view_width);
@@ -150,6 +178,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
             info.key_points = info_aspect.key_points;
+            info.key_points_3d = info_aspect.key_points_3d;
         }
     } else if (gravity == 1) {
         if (view_aspect > object_aspect) {
@@ -162,6 +191,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
             info.key_points = info_aspect.key_points;
+            info.key_points_3d = info_aspect.key_points_3d;
         } else {
             float object_aspect_width = view_height / object_aspect;
             auto info_aspect = AdjustToImageSize(view_height, object_aspect_width);
@@ -172,6 +202,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
             info.key_points = info_aspect.key_points;
+            info.key_points_3d = info_aspect.key_points_3d;
         }
     } else {
         return AdjustToImageSize(view_height, view_width);
