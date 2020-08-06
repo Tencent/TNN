@@ -43,7 +43,6 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     option->model_content = modelContent;
     option->input_width = width;
     option->input_height= height;
-    LOGE("the device type  %d device npu" ,gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
@@ -88,7 +87,7 @@ JNIEXPORT JNICALL jboolean TNN_FACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz
     protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
     option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;

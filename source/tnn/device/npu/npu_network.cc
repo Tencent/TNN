@@ -227,7 +227,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         int h                      = dims.GetHeight();
         int w                      = dims.GetWidth();
         // add blob
-        std::advance(it, i);
         std::string name = *it;
         char layer_name[name.size() + 1];
         strcpy(layer_name, name.c_str());
@@ -241,6 +240,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         BlobHandle handle;
         handle.base                 = output_tensor_[i]->GetBuffer();
         output_blob_map_[desc.name] = new Blob(desc, handle);
+        it++;
     }
     for (auto &layer : layers_) {
         delete (layer);
@@ -432,11 +432,11 @@ Status NpuNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Status NpuNetwork::SetDeviceAffinity(const std::vector<int> &) {
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::Reshape(const InputShapesMap &inputs) {
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::DeInit() {
