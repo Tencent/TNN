@@ -432,11 +432,11 @@ Status NpuNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Status NpuNetwork::SetDeviceAffinity(const std::vector<int> &) {
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::Reshape(const InputShapesMap &inputs) {
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::DeInit() {
