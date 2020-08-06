@@ -189,7 +189,7 @@ using namespace TNN_NS;
                       face.y2, scale_x, scale_y);
         //TODO: how to draw 2d points accoring to the 3d landmark
         for(auto& p:face.landmarks) {
-            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, std::get<0>(p), std::get<1>(p), scale_x, scale_y);
+            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, std::get<0>(p), std::get<1>(p), std::get<2>(p)*(-7), scale_x, scale_y);
         }
     }
     

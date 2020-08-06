@@ -163,7 +163,7 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x, float scale_y);
 
 void Point(void *data_rgba, int image_height, int image_width,
-           int x, int y, float scale_x, float scale_y);
+           int x, int y, float z, float scale_x, float scale_y);
 }  // namespace TNN_NS
 
 #endif /* TNNSDKSample_hpp */

@@ -186,7 +186,7 @@ using namespace TNN_NS;
         Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
                       face.y2, scale_x, scale_y);
         for(auto& p:face.key_points) {
-            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, p.first, p.second, scale_x, scale_y);
+            TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, p.first, p.second, 1, scale_x, scale_y);
         }
     }
     
