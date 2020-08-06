@@ -79,6 +79,19 @@ Status MetalLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
+/*
+  If an acc prefers to dispatch kernel with threadsPerGroup and threadGroups specified,
+  it should override this method to give how many threadGroups to use, and it should also
+  override the @ComputeThreadSize method to give threadsPerGroup.
+  Use this implementaion means dispatching kernels without caring about the threadGroup config.
+*/
+Status MetalLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size) {
+    size = MTLSizeMake(0, 0, 0);
+    return TNN_OK;
+}
+
 Status MetalLayerAcc::SetKernelEncoderParam(
                                             id<MTLComputeCommandEncoder> encoder,
                                             const std::vector<Blob *> &inputs,
@@ -117,6 +130,13 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     if (status != TNN_OK) {
         return status;
     }
+    // check if perferring to launch kernel with threadGroups specified
+    MTLSize groups;
+    status = ComputeThreadgroupSize(inputs, outputs, groups);
+    bool preferDispatchingWithGroups = (groups.width!=0 && groups.height!=0 && groups.depth!=0);
+    if (status != TNN_OK) {
+        return status;
+    }
     
     do {
         auto kernel_name = KernelName();
@@ -133,8 +153,11 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         
         status = SetKernelEncoderParam(encoder, inputs, outputs);
         BREAK_IF(status != TNN_OK);
-
-        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        if (preferDispatchingWithGroups) {
+            status = [context_impl dispatchEncoder:encoder threadsPerGroup:threads groups: groups bandwidth:bandwidth];
+        } else {
+            status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        }
         BREAK_IF(status != TNN_OK);
     } while (0);
 

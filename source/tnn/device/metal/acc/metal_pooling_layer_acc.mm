@@ -28,6 +28,9 @@ public:
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs, 
                             const std::vector<Blob *> &outputs, 
                             MTLSize &size); 
+    virtual Status ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size);
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, 
                                 const std::vector<Blob *> &inputs, 
                                 const std::vector<Blob *> &outputs);
@@ -88,47 +91,6 @@ Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         LOGE("Error: PoolingLayerParam pool_type unsupported\n");
         return Status(TNNERR_PARAM_ERR, "Error: PoolingLayerParam pool_type unsupported");
     }
-    // global average pooling
-    if (use_global_pooling_) {
-        Status status = TNN_OK;
-        auto output = outputs[0];
-        auto dims_output  = output->GetBlobDesc().dims;
-        auto output_slice = UP_DIV(dims_output[1], 4);
-        auto batch        = dims_output[0];
-        
-        auto context_impl = context_->getMetalContextImpl();
-        auto encoder = [context_impl encoder];
-        if (!encoder) {
-            LOGE("encoder is nil\n");
-            return Status(TNNERR_CONTEXT_ERR, "global average pooling encoder is nil");
-        }
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-        auto kernel_name = KernelName();
-        LOGE("use specialized kernel:%s\n", kernel_name.c_str());
-        if (kernel_name.length() <= 0) {
-            status = Status(TNNERR_LAYER_ERR, "empty kernel name");
-            return status;
-        }
-        MetalBandwidth bandwidth;
-        do {
-            status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
-                            encoder:encoder
-                          bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
-            
-            status = SetKernelEncoderParam(encoder, inputs, outputs);
-        
-            [encoder dispatchThreadgroups:{(NSUInteger)1, (NSUInteger)1, (NSUInteger)batch * output_slice}
-                threadsPerThreadgroup:{(NSUInteger)32, (NSUInteger)1, (NSUInteger)1}];
-            
-            BREAK_IF(status != TNN_OK);
-        } while(0);
-        
-        [encoder endEncoding];
-        [context_impl commit];
-        TNN_PRINT_ENCODER(context_, encoder, this);
-        return status;
-    }
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 
@@ -142,8 +104,27 @@ Status MetalPoolingLayerAcc::SetKernelEncoderParam(
 Status MetalPoolingLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, false);
+    if (use_global_pooling_) {
+        //diapatch kernel with threadGroups and threads
+        size = MTLSizeMake(32, 1, 1);
+    } else {
+        auto dims_output = outputs[0]->GetBlobDesc().dims;
+        size = GetDefaultThreadSize(dims_output, false);
+    }
+    return TNN_OK;
+}
+
+Status MetalPoolingLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size) {
+    if (use_global_pooling_) {
+        auto dims_output  = outputs[0]->GetBlobDesc().dims;
+        auto output_slice = UP_DIV(dims_output[1], 4);
+        auto batch        = dims_output[0];
+        size = MTLSizeMake((NSUInteger)1, (NSUInteger)1, (NSUInteger)batch * output_slice);
+    } else {
+        size = MTLSizeMake(0, 0, 0);
+    }
     return TNN_OK;
 }
 
