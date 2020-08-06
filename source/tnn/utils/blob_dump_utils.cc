@@ -25,6 +25,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/half_utils.h"
+#include "tnn/utils/bfp16_utils.h"
 
 namespace TNN_NS {
 
@@ -233,6 +234,10 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
         cpu_data    = new float[data_count];
         convert_ptr = std::shared_ptr<float>(cpu_data);
         ConvertFromHalfToFloat((void*)((char*)cpu_handle.base + cpu_handle.bytes_offset), cpu_data, data_count);
+    } else if (dev_blob_desc.data_type == DATA_TYPE_BFP16) {
+        cpu_data    = new float[data_count];
+        convert_ptr = std::shared_ptr<float>(cpu_data);
+        ConvertFromBFP16ToFloat((void*)((char*)cpu_handle.base + cpu_handle.bytes_offset), cpu_data, data_count);
     } else if (dev_blob_desc.data_type == DATA_TYPE_INT8) {
 #ifndef DUMP_RAW_INT8
         IntScaleResource* re = reinterpret_cast<BlobInt8*>(dev_blob)->GetIntResource();
