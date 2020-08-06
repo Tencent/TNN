@@ -28,10 +28,10 @@
 
 namespace TNN_NS {
 
-static std::mutex g_mtx;
-
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
     NETWORK_TYPE_DEFAULT);
+
+std::mutex DefaultNetwork::optimize_mtx_;
 
 DefaultNetwork::DefaultNetwork()
     : device_(nullptr), context_(nullptr), blob_manager_(nullptr), net_structure_(nullptr) {}
@@ -88,7 +88,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      */
     {
         // use mutex to protect net_resource and net_structure in multi-thread
-        std::unique_lock<std::mutex> lck(g_mtx);
+        std::unique_lock<std::mutex> lck(optimize_mtx_);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
         if (ret != TNN_OK) {
             return ret;

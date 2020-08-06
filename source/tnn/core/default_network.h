@@ -108,6 +108,8 @@ private:
     NetStructure *net_structure_ = nullptr;
 
     NetworkConfig _config;
+
+    static std::mutex optimize_mtx_;
 };
 
 }  // namespace TNN_NS
