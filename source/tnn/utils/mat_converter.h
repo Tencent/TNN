@@ -18,9 +18,10 @@
 #include "tnn/core/status.h"
 #include "tnn/utils/mat_converter_internal.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
-
+class MarConverterAcc;
 class MatConverter {
 public:
     MatConverter(Mat* src, Mat* dst);
@@ -30,6 +31,7 @@ public:
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 
 private:
+    Mat* mat_ = nullptr;
     std::shared_ptr<MatConverterAcc> impl_ = nullptr;
 };
 

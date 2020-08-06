@@ -219,3 +219,38 @@ __kernel void ConvertFromN32FC4Image(
 
     write_imagef(output, coord, values);
 }
+
+__kernel void CopyFromN8UC3(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
+                               __global const uchar *input_ptr,
+                               __private const int height,
+                               __private const int width,) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx  = image_height_idx / height;
+    const int height_idx = image_height_idx % height;
+
+    int buffer_offset =
+        ((batch_idx * height + height_idx) * width + image_width_idx) * 3;
+
+    float4 values = (float4)(0.0f);
+
+#ifdef SWAP_RB
+    values.z = convert_float(input_ptr[buffer_offset]);
+    values.y = convert_float(input_ptr[buffer_offset + 1]);
+    values.x = convert_float(input_ptr[buffer_offset + 2]);
+#else
+    values.x = convert_float(input_ptr[buffer_offset]);
+    values.y = convert_float(input_ptr[buffer_offset + 1]);
+    values.z = convert_float(input_ptr[buffer_offset + 2]);
+#endif
+
+#ifdef ENABLE_SCALE_BIAS
+    values = values * scale + bias;
+#endif
+
+    int2 coord = (int2)(image_width_idx, image_height_idx);
+    write_imagef(output, coord, values);
+}

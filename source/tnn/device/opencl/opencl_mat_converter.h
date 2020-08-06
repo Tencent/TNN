@@ -16,12 +16,13 @@
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/mat_converter_internal.h"
 #include "tnn/device/opencl/opencl_utils.h"
+#include "tnn/utils/mat_converter.h"
+#include "tnn/utils/mat_converter_internal.h"
 
 namespace TNN_NS {
 
-class OpenCLMatConverterAcc : public MatConverterAcc {
+class OpenCLMatConverterAcc : public MarConverterAcc {
 public:
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
@@ -29,6 +30,10 @@ public:
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
 
 private:
+    Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
+    Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
+    std::shared_ptr<cl::Buffer> buffer_ = nullptr;
+    int buffer_size_ = 0;
     std::map<std::string, OpenCLExecuteUnit> execute_map_; 
 };
 

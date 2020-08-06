@@ -21,15 +21,16 @@
 #include "tnn/utils/mat_converter_internal.h"
 
 namespace TNN_NS {
-
-class CpuMatConverterAcc : public MatConverterAcc {
+#define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
+class CpuMatConverterAcc : public MarConverterAcc {
 public:
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
 
-// private:
+private:
+    void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
 //     Status ConvertNCHWToNHWC(uint8_t* src, uint8_t* dst);
 //     Status ConvertNHWCToNCHW(uint8_t* src, uint8_t* dst);
 };
