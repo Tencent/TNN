@@ -102,54 +102,200 @@ static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf)
 
 static void get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
                               const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
-        if (sy == prev_sy) {
-            // reuse all rows
-        } else if (sy == prev_sy + 1) {
-            // hresize one row
-            short* rows0_old  = *rows0;
-            *rows0            = *rows1;
-            *rows1            = rows0_old;
-            const uint8_t* S1 = src + src_stride * (sy + 1);
+    if (sy == prev_sy) {
+        // reuse all rows
+    } else if (sy == prev_sy + 1) {
+        // hresize one row
+        short* rows0_old  = *rows0;
+        *rows0            = *rows1;
+        *rows1            = rows0_old;
+        const uint8_t* S1 = src + src_stride * (sy + 1);
 
-            short* rows1p        = *rows1;
-            for (int dx = 0; dx < w; dx++) {
-                int sx   = xofs[dx];
-                short a0 = ialphap[0];
-                short a1 = ialphap[1];
+        short* rows1p        = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
 
-                const uint8_t* S1p = S1 + sx;
+            const uint8_t* S1p = S1 + sx;
+
+#ifndef TNN_USE_NEON
+            for (int dc = 0; dc < c; ++dc) {
+                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+#else
+            if (c == 2) {
+                int16x4_t _a0a1XX = vld1_s16(ialphap);
+                int16x4_t _a0a0a1a1 = vzip_s16(_a0a1XX, _a0a1XX).val[0];
+                uint8x8_t _S1 = uint8x8_t();
+
+                _S1 = vld1_lane_u8(S1p, _S1, 0);
+                _S1 = vld1_lane_u8(S1p + 1, _S1, 1);
+                _S1 = vld1_lane_u8(S1p + 2, _S1, 2);
+                _S1 = vld1_lane_u8(S1p + 3, _S1, 3);
+
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S1lowhigh = vget_low_s16(_S116);
+                int32x4_t _S1ma0a1 = vmull_s16(_S1lowhigh, _a0a0a1a1);
+                int32x2_t _rows1low = vadd_s32(vget_low_s32(_S1ma0a1), vget_high_s32(_S1ma0a1));
+                int32x4_t _rows1 = vcombine_s32(_rows1low, vget_high_s32(_S1ma0a1));
+                int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else if (c == 3) {
+                int16x4_t _a0 = vdup_n_s16(a0);
+                int16x4_t _a1 = vdup_n_s16(a1);
+                uint8x8_t _S1 = uint8x8_t();
+
+                _S1 = vld1_lane_u8(S1p, _S1, 0);
+                _S1 = vld1_lane_u8(S1p + 1, _S1, 1);
+                _S1 = vld1_lane_u8(S1p + 2, _S1, 2);
+                _S1 = vld1_lane_u8(S1p + 3, _S1, 3);
+                _S1 = vld1_lane_u8(S1p + 4, _S1, 4);
+                _S1 = vld1_lane_u8(S1p + 5, _S1, 5);
+
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S1low = vget_low_s16(_S116);
+                int16x4_t _S1high = vext_s16(_S1low, vget_high_s16(_S116), 3);
+                int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+                _rows1 = vmlal_s16(_rows1, _S1high, _a1);
+                int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else if (c == 4) {
+                int16x4_t _a0 = vdup_n_s16(a0);
+                int16x4_t _a1 = vdup_n_s16(a1);
+                uint8x8_t _S1 = vld1_u8(S1p);
+
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S1low = vget_low_s16(_S116);
+                int16x4_t _S1high = vget_high_s16(_S116);
+                int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+                _rows1 = vmlal_s16(_rows1, _S1high, _a1);
+                int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else {
                 for (int dc = 0; dc < c; ++dc) {
                     rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
                 }
-
-                ialphap += 2;
-                rows1p += c;
             }
-        } else {
-            // hresize two rows
-            const uint8_t* S0 = src + src_stride * (sy);
-            const uint8_t* S1 = src + src_stride * (sy + 1);
+#endif
 
-            // const short* ialphap = ialpha;
-            short* rows0p        = *rows0;
-            short* rows1p        = *rows1;
-            for (int dx = 0; dx < w; dx++) {
-                int sx   = xofs[dx];
-                short a0 = ialphap[0];
-                short a1 = ialphap[1];
+            ialphap += 2;
+            rows1p += c;
+        }
+    } else {
+        // hresize two rows
+        const uint8_t* S0 = src + src_stride * (sy);
+        const uint8_t* S1 = src + src_stride * (sy + 1);
 
-                const uint8_t* S0p = S0 + sx;
-                const uint8_t* S1p = S1 + sx;
+        short* rows0p        = *rows0;
+        short* rows1p        = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
+
+            const uint8_t* S0p = S0 + sx;
+            const uint8_t* S1p = S1 + sx;
+
+#ifndef TNN_USE_NEON
+            for (int dc = 0; dc < c; ++dc) {
+                rows0p[dc]         = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
+                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+#else
+            if (c == 2) {
+                int16x4_t _a0 = vdup_n_s16(a0);
+                int16x4_t _a1 = vdup_n_s16(a1);
+                uint8x8_t _S0 = uint8x8_t();
+                uint8x8_t _S1 = uint8x8_t();
+
+                _S0 = vld1_lane_u8(S0p, _S0, 0);
+                _S0 = vld1_lane_u8(S0p + 1, _S0, 1);
+                _S0 = vld1_lane_u8(S0p + 2, _S0, 2);
+                _S0 = vld1_lane_u8(S0p + 3, _S0, 3);
+
+                _S1 = vld1_lane_u8(S1p, _S1, 0);
+                _S1 = vld1_lane_u8(S1p + 1, _S1, 1);
+                _S1 = vld1_lane_u8(S1p + 2, _S1, 2);
+                _S1 = vld1_lane_u8(S1p + 3, _S1, 3);
+
+                int16x8_t _S016 = vreinterpretq_s16_u16(vmovl_u8(_S0));
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S0lowhigh = vget_low_s16(_S016);
+                int16x4_t _S1lowhigh = vget_low_s16(_S116);
+                int32x2x2_t _S0S1low_S0S1high = vtrn_s32(vreinterpret_s32_s16(_S0lowhigh), vreinterpret_s32_s16(_S1lowhigh));
+                int32x4_t _rows01 = vmull_s16(vreinterpret_s16_s32(_S0S1low_S0S1high.val[0]), _a0);
+                _rows01 = vmlal_s16(_rows01, vreinterpret_s16_s32(_S0S1low_S0S1high.val[1]), _a1);
+                int16x4_t _rows01_sr4 = vshrn_n_s32(_rows01, 4);
+                int16x4_t _rows1_sr4 = vext_s16(_rows01_sr4, _rows01_sr4, 2);
+                vst1_s16(rows0p, _rows01_sr4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else if (c == 3) {
+                int16x4_t _a0 = vdup_n_s16(a0);
+                int16x4_t _a1 = vdup_n_s16(a1);
+                uint8x8_t _S0 = uint8x8_t();
+                uint8x8_t _S1 = uint8x8_t();
+
+                _S0 = vld1_lane_u8(S0p, _S0, 0);
+                _S0 = vld1_lane_u8(S0p + 1, _S0, 1);
+                _S0 = vld1_lane_u8(S0p + 2, _S0, 2);
+                _S0 = vld1_lane_u8(S0p + 3, _S0, 3);
+                _S0 = vld1_lane_u8(S0p + 4, _S0, 4);
+                _S0 = vld1_lane_u8(S0p + 5, _S0, 5);
+
+                _S1 = vld1_lane_u8(S1p, _S1, 0);
+                _S1 = vld1_lane_u8(S1p + 1, _S1, 1);
+                _S1 = vld1_lane_u8(S1p + 2, _S1, 2);
+                _S1 = vld1_lane_u8(S1p + 3, _S1, 3);
+                _S1 = vld1_lane_u8(S1p + 4, _S1, 4);
+                _S1 = vld1_lane_u8(S1p + 5, _S1, 5);
+
+                int16x8_t _S016 = vreinterpretq_s16_u16(vmovl_u8(_S0));
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S0low = vget_low_s16(_S016);
+                int16x4_t _S1low = vget_low_s16(_S116);
+                int16x4_t _S0high = vext_s16(_S0low, vget_high_s16(_S016), 3);
+                int16x4_t _S1high = vext_s16(_S1low, vget_high_s16(_S116), 3);
+                int32x4_t _rows0 = vmull_s16(_S0low, _a0);
+                int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+                _rows0 = vmlal_s16(_rows0, _S0high, _a1);
+                _rows1 = vmlal_s16(_rows1, _S1high, _a1);
+                int16x4_t _rows0_sr4 = vshrn_n_s32(_rows0, 4);
+                int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
+                vst1_s16(rows0p, _rows0_sr4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else if (c == 4) {
+                int16x4_t _a0 = vdup_n_s16(a0);
+                int16x4_t _a1 = vdup_n_s16(a1);
+                uint8x8_t _S0 = vld1_u8(S0p);
+                uint8x8_t _S1 = vld1_u8(S1p);
+                int16x8_t _S016 = vreinterpretq_s16_u16(vmovl_u8(_S0));
+                int16x8_t _S116 = vreinterpretq_s16_u16(vmovl_u8(_S1));
+                int16x4_t _S0low = vget_low_s16(_S016);
+                int16x4_t _S1low = vget_low_s16(_S116);
+                int16x4_t _S0high = vget_high_s16(_S016);
+                int16x4_t _S1high = vget_high_s16(_S116);
+                int32x4_t _rows0 = vmull_s16(_S0low, _a0);
+                int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+                _rows0 = vmlal_s16(_rows0, _S0high, _a1);
+                _rows1 = vmlal_s16(_rows1, _S1high, _a1);
+                int16x4_t _rows0_sr4 = vshrn_n_s32(_rows0, 4);
+                int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
+                vst1_s16(rows0p, _rows0_sr4);
+                vst1_s16(rows1p, _rows1_sr4);
+            } else {
                 for (int dc = 0; dc < c; ++dc) {
                     rows0p[dc]         = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
                     rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
                 }
-
-                ialphap += 2;
-                rows0p += c;
-                rows1p += c;
             }
+#endif
+
+            ialphap += 2;
+            rows0p += c;
+            rows1p += c;
         }
+    }
 }
 
 void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
