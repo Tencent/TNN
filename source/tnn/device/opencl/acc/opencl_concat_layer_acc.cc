@@ -29,6 +29,10 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+#if TNN_PROFILE
+    virtual double GetBandwidth() override;
+#endif
+
 private:
     Status ReshapeImageConcat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status ReshapeTwoInputsConcat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
@@ -53,7 +57,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param);
     CHECK_PARAM_NULL(concat_param);
 
-    axis_ = concat_param->axis;
+    axis_            = concat_param->axis;
     do_image_concat_ = true;
     if (axis_ == 1) {
         for (size_t i = 0; i < inputs.size() - 1; ++i) {
@@ -68,48 +72,61 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     LOGD("do_image_concat: %s\n", do_image_concat_ ? "true" : "false");
     // create kernel
     std::string kernel_name;
-    if (do_image_concat_) {
-        std::string program_name = "copy";
-        execute_units_.resize(inputs.size());
-        for (size_t i = 0; i < execute_units_.size(); i++) {
-            kernel_name = "CopyImage";
-            ret         = CreateExecuteUnit(execute_units_[i], program_name, kernel_name);
+
+    if (inputs.size() == 2 && axis_ == 1) {
+        if (do_image_concat_) {
+            std::string program_name = "concat";
+            kernel_name              = "ConcatChannel4X";
+            execute_units_.resize(1);
+            ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
             if (ret != TNN_OK) {
                 return ret;
             }
-        }
-    } else if (inputs.size() == 2) {
-        std::set<std::string> build_options;
-        build_options.emplace("-DCHANNEL0_MOD_4=" + to_string(inputs[0]->GetBlobDesc().dims[1] % 4));
-        std::string program_name = "concat";
-        kernel_name              = "ConcatChannel";
-        execute_units_.resize(1);
-        ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options);
-        if (ret != TNN_OK) {
-            return ret;
+        } else {
+            std::set<std::string> build_options;
+            build_options.emplace("-DCHANNEL0_MOD_4=" + to_string(inputs[0]->GetBlobDesc().dims[1] % 4));
+            std::string program_name = "concat";
+            kernel_name              = "ConcatChannel";
+            execute_units_.resize(1);
+            ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options);
+            if (ret != TNN_OK) {
+                return ret;
+            }
         }
     } else {
-        std::string program_name = "copy";
-        execute_units_.resize(2 * inputs.size() + 1);
-        for (size_t i = 0; i < inputs.size(); i++) {
-            // Image to Buffer
-            kernel_name = "CopyImageToBuffer";
-            ret         = CreateExecuteUnit(execute_units_[2 * i], program_name, kernel_name);
+        if (do_image_concat_) {
+            std::string program_name = "copy";
+            execute_units_.resize(inputs.size());
+            for (size_t i = 0; i < execute_units_.size(); i++) {
+                kernel_name = "CopyImage";
+                ret         = CreateExecuteUnit(execute_units_[i], program_name, kernel_name);
+                if (ret != TNN_OK) {
+                    return ret;
+                }
+            }
+        } else {
+            std::string program_name = "copy";
+            execute_units_.resize(2 * inputs.size() + 1);
+            for (size_t i = 0; i < inputs.size(); i++) {
+                // Image to Buffer
+                kernel_name = "CopyImageToBuffer";
+                ret         = CreateExecuteUnit(execute_units_[2 * i], program_name, kernel_name);
+                if (ret != TNN_OK) {
+                    return ret;
+                }
+                // Merge Buffer to Buffer
+                kernel_name = "CopyBuffer";
+                ret         = CreateExecuteUnit(execute_units_[2 * i + 1], program_name, kernel_name);
+                if (ret != TNN_OK) {
+                    return ret;
+                }
+            }
+            // Buffer to Image
+            kernel_name = "CopyBufferToImage";
+            ret         = CreateExecuteUnit(execute_units_[2 * inputs.size()], program_name, kernel_name);
             if (ret != TNN_OK) {
                 return ret;
             }
-            // Merge Buffer to Buffer
-            kernel_name = "CopyBuffer";
-            ret         = CreateExecuteUnit(execute_units_[2 * i + 1], program_name, kernel_name);
-            if (ret != TNN_OK) {
-                return ret;
-            }
-        }
-        // Buffer to Image
-        kernel_name = "CopyBufferToImage";
-        ret         = CreateExecuteUnit(execute_units_[2 * inputs.size()], program_name, kernel_name);
-        if (ret != TNN_OK) {
-            return ret;
         }
     }
 
@@ -121,13 +138,24 @@ OpenCLConcatLayerAcc::~OpenCLConcatLayerAcc() {}
 Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Concat Acc Reshape\n");
 
-    if (do_image_concat_)
-        return ReshapeImageConcat(inputs, outputs);
-    else if (inputs.size() == 2)
+    if (inputs.size() == 2 && axis_ == 1) {
         return ReshapeTwoInputsConcat(inputs, outputs);
-    else
-        return ReshapeBufferConcat(inputs, outputs);
+    } else {
+        if (do_image_concat_) {
+            return ReshapeImageConcat(inputs, outputs);
+        } else {
+            return ReshapeBufferConcat(inputs, outputs);
+        }
+    }
 }
+
+#if TNN_PROFILE
+double OpenCLConcatLayerAcc::GetBandwidth() {
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    int data_type_size            = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    return DimsVectorUtils::Count(output_dims_) * data_type_size / 1000.0 / 1000.0;
+}
+#endif
 
 Status OpenCLConcatLayerAcc::ReshapeImageConcat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto output      = outputs[0];
@@ -184,7 +212,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
     int input_offset[]  = {0, 0, 0, 0};
     int output_offset[] = {0, 0, 0, 0};
     int output_stride[] = {output_dims[1] * output_dims[3] * output_dims[2], 1, output_dims[3] * output_dims[1],
-                            output_dims[1]};
+                           output_dims[1]};
     for (size_t i = 0; i < inputs.size(); i++) {
         auto input      = inputs[i];
         auto input_dims = input->GetBlobDesc().dims;
@@ -247,7 +275,6 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-// every channel of two inputs can devided by 4.
 Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &inputs,
                                                     const std::vector<Blob *> &outputs) {
     run_3d_ndrange_  = true;
@@ -258,8 +285,8 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
 
     // [output_channle/4, output_width, batch * output_height]
     execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                        static_cast<uint32_t>(output_dims[3]),
-                                        static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+                                          static_cast<uint32_t>(output_dims[3]),
+                                          static_cast<uint32_t>(output_dims[0] * output_dims[2])};
     execute_units_[0].local_work_size  = LocalWS3DDefault(execute_units_[0]);
     int idx                            = 0;
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
