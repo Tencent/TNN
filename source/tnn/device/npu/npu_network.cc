@@ -239,7 +239,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         desc.dims.push_back(w);
         BlobHandle handle;
         handle.base                 = output_tensor_[i]->GetBuffer();
-        output_blob_map_[desc.name] = new Blob(desc, handle);\
+        output_blob_map_[desc.name] = new Blob(desc, handle);
         it++;
     }
     for (auto &layer : layers_) {
