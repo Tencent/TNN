@@ -28,6 +28,8 @@
 
 namespace TNN_NS {
 
+static std::mutex g_mtx;
+
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
     NETWORK_TYPE_DEFAULT);
 
@@ -84,9 +86,13 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * The optimization process may change the network structure accoundingly.
      * eg. fuse conv+bn, conv+relu.
      */
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
-    if (ret != TNN_OK) {
-        return ret;
+    {
+        // use mutex to protect net_resource and net_structure in multi-thread
+        std::unique_lock<std::mutex> lck(g_mtx);
+        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
+        if (ret != TNN_OK) {
+            return ret;
+        }
     }
 
     blob_manager_ = new BlobManager(device_);
@@ -213,7 +219,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             outputs.push_back(blob);
         }
 
-        LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
+        LayerResource *layer_resource = nullptr;
+        if (net_resource->resource_map.count(layer_name) != 0) {
+            layer_resource = net_resource->resource_map[layer_name].get();
+        }
 
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
