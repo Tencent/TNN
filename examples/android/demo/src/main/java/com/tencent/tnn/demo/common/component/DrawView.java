@@ -21,7 +21,6 @@ public class DrawView extends SurfaceView
     private Paint paint = new Paint();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
 
-
     public DrawView(Context context, AttributeSet attrs)
     {
         super(context, attrs);

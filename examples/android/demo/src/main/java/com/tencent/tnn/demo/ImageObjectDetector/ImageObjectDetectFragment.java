@@ -198,7 +198,6 @@ public class ImageObjectDetectFragment extends BaseFragment {
                 Log.d(TAG, "detect object size " + objectInfoList.length);
 
                 mPaint.setARGB(255, 0, 255, 0);
-                mPaint.setStrokeWidth(3);
                 mPaint.setFilterBitmap(true);
                 mPaint.setStyle(Paint.Style.STROKE);
                 Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -210,8 +209,13 @@ public class ImageObjectDetectFragment extends BaseFragment {
                 }
                 for (int i=0; i<rects.size(); i++) {
                     Log.d(TAG, "rect " + rects.get(i));
+                    Rect rect = rects.get(i);
                     mPaint.setARGB(255, 0, 255, 0);
-                    canvas.drawRect(rects.get(i), mPaint);
+                    canvas.drawRect(rect, mPaint);
+                    ObjectDetector.ObjectInfo info = objectInfoList[i];
+                    if(info.class_id < ObjectDetector.label_list.length) {
+                        canvas.drawText(String.format("%s : %f", ObjectDetector.label_list[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
+                    }
                 }
                 source.setImageBitmap(scaleBitmap2);
 

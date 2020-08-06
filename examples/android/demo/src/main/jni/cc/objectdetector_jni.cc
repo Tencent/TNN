@@ -19,6 +19,7 @@ static jfieldID fidx2;
 static jfieldID fidy2;
 static jfieldID fidscore;
 static jfieldID fidlandmarks;
+static jfieldID fidcls;
 // Jni functions
 
 JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jfloat scoreThreshold, jfloat iouThreshold, jint topk, jint computUnitType)
@@ -73,6 +74,7 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstr
         fidy2 = env->GetFieldID(clsObjectInfo, "y2" , "F");
         fidscore = env->GetFieldID(clsObjectInfo, "score" , "F");
         fidlandmarks = env->GetFieldID(clsObjectInfo, "landmarks" , "[F");
+        fidcls = env->GetFieldID(clsObjectInfo, "class_id", "I");
     }
 
     return 0;
@@ -160,6 +162,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
             env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2);
             env->SetFloatField(objObjectInfo, fidy2, objectInfoList[i].y2);
             env->SetFloatField(objObjectInfo, fidscore, objectInfoList[i].score);
+            env->SetIntField(objObjectInfo, fidcls, objectInfoList[i].class_id);
             env->SetObjectArrayElement(objectInfoArray, i, objObjectInfo);
             env->DeleteLocalRef(objObjectInfo);
         }
@@ -235,6 +238,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
             env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2);
             env->SetFloatField(objObjectInfo, fidy2, objectInfoList[i].y2);
             env->SetFloatField(objObjectInfo, fidscore, objectInfoList[i].score);
+            env->SetIntField(objObjectInfo, fidcls, objectInfoList[i].class_id);
             env->SetObjectArrayElement(objectInfoArray, i, objObjectInfo);
             env->DeleteLocalRef(objObjectInfo);
         }
