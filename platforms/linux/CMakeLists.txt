@@ -3,7 +3,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src)
 
-set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
+set(COMMON_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/src/atlas_common.cc
+    )
 
 target_link_libraries(TNN dl)
 
@@ -27,19 +30,22 @@ if(TNN_ATLAS_ENABLE)
     target_link_libraries(TNN ascendcl acl_dvpp)
 
     if(LINUX_TEST_ENABLE)
-        add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86.cc)
+        add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas.cc)
         target_link_libraries(AtlasTest TNN)
 
-        add_executable(AtlasTestList ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_list.cc)
-        target_link_libraries(AtlasTestList TNN)
+        add_executable(AtlasTestImageList ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_image_list.cc)
+        target_link_libraries(AtlasTestImageList TNN)
 
-        add_executable(AtlasTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_thread.cc)
+        add_executable(AtlasTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_multi_thread.cc)
         target_link_libraries(AtlasTestMultiThread TNN)
 
-        add_executable(AtlasTestMultiModel ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_x86_multi_model.cc)
+        add_executable(ArmTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_arm_multi_thread.cc)
+        target_link_libraries(ArmTestMultiThread TNN)
+
+        add_executable(AtlasTestMultiModel ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_multi_model.cc)
         target_link_libraries(AtlasTestMultiModel TNN)
 
-        add_executable(AtlasTestResizeCrop ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_resize_crop_x86.cc)
+        add_executable(AtlasTestResizeCrop ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_resize_crop.cc)
         target_link_libraries(AtlasTestResizeCrop TNN)
     endif()
 endif()

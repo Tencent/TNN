@@ -12,19 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-/*
- * This is a demo for the huawei atlas devices.
- */
+#include "atlas_common.h"
 
-#include <float.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
 #include <fstream>
 #include <memory>
-#include <string>
+#include <string.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "test_common.h"
 #include "tnn/core/instance.h"
@@ -32,14 +27,8 @@
 #include "tnn/utils/dims_vector_utils.h"
 
 using namespace TNN_NS;
-TNN net_;
 
-struct TNNParam {
-    std::string input_file;
-    int device_id = 0;
-    int thread_id = 0;
-    TNN* tnn_net;
-};
+#define INPUT_8UC3_ENABLE
 
 void* RunTNN(void* param) {
     TNNParam* tnn_param = (TNNParam*)param;
@@ -55,8 +44,8 @@ void* RunTNN(void* param) {
     Status error;
 
     NetworkConfig network_config;
-    network_config.network_type = NETWORK_TYPE_ATLAS;
-    network_config.device_type  = DEVICE_ATLAS;
+    network_config.network_type = tnn_param->network_type;
+    network_config.device_type  = tnn_param->device_type;
     network_config.device_id    = tnn_param->device_id;
 
     gettimeofday(&time1, NULL);
@@ -97,18 +86,28 @@ void* RunTNN(void* param) {
     }
 
     // load input
-    //float* input_data_ptr = nullptr;
+#ifdef INPUT_8UC3_ENABLE
     unsigned char* input_data_ptr = nullptr;
+#else 
+    float* input_data_ptr = nullptr;
+#endif
     auto input_dims = input->GetBlobDesc().dims;
     auto input_format = input->GetBlobDesc().data_format;
-    if (DATA_FORMAT_NCHW == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, input_dims, false);
+    if (DATA_FORMAT_NCHW == input_format || DATA_FORMAT_NC4HW4 == input_format) {
+#ifdef INPUT_8UC3_ENABLE
         ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
         //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, input_dims);
+#else 
+        ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, input_dims, false);
+#endif
     } else if (DATA_FORMAT_NHWC == input_format) {
-        //ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
+#ifdef INPUT_8UC3_ENABLE
+        //ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
+        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
         //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
+#else 
+        ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
+#endif
     } else {
         printf("invalid model input format\n");
         return nullptr;
@@ -128,8 +127,12 @@ void* RunTNN(void* param) {
 
     Status tnn_ret;
     // copy input data into atlas
-    //Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
-    Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
+#ifdef INPUT_8UC3_ENABLE
+    //Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
+    Mat input_mat(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
+#else 
+    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
+#endif
     MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
@@ -181,57 +184,7 @@ void* RunTNN(void* param) {
         free(input_data_ptr);
 
     instance_.reset();
+    printf("instance reset done!\n");
 
     printf("thread (%d) exit\n", tnn_param->thread_id);
-}
-
-int main(int argc, char* argv[]) {
-    printf("Run Atlas test ...\n");
-    if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename>\n");
-        return 0;
-    } else {
-        if (argc < 3) {
-            printf("invalid args\n");
-            return 0;
-        }
-        for (int i = 1; i < argc; i++) {
-            printf("arg%d: %s\n", i - 1, argv[i]);
-        }
-    }
-
-    Status error;
-    int ret;
-    ModelConfig config;
-    config.model_type = MODEL_TYPE_ATLAS;
-    config.params.push_back(argv[1]);
-
-    error = net_.Init(config);  // init the net
-    if (TNN_OK != error) {
-        printf("TNN init failed\n");
-        return -1;
-    }
-
-    TNNParam thread_param[4];
-    for (int i = 0; i < 4; ++i) {
-        thread_param[i].input_file = argv[2];
-        thread_param[i].device_id = 0;
-        thread_param[i].thread_id = i;
-        thread_param[i].tnn_net = &net_;
-    }
-
-    pthread_t thread[4];
-
-    for (int t = 0; t < 4; ++t) {
-        if (pthread_create(&thread[t], NULL, &RunTNN, (void *)&thread_param[t]) != 0){
-            return -1;
-        }
-    }
-
-    for(int t = 0; t < 4; t++) {
-        pthread_join(thread[t], NULL);
-    }
-
-    net_.DeInit();
-    return 0;
 }
