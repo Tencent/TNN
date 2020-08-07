@@ -521,11 +521,12 @@ void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, 
 }
 
 
-static short BilinearTab_i[1024][2][2];
 #define INTER_REMAP_COEF_BITS  15
 #define INTER_REMAP_COEF_SCALE (1<<INTER_REMAP_COEF_BITS)
 #define INTER_BITS      5
 #define INTER_TAB_SIZE  (1<<INTER_BITS)
+#define KSIZE 2
+static short BilinearTab_i[INTER_TAB_SIZE*INTER_TAB_SIZE][KSIZE][KSIZE];
 
 static inline void interpolateLinear(float x, float* coeffs) {
     coeffs[0] = 1.f - x;
@@ -538,12 +539,21 @@ static void initInterTab1D(float* tab, int tabsz) {
         interpolateLinear(i * scale, tab);
 }
 
+// Interpolation table of size 32 x 32 x 4:
+// (1*1,     0*1,     1*0,     0*0)    , ... , (1/32*1,     31/32*1,     1/32*0,     31/32*0)
+// (1*31/32, 0*31/32, 1*1/32,  0*1/32) , ... , (1/32*31/32, 31/32*31/32, 1/32*1/32,  31/32*1/32)
+//                                       ...
+// (1*1/32,  0*1/32,  1*31/32, 0*31/32), ... , (1/32*1/32,  31/32*1/32,  1/32*31/32, 31/32*31/32)
 static void initInterTab2D() {
-    short* itab = 0;
-    int ksize   = 0;
-    itab = BilinearTab_i[0][0], ksize = 2;
+    static bool inited = false;
+    if (inited) {
+        return;
+    }
 
-    float* _tab = new float[8 * INTER_TAB_SIZE];
+    short* itab = BilinearTab_i[0][0];
+    int ksize = KSIZE;
+
+    float* _tab = new float[2 * INTER_TAB_SIZE];
     int i, j, k1, k2;
     initInterTab1D(_tab, INTER_TAB_SIZE);
     for (i = 0; i < INTER_TAB_SIZE; i++) {
@@ -579,17 +589,19 @@ static void initInterTab2D() {
     delete[] _tab;
 }
 
-void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3], const float border_val) {
-    int dst_w = w;
-    int dst_h = h;
+// The buffer contains adelta and bdelta, which are used to calculate src position (src_x, src_y)
+// from dst position (x, y):
+// src_x = adelta[2*x]   + bdelta[2*y]
+// src_y = adelta[2*x+1] + bdelta[2*y+1]
+static void warpaffine_init(uint8_t* dst, int dst_w, int dst_h, int channel, const float border_val,
+                            const float (*transform)[3], int** buffer) {
     uint8_t border_ival = (uint8_t)border_val;
     if (border_ival) {
-        for (int i = 0; i < dst_h * dst_w; ++i) {
+        for (int i = 0; i < dst_h * dst_w * channel; ++i) {
             dst[i] = border_ival;
         }
     } else {
-        memset(dst, 0, dst_h * dst_w);
+        memset(dst, 0, dst_h * dst_w * channel);
     }
 
     // Init LookUp Table
@@ -604,6 +616,7 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     M[4] = transform[1][1];
     M[5] = transform[1][2];
 
+    // Inverse transform matrix
     double D   = M[0] * M[4] - M[1] * M[3];
     D          = D != 0 ? 1. / D : 0;
     double A11 = M[4] * D, A22 = M[0] * D;
@@ -616,24 +629,29 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     m[2]      = b1;
     m[5]      = b2;
 
-    int* buffer;
-    int status = posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
+    int status = posix_memalign(reinterpret_cast<void**>(buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
 
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
+    int* adelta = *buffer;
+    int* bdelta = *buffer + dst_w * 2;
 
-    int* ptra = adelta;
-    int* ptrb = bdelta;
     for (int x = 0; x < dst_w; x++) {
-        *ptra++ = SATURATE_CAST_INT(m[0] * x * 1024);
-        *ptra++ = SATURATE_CAST_INT(m[3] * x * 1024);
+        *adelta++ = SATURATE_CAST_INT(m[0] * x * 1024);
+        *adelta++ = SATURATE_CAST_INT(m[3] * x * 1024);
     }
 
     for (int y = 0; y < dst_h; y++) {
-        *ptrb++ = SATURATE_CAST_INT((m[1] * y + m[2]) * 1024);
-        *ptrb++ = SATURATE_CAST_INT((m[4] * y + m[5]) * 1024);
+        *bdelta++ = SATURATE_CAST_INT((m[1] * y + m[2]) * 1024);
+        *bdelta++ = SATURATE_CAST_INT((m[4] * y + m[5]) * 1024);
     }
+}
 
+void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                            const float (*transform)[3], const float border_val) {
+    int* buffer = nullptr;
+    warpaffine_init(dst, dst_w, dst_h, 1, border_val, transform, &buffer);
+
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
     int DELTA = 1 << 14;
 
     int scols             = src_w;
@@ -723,61 +741,13 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     free(buffer);
 }
 
-void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h,
+void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                             const float (*transform)[3], const float border_val) {
-    int dst_w = w;
-    int dst_h = h;
-    uint8_t border_ival = (uint8_t)border_val;
-    if (border_ival) {
-        for (int i = 0; i < dst_h * dst_w * 3; ++i) {
-            dst[i] = border_ival;
-        }
-    } else {
-        memset(dst, 0, dst_h * dst_w * 3);
-    }
-
-    // Init LookUp Table
-    initInterTab2D();
-
-    double m[6];
-    double M[6];
-    M[0] = transform[0][0];
-    M[1] = transform[0][1];
-    M[2] = transform[0][2];
-    M[3] = transform[1][0];
-    M[4] = transform[1][1];
-    M[5] = transform[1][2];
-
-    double D   = M[0] * M[4] - M[1] * M[3];
-    D          = D != 0 ? 1. / D : 0;
-    double A11 = M[4] * D, A22 = M[0] * D;
-    m[0]      = A11;
-    m[1]      = M[1] * (-D);
-    m[3]      = M[3] * (-D);
-    m[4]      = A22;
-    double b1 = -A11 * M[2] - m[1] * M[5];
-    double b2 = -m[3] * M[2] - A22 * M[5];
-    m[2]      = b1;
-    m[5]      = b2;
-
-    int* buffer;
-    int status = posix_memalign(reinterpret_cast<void**>(&buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
+    int* buffer = nullptr;
+    warpaffine_init(dst, dst_w, dst_h, 3, border_val, transform, &buffer);
 
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
-
-    int* ptra = adelta;
-    int* ptrb = bdelta;
-    for (int x = 0; x < dst_w; x++) {
-        *ptra++ = SATURATE_CAST_INT(m[0] * x * 1024);
-        *ptra++ = SATURATE_CAST_INT(m[3] * x * 1024);
-    }
-
-    for (int y = 0; y < dst_h; y++) {
-        *ptrb++ = SATURATE_CAST_INT((m[1] * y + m[2]) * 1024);
-        *ptrb++ = SATURATE_CAST_INT((m[4] * y + m[5]) * 1024);
-    }
-
     int DELTA = 1 << 14;
 
     int scols      = src_w;
