@@ -45,19 +45,9 @@ Status StrideSliceLayer::InferOutputShape() {
 
     auto begins = layer_param->begins;
     std::reverse(begins.begin(), begins.end());
-    for (int i = 0; i < begins.size(); i++) {
-        if (begins[i] == -1) {
-            begins[i] = input_blob->GetBlobDesc().dims[i] - 1;
-        }
-    }
 
     auto ends = layer_param->ends;
     std::reverse(ends.begin(), ends.end());
-    for (int i = 0; i < ends.size(); i++) {
-        if (ends[i] == -1) {
-            ends[i] = input_blob->GetBlobDesc().dims[i] - 1;
-        }
-    }
 
     auto strides = layer_param->strides;
     std::reverse(strides.begin(), strides.end());
@@ -86,6 +76,11 @@ Status StrideSliceLayer::InferOutputShape() {
 
             if (ends[i] < 0) {
                 ends[i] += input_dims[i];
+            }
+
+            if (begins[i] >= ends[i]) {
+                LOGE("StrideSliceLayer param is invalid\n");
+                return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid");
             }
 
             sizes[i] = (ends[i] - begins[i] - 1) / strides[i] + 1;
