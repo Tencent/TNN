@@ -223,7 +223,7 @@ Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam para
         int paste_left = 0;
         int paste_top = 0;
         if (paste_type == PASTE_TYPE_CENTER_ALIGN) {
-            paste_left = ((dst.GetWidth() - dst_width + 1) / 2) & (~0x01);
+            paste_left = ((dst.GetWidth() - dst_width + 1) / 2 + 7) & (~0x0F);
             paste_top = ((dst.GetHeight() - dst_height + 1) / 2) & (~0x01);
         }
 
