@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.ImageFaceDetector;
+package com.tencent.tnn.demo.ImageObjectDetector;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -15,7 +15,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -25,14 +25,14 @@ import com.tencent.tnn.demo.common.fragment.BaseFragment;
 import java.util.ArrayList;
 
 
-public class ImageFaceDetectFragment extends BaseFragment {
+public class ImageObjectDetectFragment extends BaseFragment {
 
-    private final static String TAG = ImageFaceDetectFragment.class.getSimpleName();
-    private FaceDetector mFaceDetector = new FaceDetector();
+    private final static String TAG = ImageObjectDetectFragment.class.getSimpleName();
+    private ObjectDetector mObjectDetector = new ObjectDetector();
 
-    private static final String IMAGE = "test_face.jpg";
-    private static final int NET_H_INPUT = 240;
-    private static final int NET_W_INPUT = 320;
+    private static final String IMAGE = "dog_cropped.jpg";
+    private static final int NET_H_INPUT = 448;
+    private static final int NET_W_INPUT = 640;
     private Paint mPaint = new Paint();
     private DrawView mDrawView;
     private ToggleButton mGPUSwitch;
@@ -51,7 +51,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
         String modelPath = initModel();
-        NpuEnable = mFaceDetector.checkNpu(modelPath);
+        NpuEnable = mObjectDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -61,14 +61,14 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "version-slim-320_simplified.tnnmodel",
-                "version-slim-320_simplified.tnnproto",
+                "yolov5s.tnnmodel",
+                "yolov5s-permute.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "face_detector/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "yolov5/"+modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
@@ -112,7 +112,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imagefacedetector);
+        setView(R.layout.fragment_imageobjectdetector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -185,33 +185,37 @@ public class ImageFaceDetectFragment extends BaseFragment {
         }else if(mUseGPU) {
             device = 1;
         }
-        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+        int result = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            FaceDetector.FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
-            Log.d(TAG, "detect from image result " + faceInfoList);
-            int faceCount = 0;
-            if (faceInfoList != null) {
-                faceCount = faceInfoList.length;
+            ObjectDetector.ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
+            Log.d(TAG, "detect from image result " + objectInfoList);
+            int objectCount = 0;
+            if (objectInfoList != null) {
+                objectCount = objectInfoList.length;
             }
-            if(faceInfoList != null && faceInfoList.length > 0) {
-                Log.d(TAG, "detect face size " + faceInfoList.length);
+            if(objectInfoList != null && objectInfoList.length > 0) {
+                Log.d(TAG, "detect object size " + objectInfoList.length);
 
                 mPaint.setARGB(255, 0, 255, 0);
-                mPaint.setStrokeWidth(3);
                 mPaint.setFilterBitmap(true);
                 mPaint.setStyle(Paint.Style.STROKE);
                 Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
                 Canvas canvas = new Canvas(scaleBitmap2);
                 ArrayList<Rect> rects = new ArrayList<Rect>();
-                for (int i=0; i<faceInfoList.length; i++)
+                for (int i=0; i<objectInfoList.length; i++)
                 {
-                    rects.add(new Rect((int)(faceInfoList[i].x1 * scalew), (int)(faceInfoList[i].y1 * scaleh), (int)(faceInfoList[i].x2 * scalew), (int)(faceInfoList[i].y2*scaleh)));
+                    rects.add(new Rect((int)(objectInfoList[i].x1 * scalew), (int)(objectInfoList[i].y1 * scaleh), (int)(objectInfoList[i].x2 * scalew), (int)(objectInfoList[i].y2*scaleh)));
                 }
                 for (int i=0; i<rects.size(); i++) {
                     Log.d(TAG, "rect " + rects.get(i));
+                    Rect rect = rects.get(i);
                     mPaint.setARGB(255, 0, 255, 0);
-                    canvas.drawRect(rects.get(i), mPaint);
+                    canvas.drawRect(rect, mPaint);
+                    ObjectDetector.ObjectInfo info = objectInfoList[i];
+                    if(info.class_id < ObjectDetector.label_list.length) {
+                        canvas.drawText(String.format("%s : %f", ObjectDetector.label_list[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
+                    }
                 }
                 source.setImageBitmap(scaleBitmap2);
 
@@ -219,7 +223,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
 
             }
-            String benchResult = "face count: " + faceCount + " " + Helper.getBenchResult();
+            String benchResult = "object count: " + objectCount + " " + Helper.getBenchResult();
             TextView result_view = (TextView)$(R.id.result);
             result_view.setText(benchResult);
         } else {
