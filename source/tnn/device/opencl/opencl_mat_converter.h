@@ -22,7 +22,7 @@
 
 namespace TNN_NS {
 
-class OpenCLMatConverterAcc : public MarConverterAcc {
+class OpenCLMatConverterAcc : public MatConverterAcc {
 public:
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
@@ -30,6 +30,9 @@ public:
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
 
 private:
+    //Status CreateConvertUnit(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);
+    Status SetConvertArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, bool convert_to_mat);
+    Status RunConvertUnit(OpenCLExecuteUnit& unit, cl::CommandQueue* command_queue, bool need_wait = false);
     Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
     Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;

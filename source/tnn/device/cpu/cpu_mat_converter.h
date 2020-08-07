@@ -22,8 +22,10 @@
 
 namespace TNN_NS {
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
-class CpuMatConverterAcc : public MarConverterAcc {
+class CpuMatConverterAcc : public MatConverterAcc {
 public:
+    CpuMatConverterAcc();
+    virtual ~CpuMatConverterAcc();
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);

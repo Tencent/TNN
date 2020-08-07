@@ -25,7 +25,9 @@
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
-    
+
+CpuMatConverterAcc::CpuMatConverterAcc() : MatConverterAcc() {}
+CpuMatConverterAcc::~CpuMatConverterAcc() {}
 Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret            = TNN_OK;
     return ret; 
