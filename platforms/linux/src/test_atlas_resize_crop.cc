@@ -32,13 +32,18 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/mat_utils.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize.h"
+
 using namespace TNN_NS;
 TNN net_;
 
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
-        printf("./AtlasTest <om_file> <input_filename>\n");
+        printf("./AtlasTest <om_file> <input_jpg>\n");
         return 0;
     } else {
         if (argc < 3) {
@@ -53,7 +58,7 @@ int main(int argc, char* argv[]) {
     NetworkConfig network_config;
     network_config.network_type = NETWORK_TYPE_ATLAS;
     network_config.device_type  = DEVICE_ATLAS;
-    network_config.device_id    = 0;
+    network_config.device_id    = 4;
 
     Status error;
     int ret;
@@ -77,35 +82,28 @@ int main(int argc, char* argv[]) {
     void* command_queue;
     instance_->GetCommandQueue(&command_queue);
 
-    BlobMap input_blobs;
-    error       = instance_->GetAllInputBlobs(input_blobs);
-    Blob* input = input_blobs.begin()->second;
-
-    // load input
-    unsigned char* input_data_ptr = nullptr;
-    std::vector<int> input_dims   = {1,683,1024,3};
-    std::vector<int> mid_dims     = {1,641,360,3};
-    std::vector<int> output_dims  = {1,641,360,3};
-    auto input_format             = input->GetBlobDesc().data_format;
-    if (DATA_FORMAT_NCHW == input_format) {
-        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2], input_dims);
-    } else if (DATA_FORMAT_NHWC == input_format) {
-        ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, argv[2],
-                                          {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
-    } else {
-        printf("invalid model input format\n");
+    // load input from image
+    int height, width, channel;
+    printf("load input %s\n", argv[2]);
+    unsigned char* input_data_ptr = stbi_load(argv[2], &width, &height, &channel, 0);
+    if (nullptr == input_data_ptr) {
+        printf("invalid input file: %s\n", argv[2]);
         return -1;
     }
-    if (CheckResult("load input data", ret) != true)
-        return -1;
+
+    printf("input dims: c: %d  h: %d  w: %d\n", channel, height, width);
+    std::vector<int> input_dims   = {1, channel, height, width};
+    std::vector<int> mid_dims     = {1,3,641,360};
+    std::vector<int> output_dims  = {1,3,641,360};
+
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
     Status tnn_ret;
     // copy input data into atlas
-    Mat input_mat_org(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
-    Mat input_mat(DEVICE_ATLAS, NNV12, {mid_dims[0], mid_dims[3], mid_dims[1], mid_dims[2]}, nullptr);
-    Mat output_mat(DEVICE_ARM, NNV12, {output_dims[0], output_dims[3], output_dims[1], output_dims[2]}, nullptr);
+    Mat input_mat_org(DEVICE_NAIVE, N8UC3, input_dims, input_data_ptr);
+    Mat input_mat(DEVICE_ATLAS, NNV12, mid_dims, nullptr);
+    Mat output_mat(DEVICE_ARM, NNV12, output_dims, nullptr);
 
     // resize
     printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
@@ -136,7 +134,10 @@ int main(int argc, char* argv[]) {
     // resize
     printf("resize form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
     ResizeParam param_resize2;
-    tnn_ret = MatUtils::Resize(input_mat, output_mat, param_resize2, command_queue);
+    param_resize2.scale_w = 1.0;
+    param_resize2.scale_h = 1.0;
+    //tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, PASTE_TYPE_TOP_LEFT_ALIGN, command_queue);
+    tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, PASTE_TYPE_CENTER_ALIGN, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
@@ -145,10 +146,9 @@ int main(int argc, char* argv[]) {
     printf("actual output:  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
     printf("actual output memory:  %d x %d\n", (output_mat.GetWidth() + 15) / 16 * 16, (output_mat.GetHeight() + 1) / 2 * 2);
 
-    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, (output_mat.GetWidth() + 15) / 16 * 16 * (output_mat.GetHeight() + 1) / 2 * 2 * 3 / 2}, "dump_data/output.bin");
+    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, (output_mat.GetWidth() + 15) / 16 * 16 * (output_mat.GetHeight() + 1) / 2 * 2 * 3 / 2}, "output.bin");
 
-    if (input_data_ptr != nullptr)
-        free(input_data_ptr);
+    stbi_image_free(input_data_ptr);
 
     instance_.reset();
     net_.DeInit();

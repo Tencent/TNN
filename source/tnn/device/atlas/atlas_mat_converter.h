@@ -28,6 +28,7 @@ public:
     AtlasMatConverterAcc();
     virtual ~AtlasMatConverterAcc();
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) override;
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue = NULL) override;
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) override;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
 

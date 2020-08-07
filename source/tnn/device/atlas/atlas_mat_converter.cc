@@ -112,15 +112,17 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
-    int dst_width = src.GetWidth() * param.scale_w;
-    int dst_height = src.GetHeight() * param.scale_h;
-    bool need_do_paste = false;
-    if (dst_width > dst.GetWidth() || dst_height > dst.GetHeight()) {
-        LOGE("resize param is invailed! (need %dx%d  but dst memory %dx%d)\n", dst_width, dst_height, dst.GetWidth(), dst.GetHeight());
+    if (0 != param.scale_w && 0 != param.scale_h) {
+        int dst_width = src.GetWidth() * param.scale_w;
+        int dst_height = src.GetHeight() * param.scale_h;
+
+        if (dst_width != dst.GetWidth() || dst_height != dst.GetHeight()) {
+            dst = Mat(dst.GetDeviceType(), dst.GetMatType(), {dst.GetBatch(), dst.GetChannel(), dst_height, dst_width}, nullptr);
+        }
+    } else if (0 == dst.GetWidth() || 0 == dst.GetHeight()) {
+        LOGE("dst mat size is invailed! (%dx%d)\n", dst.GetWidth(), dst.GetHeight());
         return Status(TNNERR_NULL_PARAM, "resize param is invalid!");
     }
-
-    need_do_paste = dst_width != dst.GetWidth() || dst_height != dst.GetHeight();
 
     Status ret = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
@@ -135,13 +137,100 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         return ret;
     }
 
+    acldvppResizeConfig* resize_config = acldvppCreateResizeConfig();
+    if (nullptr == resize_config) {
+        LOGE("create resize config for mat converter failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppCreateResizeConfig failed");
+    }
+
+    acl_ret =
+        acldvppVpcResizeAsync(dvpp_channel_desc_, input_desc_, output_desc_, resize_config, atlas_cmd_queue->stream);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("acldvppVpcResizeAsync failed, ret = %d\n", acl_ret);
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppVpcResizeAsync failed");
+    }
+
+    if (nullptr != resize_config) {
+        acl_ret = acldvppDestroyResizeConfig(resize_config);
+        if (ACL_ERROR_NONE != acl_ret) {
+            LOGE("acldvppDestroyResizeConfig failed, ret = %d\n", acl_ret);
+        }
+        resize_config = nullptr;
+    }
+
+    LOGD("Stream ID: 0x%lx\n", atlas_cmd_queue->stream);
+    acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("aclrtSynchronizeStream failed, ret = %d\n", acl_ret);
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtSynchronizeStream failed");
+    }
+
+    ret = ProcessOutput(dst);
+    if (TNN_OK != ret) {
+        return ret;
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    if (0 == param.scale_w || 0 == param.scale_h || 0 == dst.GetWidth() || 0 == dst.GetHeight()) {
+        LOGE("resize param is invailed! (scale: %fx%f  dst size: %dx%d)\n", param.scale_w, param.scale_h, dst.GetWidth(), dst.GetHeight());
+        return Status(TNNERR_NULL_PARAM, "resize param is invalid!");
+    }
+
+    int dst_width = src.GetWidth() * param.scale_w;
+    int dst_height = src.GetHeight() * param.scale_h;
+    bool need_do_paste = false;
+    if (dst_width > dst.GetWidth() || dst_height > dst.GetHeight()) {
+        LOGE("resize param is invailed! (need %dx%d  but dst memory %dx%d)\n", dst_width, dst_height, dst.GetWidth(), dst.GetHeight());
+        return Status(TNNERR_NULL_PARAM, "resize param is invalid!");
+    }
+
+    need_do_paste = dst_width != dst.GetWidth() || dst_height != dst.GetHeight();
+
+    Status ret = TNN_OK;
+    aclError acl_ret = ACL_ERROR_NONE;
+
     if (need_do_paste) {
+        ret = PrepareInput(src);
+        if (TNN_OK != ret) {
+            return ret;
+        }
+
+        ret = PrepareOutput(dst);
+        if (TNN_OK != ret) {
+            return ret;
+        }
+
         acldvppRoiConfig* crop_roi_config = acldvppCreateRoiConfig(0, (src.GetWidth() & (~0x01)) - 1, 0, (src.GetHeight() & (~0x01)) - 1);
         if (nullptr == crop_roi_config) {
             LOGE("create crop roi config in resize failed\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppCreateRoiConfig failed");
         }
-        acldvppRoiConfig* paste_roi_config = acldvppCreateRoiConfig(0, (dst_width & (~0x01)) - 1, 0, (dst_height & (~0x01)) - 1);
+
+        int paste_left = 0;
+        int paste_top = 0;
+        if (paste_type == PASTE_TYPE_CENTER_ALIGN) {
+            paste_left = ((dst.GetWidth() - dst_width + 1) / 2) & (~0x01);
+            paste_top = ((dst.GetHeight() - dst_height + 1) / 2) & (~0x01);
+        }
+
+        int paste_right = paste_left + (dst_width & (~0x01)) - 1;
+        int paste_bottom = paste_top + (dst_height & (~0x01)) - 1;
+        LOGD("[l r t b] = [%d %d %d %d]\n", paste_left, paste_right, paste_top, paste_bottom);
+        acldvppRoiConfig* paste_roi_config = acldvppCreateRoiConfig(paste_left, paste_right, paste_top, paste_bottom);
         if (nullptr == paste_roi_config) {
             LOGE("create crop roi config in resize failed\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppCreateRoiConfig failed");
@@ -167,37 +256,19 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
                 return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppDestroyRoiConfig failed");
             }
         }
-    } else {
-        acldvppResizeConfig* resize_config = acldvppCreateResizeConfig();
-        if (nullptr == resize_config) {
-            LOGE("create resize config for mat converter failed\n");
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppCreateResizeConfig failed");
-        }
 
-        acl_ret =
-            acldvppVpcResizeAsync(dvpp_channel_desc_, input_desc_, output_desc_, resize_config, atlas_cmd_queue->stream);
+        LOGD("Stream ID: 0x%lx\n", atlas_cmd_queue->stream);
+        acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
         if (ACL_ERROR_NONE != acl_ret) {
-            LOGE("acldvppVpcResizeAsync failed, ret = %d\n", acl_ret);
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppVpcResizeAsync failed");
+            LOGE("aclrtSynchronizeStream failed, ret = %d\n", acl_ret);
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtSynchronizeStream failed");
         }
 
-        if (nullptr != resize_config) {
-            acl_ret = acldvppDestroyResizeConfig(resize_config);
-            if (ACL_ERROR_NONE != acl_ret) {
-                LOGE("acldvppDestroyResizeConfig failed, ret = %d\n", acl_ret);
-            }
-            resize_config = nullptr;
-        }
+        ret = ProcessOutput(dst);
+    } else {
+        ret = Resize(src, dst, param, command_queue); 
     }
 
-    LOGD("Stream ID: 0x%lx\n", atlas_cmd_queue->stream);
-    acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
-    if (ACL_ERROR_NONE != acl_ret) {
-        LOGE("aclrtSynchronizeStream failed, ret = %d\n", acl_ret);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtSynchronizeStream failed");
-    }
-
-    ret = ProcessOutput(dst);
     if (TNN_OK != ret) {
         return ret;
     }

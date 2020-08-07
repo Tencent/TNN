@@ -48,6 +48,14 @@ Status MatConverter::Resize(Mat& src, Mat& dst, ResizeParam param, void* command
     return impl_->Resize(src, dst, param, command_queue);
 }
 
+Status MatConverter::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue) {
+    if (!impl_) {
+        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
+    }
+
+    return impl_->ResizeAndPaste(src, dst, param, paste_type, command_queue);
+}
+
 Status MatConverter::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     if (!impl_) {
         return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");

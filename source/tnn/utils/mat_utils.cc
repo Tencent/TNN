@@ -22,6 +22,11 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
     return convert.Resize(src, dst, param, command_queue);
 }
 
+Status MatUtils::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue) {
+    MatConverter convert(&src, &dst);
+    return convert.ResizeAndPaste(src, dst, param, paste_type, command_queue);
+}
+
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     if (dst.GetHeight() != param.height || dst.GetWidth() != param.width) {
         return Status(TNNERR_PARAM_ERR, "crop size not match with dst mat");
