@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Atan, LAYER_ATAN);
 
-string MetalAtanLayerAcc::KernelName() {
+string MetalAtanLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "atan";
 }
 

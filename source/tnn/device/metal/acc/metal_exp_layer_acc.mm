@@ -19,7 +19,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Exp, LAYER_EXP);
 
-string MetalExpLayerAcc::KernelName() {
+string MetalExpLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "exp";
 }
 

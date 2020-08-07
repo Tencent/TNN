@@ -77,7 +77,7 @@ Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-std::string MetalShuffleLayerAcc::KernelName() {
+std::string MetalShuffleLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "channel_shuffle";
 }
 

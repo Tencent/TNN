@@ -18,7 +18,7 @@
 namespace TNN_NS {
 DECLARE_METAL_MULTIDIR_BROADCAST_ACC(Add, LAYER_ADD);
 
-std::string MetalAddLayerAcc::KernelName() {
+std::string MetalAddLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     std::string kernel_name = "";
     auto layer_param        = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
