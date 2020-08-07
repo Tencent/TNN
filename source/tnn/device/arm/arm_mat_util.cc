@@ -100,8 +100,8 @@ static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf)
     calculate_position_and_ratio(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
-static void get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
-                              const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
+static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
+                                     const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
     if (sy == prev_sy) {
         // reuse all rows
     } else if (sy == prev_sy + 1) {
@@ -298,8 +298,8 @@ static void get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1,
     }
 }
 
-static void calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
-                              uint8_t* Dp) {
+static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
+                                     uint8_t* Dp) {
 #ifndef TNN_USE_NEON
     int remain = w * c;
 #else
@@ -362,7 +362,7 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 1, w, ialpha);
+        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 1, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -371,7 +371,7 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        calculate_one_row(rows0, rows1, b0, b1, w, 1, Dp);
+        resize_calculate_one_row(rows0, rows1, b0, b1, w, 1, Dp);
 
         ibeta += 2;
     }
@@ -398,7 +398,7 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 2, w, ialpha);
+        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 2, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -407,7 +407,7 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        calculate_one_row(rows0, rows1, b0, b1, w, 2, Dp);
+        resize_calculate_one_row(rows0, rows1, b0, b1, w, 2, Dp);
 
         ibeta += 2;
     }
@@ -434,7 +434,7 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 3, w, ialpha);
+        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 3, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -443,7 +443,7 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        calculate_one_row(rows0, rows1, b0, b1, w, 3, Dp);
+        resize_calculate_one_row(rows0, rows1, b0, b1, w, 3, Dp);
 
         ibeta += 2;
     }
@@ -470,7 +470,7 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
+        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -479,7 +479,7 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
+        resize_calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
 
         ibeta += 2;
     }
@@ -645,6 +645,54 @@ static void warpaffine_init(uint8_t* dst, int dst_w, int dst_h, int channel, con
     }
 }
 
+static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
+                                       const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
+                                       int y, int& x_count, int& end_x) {
+    const unsigned char* src2 = src + src_w * channel;
+
+    for (int x = 0; x < dst_w; ++x) {
+        int new_x          = adelta[2 * x] + bdelta[2 * y] + 16;
+        int new_y          = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
+        int new_x_loc      = new_x >> 10;
+        int new_y_loc      = new_y >> 10;
+        int src_loc        = new_y_loc * src_w * channel + new_x_loc * channel;
+        short new_xy_float = ((new_x >> 5) & 31) + ((new_y >> 5) & 31) * 32;
+
+        if ((unsigned)new_x_loc < (src_w - 1) && (unsigned)new_y_loc < (src_h - 1)) {
+            buf_loc[x] = src_loc;
+            tab_loc[x] = new_xy_float;
+            x_count++;
+            end_x = x;
+        } else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
+                    new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+            short* wtab = BilinearTab_i[new_xy_float][0];
+            int dsc_loc = x * channel;
+
+            int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
+            int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
+            int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
+            int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
+
+            for (int c = 0; c < channel; ++c) {
+                int val_xy = 0;
+                if (mask0) {
+                    val_xy += wtab[0] * src[src_loc + c];
+                }
+                if (mask1) {
+                    val_xy += wtab[1] * src[src_loc + channel + c];
+                }
+                if (mask2) {
+                    val_xy += wtab[2] * src2[src_loc + c];
+                }
+                if (mask3) {
+                    val_xy += wtab[3] * src2[src_loc + channel + c];
+                }
+                dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
+            }
+        }
+    }
+}
+
 void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                             const float (*transform)[3], const float border_val) {
     int* buffer = nullptr;
@@ -652,89 +700,36 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
 
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
-    int DELTA = 1 << 14;
 
-    int scols             = src_w;
-    int srows             = src_h;
-    int schannel          = 1;
-    int stmp              = scols * schannel;
-    unsigned int* buf_loc = new unsigned int[dst_w];
-    short* tab_loc        = new short[dst_w];
+    int* buf_loc   = new int[dst_w];
+    short* tab_loc = new short[dst_w];
 
-    unsigned short* buf_point = (unsigned short*)buf_loc;
-    const unsigned char* src2 = src + stmp;
+    int schannel   = 1;
+    const unsigned char* src2 = src + src_w * schannel;
 
     for (int y = 0; y < dst_h; ++y) {
-        int x_count        = 0;
-        int end_x          = 0;
-        int final_loc_base = y * dst_w;
-        for (int x = 0; x < dst_w; ++x) {
-            int final_loc = final_loc_base + x;
-            int new_x      = adelta[2 * x] + bdelta[2 * y] + 16;
-            int new_y      = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
-            int new_x_full = new_x >> 5;
-            int new_y_full = new_y >> 5;
-            int new_x_loc  = new_x >> 10;
-            int new_y_loc  = new_y >> 10;
+        int x_count      = 0;
+        int end_x        = 0;
+        int dst_loc_base = y * dst_w;
 
-            short new_xy_float = (new_x_full & 31) + (new_y_full & 31) * 32;
-            short* wtab        = BilinearTab_i[new_xy_float][0];
-            int loc_base       = new_y_loc * stmp + new_x_loc;
+        warpaffine_prepare_one_row(buf_loc, tab_loc, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y, x_count, end_x);
 
-            if (new_x_loc >= -1 && new_x_loc <= (scols - 1) && new_y_loc >= -1 && new_y_loc <= (srows - 1)) {
-                if ((unsigned)new_x_loc < (scols - 1) && (unsigned)new_y_loc < (srows - 1)) {
-                    unsigned short* ptr  = (unsigned short*)(src + loc_base);
-                    unsigned short* ptr2 = (unsigned short*)(src2 + loc_base);
-                    buf_point[2 * x]     = ptr[0];
-                    buf_point[2 * x + 1] = ptr2[0];
-                    tab_loc[x]           = new_xy_float;
-                    x_count++;
-                    end_x = x;
-                } else {
-                    int mask0 =
-                        new_x_loc >= 0 && new_x_loc <= (scols - 1) && new_y_loc >= 0 && new_y_loc <= (srows - 1);
-                    int mask1 =
-                        new_x_loc >= -1 && new_x_loc <= (scols - 2) && new_y_loc >= 0 && new_y_loc <= (srows - 1);
-                    int mask2 =
-                        new_x_loc >= 0 && new_x_loc <= (scols - 1) && new_y_loc >= -1 && new_y_loc <= (srows - 2);
-                    int mask3 =
-                        new_x_loc >= -1 && new_x_loc <= (scols - 2) && new_y_loc >= -1 && new_y_loc <= (srows - 2);
-                    int val_xy0 = 0;
+        for (int x = end_x - x_count + 1; x <= end_x; x++) {
+            int dst_loc = dst_loc_base + x;
+            int src_loc = buf_loc[x];
+            short* wtab = BilinearTab_i[tab_loc[x]][0];
 
-                    if (mask0) {
-                        val_xy0 += wtab[0] * src[loc_base];
-                    }
-                    if (mask1) {
-                        val_xy0 += wtab[1] * src[loc_base + 1];
-                    }
-                    if (mask2) {
-                        val_xy0 += wtab[2] * src2[loc_base];
-                    }
-                    if (mask3) {
-                        val_xy0 += wtab[3] * src2[loc_base + 1];
-                    }
-                    dst[final_loc] = SATURATE_CAST_UCHAR((val_xy0 + DELTA) >> 15);
-                }
-            }
-        }
+            int point0 = src[src_loc];
+            int point1 = src[src_loc + 1];
+            int point2 = src2[src_loc];
+            int point3 = src2[src_loc + 1];
 
-        int x      = end_x - x_count + 1;
-        unsigned char* ptr = (unsigned char*)(buf_loc + x);
-
-        for (; x <= end_x; x++) {
-            int final_loc = final_loc_base + x;
-            short* wtab   = BilinearTab_i[tab_loc[x]][0];
-
-            int point0 = ptr[0];
-            int point1 = ptr[1];
-            int point2 = ptr[2];
-            int point3 = ptr[3];
-            ptr += 4;
-
-            int val_xy0    = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
-            dst[final_loc] = SATURATE_CAST_UCHAR((val_xy0 + DELTA) >> 15);
+            int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
+            dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
         }
     }
+
     delete[] buf_loc;
     delete[] tab_loc;
 
@@ -748,116 +743,45 @@ void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* d
 
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
-    int DELTA = 1 << 14;
 
-    int scols      = src_w;
-    int srows      = src_h;
-    int schannel   = 3;
-    int stmp       = scols * schannel;
     int* buf_loc   = new int[dst_w + 4];
     short* tab_loc = new short[dst_w + 4];
 
-    const unsigned char* src2 = src + stmp;
-
-    short xy_loc_buf[dst_w * 2];
-    short xy_float_buf[dst_w];
+    int schannel   = 3;
+    const unsigned char* src2 = src + src_w * schannel;
 
     for (int y = 0; y < dst_h; ++y) {
         int x_count        = 0;
         int end_x          = 0;
-        int final_loc_base = y * dst_w * 3;
+        int dst_loc_base = y * dst_w * 3;
 
-        for (int x = 0; x < dst_w; ++x) {
-            int new_x               = adelta[2 * x] + bdelta[2 * y] + 16;
-            int new_y               = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
-            int new_x_full          = new_x >> 5;
-            int new_y_full          = new_y >> 5;
-            xy_loc_buf[x * 2]     = (new_x >> 10);
-            xy_loc_buf[x * 2 + 1] = (new_y >> 10);
-            xy_float_buf[x]       = (new_x_full & 31) + (new_y_full & 31) * 32;
+        warpaffine_prepare_one_row(buf_loc, tab_loc, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y, x_count, end_x);
 
-            int new_x_loc    = xy_loc_buf[x * 2];
-            int new_y_loc    = xy_loc_buf[x * 2 + 1];
-            int new_xy_float = xy_float_buf[x];
-            short* wtab      = BilinearTab_i[new_xy_float][0];
-
-            if ((unsigned)new_x_loc < (scols - 1) && (unsigned)new_y_loc < (srows - 1)) {
-                buf_loc[x] = new_x_loc * 3 + new_y_loc * stmp;
-                tab_loc[x] = new_xy_float;
-                x_count++;
-                end_x = x;
-            } else {
-                if (new_x_loc >= -1 && new_x_loc <= (scols - 1) && new_y_loc >= -1 && new_y_loc <= (srows - 1)) {
-                    int loc_buffer = new_x_loc * 3 + new_y_loc * stmp;
-                    int final_loc  = final_loc_base + x * 3;
-
-                    int mask0 =
-                        new_x_loc >= 0 && new_x_loc <= (scols - 1) && new_y_loc >= 0 && new_y_loc <= (srows - 1);
-                    int mask1 =
-                        new_x_loc >= -1 && new_x_loc <= (scols - 2) && new_y_loc >= 0 && new_y_loc <= (srows - 1);
-                    int mask2 =
-                        new_x_loc >= 0 && new_x_loc <= (scols - 1) && new_y_loc >= -1 && new_y_loc <= (srows - 2);
-                    int mask3 =
-                        new_x_loc >= -1 && new_x_loc <= (scols - 2) && new_y_loc >= -1 && new_y_loc <= (srows - 2);
-
-                    int val_xy0 = 0;
-                    int val_xy1 = 0;
-                    int val_xy2 = 0;
-
-                    if (mask0) {
-                        val_xy0 += wtab[0] * src[loc_buffer];
-                        val_xy1 += wtab[0] * src[loc_buffer + 1];
-                        val_xy2 += wtab[0] * src[loc_buffer + 2];
-                    }
-                    if (mask1) {
-                        val_xy0 += wtab[1] * src[loc_buffer + 3];
-                        val_xy1 += wtab[1] * src[loc_buffer + 4];
-                        val_xy2 += wtab[1] * src[loc_buffer + 5];
-                    }
-                    if (mask2) {
-                        val_xy0 += wtab[2] * src2[loc_buffer];
-                        val_xy1 += wtab[2] * src2[loc_buffer + 1];
-                        val_xy2 += wtab[2] * src2[loc_buffer + 2];
-                    }
-                    if (mask3) {
-                        val_xy0 += wtab[3] * src2[loc_buffer + 3];
-                        val_xy1 += wtab[3] * src2[loc_buffer + 4];
-                        val_xy2 += wtab[3] * src2[loc_buffer + 5];
-                    }
-
-                    dst[final_loc]     = SATURATE_CAST_UCHAR((val_xy0 + DELTA) >> 15);
-                    dst[final_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + DELTA) >> 15);
-                    dst[final_loc + 2] = SATURATE_CAST_UCHAR((val_xy2 + DELTA) >> 15);
-                }
-            }
-        }
-
-        int x = end_x - x_count + 1;
-
-        for (; x <= end_x; x++) {
-            int final_loc  = final_loc_base + x * 3;
-            int loc_buffer = buf_loc[x];
+        for (int x = end_x - x_count + 1; x <= end_x; x++) {
+            int dst_loc = dst_loc_base + x * 3;
+            int src_loc = buf_loc[x];
             short* wtab = BilinearTab_i[tab_loc[x]][0];
 
-            int point00 = src[loc_buffer];
-            int point01 = src[loc_buffer + 1];
-            int point02 = src[loc_buffer + 2];
-            int point03 = src[loc_buffer + 3];
-            int point04 = src[loc_buffer + 4];
-            int point05 = src[loc_buffer + 5];
-            int point10 = src2[loc_buffer];
-            int point11 = src2[loc_buffer + 1];
-            int point12 = src2[loc_buffer + 2];
-            int point13 = src2[loc_buffer + 3];
-            int point14 = src2[loc_buffer + 4];
-            int point15 = src2[loc_buffer + 5];
+            int point00 = src[src_loc];
+            int point01 = src[src_loc + 1];
+            int point02 = src[src_loc + 2];
+            int point03 = src[src_loc + 3];
+            int point04 = src[src_loc + 4];
+            int point05 = src[src_loc + 5];
+            int point10 = src2[src_loc];
+            int point11 = src2[src_loc + 1];
+            int point12 = src2[src_loc + 2];
+            int point13 = src2[src_loc + 3];
+            int point14 = src2[src_loc + 4];
+            int point15 = src2[src_loc + 5];
 
             int val_xy0        = wtab[0] * point00 + wtab[1] * point03 + wtab[2] * point10 + wtab[3] * point13;
             int val_xy1        = wtab[0] * point01 + wtab[1] * point04 + wtab[2] * point11 + wtab[3] * point14;
             int val_xy2        = wtab[0] * point02 + wtab[1] * point05 + wtab[2] * point12 + wtab[3] * point15;
-            dst[final_loc]     = SATURATE_CAST_UCHAR((val_xy0 + DELTA) >> 15);
-            dst[final_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + DELTA) >> 15);
-            dst[final_loc + 2] = SATURATE_CAST_UCHAR((val_xy2 + DELTA) >> 15);
+            dst[dst_loc]     = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
+            dst[dst_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + (1 << 14)) >> 15);
+            dst[dst_loc + 2] = SATURATE_CAST_UCHAR((val_xy2 + (1 << 14)) >> 15);
         }
     }
 
