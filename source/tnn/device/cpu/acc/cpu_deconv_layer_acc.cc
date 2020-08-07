@@ -57,7 +57,7 @@ Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-    return TNNERR_LAYER_ERR;
+    return Status(TNNERR_LAYER_ERR, "data type not support in deconv");
 }
 
 template <typename T>

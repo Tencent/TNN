@@ -118,6 +118,7 @@ class Caffe2Onnx():
     def AddInputsTVIFromParams(self, layer, ParamName, ParamType):
         ParamShape = []
         ParamData = []
+        input_name, input_shape = self.GetLastLayerOutNameAndShape(layer)
         # 根据这个layer名找出对应的caffemodel中的参数
         for model_layer in self.netModelCaffe:
             if layer.name == model_layer.name:
@@ -148,6 +149,9 @@ class Caffe2Onnx():
                             ParamShape[1] = [ParamShape[1][2], ParamShape[1][3]]
                 if layer.type == "Normalize":
                     if len(ParamShape) == 1:
+                        ParamShape[0] = [1, ParamShape[0][0], 1, 1]
+                if layer.type == "PReLU":
+                    if len(ParamShape) == 1 and len(input_shape[0]) == 4:
                         ParamShape[0] = [1, ParamShape[0][0], 1, 1]
 
                 # comment it for tvm because tvm use broadcast at prelu layer
@@ -365,8 +369,8 @@ class Caffe2Onnx():
 
                     self.onnxNodeList.append(mul_node)
                 else:
-                    # Scale = Mul + Add
                     param_shape, param_data = self.GetParamsShapeAndData(Layers[i])
+                    # Scale = Mul + Add
                     if len(param_shape) == 2:
                         # create mul
                         param_scale_shape = [1, param_shape[0][0], 1, 1]
@@ -391,6 +395,23 @@ class Caffe2Onnx():
                         add_input_shape = [input_shape[0], param_bias_shape]
                         add_node = op.create_add_node(Layers[i], add_node_name, add_input_name, add_output_name, add_input_shape)
                         self.onnxNodeList.append(add_node)
+                    # Scale = Mul
+                    if len(param_shape) == 1:
+                        # create mul
+                        param_scale_shape = [1, param_shape[0][0], 1, 1]
+                        param_scale_data = param_data[0]
+                        param_scale_name = self.AddInputsTVIMannul(
+                            Layers[i], ["_scale"], [TensorProto.FLOAT],
+                            [param_scale_shape], [param_scale_data])
+
+                        mul_input_name = [input_name[0], param_scale_name[0]] 
+                        mul_input_shape = [input_shape[0], param_scale_shape]
+
+                        mul_node = op.create_mul_node(Layers[i], node_name,
+                                                      mul_input_name,
+                                                      output_name,
+                                                      mul_input_shape)
+                        self.onnxNodeList.append(mul_node)
 
             # Pooling
             elif Layers[i].type == "Pooling" or Layers[i].type == Layer_POOLING:
@@ -997,7 +1018,41 @@ class Caffe2Onnx():
                 crop_node = op.create_crop_node(Layers[i], node_name, Crop_name, output_name,
                                                   input_shape)
                 self.onnxNodeList.append(crop_node)
-                
+
+            # MVN
+            elif Layers[i].type == "MVN":
+                # MVN: InstanceNormalization
+                # create InstanceNormalization
+                if Layers[i].mvn_param.normalize_variance  == False or Layers[i].mvn_param.across_channels  == True:
+                               print("Failed type not support: " + Layers[i].type)
+                               exit(-1)
+                              
+
+                input_name, input_shape = self.GetLastLayerOutNameAndShape(
+                    Layers[i])
+                output_name = self.GetCurrentLayerOutName(Layers[i])
+                node_name = Layers[i].name
+
+                MVN_name = []
+                MVN_name.append(input_name[0])
+                scale, bias = op.get_InstanceNorm_param(Layers[i],input_shape)
+
+                scale_param = self.AddInputsTVIMannul(Layers[i],
+                                                       ['_scale' + str(i)],
+                                                       [TensorProto.FLOAT],
+                                                       [np.shape(scale)],
+                                                       [scale])
+                bias_param = self.AddInputsTVIMannul(Layers[i],
+                                                     ['_bias' + str(i)],
+                                                     [TensorProto.FLOAT],
+                                                     [np.shape(bias)], [bias])
+
+                MVN_name.extend(scale_param)
+                MVN_name.extend(bias_param)
+                MVN_node = op.create_InstanceNorm_op(Layers[i], node_name,
+                                                MVN_name, output_name,
+                                                input_shape)
+                self.onnxNodeList.append(MVN_node)
             else:
                 print("Failed type not support: " + Layers[i].type)
                 exit(-1)

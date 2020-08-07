@@ -32,12 +32,11 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node,
 
     std::vector<float> scales;
     std::vector<int64_t> sizes;
-    if (net_info.opset == 11) {
+    if (net_info.opset >= 11) {
         scales = get_node_attr_af(node, "scales", net_info, 2);
         sizes = get_node_attr_ai(node, "sizes", net_info, 3);
     } else {
         scales = get_node_attr_af(node, "scales", net_info, 1);
-        sizes = get_node_attr_ai(node, "sizes", net_info, 2);
     }
     float h_scale = 0;
     float w_scale = 0;

@@ -48,11 +48,11 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
-    // Normal precision, may run with bfp16.
+    // reserved
     PRECISION_NORMAL = 0,
     // High precision, run with fp32.
     PRECISION_HIGH = 1,
-    // Low precision, may run with int8, not supported now.
+    // Low precision, run with bfp16.
     PRECISION_LOW = 2,
 } Precision;
 
@@ -66,7 +66,7 @@ typedef enum {
 } NetworkType;
 
 typedef enum {
-    DEVICE_NAIVE    = 0x0000,
+    DEVICE_NAIVE  = 0x0000,
     DEVICE_X86    = 0x0010,
     DEVICE_ARM    = 0x0020,
     DEVICE_OPENCL = 0x1000,
@@ -135,6 +135,20 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
+    int GetConfig(int protolongth, int modellongth, const unsigned char *tnnproto_buffer,
+                  const unsigned char *tnnmodel_buffer) {
+        std::string tnnmodel;
+        std::string tnnproto;
+
+        for (int i = 0; i < protolongth; i++)
+            tnnproto += tnnproto_buffer[i];
+        for (int i = 0; i < modellongth; i++)
+            tnnmodel += tnnmodel_buffer[i];
+
+        params.push_back(tnnproto);
+        params.push_back(tnnmodel);
+        return 0;
+    }
 };
 
 }  // namespace TNN_NS
