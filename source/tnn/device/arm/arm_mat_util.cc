@@ -298,6 +298,53 @@ static void get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1,
     }
 }
 
+static void calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
+                              uint8_t* Dp) {
+#ifndef TNN_USE_NEON
+    int remain = w * c;
+#else
+    int nn = (w * c) >> 3;
+    int remain = (w * c) - (nn << 3);
+    int16x4_t _b0 = vdup_n_s16(b0);
+    int16x4_t _b1 = vdup_n_s16(b1);
+    int32x4_t _v2 = vdupq_n_s32(2);
+    for (; nn > 0; nn--) {
+        int16x4_t _rows0p_sr4   = vld1_s16(rows0p);
+        int16x4_t _rows1p_sr4   = vld1_s16(rows1p);
+        int16x4_t _rows0p_1_sr4 = vld1_s16(rows0p + 4);
+        int16x4_t _rows1p_1_sr4 = vld1_s16(rows1p + 4);
+
+        int32x4_t _rows0p_sr4_mb0   = vmull_s16(_rows0p_sr4, _b0);
+        int32x4_t _rows1p_sr4_mb1   = vmull_s16(_rows1p_sr4, _b1);
+        int32x4_t _rows0p_1_sr4_mb0 = vmull_s16(_rows0p_1_sr4, _b0);
+        int32x4_t _rows1p_1_sr4_mb1 = vmull_s16(_rows1p_1_sr4, _b1);
+
+        int32x4_t _acc = _v2;
+        _acc           = vsraq_n_s32(_acc, _rows0p_sr4_mb0, 16);
+        _acc           = vsraq_n_s32(_acc, _rows1p_sr4_mb1, 16);
+
+        int32x4_t _acc_1 = _v2;
+        _acc_1           = vsraq_n_s32(_acc_1, _rows0p_1_sr4_mb0, 16);
+        _acc_1           = vsraq_n_s32(_acc_1, _rows1p_1_sr4_mb1, 16);
+
+        int16x4_t _acc16   = vshrn_n_s32(_acc, 2);
+        int16x4_t _acc16_1 = vshrn_n_s32(_acc_1, 2);
+
+        uint8x8_t _D = vqmovun_s16(vcombine_s16(_acc16, _acc16_1));
+
+        vst1_u8(Dp, _D);
+
+        Dp += 8;
+        rows0p += 8;
+        rows1p += 8;
+    }
+#endif
+    for (; remain; --remain) {
+        *Dp++ = (uint8_t)(
+            ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
+    }
+}
+
 void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
     int* buf = nullptr;
@@ -322,53 +369,9 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
         short b0 = ibeta[0];
         short b1 = ibeta[1];
 
-        short* rows0p = rows0;
-        short* rows1p = rows1;
         uint8_t* Dp   = dst + stride * (dy);
 
-#ifdef TNN_USE_NEON
-        int nn = w >> 3;
-        int remain = w - (nn << 3);
-        int16x4_t _b0 = vdup_n_s16(b0);
-        int16x4_t _b1 = vdup_n_s16(b1);
-        int32x4_t _v2 = vdupq_n_s32(2);
-        for (; nn > 0; nn--) {
-            int16x4_t _rows0p_sr4   = vld1_s16(rows0p);
-            int16x4_t _rows1p_sr4   = vld1_s16(rows1p);
-            int16x4_t _rows0p_1_sr4 = vld1_s16(rows0p + 4);
-            int16x4_t _rows1p_1_sr4 = vld1_s16(rows1p + 4);
-
-            int32x4_t _rows0p_sr4_mb0   = vmull_s16(_rows0p_sr4, _b0);
-            int32x4_t _rows1p_sr4_mb1   = vmull_s16(_rows1p_sr4, _b1);
-            int32x4_t _rows0p_1_sr4_mb0 = vmull_s16(_rows0p_1_sr4, _b0);
-            int32x4_t _rows1p_1_sr4_mb1 = vmull_s16(_rows1p_1_sr4, _b1);
-
-            int32x4_t _acc = _v2;
-            _acc           = vsraq_n_s32(_acc, _rows0p_sr4_mb0, 16);
-            _acc           = vsraq_n_s32(_acc, _rows1p_sr4_mb1, 16);
-
-            int32x4_t _acc_1 = _v2;
-            _acc_1           = vsraq_n_s32(_acc_1, _rows0p_1_sr4_mb0, 16);
-            _acc_1           = vsraq_n_s32(_acc_1, _rows1p_1_sr4_mb1, 16);
-
-            int16x4_t _acc16   = vshrn_n_s32(_acc, 2);
-            int16x4_t _acc16_1 = vshrn_n_s32(_acc_1, 2);
-
-            uint8x8_t _D = vqmovun_s16(vcombine_s16(_acc16, _acc16_1));
-
-            vst1_u8(Dp, _D);
-
-            Dp += 8;
-            rows0p += 8;
-            rows1p += 8;
-        }
-#else
-        int remain = w;
-#endif
-        for (; remain; --remain) {
-            *Dp++ = (uint8_t)(
-                ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
-        }
+        calculate_one_row(rows0, rows1, b0, b1, w, 1, Dp);
 
         ibeta += 2;
     }
@@ -402,53 +405,9 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
         short b0 = ibeta[0];
         short b1 = ibeta[1];
 
-        short* rows0p = rows0;
-        short* rows1p = rows1;
         uint8_t* Dp   = dst + stride * (dy);
 
-#ifdef TNN_USE_NEON
-        int nn = (w * 2) >> 3;
-        int remain = (w * 2) - (nn << 3);
-        int16x4_t _b0 = vdup_n_s16(b0);
-        int16x4_t _b1 = vdup_n_s16(b1);
-        int32x4_t _v2 = vdupq_n_s32(2);
-        for (; nn > 0; nn--) {
-            int16x4_t _rows0p_sr4   = vld1_s16(rows0p);
-            int16x4_t _rows1p_sr4   = vld1_s16(rows1p);
-            int16x4_t _rows0p_1_sr4 = vld1_s16(rows0p + 4);
-            int16x4_t _rows1p_1_sr4 = vld1_s16(rows1p + 4);
-
-            int32x4_t _rows0p_sr4_mb0   = vmull_s16(_rows0p_sr4, _b0);
-            int32x4_t _rows1p_sr4_mb1   = vmull_s16(_rows1p_sr4, _b1);
-            int32x4_t _rows0p_1_sr4_mb0 = vmull_s16(_rows0p_1_sr4, _b0);
-            int32x4_t _rows1p_1_sr4_mb1 = vmull_s16(_rows1p_1_sr4, _b1);
-
-            int32x4_t _acc = _v2;
-            _acc           = vsraq_n_s32(_acc, _rows0p_sr4_mb0, 16);
-            _acc           = vsraq_n_s32(_acc, _rows1p_sr4_mb1, 16);
-
-            int32x4_t _acc_1 = _v2;
-            _acc_1           = vsraq_n_s32(_acc_1, _rows0p_1_sr4_mb0, 16);
-            _acc_1           = vsraq_n_s32(_acc_1, _rows1p_1_sr4_mb1, 16);
-
-            int16x4_t _acc16   = vshrn_n_s32(_acc, 2);
-            int16x4_t _acc16_1 = vshrn_n_s32(_acc_1, 2);
-
-            uint8x8_t _D = vqmovun_s16(vcombine_s16(_acc16, _acc16_1));
-
-            vst1_u8(Dp, _D);
-
-            Dp += 8;
-            rows0p += 8;
-            rows1p += 8;
-        }
-#else
-        int remain = w * 2;
-#endif
-        for (; remain; --remain) {
-            *Dp++ = (uint8_t)(
-                ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
-        }
+        calculate_one_row(rows0, rows1, b0, b1, w, 2, Dp);
 
         ibeta += 2;
     }
@@ -482,53 +441,9 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
         short b0 = ibeta[0];
         short b1 = ibeta[1];
 
-        short* rows0p = rows0;
-        short* rows1p = rows1;
         uint8_t* Dp   = dst + stride * (dy);
 
-#ifdef TNN_USE_NEON
-        int nn = (w * 3) >> 3;
-        int remain = (w * 3) - (nn << 3);
-        int16x4_t _b0 = vdup_n_s16(b0);
-        int16x4_t _b1 = vdup_n_s16(b1);
-        int32x4_t _v2 = vdupq_n_s32(2);
-        for (; nn > 0; nn--) {
-            int16x4_t _rows0p_sr4   = vld1_s16(rows0p);
-            int16x4_t _rows1p_sr4   = vld1_s16(rows1p);
-            int16x4_t _rows0p_1_sr4 = vld1_s16(rows0p + 4);
-            int16x4_t _rows1p_1_sr4 = vld1_s16(rows1p + 4);
-
-            int32x4_t _rows0p_sr4_mb0   = vmull_s16(_rows0p_sr4, _b0);
-            int32x4_t _rows1p_sr4_mb1   = vmull_s16(_rows1p_sr4, _b1);
-            int32x4_t _rows0p_1_sr4_mb0 = vmull_s16(_rows0p_1_sr4, _b0);
-            int32x4_t _rows1p_1_sr4_mb1 = vmull_s16(_rows1p_1_sr4, _b1);
-
-            int32x4_t _acc = _v2;
-            _acc           = vsraq_n_s32(_acc, _rows0p_sr4_mb0, 16);
-            _acc           = vsraq_n_s32(_acc, _rows1p_sr4_mb1, 16);
-
-            int32x4_t _acc_1 = _v2;
-            _acc_1           = vsraq_n_s32(_acc_1, _rows0p_1_sr4_mb0, 16);
-            _acc_1           = vsraq_n_s32(_acc_1, _rows1p_1_sr4_mb1, 16);
-
-            int16x4_t _acc16   = vshrn_n_s32(_acc, 2);
-            int16x4_t _acc16_1 = vshrn_n_s32(_acc_1, 2);
-
-            uint8x8_t _D = vqmovun_s16(vcombine_s16(_acc16, _acc16_1));
-
-            vst1_u8(Dp, _D);
-
-            Dp += 8;
-            rows0p += 8;
-            rows1p += 8;
-        }
-#else
-        int remain = (w * 3);
-#endif
-        for (; remain; --remain) {
-            *Dp++ = (uint8_t)(
-                ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
-        }
+        calculate_one_row(rows0, rows1, b0, b1, w, 3, Dp);
 
         ibeta += 2;
     }
@@ -562,54 +477,9 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
         short b0 = ibeta[0];
         short b1 = ibeta[1];
 
-        short* rows0p = rows0;
-        short* rows1p = rows1;
         uint8_t* Dp   = dst + stride * (dy);
 
-#ifdef TNN_USE_NEON
-        int nn = (w * 4) >> 3;
-        int remain = (w * 4) - (nn << 3);
-        int16x4_t _b0 = vdup_n_s16(b0);
-        int16x4_t _b1 = vdup_n_s16(b1);
-        int32x4_t _v2 = vdupq_n_s32(2);
-        for (; nn > 0; nn--) {
-            int16x4_t _rows0p_sr4   = vld1_s16(rows0p);
-            int16x4_t _rows1p_sr4   = vld1_s16(rows1p);
-            int16x4_t _rows0p_1_sr4 = vld1_s16(rows0p + 4);
-            int16x4_t _rows1p_1_sr4 = vld1_s16(rows1p + 4);
-
-            int32x4_t _rows0p_sr4_mb0   = vmull_s16(_rows0p_sr4, _b0);
-            int32x4_t _rows1p_sr4_mb1   = vmull_s16(_rows1p_sr4, _b1);
-            int32x4_t _rows0p_1_sr4_mb0 = vmull_s16(_rows0p_1_sr4, _b0);
-            int32x4_t _rows1p_1_sr4_mb1 = vmull_s16(_rows1p_1_sr4, _b1);
-
-            int32x4_t _acc = _v2;
-            _acc           = vsraq_n_s32(_acc, _rows0p_sr4_mb0, 16);
-            _acc           = vsraq_n_s32(_acc, _rows1p_sr4_mb1, 16);
-
-            int32x4_t _acc_1 = _v2;
-            _acc_1           = vsraq_n_s32(_acc_1, _rows0p_1_sr4_mb0, 16);
-            _acc_1           = vsraq_n_s32(_acc_1, _rows1p_1_sr4_mb1, 16);
-
-            int16x4_t _acc16   = vshrn_n_s32(_acc, 2);
-            int16x4_t _acc16_1 = vshrn_n_s32(_acc_1, 2);
-
-            uint8x8_t _D = vqmovun_s16(vcombine_s16(_acc16, _acc16_1));
-
-            vst1_u8(Dp, _D);
-
-            Dp += 8;
-            rows0p += 8;
-            rows1p += 8;
-        }
-
-#else
-        int remain = (w * 4);
-#endif
-        for (; remain; --remain) {
-            *Dp++ = (uint8_t)(
-                ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
-        }
+        calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
 
         ibeta += 2;
     }
