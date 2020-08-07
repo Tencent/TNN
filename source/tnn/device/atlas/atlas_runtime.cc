@@ -47,7 +47,7 @@ Status AtlasRuntime::Init() {
         LOGD("Init Atlas Acl\n");
 
         LOGD("acl begin init...\n");
-        aclError ret = aclInit("");
+        aclError ret = aclInit(nullptr);
         if (ret != ACL_ERROR_NONE && ret != ACL_ERROR_REPEAT_INITIALIZE) {
             LOGE("acl init failed!\n");
             return TNNERR_ATLAS_RUNTIME_ERROR;
