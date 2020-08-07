@@ -73,6 +73,15 @@ string OnnxOpConverterPad::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info)
         }
         layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " " << pad_c_b << " "
                     << pad_c_e << " " << type << " ";
+    } else if (pads.size() == 6) {
+        int64_t pad_c_b = pads[1];
+        int64_t pad_c_e = pads[4];
+        int64_t pad_t   = pads[2];
+        int64_t pad_b   = pads[5];
+        int64_t pad_l   = 0;
+        int64_t pad_r   = 0;
+        layer_param << "0 0 " << pad_t << " " << pad_b << " " << pad_l << " " << pad_r << " " << pad_c_b << " "
+                    << pad_c_e << " " << type << " ";
     }
     layer_param << const_value << " ";
 
