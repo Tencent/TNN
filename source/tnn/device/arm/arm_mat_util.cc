@@ -650,13 +650,61 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
                                        int y, int& x_count, int& end_x) {
     const unsigned char* src2 = src + src_w * channel;
 
-    for (int x = 0; x < dst_w; ++x) {
-        int new_x          = adelta[2 * x] + bdelta[2 * y] + 16;
-        int new_y          = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
-        int new_x_loc      = new_x >> 10;
-        int new_y_loc      = new_y >> 10;
-        int src_loc        = new_y_loc * src_w * channel + new_x_loc * channel;
-        short new_xy_float = ((new_x >> 5) & 31) + ((new_y >> 5) & 31) * 32;
+    short xy_loc_buf[dst_w * 2];
+    short tb_loc_buf[dst_w];
+    int   sc_loc_buf[dst_w];
+    short* xy_loc_buf_p = xy_loc_buf;
+    short* tb_loc_buf_p = tb_loc_buf;
+    int*   sc_loc_buf_p = sc_loc_buf;
+    int x = 0;
+#ifdef TNN_USE_NEON
+    int32x2_t _bdelta0 = vld1_s32(bdelta + 2 * y);
+    int32x4_t _bdelta  = vcombine_s32(_bdelta0, _bdelta0);
+    int32x4_t _offset  = vdupq_n_s32(16);
+    int16x8_t _mask    = vdupq_n_s16(31);
+    int16x8_t _coeff   = {1,32,1,32,1,32,1,32};
+    int32x4_t _channel = vdupq_n_s32(channel);
+    int16x4_t _src_w   = {1, (short)src_w,1,(short)src_w};
+    for (; x < dst_w - 3; x += 4) {
+        int32x4_t _xyxy0   = vaddq_s32(vld1q_s32(adelta), _offset);
+        int32x4_t _xyxy1   = vaddq_s32(vld1q_s32(adelta + 4), _offset);
+        _xyxy0             = vaddq_s32(_xyxy0, _bdelta);
+        _xyxy1             = vaddq_s32(_xyxy1, _bdelta);
+        int16x4_t _xyxy0s  = vshrn_n_s32(_xyxy0, 10);
+        int16x8_t _xyxy01s = vshrn_high_n_s32(_xyxy0s, _xyxy1, 10);
+        vst1q_s16(xy_loc_buf_p, _xyxy01s);
+
+        int32x4_t _src_0   = vmull_s16(_xyxy0s, _src_w);
+        int32x4_t _src_1   = vmull_s16(vget_high_s16(_xyxy01s), _src_w);
+        vst1q_s32(sc_loc_buf_p, vmulq_s32(_channel, vpaddq_s32(_src_0, _src_1)));
+
+        _xyxy0s            = vshrn_n_s32(_xyxy0, 5);
+        _xyxy01s           = vshrn_high_n_s32(_xyxy0s, _xyxy1, 5);
+        int16x8_t _tab_xys = vmulq_s16(vandq_s16(_xyxy01s, _mask), _coeff);
+        vst1_s16(tb_loc_buf_p, vpadd_s16(vget_low_s16(_tab_xys), vget_high_s16(_tab_xys)));
+
+        adelta       += 8;
+        xy_loc_buf_p += 8;
+        tb_loc_buf_p += 4;
+        sc_loc_buf_p += 4;
+    }
+#endif
+    for (; x < dst_w; ++x) {
+        int new_x     = adelta[2 * x] + bdelta[2 * y] + 16;
+        int new_y     = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
+        int new_x_loc = new_x >> 10;
+        int new_y_loc = new_y >> 10;
+        xy_loc_buf[2 * x]     = new_x_loc;
+        xy_loc_buf[2 * x + 1] = new_y_loc;
+        tb_loc_buf[x] = ((new_x >> 5) & 31) + ((new_y >> 5) & 31) * 32;
+        sc_loc_buf[x] = (new_x_loc + new_y_loc * src_w) * channel;
+    }
+
+    for (x = 0; x < dst_w; ++x) {
+        short new_x_loc    = xy_loc_buf[2 * x];
+        short new_y_loc    = xy_loc_buf[2 * x + 1];
+        short new_xy_float = tb_loc_buf[x];
+        int   src_loc      = sc_loc_buf[x];
 
         if ((unsigned)new_x_loc < (src_w - 1) && (unsigned)new_y_loc < (src_h - 1)) {
             buf_loc[x] = src_loc;
@@ -664,7 +712,7 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
             x_count++;
             end_x = x;
         } else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
-                    new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+                   new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
             short* wtab = BilinearTab_i[new_xy_float][0];
             int dsc_loc = x * channel;
 
