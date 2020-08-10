@@ -113,7 +113,7 @@ private:
 
     std::vector<NpuBaseLayer *> layers_;
 
-    BlobManager *blob_manager_ = nullptr;
+//    BlobManager *blob_manager_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
     // add for npu
