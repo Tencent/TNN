@@ -278,11 +278,6 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
 
-    blob_manager_ = new BlobManager(device_);
-    ret           = blob_manager_->Init(net_config, net_structure_, inputs_shape, GetNetResourceDataType(net_resource));
-    if (ret != TNN_OK) {
-        return ret;
-    }
     // Create input operators
     ret = CreateGraphInputs(inputs_shape);
     if (ret != TNN_OK) {
@@ -441,6 +436,21 @@ Status NpuNetwork::Reshape(const InputShapesMap &inputs) {
 
 Status NpuNetwork::DeInit() {
     client_->UnLoadModel();
+    auto iterator = input_blob_map_.begin();
+    while (iterator!=input_blob_map_.end()) {
+        delete(iterator->second);
+        iterator++;
+    }
+    iterator = output_blob_map_.begin();
+    while (iterator!=output_blob_map_.end()) {
+        delete(iterator->second);
+        iterator++;
+    }
+    if (context_ != NULL) {
+        delete context_;
+        context_ = NULL;
+    }
+
     return TNN_OK;
 }
 
