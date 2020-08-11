@@ -73,7 +73,6 @@ void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::v
     if (ArmDeconvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvLayerDepthwise *>(deconv_acc_impl_.get())) {
             auto deconv_acc = std::make_shared<ArmDeconvLayerDepthwise>();
-            deconv_acc->Init(context_, param_, resource_, inputs, outputs);
             deconv_acc_impl_ = deconv_acc;
         }
     }
