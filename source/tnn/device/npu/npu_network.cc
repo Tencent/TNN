@@ -438,17 +438,23 @@ Status NpuNetwork::DeInit() {
     client_->UnLoadModel();
     auto iterator = input_blob_map_.begin();
     while (iterator!=input_blob_map_.end()) {
-        delete(iterator->second);
+        if (iterator->second != nullptr){
+            delete(iterator->second);
+            iterator->second = nullptr;
+        }
         iterator++;
     }
     iterator = output_blob_map_.begin();
     while (iterator!=output_blob_map_.end()) {
-        delete(iterator->second);
+        if (iterator->second != nullptr) {
+            delete(iterator->second);
+            iterator->second = nullptr;
+        }
         iterator++;
     }
-    if (context_ != NULL) {
+    if (context_ != nullptr) {
         delete context_;
-        context_ = NULL;
+        context_ = nullptr;
     }
 
     return TNN_OK;
