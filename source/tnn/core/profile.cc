@@ -15,7 +15,7 @@
 #include "tnn/core/profile.h"
 #include <iomanip>
 #include <sstream>
-#include <sys/time.h>
+#include <time.h>
 
 #include "tnn/core/status.h"
 #include "tnn/utils/string_format.h"
