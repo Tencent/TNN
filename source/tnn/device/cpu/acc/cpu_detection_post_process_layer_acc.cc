@@ -14,7 +14,9 @@
 
 #include "cpu_detection_post_process_layer_acc.h"
 
+#include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/detection_post_process_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -30,13 +32,17 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
+    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], nullptr);
+    inputs[0]->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(inputs[0]->GetBlobDesc().dims);
+    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[1], nullptr);
+    inputs[1]->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(inputs[1]->GetBlobDesc().dims);
     CenterSizeEncoding scale_values;
     scale_values.y = param->center_size_encoding[0];
     scale_values.x = param->center_size_encoding[1];
     scale_values.h = param->center_size_encoding[2];
     scale_values.w = param->center_size_encoding[3];
     BlobDesc decode_boxes_desc;
-    decode_boxes_desc.dims = {inputs[0]->GetBlobDesc().dims[2], 4, 1, 1};
+    decode_boxes_desc.dims = {inputs[0]->GetBlobDesc().dims[1], 4, 1, 1};
     Blob decode_boxes_blob = Blob(decode_boxes_desc, true);
     DecodeBoxes(param, resource, inputs[0], scale_values, &decode_boxes_blob);
 

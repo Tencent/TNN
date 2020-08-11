@@ -50,9 +50,11 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     if (status != TNN_OK) {
         return status;
     }
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
+    for (auto& output_blob : output_blobs) {
+        LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", output_blob->GetBlobDesc().name.c_str(),
+             output_blob->GetBlobDesc().dims[0], output_blob->GetBlobDesc().dims[1], output_blob->GetBlobDesc().dims[2],
+             output_blob->GetBlobDesc().dims[3]);
+    }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {
         if (item <= 0) {

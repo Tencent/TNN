@@ -22,14 +22,14 @@ namespace TNN_NS {
 
 void DecodeBoxes(DetectionPostProcessLayerParam* param, DetectionPostProcessLayerResource* resource,
                  Blob* boxes_encoding_blob, const CenterSizeEncoding& scale_values, Blob* decode_boxes_blob) {
-    const int num_boxes         = boxes_encoding_blob->GetBlobDesc().dims[2];
+    const int num_boxes         = boxes_encoding_blob->GetBlobDesc().dims[1];
     const int box_coord_num     = boxes_encoding_blob->GetBlobDesc().dims[3];
     const int num_anchors       = param->num_anchors;
     const int anchors_coord_num = param->anchors_coord_num;
     assert(num_boxes == num_anchors);
     assert(box_coord_num >= 4);
     assert(anchors_coord_num == 4);
-    const auto boxes_ptr   = static_cast<float*>(boxes_encoding_blob->GetHandle().base);
+    const auto boxes_ptr   = (float*)(boxes_encoding_blob->GetHandle().base);
     const auto anchors_ptr = reinterpret_cast<const CenterSizeEncoding*>(resource->anchors_handle.force_to<void*>());
     auto decode_boxes_ptr  = reinterpret_cast<BoxCornerEncoding*>(decode_boxes_blob->GetHandle().base);
     CenterSizeEncoding box_center_size_encoding;
@@ -49,8 +49,8 @@ void DecodeBoxes(DetectionPostProcessLayerParam* param, DetectionPostProcessLaye
         auto& cur_box = decode_boxes_ptr[i];
         cur_box.ymin  = ycenter - halfh;
         cur_box.xmin  = xcenter - halfw;
-        cur_box.ymax  = ycenter - halfh;
-        cur_box.xmax  = xcenter - halfw;
+        cur_box.ymax  = ycenter + halfh;
+        cur_box.xmax  = xcenter + halfw;
     }
 }
 

@@ -45,11 +45,13 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
     if (quantized_model) {
         // TODO
     } else {
-        param->axis     = 0;
-        param->num_axes = 4;
-
+        // tensorflow reshape(nhwc);
+        param->reshape_type = 1;
+        param->axis         = 0;
+        param->num_axes     = 4;
+        assert(tf_lite_operator->inputs.size() == 2);
         const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
-        ASSERT(shape_tensor->type == tflite::TensorType_INT32);
+        assert(shape_tensor->type == tflite::TensorType_INT32);
 
         int shape_size = 1;
         for (int i = 0; i < shape_tensor->shape.size(); ++i) {
@@ -58,8 +60,11 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
         ASSERT(shape_size == shape_data.size() / 4);
 
-        auto dimPtr = reinterpret_cast<const int32_t*>(shape_data.data());
-        std::vector<int> reshape_dim(dimPtr, dimPtr + shape_size);
+        auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
+        std::vector<int> reshape_dim(shape_data_ptr, shape_data_ptr + shape_size);
+        if (reshape_dim.size() == 3) {
+            reshape_dim.insert(reshape_dim.begin() + 2, 1);
+        }
         reshape_dim[0] = 0;
         ConvertShapeFormatTFLite(reshape_dim);
         param->shape = reshape_dim;

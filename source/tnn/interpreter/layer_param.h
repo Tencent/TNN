@@ -139,6 +139,9 @@ struct NormalizeLayerParam : public LayerParam {
 };
 
 struct ReshapeLayerParam : public LayerParam {
+    // reshape_type:
+    // onnx caffe reshape(nchw): 0
+    // Tensorflow TFLite reshape(nhwc): 1
     int reshape_type = 0;  // meaning what ?
     int axis         = 0;
     int num_axes     = 0;
