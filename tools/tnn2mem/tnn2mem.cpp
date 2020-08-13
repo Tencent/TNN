@@ -32,21 +32,6 @@ static std::string PathtoVarname(const char* path) {
     return varname;
 }
 
-static std::string UppercaseName(std::string name){
-    std::string uppercase_name;
-    uppercase_name += name[0] - 32;
-    for(int i = 1;i < name.length();i++){
-        if(name[i] == '_'){
-            i++;
-            uppercase_name += name[i] - 32;
-        }
-        else{
-            uppercase_name += name[i];
-        }
-    }
-    return uppercase_name;
-}
-
 static int DumpProto(const char* proto_path, const char* model_path, const char* idcpp_path) {
     FILE* fp = fopen(proto_path, "rb");
     FILE* mp = fopen(model_path, "rb");
@@ -61,17 +46,13 @@ static int DumpProto(const char* proto_path, const char* model_path, const char*
         return -1;
     }
     std::string proto_var         = PathtoVarname(proto_path);
-    std::string proto_uppercase   = UppercaseName(proto_var);
     std::string model_var         = PathtoVarname(model_path);
-    std::string model_uppercase   = UppercaseName(model_var);
     std::string include_guard_var = PathtoVarname(idcpp_path);
 
     FILE* ip = fopen(idcpp_path, "wb");
 
     fprintf(ip, "#ifndef TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
     fprintf(ip, "#define TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
-    
-    fprintf(ip, "#include <string>\n");
 
     fprintf(ip, "\n#ifdef _MSC_VER\n__declspec(align(4))\n#else\n__attribute__((aligned(4)))\n#endif\n");
 
@@ -117,18 +98,6 @@ static int DumpProto(const char* proto_path, const char* model_path, const char*
 
     fprintf(ip, "static const int %s_length = ", proto_var.c_str());
     fprintf(ip, "%u;\n", j);
-    
-    fprintf(ip, "std::string Get%s(){\n", proto_uppercase.c_str());
-    fprintf(ip, "std::string tnnproto;\n");
-    fprintf(ip, "for (int i = 0; i < %s_length; i++)\n", proto_var.c_str());
-    fprintf(ip, "tnnproto += %s[i];\n", proto_var.c_str());
-    fprintf(ip, "return tnnproto;}\n");
-
-    fprintf(ip, "std::string Get%s(){\n", model_uppercase.c_str());
-    fprintf(ip, "std::string tnnmodel;\n");
-    fprintf(ip, "for (int i = 0; i < %s_length; i++)\n", model_var.c_str());
-    fprintf(ip, "tnnmodel += %s[i];\n", model_var.c_str());
-    fprintf(ip, "return tnnmodel;}\n");
 
     fprintf(ip, "#endif // TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
 
