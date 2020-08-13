@@ -41,7 +41,7 @@ TNN_NS::Status TFLiteSqueezeConverter::exec(tnn::NetStructure &net_structure, tn
     param->type                      = cur_layer->type_str;
     param->quantized                 = false;
     auto option                      = tf_lite_operator->builtin_options.AsSqueezeOptions();
-    for (auto axis : option->squeezeDims) {
+    for (auto axis : option->squeeze_dims) {
         param->axes.push_back(ConvertAxisFormatTFLite(axis));
     }
     return TNN_NS::TNN_CONVERT_OK;

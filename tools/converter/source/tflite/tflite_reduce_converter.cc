@@ -40,7 +40,7 @@ TNN_NS::Status TFLiteReduceConverter::exec(tnn::NetStructure &net_structure, tnn
     param->type      = cur_layer->type_str;
     param->quantized = false;
     auto option      = tf_lite_operator->builtin_options.AsReducerOptions();
-    param->keep_dims = option->keepDims;
+    param->keep_dims = option->keep_dims;
     assert(cur_layer->inputs.size() == 2);
     const auto &axes_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
     int axes_size           = Count(axes_tensor->shape);
