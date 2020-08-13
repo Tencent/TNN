@@ -17,7 +17,7 @@
 namespace TNN_NS {
 
 template <>
-std::string to_string<float>(float value) {
+std::string ToString<float>(float value) {
     std::ostringstream os;
     os << std::showpoint << value;
     return os.str();

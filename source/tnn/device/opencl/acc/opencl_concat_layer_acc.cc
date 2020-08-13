@@ -116,7 +116,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         }
     } else if (TWO_INPUTS_CHANNEL_MOD_123 == concat_type_) {
         std::set<std::string> build_options;
-        build_options.emplace("-DCHANNEL0_MOD_4=" + to_string(inputs[0]->GetBlobDesc().dims[1] % 4));
+        build_options.emplace("-DCHANNEL0_MOD_4=" + ToString(inputs[0]->GetBlobDesc().dims[1] % 4));
         std::string program_name = "concat";
         kernel_name              = "ConcatChannel";
         execute_units_.resize(1);
