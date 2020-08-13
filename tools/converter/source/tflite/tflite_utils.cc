@@ -57,15 +57,12 @@ bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW
 }
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
-    if (shape.size() == 0){
+    if (shape.empty()){
         LOGE("TNN Converter do not support wrong shape!\n");
         return false;
     }
-    if (shape.size() < 4 && !shape.empty()) {
-        int shape_size = shape.size();
-        for (int i = 0; i < 4 - shape_size; i++) {
-            shape.push_back(1);
-        }
+    while (shape.size() < 4) {
+        shape.insert(shape.end() - 1, 1);
     }
     // shape [n, h , w, c] -> shape [n, c, h, w]
     if (shape.size() == 4) {

@@ -62,9 +62,6 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
 
         auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
         std::vector<int> reshape_dim(shape_data_ptr, shape_data_ptr + shape_size);
-        if (reshape_dim.size() == 3) {
-            reshape_dim.insert(reshape_dim.begin() + 2, 1);
-        }
         reshape_dim[0] = 0;
         ConvertShapeFormatTFLite(reshape_dim);
         param->shape = reshape_dim;
