@@ -17,6 +17,7 @@ option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
 option(TNN_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_RKNPU_ENABLE "Enable RKNPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
@@ -146,6 +147,7 @@ message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
 message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
+message(STATUS "\tRKNPU:\t${TNN_RKNPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -219,6 +221,20 @@ if(TNN_NPU_ENABLE)
     endif()
     add_subdirectory(source/tnn/device/npu)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
+endif()
+
+if(TNN_RKNPU_ENABLE)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        link_directories(
+                ./third_party/rknpu/rknpu_ddk/lib64/
+        )
+    else()
+        link_directories(
+                ./third_party/rknpu/rknpu_ddk/lib/
+        )
+    endif()
+    add_subdirectory(source/tnn/device/rknpu)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNRKNPU>")
 endif()
 
 if(TNN_SYMBOL_HIDE AND UNIX)

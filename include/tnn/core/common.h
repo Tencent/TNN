@@ -63,7 +63,8 @@ typedef enum {
     NETWORK_TYPE_SNPE     = 0x3000,
     NETWORK_TYPE_HIAI     = 0x4000,
     NETWORK_TYPE_ATLAS    = 0x5000,
-    NETWORK_TYPE_NPU      = 0x6000
+    NETWORK_TYPE_NPU      = 0x6000,
+    NETWORK_TYPE_RKNPU    = 0x7000
 } NetworkType;
 
 typedef enum {
@@ -75,7 +76,8 @@ typedef enum {
     DEVICE_CUDA   = 0x1020,
     DEVICE_DSP    = 0x1030,
     DEVICE_ATLAS  = 0x1040,
-    DEVICE_NPU    = 0x1050
+    DEVICE_NPU    = 0x1050,
+    DEVICE_RKNPU  = 0x1060,
 } DeviceType;
 
 typedef enum {
