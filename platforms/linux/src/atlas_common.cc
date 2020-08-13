@@ -94,6 +94,7 @@ void* RunTNN(void* param) {
     auto input_dims = input->GetBlobDesc().dims;
     auto input_format = input->GetBlobDesc().data_format;
     if (DATA_FORMAT_NCHW == input_format || DATA_FORMAT_NC4HW4 == input_format) {
+        printf("input is NCHW\n");
 #ifdef INPUT_8UC3_ENABLE
         ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
         //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, input_dims);
@@ -101,6 +102,7 @@ void* RunTNN(void* param) {
         ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, input_dims, false);
 #endif
     } else if (DATA_FORMAT_NHWC == input_format) {
+        printf("input is NHWC\n");
 #ifdef INPUT_8UC3_ENABLE
         //ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
         ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});

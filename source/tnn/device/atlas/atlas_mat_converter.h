@@ -28,13 +28,13 @@ public:
     AtlasMatConverterAcc();
     virtual ~AtlasMatConverterAcc();
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) override;
-    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue = NULL) override;
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue = NULL) override;
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) override;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
 
 private:
     Status PrepareInput(Mat& mat);
-    Status PrepareOutput(Mat& mat);
+    Status PrepareOutput(Mat& mat, int pad_value = 0);
     Status ProcessOutput(Mat& mat);
 
     Status GetAlignedBufferSize(Mat& mat, int width_align_to, int height_align_to, int& buffer_size, int& width_aligned,

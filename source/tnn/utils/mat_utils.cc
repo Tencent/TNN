@@ -22,9 +22,9 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
     return convert.Resize(src, dst, param, command_queue);
 }
 
-Status MatUtils::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue) {
+Status MatUtils::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
     MatConverter convert(&src, &dst);
-    return convert.ResizeAndPaste(src, dst, param, paste_type, command_queue);
+    return convert.ResizeAndPaste(src, dst, param, paste_param, command_queue);
 }
 
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {

@@ -25,7 +25,7 @@ class MatConverter {
 public:
     MatConverter(Mat* src, Mat* dst);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
-    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue);
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 

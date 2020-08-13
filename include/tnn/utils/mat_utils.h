@@ -41,6 +41,11 @@ struct PUBLIC ResizeParam {
     float scale_h = 0.0f;
 };
 
+struct PUBLIC PasteParam {
+    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
+    int pad_value  = 0;
+};
+
 struct PUBLIC CropParam {
     int top_left_x = 0;
     int top_left_y = 0;
@@ -71,7 +76,7 @@ public:
     // @param param  param to use for resize
     // @param command_queue  device related command queue
     // @return ret  return val
-    static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue);
+    static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
 
     // @brief mat resize
     // @param src  src mat

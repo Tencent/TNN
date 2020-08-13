@@ -30,7 +30,7 @@ public:
     MatConverterAcc(){};
     virtual ~MatConverterAcc(){};
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL)         = 0;
-    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue = NULL) = 0;
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue = NULL) = 0;
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL)             = 0;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) = 0;
 };

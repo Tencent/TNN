@@ -173,7 +173,7 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     return TNN_OK;
 }
 
-Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteType paste_type, void* command_queue) {
+Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
     if (!init_success_) {
         LOGE("init mat converter failed!\n");
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
@@ -209,7 +209,7 @@ Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam para
             return ret;
         }
 
-        ret = PrepareOutput(dst);
+        ret = PrepareOutput(dst, paste_param.pad_value);
         if (TNN_OK != ret) {
             return ret;
         }
@@ -222,7 +222,7 @@ Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam para
 
         int paste_left = 0;
         int paste_top = 0;
-        if (paste_type == PASTE_TYPE_CENTER_ALIGN) {
+        if (paste_param.type == PASTE_TYPE_CENTER_ALIGN) {
             paste_left = ((dst.GetWidth() - dst_width + 1) / 2 + 7) & (~0x0F);
             paste_top = ((dst.GetHeight() - dst_height + 1) / 2) & (~0x01);
         }
@@ -423,7 +423,7 @@ Status AtlasMatConverterAcc::PrepareInput(Mat& mat) {
     return TNN_OK;
 }
 
-Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
+Status AtlasMatConverterAcc::PrepareOutput(Mat& mat, int pad_value) {
     int batch = mat.GetBatch();
     if (1 != batch) {
         LOGE("atlas mat convert not support multi batch (batch is %d)!\n", batch);
@@ -457,6 +457,7 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
         mat = Mat(device_type, mat.GetMatType(), {mat.GetBatch(), mat.GetChannel(), height_origin, width_origin});
     }
 
+    // get dvpp_output_buffer
     if (DEVICE_ATLAS == device_type) {
         LOGD("output is on device\n");
         // output device memory must by aligned with 16x2
@@ -473,6 +474,11 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat) {
     } else {
         LOGE("mat resize not support this input device type (device type is %d)!\n", device_type);
         return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat resize not support this input device type");
+    }
+    acl_ret = aclrtMemset(dvpp_output_buffer_ptr_, buffer_size, pad_value, buffer_size);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("aclrtMemset failed, ret = %d\n", acl_ret);
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtMemset failed");
     }
 
     acldvppPixelFormat dvpp_pixel_format;

@@ -136,8 +136,10 @@ int main(int argc, char* argv[]) {
     ResizeParam param_resize2;
     param_resize2.scale_w = 1.0;
     param_resize2.scale_h = 1.0;
-    //tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, PASTE_TYPE_TOP_LEFT_ALIGN, command_queue);
-    tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, PASTE_TYPE_CENTER_ALIGN, command_queue);
+    PasteParam paste_param;
+    paste_param.type = PASTE_TYPE_CENTER_ALIGN;
+    paste_param.pad_value = 128;
+    tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, paste_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
