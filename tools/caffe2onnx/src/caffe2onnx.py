@@ -118,6 +118,7 @@ class Caffe2Onnx():
     def AddInputsTVIFromParams(self, layer, ParamName, ParamType):
         ParamShape = []
         ParamData = []
+        input_name, input_shape = self.GetLastLayerOutNameAndShape(layer)
         # 根据这个layer名找出对应的caffemodel中的参数
         for model_layer in self.netModelCaffe:
             if layer.name == model_layer.name:
@@ -148,6 +149,9 @@ class Caffe2Onnx():
                             ParamShape[1] = [ParamShape[1][2], ParamShape[1][3]]
                 if layer.type == "Normalize":
                     if len(ParamShape) == 1:
+                        ParamShape[0] = [1, ParamShape[0][0], 1, 1]
+                if layer.type == "PReLU":
+                    if len(ParamShape) == 1 and len(input_shape[0]) == 4:
                         ParamShape[0] = [1, ParamShape[0][0], 1, 1]
 
                 # comment it for tvm because tvm use broadcast at prelu layer
