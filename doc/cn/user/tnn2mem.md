@@ -26,10 +26,10 @@ cd tools/tnn2mem
 
 ```
 ModelConfig model_config;
-std::string mobilentv2_tnnporto = GetMobilenetv2Tnnproto();
-model_config.params.push_back(mobilentv2_tnnporto);
-std::string mobilentv2_tnnmodel = GetMobilenetv2Tnnmodel();
-model_config.params.push_back(mobilentv2_tnnmodel);
+std::string mobilentv2_tnnporto_string = model_config.ConvertParam(mobilentv2_tnnproto,mobilentv2_tnnproto_length);
+model_config.params.push_back(mobilentv2_tnnporto_string);
+std::string mobilentv2_tnnmodel_string = model_config.ConvertParam(mobilentv2_tnnmodel,mobilentv2_tnnmodel_length);
+model_config.params.push_back(mobilentv2_tnnmodel_string);
 ```
 
 在变量model_config中储存模型信息，之后便可按照所需要的补齐其他参数进行推理
