@@ -269,7 +269,7 @@ namespace test {
             config.params.push_back(buffer);
 
             if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
-                std::ifstream model_stream(model_path);
+                std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
                     return config;

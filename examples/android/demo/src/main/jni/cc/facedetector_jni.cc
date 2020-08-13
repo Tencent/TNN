@@ -83,7 +83,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     int ret = kannarotate_yuv420sp((const unsigned char*)yuvDataRef, (int)width, (int)height, (unsigned char*)yuvData, (int)rotate);
     env->ReleaseByteArrayElements(yuv420sp, yuvDataRef, 0);
     unsigned char *rgbaData = new unsigned char[height * width * 4];
-    unsigned char *rgbData = new unsigned char[height * width * 3];
     yuv420sp_to_rgba_fast_asm((const unsigned char*)yuvData, height, width, (unsigned char*)rgbaData);
 //    stbi_write_jpg(rgba_image_name, height, width, 4, rgbaData, 95);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
