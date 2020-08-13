@@ -26,7 +26,10 @@ cd tools/tnn2mem
 
 ```
 ModelConfig model_config;
-model_config.GetConfig(mobilenetv2_tnnproto_longth,mobilenetv2_tnnmodel_longth,mobilenetv2_tnnproto,mobilenetv2_tnnmodel)
+std::string mobilentv2_tnnporto = GetMobilenetv2Tnnproto();
+model_config.params.push_back(mobilentv2_tnnporto);
+std::string mobilentv2_tnnmodel = GetMobilenetv2Tnnmodel();
+model_config.params.push_back(mobilentv2_tnnmodel);
 ```
 
 在变量model_config中储存模型信息，之后便可按照所需要的补齐其他参数进行推理
