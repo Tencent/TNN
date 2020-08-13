@@ -37,9 +37,12 @@ public:
     // @brief layer infer
     virtual Status Forward();
 
+    // @brief add layer to tensorRT network
+    virtual ILayer* AddToNetwork(INetworkDefinition* network) = 0;
+
 protected:
     // @brief Build the foreign network
-    virtual Status Build() = 0;
+    virtual Status Build();
 };
 
 //@brief TensorRTTypeLayerBuilderRegister register TypeLayerBuilderCreator
@@ -54,11 +57,11 @@ public:
 #define DECLARE_TENSORRT_LAYER_BUILDER(type_string, layer_type)                                                        \
     class type_string##TRTLayerBuilder : public TensorRTLayerBuilder {                                                 \
     public:                                                                                                            \
-        type_string##TRTLayerBuilder(LayerType ignore) : TensorRTLayerBuilder(layer_type){};                           \
-        virtual ~type_string##TRTLayerBuilder() {};                                                                    \
-                                                                                                                       \
+        type_string##TRTLayerBuilder(LayerType ignore) : TensorRTLayerBuilder(layer_type) {}                           \
+        virtual ~type_string##TRTLayerBuilder() {}                                                                     \
+        virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                     \
     protected:                                                                                                         \
-        virtual Status Build();                                                                                        \
+        virtual Status InferOutputShape() {return TNN_OK;};                                                            \
     }
 
 #define REGISTER_TENSORRT_LAYER_BUILDER(type_string, layer_type)                                                       \

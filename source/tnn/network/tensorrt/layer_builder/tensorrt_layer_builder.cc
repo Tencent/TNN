@@ -62,4 +62,8 @@ Status TensorRTLayerBuilder::Forward() {
     return TNN_OK;
 }
 
+Status TensorRTLayerBuilder::Build() {
+    return TNN_OK;
+}
+
 }  //  namespace TNN_NS

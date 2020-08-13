@@ -17,7 +17,7 @@
 
 namespace TNN_NS {
 
-PluginFactory::PluginFactory(TensorRTNetwork* net) {
+PluginFactory::PluginFactory(TensorRTNetwork_* net) {
     m_net = net;
 }
 

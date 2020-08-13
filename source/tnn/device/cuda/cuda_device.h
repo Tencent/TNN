@@ -33,6 +33,8 @@ public:
 
     virtual Status Allocate(void** handle, MatType mat_type, DimsVector dims);
 
+    Status Allocate(void** handle, size_t size);
+
     virtual Status Free(void* handle);
 
     virtual Status CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue);

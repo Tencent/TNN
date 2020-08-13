@@ -18,6 +18,7 @@
 #include "NvInfer.h"
 
 #include "tnn/core/blob_manager.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
 
 namespace TNN_NS {
 
@@ -29,20 +30,21 @@ public:
     // @brief TensorRTBlobManager destructor
     ~TensorRTBlobManager();
 
+    // @brief init tensorrt blobs
+    // @param structure net structure
+    virtual Status Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
+                DataType input_data_type);
+
     // @brief AllocateBlobMemory
     Status AllocateBlobMemory() override;
 
-    // @brief get context memory pointer
-    void* GetContextMemory();
+    // @brief Allocate a memory buffer
+    Status MemAlloc(void* ptr, size_t size);
 
-    // @brief set tensorRT engine
-    void SetEngine(nvinfer1::ICudaEngine* engine);
-
-private:
-    nvinfer1::ICudaEngine* engine_;
-    Blob *context_blob_;
+    // @brief Free a memory buffer
+    Status MemFree(void* ptr);
 };
 
-}  //  TNN_NS
+}  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_TENSORRT_BLOB_MANAGER_H_

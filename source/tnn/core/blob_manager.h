@@ -43,7 +43,7 @@ public:
 
     // @brief InitBlobs init blobs
     // @param structure net structure
-    Status Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
+    virtual Status Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
                 DataType input_data_type);
 
     // @brief DeInit release Init create resource

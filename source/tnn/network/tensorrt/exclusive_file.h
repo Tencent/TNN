@@ -22,6 +22,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "tnn/core/macro.h"
+
 namespace TNN_NS {
 
 const int TNN_NAME_MAX = 128;
@@ -41,7 +43,7 @@ int shared_mutex_close(shared_mutex_t mutex);
 
 class ExclFile {
 public:
-    ExclFile(std::string fname);
+    explicit ExclFile(std::string fname);
 
     ~ExclFile();
 
@@ -58,6 +60,6 @@ private:
     shared_mutex_t m_mutex;
 };
 
-}  //  TNN_NS
+}  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_EXCLUSIVE_FILE_H_

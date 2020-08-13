@@ -15,6 +15,8 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_CUDA_UTILS_CUDA_BLOB_CONVERTER_KERNEL_CUH_
 #define TNN_SOURCE_TNN_DEVICE_CUDA_UTILS_CUDA_BLOB_CONVERTER_KERNEL_CUH_
 
+#include "tnn/core/macro.h"
+
 namespace TNN_NS {
 
 void BlobToBGR(int batch, int CHW, int HW, const float *src, unsigned char *dst, cudaStream_t stream,

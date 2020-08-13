@@ -17,12 +17,24 @@
 namespace TNN_NS {
 
 CudaLayerAcc::~CudaLayerAcc() {
-    return;
 }
 
 Status CudaLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
+Status CudaLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CudaLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+std::vector<DataFormat> CudaLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+    std::vector<DataFormat> support_list;
+    return support_list;
 }
 
 }  //  namespace TNN_NS

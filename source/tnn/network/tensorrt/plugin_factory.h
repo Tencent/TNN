@@ -22,16 +22,16 @@
 
 namespace TNN_NS {
 
-class TensorRTNetwork;
+class TensorRTNetwork_;
 
 class PluginFactory : public nvinfer1::IPluginFactory {
 public:
-    PluginFactory(TensorRTNetwork* net);
+    PluginFactory(TensorRTNetwork_* net);
 
     virtual nvinfer1::IPlugin* createPlugin(const char* layerName, const void* serialData, size_t serialLength) override;
 
 private:
-    TensorRTNetwork* m_net;
+    TensorRTNetwork_* m_net;
 };
 
 }  //  namespace TNN_NS

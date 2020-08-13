@@ -45,13 +45,13 @@ public:
     }
 };
 
-class TensorRTNetwork : public DefaultNetwork {
+class TensorRTNetwork_ : public DefaultNetwork {
 public:
-    // @brief TensorRTNetwork Constructor
-    TensorRTNetwork();
+    // @brief TensorRTNetwork_ Constructor
+    TensorRTNetwork_();
 
     // @brief virtual default destructor
-    virtual ~TensorRTNetwork();
+    virtual ~TensorRTNetwork_();
 
     // @brief int net with network config, net structure and net resource info
     // @param config network config info
@@ -69,12 +69,6 @@ public:
     // @brief tnn instance network infer, it will not wait
     virtual Status ForwardAsync(Callback call_back);
 
-    // @brief get all input blobs
-    virtual Status GetAllInputBlobs(BlobMap &blobs);
-
-    // @brief get all output blobs
-    virtual Status GetAllOutputBlobs(BlobMap &blobs);
-
     std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName();
@@ -82,7 +76,7 @@ public:
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
-    void CreateExecuteContext();
+    Status CreateExecuteContext();
 
     int m_max_batchsize;
     nvinfer1::IBuilder* m_trt_builder;
@@ -95,8 +89,9 @@ private:
     std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
+    void* m_context_memory;
 };
 
-}  //  TNN_NS
+}  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_TENSORRT_NETWORK_H_

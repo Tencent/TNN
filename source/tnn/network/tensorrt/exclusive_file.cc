@@ -16,8 +16,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "exclusive_file.h"
-#include "md5.h"
+#include "tnn/network/tensorrt/exclusive_file.h"
+#include "tnn/device/cuda/thirdparty/md5/md5.h"
 
 namespace TNN_NS {
 
@@ -135,7 +135,6 @@ bool ExclFile::IsFileExists() {
     return true;
 }
 
-
 bool ExclFile::IsLockFileExists() {
     int fd = open(this->m_lock_name.c_str(), O_RDWR | O_EXCL, 0666);
     if (fd < 0) {
@@ -145,4 +144,4 @@ bool ExclFile::IsLockFileExists() {
     return true;
 }
 
-}  //  TNN_NS
+}  //  namespace TNN_NS

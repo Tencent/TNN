@@ -32,7 +32,9 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/extern_wrapper/base_layer_builder.h"
+#include "tnn/extern_wrapper/foreign_blob.h"
 
 using namespace nvinfer1;
 using namespace plugin;

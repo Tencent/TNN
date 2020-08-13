@@ -56,6 +56,17 @@ Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     return TNN_OK;
 }
 
+Status CudaDevice::Allocate(void** handle, size_t size) {
+    void* ptr;
+    cudaError_t status = cudaMalloc(&ptr, size);
+    if (cudaSuccess != status) {
+        LOGE("cuda alloc failed with size %lu for %p\n", size, ptr);
+        return TNNERR_OUTOFMEMORY;
+    }
+    *handle = ptr;
+    return TNN_OK;
+}
+
 Status CudaDevice::Free(void* handle) {
     cudaError_t status = cudaFree(handle);
     if (cudaSuccess != status) {

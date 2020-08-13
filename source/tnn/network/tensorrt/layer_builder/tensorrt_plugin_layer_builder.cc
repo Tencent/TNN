@@ -12,7 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <memory>
+
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/tensorrt_tensor.h"
 
 namespace TNN_NS {
 
@@ -63,9 +66,14 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
 }
 
 IPluginExt* TensorRTPluginLayerBuilder::CreatePlugin() {
+    return this;
 }
 
 IPluginExt* TensorRTPluginLayerBuilder::CreatePlugin(const void* data, size_t length) {
+    const char* d = reinterpret_cast<const char*>(data);
+    m_type = read<nvinfer1::DataType>(d);
+    m_format = read<PluginFormat>(d);
+    return this;
 }
 
 Status TensorRTPluginLayerBuilder::Reshape() {
@@ -109,8 +117,6 @@ size_t TensorRTPluginLayerBuilder::getWorkspaceSize(int maxBatchSize) const {
     return 0;
 }
 
-// enqueue
-
 size_t TensorRTPluginLayerBuilder::getSerializationSize() {
     return sizeof(m_type) + sizeof(m_format);
 }
@@ -119,6 +125,25 @@ void TensorRTPluginLayerBuilder::serialize(void* buffer) {
     char* d = reinterpret_cast<char*>(buffer);
     write(d, m_type);
     write(d, m_format);
+}
+
+Status TensorRTPluginLayerBuilder::Build() {
+    return TNN_OK;
+}
+
+ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    std::vector<ITensor*> tensors;
+    int size = input_blobs_.size();
+    for (int i = 0; i < size; ++i) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
+        auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+        tensors.push_back(tensor);
+    }
+    ILayer* layer = network->addPlugin(tensors.data(), size, *CreatePlugin());
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+    return layer;
 }
 
 }  //  namespace TNN_NS

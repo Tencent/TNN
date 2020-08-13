@@ -15,6 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_LAYER_ACC_H_
 #define TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_LAYER_ACC_H_
 
+#include "tnn/core/macro.h"
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/device/cuda/cuda_device.h"
 #include "tnn/device/cuda/cuda_macro.h"

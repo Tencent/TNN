@@ -12,38 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_TENSORRT_TENSOR_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_TENSORRT_TENSOR_H_
-
-#include "NvInfer.h"
-
-#include "tnn/core/status.h"
-#include "tnn/extern_wrapper/foreign_tensor.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-// @brief Base Type of a TensorRT Tensor
-class TensorRTTensor : public ForeignTensor {
-public:
-    explicit TensorRTTensor() {};
+DECLARE_TENSORRT_LAYER_BUILDER(ReLU, LAYER_RELU);
 
-    // @brief virtual destructor
-    virtual ~TensorRTTensor() {};
-
-    // @brief get the ITensor
-    nvinfer1::ITensor* GetTensor() {
-        return m_trt_tensor;
+ILayer* ReLUTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kRELU);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
     }
+    return layer;
+}
 
-    Status SetTensor(nvinfer1::ITensor* tensor) {
-        m_trt_tensor = tensor;
-        return TNN_OK;
-    }
-
-private:
-    nvinfer1::ITensor* m_trt_tensor;
-};
+REGISTER_TENSORRT_LAYER_BUILDER(ReLU, LAYER_RELU);
 
 }  //  namespace TNN_NS
-
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_TENSORRT_TENSOR_H_

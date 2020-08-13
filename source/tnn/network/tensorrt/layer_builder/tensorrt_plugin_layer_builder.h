@@ -20,7 +20,7 @@
 namespace TNN_NS {
 
 // @brief TensorRTPluginLayer Builder, defines the tensorRT plugin layer builder interface
-class TensorRTPluginLayerBuilder : public TensorRTBaseLayerBuilder {
+class TensorRTPluginLayerBuilder : public TensorRTBaseLayerBuilder, public nvinfer1::IPluginExt {
 public:
     explicit TensorRTPluginLayerBuilder(LayerType type);
 
@@ -40,6 +40,9 @@ public:
 
     // @brief virtual layer infer
     virtual Status Forward();
+
+    // @brief add layer to tensorRT network
+    virtual ILayer* AddToNetwork(INetworkDefinition* network);
 
     virtual int getNbOutputs() const;
 
@@ -77,8 +80,8 @@ private:
     }
 
     template<typename T>
-    void read(const char*& buffer, T& val) {
-        val = *reinterpret_cast<const T*>(buffer);
+    T read(const char*& buffer) {
+        T val = *reinterpret_cast<const T*>(buffer);
         buffer += sizeof(T);
     }
 };
@@ -95,11 +98,8 @@ public:
 #define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                        \
     class type_string##TRTPluginLayerBuilder : public TensorRTLayerBuilder {                                           \
     public:                                                                                                            \
-        type_string##TRTPluginLayerBuilder(LayerType ignore) : TensorRTPluginLayerBuilder(layer_type){};               \
-        virtual ~type_string##TRTPluginLayerBuilder() {};                                                              \
-                                                                                                                       \
-    protected:                                                                                                         \
-        virtual Status Build();                                                                                        \
+        type_string##TRTPluginLayerBuilder(LayerType ignore) : TensorRTPluginLayerBuilder(layer_type) {}               \
+        virtual ~type_string##TRTPluginLayerBuilder() {}                                                               \
     }
 
 #define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                \

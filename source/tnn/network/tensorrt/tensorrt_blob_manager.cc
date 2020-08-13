@@ -12,16 +12,89 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/cuda/cuda_device.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
+#include "tnn/memory_manager/blob_memory_pool_factory.h"
+#include "tnn/memory_manager/blob_memory_size_info.h"
+#include "tnn/memory_manager/memory_mode_state_factory.h"
+#include "tnn/memory_manager/memory_seperate_assign_strategy.h"
+#include "tnn/memory_manager/memory_unify_assign_strategy.h"
 
 namespace TNN_NS {
 
 TensorRTBlobManager::TensorRTBlobManager(AbstractDevice *device) : BlobManager(device) {
-    engine_ = nullptr;
-    context_blob_ = nullptr;
 }
 
 TensorRTBlobManager::~TensorRTBlobManager() {
+}
+
+Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
+                         DataType input_data_type) {
+    if (net_structure->blobs.empty()) {
+        LOGE("net_structure blobs is empty\n");
+        return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");
+    }
+
+    net_structure_ = net_structure;
+    // modify input shape, only set invalid net input shape
+    auto instance_input_shapes_map = net_structure_->inputs_shape_map;
+    for (auto iter : inputs_shape_map) {
+        if (instance_input_shapes_map.count(iter.first) > 0) {
+            instance_input_shapes_map[iter.first] = iter.second;
+        }
+    }
+
+    config_            = config;
+    init_thread_id_    = std::this_thread::get_id();
+    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
+
+    // get the maximum dimension of all inputs
+    int input_dims = 0;
+    for (auto blob_dims : instance_input_shapes_map) {
+        int dims   = (int)blob_dims.second.size();
+        input_dims = std::max(input_dims, dims);
+    }
+
+    // only supports dims >=4 .
+    if (input_dims < 4) {
+        LOGE("invalid input shape\n");
+        return Status(TNNERR_PARAM_ERR, "invalid input shape");
+    }
+
+    for (auto node_name : net_structure_->blobs) {
+        BlobDesc desc;
+        desc.device_type = config.device_type;
+        desc.data_type   = DATA_TYPE_FLOAT;
+        desc.name        = node_name;
+        // set to the specified data format
+        if (config.data_format != DATA_FORMAT_AUTO) {
+            desc.data_format = config.data_format;
+        }
+
+        // check whether the input_shape is defined or not.
+        if (instance_input_shapes_map.count(node_name) > 0) {
+            desc.dims = instance_input_shapes_map[node_name];
+        }
+        BlobHandle handle;
+        blobs_[node_name] = new ForeignBlob(desc, handle);
+    }
+
+    // intput blobs
+    for (auto iter : instance_input_shapes_map) {
+        std::string current_blob_name         = iter.first;
+        Blob *current_blob                    = blobs_[current_blob_name];
+        current_blob->GetBlobDesc().data_type = input_data_type;
+        input_blobs_[current_blob_name]       = current_blob;
+    }
+
+    // output blobs
+    std::set<std::string> &output_blob_names = net_structure_->outputs;
+    for (auto name : output_blob_names) {
+        Blob *blob          = blobs_[name];
+        output_blobs_[name] = blob;
+    }
+
+    return TNN_OK;
 }
 
 Status TensorRTBlobManager::AllocateBlobMemory() {
@@ -36,25 +109,6 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
         BlobMemory *blob_memory = nullptr;
         blob_memory = blob_memory_pool_->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
-    }
-
-    // context
-    {
-        size_t context_memory_size = engine_->getDeviceMemorySize();
-        BlobDesc desc;
-        desc.device_type = config_.device_type;
-        desc.data_type = DATA_TYPE_FLOAT;
-        desc.name = "tensorrt_context_";
-        // TODO(johnzlli) need refactor
-        desc.dims = { int(context_memory_size / sizeof(float)) };
-        BlobHandle handle;
-        context_blob_ = new Blob(desc, handle);
-        blobs_[desc.name] = context_blob_;
-        BlobMemorySizeInfo info = device_->Calculate(context_blob_->GetBlobDesc());
-        BlobMemory *blob_memory = nullptr;
-        int use_count = 1;
-        blob_memory = blob_memory_pool_->BorrowBlobMemory(use_count, info, true);
-        blob_memory_mapping_.insert(std::make_pair(context_blob_, blob_memory));
     }
 
     // output
@@ -96,12 +150,14 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
     return status;
 }
 
-void* TensorRTBlobManager::GetContextMemory() {
-    return context_blob_->GetHandle().base;
+Status TensorRTBlobManager::MemAlloc(void *ptr, size_t size) {
+    Status ret = dynamic_cast<CudaDevice*>(device_)->Allocate(&ptr, size);
+    return ret;
 }
 
-void TensorRTBlobManager::SetEngine(nvinfer1::ICudaEngine* engine) {
-    this->engine_ = engine;
+Status TensorRTBlobManager::MemFree(void* ptr) {
+    Status ret = dynamic_cast<CudaDevice*>(device_)->Free(ptr);
+    return ret;
 }
 
 }  //  TNN_NS
