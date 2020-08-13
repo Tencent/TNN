@@ -44,6 +44,8 @@ std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
             return "Div";
         case tflite::BuiltinOperator_MAXIMUM:
             return "Maximum";
+        case tflite::BuiltinOperator_MINIMUM:
+            return "Minimum";
         default:
             return "";
     }
@@ -61,6 +63,7 @@ tflite::ActivationFunctionType TFLiteBinaryConverter::ActivationType(
         case tflite::BuiltinOperator_DIV:
             return tf_lite_operator->builtin_options.AsDivOptions()->fused_activation_function;
         case tflite::BuiltinOperator_MAXIMUM:
+        case tflite::BuiltinOperator_MINIMUM:
             return tflite::ActivationFunctionType_NONE;
         default:
             return tflite::ActivationFunctionType_NONE;
@@ -120,5 +123,6 @@ REGISTER_CONVERTER(Binary, BuiltinOperator_SUB);
 REGISTER_CONVERTER(Binary, BuiltinOperator_MUL);
 REGISTER_CONVERTER(Binary, BuiltinOperator_DIV);
 REGISTER_CONVERTER(Binary, BuiltinOperator_MAXIMUM);
+REGISTER_CONVERTER(Binary, BuiltinOperator_MINIMUM);
 
 }  // namespace TNN_CONVERTER

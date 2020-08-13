@@ -22,6 +22,18 @@ std::string TFLiteUnaryConverter::TNNOpType(tflite::BuiltinOperator op_code, boo
     switch (op_code) {
         case tflite::BuiltinOperator_LOGISTIC:
             return "Sigmoid";
+        case tflite::BuiltinOperator_EXP:
+            return "Exp";
+        case tflite::BuiltinOperator_LOG:
+            return "Log";
+        case tflite::BuiltinOperator_TANH:
+            return "Tanh";
+        case tflite::BuiltinOperator_COS:
+            return "Cos";
+        case tflite::BuiltinOperator_SIN:
+            return "Sin";
+        case tflite::BuiltinOperator_NEG:
+            return "Neg";
         default:
             return "";
     }
@@ -48,5 +60,11 @@ TNN_NS::Status TFLiteUnaryConverter::exec(tnn::NetStructure &net_structure, tnn:
 
 using namespace tflite;
 REGISTER_CONVERTER(Unary, BuiltinOperator_LOGISTIC);
+REGISTER_CONVERTER(Unary, BuiltinOperator_EXP);
+REGISTER_CONVERTER(Unary, BuiltinOperator_LOG);
+REGISTER_CONVERTER(Unary, BuiltinOperator_TANH);
+REGISTER_CONVERTER(Unary, BuiltinOperator_COS);
+REGISTER_CONVERTER(Unary, BuiltinOperator_SIN);
+REGISTER_CONVERTER(Unary, BuiltinOperator_NEG);
 
 }  // namespace TNN_CONVERTER
