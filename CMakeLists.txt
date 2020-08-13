@@ -174,7 +174,8 @@ message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 include_directories(include)
 include_directories(source)
 
-file(GLOB_RECURSE SRC "source/tnn/core/*.h"
+file(GLOB_RECURSE SRC "include/tnn/core/*.cc"
+                      "source/tnn/core/*.h"
                       "source/tnn/core/*.cc"
                       "source/tnn/layer/*.h"
                       "source/tnn/layer/*.cc"
