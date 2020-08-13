@@ -42,6 +42,8 @@ std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
             return "Mul";
         case tflite::BuiltinOperator_DIV:
             return "Div";
+        case tflite::BuiltinOperator_MAXIMUM:
+            return "Maximum";
         default:
             return "";
     }
@@ -58,6 +60,8 @@ tflite::ActivationFunctionType TFLiteBinaryConverter::ActivationType(
             return tf_lite_operator->builtin_options.AsMulOptions()->fused_activation_function;
         case tflite::BuiltinOperator_DIV:
             return tf_lite_operator->builtin_options.AsDivOptions()->fused_activation_function;
+        case tflite::BuiltinOperator_MAXIMUM:
+            return tflite::ActivationFunctionType_NONE;
         default:
             return tflite::ActivationFunctionType_NONE;
     }
@@ -93,13 +97,18 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
             layer_resource->name = cur_layer->name;
             auto& weight_tensor  = tf_lite_tensors[tf_lite_operator->inputs[param->weight_input_index]];
             auto weight_ptr      = reinterpret_cast<float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-            int weight_size      = Count(weight_tensor->shape);
+            auto weight_size =
+                tf_lite_model_buffer[weight_tensor->buffer]->data.size() / SizeofTFLiteTensorData(weight_tensor->type);
             TNN_NS::RawBuffer element_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
             ::memcpy(element_handle.force_to<float*>(), weight_ptr, weight_size * sizeof(float));
             layer_resource->element_handle             = element_handle;
             net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
             cur_layer->inputs.resize(1);
-            cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+            if (param->weight_input_index == 0) {
+                cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[1]]->name;
+            } else {
+                cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+            }
         }
     }
     return TNN_NS::TNN_CONVERT_OK;
@@ -110,5 +119,6 @@ REGISTER_CONVERTER(Binary, BuiltinOperator_ADD);
 REGISTER_CONVERTER(Binary, BuiltinOperator_SUB);
 REGISTER_CONVERTER(Binary, BuiltinOperator_MUL);
 REGISTER_CONVERTER(Binary, BuiltinOperator_DIV);
+REGISTER_CONVERTER(Binary, BuiltinOperator_MAXIMUM);
 
 }  // namespace TNN_CONVERTER

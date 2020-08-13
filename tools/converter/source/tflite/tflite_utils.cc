@@ -115,4 +115,20 @@ int Count(std::vector<int> shape) {
     }
     return count;
 }
+
+int SizeofTFLiteTensorData(tflite::TensorType type) {
+    switch (type) {
+        case tflite::TensorType_FLOAT32:
+            return sizeof(float);
+        case tflite::TensorType_INT32:
+            return sizeof(int32_t);
+        case tflite::TensorType_INT16:
+            return sizeof(int16_t);
+        case tflite::TensorType_INT64:
+            return sizeof(int64_t);
+        default:
+            return 0;
+    }
+    return 0;
+}
 }  // namespace TNN_CONVERTER

@@ -16,6 +16,7 @@
 #define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
 #include <cstdint>
 #include <vector>
+#include "tflite-schema/schema_generated.h"
 
 namespace TNN_CONVERTER {
 
@@ -31,6 +32,8 @@ bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vecto
 int ConvertAxisFormatTFLite(int axis);
 
 int Count(std::vector<int> shape);
+
+int SizeofTFLiteTensorData(tflite::TensorType type);
 
 }  // namespace TNN_CONVERTER
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
