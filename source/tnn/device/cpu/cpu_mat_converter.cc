@@ -30,6 +30,19 @@ CpuMatConverterAcc::CpuMatConverterAcc() : MatConverterAcc() {}
 CpuMatConverterAcc::~CpuMatConverterAcc() {}
 Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret            = TNN_OK;
+    printf("now CPU\n");
+    //memcpy(dst.GetData(),src.GetData());
+    MatType mat_type   = src.GetMatType();
+    int data_type_size = 1;
+    DimsVector dims    = src.GetDims();
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    memcpy(dst.GetData(), src.GetData(), size_in_bytes);
     return ret; 
 }
 

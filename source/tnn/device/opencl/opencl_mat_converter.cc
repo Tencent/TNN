@@ -24,8 +24,44 @@ namespace TNN_NS {
 
 Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret           = TNN_OK;
-    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    //printf("\n log_copy \n ");
+    //BlobMemorySizeInfo size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    // force float to get the max memeory
     bool copy_flag = false;
+    if (src.GetDeviceType() != DEVICE_OPENCL) {//CPU -> GPU
+        copy_flag = false;
+    } else if (dst.GetDeviceType() != DEVICE_OPENCL){//GPU->CPU
+        copy_flag = true;
+    }
+    printf("copy_flag: %d", copy_flag);
+    // buffer_reset
+    BlobMemorySizeInfo info;
+    info.data_type = DATA_TYPE_FLOAT;
+    int batch, channel, height, width;
+    batch            = src.GetBatch();
+    channel          = src.GetChannel();
+    height           = src.GetHeight();
+    width            = src.GetWidth();
+    int image_width  = UP_DIV(channel, 4) * width;
+    int image_height = batch * height;
+    info.dims.push_back(image_width);
+    info.dims.push_back(image_height);
+
+    info.data_type   = DATA_TYPE_FLOAT;
+    auto opencl_runtime   = OpenCLRuntime::GetInstance();
+    buffer_size_          = GetBlobMemoryBytesSize(info);
+    cl_int ret_cl            = CL_SUCCESS;
+    cl::Buffer* cl_buffer = new cl::Buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+                                            (cl::size_type)buffer_size_, nullptr, &ret_cl);
+    if (ret_cl != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret_cl)
+        if (nullptr != cl_buffer)
+            delete cl_buffer;
+    } else {
+        buffer_.reset(cl_buffer);
+    }
+
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     MatType src_mat_type = src.GetMatType();
     MatType dst_mat_type = dst.GetMatType();
     //mat_ = 
@@ -43,12 +79,6 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
-    if (src.GetDeviceType() != DEVICE_OPENCL) {//CPU -> GPU
-        copy_flag = false;
-    } else if (dst.GetDeviceType() != DEVICE_OPENCL){//GPU->CPU
-        copy_flag = true;
-    }
-
     //create identifier
     std::string mat_key = to_string(src.GetDeviceType()) + "_" + to_string(dst.GetDeviceType());
     //create convert unit only once for every key
@@ -60,7 +90,12 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     if(copy_flag){
         if(execute_map_.count(mat_key) == 0) {
             std::string program_name = "convert_to_mat";
-            std::string kernel_name = "CopyToN8UC3";
+            std::string kernel_name = "";
+            if(N8UC4 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC4";
+            } else if (N8UC3 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC3";
+            }
             ret = CreateExecuteUnit(unit, program_name, kernel_name);
             if(ret != TNN_OK) {
                 return ret;
@@ -68,13 +103,20 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             execute_map_[mat_key] = unit; 
         }
     } else {
+        if(execute_map_.count(mat_key) == 0) {
             std::string program_name = "convert_from_mat";
-            std::string kernel_name = "CopyFromN8UC3";
+            std::string kernel_name = "";
+            if(N8UC4 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC4";
+            } else if (N8UC3 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC3";
+            }
             ret = CreateExecuteUnit(unit, program_name, kernel_name);
             if(ret != TNN_OK) {
                 return ret;
             }
             execute_map_[mat_key] = unit; 
+        }
     }
 
     // execute_map_[mat_key] = unit;
@@ -82,11 +124,6 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 
     // set arguments
     ret                    = SetConvertArgs(unit, src, dst, false);
-    if (ret != TNN_OK) {
-        return ret;
-    }
-
-    
     if (ret != TNN_OK) {
         return ret;
     }
@@ -111,84 +148,9 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             return ret;
         }
     }
-
-    //if dst device is cpu, need copy src_mat data to buffer and copy buffer data to dst_mat data
-    // if (dst.GetDeviceType() != DEVICE_OPENCL) {
-    //     ret = CopyBufferDataToMat(dst, cl_command_queue);
-    //     if (ret != TNN_OK) {
-    //         return ret;
-    //     }
-    // }
-
     return ret;
 
 }
-
-// Status OpenCLMatConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &mat, bool convert_to_mat) {
-//     std::set<std::string> build_options;
-//     std::string program_name = "";
-//     std::string kernel_name  = "";
-//     if (convert_to_mat) {
-//         program_name = "convert_to_mat";
-//         //DEVICE_NAIVE AND DEVICE_ARM is same for memory type.
-//         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-//             if (N8UC3 == mat.GetMatType()) {
-//                 kernel_name = "ConvertToN8UC3";
-//             } else if (N8UC4 == mat.GetMatType()) {
-//                 kernel_name = "ConvertToN8UC4";
-//             } else if (NGRAY == mat.GetMatType()) {
-//                 kernel_name = "ConvertToNGray";
-//             } else if (NCHW_FLOAT == mat.GetMatType()) {
-//                 kernel_name = "ConvertToNCHW";
-//             } else {
-//                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//             }
-//         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
-//             if (N8UC4 == mat.GetMatType()) {
-//                 kernel_name = "ConvertToN32FC4Image";
-//             } else {
-//                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//             }
-//         } else {
-//             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//         }
-//     } else {
-//         program_name = "convert_from_mat";
-//         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-//             if (N8UC3 == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromN8UC3";
-//             } else if (N8UC4 == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromN8UC4";
-//             } else if (NGRAY == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromNGray";
-//             } else if (NNV21 == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromNNV21";
-//             } else if (NCHW_FLOAT == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromNCHW";
-//             } else {
-//                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//             }
-//         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
-//             if (N8UC4 == mat.GetMatType()) {
-//                 kernel_name = "ConvertFromN32FC4Image";
-//             } else {
-//                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//             }
-//         } else {
-//             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
-//         }
-//     }
-
-//     // if (param.reverse_channel) {
-//     //     build_options.emplace("-DSWAP_RB");
-//     // }
-
-//     // if (do_scale_bias_) {
-//     //     build_options.emplace("-DENABLE_SCALE_BIAS");
-//     // }
-
-//     return CreateExecuteUnit(unit, program_name, kernel_name, build_options);
-// }
 
 //enqueueMapBuffer get cpu buffer pointer, copy buffer pointer to mat, enqueueUnmapMemObject.
 Status OpenCLMatConverterAcc::CopyBufferDataToMat(Mat &mat, cl::CommandQueue *command_queue) {
@@ -199,7 +161,7 @@ Status OpenCLMatConverterAcc::CopyBufferDataToMat(Mat &mat, cl::CommandQueue *co
         data_type_size = sizeof(float);
     } else if (mat_type == N8UC4) {
         //special for 8UC4, blob channel <= 4.
-        dims[3] = 4;
+        dims[1] = 4;
     }
     int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
     if (size_in_bytes > buffer_size_) {
@@ -258,25 +220,31 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
     auto dims        = dst.GetDims();
 
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    cl::Image *image = static_cast<cl::Image *>(dst.GetData());
 
     cl_int cl_ret;
-    if (DEVICE_NAIVE == src.GetDeviceType() || DEVICE_ARM == src.GetDeviceType()) {
+    if (DEVICE_NAIVE == src.GetDeviceType()) {
+        cl::Image *image = static_cast<cl::Image *>(dst.GetData());
         cl_ret = unit.ocl_kernel.setArg(idx++, *image);
         CHECK_CL_SUCCESS(cl_ret);
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
         CHECK_CL_SUCCESS(cl_ret);
     } else if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image = static_cast<cl::Image *>(src.GetData());
-        cl_ret               = unit.ocl_kernel.setArg(idx++, *buffer_);
+        cl_ret               = unit.ocl_kernel.setArg(idx++, *mat_image);
         CHECK_CL_SUCCESS(cl_ret);
-        cl_ret = unit.ocl_kernel.setArg(idx++, *mat_image);
+        cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
+        CHECK_CL_SUCCESS(cl_ret);
+        //height
+        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        CHECK_CL_SUCCESS(cl_ret);
+        //width
+        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
         CHECK_CL_SUCCESS(cl_ret);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
@@ -286,7 +254,7 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
 
 Status OpenCLMatConverterAcc::RunConvertUnit(OpenCLExecuteUnit &unit, cl::CommandQueue *command_queue,
                                               bool need_wait) {
-    Status ret = RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "BlobConvert");
+    Status ret = RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "MatConvert");
     if (need_wait) {
         //sync
         command_queue->finish();
@@ -317,6 +285,12 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
 
 Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret            = TNN_OK;
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+    // else if(src.GetDims() != dst.GetDims()) {
+    //     return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    // }
     auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     if (cl_command_queue == nullptr) {
         LOGE("Get OpenCL command queue failed!\n");
@@ -333,6 +307,29 @@ Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* co
         }
         execute_map_[key] = unit; 
     }
+
+    MatType mat_type = src.GetMatType();
+    auto dims        = dst.GetDims();
+
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+
+    cl_int cl_ret;
+    int offset = param.top_left_x + param.top_left_y*src.GetWidth();
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData()+offset);
+    cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
+    CHECK_CL_SUCCESS(cl_ret);
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
+    CHECK_CL_SUCCESS(cl_ret);
+    //height
+    cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+    CHECK_CL_SUCCESS(cl_ret);
+    //width
+    cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+    CHECK_CL_SUCCESS(cl_ret);
+
+    return TNN_OK;
+
     return ret;
 }
 
@@ -348,5 +345,6 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     }
     return ret;
 }
-
+DECLARE_MAT_CONVERTER_CREATER(OpenCL);
+REGISTER_MAT_CONVERTER(OpenCL, DEVICE_OPENCL);
 }  // namespace TNN_NS
