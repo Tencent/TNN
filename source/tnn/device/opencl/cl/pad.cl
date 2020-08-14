@@ -71,22 +71,16 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 if (remain == 1)
                 {
                     val.x = temp_b_value.w;
-                    val.y = temp_e_value.x;
-                    val.z = temp_e_value.y;
-                    val.w = temp_e_value.z;
+                    val.yzw = temp_e_value.xyz;
                 }
                 else if (remain == 2)
                 {
-                    val.x = temp_b_value.z;
-                    val.y = temp_b_value.w;
-                    val.z = temp_e_value.x;
-                    val.w = temp_e_value.y;
+                    val.xy = temp_b_value.zw;
+                    val.zw = temp_e_value.xy;
                 }
                 else
                 {
-                    val.x = temp_b_value.y;
-                    val.y = temp_b_value.z;
-                    val.z = temp_b_value.w;
+                    val.xyz = temp_b_value.yzw;
                     val.w = temp_e_value.x;
                 }
             }
@@ -101,14 +95,11 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 {
                     if (input_channel >= 3)
                     {
-                        val.y = temp_value.x;
-                        val.z = temp_value.y;
-                        val.w = temp_value.z;
+                        val.yzw = temp_value.xyz;
                     }
                     else if (input_channel == 2)
                     {
-                        val.y = temp_value.x;
-                        val.z = temp_value.y;
+                        val.yz = temp_value.xy;
                     }
                     else
                     {
@@ -119,8 +110,7 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 {
                     if (input_channel >= 2)
                     {
-                        val.z = temp_value.x;
-                        val.w = temp_value.y;
+                        val.zw = temp_value.xy;
                     }
                     else
                     {
@@ -151,15 +141,12 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                     if (remain_channels >= 4)
                     {
                         val.x = temp_b_value.w;
-                        val.y = temp_e_value.x;
-                        val.z = temp_e_value.y;
-                        val.w = temp_e_value.z;
+                        val.yzw = temp_e_value.xyz;
                     }
                     else if (remain_channels == 3)
                     {
                         val.x = temp_b_value.w;
-                        val.y = temp_e_value.x;
-                        val.z = temp_e_value.y;
+                        val.yz = temp_e_value.xy;
                     }
                     else if (remain_channels == 2)
                     {
@@ -175,21 +162,17 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 {
                     if (remain_channels >= 4)
                     {
-                        val.x = temp_b_value.z;
-                        val.y = temp_b_value.w;
-                        val.z = temp_e_value.x;
-                        val.w = temp_e_value.y;
+                        val.xy = temp_b_value.zw;
+                        val.zw = temp_e_value.xy;
                     }
                     else if (remain_channels == 3)
                     {
-                        val.x = temp_b_value.z;
-                        val.y = temp_b_value.w;
+                        val.xy = temp_b_value.zw;
                         val.z = temp_e_value.x;
                     }
                     else if (remain_channels == 2)
                     {
-                        val.x = temp_b_value.z;
-                        val.y = temp_b_value.w;
+                        val.xy = temp_b_value.zw;
                     }
                     else
                     {
@@ -200,21 +183,16 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 {
                     if (remain_channels >= 4)
                     {
-                        val.x = temp_b_value.y;
-                        val.y = temp_b_value.z;
-                        val.z = temp_b_value.w;
+                        val.xyz = temp_b_value.yzw;
                         val.w = temp_e_value.x;
                     }
                     else if (remain_channels == 3)
                     {
-                        val.x = temp_b_value.y;
-                        val.y = temp_b_value.z;
-                        val.z = temp_b_value.w;
+                        val.xyz = temp_b_value.yzw;
                     }
                     else if (remain_channels == 2)
                     {
-                        val.x = temp_b_value.y;
-                        val.y = temp_b_value.z;
+                        val.xy = temp_b_value.yz;
                     }
                     else
                     {
