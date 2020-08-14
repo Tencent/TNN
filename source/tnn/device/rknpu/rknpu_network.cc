@@ -113,6 +113,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         BlobDesc desc;
         desc.device_type = DEVICE_RKNPU;
         desc.data_format = DATA_FORMAT_NCHW;
+        desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = layer_name;
         desc.dims.push_back(n);
         desc.dims.push_back(c);
@@ -155,7 +156,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         output_inf_[i].size       = size;
         output_inf_[i].type       = type;
         output_inf_[i].layout     = rk::nn::DataLayoutType::NCHW;
-        output_inf_[i].want_float = false;
+        output_inf_[i].want_float = true;
 
         int n, h, w, c;
         n = (dims.size() >= 4) ? dims[0] : 1;
@@ -172,6 +173,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         BlobDesc desc;
         desc.device_type = DEVICE_RKNPU;
         desc.data_format = DATA_FORMAT_NCHW;
+        desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = layer_name;
         desc.dims.push_back(n);
         desc.dims.push_back(c);

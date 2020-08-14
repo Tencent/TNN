@@ -77,7 +77,11 @@ hiai_ddk_latest
   
 ## 如何更新到最新的ROM去支持NPU？ 
 * 到 设置 >> 系统和更新 >> 软件更新中检查最新的ROM版本并更新。
-        
+
+## 如何创建RKNPU编译环境? 
+1. 在`<path_to_tnn>/third_party`下创建rknpu文件夹并进入，然后执行： `git clone https://github.com/airockchip/rknpu_ddk.git`。
+2. 在`<path_to_tnn>/scripts/build_aarch64_linux.sh`文件中加入`-DTNN_RKNPU_ENABLE:BOOL=ON`选项并编译即可。如编译报错，请尝试将`TNN_CPU_ENABLE`设为`ON`。
+
 ## 模型支持：
 
 ### 如何支持tensorflow, caffe, mxnet模型？

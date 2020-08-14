@@ -77,6 +77,10 @@ hiai_ddk_latest
 ## How to update the latest ROM version to support NPU?
 * Go to Settings > System and Update > Software Update
     
+## RKNPU Compilation Prerequisite:
+1. Make directory named by `rknpu` under `<path_to_tnn>/third_party` and enter `rknpu`, then execute: `git clone https://github.com/airockchip/rknpu_ddk.git`
+2. Add `-DTNN_RKNPU_ENABLE:BOOL=ON` to `<path_to_tnn>/scripts/build_aarch64_linux.sh` and execute it, if the compile fail, please set `TNN_CPU_ENABLE` to `ON` and try again.
+
 ## Model support:
 
 ### How to support tensorflow, caffe, mxnet models?
