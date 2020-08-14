@@ -32,6 +32,7 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 
     int batch          = output_dims[0];
     int c_r4           = ROUND_UP(output_dims[1], 4);
+    int ic_r4          = ROUND_UP(input_dims[1], 4);
     int oh             = output_dims[2];
     int ow             = output_dims[3];
     int ic             = input_dims[1];
@@ -41,8 +42,8 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     int pad_r          = layer_param->pads[1];
     int pad_t          = layer_param->pads[2];
     int pad_b          = layer_param->pads[3];
-    int pad_c_b = layer_param->pads[4];
-    int pad_c_e = layer_param->pads[5];
+    int pad_c_b        = layer_param->pads[4];
+    int pad_c_e        = layer_param->pads[5];
     int byte_size      = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
     const int iw_bytes = iw * byte_size * 4;
 
@@ -60,8 +61,8 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
                     auto output_ptr_c = output_data + c * oh * ow;
 
                     if (pad_t)
-                        for (int i = 0; i < ow * pad_t * 4; ++i)
-                            output_ptr_c[i] = value;
+                        for (int i = 0; i < ow * pad_t; ++i)
+                            Float4::save(output_ptr_c + i * 4, vvalue);
 
                     for (int h = 0; h < ih; ++h) {
                         auto output_ptr_h = output_ptr_c + ow * (h + pad_t) * 4;
@@ -75,37 +76,140 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
                             Float4::save(output_ptr_h + i * 4, vvalue);
                     }
 
-                    if (pad_b)
-                        for (int i = 0; i < ow * pad_b * 4; ++i)
-                            output_ptr_c[ow * (ih + pad_t) * 4 + i] = value;
+                    if (pad_b) {
+                        auto output_ptr_h = output_ptr_c + ow * (ih + pad_t) * 4;
+                        for (int i = 0; i < ow * pad_b; ++i)
+                            Float4::save(output_ptr_h + i * 4, vvalue);
+                    }
                 }
             } else {
-                int cb_border = pad_c_b;
-                int ce_border = pad_c_b + ic;
-                int ht_border = pad_t;
-                int hb_border = pad_t + ih;
-                int wl_border = pad_l;
-                int wr_border = pad_l + iw;
-
+                bool pad_c_aligned = ((pad_c_b % 4) == 0);
+                bool ic_aligned    = ((ic % 4) == 0);
+                int pad_zero       = ic_r4 - ic;
+                Float4 vvalue(value);
                 for (int n = 0; n < batch; ++n) {
-                    auto output_ptr_n = output_data + n * c_r4 * oh * ow;
-                    auto input_ptr_n = input_data + n * ROUND_UP(ic, 4) * ih * iw;
+                    auto input_data_base  = input_data + n * ic_r4 * ih * iw;
+                    auto output_data_base = output_data + n * c_r4 * oh * ow;
                     for (int c = 0; c < c_r4; c += 4) {
-                        auto output_ptr_c = output_ptr_n + c * oh * ow;
-                        for (int h = 0; h < oh; ++h) {
-                            for (int w = 0; w < ow; ++w) {
-                                for (int i = 0; i < 4; ++i) {
-                                    int ic_r4 = (c + i - cb_border) / 4;
-                                    auto input_ptr_c  = input_ptr_n + ic_r4 * ih * iw * 4;
-                                    int output_idx = (h * ow + w) * 4 + i;
-                                    if (c+i < cb_border || c+i >= ce_border ||
-                                        h < ht_border || h >= hb_border ||
-                                        w < wl_border || w >= wr_border ) {
-                                            output_ptr_c[output_idx] = value;
-                                    } else {
-                                        int input_idx  = ((h - ht_border) * iw + w - wl_border) * 4 + (c + i - cb_border) % 4;
-                                        output_ptr_c[output_idx] = input_ptr_c[input_idx];
+                        auto output_ptr_c = output_data_base + c * oh * ow;
+                        if (pad_c_aligned) {
+                            auto ic_mapped = c - pad_c_b;
+                            if (ic_mapped < 0 || ic_mapped >= ic_r4) {
+                                for (int i = 0; i < ow * oh; ++i)
+                                    Float4::save(output_ptr_c + i * 4, vvalue);
+                            } else {
+                                auto input_ptr_c = input_data_base + ic_mapped * ih * iw;
+                                if (pad_t)
+                                    for (int i = 0; i < ow * pad_t; ++i)
+                                        Float4::save(output_ptr_c + i * 4, vvalue);
+
+                                for (int h = 0; h < ih; ++h) {
+                                    auto output_ptr_h = output_ptr_c + ow * (h + pad_t) * 4;
+                                    auto input_ptr_h  = input_ptr_c + iw * h * 4;
+                                    for (int i = 0; i < pad_l; i++) {
+                                        Float4::save(output_ptr_h, vvalue);
+                                        output_ptr_h += 4;
                                     }
+
+                                    if (ic_aligned || ic_mapped <= ic - 4) {
+                                        memcpy(output_ptr_h, input_ptr_h, iw_bytes);
+                                        output_ptr_h += iw * 4;
+                                    } else {
+                                        for (int i = 0; i < iw; i++) {
+                                            Float4 res = Float4::pad(Float4::load(input_ptr_h), vvalue, pad_zero);
+                                            Float4::save(output_ptr_h, res);
+                                            input_ptr_h  += 4;
+                                            output_ptr_h += 4;
+                                        }
+                                    }
+
+                                    for (int i = 0; i < pad_r; i++) {
+                                        Float4::save(output_ptr_h, vvalue);
+                                        output_ptr_h += 4;
+                                    }
+                                }
+
+                                if (pad_b) {
+                                    auto output_ptr_h = output_ptr_c + ow * (ih + pad_t) * 4;
+                                    for (int i = 0; i < ow * pad_b; ++i)
+                                        Float4::save(output_ptr_h + i * 4, vvalue);
+                                }
+                            }
+                        } else {
+                            auto ic_mapped   = c - pad_c_b;
+                            auto ic_mapped_1 = ROUND_UP(ic_mapped, 4);
+                            auto ic_mapped_0 = ic_mapped_1 - 4;
+                            auto shift_c     = ic_mapped - ic_mapped_0;
+                            if (ic_mapped_1 < 0 || ic_mapped_0 >= ic_r4) {
+                                for (int i = 0; i < ow * oh; ++i)
+                                    Float4::save(output_ptr_c + i * 4, vvalue);
+                            } else {
+                                auto input_ptr_c0 = input_data_base + ic_mapped_0 * ih * iw;
+                                auto input_ptr_c1 = input_data_base + ic_mapped_1 * ih * iw;
+                                if (pad_t)
+                                    for (int i = 0; i < ow * pad_t; ++i)
+                                        Float4::save(output_ptr_c + i * 4, vvalue);
+
+                                for (int h = 0; h < ih; ++h) {
+                                    auto output_ptr_h = output_ptr_c + ow * (h + pad_t) * 4;
+                                    auto input_ptr_h0 = input_ptr_c0 + iw * h * 4;
+                                    auto input_ptr_h1 = input_ptr_c1 + iw * h * 4;
+                                    for (int i = 0; i < pad_l; i++) {
+                                        Float4::save(output_ptr_h, vvalue);
+                                        output_ptr_h += 4;
+                                    }
+
+                                    if (ic_mapped_0 >= 0 && ic_mapped_1 < ic_r4 - 4) {
+                                        for (int i = 0; i < iw; i++) {
+                                            Float4 res = Float4::extract(Float4::load(input_ptr_h0), Float4::load(input_ptr_h1), shift_c);
+                                            Float4::save(output_ptr_h, res);
+                                            input_ptr_h0 += 4;
+                                            input_ptr_h1 += 4;
+                                            output_ptr_h += 4;
+                                        }
+                                    } else if (ic_mapped_0 < 0) {
+                                        for (int i = 0; i < iw; i++) {
+                                            Float4 src = Float4::load(input_ptr_h1);
+                                            if (ic_mapped_1 == ic_r4 - 4 && pad_zero)
+                                                src = Float4::pad(src, vvalue, pad_zero);
+                                            Float4 res = Float4::extract(vvalue, src, shift_c);
+                                            Float4::save(output_ptr_h, res);
+                                            input_ptr_h1  += 4;
+                                            output_ptr_h += 4;
+                                        }
+                                    } else if (ic_mapped_1 == ic_r4 - 4) {
+                                        for (int i = 0; i < iw; i++) {
+                                            Float4 src = Float4::load(input_ptr_h1);
+                                            if (pad_zero)
+                                                src = Float4::pad(src, vvalue, pad_zero);
+                                            Float4 res = Float4::extract(Float4::load(input_ptr_h0), src, shift_c);
+                                            Float4::save(output_ptr_h, res);
+                                            input_ptr_h0 += 4;
+                                            input_ptr_h1 += 4;
+                                            output_ptr_h += 4;
+                                        }
+                                    } else {
+                                        for (int i = 0; i < iw; i++) {
+                                            Float4 src = Float4::load(input_ptr_h0);
+                                            if (pad_zero)
+                                                src = Float4::pad(src, vvalue, pad_zero);
+                                            Float4 res = Float4::extract(src, vvalue, shift_c);
+                                            Float4::save(output_ptr_h, res);
+                                            input_ptr_h0 += 4;
+                                            output_ptr_h += 4;
+                                        }
+                                    }
+
+                                    for (int i = 0; i < pad_r; i++) {
+                                        Float4::save(output_ptr_h, vvalue);
+                                        output_ptr_h += 4;
+                                    }
+                                }
+
+                                if (pad_b) {
+                                    auto output_ptr_h = output_ptr_c + ow * (ih + pad_t) * 4;
+                                    for (int i = 0; i < ow * pad_b; ++i)
+                                        Float4::save(output_ptr_h + i * 4, vvalue);
                                 }
                             }
                         }
