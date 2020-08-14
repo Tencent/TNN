@@ -146,9 +146,8 @@ int main(int argc, char* argv[]) {
     }
 
     printf("actual output:  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
-    printf("actual output memory:  %d x %d\n", (output_mat.GetWidth() + 15) / 16 * 16, (output_mat.GetHeight() + 1) / 2 * 2);
 
-    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, (output_mat.GetWidth() + 15) / 16 * 16 * (output_mat.GetHeight() + 1) / 2 * 2 * 3 / 2}, "output.bin");
+    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, output_mat.GetWidth() * output_mat.GetHeight() * 3 / 2}, "output.bin");
 
     stbi_image_free(input_data_ptr);
 

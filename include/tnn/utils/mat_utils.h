@@ -74,6 +74,7 @@ public:
     // @param src  src mat
     // @param dst mat to paste
     // @param param  param to use for resize
+    // @param paste_param  param to use for paste
     // @param command_queue  device related command queue
     // @return ret  return val
     static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
@@ -93,6 +94,19 @@ public:
     // @param command_queue  device related command queue
     // @return ret  return val
     static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
+
+    // @brief mat concat with batch
+    // @param src_vec  src mat vector
+    // @param dst mat
+    // @param command_queue  device related command queue
+    // @return ret  return val
+    static Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue);
+
+    // @brief get mat data buffer size
+    // @param src mat
+    // @param byte_size  buffer byte size
+    // @return ret  return val 
+    static Status GetMatByteSize(Mat& src, int& byte_size);
 };
 
 }  // namespace TNN_NS
