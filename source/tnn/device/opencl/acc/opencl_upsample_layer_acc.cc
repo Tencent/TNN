@@ -51,10 +51,10 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
     // create kernel
     std::string kernel_name;
-    if (upsample_param->type == 1) {  // nearst
+    if (upsample_param->mode == 1) {  // nearst
         LOGD("build nearest\n");
         kernel_name = "Nearest";
-    } else if (upsample_param->type == 2) {  // bilinear
+    } else if (upsample_param->mode == 2) {  // bilinear
         if (upsample_param->align_corners) {
             LOGD("build bilinear with aligned corners\n");
             kernel_name = "BilinearAlignCorners";
@@ -105,7 +105,7 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     float height_scale;
     float width_scale;
-    if (upsample_param->type == 2 && upsample_param->align_corners) {
+    if (upsample_param->mode == 2 && upsample_param->align_corners) {
         height_scale = (float)(input_height - 1) / (float)(output_height - 1);
         width_scale  = (float)(input_width - 1) / (float)(output_width - 1);
     } else {
