@@ -25,10 +25,91 @@
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_utils.h"
 
 using namespace TNN_NS;
 
 #define INPUT_8UC3_ENABLE
+
+void* g_input_data_ptr = nullptr;
+
+Mat GetInputMat(Blob* input_blob, std::string input_file) {
+    int ret;
+#ifdef INPUT_8UC3_ENABLE
+    unsigned char* input_data_ptr = nullptr;
+#else 
+    float* input_data_ptr = nullptr;
+#endif
+
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
+    //std::vector<int> mat_dims = input_dims;
+    printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
+
+#ifdef INPUT_8UC3_ENABLE
+    ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
+    //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
+#else 
+    ret = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
+#endif
+    int index = 10;
+    printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
+
+#ifdef INPUT_8UC3_ENABLE
+    Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+#else 
+    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
+#endif
+
+    g_input_data_ptr = input_data_ptr;
+    return input_mat;
+}
+
+Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_queue) {
+    int ret;
+    Status tnn_ret = TNN_OK;
+    unsigned char* input_data_ptr = nullptr;
+
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    int batch = input_dims[0];
+    input_dims[0] = 1;
+    std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
+    //std::vector<int> mat_dims = input_dims;
+    printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
+
+    ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
+    //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
+
+    int index = 10;
+    printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
+
+    Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+    Mat mat_resized(DEVICE_ATLAS, NNV12, mat_dims, nullptr);
+    ResizeParam resize_param;
+    resize_param.scale_w = 1.0f;
+    resize_param.scale_h = 1.0f;
+    PasteParam paste_param;
+    tnn_ret = MatUtils::ResizeAndPaste(input_mat, mat_resized, resize_param, paste_param, command_queue);
+    if (TNN_OK != tnn_ret) {
+        printf("resize mat failed\n");
+    }
+    
+    std::vector<Mat> input_mat_vec;
+    for (int i = 0; i < batch; ++i) {
+        input_mat_vec.push_back(mat_resized);
+    }
+
+    Mat output_mat(DEVICE_ATLAS, NNV12, {0,0,0,0}, nullptr);
+    tnn_ret = MatUtils::ConcatMatWithBatch(input_mat_vec, output_mat, command_queue);
+    if (TNN_OK != tnn_ret) {
+        printf("Concat mat failed\n");
+    }
+
+    g_input_data_ptr = input_data_ptr;
+    printf("output_mat dims: [%d %d %d %d]\n", output_mat.GetBatch(), output_mat.GetChannel(), output_mat.GetHeight(), output_mat.GetWidth());
+
+    return output_mat;
+}
 
 void* RunTNN(void* param) {
     TNNParam* tnn_param = (TNNParam*)param;
@@ -40,8 +121,7 @@ void* RunTNN(void* param) {
     struct timeval time2;
     float delta = 0;
 
-    int ret;
-    Status error;
+    Status tnn_ret;
 
     NetworkConfig network_config;
     network_config.network_type = tnn_param->network_type;
@@ -49,9 +129,9 @@ void* RunTNN(void* param) {
     network_config.device_id    = tnn_param->device_id;
 
     gettimeofday(&time1, NULL);
-    auto instance_ = tnn_param->tnn_net->CreateInst(network_config, error);
-    if (CheckResult("create instance", error) != true) {
-        printf("error info: %s\n", error.description().c_str());
+    auto instance_ = tnn_param->tnn_net->CreateInst(network_config, tnn_ret);
+    if (CheckResult("create instance", tnn_ret) != true) {
+        printf("error info: %s\n", tnn_ret.description().c_str());
         return nullptr;
     }
     gettimeofday(&time2, NULL);
@@ -64,15 +144,19 @@ void* RunTNN(void* param) {
 
     // Reshape
     BlobMap input_blobs_temp;
-    error = instance_->GetAllInputBlobs(input_blobs_temp);
+    instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
     input_shapemap[input_blobs_temp.begin()->first] = input_blobs_temp.begin()->second->GetBlobDesc().dims;
     input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    error = instance_->Reshape(input_shapemap);
+    tnn_ret = instance_->Reshape(input_shapemap);
+    if (tnn_ret != TNN_OK) {
+        printf("instance Reshape() falied (%s)\n", tnn_ret.description().c_str());
+        return nullptr;
+    }
 
     // Get input/output blobs
     BlobMap input_blobs, output_blobs;
-    error       = instance_->GetAllInputBlobs(input_blobs);
+    instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
     for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
         printf("input(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
@@ -85,39 +169,13 @@ void* RunTNN(void* param) {
                it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
     }
 
-    // load input
-#ifdef INPUT_8UC3_ENABLE
-    unsigned char* input_data_ptr = nullptr;
-#else 
-    float* input_data_ptr = nullptr;
-#endif
-    auto input_dims = input->GetBlobDesc().dims;
-    auto input_format = input->GetBlobDesc().data_format;
-    if (DATA_FORMAT_NCHW == input_format || DATA_FORMAT_NC4HW4 == input_format) {
-        printf("input is NCHW\n");
-#ifdef INPUT_8UC3_ENABLE
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, input_dims);
-#else 
-        ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, input_dims, false);
-#endif
-    } else if (DATA_FORMAT_NHWC == input_format) {
-        printf("input is NHWC\n");
-#ifdef INPUT_8UC3_ENABLE
-        //ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, input_dims);
-        ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
-        //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]});
-#else 
-        ret = ReadFromTxtToBatch(input_data_ptr, tnn_param->input_file, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, false);
-#endif
-    } else {
-        printf("invalid model input format\n");
-        return nullptr;
-    }
-    if (CheckResult("load input data", ret) != true)
-        return nullptr;
-    int index = 10;
-    printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
+    // get input mat
+    MatConvertParam input_param;
+    input_param.scale[0] = 0.00392156862745;
+    input_param.scale[1] = 0.00392156862745;
+    input_param.scale[2] = 0.00392156862745;
+    Mat input_mat = GetInputMat(input, tnn_param->input_file);
+    //Mat input_mat = GetInputMatWithDvpp(input, tnn_param->input_file, command_queue);
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -127,15 +185,6 @@ void* RunTNN(void* param) {
         output_cvt_map[item.first].reset(new BlobConverter(item.second));
     }
 
-    Status tnn_ret;
-    // copy input data into atlas
-#ifdef INPUT_8UC3_ENABLE
-    //Mat input_mat(DEVICE_NAIVE, N8UC3, input->GetBlobDesc().dims, input_data_ptr);
-    Mat input_mat(DEVICE_NAIVE, N8UC3, {input_dims[0], input_dims[3], input_dims[1], input_dims[2]}, input_data_ptr);
-#else 
-    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, input->GetBlobDesc().dims, input_data_ptr);
-#endif
-    MatConvertParam input_param;
     tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("ConvertFromMat falied (%s)\n", tnn_ret.description().c_str());
@@ -182,8 +231,8 @@ void* RunTNN(void* param) {
                       "dump_" + name_temp + "thread_" + thread_id_str + ".txt");
     }
 
-    if (input_data_ptr != nullptr)
-        free(input_data_ptr);
+    if (g_input_data_ptr != nullptr)
+        free(g_input_data_ptr);
 
     instance_.reset();
     printf("instance reset done!\n");
