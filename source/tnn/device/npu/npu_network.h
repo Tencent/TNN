@@ -119,24 +119,24 @@ private:
 
     NetStructure *net_structure_ = nullptr;
     // add for npu
-    //map to store the operators corresponding to their names
+    // map to store the operators corresponding to their names
     std::map<std::string, shared_ptr<OperatorInfo>> global_operator_map_;
-    //graph used to build
+    // graph used to build
     ge::Graph graph_ = ge::Graph("graph");
 
-    //the boolean controls if build from om or build from memory
+    // the boolean controls if build from om or build from memory
     bool from_path_ = true;
-    //the name of the model
+    // the name of the model
     std::string model_name_;
     std::shared_ptr<hiai::AiModelMngerClient> client_;
     std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
     std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;
 
-    //blob map used only for input
+    // blob map used only for input
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
 
-    //here to add sub network :
+    // here to add sub network :
     std::shared_ptr<DefaultNetwork> default_network_;
     int cpu_count_;
     std::set<std::string> visited_;
