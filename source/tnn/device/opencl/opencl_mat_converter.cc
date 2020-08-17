@@ -300,7 +300,7 @@ Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* co
     OpenCLExecuteUnit unit;
     if(execute_map_.count(key) == 0) {
         std::string program_name = "copy";
-        std::string kernel_name = "CopyImage";
+        std::string kernel_name = "Crop";
         ret = CreateExecuteUnit(unit, program_name, kernel_name);
         if(ret != TNN_OK) {
             return ret;
@@ -308,29 +308,35 @@ Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* co
         execute_map_[key] = unit; 
     }
 
-    MatType mat_type = src.GetMatType();
     auto dims        = dst.GetDims();
-
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
 
     cl_int cl_ret;
-    int offset = param.top_left_x + param.top_left_y*src.GetWidth();
-    cl::Image *image_input = static_cast<cl::Image *>(src.GetData()+offset);
+    //int offset = param.top_left_x + param.top_left_y*src.GetWidth();
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
     cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
     cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
     CHECK_CL_SUCCESS(cl_ret);
     cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
     CHECK_CL_SUCCESS(cl_ret);
-    //height
-    cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+    //start_x
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.top_left_x); 
+    CHECK_CL_SUCCESS(cl_ret);
+    //start_y
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.top_left_y);
     CHECK_CL_SUCCESS(cl_ret);
     //width
-    cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.width); 
+    CHECK_CL_SUCCESS(cl_ret);
+    //height
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.height);
     CHECK_CL_SUCCESS(cl_ret);
 
+    ret = RunConvertUnit(unit, cl_command_queue, false);
+    if (ret != TNN_OK) {
+        return ret;
+    }
     return TNN_OK;
-
-    return ret;
 }
 
 Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {

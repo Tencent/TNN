@@ -25,6 +25,26 @@ __kernel void CopyImage(GLOBAL_SIZE_2_DIMS
     WI_F(output, output_pos, RI_F(input, SAMPLER, input_pos));
 }
 
+__kernel void Crop(GLOBAL_SIZE_2_DIMS  
+                    __read_only image2d_t input, 
+                    __write_only image2d_t output,
+                    int start_x,
+                    int start_y,
+                    int width,
+                    int height
+                    ) {
+    int cw = get_global_id(0);
+    int bh = get_global_id(1);
+    DEAL_NON_UNIFORM_DIM2(cw, bh);
+
+    //N, C, H, W
+    // int4 pos = (int4)(bh/wh.y, cw/wh.x, bh%wh.y, cw%wh.x);
+    // int4 offset = (int4)(bh/start_y, cw/start_x, bh%start_y, cw%start_x);
+    int2 output_pos = (int2)(cw,bh);
+    int2 input_pos = (int2)(cw + start_x, bh + start_y);
+    WI_F(output, output_pos, RI_F(input, SAMPLER, input_pos));
+}
+
 __kernel void CopyBuffer(GLOBAL_SIZE_2_DIMS  
                     const __global FLOAT *input, 
                     __global FLOAT *output,
