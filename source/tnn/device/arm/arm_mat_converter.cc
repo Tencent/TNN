@@ -19,6 +19,11 @@
 
 namespace TNN_NS {
 
+Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    Status ret = TNN_OK;
+    return ret;
+}
+
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
@@ -35,17 +40,33 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
     }
 
     if (src.GetMatType() == NGRAY) {
-        // resize_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), src.GetWidth(), dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), dst.GetWidth());
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_c1((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                               (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == N8UC3) {
-        // resize_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), src.GetWidth() * 3, dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), dst.GetWidth() * 3);
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                               (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == N8UC4) {
-        // resize_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), src.GetWidth() * 4, dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), dst.GetWidth() * 4);
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_c4((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                               (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
-        // resize_bilinear_yuv420sp(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(), dst.GetWidth(),
-        //                          dst.GetHeight());
+        if (param.type == INTERP_TYPE_LINEAR) {
+            resize_bilinear_yuv420sp((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                     (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -88,7 +109,7 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");
         }
         // crop y
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * param.width);
+        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth());
         auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
         mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
         // crop uv
@@ -119,16 +140,29 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     }
 
     if (src.GetMatType() == NGRAY) {
-        // warpaffine_bilinear_c1(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), param.transform);
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            warpaffine_bilinear_c1((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                   param.transform, param.border_val);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
     } else if (src.GetMatType() == N8UC3) {
-        // warpaffine_bilinear_c3(src.GetData(), src.GetWidth(), src.GetHeight(), dst.GetData(),
-        //                    dst.GetWidth(), dst.GetHeight(), param.transform);
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            warpaffine_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                   param.transform, param.border_val);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
     return ret;
 }
+
+DECLARE_MAT_CONVERTER_CREATER(Arm);
+REGISTER_MAT_CONVERTER(Arm, DEVICE_ARM);
 
 }  // namespace TNN_NS

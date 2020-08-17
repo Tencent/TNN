@@ -23,6 +23,7 @@ namespace TNN_NS {
 
 class ArmMatConverterAcc : public MatConverterAcc {
 public:
+    virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
