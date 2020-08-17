@@ -131,7 +131,7 @@ void OpenCLLayerAcc::UpdateProfilingData(OpenCLProfilingData *pdata, std::vector
                                          std::vector<uint32_t> lws, int idx) {
     AbstractLayerAcc::UpdateProfilingData(pdata, param_, input_dims_, output_dims_);
     if (idx != 0)
-        pdata->layer_name += "_" + to_string(idx);
+        pdata->layer_name += "_" + ToString(idx);
     pdata->op_name         = op_name_;
     pdata->global_worksize = gws;
     pdata->local_worksize  = lws;

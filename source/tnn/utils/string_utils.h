@@ -22,14 +22,14 @@
 namespace TNN_NS {
 
 template <typename T>
-std::string to_string(T value) {
+std::string ToString(T value) {
     std::ostringstream os;
     os << value;
     return os.str();
 }
 
 template <>
-std::string to_string<float>(float value);
+std::string ToString<float>(float value);
 
 }  // namespace TNN_NS
 
