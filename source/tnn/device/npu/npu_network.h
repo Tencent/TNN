@@ -22,6 +22,8 @@
 #include <tnn/interpreter/net_structure.h>
 #include <tnn/layer/base_layer.h>
 
+#include <tnn/core/default_network.h>
+#include <tnn/interpreter/default_model_interpreter.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -101,11 +103,13 @@ private:
 
     Status CreateGraphInputs(InputShapesMap &input_shape_map);
 
-    Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map);
+    Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
     Status BuildModel(std::string model_path);
 
     Status InitCheck();
+
+    InputShapesMap modifyInterpreterCPU();
 
     AbstractDevice *device_ = nullptr;
 
@@ -127,9 +131,18 @@ private:
     std::shared_ptr<hiai::AiModelMngerClient> client_;
     std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
     std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;
+
     //blob map used only for input
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
+
+    //here to add sub network :
+    std::shared_ptr<DefaultNetwork> default_network_;
+    int cpu_count_;
+    std::set<std::string> visited_;
+    bool useCPU = false;
+    BlobMap npu_inter_out_blobmap_;
+    BlobMap cpu_inter_in_blobmap_;
 };
 
 }  // namespace TNN_NS
