@@ -28,7 +28,7 @@
 
 namespace TNN_NS {
 
-class BlobConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, float, float, MatType, DataType>> {
+class BlobConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, float, float, bool, MatType, DataType>> {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();

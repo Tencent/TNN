@@ -12,25 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
-#define TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+#ifndef TNN_EXAMPLES_SAMPLES_TIMER_H_
+#define TNN_EXAMPLES_SAMPLES_TIMER_H_
 
-#include <sstream>
+#include <chrono>
 #include <string>
+
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-template <typename T>
-std::string ToString(T value) {
-    std::ostringstream os;
-    os << value;
-    return os.str();
-}
+using std::chrono::time_point;
+using std::chrono::system_clock;
 
-template <>
-std::string ToString<float>(float value);
+class SampleTimer {
+public:
+    SampleTimer() {};
+    void Start();
+    void Stop();
+    void Reset();
+    double GetTime();
 
-}  // namespace TNN_NS
+private:
+    time_point<system_clock> start_;
+    time_point<system_clock> stop_;
+};
 
-#endif  // TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+} // namespace TNN_NS
+
+#endif // TNN_TEST_TIMER_H_ 

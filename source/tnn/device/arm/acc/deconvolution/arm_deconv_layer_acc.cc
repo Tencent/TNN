@@ -36,55 +36,53 @@ static std::shared_ptr<LayerResource> CreateFp32DeconvResource(ConvLayerResource
 
 Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret;
     ConvLayerParam *deconv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(deconv_param);
 
     ConvLayerResource *deconv_res = dynamic_cast<ConvLayerResource *>(resource);
     CHECK_PARAM_NULL(deconv_res);
 
-    deconv_acc_impl_ = std::make_shared<ArmDeconvLayerCommon>();
-
-    auto status = deconv_acc_impl_->Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
-
     if (deconv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
         deconv_acc_f32_resource_ = CreateFp32DeconvResource(deconv_res);
-        status                   = ArmLayerAcc::Init(context, param, deconv_acc_f32_resource_.get(), inputs, outputs);
+        ret                      = ArmLayerAcc::Init(context, param, deconv_acc_f32_resource_.get(), inputs, outputs);
     } else {
-        status = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+        ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     }
 
-    if (status != TNN_OK) {
-        return status;
+    if (ret != TNN_OK) {
+        return ret;
     }
 
-    return this->Reshape(inputs, outputs);
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        GetImpFP(inputs, outputs);
+    } else {
+        return Status(TNNERR_NET_ERR, "int8 deconv impl is not supported");
+    }
+
+    if (!deconv_acc_impl_) {
+        return Status(TNNERR_NET_ERR, "Could not create conv impl_");
+    }
+
+    return deconv_acc_impl_->Init(context_, param_, resource_, inputs, outputs);
 }
 
 ArmDeconvLayerAcc::~ArmDeconvLayerAcc() {}
 
-Status ArmDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    ArmLayerAcc::Reshape(inputs, outputs);
-    // Todo
-    // reshape之后参数发生变化，因此需要重新选择deconv实现
-    do {
-        if (ArmDeconvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-            if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvLayerDepthwise *>(deconv_acc_impl_.get())) {
-                auto deconv_acc = std::make_shared<ArmDeconvLayerDepthwise>();
-                deconv_acc->Init(context_, param_, resource_, inputs, outputs);
-                deconv_acc_impl_ = deconv_acc;
-                break;
-            }
+void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (ArmDeconvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
+        if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvLayerDepthwise *>(deconv_acc_impl_.get())) {
+            auto deconv_acc = std::make_shared<ArmDeconvLayerDepthwise>();
+            deconv_acc_impl_ = deconv_acc;
         }
-    } while (0);
-
-    if (deconv_acc_impl_) {
-        return deconv_acc_impl_->Reshape(inputs, outputs);
-    } else {
-        return Status(TNNERR_CONTEXT_ERR, "deconv_acc_impl_ is nil");
     }
+    if (!deconv_acc_impl_) {
+        deconv_acc_impl_ = std::make_shared<ArmDeconvLayerCommon>();
+    }
+}
+
+Status ArmDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return deconv_acc_impl_->Reshape(inputs, outputs);
 }
 
 Status ArmDeconvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
