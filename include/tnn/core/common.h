@@ -135,8 +135,9 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
-    std::string ConvertParam(const unsigned char *buffer, int length);
 };
+    
+std::string ConvertParam(const unsigned char *buffer, int length);
 
 }  // namespace TNN_NS
 
