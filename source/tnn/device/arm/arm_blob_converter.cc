@@ -585,9 +585,6 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
 compatiable to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void *command_queue) {
-    if (param.reverse_channel) {
-        return Status(TNNERR_COMMON_ERROR, "REVERT CHANNEL/format IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
-    }
     return ConvertToMatAsync(image, param, command_queue);
 }
 
@@ -595,9 +592,6 @@ Status ArmBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void
 compatiable to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue) {
-    if (param.reverse_channel) {
-        return Status(TNNERR_COMMON_ERROR, "REVERT CHANNEL IN CONVERT NOT SUPPORT YET, WILL DONE SOON\n");
-    }
     return ConvertFromMatAsync(image, param, command_queue);
 }
 
