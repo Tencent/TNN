@@ -67,8 +67,8 @@ public:
                 }
             }
         }
-        memcpy(data, buffer, num * channel * height * width * sizeof(T));
         if (alloc_mem) {
+            memcpy(data, buffer, num * channel * height * width * sizeof(T));
             delete[] buffer;
         }
         return TNN_OK;
@@ -104,8 +104,8 @@ public:
                 }
             }
         }
-        memcpy(data, buffer, num * channel * height * width * sizeof(T));
         if (alloc_mem) {
+            memcpy(data, buffer, num * channel * height * width * sizeof(T));
             delete[] buffer;
         }
         return TNN_OK;
