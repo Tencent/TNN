@@ -56,7 +56,7 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-std::string MetalPoolingLayerAcc::KernelName() {
+std::string MetalPoolingLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     const int pool_type = param->pool_type;
     return pool_type == 0 ? "pooling_max" : "pooling_avg";
