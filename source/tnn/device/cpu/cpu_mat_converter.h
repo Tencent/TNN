@@ -33,8 +33,6 @@ public:
 
 private:
     void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
-//     Status ConvertNCHWToNHWC(uint8_t* src, uint8_t* dst);
-//     Status ConvertNHWCToNCHW(uint8_t* src, uint8_t* dst);
 };
 
 }  // namespace TNN_NS
