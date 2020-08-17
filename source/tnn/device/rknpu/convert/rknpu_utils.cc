@@ -23,23 +23,6 @@
 
 namespace tnn {
 
-Status RknpuUtils::CreateInputData(std::shared_ptr<rk::nn::Tensor> &input_data, std::string &input_name,
-                                   DimsVector dims_vector) {
-    int n = dims_vector[0];
-    int c = dims_vector[1];
-    int h = dims_vector[2];
-    int w = dims_vector[3];
-
-#if 0
-    ge::Shape data_shape({n, c, h, w});
-    ge::TensorDesc desc(data_shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
-
-    input_data = std::make_shared<ge::op::Data>(input_name);
-    input_data->update_input_desc_x(desc);
-#endif
-    return TNN_OK;
-}
-
 std::shared_ptr<rk::nn::Tensor> RknpuUtils::CreateRknnTensor(rk::nn::Graph *graph, const std::string &name,
                                                              const std::vector<int> &dims, const void *data,
                                                              const rk::nn::TensorRole role, const DataType type,
@@ -114,10 +97,6 @@ std::string RknpuUtils::GetFileHash(ModelConfig &model_config) {
         hash = 65599 * hash + file_content.at(i);
     return std::to_string(hash ^ (hash >> 16));
 }
-bool RknpuUtils::FileExits(std::string model_path) {
-    std::ifstream infile(model_path);
-    return infile.good();
-}
 
 Status RknpuUtils::GetPadType(rk::nn::PadType &rk_pad_type, int pad_type) {
     // rknpu pad mode
@@ -133,22 +112,4 @@ Status RknpuUtils::GetPadType(rk::nn::PadType &rk_pad_type, int pad_type) {
     return TNN_OK;
 }
 
-std::string RknpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
-            }
-            model_suffix_stream << "]";
-        }
-    }
-    return model_suffix_stream.str();
-}
 }  // namespace tnn

@@ -28,9 +28,6 @@ namespace TNN_NS {
 
 class RknpuUtils {
 public:
-    static Status CreateInputData(std::shared_ptr<rk::nn::Tensor> &input_data, std::string &input_name,
-                                  DimsVector dims_vector);
-
     static std::shared_ptr<rk::nn::Tensor> CreateRknnTensor(
         rk::nn::Graph *graph, const std::string &name, const std::vector<int> &dims, const void *data = NULL,
         const rk::nn::TensorRole role = rk::nn::TensorRole::VAR, const DataType type = DATA_TYPE_FLOAT,
@@ -42,11 +39,7 @@ public:
                                          std::vector<int> &input_shape);
     static std::string GetFileHash(ModelConfig &model_config);
 
-    static bool FileExits(std::string model_path);
-
     static Status GetPadType(rk::nn::PadType &rk_pad_type, int pad_type);
-
-    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
 };
 
 }  // namespace TNN_NS
