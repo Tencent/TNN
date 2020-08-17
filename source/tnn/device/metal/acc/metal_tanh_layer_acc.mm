@@ -19,7 +19,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Tanh, LAYER_TANH);
 
-string MetalTanhLayerAcc::KernelName() {
+string MetalTanhLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "tanh";
 }
 

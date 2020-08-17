@@ -79,7 +79,7 @@ Status MetalUpsampleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
     return TNN_OK;
 }
 
-std::string MetalUpsampleLayerAcc::KernelName() {
+std::string MetalUpsampleLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (layer_param->mode == 1) {
         // nearest align_corners=False?待确认

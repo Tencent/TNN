@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Ceil, LAYER_CEIL);
 
-string MetalCeilLayerAcc::KernelName() {
+string MetalCeilLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "ceil";
 }
 

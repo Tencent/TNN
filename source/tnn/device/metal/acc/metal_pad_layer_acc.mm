@@ -60,10 +60,21 @@ Status MetalPadLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
-// This method should never be called
-std::string MetalPadLayerAcc::KernelName() {
-    LOGD("Invalid Calling\n");
-    return "";
+std::string MetalPadLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<PadLayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: layer param is nil\n");
+        return "";
+    }
+    
+    if (layer_param->type == 1) {
+        return "pad_reflect_common";
+    } else if (layer_param->type == 0) {
+        return "pad_const_common";
+    } else {
+        LOGE("Error: layer param is not supported: type:%d\n", layer_param->type);
+        return "";
+    }
 }
 
 Status MetalPadLayerAcc::SetKernelEncoderParam(

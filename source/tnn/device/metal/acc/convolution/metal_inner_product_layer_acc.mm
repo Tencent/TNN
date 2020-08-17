@@ -139,7 +139,7 @@ Status MetalInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs,
     return MetalConvLayerCommon::Reshape(inputs, outputs);
 }
 
-std::string MetalInnerProductLayerAcc::KernelName() {
+std::string MetalInnerProductLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "inner_product";
 }
 

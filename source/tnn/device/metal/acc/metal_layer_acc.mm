@@ -65,7 +65,8 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
     return TNN_OK;
 }
 
-std::string MetalLayerAcc::KernelName() {
+std::string MetalLayerAcc::KernelName(const std::vector<Blob *> &inputs,
+                                      const std::vector<Blob *> &outputs) {
     LOGE("Error: subclass must implement the interface KernelName\n");
     return "";
 }
@@ -119,7 +120,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     }
     
     do {
-        auto kernel_name = KernelName();
+        auto kernel_name = KernelName(inputs, outputs);
         if (kernel_name.length() <= 0) {
             status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             break;
