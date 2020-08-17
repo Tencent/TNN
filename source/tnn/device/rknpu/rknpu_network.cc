@@ -70,29 +70,9 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     // init input buffers
     input_inf_.resize(graph->GetInputs().size());
     for (int i = 0; i < input_inf_.size(); i++) {
-        const auto type  = graph->GetInputs()[i]->GetPrecision();
-        size_t type_size = 4;
-        switch (type) {
-            case rk::nn::PrecisionType::FLOAT32:
-                type_size = 4;
-                break;
-            case rk::nn::PrecisionType::UINT8:
-                type_size = 1;
-                break;
-            case rk::nn::PrecisionType::INT32:
-                type_size = 4;
-                break;
-            case rk::nn::PrecisionType::INT64:
-                type_size = 8;
-                break;
-            default:
-                // TODO
-                throw std::invalid_argument("Init: unknow input data type!");
-                break;
-        }
-
+        auto type     = graph->GetInputs()[i]->GetPrecision();
         auto dims     = graph->GetInputs()[i]->GetDims();
-        uint32_t size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<uint32_t>()) * type_size;
+        uint32_t size = RknpuUtils::CalcSize(type, dims);
 
         input_inf_[i].index        = i;
         input_inf_[i].buf          = malloc(size);
@@ -100,12 +80,6 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         input_inf_[i].pass_through = false;
         input_inf_[i].type         = type;
         input_inf_[i].layout       = rk::nn::DataLayoutType::NCHW;
-
-        int n, h, w, c;
-        n = (dims.size() >= 4) ? dims[0] : 1;
-        c = (dims.size() >= 3) ? dims[1] : 1;
-        h = (dims.size() >= 2) ? dims[2] : 1;
-        w = (dims.size() >= 1) ? dims[3] : 1;
 
         // add blob
         char layer_name[16];
@@ -115,10 +89,9 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = layer_name;
-        desc.dims.push_back(n);
-        desc.dims.push_back(c);
-        desc.dims.push_back(h);
-        desc.dims.push_back(w);
+        for (auto dim : dims) {
+            desc.dims.push_back((int)dim);
+        }
         BlobHandle handle;
         handle.base                = input_inf_[i].buf;
         input_blob_map_[desc.name] = new Blob(desc, handle);
@@ -127,29 +100,9 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     // init output buffers
     output_inf_.resize(graph->GetOutputs().size());
     for (int i = 0; i < output_inf_.size(); ++i) {
-        const auto type  = graph->GetOutputs()[i]->GetPrecision();
-        size_t type_size = 4;
-        switch (type) {
-            case rk::nn::PrecisionType::FLOAT32:
-                type_size = 4;
-                break;
-            case rk::nn::PrecisionType::UINT8:
-                type_size = 1;
-                break;
-            case rk::nn::PrecisionType::INT32:
-                type_size = 4;
-                break;
-            case rk::nn::PrecisionType::INT64:
-                type_size = 8;
-                break;
-            default:
-                // TODO
-                throw std::invalid_argument("Init: unknow output data type!");
-                break;
-        }
-
+        auto type     = graph->GetOutputs()[i]->GetPrecision();
         auto dims     = graph->GetOutputs()[i]->GetDims();
-        uint32_t size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<uint32_t>()) * type_size;
+        uint32_t size = RknpuUtils::CalcSize(type, dims);
 
         output_inf_[i].index      = i;
         output_inf_[i].buf        = malloc(size);
@@ -157,12 +110,6 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         output_inf_[i].type       = type;
         output_inf_[i].layout     = rk::nn::DataLayoutType::NCHW;
         output_inf_[i].want_float = true;
-
-        int n, h, w, c;
-        n = (dims.size() >= 4) ? dims[0] : 1;
-        c = (dims.size() >= 3) ? dims[1] : 1;
-        h = (dims.size() >= 2) ? dims[2] : 1;
-        w = (dims.size() >= 1) ? dims[3] : 1;
 
         // add blob
         auto it = net_structure_->outputs.begin();
@@ -175,10 +122,9 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = layer_name;
-        desc.dims.push_back(n);
-        desc.dims.push_back(c);
-        desc.dims.push_back(h);
-        desc.dims.push_back(w);
+        for (auto dim : dims) {
+            desc.dims.push_back((int)dim);
+        }
         BlobHandle handle;
         handle.base                 = output_inf_[i].buf;
         output_blob_map_[desc.name] = new Blob(desc, handle);
@@ -362,6 +308,18 @@ Status RknpuNetwork::DeInit() {
             inf.buf = NULL;
         }
     }
+
+    for (auto &input_blob : input_blob_map_) {
+        if (input_blob.second)
+            delete input_blob.second;
+    }
+    for (auto &output_blob : output_blob_map_) {
+        if (output_blob.second)
+            delete output_blob.second;
+    }
+    if (blob_manager_)
+        delete blob_manager_;
+
     return TNN_OK;
 }
 

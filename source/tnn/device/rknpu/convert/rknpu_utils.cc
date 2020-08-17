@@ -17,6 +17,7 @@
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/utils/dims_vector_utils.h>
 
+#include <numeric>
 #include <sstream>
 
 #include "tnn/core/macro.h"
@@ -110,6 +111,29 @@ Status RknpuUtils::GetPadType(rk::nn::PadType &rk_pad_type, int pad_type) {
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
     return TNN_OK;
+}
+
+uint32_t RknpuUtils::CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> dims) {
+    size_t type_size = 4;
+    switch (type) {
+        case rk::nn::PrecisionType::FLOAT32:
+            type_size = 4;
+            break;
+        case rk::nn::PrecisionType::UINT8:
+            type_size = 1;
+            break;
+        case rk::nn::PrecisionType::INT32:
+            type_size = 4;
+            break;
+        case rk::nn::PrecisionType::INT64:
+            type_size = 8;
+            break;
+        default:
+            throw std::invalid_argument("Init: unknow intput or output data type!");
+            break;
+    }
+
+    return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<uint32_t>()) * type_size;
 }
 
 }  // namespace tnn

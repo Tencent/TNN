@@ -40,6 +40,8 @@ public:
     static std::string GetFileHash(ModelConfig &model_config);
 
     static Status GetPadType(rk::nn::PadType &rk_pad_type, int pad_type);
+
+    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> dims);
 };
 
 }  // namespace TNN_NS
