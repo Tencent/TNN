@@ -20,15 +20,16 @@ cd tools/tnn2mem
 ```
 #include "mobilenetv2.h"
 #include "tnn/core/common.h"
+#include "tnn/utils/string_format.h"
 ```
 
 在加载模型时，我们需要定义模型变量
 
 ```
 ModelConfig model_config;
-std::string mobilentv2_tnnporto_string = model_config.ConvertParam(mobilentv2_tnnproto,mobilentv2_tnnproto_length);
+std::string mobilentv2_tnnporto_string = UcharToString(mobilentv2_tnnproto,mobilentv2_tnnproto_length);
 model_config.params.push_back(mobilentv2_tnnporto_string);
-std::string mobilentv2_tnnmodel_string = model_config.ConvertParam(mobilentv2_tnnmodel,mobilentv2_tnnmodel_length);
+std::string mobilentv2_tnnmodel_string = UcharToString(mobilentv2_tnnmodel,mobilentv2_tnnmodel_length);
 model_config.params.push_back(mobilentv2_tnnmodel_string);
 ```
 
