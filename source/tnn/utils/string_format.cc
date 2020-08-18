@@ -25,6 +25,14 @@ std::string DoubleToString(double val) {
     stream << std::setprecision(3) << std::setiosflags(std::ios::fixed) << val;
     return stream.str();
 }
+    
+std::string UcharToString(const unsigned char *buffer, int length){
+    std::string param;
+    for(int i = 0; i<length; i++){
+        param += buffer[i];
+    }
+    return param;
+}
 
 std::string DoubleToStringFilter(double val) {
     if (0 == val) {
