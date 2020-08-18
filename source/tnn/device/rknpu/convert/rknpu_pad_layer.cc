@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <algorithm>
+
 #include "rknpu_base_layer.h"
 #include "rknpu_utils.h"
-
-#include <algorithm>
 
 namespace TNN_NS {
 
