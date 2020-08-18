@@ -57,7 +57,7 @@ Status MetalPadLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
-std::string MetalPadLayerAcc::KernelName() {
+std::string MetalPadLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PadLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");

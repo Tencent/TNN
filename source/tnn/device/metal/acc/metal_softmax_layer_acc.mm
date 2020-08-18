@@ -49,7 +49,7 @@ Status MetalSoftmaxLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-std::string MetalSoftmaxLayerAcc::KernelName() {
+std::string MetalSoftmaxLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 

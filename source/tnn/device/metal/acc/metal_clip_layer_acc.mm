@@ -19,7 +19,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Clip, LAYER_CLIP);
 
-string MetalClipLayerAcc::KernelName() {
+string MetalClipLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "clip";
 }
 

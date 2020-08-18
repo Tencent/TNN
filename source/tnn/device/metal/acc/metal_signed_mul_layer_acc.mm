@@ -20,7 +20,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(SignedMul, LAYER_SIGNED_MUL);
 
-string MetalSignedMulLayerAcc::KernelName() {
+string MetalSignedMulLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "signed_mul";
 }
 

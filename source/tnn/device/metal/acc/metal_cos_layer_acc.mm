@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Cos, LAYER_COS);
 
-string MetalCosLayerAcc::KernelName() {
+string MetalCosLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "cos";
 }
 

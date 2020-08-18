@@ -75,7 +75,7 @@ Status MetalConvLayerDepthwise::AllocateBufferParam(const std::vector<Blob *> &i
     return TNN_OK;
 }
 
-std::string MetalConvLayerDepthwise::KernelName() {
+std::string MetalConvLayerDepthwise::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "convolution_depthwise";
 }
 

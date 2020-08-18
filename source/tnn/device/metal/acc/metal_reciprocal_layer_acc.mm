@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Reciprocal, LAYER_RECIPROCAL);
 
-string MetalReciprocalLayerAcc::KernelName() {
+string MetalReciprocalLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "reciprocal";
 }
 
