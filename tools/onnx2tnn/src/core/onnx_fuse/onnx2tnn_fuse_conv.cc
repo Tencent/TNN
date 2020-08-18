@@ -59,7 +59,6 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
     }
 
     // Conv <= Conv - BatchNormalization
-    auto start = std::chrono::system_clock::now();
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
 
@@ -157,10 +156,7 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 }
                 auto& conv_bias_tensor = weights[node_conv->input(2)];
 
-                auto current_time = std::chrono::system_clock::now();
-                auto cost_time = std::chrono::duration_cast<std::chrono::microseconds>(current_time - start).count();
-                auto time_stamp = std::to_string(cost_time);
-                auto new_conv_weight_name = node_conv->input(1) + time_stamp;
+                auto new_conv_weight_name = node_conv->input(1) + "_@" + std::to_string(i);
                 weights[new_conv_weight_name] = onnx::TensorProto(weights[node_conv->input(1)]);
                 auto& new_conv_weight_tensor = weights[new_conv_weight_name];
                 node_conv->set_input(1, new_conv_weight_name);
