@@ -27,6 +27,8 @@ bool CheckResult(std::string desc, int ret);
 
 std::string ReplaceString(std::string s);
 
+std::vector<std::string> GetFileList(std::string folder_path);
+
 int ReadFromTxt(float*& img, std::string file_path, std::vector<int> dims, bool nchw_to_nhwc = false);
 
 // Read input data from text files and copy to multi batch.

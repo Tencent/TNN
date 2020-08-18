@@ -28,22 +28,29 @@ public:
     AtlasMatConverterAcc();
     virtual ~AtlasMatConverterAcc();
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) override;
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param,
+                                  void* command_queue = NULL) override;
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) override;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
+    virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL);
 
 private:
     Status PrepareInput(Mat& mat);
-    Status PrepareOutput(Mat& mat);
+    Status PrepareOutput(Mat& mat, int pad_value = 0);
     Status ProcessOutput(Mat& mat);
 
     Status GetAlignedBufferSize(Mat& mat, int width_align_to, int height_align_to, int& buffer_size, int& width_aligned,
                                 int& height_aligned);
+
     Status MallocDeviceMemory(void** buffer, int& size, int desired_size);
+
     Status CopyFromHostToDeviceAligned(Mat& src, void* dst, int width_align_to, int height_align_to);
-    Status CopyFromDeviceToHostAligned(void* src, Mat& dst, int width_align_to, int height_align_to);
+
     int GetWidthStride(MatType mat_type, int width);
-    int GetMatByteSize(Mat& mat);
+
     CropParam ProcessCropParam(CropParam param);
+
+    Status MatCopyAsync(Mat& dst, Mat& src, int dst_offset, void* stream);
 
 private:
     bool init_success_                     = false;

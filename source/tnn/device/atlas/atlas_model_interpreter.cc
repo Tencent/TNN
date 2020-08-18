@@ -12,11 +12,16 @@ AtlasModelInterpreter::AtlasModelInterpreter() {}
 AtlasModelInterpreter::~AtlasModelInterpreter() {}
 
 Status AtlasModelInterpreter::Interpret(std::vector<std::string> params) {
-    model_config_.om_path = params[0];
-    std::ifstream om_file(model_config_.om_path);
-    if (!om_file) {
-        LOGE("Invalied om file!\n");
-        return TNNERR_INVALID_MODEL;
+    model_config_.om_str = params[0];
+    model_config_.is_path = false;
+    if (model_config_.om_str.length() < 1024) {
+        std::ifstream om_file(model_config_.om_str);
+        if (!om_file) {
+            LOGE("Invalied om file path! (param[0] : %s) take as memory content\n", model_config_.om_str.c_str());
+            model_config_.is_path = false;
+        } else {
+            model_config_.is_path = true;
+        }
     }
 
     return TNN_OK;

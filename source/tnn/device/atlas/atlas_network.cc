@@ -29,7 +29,6 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         LOGE("acl init falied\n");
         return ret;
     }
-    AtlasRuntime::IncreaseRef();
 
     // Set Device
     ret = AtlasRuntime::GetInstance()->SetDevice(net_config.device_id);
@@ -57,7 +56,13 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     command_queue_->stream  = stream_;
 
     // Load model
-    ret = LoadModelFromFile(atlas_config_.om_path);
+    if (atlas_config_.is_path) {
+        LOGD("load model form file\n");
+        ret = LoadModelFromFile(atlas_config_.om_str);
+    } else {
+        LOGD("load model form memory\n");
+        ret = LoadModelFromMemory(atlas_config_.om_str);
+    }
     if (ret != TNN_OK)
         return ret;
 
@@ -192,7 +197,6 @@ Status AtlasNetwork::DeInit() {
         context_ = nullptr;
     }
 
-    AtlasRuntime::DecreaseRef();
     return TNN_OK;
 }
 
@@ -230,6 +234,7 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
         LOGE("query model failed, model file is %s\n", om_file.c_str());
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
+    LOGD("model mem size:  %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
@@ -247,6 +252,49 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
                                     model_weight_size_);
     if (ret != ACL_ERROR_NONE) {
         LOGE("load model from file failed, model file is %s\n", om_file.c_str());
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "load model from file failed");
+    }
+
+    // create model desc to get model info
+    model_desc_ = aclmdlCreateDesc();
+    if (nullptr == model_desc_) {
+        LOGE("create model description failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "create model description failed");
+    }
+
+    ret = aclmdlGetDesc(model_desc_, model_id_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("get model description failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get model description failed");
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
+    aclError ret = aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &model_weight_size_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("query model failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
+    }
+    LOGD("model mem size: %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
+
+    ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("malloc buffer for mem failed, require size is %zu\n", model_mem_size_);
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
+    }
+
+    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
+    }
+
+    ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_, model_weight_ptr_,
+                                    model_weight_size_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("load model from file failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "load model from file failed");
     }
 
@@ -396,6 +444,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
                 chw_size *= acl_dims.dims[i];
             }
             acl_dims.dims[0] = buffer_size / chw_size;
+            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
         }
         LOGD("input shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
@@ -456,7 +505,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     return TNN_OK;
 }
 
-void AtlasNetwork::DestroyDataset(aclmdlDataset *data_set) {
+void AtlasNetwork::DestroyDataset(aclmdlDataset *&data_set) {
     if (nullptr == data_set) {
         return;
     }
@@ -469,6 +518,7 @@ void AtlasNetwork::DestroyDataset(aclmdlDataset *data_set) {
     }
 
     (void)aclmdlDestroyDataset(data_set);
+    data_set = nullptr;
 }
 
 }  // namespace TNN_NS

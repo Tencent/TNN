@@ -42,15 +42,23 @@ MatConverter::MatConverter(Mat* src, Mat* dst) {
 
 Status MatConverter::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
+        return Status(TNNERR_NULL_PARAM, "mat converter is nil, check device type");
     }
 
     return impl_->Resize(src, dst, param, command_queue);
 }
 
+Status MatConverter::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
+    if (!impl_) {
+        return Status(TNNERR_NULL_PARAM, "mat converter is nil, check device type");
+    }
+
+    return impl_->ResizeAndPaste(src, dst, param, paste_param, command_queue);
+}
+
 Status MatConverter::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
+        return Status(TNNERR_NULL_PARAM, "mat converter is nil, check device type");
     }
 
     return impl_->Crop(src, dst, param, command_queue);
@@ -58,10 +66,18 @@ Status MatConverter::Crop(Mat& src, Mat& dst, CropParam param, void* command_que
 
 Status MatConverter::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
+        return Status(TNNERR_NULL_PARAM, "mat converter is nil, check device type");
     }
 
     return impl_->WarpAffine(src, dst, param, command_queue);
+}
+
+Status MatConverter::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
+    if (!impl_) {
+        return Status(TNNERR_NULL_PARAM, "mat converter is nil, check device type");
+    }
+
+    return impl_->ConcatMatWithBatch(src_vec, dst, command_queue);
 }
 
 std::shared_ptr<MatConverterManager>& MatConverterManager::Shared() {

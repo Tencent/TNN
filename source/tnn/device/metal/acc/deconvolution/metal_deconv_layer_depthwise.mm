@@ -48,7 +48,7 @@ Status MetalDeconvLayerDepthwise::AllocateBufferWeight(
     return status;
 }
 
-std::string MetalDeconvLayerDepthwise::KernelName() {
+std::string MetalDeconvLayerDepthwise::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "deconv_depthwise";
 }
 

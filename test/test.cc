@@ -269,9 +269,8 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
             config.params.push_back(buffer);
 
-            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_RAPIDNET || 
-                config.model_type == MODEL_TYPE_NCNN) {
-                std::ifstream model_stream(model_path);
+            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
+                std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
                     return config;
@@ -426,7 +425,7 @@ namespace test {
                 DimsVector dims   = mat->GetDims();
                 std::string shape = "( ";
                 for (auto dim : dims) {
-                    shape += to_string(dim) + " ";
+                    shape += ToString(dim) + " ";
                 }
                 shape += ")";
                 LOGD("the output shape: %s\n", shape.c_str());

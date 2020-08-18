@@ -19,7 +19,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Softplus, LAYER_SOFTPLUS);
 
-string MetalSoftplusLayerAcc::KernelName() {
+string MetalSoftplusLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "softplus";
 }
 

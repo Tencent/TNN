@@ -28,7 +28,7 @@ public:
     /**
      * @brief metal kernel name
      */
-    virtual std::string KernelName();
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
@@ -47,7 +47,7 @@ public:
     class Metal##type_string##LayerAcc : public MetalUnaryLayerAcc {                                                   \
     public:                                                                                                            \
         virtual ~Metal##type_string##LayerAcc(){};                                                                     \
-        std::string KernelName();                                                                                      \
+        std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
         Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);             \
         Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                         \
     }

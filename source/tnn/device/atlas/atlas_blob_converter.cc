@@ -20,6 +20,7 @@
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 
@@ -33,7 +34,7 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
     if (model_info_map.find(blob) != model_info_map.end()) {
         model_info_      = model_info_map[blob];
         aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &input_index_);
-        LOGD("acl ret: %d  input_index: %d\n", acl_ret);
+        LOGD("acl ret: %d  input_index: %d\n", acl_ret, input_index_);
         if (ACL_ERROR_NONE == acl_ret) {
             use_dynamic_aipp_ = true;
         } else {
@@ -192,12 +193,19 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         return Status(TNNERR_PARAM_ERR, "not support preprocess yet!");
     }
 
+    int mat_bytesize = 0;
+    tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
+    if (TNN_OK != tnn_ret) {
+        LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
+        return tnn_ret;
+    }
+
     DataFormat blob_dataformat = blob_->GetBlobDesc().data_format;
     DataType blob_datatype     = blob_->GetBlobDesc().data_type;
     LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
     if (NCHW_FLOAT == mat.GetMatType()) {
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                            atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
@@ -205,7 +213,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
             // only support DEVICE_NAIVE device type
             if (DEVICE_NAIVE == mat.GetDeviceType()) {
                 if (nullptr == buffer_) {
-                    buffer_.reset(new char[blob_bytesize_], [](char *p) { delete[] p; });
+                    buffer_.reset(new char[mat_bytesize], [](char *p) { delete[] p; });
                 }
                 // transfer from NCHW to NHWC
                 LOGD("convert from nchw to nhwc\n");
@@ -213,7 +221,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
                 DataFormatConverter::ConvertFromNCHWToNHWCFloat((float *)mat.GetData(), (float *)buffer_.get(),
                                                                 blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
 
-                tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE, blob_bytesize_,
+                tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE, mat_bytesize,
                                                atlas_cmd_queue->stream, true);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
@@ -225,7 +233,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         }
     } else if (N8UC3 == mat.GetMatType()) {
         if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                            atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
@@ -234,8 +242,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         }
     } else if (NNV12 == mat.GetMatType()) {
         if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           blob_bytesize_ / 2, atlas_cmd_queue->stream, true);
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
+                                           atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -255,8 +263,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
         LOGE("set dynamic aipp failed!\n");
         return tnn_ret;
     }
-
-    auto data_buffer = aclmdlGetDatasetBuffer(model_info_.input_dataset, input_index_);
+    auto data_buffer = aclmdlGetDatasetBuffer(model_info_.input_dataset, 0);
     if (nullptr == data_buffer) {
         LOGE("get data buffer from dataset failed!\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get data buffer failed");
@@ -274,7 +281,14 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "data buffer ptr is invalid");
     }
 
-    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), blob_bytesize_,
+    int mat_bytesize = 0;
+    tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
+    if (TNN_OK != tnn_ret) {
+        LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
+        return tnn_ret;
+    }
+
+    tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                    atlas_cmd_queue->stream, true);
 
     return tnn_ret;
@@ -329,9 +343,13 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     aclError acl_ret = ACL_ERROR_NONE;
     Status tnn_ret   = TNN_OK;
 
-    if (mat.GetBatch() != blob_batchsize_) {
-        aipp_dynamic_set_ = aclmdlCreateAIPP(blob_batchsize_);
-        blob_batchsize_   = mat.GetBatch();
+    if (nullptr == aipp_dynamic_set_) {
+        aipp_mat_batchsize_ = GetMaxBatchSize(model_info_.model_desc);
+        aipp_dynamic_set_   = aclmdlCreateAIPP(aipp_mat_batchsize_);
+        if (nullptr == aipp_dynamic_set_) {
+            LOGE("create aipp info failed\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "create aipp info failed!\n");
+        }
     }
 
     int height = mat.GetHeight();
@@ -342,6 +360,7 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     if (ACL_ERROR_NONE != acl_ret) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set image size failed!\n");
     }
+    LOGD("set aipp input image size: w = %d  h = %d\n", width, height);
 
     // set aipp input format
     aclAippInputFormat aipp_input_format;
@@ -349,22 +368,29 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     if (TNN_OK != tnn_ret) {
         return tnn_ret;
     }
+    acl_ret = aclmdlSetAIPPInputFormat(aipp_dynamic_set_, aipp_input_format);
+    if (ACL_ERROR_NONE != acl_ret) {
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set image format failed!\n");
+    }
+    LOGD("set aipp input format: %d\n", aipp_input_format);
 
     // set aipp mean and var
-    int16_t aipp_mean0 = (int16_t)((-1.0) * param.bias[0] / param.scale[0]);
-    int16_t aipp_mean1 = (int16_t)((-1.0) * param.bias[1] / param.scale[1]);
-    int16_t aipp_mean2 = (int16_t)((-1.0) * param.bias[2] / param.scale[2]);
-    int16_t aipp_mean3 = (int16_t)((-1.0) * param.bias[3] / param.scale[3]);
-    for (int i = 0; i < blob_batchsize_; ++i) {
-        acl_ret = aclmdlSetAIPPDtcPixelMean(aipp_dynamic_set_, aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3, i);
+    float aipp_mean0 = (-1.0f) * param.bias[0] / param.scale[0];
+    float aipp_mean1 = (-1.0f) * param.bias[1] / param.scale[1];
+    float aipp_mean2 = (-1.0f) * param.bias[2] / param.scale[2];
+    float aipp_mean3 = (-1.0f) * param.bias[3] / param.scale[3];
+    for (int i = 0; i < mat.GetBatch(); ++i) {
+        acl_ret = aclmdlSetAIPPDtcPixelMin(aipp_dynamic_set_, aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3, i);
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set mean failed!\n");
         }
+        LOGD("set aipp input mean: %f, %f, %f, %f\n", aipp_mean0, aipp_mean1, aipp_mean2, aipp_mean3);
         acl_ret = aclmdlSetAIPPPixelVarReci(aipp_dynamic_set_, param.scale[0], param.scale[1], param.scale[2],
                                             param.scale[3], i);
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set var failed!\n");
         }
+        LOGD("set aipp input scale: %f, %f, %f, %f\n", param.scale[0], param.scale[1], param.scale[2], param.scale[3]);
     }
 
     // set aipp ax swap
@@ -373,12 +399,44 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
         if (ACL_ERROR_NONE != acl_ret) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set ax swap failed!\n");
         }
+        LOGD("set aipp ax swap switch: 1\n");
     }
 
-    // set aipp swap
-    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
-    if (ACL_ERROR_NONE != acl_ret) {
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set swap failed!\n");
+    // convert format
+    {
+        // if input is yuv, then use csc to convert from yuv to rgb
+        if (ACL_YUV420SP_U8 == aipp_input_format) {
+            acl_ret = aclmdlSetAIPPCscParams(aipp_dynamic_set_, 1, 256, 0, 359, 256, -88, -183, 256, 454, 0, 0, 0, 0, 0,
+                                             128, 128);
+            if (ACL_ERROR_NONE != acl_ret) {
+                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set csc failed!\n");
+            }
+            LOGD("set aipp csc params\n");
+        }
+
+        // set aipp swap
+        if (ACL_RGB888_U8 == aipp_input_format || ACL_XRGB8888_U8 == aipp_input_format) {
+            acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
+            LOGD("set aipp rbuv swap switch: %d\n", param.reverse_channel);
+        } else if (ACL_YUV420SP_U8 == aipp_input_format) {
+            if (NNV12 == mat.GetMatType()) {
+                acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, (int8_t)param.reverse_channel);
+                LOGD("set aipp rbuv swap switch: %d\n", param.reverse_channel);
+            } else if (NNV21 == mat.GetMatType()) {
+                // opposite with param.reverse_channel
+                if (param.reverse_channel) {
+                    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, 0);
+                    LOGD("set aipp rbuv swap switch: %d\n", 0);
+                } else {
+                    acl_ret = aclmdlSetAIPPRbuvSwapSwitch(aipp_dynamic_set_, 1);
+                    LOGD("set aipp rbuv swap switch: %d\n", 1);
+                }
+            }
+        }
+
+        if (ACL_ERROR_NONE != acl_ret) {
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set swap failed!\n");
+        }
     }
 
     // set input aipp
@@ -388,6 +446,32 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     }
 
     return TNN_OK;
+}
+
+int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc *desc) {
+    aclmdlBatch batch_info;
+
+    aclError acl_ret = aclmdlGetDynamicBatch(desc, &batch_info);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("get dynamic batch info failed\n");
+        return 0;
+    }
+
+    int max_batchsize = 0;
+    if (batch_info.batchCount > 0) {
+        // dynamic batch
+        for (int i = 0; i < batch_info.batchCount; ++i) {
+            if (batch_info.batch[i] > max_batchsize) {
+                max_batchsize = batch_info.batch[i];
+            }
+        }
+    } else {
+        // static batch
+        max_batchsize = blob_->GetBlobDesc().dims[0];
+    }
+
+    LOGD("get max batch size: %d\n", max_batchsize);
+    return max_batchsize;
 }
 
 DECLARE_BLOB_CONVERTER_CREATER(Atlas);

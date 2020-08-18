@@ -11,6 +11,7 @@ PUSH_MODEL=""
 DEVICE_TYPE=""
 MODEL_TYPE=RAPIDNET
 USE_NCNN_MODEL=0
+THREAD_NUM=1
 ADB=adb
 
 WORK_DIR=`pwd`
@@ -114,7 +115,7 @@ function bench_android() {
 
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
         done
     fi
 
@@ -128,7 +129,7 @@ function bench_android() {
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
         done
     fi
 
@@ -170,6 +171,11 @@ while [ "$1" != "" ]; do
         -n)
             shift
             MODEL_TYPE=NCNN
+            ;;
+        -th)
+            shift
+            THREAD_NUM=$1
+            shift
             ;;
         *)
             usage

@@ -31,9 +31,19 @@ typedef enum {
     BORDER_TYPE_EDGE     = 0x02,
 } PUBLIC BorderType;
 
+typedef enum {
+    PASTE_TYPE_TOP_LEFT_ALIGN = 0x00,
+    PASTE_TYPE_CENTER_ALIGN   = 0x01,
+} PUBLIC PasteType;
+
 struct PUBLIC ResizeParam {
-    float scale_w = 1.0f;
-    float scale_h = 1.0f;
+    float scale_w = 0.0f;
+    float scale_h = 0.0f;
+};
+
+struct PUBLIC PasteParam {
+    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
+    int pad_value  = 0;
 };
 
 struct PUBLIC CropParam {
@@ -60,6 +70,15 @@ public:
     // @return ret  return val
     static Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
 
+    // @brief mat resize and paste to dst
+    // @param src  src mat
+    // @param dst mat to paste
+    // @param param  param to use for resize
+    // @param paste_param  param to use for paste
+    // @param command_queue  device related command queue
+    // @return ret  return val
+    static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
+
     // @brief mat resize
     // @param src  src mat
     // @param dst mat
@@ -75,6 +94,19 @@ public:
     // @param command_queue  device related command queue
     // @return ret  return val
     static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
+
+    // @brief mat concat with batch
+    // @param src_vec  src mat vector
+    // @param dst mat
+    // @param command_queue  device related command queue
+    // @return ret  return val
+    static Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue);
+
+    // @brief get mat data buffer size
+    // @param src mat
+    // @param byte_size  buffer byte size
+    // @return ret  return val 
+    static Status GetMatByteSize(Mat& src, int& byte_size);
 };
 
 }  // namespace TNN_NS

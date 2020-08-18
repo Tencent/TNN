@@ -81,8 +81,10 @@ Status ConvertFromMatTypeToAippInputFormat(MatType mat_type, aclAippInputFormat&
         aipp_input_format = ACL_RGB888_U8;
     } else if (N8UC4 == mat_type) {
         aipp_input_format = ACL_XRGB8888_U8;
-    } else if (NNV12 == mat_type) {
+    } else if (NNV12 == mat_type || NNV21 == mat_type) {
         aipp_input_format = ACL_YUV420SP_U8;
+    } else if (NGRAY == mat_type) {
+        aipp_input_format = ACL_YUV400_U8;
     } else {
         LOGE("not support convert from mat type (%d) to aipp input format\n", mat_type);
         return Status(TNNERR_ATLAS_AIPP_NOT_SUPPORT, "the mat type is not support");
