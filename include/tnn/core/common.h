@@ -136,8 +136,6 @@ struct PUBLIC ModelConfig {
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
 };
-    
-std::string ConvertParam(const unsigned char *buffer, int length);
 
 }  // namespace TNN_NS
 
