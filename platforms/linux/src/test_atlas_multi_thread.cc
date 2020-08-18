@@ -26,13 +26,13 @@
 #include <memory>
 #include <string>
 
-#include "test_common.h"
 #include "atlas_common.h"
+#include "test_common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
 
-#define THREAD_NUM 32 
+#define THREAD_NUM 32
 
 using namespace TNN_NS;
 TNN net_;
@@ -69,20 +69,20 @@ int main(int argc, char* argv[]) {
         TNNParam thread_param[THREAD_NUM];
         for (int i = 0; i < THREAD_NUM; ++i) {
             thread_param[i].input_file = argv[2];
-            thread_param[i].device_id = 0;
-            thread_param[i].thread_id = i;
-            thread_param[i].tnn_net = &net_;
+            thread_param[i].device_id  = 0;
+            thread_param[i].thread_id  = i;
+            thread_param[i].tnn_net    = &net_;
         }
 
         pthread_t thread[THREAD_NUM];
 
         for (int t = 0; t < THREAD_NUM; ++t) {
-            if (pthread_create(&thread[t], NULL, &RunTNN, (void *)&thread_param[t]) != 0){
+            if (pthread_create(&thread[t], NULL, &RunTNN, (void*)&thread_param[t]) != 0) {
                 return -1;
             }
         }
 
-        for(int t = 0; t < THREAD_NUM; t++) {
+        for (int t = 0; t < THREAD_NUM; t++) {
             pthread_join(thread[t], NULL);
         }
 

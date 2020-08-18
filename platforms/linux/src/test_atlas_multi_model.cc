@@ -32,7 +32,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
 
-#define INSTANCE_NUM 4 
+#define INSTANCE_NUM 4
 
 using namespace TNN_NS;
 TNN net_;
@@ -67,9 +67,9 @@ int main(int argc, char* argv[]) {
     TNNParam run_param[INSTANCE_NUM];
     for (int i = 0; i < INSTANCE_NUM; ++i) {
         run_param[i].input_file = argv[2];
-        run_param[i].device_id = 0;
-        run_param[i].thread_id = i;
-        run_param[i].tnn_net = &net_;
+        run_param[i].device_id  = 0;
+        run_param[i].thread_id  = i;
+        run_param[i].tnn_net    = &net_;
     }
 
     for (int i = 0; i < INSTANCE_NUM; ++i) {

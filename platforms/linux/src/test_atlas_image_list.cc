@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
     InputShapesMap input_shapemap;
     input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
     input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    tnn_ret                                              = instance_->Reshape(input_shapemap);
+    tnn_ret                                            = instance_->Reshape(input_shapemap);
     if (TNN_OK != tnn_ret) {
         printf("TNN reshape failed\n");
         return -1;
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
 
     // Get input/output blobs
     BlobMap input_blobs, output_blobs;
-    tnn_ret       = instance_->GetAllInputBlobs(input_blobs);
+    tnn_ret     = instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
     for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
         printf("input(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
@@ -119,14 +119,14 @@ int main(int argc, char* argv[]) {
         input_list.push_back(line);
     }
 
-    std::ofstream f_out(argv[3]);  
-    
+    std::ofstream f_out(argv[3]);
+
     for (auto input_file : input_list) {
         auto input_dims = input_blobs.begin()->second->GetBlobDesc().dims;
-        int input_c = input_dims[3];
-        int input_h = input_dims[1];
-        int input_w = input_dims[2];
-        
+        int input_c     = input_dims[3];
+        int input_h     = input_dims[1];
+        int input_w     = input_dims[2];
+
         assert(input_c == 3);
 
         // load input from image
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
         // copy input data into atlas
         Mat input_mat(DEVICE_NAIVE, N8UC3, {1, input_c, input_h, input_w}, input_data_ptr);
         MatConvertParam input_param;
-        input_param.scale = {0.00392156862745, 0.00392156862745, 0.00392156862745, 0.00392156862745};
+        input_param.scale           = {0.00392156862745, 0.00392156862745, 0.00392156862745, 0.00392156862745};
         input_param.reverse_channel = false;
 
         tnn_ret = input_cvt->ConvertFromMat(input_mat, input_param, command_queue);
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
         // free input data ptr
         stbi_image_free(input_data_ptr);
     }
-    
+
     instance_.reset();
     net_.DeInit();
     return 0;

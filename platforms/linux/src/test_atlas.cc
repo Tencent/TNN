@@ -74,8 +74,8 @@ int main(int argc, char* argv[]) {
 
     TNNParam run_param;
     run_param.input_file = argv[2];
-    run_param.device_id = 0;
-    run_param.tnn_net = &net_;
+    run_param.device_id  = 0;
+    run_param.tnn_net    = &net_;
 
     RunTNN(&run_param);
 

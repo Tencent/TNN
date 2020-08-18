@@ -92,9 +92,9 @@ int main(int argc, char* argv[]) {
     }
 
     printf("input dims: c: %d  h: %d  w: %d\n", channel, height, width);
-    std::vector<int> input_dims   = {1, channel, height, width};
-    std::vector<int> mid_dims     = {1,3,641,360};
-    std::vector<int> output_dims  = {1,3,641,360};
+    std::vector<int> input_dims  = {1, channel, height, width};
+    std::vector<int> mid_dims    = {1, 3, 641, 360};
+    std::vector<int> output_dims = {1, 3, 641, 360};
 
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
@@ -106,25 +106,25 @@ int main(int argc, char* argv[]) {
     Mat output_mat(DEVICE_ARM, NNV12, output_dims, nullptr);
 
     // resize
-    printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
+    printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
+           input_mat.GetWidth(), input_mat.GetHeight());
     ResizeParam param_resize;
     param_resize.scale_w = 0.3;
     param_resize.scale_h = 0.3;
-    tnn_ret = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    tnn_ret              = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
     // crop
-    //printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(), input_mat.GetWidth(), input_mat.GetHeight());
-    //CropParam param_crop;
-    //param_crop.top_left_x = 0;
-    //param_crop.top_left_y = 0;
-    //param_crop.width = mid_dims[2];
-    //param_crop.height = mid_dims[1];
-    //tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
-    //if (tnn_ret != TNN_OK) {
+    // printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
+    // input_mat.GetWidth(), input_mat.GetHeight()); CropParam param_crop; param_crop.top_left_x = 0;
+    // param_crop.top_left_y = 0;
+    // param_crop.width = mid_dims[2];
+    // param_crop.height = mid_dims[1];
+    // tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
+    // if (tnn_ret != TNN_OK) {
     //    printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
     //    return -1;
     //}
@@ -132,14 +132,15 @@ int main(int argc, char* argv[]) {
     printf("actual output:  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
 
     // resize
-    printf("resize form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
+    printf("resize form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), output_mat.GetWidth(),
+           output_mat.GetHeight());
     ResizeParam param_resize2;
     param_resize2.scale_w = 1.0;
     param_resize2.scale_h = 1.0;
     PasteParam paste_param;
-    paste_param.type = PASTE_TYPE_CENTER_ALIGN;
+    paste_param.type      = PASTE_TYPE_CENTER_ALIGN;
     paste_param.pad_value = 128;
-    tnn_ret = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, paste_param, command_queue);
+    tnn_ret               = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, paste_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
@@ -147,7 +148,8 @@ int main(int argc, char* argv[]) {
 
     printf("actual output:  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
 
-    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, output_mat.GetWidth() * output_mat.GetHeight() * 3 / 2}, "output.bin");
+    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, output_mat.GetWidth() * output_mat.GetHeight() * 3 / 2},
+                  "output.bin");
 
     stbi_image_free(input_data_ptr);
 

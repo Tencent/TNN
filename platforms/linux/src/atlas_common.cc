@@ -14,12 +14,12 @@
 
 #include "atlas_common.h"
 
-#include <fstream>
-#include <memory>
-#include <string.h>
-#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <fstream>
+#include <memory>
 
 #include "test_common.h"
 #include "tnn/core/instance.h"
@@ -37,27 +37,27 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
     int ret;
 #ifdef INPUT_8UC3_ENABLE
     unsigned char* input_data_ptr = nullptr;
-#else 
+#else
     float* input_data_ptr = nullptr;
 #endif
 
-    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto input_dims           = input_blob->GetBlobDesc().dims;
     std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
-    //std::vector<int> mat_dims = input_dims;
+    // std::vector<int> mat_dims = input_dims;
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 
 #ifdef INPUT_8UC3_ENABLE
     ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
-    //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
-#else 
-    ret = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
+    // ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
+#else
+    ret                   = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
 #endif
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
 #ifdef INPUT_8UC3_ENABLE
     Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
-#else 
+#else
     Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
 #endif
 
@@ -67,18 +67,18 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
 
 Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_queue) {
     int ret;
-    Status tnn_ret = TNN_OK;
+    Status tnn_ret                = TNN_OK;
     unsigned char* input_data_ptr = nullptr;
 
-    auto input_dims = input_blob->GetBlobDesc().dims;
-    int batch = input_dims[0];
-    input_dims[0] = 1;
+    auto input_dims           = input_blob->GetBlobDesc().dims;
+    int batch                 = input_dims[0];
+    input_dims[0]             = 1;
     std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
-    //std::vector<int> mat_dims = input_dims;
+    // std::vector<int> mat_dims = input_dims;
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 
     ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
-    //ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
+    // ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
 
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
@@ -93,20 +93,21 @@ Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
     if (TNN_OK != tnn_ret) {
         printf("resize mat failed\n");
     }
-    
+
     std::vector<Mat> input_mat_vec;
     for (int i = 0; i < batch; ++i) {
         input_mat_vec.push_back(mat_resized);
     }
 
-    Mat output_mat(DEVICE_ATLAS, NNV12, {0,0,0,0}, nullptr);
+    Mat output_mat(DEVICE_ATLAS, NNV12, {0, 0, 0, 0}, nullptr);
     tnn_ret = MatUtils::ConcatMatWithBatch(input_mat_vec, output_mat, command_queue);
     if (TNN_OK != tnn_ret) {
         printf("Concat mat failed\n");
     }
 
     g_input_data_ptr = input_data_ptr;
-    printf("output_mat dims: [%d %d %d %d]\n", output_mat.GetBatch(), output_mat.GetChannel(), output_mat.GetHeight(), output_mat.GetWidth());
+    printf("output_mat dims: [%d %d %d %d]\n", output_mat.GetBatch(), output_mat.GetChannel(), output_mat.GetHeight(),
+           output_mat.GetWidth());
 
     return output_mat;
 }
@@ -146,9 +147,9 @@ void* RunTNN(void* param) {
     BlobMap input_blobs_temp;
     instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
-    input_shapemap[input_blobs_temp.begin()->first] = input_blobs_temp.begin()->second->GetBlobDesc().dims;
+    input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
     input_shapemap[input_blobs_temp.begin()->first][0] = 1;
-    tnn_ret = instance_->Reshape(input_shapemap);
+    tnn_ret                                            = instance_->Reshape(input_shapemap);
     if (tnn_ret != TNN_OK) {
         printf("instance Reshape() falied (%s)\n", tnn_ret.description().c_str());
         return nullptr;
@@ -174,8 +175,8 @@ void* RunTNN(void* param) {
     input_param.scale[0] = 0.00392156862745;
     input_param.scale[1] = 0.00392156862745;
     input_param.scale[2] = 0.00392156862745;
-    Mat input_mat = GetInputMat(input, tnn_param->input_file);
-    //Mat input_mat = GetInputMatWithDvpp(input, tnn_param->input_file, command_queue);
+    Mat input_mat        = GetInputMat(input, tnn_param->input_file);
+    // Mat input_mat = GetInputMatWithDvpp(input, tnn_param->input_file, command_queue);
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -226,7 +227,7 @@ void* RunTNN(void* param) {
         char temp[16];
         sprintf(temp, "%d", tnn_param->thread_id);
         std::string thread_id_str = temp;
-        std::string name_temp = ReplaceString(output.second->GetBlobDesc().name);
+        std::string name_temp     = ReplaceString(output.second->GetBlobDesc().name);
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
                       "dump_" + name_temp + "thread_" + thread_id_str + ".txt");
     }

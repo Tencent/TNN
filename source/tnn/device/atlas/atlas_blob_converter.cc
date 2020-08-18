@@ -194,7 +194,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     }
 
     int mat_bytesize = 0;
-    tnn_ret = MatUtils::GetMatByteSize(mat, mat_bytesize);
+    tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
     if (TNN_OK != tnn_ret) {
         LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
         return tnn_ret;
@@ -242,8 +242,8 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         }
     } else if (NNV12 == mat.GetMatType()) {
         if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(),
-                                           mat_bytesize, atlas_cmd_queue->stream, true);
+            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
+                                           atlas_cmd_queue->stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -282,7 +282,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertPa
     }
 
     int mat_bytesize = 0;
-    tnn_ret = MatUtils::GetMatByteSize(mat, mat_bytesize);
+    tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
     if (TNN_OK != tnn_ret) {
         LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
         return tnn_ret;
@@ -406,12 +406,13 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     {
         // if input is yuv, then use csc to convert from yuv to rgb
         if (ACL_YUV420SP_U8 == aipp_input_format) {
-            acl_ret = aclmdlSetAIPPCscParams(aipp_dynamic_set_, 1, 256, 0, 359, 256, -88, -183, 256, 454, 0, 0, 0, 0, 0, 128, 128);
+            acl_ret = aclmdlSetAIPPCscParams(aipp_dynamic_set_, 1, 256, 0, 359, 256, -88, -183, 256, 454, 0, 0, 0, 0, 0,
+                                             128, 128);
             if (ACL_ERROR_NONE != acl_ret) {
                 return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set csc failed!\n");
             }
             LOGD("set aipp csc params\n");
-        } 
+        }
 
         // set aipp swap
         if (ACL_RGB888_U8 == aipp_input_format || ACL_XRGB8888_U8 == aipp_input_format) {
@@ -447,7 +448,7 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     return TNN_OK;
 }
 
-int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc* desc) {
+int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc *desc) {
     aclmdlBatch batch_info;
 
     aclError acl_ret = aclmdlGetDynamicBatch(desc, &batch_info);
