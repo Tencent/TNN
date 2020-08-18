@@ -71,6 +71,9 @@ private:
     // @brief load model from om file
     Status LoadModelFromFile(std::string om_file);
 
+    // @brief load model from memory
+    Status LoadModelFromMemory(std::string om_file);
+
     // @brief unload model
     void UnloadModel();
 

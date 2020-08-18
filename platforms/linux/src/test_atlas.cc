@@ -61,7 +61,19 @@ int main(int argc, char* argv[]) {
     gettimeofday(&time1, NULL);
     ModelConfig config;
     config.model_type = MODEL_TYPE_ATLAS;
+    // use om file path
     config.params.push_back(argv[1]);
+    // use om file content
+    //{
+    //    std::ifstream model_stream(argv[1], std::ios::binary);
+    //    if (!model_stream.is_open() || !model_stream.good()) {
+    //        printf("invalid argv[1]: %s\n", argv[1]);
+    //        return -1;
+    //    }
+    //    auto model_content =
+    //        std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
+    //    config.params.push_back(model_content);
+    //}
 
     error = net_.Init(config);  // init the net
     if (TNN_OK != error) {

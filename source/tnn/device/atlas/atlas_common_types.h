@@ -23,7 +23,8 @@ enum ImageTypeT {
 };
 
 struct AtlasModelConfig {
-    std::string om_path;
+    std::string om_str = "";
+    bool is_path = false;
 };
 
 struct DimInfo {
