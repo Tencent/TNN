@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "ImageClassifier.h"
+#include "image_classifier.h"
 #include "utils.h"
 
 

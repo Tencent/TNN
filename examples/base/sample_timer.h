@@ -12,20 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ImageClassifier_hpp
-#define ImageClassifier_hpp
+#ifndef TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_
+#define TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_
 
-#include <algorithm>
-#include <iostream>
+#include <chrono>
 #include <string>
-#include <vector>
-#include "TNNSDKSample.h"
 
-class ImageClassifier : public TNN_NS::TNNSDKSample {
+#include "tnn/core/macro.h"
+
+namespace TNN_NS {
+
+using std::chrono::time_point;
+using std::chrono::system_clock;
+
+class SampleTimer {
 public:
-    ~ImageClassifier();
-    ImageClassifier();
-    int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id);
+    SampleTimer() {};
+    void Start();
+    void Stop();
+    void Reset();
+    double GetTime();
+
+private:
+    time_point<system_clock> start_;
+    time_point<system_clock> stop_;
 };
 
-#endif /* ImageClassifier_hpp */
+} // namespace TNN_NS
+
+#endif // TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_ 

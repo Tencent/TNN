@@ -2,7 +2,7 @@
 // Created by tencent on 2020-04-29.
 //
 #include "facedetector_jni.h"
-#include "UltraFaceDetector.h"
+#include "ultra_face_detector.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"
 #include <jni.h>

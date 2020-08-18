@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "UltraFaceDetector.h"
-#include "SampleTimer.h"
+#include "ultra_face_detector.h"
+#include "sample_timer.h"
 #include <cmath>
 #include <cstring>
 

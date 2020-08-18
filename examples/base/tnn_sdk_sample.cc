@@ -12,7 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
+
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif

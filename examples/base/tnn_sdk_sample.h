@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNSDKSample_hpp
-#define TNNSDKSample_hpp
+#ifndef TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
+#define TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
 
 #include <cmath>
 #include <fstream>
@@ -85,4 +85,4 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x, float scale_y);
 }  // namespace TNN_NS
 
-#endif /* TNNSDKSample_hpp */
+#endif // TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_

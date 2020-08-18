@@ -1,7 +1,7 @@
 //
 // Created by tencent on 2020-04-30.
 //
-#include "ImageClassifier.h"
+#include "image_classifier.h"
 #include "imageclassify_jni.h"
 #include "helper_jni.h"
 #include <android/bitmap.h>
