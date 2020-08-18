@@ -35,5 +35,7 @@ int Count(std::vector<int> shape);
 
 int SizeofTFLiteTensorData(tflite::TensorType type);
 
+void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v);
+
 }  // namespace TNN_CONVERTER
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_

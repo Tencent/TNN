@@ -41,6 +41,7 @@ TNN_NS::Status TFLiteStrideSliceConverter::exec(
     parm->quantized  = false;
     auto option      = tf_lite_operator->builtin_options.AsStridedSliceOptions();
     ASSERT(tf_lite_operator->inputs.size() >= 3);
+    auto& input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
     auto &begin_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
     auto begin_size =
         tf_lite_model_buffer[begin_tensor->buffer]->data.size() / SizeofTFLiteTensorData(begin_tensor->type);
@@ -48,6 +49,9 @@ TNN_NS::Status TFLiteStrideSliceConverter::exec(
     for (int i = 0; i < begin_size; ++i) {
         parm->begins.push_back(begin_data_ptr[i]);
     }
+    Mask(input_tensor->shape, option->begin_mask, 0, parm->begins);
+    ConvertShapeFormatTFLite(parm->begins);
+    std::reverse(parm->begins.begin(), parm->begins.end());
 
     auto &end_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
     auto end_size    = tf_lite_model_buffer[end_tensor->buffer]->data.size() / SizeofTFLiteTensorData(end_tensor->type);
@@ -55,6 +59,9 @@ TNN_NS::Status TFLiteStrideSliceConverter::exec(
     for (int i = 0; i < end_size; ++i) {
         parm->ends.push_back(end_data_ptr[i]);
     }
+    Mask(input_tensor->shape, option->end_mask, 1, parm->ends);
+    ConvertShapeFormatTFLite(parm->ends);
+    std::reverse(parm->ends.begin(), parm->ends.end());
 
     if (tf_lite_operator->inputs.size() == 4) {
         auto &strides_tensor = tf_lite_tensors[tf_lite_operator->inputs[3]];
@@ -67,6 +74,8 @@ TNN_NS::Status TFLiteStrideSliceConverter::exec(
     } else {
         parm->strides = {(int)begin_size, 1};
     }
+    ConvertShapeFormatTFLite(parm->strides);
+    std::reverse(parm->strides.begin(), parm->strides.end());
 
     cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
