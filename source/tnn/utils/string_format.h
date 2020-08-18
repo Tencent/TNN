@@ -24,6 +24,8 @@
 namespace TNN_NS {
 
 std::string DoubleToString(double val);
+    
+std::string UcharToString(const unsigned char *buffer, int length);
 
 std::string DoubleToStringFilter(double val);
 
