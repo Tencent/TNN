@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "ImageClassifier.h"
-#include "examples/samples/timer.h"
+#include "SampleTimer.h"
 #include <cmath>
 
 ImageClassifier::ImageClassifier() {}
