@@ -12,29 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ANDROID_TNN_JNI_H_
-#define ANDROID_TNN_JNI_H_
+#ifndef ANDROID_IMAGE_CLASSIFY_JNI_H_
+#define ANDROID_IMAGE_CLASSIFY_JNI_H_
+
 
 #include <jni.h>
-#include <string>
-#include <android/log.h>
-
+#define TNN_CLASSIFY(sig) Java_com_tencent_tnn_demo_ImageClassify_##sig
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-JNIEXPORT JNICALL jint Java_com_tencent_tnn_demo_TNNLib_init(
-        JNIEnv *env, jobject thiz, jstring protoFilePath, jstring modelFilePath, jstring device);
-
-JNIEXPORT JNICALL jfloatArray Java_com_tencent_tnn_demo_TNNLib_forward(
-        JNIEnv *env, jobject thiz, jobject imageSource);
-
-JNIEXPORT JNICALL jint Java_com_tencent_tnn_demo_TNNLib_deinit(
-        JNIEnv *env, jobject thiz);
-
+JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType);
+JNIEXPORT JNICALL jint TNN_CLASSIFY(deinit)(JNIEnv *env, jobject thiz);
+JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // ANDROID_TNN_JNI_H_
+#endif // ANDROID_IMAGE_CLASSIFY_JNI_H_
