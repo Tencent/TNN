@@ -30,27 +30,29 @@ static std::string PathtoVarname(const char* path) {
     return varname;
 }
 
-static int DumpProto(const char* protopath, const char* modelpath, const char* idcpppath) {
-    FILE* fp = fopen(protopath, "rb");
-    FILE* mp = fopen(modelpath, "rb");
+static int DumpProto(const char* proto_path, const char* model_path, const char* idcpp_path) {
+    FILE* fp = fopen(proto_path, "rb");
+    FILE* mp = fopen(model_path, "rb");
 
     if (!fp) {
-        fprintf(stderr, "fopen %s failed\n", protopath);
+        fprintf(stderr, "fopen %s failed\n", proto_path);
         return -1;
     }
 
     if (!mp) {
-        fprintf(stderr, "fopen %s failed\n", modelpath);
+        fprintf(stderr, "fopen %s failed\n", model_path);
         return -1;
     }
-    std::string proto_var         = PathtoVarname(protopath);
-    std::string model_var         = PathtoVarname(modelpath);
-    std::string include_guard_var = PathtoVarname(idcpppath);
+    std::string proto_var         = PathtoVarname(proto_path);
+    std::string model_var         = PathtoVarname(model_path);
+    std::string include_guard_var = PathtoVarname(idcpp_path);
 
-    FILE* ip = fopen(idcpppath, "wb");
+    FILE* ip = fopen(idcpp_path, "wb");
 
     fprintf(ip, "#ifndef TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
     fprintf(ip, "#define TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
+
+     fprintf(ip, "#include <string>\n");
 
     fprintf(ip, "\n#ifdef _MSC_VER\n__declspec(align(4))\n#else\n__attribute__((aligned(4)))\n#endif\n");
 
@@ -72,7 +74,7 @@ static int DumpProto(const char* protopath, const char* modelpath, const char* i
     }
     fprintf(ip, "};\n");
 
-    std::ifstream model_stream(modelpath);
+    std::ifstream model_stream(model_path);
     std::string model_content =
         std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
@@ -91,14 +93,12 @@ static int DumpProto(const char* protopath, const char* modelpath, const char* i
     }
     fprintf(ip, "};\n");
 
-    fprintf(ip, "static const int %s_longth = {\n", model_var.c_str());
-    fprintf(ip, "%u", i);
-    fprintf(ip, "};\n");
+    fprintf(ip, "static const int %s_length = ", model_var.c_str());
+    fprintf(ip, "%u;\n", i);
 
-    fprintf(ip, "static const int %s_longth = {\n", proto_var.c_str());
-    fprintf(ip, "%u", j);
-    fprintf(ip, "};\n");
-
+    fprintf(ip, "static const int %s_length = ", proto_var.c_str());
+    fprintf(ip, "%u;\n", j);
+    
     fprintf(ip, "#endif // TNN_INCLUDE_GUARD_%s\n", include_guard_var.c_str());
 
     fclose(fp);
@@ -113,9 +113,9 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    const char* protopath  = argv[1];
-    const char* modelpath  = argv[2];
-    const char* memcpppath = argv[3];
-    DumpProto(protopath, modelpath, memcpppath);
+    const char* proto_path  = argv[1];
+    const char* model_path  = argv[2];
+    const char* memcpp_path = argv[3];
+    DumpProto(proto_path, model_path, memcpp_path);
     return 0;
 }

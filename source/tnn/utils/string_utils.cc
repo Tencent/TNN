@@ -16,11 +16,12 @@
 
 namespace TNN_NS {
 
-template <>
-std::string ToString<float>(float value) {
-    std::ostringstream os;
-    os << std::showpoint << value;
-    return os.str();
+std::string UcharToString(const unsigned char *buffer, int length){
+    std::string param;
+    for(int i = 0; i<length; i++){
+        param += buffer[i];
+    }
+    return param;
 }
 
 }  // namespace TNN_NS
