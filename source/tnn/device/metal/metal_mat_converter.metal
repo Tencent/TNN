@@ -65,8 +65,14 @@ kernel void mat_converter_texture_n8uc4_resize_linear(
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
     
-    float x = min(float(gid.x*1.0 / parameters.scale_w), float(parameters.width-1));
-    float y = min(float(gid.y*1.0 / parameters.scale_h), float(parameters.height-1));
+    float scale_w_inv = float(parameters.width) / float(parameters.resized_width);
+    float scale_h_inv = float(parameters.height) / float(parameters.resized_height);
+    
+    //float x = min(float(gid.x*1.0 / parameters.scale_w), float(parameters.width-1));
+    //float y = min(float(gid.y*1.0 / parameters.scale_h), float(parameters.height-1));
+    
+    float x = min(float(gid.x * scale_w_inv), float(parameters.width-1));
+    float y = min(float(gid.y * scale_h_inv), float(parameters.height-1));
     
     auto sampled_color = src_bgra.sample(s, float2(x, y));
     
@@ -88,20 +94,24 @@ float4 GetPixelClamped(texture2d<half, access::read> in [[texture(0)]], uint x, 
 #define S_MIN -32768
 #define S_MAX 32767
 #define SATURATE_CAST_SHORT(x) (half)(min(max(S_MIN, (int)((x)+((x)>=0.f? 0.5f:-0.5f))), S_MAX))
-#define SATURATE_CAST_FLOAT(x) (float)(min(max(S_MIN, (int)((x)+((x)>=0.f? 0.5f:-0.5f))), S_MAX))
 
 kernel void mat_converter_texture_n8uc4_resize_bilinear(
         texture2d<half, access::read> src_bgra        [[texture(0)]],
         texture2d<half, access::write> dst_bgra       [[texture(1)]],
         constant MetalResizeParams& parameters        [[buffer(0)]],
+#ifdef DUMP_BILINEAR_COOR
         device int* sample_coords                     [[buffer(1)]],
+#endif
         ushort2 gid                                   [[thread_position_in_grid]])
 {
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
     
-    float x = float(gid.x + 0.5) / parameters.scale_w - 0.5;
-    float y = float(gid.y + 0.5) / parameters.scale_h - 0.5;
+    float scale_x_inv = float(parameters.width) / float(parameters.resized_width);
+    float scale_y_inv = float(parameters.height) / float(parameters.resized_height);
+    
+    float x = float(gid.x + 0.5) * scale_x_inv - 0.5;
+    float y = float(gid.y + 0.5) * scale_y_inv - 0.5;
     
     int xint = floor(x);
     float xfrac = x - xint;
@@ -129,30 +139,17 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear(
     float4 p10 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0;
     float4 p01 = float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0;
     float4 p11 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0;
+#ifdef DUMP_BILINEAR_COOR
     //compute offset
     auto offset = (gid.y * parameters.resized_width + gid.x) * 2;
     sample_coords[offset + 0] = xint;
     sample_coords[offset + 1] = yint;
-    
+#endif
     float x_ef0_ = (1 - xfrac) * 2048;
-    x_ef0_ = SATURATE_CAST_FLOAT(x_ef0_);
-    //half x_ef0 = SATURATE_CAST_SHORT(x_ef0_);
-    //half x_ef0 = half(x_ef0_);
-    
     float x_ef1_ = xfrac * 2048;
-    x_ef1_ = SATURATE_CAST_FLOAT(x_ef1_);
-    //half x_ef1 = SATURATE_CAST_SHORT(x_ef1_);
-    //half x_ef1 = half(x_ef1_);
     
     float y_ef0_ = (1 - yfrac) * 2048;
-    y_ef0_ = SATURATE_CAST_FLOAT(y_ef0_);
-    //half y_ef0 = SATURATE_CAST_SHORT(y_ef0_);
-    //half y_ef0 = half(y_ef0_);
-    
     float y_ef1_ = yfrac * 2048;
-    y_ef1_ = SATURATE_CAST_FLOAT(y_ef1_);
-    //half y_ef1 = SATURATE_CAST_SHORT(y_ef1_);
-    //half y_ef1 = half(y_ef1_);
     
     float4 col0 = (p00 * x_ef0_ + p10 * x_ef1_) / 16;
     float4 col1 = (p01 * x_ef0_ + p11 * x_ef1_) / 16;
@@ -173,8 +170,8 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear_gather(
     if(any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
     
-    constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::nearest);
-    //constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::linear);
+    //constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::nearest);
+    constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::linear);
     //scale_w=1.5, scale_h=1.2
     float x = float(gid.x + 0.5) / parameters.scale_w - 0.5;
     float y = float(gid.y + 0.5) / parameters.scale_h - 0.5;

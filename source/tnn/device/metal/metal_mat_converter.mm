@@ -60,7 +60,6 @@ protected:
 };
 
 Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& src, Mat& dst) {
-    LOGE("allocate buffer resize param\n");
     //MetalResizeParams metal_resize_param;
     resize_param_.batch    = src.GetBatch();
     resize_param_.width    = src.GetWidth();
@@ -88,7 +87,6 @@ Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& s
 }
 
 Status MetalMatConverterAcc::AllocateBufferCropParam(CropParam param, Mat& src, Mat& dst) {
-    LOGE("allocate buffer crop param\n");
     MetalCropParams metal_crop_param;
     metal_crop_param.batch          = src.GetBatch();
     metal_crop_param.width          = src.GetWidth();
@@ -133,7 +131,6 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
 }
 
 Status MetalMatConverterAcc::AllocateBufferCopyParam(Mat& src, Mat& dst) {
-    LOGE("allocate buffer copy param\n");
     MetalCopyParams metal_copy_param;
     metal_copy_param.batch    = src.GetBatch();
     metal_copy_param.width    = src.GetWidth();
@@ -154,7 +151,6 @@ Status MetalMatConverterAcc::AllocateBufferCopyParam(Mat& src, Mat& dst) {
 }
 
 Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue) {
-    LOGE("allocate crop computepipeline\n");
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -209,7 +205,6 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
 }
 
 Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue) {
-    LOGE("allocate resize computepipeline\n");
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -233,7 +228,7 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_nearest"];
             } else if (0x01 == param.type) {
                 //INTERP_TYPE_LINEAR
-                func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_bilinear_gather"];
+                func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_linear"];
             }
         } else if (N8UC3 == src_mat_type) {
             // matal N8UC3 image crop kernel
@@ -270,7 +265,6 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
 }
 
 Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, void *command_queue) {
-    LOGE("allocate copy computepipeline\n");
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -322,7 +316,6 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
 }
 
 Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
-    LOGE("start copy\n");
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
     auto src_mat_type    = src.GetMatType();
@@ -347,7 +340,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         return Status(TNNERR_INVALID_INPUT, "src and dst have different dims!");
     }
     if (device_ == nil) {
-        LOGE("device_ is nil, try to set device\n");
         if (src_mat_type == N8UC4) {
             id<MTLTexture> texture = nil;
             if(src_device_type == DEVICE_METAL)
@@ -474,12 +466,10 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             
         }
     }
-    LOGE("complete copy\n");
     return TNN_OK;
 }
 
 Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
-    LOGE("start resize\n");
     auto src_mat_type = src.GetMatType();
     auto dst_mat_type = dst.GetMatType();
     if (dst_mat_type != src_mat_type) {
@@ -487,7 +477,6 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     }
     //Get device
     if (device_ == nil) {
-        LOGE("device_ is nil, try to set device\n");
         
         auto texture = (__bridge id<MTLTexture>)(src.GetData());
         device_     = texture.device;
@@ -511,6 +500,10 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     if (status != TNN_OK) {
         return status;
     }
+#ifdef DUMP_BILINEAR_COOR
+    id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: resize_param_.resized_width*resize_param_.resized_height*2*sizeof(int)
+                                                    options:MTLResourceOptionCPUCacheModeDefault];
+#endif
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
         MTLSize groups = {(NSUInteger)((resize_param_.resized_width + group_threads.width - 1) / group_threads.width), (NSUInteger)resize_param_.resized_height, (NSUInteger)1};
@@ -526,7 +519,11 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         [encoder setTexture:input_texture atIndex:0];
         [encoder setTexture:output_texture atIndex:1];
         [encoder setBuffer:buffer_resize_param_ offset:0 atIndex:0];
-        
+#ifdef DUMP_BILINEAR_COOR
+        //prepare a buffer for sample coordinate
+        [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
+#endif
+
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
         
@@ -534,13 +531,22 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         //wait to complete
         [command_buffer waitUntilCompleted];
     } while(0);
-    LOGE("complete resize\n");
-    
+#ifdef DUMP_BILINEAR_COOR
+    metal_coords.reset(new int[resize_param_.resized_width*resize_param_.resized_height*2]);
+    memcpy(metal_coords.get(), [tmp_buffer contents], sizeof(int)*resize_param_.resized_width*resize_param_.resized_height*2);
+    int offset = 0;
+    int* metal_coord_ptr = metal_coords.get();
+    for(int h=0; h<resize_param_.resized_height; ++h){
+        for(int w=0; w<resize_param_.resized_width; ++w){
+            printf("(%d,%d):(%d,%d)\n", w, h, metal_coord_ptr[offset], metal_coord_ptr[offset+1]);
+            offset += 2;
+        }
+    }
+#endif
     return TNN_OK;
 }
 
 Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
-    LOGE("start crop\n");
     auto src_mat_type = src.GetMatType();
     auto dst_mat_type = dst.GetMatType();
     if (dst_mat_type != src_mat_type) {
@@ -548,7 +554,6 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
     }
     //Get device
     if (device_ == nil) {
-        LOGE("device_ is nil, try to set device\n");
         
         auto texture = (__bridge id<MTLTexture>)(src.GetData());
         device_     = texture.device;
@@ -594,7 +599,6 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         //wait to complete
         [command_buffer waitUntilCompleted];
     } while(0);
-    LOGE("complete crop\n");
     return TNN_OK;
 }
 
