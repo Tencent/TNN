@@ -16,18 +16,18 @@
 #include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(StrideSlice);
+DECLARE_OP_CONVERTER(StridedSlice);
 
-std::string TFLiteStrideSliceConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
+std::string TFLiteStridedSliceConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     return "StridedSlice";
 }
 
-tflite::ActivationFunctionType TFLiteStrideSliceConverter::ActivationType(
+tflite::ActivationFunctionType TFLiteStridedSliceConverter::ActivationType(
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
     return tflite::ActivationFunctionType_NONE;
 }
 
-TNN_NS::Status TFLiteStrideSliceConverter::exec(
+TNN_NS::Status TFLiteStridedSliceConverter::exec(
     tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
@@ -83,5 +83,5 @@ TNN_NS::Status TFLiteStrideSliceConverter::exec(
 }
 
 using namespace tflite;
-REGISTER_CONVERTER(StrideSlice, BuiltinOperator_STRIDED_SLICE);
+REGISTER_CONVERTER(StridedSlice, BuiltinOperator_STRIDED_SLICE);
 }  // namespace TNN_CONVERTER

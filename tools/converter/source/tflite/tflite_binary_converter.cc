@@ -46,6 +46,8 @@ std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bo
             return "Maximum";
         case tflite::BuiltinOperator_MINIMUM:
             return "Minimum";
+        case tflite::BuiltinOperator_SQUARED_DIFFERENCE:
+            return "SquaredDifference";
         default:
             return "";
     }
@@ -64,6 +66,7 @@ tflite::ActivationFunctionType TFLiteBinaryConverter::ActivationType(
             return tf_lite_operator->builtin_options.AsDivOptions()->fused_activation_function;
         case tflite::BuiltinOperator_MAXIMUM:
         case tflite::BuiltinOperator_MINIMUM:
+        case tflite::BuiltinOperator_SQUARED_DIFFERENCE:
             return tflite::ActivationFunctionType_NONE;
         default:
             return tflite::ActivationFunctionType_NONE;
@@ -124,5 +127,6 @@ REGISTER_CONVERTER(Binary, BuiltinOperator_MUL);
 REGISTER_CONVERTER(Binary, BuiltinOperator_DIV);
 REGISTER_CONVERTER(Binary, BuiltinOperator_MAXIMUM);
 REGISTER_CONVERTER(Binary, BuiltinOperator_MINIMUM);
+REGISTER_CONVERTER(Binary, BuiltinOperator_SQUARED_DIFFERENCE);
 
 }  // namespace TNN_CONVERTER

@@ -43,7 +43,6 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     if (quantized_model) {
         // TODO
     } else {
-        ASSERT(pool_option->fused_activation_function == tflite::ActivationFunctionType_NONE);
 
         param->name      = cur_layer->name;
         param->type      = cur_layer->type_str;
