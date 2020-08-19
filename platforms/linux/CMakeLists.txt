@@ -23,3 +23,8 @@ if(TNN_CUDA_ENABLE)
     set(CUDNN_LIBS "${CUDNN_DIR}/lib64/libcudnn.so")
     target_link_libraries(TNN ${CUDNN_LIBS} ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 endif()
+
+if(TNN_RKNPU_ENABLE)
+    message(STATUS "Build TNN RKNPU")
+    target_link_libraries(TNN rknpu_ddk)
+endif()
