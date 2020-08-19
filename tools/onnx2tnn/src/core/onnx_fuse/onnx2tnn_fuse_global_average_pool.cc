@@ -36,7 +36,7 @@ int Onnx2TNN::FuseGlobalAveragePool(
                 std::vector<int> next_indexes =
                     GetNextIndexNode(index_nodes, i);
       
-                if (node_trans->output_size() !=1){
+                if (next_indexes.size() != 1) {
                     break;
                 }
                 
