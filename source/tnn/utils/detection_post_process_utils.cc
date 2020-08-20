@@ -14,10 +14,10 @@
 
 #include "detection_post_process_utils.h"
 
+#include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <queue>
-
-#include "math.h"
 namespace TNN_NS {
 
 void DecodeBoxes(DetectionPostProcessLayerParam* param, DetectionPostProcessLayerResource* resource,
