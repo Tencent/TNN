@@ -135,20 +135,6 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
-    int GetConfig(int protolongth, int modellongth, const unsigned char *tnnproto_buffer,
-                  const unsigned char *tnnmodel_buffer) {
-        std::string tnnmodel;
-        std::string tnnproto;
-
-        for (int i = 0; i < protolongth; i++)
-            tnnproto += tnnproto_buffer[i];
-        for (int i = 0; i < modellongth; i++)
-            tnnmodel += tnnmodel_buffer[i];
-
-        params.push_back(tnnproto);
-        params.push_back(tnnmodel);
-        return 0;
-    }
 };
 
 }  // namespace TNN_NS

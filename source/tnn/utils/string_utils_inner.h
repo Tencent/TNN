@@ -12,12 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
-#define TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+#ifndef TNN_SOURCE_TNN_UTILS_STRING_UTILS_INNER_H_
+#define TNN_SOURCE_TNN_UTILS_STRING_UTILS_INNER_H_
 
 #include <sstream>
 #include <string>
 #include "tnn/core/macro.h"
+#include "tnn/utils/string_utils.h"
 
 namespace TNN_NS {
 
@@ -33,4 +34,4 @@ std::string ToString<float>(float value);
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+#endif  // TNN_SOURCE_TNN_UTILS_STRING_UTILS_INNER_H_
