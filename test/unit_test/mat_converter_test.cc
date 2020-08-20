@@ -73,7 +73,7 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // channel
                             testing::Values(1, 3, 4),
                             // inputsize
-                            testing::Values(10),
+                            testing::Values(158,384,720,580,640),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY,
                                             NCHW_FLOAT)
@@ -84,8 +84,8 @@ TEST_P(MatConverterTest, MatConverterTest) {
     int batch               = std::get<0>(GetParam());
     int channel             = std::get<1>(GetParam());
     int input_size          = std::get<2>(GetParam());
-    int output_size = 5;
     MatType mat_type        = std::get<3>(GetParam());
+    int output_size = 224;
     if (mat_type != N8UC4 || channel != 4) {
         GTEST_SKIP();
     }
@@ -127,8 +127,8 @@ TEST_P(MatConverterTest, MatConverterTest) {
     testparam.width      = 5;
     testparam.height     = 5;
     ResizeParam resize_param;
-    resize_param.scale_w = 0.5;
-    resize_param.scale_h = 0.5;
+    resize_param.scale_w = 1.25f;
+    resize_param.scale_h = 1.25f;
 
     void* mat_out_cpu_data = malloc((batch * mat_channel * output_size * output_size) * sizeof(uint8_t));
     DimsVector dims_gpu_out = {batch, channel, output_size, output_size};

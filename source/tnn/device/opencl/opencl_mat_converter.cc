@@ -288,8 +288,8 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
 
     auto dims        = dst.GetDims();
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    float w_scale =  src.GetWidth() / dst.GetWidth();
-    float h_scale =  src.GetHeight() / dst.GetHeight();
+    float w_scale =  ((float)src.GetWidth() / (float)dst.GetWidth());
+    float h_scale =  ((float)src.GetHeight() / (float)dst.GetHeight());
     cl_int cl_ret;
     cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
     cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
@@ -308,12 +308,6 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
     CHECK_CL_SUCCESS(cl_ret);
     //src_h
     cl_ret = unit.ocl_kernel.setArg(idx++,src.GetHeight());
-    CHECK_CL_SUCCESS(cl_ret);
-    //dst_w
-    cl_ret = unit.ocl_kernel.setArg(idx++, dst.GetWidth()); 
-    CHECK_CL_SUCCESS(cl_ret);
-    //dst_h
-    cl_ret = unit.ocl_kernel.setArg(idx++, dst.GetHeight());
     CHECK_CL_SUCCESS(cl_ret);
     ret = RunConvertUnit(unit, cl_command_queue, false);
     if (ret != TNN_OK) {
