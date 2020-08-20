@@ -14,6 +14,7 @@
 
 #include "tflite_op_converter.h"
 #include "tflite_utils.h"
+#include "tnn/utils/data_format_converter.h"
 
 namespace TNN_CONVERTER {
 
@@ -55,10 +56,28 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
         layer_resource->name = cur_layer->name;
         int weight_size      = Count(weight_shape);
         assert(weight_size > 0);
-        TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
-        auto weight_ptr = reinterpret_cast<const float *>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
-        ::memcpy(weight_handle.force_to<float *>(), weight_ptr, weight_size * sizeof(float));
-        layer_resource->weight_handle = weight_handle;
+        auto weight_ptr       = reinterpret_cast<float *>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
+        auto input_data_shape = tf_lite_tensors[tf_lite_operator->inputs[0]]->shape;
+        if (input_data_shape.size() == 4) {
+            int n            = input_data_shape[0];
+            int h            = input_data_shape[1];
+            int w            = input_data_shape[2];
+            int c            = input_data_shape[3];
+            int feature_size = weight_shape[1];
+            auto tmp         = new float[weight_size]();
+            for (int i = 0; i < co; ++i) {
+                auto data_ptr = weight_ptr + (i * feature_size);
+                TNN_NS::DataFormatConverter::ConvertFromNHWCToNCHW<float>(data_ptr, &tmp[i * feature_size], n, c, h, w);
+            }
+            TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+            ::memcpy(weight_handle.force_to<float *>(), tmp, weight_size * sizeof(float));
+            layer_resource->weight_handle = weight_handle;
+            delete[] tmp;
+        } else {
+            TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+            ::memcpy(weight_handle.force_to<float *>(), weight_ptr, weight_size * sizeof(float));
+            layer_resource->weight_handle = weight_handle;
+        }
         if (tf_lite_operator->inputs.size() == 3) {
             param->has_bias   = 1;
             auto &bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
