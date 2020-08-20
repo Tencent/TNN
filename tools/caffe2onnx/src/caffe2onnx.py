@@ -70,7 +70,6 @@ class Caffe2Onnx():
                     self.model_input_name.append(input_layer_name + "_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
-                    print(input_layer_name)
                 else:
                     layer_list.append(lay)
             return layer_list
@@ -222,7 +221,7 @@ class Caffe2Onnx():
     def GetLastLayerOutNameAndShape(self, layer):
         output_name = []
         outshape = []
-        flag = 1
+        flag = True
 
         # 如果结点列表为空，或者当前层的bottom在input_name中，那么上一层输入一定是 Input
         if self.onnxNodeList == []:
@@ -249,7 +248,7 @@ class Caffe2Onnx():
                                     if node.top[
                                             j] + '_input' == self.model_input_name[
                                                 w]:
-                                        flag = 0
+                                        flag = False
 
                 for j in range(len(self.model_input_name)):
                     if layer.bottom[i] + '_input' == self.model_input_name[
@@ -290,15 +289,7 @@ class Caffe2Onnx():
                     Layers[i])
                 output_name = self.GetCurrentLayerOutName(Layers[i])
                 node_name = Layers[i].name
-                print("input_name is ")
-                print(input_name)
-                print("Conv shape is ")
-                print(input_shape[0])
-                print("output_name is ")
-                print(output_name)
-                print("node_name is ")
-                print(node_name)
-
+      
                 # 2.生成节点参数tensor value info,并获取节点参数名,将参数名加入节点输入名列表
                 conv_pname = self.AddInputsTVIFromParams(
                     Layers[i], op_pname["Conv"], op_ptype["Conv"])
@@ -346,8 +337,6 @@ class Caffe2Onnx():
                     bn_pname, bn_pshape = self.AddInputsTVIFromParams(
                         Layers[i], op_pname["BatchNorm"],
                         op_ptype["BatchNorm"])
-                    print(bn_pshape)
-                    print(scale_pshape)
                     assert bn_pshape == scale_pshape, "BatchNorm and Scale params should share the same shape"
                     input_name.extend(scale_pname)
                     input_name.extend(bn_pname)
@@ -379,7 +368,6 @@ class Caffe2Onnx():
                     # bn + scale
                     continue
 
-                print("Start Scale")
                 # signal scale
                 input_name, input_shape = self.GetLastLayerOutNameAndShape(
                     Layers[i])  # 获取输入名列表和输入形状
@@ -391,7 +379,7 @@ class Caffe2Onnx():
                     has_two_input = True
 
                 if has_two_input and op.need_add_reshape(input_shape):
-                    print("QQQQQQQQQQQQQQQQQ")
+                
                     reshape_layer = copy.deepcopy(Layers[i])
                     # add reshape layer
                     reshape_node_name = input_name[
@@ -433,9 +421,9 @@ class Caffe2Onnx():
                     # Scale = Mul + Add
                     param_shape, param_data = self.GetParamsShapeAndData(
                         Layers[i])
-                    print(str(len(param_shape)))
+                  
                     if len(param_shape) == 2:
-                        print("QQQQQQQQQQQQQQ")
+                        
                         # create mul
                         param_scale_shape = [1, param_shape[0][0], 1, 1]
                         param_scale_data = param_data[0]
@@ -473,7 +461,7 @@ class Caffe2Onnx():
                         self.onnxNodeList.append(add_node)
 
                     if len(param_shape) == 1:
-                        print("wwwwwwwwwwwwwww")
+                       
                         # create mul
                         param_scale_shape = [1, param_shape[0][0], 1, 1]
                         param_scale_data = param_data[0]
@@ -1170,8 +1158,7 @@ class Caffe2Onnx():
                     Layers[i])
                 output_name = self.GetCurrentLayerOutName(Layers[i])
                 node_name = Layers[i].name
-                print("input shape")
-                print(len(input_shape))
+
                 starts, ends, axes = op.get_crop_param(Layers[i], input_shape)
 
                 Crop_name = []
@@ -1229,9 +1216,7 @@ class Caffe2Onnx():
                     Layers[i])
                 output_name = self.GetCurrentLayerOutName(Layers[i])
                 node_name = Layers[i].name
-                print("input shape")
-                print(len(input_shape))
-
+                
                 MVN_name = []
                 MVN_name.append(input_name[0])
                 scale, bias = op.get_InstanceNorm_param(Layers[i],input_shape)
