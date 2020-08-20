@@ -38,9 +38,6 @@ int Onnx2TNN::FuseGlobalAveragePool(
                 if (next_indexes.size() != 1) {
                     break;
                 }
-                if (node_trans->output_size() !=1){
-                    break;
-                }
                 
                 auto node_reduce_mean = index_nodes[i + 1].node;
 
