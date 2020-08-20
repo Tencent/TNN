@@ -40,6 +40,9 @@
 using namespace TNN_NS;
 TNN net_;
 
+#define MID_WIDTH 608
+#define MID_HEIGHT 352
+
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
@@ -58,7 +61,7 @@ int main(int argc, char* argv[]) {
     NetworkConfig network_config;
     network_config.network_type = NETWORK_TYPE_ATLAS;
     network_config.device_type  = DEVICE_ATLAS;
-    network_config.device_id    = 4;
+    network_config.device_id    = 0;
 
     Status error;
     int ret;
@@ -92,9 +95,9 @@ int main(int argc, char* argv[]) {
     }
 
     printf("input dims: c: %d  h: %d  w: %d\n", channel, height, width);
-    std::vector<int> input_dims  = {1, channel, height, width};
-    std::vector<int> mid_dims    = {1, 3, 641, 360};
-    std::vector<int> output_dims = {1, 3, 641, 360};
+    std::vector<int> input_dims = {1, channel, height, width};
+    std::vector<int> mid_dims   = {1, 3, MID_HEIGHT, MID_WIDTH};
+    std::vector<int> dump_dims  = mid_dims;
 
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
@@ -103,23 +106,30 @@ int main(int argc, char* argv[]) {
     // copy input data into atlas
     Mat input_mat_org(DEVICE_NAIVE, N8UC3, input_dims, input_data_ptr);
     Mat input_mat(DEVICE_ATLAS, NNV12, mid_dims, nullptr);
-    Mat output_mat(DEVICE_ARM, NNV12, output_dims, nullptr);
+    Mat dump_mat(DEVICE_ARM, NNV12, dump_dims, nullptr);
 
     // resize
-    printf("resize from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
+    printf("resize1 from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
            input_mat.GetWidth(), input_mat.GetHeight());
     ResizeParam param_resize;
-    param_resize.scale_w = 0.3;
-    param_resize.scale_h = 0.3;
-    tnn_ret              = MatUtils::Resize(input_mat_org, input_mat, param_resize, command_queue);
+    float scale_w = (float)MID_WIDTH / (float)width;
+    float scale_h = (float)MID_HEIGHT / (float)height;
+    float scale   = scale_w > scale_h ? scale_h : scale_w;
+    param_resize.scale_w = scale;
+    param_resize.scale_h = scale;
+    PasteParam paste_param;
+    paste_param.type      = PASTE_TYPE_CENTER_ALIGN;
+    paste_param.pad_value = 128;
+    tnn_ret               = MatUtils::ResizeAndPaste(input_mat_org, input_mat, param_resize, paste_param, command_queue);
     if (tnn_ret != TNN_OK) {
-        printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
+        printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
     // crop
     // printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
     // input_mat.GetWidth(), input_mat.GetHeight()); CropParam param_crop; param_crop.top_left_x = 0;
+    // param_crop.top_left_x = 0;
     // param_crop.top_left_y = 0;
     // param_crop.width = mid_dims[2];
     // param_crop.height = mid_dims[1];
@@ -131,24 +141,24 @@ int main(int argc, char* argv[]) {
 
     printf("actual output:  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
 
-    // resize
-    printf("resize form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), output_mat.GetWidth(),
-           output_mat.GetHeight());
+    // resize to dump data to cpu
+    printf("resize2 form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), dump_mat.GetWidth(),
+           dump_mat.GetHeight());
     ResizeParam param_resize2;
     param_resize2.scale_w = 1.0;
     param_resize2.scale_h = 1.0;
-    PasteParam paste_param;
-    paste_param.type      = PASTE_TYPE_CENTER_ALIGN;
-    paste_param.pad_value = 128;
-    tnn_ret               = MatUtils::ResizeAndPaste(input_mat, output_mat, param_resize2, paste_param, command_queue);
+    PasteParam paste_param2;
+    paste_param2.type      = PASTE_TYPE_CENTER_ALIGN;
+    paste_param2.pad_value = 128;
+    tnn_ret                = MatUtils::ResizeAndPaste(input_mat, dump_mat, param_resize2, paste_param2, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
-    printf("actual output:  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
+    printf("actual output:  %d x %d\n", dump_mat.GetWidth(), dump_mat.GetHeight());
 
-    DumpDataToBin((char*)output_mat.GetData(), {1, 1, 1, output_mat.GetWidth() * output_mat.GetHeight() * 3 / 2},
+    DumpDataToBin((char*)dump_mat.GetData(), {1, 1, 1, dump_mat.GetWidth() * dump_mat.GetHeight() * 3 / 2},
                   "output.bin");
 
     stbi_image_free(input_data_ptr);

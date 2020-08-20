@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include <fstream>
 #include <memory>
+#include <mutex>
 
 #include "test_common.h"
 #include "tnn/core/instance.h"
@@ -31,6 +32,7 @@ using namespace TNN_NS;
 
 #define INPUT_8UC3_ENABLE
 
+static std::mutex g_mtx;
 void* g_input_data_ptr = nullptr;
 
 Mat GetInputMat(Blob* input_blob, std::string input_file) {
@@ -50,7 +52,7 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
     ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
     // ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
 #else
-    ret                   = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
+    ret = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
 #endif
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
@@ -232,8 +234,13 @@ void* RunTNN(void* param) {
                       "dump_" + name_temp + "thread_" + thread_id_str + ".txt");
     }
 
-    if (g_input_data_ptr != nullptr)
-        free(g_input_data_ptr);
+    {
+        std::unique_lock<std::mutex> lck(g_mtx);
+        if (g_input_data_ptr != nullptr) {
+            free(g_input_data_ptr);
+            g_input_data_ptr = nullptr;
+        }
+    }
 
     instance_.reset();
     printf("instance reset done!\n");
