@@ -39,7 +39,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);

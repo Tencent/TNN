@@ -20,13 +20,18 @@ cd tools/tnn2mem
 ```
 #include "mobilenetv2.h"
 #include "tnn/core/common.h"
+#include "tnn/utils/string_utils.h"
+#include <string>
 ```
 
 在加载模型时，我们需要定义模型变量
 
 ```
 ModelConfig model_config;
-model_config.GetConfig(mobilenetv2_tnnproto_longth,mobilenetv2_tnnmodel_longth,mobilenetv2_tnnproto,mobilenetv2_tnnmodel)
+std::string mobilenetv2_tnnproto_string = UcharToString(mobilenetv2_tnnproto,mobilenetv2_tnnproto_length);
+std::string mobilenetv2_tnnmodel_string = UcharToString(mobilenetv2_tnnmodel,mobilenetv2_model_length);
+model_config.params.push_back(mobilenetv2_tnnproto_string);
+model_config.params.push_back(mobilenetv2_tnnmodel_string);
 ```
 
 在变量model_config中储存模型信息，之后便可按照所需要的补齐其他参数进行推理
