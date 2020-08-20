@@ -155,9 +155,7 @@ class Caffe2Onnx():
                         ParamShape[0] = [ParamShape[0][2], ParamShape[0][3]]
                     if len(ParamShape) == 2:
                         if len(ParamShape[1]) > 2:
-                            ParamShape[1] = [
-                                ParamShape[1][2], ParamShape[1][3]
-                            ]
+                            ParamShape[1] = [ParamShape[1][2], ParamShape[1][3]]
                 if layer.type == "Normalize":
                     if len(ParamShape) == 1:
                         ParamShape[0] = [1, ParamShape[0][0], 1, 1]
