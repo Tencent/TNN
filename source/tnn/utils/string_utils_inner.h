@@ -18,6 +18,7 @@
 #include <sstream>
 #include <string>
 #include "tnn/core/macro.h"
+#include "tnn/utils/string_utils.h"
 
 namespace TNN_NS {
 
