@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -24,4 +25,10 @@ std::string UcharToString(const unsigned char *buffer, int length){
     return param;
 }
 
+template <>
+std::string ToString<float>(float value) {
+    std::ostringstream os;
+    os << std::showpoint << value;
+    return os.str();
+}
 }  // namespace TNN_NS
