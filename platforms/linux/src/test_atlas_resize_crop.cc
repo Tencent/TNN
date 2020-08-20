@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
     Mat dump_mat(DEVICE_ARM, NNV12, dump_dims, nullptr);
 
     // resize
-    printf("resize1 from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
+    printf("resize1 from (width x height) %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
            input_mat.GetWidth(), input_mat.GetHeight());
     ResizeParam param_resize;
     float scale_w = (float)MID_WIDTH / (float)width;
@@ -139,10 +139,10 @@ int main(int argc, char* argv[]) {
     //    return -1;
     //}
 
-    printf("actual output:  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
+    printf("actual output: (width x height)  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
 
     // resize to dump data to cpu
-    printf("resize2 form %d x %d -->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), dump_mat.GetWidth(),
+    printf("resize2 form (width x height) %d x %d --->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), dump_mat.GetWidth(),
            dump_mat.GetHeight());
     ResizeParam param_resize2;
     param_resize2.scale_w = 1.0;
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    printf("actual output:  %d x %d\n", dump_mat.GetWidth(), dump_mat.GetHeight());
+    printf("actual output: (width x height)  %d x %d\n", dump_mat.GetWidth(), dump_mat.GetHeight());
 
     DumpDataToBin((char*)dump_mat.GetData(), {1, 1, 1, dump_mat.GetWidth() * dump_mat.GetHeight() * 3 / 2},
                   "output.bin");
