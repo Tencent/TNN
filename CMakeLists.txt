@@ -317,7 +317,7 @@ if(TNN_COVERAGE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)
-    #add_subdirectory(third_party/flatbuffers)
+    add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
 endif()
 

@@ -20,12 +20,14 @@ if(TNN_BUILD_SHARED)
     target_link_libraries(TnnConverter
             TNN
             gflags
+            flatbuffers
             ${Protobuf_LIBRARIES}
             )
 elseif(SYSTEM.iOS OR SYSTEM.Darwin)
     target_link_libraries(TnnConverter
             -Wl,-force_load TNN
             gflags
+            flatbuffers
             ${Protobuf_LIBRARIES}
             )
 else()
@@ -33,6 +35,7 @@ else()
     target_link_libraries(TnnConverter
             -Wl,--whole-archive TNN -Wl,--no-whole-archive
             gflags
+            flatbuffers
             ${Protobuf_LIBRARIES}
             )
 endif()
