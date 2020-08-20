@@ -107,7 +107,7 @@ private:
 
     NetStructure *net_structure_ = nullptr;
 
-    NetworkConfig _config;
+    NetworkConfig config_;
 
     static std::mutex optimize_mtx_;
 };

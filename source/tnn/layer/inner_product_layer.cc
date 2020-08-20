@@ -21,14 +21,7 @@ namespace TNN_NS {
 DECLARE_LAYER(InnerProduct, LAYER_INNER_PRODUCT);
 
 Status InnerProductLayer::InferOutputDataType() {
-    auto resource = dynamic_cast<InnerProductLayerResource*>(resource_);
-    if (resource) {
-        output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
-    } else {
-        LOGE("Error: inner_product resource is nil\n");
-        return Status(TNNERR_LAYER_ERR, "Error: inner_product resource is nil");
-    }
-    return TNN_OK;
+    return BaseLayer::InferOutputDataType();
 }
 
 Status InnerProductLayer::InferOutputShape() {
