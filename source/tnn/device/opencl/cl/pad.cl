@@ -138,12 +138,7 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
 
                 if (remain == 1)
                 {
-                    if (remain_channels >= 4)
-                    {
-                        val.x = temp_b_value.w;
-                        val.yzw = temp_e_value.xyz;
-                    }
-                    else if (remain_channels == 3)
+                    if (remain_channels == 3)
                     {
                         val.x = temp_b_value.w;
                         val.yz = temp_e_value.xy;
@@ -160,12 +155,7 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 }
                 else if (remain == 2)
                 {
-                    if (remain_channels >= 4)
-                    {
-                        val.xy = temp_b_value.zw;
-                        val.zw = temp_e_value.xy;
-                    }
-                    else if (remain_channels == 3)
+                    if (remain_channels == 3)
                     {
                         val.xy = temp_b_value.zw;
                         val.z = temp_e_value.x;
@@ -181,12 +171,7 @@ __kernel void PadConst(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 }
                 else
                 {
-                    if (remain_channels >= 4)
-                    {
-                        val.xyz = temp_b_value.yzw;
-                        val.w = temp_e_value.x;
-                    }
-                    else if (remain_channels == 3)
+                    if (remain_channels == 3)
                     {
                         val.xyz = temp_b_value.yzw;
                     }
