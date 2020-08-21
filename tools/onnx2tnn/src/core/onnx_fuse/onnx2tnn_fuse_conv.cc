@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
@@ -24,6 +24,39 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                        std::map<std::string, int>& node_reference,
                        std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
+
+    std::map<std::string, std::map<std::string, int>> unable_fuse_table;
+    for (int i = 0; i < node_count; i++) {
+        auto node = index_nodes[i].node;
+
+        do {
+            if (node->op_type() == "Conv" && i + 1 < node_count) {
+                auto node_conv      = node;
+                auto node_batchnorm = index_nodes[i + 1].node;
+
+                // check op
+                if (!(node_batchnorm->op_type() == "BatchNormalization"))
+                    break;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
+
+                auto conv_weights_name = node_conv->input(1);
+                auto bn_gamma_name = node_batchnorm->input(1);
+                if (unable_fuse_table.count(conv_weights_name) == 0) {
+                    std::map<std::string, int> tmp;
+                    tmp[bn_gamma_name] = 0;
+                    unable_fuse_table[conv_weights_name] = std::move(tmp);
+                } else if (unable_fuse_table[conv_weights_name].count(bn_gamma_name) == 0) {
+                    unable_fuse_table[conv_weights_name][bn_gamma_name] = 0;
+                }
+                unable_fuse_table[conv_weights_name][bn_gamma_name] ++;
+
+                i += 1;
+            }
+        } while (0);
+    }
 
     // Conv <= Conv - BatchNormalization
     for (int i = 0; i < node_count; i++) {
@@ -41,6 +74,13 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 if (next_indexes.size() != 1) {
                     break;
                 }
+
+                auto conv_weights_name = node_conv->input(1);
+                auto bn_gamma_name = node_batchnorm->input(1);
+                if (unable_fuse_table[conv_weights_name].size() > 1) {
+                    break;
+                }
+
                 auto kernel_shape =
                     get_node_attr_ai(*node_conv, "kernel_shape");
 
@@ -116,9 +156,14 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 }
                 auto& conv_bias_tensor = weights[node_conv->input(2)];
 
+                auto new_conv_weight_name = node_conv->input(1) + "_@" + std::to_string(i);
+                weights[new_conv_weight_name] = onnx::TensorProto(weights[node_conv->input(1)]);
+                auto& new_conv_weight_tensor = weights[new_conv_weight_name];
+                node_conv->set_input(1, new_conv_weight_name);
+
                 // modeify conv weight
                 float* conv_weights =
-                    get_tensor_proto_mutable_data(conv_weight_tensor);
+                    get_tensor_proto_mutable_data(new_conv_weight_tensor);
                 float* conv_bias =
                     get_tensor_proto_mutable_data(conv_bias_tensor);
 
