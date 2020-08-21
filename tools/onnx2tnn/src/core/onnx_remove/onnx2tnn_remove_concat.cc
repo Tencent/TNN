@@ -44,10 +44,7 @@ int Onnx2TNN::RemoveConcat(onnx::GraphProto* mutable_graph, std::vector<IndexNod
             // reduce
             node_concat->set_op_type(k_tnn_noop_type);
 
-            auto erase_node = node_reference.find(node_concat->output(0));
-            if (erase_node != node_reference.end()) {
-                node_reference.erase(node_reference.find(node_concat->output(0)));
-            }
+            node_reference.erase(node_reference.find(node_concat->output(0)));
             blob_names.erase(node->output(0));
 
             //            node->set_output(0, node_concat->output(0));
