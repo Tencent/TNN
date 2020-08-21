@@ -68,7 +68,9 @@ Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[2]);
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[4]);
-    execute_units_[0].ocl_kernel.setArg(idx++, pad_param->value);
+    if (0 == pad_param->type) {
+        execute_units_[0].ocl_kernel.setArg(idx++, pad_param->value);
+    }
 
     return TNN_OK;
 }

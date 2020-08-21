@@ -198,7 +198,7 @@ __kernel void PadReflect(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                          __private const int input_height,
                          __private const int input_width,
                          __private const int pad_l, __private const int pad_t,
-                         __private const int pad_c_b, __private float pad_value) {
+                         __private const int pad_c_b) {
     // NOTE: reflect mode not support channel level padding for now
     const int output_w_idx      = get_global_id(0);
     const int channel_block_idx = get_global_id(1);
