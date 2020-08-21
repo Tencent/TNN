@@ -634,6 +634,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     TransferReduceMax(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     // onnx_op chain fusion
+    FuseRoiAlign(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseLogSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -656,6 +657,17 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
+
+    std::ofstream os;
+    std::string path = "/mnt/d/Tencent/workspace/roi_align/TNN/tools/convert2tnn/model/test.onnx";
+    auto output = onnx_model_->SerializeAsString();
+    std::cout << "serialize done" << std::endl;
+
+    os.open(path, std::ofstream::binary | std::ofstream::out);
+    auto data = output.c_str();
+    std::cout << output.size() << std::endl;
+    os.write(data, sizeof(char) * output.size());
+    os.close();
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
