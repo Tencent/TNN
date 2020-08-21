@@ -48,6 +48,11 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
+    // auto precision, each device choose default precision.
+    // ARM: prefer fp32
+    // OPENCL: prefer fp16
+    // METAL: prefer fp16
+    PRECISION_AUTO = -1,
     // Normal precision
     // ARM: run with fp32
     // OPNECL: run with mixed pricision
@@ -62,12 +67,7 @@ typedef enum {
     // ARM: run with bfp16
     // OPENCL: run with fp16
     // METAL: run with fp16
-    PRECISION_LOW = 2,
-    // auto precision, each device choose default precision.
-    // ARM: prefer fp32
-    // OPENCL: prefer fp16
-    // METAL: prefer fp16
-    PRECISION_AUTO = 3,
+    PRECISION_LOW = 2
 } Precision;
 
 typedef enum {
