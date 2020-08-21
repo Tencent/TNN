@@ -32,11 +32,14 @@ public:
 private:
     //Status CreateConvertUnit(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);
     Status SetConvertArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, bool convert_to_mat);
+    Status SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, WarpAffineParam param);
     Status RunConvertUnit(OpenCLExecuteUnit& unit, cl::CommandQueue* command_queue, bool need_wait = false);
     Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
     Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;
+    std::shared_ptr<cl::Buffer> matrix_buffer_ = nullptr;
     int buffer_size_ = 0;
+    int matrix_buffer_size_ = 0;
     std::map<std::string, OpenCLExecuteUnit> execute_map_; 
 };
 
