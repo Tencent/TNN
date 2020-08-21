@@ -29,6 +29,12 @@ AbstractDevice* MatConverterTest::device_;
 Context* MatConverterTest::cpu_context_;
 Context* MatConverterTest::device_context_;
 
+void printinput(const uint8_t* ref_data, size_t n) {
+    for (unsigned long long i = 0; i < n; i++) {
+        LOGE("ERROR AT %llu result:%d\n", i, ref_data[i]);
+    }
+}
+
 void MatConverterTest::SetUpTestCase() {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);

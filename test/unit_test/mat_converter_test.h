@@ -98,6 +98,7 @@ public:
     static void TearDownTestCase();
 
 protected:
+    int Compare(Blob* cpu_blob, Blob* device_blob);
     int CreateTestData(int batch, int channel, int input_size, MatType mat_type);
     int DestroyTestData();
 

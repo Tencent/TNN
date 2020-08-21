@@ -42,6 +42,7 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     channel          = src.GetChannel();
     height           = src.GetHeight();
     width            = src.GetWidth();
+    //nchw->nhwc
     int image_width  = UP_DIV(channel, 4) * width;
     int image_height = batch * height;
     info.dims.push_back(image_width);
@@ -309,6 +310,9 @@ Status OpenCLMatConverterAcc::RunConvertUnit(OpenCLExecuteUnit &unit, cl::Comman
 
 Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret            = TNN_OK;
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
     auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
     if (cl_command_queue == nullptr) {
         LOGE("Get OpenCL command queue failed!\n");
@@ -318,14 +322,43 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
     OpenCLExecuteUnit unit;
     if(execute_map_.count(key) == 0) {
         std::string program_name = "normalize";
-        std::string kernel_name = "Bilinear";
+        // std::string kernel_name = "image_scaling";
+        std::string kernel_name = "image_bilinear";
         ret = CreateExecuteUnit(unit, program_name, kernel_name);
         if(ret != TNN_OK) {
             return ret;
         }
         execute_map_[key] = unit; 
     }
-    return ret;
+
+    auto dims        = dst.GetDims();
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+    float w_scale =  ((float)src.GetWidth() / (float)dst.GetWidth());
+    float h_scale =  ((float)src.GetHeight() / (float)dst.GetHeight());
+    cl_int cl_ret;
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
+    cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
+    CHECK_CL_SUCCESS(cl_ret);
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
+    CHECK_CL_SUCCESS(cl_ret);
+    //scale_w
+    cl_ret = unit.ocl_kernel.setArg(idx++, w_scale); 
+    CHECK_CL_SUCCESS(cl_ret);
+    //scale_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, h_scale);
+    CHECK_CL_SUCCESS(cl_ret);
+    //src_w
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetWidth()); 
+    CHECK_CL_SUCCESS(cl_ret);
+    //src_h
+    cl_ret = unit.ocl_kernel.setArg(idx++,src.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    ret = RunConvertUnit(unit, cl_command_queue, false);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    return TNN_OK;
 }
 
 Status OpenCLMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
