@@ -191,7 +191,7 @@ Status OpenCLContext::Init() {
     }
 
     opencl_runtime_->SetPrecision(precision_);
-    LOGE("opencl set precision %d\n", precision_);
+    LOGI("opencl set precision %d\n", precision_);
 
 #ifdef OPENCL_FORCE_FP32
     // set fp32
