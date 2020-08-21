@@ -66,129 +66,200 @@ void MatConverterTest::TearDownTestCase() {
     delete device_context_;
 }
 
+int MatConverterTest::CreateTestData(int batch, int channel, int input_size, MatType mat_type) {
+    int mat_channel;
+    if (mat_type == N8UC4) {
+        mat_channel = 4;
+    } else {
+        mat_channel = channel;
+    }
+
+    int in_size             = batch * mat_channel * input_size * input_size;
+    out_size_               = in_size;
+    mat_in_data_            = nullptr;
+    mat_out_ref_data_       = nullptr;
+    mat_out_dev_data_       = nullptr;
+
+    if (mat_type == NCHW_FLOAT) {
+        mat_in_data_ = malloc(in_size * sizeof(float));
+        InitRandom(static_cast<float*>(mat_in_data_), in_size, 0.0f, 1.0f);
+        mat_out_ref_data_ = malloc(out_size_ * sizeof(float));
+        mat_out_dev_data_ = malloc(out_size_ * sizeof(float));
+    } else {
+        mat_in_data_ = malloc(in_size * sizeof(uint8_t));
+        InitRandom(static_cast<uint8_t*>(mat_in_data_), in_size, static_cast<uint8_t>(0), static_cast<uint8_t>(255));
+        mat_out_ref_data_ = malloc(out_size_ * sizeof(uint8_t));
+        mat_out_dev_data_ = malloc(out_size_ * sizeof(uint8_t));
+    }
+
+    return 0;
+}
+
+int MatConverterTest::DestroyTestData()
+{
+    free(mat_in_data_);
+    free(mat_out_ref_data_);
+    free(mat_out_dev_data_);
+
+    return 0;
+}
+
 INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                          ::testing::Combine(
                             // batch
-                            testing::Values(1),
+                            testing::Values(1, 2),
                             // channel
                             testing::Values(1, 3, 4),
-                            // inputsize
-                            testing::Values(158,384,720,580,640),
+                            // input size
+                            testing::Values(3, 10, 20, 128),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY,
-                                            NCHW_FLOAT)
+                                            NCHW_FLOAT),
                             // converter test param
+                            testing::Values(
+                                // Copy
+                                // MatConverterTestParam(MatConverterType::Copy),
+                                // Resize
+                                // MatConverterTestParam(MatConverterType::Resize, 0.1, 0.1, INTERP_TYPE_LINEAR),
+                                // Crop
+                                // MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
+                                // WarpAffine
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 1, 0, 1, 1,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN))
                             ));
 
 TEST_P(MatConverterTest, MatConverterTest) {
-    int batch               = std::get<0>(GetParam());
-    int channel             = std::get<1>(GetParam());
-    int input_size          = std::get<2>(GetParam());
-    MatType mat_type        = std::get<3>(GetParam());
-    int output_size = 224;
-    if (mat_type != N8UC4 || channel != 4) {
+    int batch                                       = std::get<0>(GetParam());
+    int channel                                     = std::get<1>(GetParam());
+    int input_size                                  = std::get<2>(GetParam());
+    MatType mat_type                                = std::get<3>(GetParam());
+    MatConverterTestParam mat_converter_test_param  = std::get<4>(GetParam());
+    MatConverterType mat_converter_type             = mat_converter_test_param.mat_converter_type;
+
+    DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
+    // warp affine only support N8UC4 on OpenCL for now
+    if (device_type == DEVICE_OPENCL && mat_converter_type == MatConverterType::WarpAffine && !(mat_type == N8UC4))
+    {
         GTEST_SKIP();
     }
-    int mat_channel = channel;
-    int in_size       = batch * mat_channel * input_size * input_size;
-    int out_size      = in_size;
-    int out_nchw_size = batch * channel * input_size * input_size;
-    int cmp_result = 0;
-    DimsVector dims = {batch, channel, input_size, input_size};
-    DimsVector dims_gpu = {batch, 4, input_size, input_size};
-    void* mat_in_data           = nullptr;
-    void* mat_out_ref_nchw_data = nullptr;
-    void* mat_out_dev_nchw_data = nullptr;
-    void* mat_out_ref_data      = nullptr;
-    void* mat_out_dev_data      = nullptr;
-    void* mat_in_data_arm      = nullptr;
-    mat_out_ref_nchw_data = malloc(out_nchw_size * sizeof(float));
-    mat_out_dev_nchw_data = malloc(out_nchw_size * sizeof(float));
 
-    if (mat_type == NCHW_FLOAT) {
-        mat_in_data = malloc(in_size * sizeof(float));
-        InitRandom(static_cast<float*>(mat_in_data), in_size, 0.0f, 1.0f);
-        mat_out_ref_data = malloc(out_size * sizeof(float));
-        mat_out_dev_data = malloc(out_size * sizeof(float));
-    } else {
-        mat_in_data = malloc(in_size * sizeof(uint8_t));
-        mat_in_data_arm = malloc(in_size * sizeof(uint8_t));
-        InitRandom(static_cast<uint8_t*>(mat_in_data), in_size, static_cast<uint8_t>(0), static_cast<uint8_t>(255));
-        memcpy(mat_in_data_arm, mat_in_data, in_size);
-        mat_out_ref_data = malloc(out_size * sizeof(uint8_t));
-        mat_out_dev_data = malloc(batch * channel * output_size * output_size * sizeof(uint8_t));
+    if ((mat_type == NGRAY && channel != 1) || (mat_type == N8UC3 && channel != 3) || (mat_type == N8UC4 && channel != 4))
+    {
+        GTEST_SKIP();
     }
 
+    int rtn = CreateTestData(batch, channel, input_size, mat_type);
+    EXPECT_EQ(rtn, 0);
+
+
+    DimsVector dims         = {batch, channel, input_size, input_size};
+    Mat cpu_in_mat          = Mat(DEVICE_NAIVE, mat_type, dims, mat_in_data_);
+    Mat cpu_ref_mat         = Mat(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data_);
+    Mat cpu_out_mat         = Mat(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data_);
+    Mat device_mat          = Mat(device_type, mat_type, dims);
+    Mat device_in_mat       = Mat(device_type, mat_type, dims);
+    int cmp_result          = 0;
     void* device_command_queue;
     device_context_->GetCommandQueue(&device_command_queue);
-    CropParam testparam;
-    testparam.top_left_x = 5;
-    testparam.top_left_y = 5;
-    testparam.width      = 5;
-    testparam.height     = 5;
-    ResizeParam resize_param;
-    resize_param.scale_w = 1.25f;
-    resize_param.scale_h = 1.25f;
+    switch (mat_converter_type)
+    {
+        case MatConverterType::Copy:
+        {
+            #if 0
+            Mat *src, *dst;
+            src = &cpu_in_mat;
+            dst = &device_mat;
+            MatConverter gpu_converter(src, dst);
+            printf("copy start\n");
+            gpu_converter.Copy(cpu_in_mat, device_mat, device_command_queue);
 
-    void* mat_out_cpu_data = malloc((batch * mat_channel * output_size * output_size) * sizeof(uint8_t));
-    DimsVector dims_gpu_out = {batch, channel, output_size, output_size};
-    // DimsVector dims_gpu_out = {batch, 4, testparam.width, testparam.height};
+            gpu_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+            printf("copy down\n");
 
-    Mat cpu_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
-    // void* mat_out_cpu_data = malloc((testparam.width*testparam.height*channel*batch) * sizeof(uint8_t));
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data_), static_cast<uint8_t*>(mat_in_data_),
+                                      channel, channel, out_size_);
 
+            EXPECT_EQ(0, cmp_result);
+            #endif
+            break;
+        }
+        case MatConverterType::Resize:
+        {
+            LOGE("mat converter resize test start\n");
+            LOGE("mat converter resize test end\n");
+            break;
+        }
+        case MatConverterType::Crop:
+        {
+            LOGE("mat converter crop test start\n");
+            LOGE("mat converter crop test end\n");
+            break;
+        }
+        case MatConverterType::WarpAffine:
+        {
+            Mat *src, *dst, *dst_ref;
+            src         = &cpu_in_mat;
+            dst         = &device_mat;
+            dst_ref     = &cpu_ref_mat;
 
-    // printinput(static_cast<uint8_t*>(mat_in_data),out_size);
-    // printinput(static_cast<uint8_t*>(mat_in_data_arm),out_size);
-    Mat arm_device_in(DEVICE_ARM, N8UC4, dims_gpu, mat_in_data_arm);
-    Mat arm_device_out(DEVICE_ARM, N8UC4, dims_gpu_out, mat_out_cpu_data);
-    Mat *src_arm,*dst_arm;
-    src_arm = &arm_device_in;
-    dst_arm = &arm_device_out;
-    MatConverter arm_converter(src_arm,dst_arm);
-    arm_converter.Resize(arm_device_in, arm_device_out, resize_param, NULL);
-    
+            MatConverter host_converter(src, dst_ref);
+            LOGE("warp affine on host start\n");
+            tnn::Status status = host_converter.WarpAffine(cpu_in_mat, cpu_ref_mat,
+                                                           mat_converter_test_param.warp_affine_param,
+                                                           device_command_queue);
+            if (status == TNN_OK)
+            {
+                LOGE("warp affine on host done\n");
+            }
+            else
+            {
+                LOGE("warp affine on host failed\n");
+                FAIL();
+            }
 
-    Mat device_in(DEVICE_OPENCL, N8UC4, dims_gpu);
-    Mat device_out(DEVICE_OPENCL, N8UC4, dims_gpu_out);
-    Mat cpu_out(DEVICE_NAIVE, mat_type, dims_gpu_out, mat_out_dev_data);
-    // Mat device_out_copy(DEVICE_NAIVE, mat_type, dims_gpu_out, mat_out_cpu_data);
-    Mat *src,*dst,*dst_copy;
-    src = &cpu_in;
-    dst = &device_in;
-    // dst_copy = &device_out_copy;
-    MatConverter gpu_converter(src,dst);
-    printf("copy start\n");
-    gpu_converter.Copy(cpu_in, device_in, device_command_queue);
-    gpu_converter.Resize(device_in, device_out, resize_param, device_command_queue);
-    gpu_converter.Copy(device_out, cpu_out, device_command_queue);
-    // MatConverter cpu_converter(src,dst_copy);
-    // cpu_converter.Copy(cpu_in, device_out_copy, NULL);
-    printf("copy down\n");
+            MatConverter device_converter(src, dst);
+            LOGE("warp affine on device start\n");
+            status = device_converter.Copy(cpu_in_mat, device_in_mat,
+                                           device_command_queue);
 
-    // cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data), static_cast<uint8_t*>(mat_in_data),
-    //                               channel, channel, out_size);
-    //gpu_converter.Crop(cpu_src,cpu_dst,testparam,NULL);
-    // cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data), static_cast<uint8_t*>(mat_out_cpu_data),
-    //                               channel, channel, testparam.width*testparam.height*channel*batch);
-    cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data), static_cast<uint8_t*>(mat_out_cpu_data),
-                                  channel, channel, batch * mat_channel * output_size * output_size);
-    // cmp_result |= CompareData(static_cast<float*>(mat_out_dev_data), static_cast<float*>(mat_in_data),
-    //                               out_size, 0.01);
-    // printf("mat_out_cpu_data :\n");
+            status = device_converter.WarpAffine(device_in_mat, device_mat,
+                                                 mat_converter_test_param.warp_affine_param,
+                                                 device_command_queue);
+            if (status == TNN_OK)
+            {
+                LOGE("warp affine on device done\n");
+            }
+            else
+            {
+                LOGE("warp affine on device failed\n");
+                FAIL();
+            }
 
-    // for(int i = 0; i < 100; ++i)
-    //     printf("%hhu ", a[i]);
-    // printf("mat_out_dev_data :\n");
-    // for(int i = 0; i < 100; ++i)
-    //     printf("%hhu ", b[i]);
-    EXPECT_EQ(0, cmp_result);
-    free(mat_in_data);
-    free(mat_out_ref_nchw_data);
-    free(mat_out_dev_nchw_data);
-    free(mat_out_ref_data);
-    free(mat_out_dev_data);
-    free(mat_out_cpu_data);
+            device_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
+                                      channel, channel, out_size_);
+
+            EXPECT_EQ(0, cmp_result);
+
+            break;
+        }
+    }
+
+    rtn = DestroyTestData();
+    EXPECT_EQ(rtn, 0);
 }
 
 }  // namespace TNN_NS

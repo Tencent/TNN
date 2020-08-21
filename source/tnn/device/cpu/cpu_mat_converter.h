@@ -19,6 +19,7 @@
 #include "tnn/utils/blob_converter_internal.h"
 #include "tnn/utils/mat_converter.h"
 #include "tnn/utils/mat_converter_internal.h"
+#include "tnn/device/cpu/cpu_math_util.h"
 
 namespace TNN_NS {
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)

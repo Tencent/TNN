@@ -28,85 +28,85 @@
 #include "tnn/utils/mat_converter.h"
 
 namespace TNN_NS {
-class MatConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, MatType>> {
-// enum class MatConverterType
-// {
-//     Copy = 1,
-//     Resize = 2,
-//     Crop = 3,
-//     WarpAffine = 4
-// };
 
-// struct MatConverterTestParam
-// {
-//     MatConverterType mat_converter_type;
-//     // Resize
-//     ResizeParam resize_param;
-//     // Crop
-//     CropParam crop_param;
-//     // WarpAffine
-//     WarpAffineParam warp_affine_param;
+enum class MatConverterType
+{
+    Copy = 1,
+    Resize = 2,
+    Crop = 3,
+    WarpAffine = 4
+};
 
-//     // for Copy
-//     MatConverterTestParam(MatConverterType converter_type) :
-//         mat_converter_type(converter_type) { }
+struct MatConverterTestParam
+{
+    MatConverterType mat_converter_type;
+    // Resize
+    ResizeParam resize_param;
+    // Crop
+    CropParam crop_param;
+    // WarpAffine
+    WarpAffineParam warp_affine_param;
 
-//     // for Resize
-//     MatConverterTestParam(MatConverterType converter_type, float scale_w, float scale_h, InterpType type) :
-//         mat_converter_type(converter_type) {
-//         resize_param.scale_w = scale_w;
-//         resize_param.scale_h = scale_h;
-//         resize_param.type = type;
-//     }
+    // for Copy
+    MatConverterTestParam(MatConverterType converter_type) :
+        mat_converter_type(converter_type) { }
 
-//     // for Crop
-//     MatConverterTestParam(MatConverterType converter_type, int top_left_x, int top_left_y, int width, int height) :
-//         mat_converter_type(converter_type) {
-//         crop_param.top_left_x   = top_left_x;
-//         crop_param.top_left_y   = top_left_y;
-//         crop_param.width        = width;
-//         crop_param.height       = height;
-//     }
+    // for Resize
+    MatConverterTestParam(MatConverterType converter_type, float scale_w, float scale_h, InterpType type) :
+        mat_converter_type(converter_type) {
+        resize_param.scale_w    = scale_w;
+        resize_param.scale_h    = scale_h;
+        resize_param.type       = type;
+    }
 
-//     // for WarpAffine
-//     MatConverterTestParam(MatConverterType converter_type,
-//                           float transform00,
-//                           float transform01,
-//                           float transform02,
-//                           float transform10,
-//                           float transform11,
-//                           float transform12,
-//                           InterpType interp_type,
-//                           BorderType border_type,
-//                           float border_val) :
-//         mat_converter_type(converter_type) {
-//         warp_affine_param.transform[0][0] = transform00;
-//         warp_affine_param.transform[0][1] = transform01;
-//         warp_affine_param.transform[0][2] = transform02;
-//         warp_affine_param.transform[1][0] = transform10;
-//         warp_affine_param.transform[1][1] = transform11;
-//         warp_affine_param.transform[1][2] = transform12;
-//         warp_affine_param.interp_type   = interp_type;
-//         warp_affine_param.border_type   = border_type;
-//         warp_affine_param.border_val    = border_val;
-//     }
-// };
+    // for Crop
+    MatConverterTestParam(MatConverterType converter_type, int top_left_x, int top_left_y, int width, int height) :
+        mat_converter_type(converter_type) {
+        crop_param.top_left_x   = top_left_x;
+        crop_param.top_left_y   = top_left_y;
+        crop_param.width        = width;
+        crop_param.height       = height;
+    }
 
-// class MatConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, MatType, MatConverterTestParam>> {
+    // for WarpAffine
+    MatConverterTestParam(MatConverterType converter_type,
+                          float transform00,
+                          float transform01,
+                          float transform02,
+                          float transform10,
+                          float transform11,
+                          float transform12,
+                          InterpType interp_type,
+                          BorderType border_type,
+                          float border_val) :
+        mat_converter_type(converter_type) {
+        warp_affine_param.transform[0][0]   = transform00;
+        warp_affine_param.transform[0][1]   = transform01;
+        warp_affine_param.transform[0][2]   = transform02;
+        warp_affine_param.transform[1][0]   = transform10;
+        warp_affine_param.transform[1][1]   = transform11;
+        warp_affine_param.transform[1][2]   = transform12;
+        warp_affine_param.interp_type       = interp_type;
+        warp_affine_param.border_type       = border_type;
+        warp_affine_param.border_val        = border_val;
+    }
+};
+
+class MatConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, MatType, MatConverterTestParam>> {
 public:
     static void SetUpTestCase();
     static void TearDownTestCase();
 
 protected:
     int Compare(Blob* cpu_blob, Blob* device_blob);
-    // int CreateTestData(int batch, int channel, int input_size, MatType mat_type);
-    // int DestroyTestData();
+    int CreateTestData(int batch, int channel, int input_size, MatType mat_type);
+    int DestroyTestData();
 
-    // void* mat_in_data_;
-    // void* mat_out_ref_data_;
-    // void* mat_out_dev_data_;
+    void* mat_in_data_;
+    void* mat_out_ref_data_;
+    void* mat_out_dev_data_;
 
-    // int out_size_;
+    int out_size_;
 
     static AbstractDevice* cpu_;
     static AbstractDevice* device_;
