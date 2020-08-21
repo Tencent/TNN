@@ -32,26 +32,30 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
-    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], nullptr);
-    inputs[0]->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(inputs[0]->GetBlobDesc().dims);
-    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[1], nullptr);
-    inputs[1]->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(inputs[1]->GetBlobDesc().dims);
+    Blob* nhwc_input0 = new Blob(inputs[0]->GetBlobDesc(), true);
+    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], nhwc_input0);
+    nhwc_input0->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(nhwc_input0->GetBlobDesc().dims);
+    Blob* nhwc_input1 = new Blob(inputs[1]->GetBlobDesc(), true);
+    DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[1], nhwc_input1);
+    nhwc_input1->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(nhwc_input1->GetBlobDesc().dims);
     CenterSizeEncoding scale_values;
     scale_values.y = param->center_size_encoding[0];
     scale_values.x = param->center_size_encoding[1];
     scale_values.h = param->center_size_encoding[2];
     scale_values.w = param->center_size_encoding[3];
     BlobDesc decode_boxes_desc;
-    decode_boxes_desc.dims = {inputs[0]->GetBlobDesc().dims[1], 4, 1, 1};
+    decode_boxes_desc.dims = {nhwc_input0->GetBlobDesc().dims[1], 4, 1, 1};
     Blob decode_boxes_blob = Blob(decode_boxes_desc, true);
-    DecodeBoxes(param, resource, inputs[0], scale_values, &decode_boxes_blob);
+    DecodeBoxes(param, resource, nhwc_input0, scale_values, &decode_boxes_blob);
 
     if (param->use_regular_nms) {
         return TNNERR_UNSUPPORT_NET;
     } else {
-        NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, inputs[1], outputs[0], outputs[1],
+        NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, nhwc_input1, outputs[0], outputs[1],
                                             outputs[2], outputs[3]);
     }
+    delete nhwc_input0;
+    delete nhwc_input1;
     return TNN_OK;
 }
 
