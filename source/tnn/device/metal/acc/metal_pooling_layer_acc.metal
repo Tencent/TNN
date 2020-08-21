@@ -70,3 +70,80 @@ kernel void pooling_avg(const device ftype4 *in            [[buffer(0)]],
     float4 div = count > 0 ? 1.f / count : 0.0;
     out[(int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x] = ftype4(result * div);
 }
+
+kernel void pooling_global_average(const device ftype4 *in            [[buffer(0)]],
+                                     device ftype4 *out                 [[buffer(1)]],
+                                     constant MetalPoolParams& params   [[buffer(2)]],
+                                     uint3 gid                          [[thread_position_in_grid]],
+                                     uint t_index                       [[thread_index_in_threadgroup]]) {
+    if (any(gid >= uint3(params.input_size, 1, params.batch*params.input_slice)))
+        return;
+    
+    auto input_index_c = (int)gid.z * params.input_size;
+    auto output_index_c = (int)gid.z * params.output_size;
+    
+    const int max_index = min(32, params.input_size);
+    
+    //do not use setThreadgroupMemoryLength, unknown bug will raise
+    threadgroup float4 x_group[32];
+    
+    //compute local sum
+    float4 sum_x = float4(0);
+    for (int index = t_index; index < params.input_size; index+=32) {
+        auto temp = float4(in[index + input_index_c]);
+        sum_x += temp;
+    }
+    x_group[t_index] = sum_x;
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    //compute the average
+    if (t_index == 0) {
+        sum_x = float4(0);
+        for (int index = 0; index < max_index; index++) {
+            sum_x += x_group[index];
+        }
+        auto mean_x = sum_x / params.input_size;
+        out[output_index_c] = ftype4(mean_x);
+    }
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+}
+
+kernel void pooling_global_max(const device ftype4 *in            [[buffer(0)]],
+                                     device ftype4 *out                 [[buffer(1)]],
+                                     constant MetalPoolParams& params   [[buffer(2)]],
+                                     uint3 gid                          [[thread_position_in_grid]],
+                                     uint t_index                       [[thread_index_in_threadgroup]]) {
+    if (any(gid >= uint3(params.input_size, 1, params.batch*params.input_slice)))
+        return;
+    
+    auto input_index_c = (int)gid.z * params.input_size;
+    auto output_index_c = (int)gid.z * params.output_size;
+    
+    const int max_index = min(32, params.input_size);
+    
+    //do not use setThreadgroupMemoryLength, unknown bug will raise
+    threadgroup ftype4 x_group[32];
+    
+    //compute local maximum value
+    ftype4 max_x = ftype4(-FTYPE_MAX);
+    for (int index = t_index; index < params.input_size; index+=32) {
+        auto temp = in[index + input_index_c];
+        max_x = max(max_x, temp);
+    }
+    x_group[t_index] = max_x;
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    //compute the maximum
+    if (t_index == 0) {
+        max_x = ftype4(-FTYPE_MAX);
+        for (int index = 0; index < max_index; index++) {
+            max_x = max(max_x, x_group[index]);
+        }
+        out[output_index_c] = max_x;
+    }
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+}

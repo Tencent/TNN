@@ -31,6 +31,7 @@ typedef float3x4 ftype3x4;
 typedef float4x2 ftype4x2;
 typedef float4x3 ftype4x3;
 typedef float4x4 ftype4x4;
+#define FTYPE_MAX MAXFLOAT
 #else
 typedef half     ftype;
 typedef half2    ftype2;
@@ -45,6 +46,7 @@ typedef half3x4  ftype3x4;
 typedef half4x2  ftype4x2;
 typedef half4x3  ftype4x3;
 typedef half4x4  ftype4x4;
+#define FTYPE_MAX MAXHALF
 #endif
 
 
