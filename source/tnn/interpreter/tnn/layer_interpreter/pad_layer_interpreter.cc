@@ -33,10 +33,10 @@ Status PadLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_inde
         int n2 = atoi(layer_cfg_arr[index++].c_str());
     }
 
-    int pad_t   = INT_MIN;
-    int pad_b   = INT_MIN;
-    int pad_l   = INT_MIN;
-    int pad_r   = INT_MIN;
+    int pad_t = INT_MIN;
+    int pad_b = INT_MIN;
+    int pad_l = INT_MIN;
+    int pad_r = INT_MIN;
     int pad_c_b = INT_MIN;
     int pad_c_e = INT_MIN;
     if (index < layer_cfg_arr.size()) {
