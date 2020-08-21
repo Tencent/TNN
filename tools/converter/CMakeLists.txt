@@ -3,7 +3,6 @@ if (PROTOBUF_FOUND)
     include_directories(${Protobuf_INCLUDE_DIRS})
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
     protobuf_generate_cpp(ONNX_PROTO_SRC ONNX_PROTO_HEAD source/onnx/onnx-proto/onnx.proto)
-
 else ()
     message(FATAL_ERROR "Protobuf not found, must install first")
 endif ()
