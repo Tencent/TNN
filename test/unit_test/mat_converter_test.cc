@@ -105,21 +105,33 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // channel
                             testing::Values(1, 3, 4),
                             // input size
-                            testing::Values(3, 10, 20),
+                            testing::Values(3, 10, 20, 128),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY,
                                             NCHW_FLOAT),
                             // converter test param
                             testing::Values(
                                 // Copy
-                                MatConverterTestParam(MatConverterType::Copy),
+                                // MatConverterTestParam(MatConverterType::Copy),
                                 // Resize
-                                MatConverterTestParam(MatConverterType::Resize, 0.1, 0.1, INTERP_TYPE_LINEAR),
+                                // MatConverterTestParam(MatConverterType::Resize, 0.1, 0.1, INTERP_TYPE_LINEAR),
                                 // Crop
-                                MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
+                                // MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
                                 // WarpAffine
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 0.0))
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 1, 0, 1, 1,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN))
                             ));
 
 TEST_P(MatConverterTest, MatConverterTest) {
@@ -130,22 +142,31 @@ TEST_P(MatConverterTest, MatConverterTest) {
     MatConverterTestParam mat_converter_test_param  = std::get<4>(GetParam());
     MatConverterType mat_converter_type             = mat_converter_test_param.mat_converter_type;
 
-    if (mat_type != N8UC4 || channel != 4) {
+    DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
+    // warp affine only support N8UC4 on OpenCL for now
+    if (device_type == DEVICE_OPENCL && mat_converter_type == MatConverterType::WarpAffine && !(mat_type == N8UC4))
+    {
+        GTEST_SKIP();
+    }
+
+    if ((mat_type == NGRAY && channel != 1) || (mat_type == N8UC3 && channel != 3) || (mat_type == N8UC4 && channel != 4))
+    {
         GTEST_SKIP();
     }
 
     int rtn = CreateTestData(batch, channel, input_size, mat_type);
     EXPECT_EQ(rtn, 0);
 
-    DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
 
     DimsVector dims         = {batch, channel, input_size, input_size};
     Mat cpu_in_mat          = Mat(DEVICE_NAIVE, mat_type, dims, mat_in_data_);
+    Mat cpu_ref_mat         = Mat(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data_);
     Mat cpu_out_mat         = Mat(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data_);
     Mat device_mat          = Mat(device_type, mat_type, dims);
+    Mat device_in_mat       = Mat(device_type, mat_type, dims);
+    int cmp_result          = 0;
     void* device_command_queue;
     device_context_->GetCommandQueue(&device_command_queue);
-    int cmp_result;
     switch (mat_converter_type)
     {
         case MatConverterType::Copy:
@@ -182,8 +203,51 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::WarpAffine:
         {
-            LOGE("mat converter warp affine test start\n");
-            LOGE("mat converter warp affine test end\n");
+            Mat *src, *dst, *dst_ref;
+            src         = &cpu_in_mat;
+            dst         = &device_mat;
+            dst_ref     = &cpu_ref_mat;
+
+            MatConverter host_converter(src, dst_ref);
+            LOGE("warp affine on host start\n");
+            tnn::Status status = host_converter.WarpAffine(cpu_in_mat, cpu_ref_mat,
+                                                           mat_converter_test_param.warp_affine_param,
+                                                           device_command_queue);
+            if (status == TNN_OK)
+            {
+                LOGE("warp affine on host done\n");
+            }
+            else
+            {
+                LOGE("warp affine on host failed\n");
+                FAIL();
+            }
+
+            MatConverter device_converter(src, dst);
+            LOGE("warp affine on device start\n");
+            status = device_converter.Copy(cpu_in_mat, device_in_mat,
+                                           device_command_queue);
+
+            status = device_converter.WarpAffine(device_in_mat, device_mat,
+                                                 mat_converter_test_param.warp_affine_param,
+                                                 device_command_queue);
+            if (status == TNN_OK)
+            {
+                LOGE("warp affine on device done\n");
+            }
+            else
+            {
+                LOGE("warp affine on device failed\n");
+                FAIL();
+            }
+
+            device_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
+                                      channel, channel, out_size_);
+
+            EXPECT_EQ(0, cmp_result);
+
             break;
         }
     }

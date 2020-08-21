@@ -30,7 +30,6 @@ CpuMatConverterAcc::CpuMatConverterAcc() : MatConverterAcc() {}
 CpuMatConverterAcc::~CpuMatConverterAcc() {}
 Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret            = TNN_OK;
-    printf("now CPU\n");
     //memcpy(dst.GetData(),src.GetData());
     MatType mat_type   = src.GetMatType();
     int data_type_size = 1;
@@ -168,16 +167,67 @@ Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 }
 
 Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
+    LOGE("cpu mat converter warp affine start, mat type: %d, interp type: %d\n", src.GetMatType(), param.interp_type);
     Status ret            = TNN_OK;
-    return ret;
-    // auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
-    // if (cl_command_queue == nullptr) {
-    //     LOGE("Get OpenCL command queue failed!\n");
-    //     return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
-    // } 
-    // if(execute_map_.count("WarpAffine") == 0) {        
+    if (src.GetData() == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input mat is null");
+    }
 
-    // }
+    if (src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+
+    if (dst.GetData() == nullptr) {
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    }
+
+    if (src.GetMatType() == NGRAY) {
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            int channel = 1;
+            for (int batch = 0; batch < src.GetDims()[0]; batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                warpaffine_bilinear(src_ptr, src.GetWidth(), src.GetHeight(), channel,
+                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
+                                    param.transform, param.border_val);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
+    } else if (src.GetMatType() == N8UC3) {
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            int channel = 3;
+            for (int batch = 0; batch < src.GetDims()[0]; batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                warpaffine_bilinear(src_ptr, src.GetWidth(), src.GetHeight(), channel,
+                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
+                                    param.transform, param.border_val);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
+    } else if (src.GetMatType() == N8UC4) {
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            int channel = 4;
+            for (int batch = 0; batch < src.GetDims()[0]; batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                warpaffine_bilinear(src_ptr, src.GetWidth(), src.GetHeight(), channel,
+                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
+                                    param.transform, param.border_val);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
+    } else {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+
+    return ret;
 }
 
 void CpuMatConverterAcc::mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {

@@ -54,9 +54,9 @@ struct MatConverterTestParam
     // for Resize
     MatConverterTestParam(MatConverterType converter_type, float scale_w, float scale_h, InterpType type) :
         mat_converter_type(converter_type) {
-        resize_param.scale_w = scale_w;
-        resize_param.scale_h = scale_h;
-        resize_param.type = type;
+        resize_param.scale_w    = scale_w;
+        resize_param.scale_h    = scale_h;
+        resize_param.type       = type;
     }
 
     // for Crop
@@ -80,15 +80,15 @@ struct MatConverterTestParam
                           BorderType border_type,
                           float border_val) :
         mat_converter_type(converter_type) {
-        warp_affine_param.transform[0][0] = transform00;
-        warp_affine_param.transform[0][1] = transform01;
-        warp_affine_param.transform[0][2] = transform02;
-        warp_affine_param.transform[1][0] = transform10;
-        warp_affine_param.transform[1][1] = transform11;
-        warp_affine_param.transform[1][2] = transform12;
-        warp_affine_param.interp_type   = interp_type;
-        warp_affine_param.border_type   = border_type;
-        warp_affine_param.border_val    = border_val;
+        warp_affine_param.transform[0][0]   = transform00;
+        warp_affine_param.transform[0][1]   = transform01;
+        warp_affine_param.transform[0][2]   = transform02;
+        warp_affine_param.transform[1][0]   = transform10;
+        warp_affine_param.transform[1][1]   = transform11;
+        warp_affine_param.transform[1][2]   = transform12;
+        warp_affine_param.interp_type       = interp_type;
+        warp_affine_param.border_type       = border_type;
+        warp_affine_param.border_val        = border_val;
     }
 };
 
