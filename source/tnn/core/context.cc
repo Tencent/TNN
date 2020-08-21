@@ -31,13 +31,11 @@ Status Context::SetNumThreads(int num_threads) {
     return TNN_OK;
 }
 
-// this function is called to set precision
 Status Context::SetPrecision(Precision precision) {
     precision_ = precision;
     return TNN_OK;
 }
 
-// this function is called to set precision
 Precision Context::GetPrecision() {
     return precision_;
 }
