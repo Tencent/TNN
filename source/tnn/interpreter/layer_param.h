@@ -332,6 +332,14 @@ struct SignedMulLayerParam : public LayerParam {
     float gamma = 2.0f;
 };
 
+struct RoiAlignLayerParam : public LayerParam {
+    std::string mode    = "avg";
+    int output_height   = 1;
+    int output_width    = 1;
+    int sampling_ratio  = 0;
+    float spatial_scale = 1.0f;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

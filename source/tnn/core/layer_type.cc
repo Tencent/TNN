@@ -204,10 +204,10 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ReduceProd", LAYER_REDUCE_PROD},
     {"ReduceSum", LAYER_REDUCE_SUM},
     {"ReduceSumSquare", LAYER_REDUCE_SUM_SQUARE},
+    {"SignedMul", LAYER_SIGNED_MUL},
+    {"RoiAlign", LAYER_ROI_ALIGN},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
-
-    {"SignedMul", LAYER_SIGNED_MUL},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {
