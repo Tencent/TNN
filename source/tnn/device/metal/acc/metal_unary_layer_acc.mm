@@ -28,7 +28,7 @@ Status MetalUnaryLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
     return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
 }
 
-std::string MetalUnaryLayerAcc::KernelName() {
+std::string MetalUnaryLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 

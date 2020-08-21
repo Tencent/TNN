@@ -20,7 +20,7 @@
 ```
  struct ConvLayerParam : public LayerParam {
      int pad_type = -1;
-     // input channels of blob, devide by group
+     // input channels of blob, divide by group
      int input_channel = 0;
      // the total output channels of blob, not devide by group
      int output_channel = 0;

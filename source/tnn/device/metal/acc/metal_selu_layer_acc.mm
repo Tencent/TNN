@@ -18,7 +18,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Selu, LAYER_SELU);
 
-string MetalSeluLayerAcc::KernelName() {
+string MetalSeluLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "selu";
 }
 

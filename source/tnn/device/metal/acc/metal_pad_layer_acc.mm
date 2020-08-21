@@ -60,10 +60,26 @@ Status MetalPadLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
-// This method should never be called
-std::string MetalPadLayerAcc::KernelName() {
-    LOGD("Invalid Calling\n");
-    return "";
+std::string MetalPadLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<PadLayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: layer param is nil\n");
+        return "";
+    }
+    int pad_type = layer_param->type;
+    bool pad_const_specilized = ((layer_param->pads[4])%4 == 0) && (inputs[0]->GetBlobDesc().dims[1]%4 == 0);
+    
+    string kernel_name = "";
+    if (pad_type == 1) {
+        kernel_name = "pad_reflect_common";
+    } else if (pad_type == 0 && pad_const_specilized) {
+        kernel_name = "pad_const_channel4";
+    } else if (pad_type == 0){
+        kernel_name = "pad_const_common";
+    } else {
+        LOGE("Error: layer param is not supported: type:%d\n", pad_type);
+    }
+    return kernel_name;
 }
 
 Status MetalPadLayerAcc::SetKernelEncoderParam(
@@ -82,27 +98,15 @@ Status MetalPadLayerAcc::Forward(const std::vector<Blob *> &inputs,
         LOGE("MetalLayerAcc: DataType must be float or half\n");
         return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
-    
-    auto layer_param     = dynamic_cast<PadLayerParam *>(param_);
-    int pad_type     = layer_param->type;
-    bool pad_const_specilized = ((layer_param->pads[4])%4 == 0) && (inputs[0]->GetBlobDesc().dims[1]%4 == 0);
 
     MTLSize threads;
     auto status = ComputeThreadSize(inputs, outputs, threads);
     if (status != TNN_OK) {
         return status;
     }
-    
-    string kernel_name = "invalid";
-    if (pad_type == 1) {
-        kernel_name = "pad_reflect_common";
-    } else if (pad_type == 0 && pad_const_specilized) {
-        kernel_name = "pad_const_channel4";
-    } else if (pad_type == 0){
-        kernel_name = "pad_const_common";
-    } else {
-        LOGE("Error: layer param is not supported: type:%d\n", pad_type);
-        return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
+    string kernel_name = KernelName(inputs, outputs);
+    if(kernel_name.length() <= 0){
+      return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
     }
     
     auto context_impl = context_->getMetalContextImpl();

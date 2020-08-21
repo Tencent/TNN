@@ -18,7 +18,7 @@
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -62,8 +62,8 @@ Status OpenCLBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param
 
     do_scale_bias_  = NeedDoScaleBias(param);
     //create identifier
-    std::string to_mat_key = to_string(mat.GetDeviceType()) + "_" + to_string(mat.GetMatType()) + "_" +
-                            to_string(param.reverse_channel) + "_" + to_string(do_scale_bias_);
+    std::string to_mat_key = ToString(mat.GetDeviceType()) + "_" + ToString(mat.GetMatType()) + "_" +
+                            ToString(param.reverse_channel) + "_" + ToString(do_scale_bias_);
     //create convert unit only once for every key
     if (convert_to_mat_map_.count(to_mat_key) == 0) {
         OpenCLExecuteUnit unit;
@@ -114,8 +114,8 @@ Status OpenCLBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam par
 
     do_scale_bias_  = NeedDoScaleBias(param);
     //create identifier
-    std::string from_mat_key = to_string(mat.GetDeviceType()) + "_" + to_string(mat.GetMatType()) + "_" +
-                                to_string(param.reverse_channel) + "_" + to_string(do_scale_bias_);
+    std::string from_mat_key = ToString(mat.GetDeviceType()) + "_" + ToString(mat.GetMatType()) + "_" +
+                                ToString(param.reverse_channel) + "_" + ToString(do_scale_bias_);
     //create convert unit only once for every key
     if (convert_to_mat_map_.count(from_mat_key) == 0) {
         OpenCLExecuteUnit unit;

@@ -39,7 +39,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -425,7 +425,7 @@ namespace test {
                 DimsVector dims   = mat->GetDims();
                 std::string shape = "( ";
                 for (auto dim : dims) {
-                    shape += to_string(dim) + " ";
+                    shape += ToString(dim) + " ";
                 }
                 shape += ")";
                 LOGD("the output shape: %s\n", shape.c_str());

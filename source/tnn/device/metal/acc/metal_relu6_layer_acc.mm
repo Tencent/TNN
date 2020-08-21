@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Relu6, LAYER_RELU6);
 
-string MetalRelu6LayerAcc::KernelName() {
+string MetalRelu6LayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "relu6";
 }
 
