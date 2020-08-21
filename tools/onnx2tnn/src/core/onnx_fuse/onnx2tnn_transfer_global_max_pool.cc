@@ -18,7 +18,7 @@
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
-int Onnx2TNN::FuseGlobalMaxPool(
+int Onnx2TNN::TransferGlobalMaxPool(
     onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
     std::map<std::string, onnx::TensorProto>& weights,
     std::map<std::string, int>& node_reference,
