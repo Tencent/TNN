@@ -63,8 +63,8 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
             kernel_name = "Bilinear";
         }
     } else {
-        LOGE("Not support Upsample type: %d\n", upsample_param->type);
-        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample type");
+        LOGE("Not support Upsample type: %d\n", upsample_param->mode);
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
     }
     if (run_3d_ndrange_) {
         kernel_name += "GS3D";
