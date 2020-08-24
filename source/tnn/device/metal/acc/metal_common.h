@@ -469,6 +469,14 @@ struct MetalWarpAffineParams {
     int channel;
     int slice;
     int batch;
+    
+    int resized_width;
+    int resized_height;
+    // double is not supported in Metal
+    float transform_inv[2][3];
+    int interp_type;
+    int border_type;
+    float border_val;
 };
 
 struct MetalCopyParams {

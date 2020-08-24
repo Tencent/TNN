@@ -243,3 +243,12 @@ kernel void copy_n8uc4_to_cpu(
     out[offset + 2] = data[2];
     out[offset + 3] = data[3];
 }
+
+kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
+         texture2d<half, access::read> src_bgra        [[texture(0)]],
+         texture2d<half, access::write> dst_bgra       [[texture(1)]],
+         constant MetalWarpAffineParams& parameters    [[buffer(0)]],
+         ushort2 gid                                   [[thread_position_in_grid]])
+{
+    
+}
