@@ -48,12 +48,26 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
-    // reserved
+    // auto precision, each device choose default precision.
+    // ARM: prefer fp16
+    // OPENCL: prefer fp16
+    // METAL: prefer fp16
+    PRECISION_AUTO = -1,
+    // Normal precision
+    // ARM: run fp16 if device support fp16, else run fp32.
+    // OPNECL: run with mixed pricision
+    // METAL: run with fp16
     PRECISION_NORMAL = 0,
-    // High precision, run with fp32.
+    // High precision
+    // ARM: run with fp32
+    // OPENCL: run with fp32
+    // METAL: run with fp16
     PRECISION_HIGH = 1,
-    // Low precision, run with bfp16.
-    PRECISION_LOW = 2,
+    // Low precision
+    // ARM: run with bfp16
+    // OPENCL: run with fp16
+    // METAL: run with fp16
+    PRECISION_LOW = 2
 } Precision;
 
 typedef enum {
@@ -121,7 +135,7 @@ struct PUBLIC NetworkConfig {
     std::vector<std::string> library_path = {};
 
     // compute precision
-    Precision precision = PRECISION_HIGH;
+    Precision precision = PRECISION_AUTO;
 };
 
 struct PUBLIC ModelConfig {
@@ -135,20 +149,6 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
-    int GetConfig(int protolongth, int modellongth, const unsigned char *tnnproto_buffer,
-                  const unsigned char *tnnmodel_buffer) {
-        std::string tnnmodel;
-        std::string tnnproto;
-
-        for (int i = 0; i < protolongth; i++)
-            tnnproto += tnnproto_buffer[i];
-        for (int i = 0; i < modellongth; i++)
-            tnnmodel += tnnmodel_buffer[i];
-
-        params.push_back(tnnproto);
-        params.push_back(tnnmodel);
-        return 0;
-    }
 };
 
 }  // namespace TNN_NS

@@ -53,7 +53,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                             InputShapesMap inputs_shape) {
-    _config                                      = net_config;
+    config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
@@ -74,6 +74,11 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     if (context_ == NULL) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+
+    ret = context_->SetPrecision(net_config.precision);
+    if (ret != TNN_OK) {
+        return ret;
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -162,7 +167,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                 blob = new_blob;
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             inputs.push_back(blob);
@@ -213,7 +218,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                 blob = new_blob;
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             outputs.push_back(blob);

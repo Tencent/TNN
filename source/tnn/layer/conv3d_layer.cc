@@ -21,14 +21,7 @@ namespace TNN_NS {
 DECLARE_LAYER(Conv3D, LAYER_CONVOLUTION_3D);
 
 Status Conv3DLayer::InferOutputDataType() {
-    ConvLayerResource* conv_resource = dynamic_cast<ConvLayerResource*>(resource_);
-    if (conv_resource) {
-        output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
-    } else {
-        LOGE("Error: conv_resource is nil\n");
-        return Status(TNNERR_LAYER_ERR, "Error: conv_resource is nil");
-    }
-    return TNN_OK;
+    return BaseLayer::InferOutputDataType();
 }
 
 Status Conv3DLayer::InferOutputShape() {

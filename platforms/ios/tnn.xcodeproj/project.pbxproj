@@ -55,7 +55,7 @@
 		9D32FCA724557EEC002DCDAB /* omp_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98A24557EE7002DCDAB /* omp_utils.h */; };
 		9D32FCA824557EEC002DCDAB /* half_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F98B24557EE7002DCDAB /* half_utils.cc */; };
 		9D32FCA924557EEC002DCDAB /* blob_memory_size_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */; };
-		9D32FCAA24557EEC002DCDAB /* string_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98D24557EE7002DCDAB /* string_utils.h */; };
+		9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98D24557EE7002DCDAB /* string_utils_inner.h */; };
 		9D32FCAB24557EEC002DCDAB /* blob_transfer_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */; };
 		9D32FCAC24557EEC002DCDAB /* split_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98F24557EE7002DCDAB /* split_utils.h */; };
 		9D32FCAD24557EEC002DCDAB /* string_format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99024557EE7002DCDAB /* string_format.cc */; };
@@ -645,7 +645,7 @@
 		9D32F98A24557EE7002DCDAB /* omp_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = omp_utils.h; sourceTree = "<group>"; };
 		9D32F98B24557EE7002DCDAB /* half_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = half_utils.cc; sourceTree = "<group>"; };
 		9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_memory_size_utils.h; sourceTree = "<group>"; };
-		9D32F98D24557EE7002DCDAB /* string_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string_utils.h; sourceTree = "<group>"; };
+		9D32F98D24557EE7002DCDAB /* string_utils_inner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string_utils_inner.h; sourceTree = "<group>"; };
 		9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_transfer_utils.h; sourceTree = "<group>"; };
 		9D32F98F24557EE7002DCDAB /* split_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = split_utils.h; sourceTree = "<group>"; };
 		9D32F99024557EE7002DCDAB /* string_format.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = string_format.cc; sourceTree = "<group>"; };
@@ -1320,7 +1320,7 @@
 				9D32F98A24557EE7002DCDAB /* omp_utils.h */,
 				9D32F98B24557EE7002DCDAB /* half_utils.cc */,
 				9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */,
-				9D32F98D24557EE7002DCDAB /* string_utils.h */,
+				9D32F98D24557EE7002DCDAB /* string_utils_inner.h */,
 				9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */,
 				9D32F98F24557EE7002DCDAB /* split_utils.h */,
 				9D32F99024557EE7002DCDAB /* string_format.cc */,
@@ -2157,7 +2157,7 @@
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
 				9DD1FCB9247CEA1400800139 /* arm_layer_acc.h in Headers */,
 				9DD1FCD5247CEA1500800139 /* arm_conv_layer_common.h in Headers */,
-				9D32FCAA24557EEC002DCDAB /* string_utils.h in Headers */,
+				9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */,
 				9D32FC8324557EEC002DCDAB /* optimizer_const.h in Headers */,
 				9DD1FC7F247CEA1400800139 /* arm_unary_layer_acc.h in Headers */,
 				9D32FF3B24557EED002DCDAB /* net_resource.h in Headers */,

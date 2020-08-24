@@ -12,23 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/string_utils.h"
-#include "tnn/utils/string_utils_inner.h"
+#ifndef TNN_INCLUDE_TNN_UTILS_STRING_UTILS_H_
+#define TNN_INCLUDE_TNN_UTILS_STRING_UTILS_H_
+
+#include <string>
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-std::string UcharToString(const unsigned char *buffer, int length){
-    std::string param;
-    for(int i = 0; i<length; i++){
-        param += buffer[i];
-    }
-    return param;
-}
+extern PUBLIC std::string UcharToString(const unsigned char *buffer, int length);
 
-template <>
-std::string ToString<float>(float value) {
-    std::ostringstream os;
-    os << std::showpoint << value;
-    return os.str();
-}
 }  // namespace TNN_NS
+
+#endif  // TNN_INCLUDE_TNN_UTILS_STRING_UTILS_INNER_H_
