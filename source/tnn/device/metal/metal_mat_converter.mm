@@ -338,7 +338,19 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
         } else {
             return Status(TNNERR_PARAM_ERR, "not support yet");
         }
-    } else {
+    } else if(src_mat_type == N8UC3 || dst_mat_type == N8UC3) {
+        auto src_device_type = src.GetDeviceType();
+        auto dst_device_type = dst.GetDeviceType();
+        if (src_device_type == DEVICE_METAL) {
+            // metal N8UC4 => arm N8UC3
+            func_process = [library newFunctionWithName:@"copy_n8uc4_metal_to_n8uc3_cpu"];
+            //LOGE("metal N8UC4 to arm N8UC3\n");
+        } else {
+            // arm N8UC3 => metal N8UC4
+            func_process = [library newFunctionWithName:@"copy_n8uc3_cpu_to_n8uc4_metal"];
+            //LOGE("arm N8UC3 to metal N8UC4\n");
+        }
+    }else {
         return Status(TNNERR_PARAM_ERR, "not support yet");
     }
     if (!func_process) {
@@ -435,14 +447,34 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     if (!(src_device_type == DEVICE_NAIVE || src_device_type == DEVICE_ARM || dst_device_type == DEVICE_NAIVE || dst_device_type == DEVICE_ARM)) {
         return Status(TNNERR_INVALID_INPUT, "unsupported device!");
     }
-    //TODO:should we handle differnt data_type?
-    if (src_mat_type != dst_mat_type) {
+    // devan: support N8UC3 <=> N8UC4 copy
+    if (src_mat_type != dst_mat_type && !(src_mat_type == N8UC3 && dst_mat_type == N8UC4) && !(src_mat_type == N8UC4 && dst_mat_type == N8UC3)) {
         return Status(TNNERR_INVALID_INPUT, "src and dst have different data type!");
     }
     // check if dims compatible
-    if (!DimsVectorUtils::Equal(src.GetDims(), dst.GetDims())) {
+    if (! ((src_mat_type == dst_mat_type && DimsVectorUtils::Equal(src.GetDims(), dst.GetDims())) || ((src_mat_type == N8UC3 || dst_mat_type == N8UC3) && (src.GetHeight()==dst.GetHeight() && src.GetWidth()==dst.GetWidth()))) ) {
         return Status(TNNERR_INVALID_INPUT, "src and dst have different dims!");
     }
+    if (device_ == nil) {
+        if (src_device_type == DEVICE_METAL) {
+            if(src_mat_type == N8UC4) {
+                id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+                device_ = texture.device;
+            } else {
+                id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(src.GetData());
+                device_     = buffer.device;
+            }
+        } else if(dst_device_type == DEVICE_METAL) {
+            if(dst_mat_type == N8UC4) {
+                id<MTLTexture> texture = (__bridge id<MTLTexture>)(dst.GetData());
+                device_ = texture.device;
+            } else {
+                id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(dst.GetData());
+                device_     = buffer.device;
+            }
+        }
+    }
+    /*
     if (device_ == nil) {
         if (src_mat_type == N8UC4) {
             id<MTLTexture> texture = nil;
@@ -460,7 +492,8 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             device_     = buffer.device;
         }
     }
-    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
+     */
+    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT && src_mat_type != N8UC3) {
         return Status(TNNERR_PARAM_ERR, "not support yet");
     }
     
@@ -482,18 +515,24 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     }
     //check copy direction
     auto dims = src.GetDims();
-    auto count = DimsVectorUtils::Count(dims);
-    auto bytesPerElement = -1;
-    //auto mat_type = src.GetMatType();
-    if (src_mat_type == N8UC4)
-        bytesPerElement = 1;
-    else if (src_mat_type == NCHW_FLOAT)
-        bytesPerElement = 4;
+    
     if (src_device_type == DEVICE_METAL) {
         // Metal => cpu
         // 1) metal => buffer
-        id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*4
-                                                        options:MTLResourceOptionCPUCacheModeDefault];
+        id<MTLBuffer> tmp_buffer = nil;
+        if (dst_mat_type == N8UC3) {
+            tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
+                                              options:MTLResourceOptionCPUCacheModeDefault];
+        } else if(dst_mat_type == N8UC4){
+            // N8UC4
+            tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*4
+                                              options:MTLResourceOptionCPUCacheModeDefault];
+        } else {
+            // NCHW_FLOAT
+            auto count = DimsVectorUtils::Count(dims);
+            tmp_buffer = [device_ newBufferWithLength: count*4
+                                              options:MTLResourceOptionCPUCacheModeDefault];
+        }
         if (tmp_buffer == nil) {
             return Status(TNNERR_INST_ERR, "tmp_buffer is nil");
         }
@@ -508,18 +547,24 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             [command_buffer enqueue];
             auto encoder = [command_buffer computeCommandEncoder];
             [encoder setComputePipelineState: pipeline_process_];
-            if (src_mat_type == N8UC4) {
+            if (dst_mat_type == N8UC4) {
                 id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
                 
                 [encoder setTexture:input_texture atIndex:0];
                 [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
                 [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
-            } else if(src_mat_type == NCHW_FLOAT) {
+            } else if(dst_mat_type == NCHW_FLOAT) {
                 id<MTLBuffer> input_buffer = (__bridge id<MTLBuffer>)(src.GetData());
                 
                 [encoder setBuffer:input_buffer offset:0 atIndex:0];
                 [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
                 [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
+            } else if(dst_mat_type == N8UC3) {
+                id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+                
+                [encoder setTexture:input_texture atIndex:0];
+                [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+                [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
             }
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];
@@ -545,7 +590,8 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         } else if(src_mat_type == NCHW_FLOAT) {
             // 1) cpu => buffer
             //TODO: will this cause memory leak?
-            id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: count*bytesPerElement
+            auto count = DimsVectorUtils::Count(dims);
+            id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: count*4
                                                             options:MTLResourceOptionCPUCacheModeDefault];
             memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
             // 2) buffer => metal
@@ -567,7 +613,33 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             [command_buffer commit];
             //wait to complete
             [command_buffer waitUntilCompleted];
+        } else if(src_mat_type == N8UC3) {
+            // 1) cpu => buffer
+            //TODO: will this cause memory leak?
+            id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
+                                                            options:MTLResourceOptionCPUCacheModeDefault];
+            memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
+            // 2) buffer => metal
+            auto slice = UP_DIV(dims[1], 4);
+            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
+            auto command_buffer = [command_queue_impl commandBuffer];
+            [command_buffer enqueue];
+            auto encoder = [command_buffer computeCommandEncoder];
+            [encoder setComputePipelineState: pipeline_process_];
             
+            id<MTLTexture> dst_texture = (__bridge id<MTLTexture>)(dst.GetData());
+            
+            [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+            [encoder setTexture:dst_texture atIndex:0];
+            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
+            
+            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+            [encoder endEncoding];
+            
+            [command_buffer commit];
+            //wait to complete
+            [command_buffer waitUntilCompleted];
         }
     }
     return TNN_OK;
