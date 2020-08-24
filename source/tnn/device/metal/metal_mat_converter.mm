@@ -160,7 +160,7 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
     warpaffine_param_.transform_inv[1][2]      = b2;
     
     buffer_warpaffine_param_ = [device_ newBufferWithBytes:&warpaffine_param_
-                                                    length:sizeof(MetalResizeParams)
+                                                    length:sizeof(MetalWarpAffineParams)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
     
     if (!buffer_warpaffine_param_) {
