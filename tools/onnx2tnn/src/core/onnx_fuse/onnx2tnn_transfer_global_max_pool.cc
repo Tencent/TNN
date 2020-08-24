@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
@@ -18,11 +18,9 @@
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
-int Onnx2TNN::TransferGlobalMaxPool(
-    onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
-    std::map<std::string, onnx::TensorProto>& weights,
-    std::map<std::string, int>& node_reference,
-    std::set<std::string>& blob_names) {
+int Onnx2TNN::TransferGlobalMaxPool(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                                    std::map<std::string, onnx::TensorProto>& weights,
+                                    std::map<std::string, int>& node_reference, std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
 
     // GlobalMaxPool <=  ReduceMax
@@ -30,21 +28,20 @@ int Onnx2TNN::TransferGlobalMaxPool(
         auto node = index_nodes[i].node;
 
         do {
-            if(node->op_type() == "ReduceMax"){
-                //check reduce max axes
-                auto node_reduce_max =node;
+            if (node->op_type() == "ReduceMax") {
+                // check reduce max axes
+                auto node_reduce_max = node;
                 vector<int64_t> axes = get_node_attr_ai(*node_reduce_max, "axes");
                 if (axes.size() != 2 || axes[0] != 2 || axes[1] != 3) {
                     break;
                 }
+                node_reduce_max->clear_attribute();
                 node_reduce_max->set_op_type("GlobalMaxPool");
                 node_reference.erase(node_reference.find(node_reduce_max->output(0)));
                 blob_names.erase(node_reduce_max->output(0));
-
             }
         } while (0);
     }
 
-    ClearEmptyNode(index_nodes);
     return 0;
 }
