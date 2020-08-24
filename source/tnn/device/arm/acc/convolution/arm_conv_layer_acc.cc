@@ -57,7 +57,7 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
         return ret;
 
     if (conv_param->group != 1 && conv_param->group != inputs[0]->GetBlobDesc().dims[1] &&
-        inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         conv_acc_impl_ = std::make_shared<ArmConvLayerGroup>();
     } else {
         if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {

@@ -188,29 +188,37 @@ Status ArmConvLayerGroup::SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> 
     return TNN_OK;
 }
 
-Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
-    // Todo
+template <typename T>
+void ArmConvLayerGroup::TransformInput(Blob *input) {
     auto dims       = input->GetBlobDesc().dims;
     auto group_dims = group_inputs_[0]->GetBlobDesc().dims;
     auto batch      = dims[0];
 
-    if (input->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto r_split_data_count_per_batch = ROUND_UP(dims[1] / group_, 4) * dims[2] * dims[3];
-        auto r_ori_data_count_per_batch   = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    auto r_split_data_count_per_batch = ROUND_UP(dims[1] / group_, 4) * dims[2] * dims[3];
+    auto r_ori_data_count_per_batch   = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
 
-        auto input_origin = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    auto input_origin = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
 
-        for (int b = 0; b < batch; b++) {
-            auto input_ptr = input_origin + b * r_ori_data_count_per_batch;
-            RawBuffer temp(group_ * r_split_data_count_per_batch * sizeof(float));
-            UnpackC4(temp.force_to<float *>(), input_ptr, dims[2] * dims[3], dims[1]);
-            for (int g = 0; g < group_; g++) {
-                auto group_input_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(group_inputs_[g]->GetHandle()));
-                PackC4(group_input_ptr + b * r_split_data_count_per_batch,
-                       temp.force_to<float *>() + g * DimsVectorUtils::Count(group_dims, 1, 4),
-                       DimsVectorUtils::Count(group_dims, 2, 4), group_dims[1]);
-            }
+    for (int b = 0; b < batch; b++) {
+        auto input_ptr = input_origin + b * r_ori_data_count_per_batch;
+        RawBuffer temp(group_ * r_split_data_count_per_batch * sizeof(T));
+        UnpackC4(temp.force_to<T *>(), input_ptr, dims[2] * dims[3], dims[1]);
+        for (int g = 0; g < group_; g++) {
+            auto group_input_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(group_inputs_[g]->GetHandle()));
+            PackC4(group_input_ptr + b * r_split_data_count_per_batch,
+                   temp.force_to<T *>() + g * DimsVectorUtils::Count(group_dims, 1, 4),
+                   DimsVectorUtils::Count(group_dims, 2, 4), group_dims[1]);
         }
+    }
+}
+
+Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
+    auto data_type = input->GetBlobDesc().data_type;
+
+    if (data_type == DATA_TYPE_FLOAT) {
+        TransformInput<float>(input);
+    } else if (data_type == DATA_TYPE_BFP16) {
+        TransformInput<bfp16_t>(input);
     } else {
         return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
     }
@@ -218,29 +226,37 @@ Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
     return TNN_OK;
 }
 
-Status ArmConvLayerGroup::CopyOutputSplitBlob(Blob *output) {
-    // Todo
+template <typename T>
+void ArmConvLayerGroup::TransformOutput(Blob *output) {
     auto dims       = output->GetBlobDesc().dims;
     auto group_dims = group_outputs_[0]->GetBlobDesc().dims;
     auto batch      = dims[0];
 
-    if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto r_split_data_count_per_batch = ROUND_UP(dims[1] / group_, 4) * dims[2] * dims[3];
-        auto r_ori_data_count_per_batch   = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    auto r_split_data_count_per_batch = ROUND_UP(dims[1] / group_, 4) * dims[2] * dims[3];
+    auto r_ori_data_count_per_batch   = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
 
-        auto output_origin = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+    auto output_origin = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
 
-        for (int b = 0; b < batch; b++) {
-            auto output_ptr = output_origin + b * r_ori_data_count_per_batch;
-            RawBuffer temp(group_ * r_split_data_count_per_batch * sizeof(float));
-            for (int g = 0; g < group_; g++) {
-                auto group_output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(group_outputs_[g]->GetHandle()));
-                UnpackC4(temp.force_to<float *>() + g * DimsVectorUtils::Count(group_dims, 1, 4),
-                         group_output_ptr + b * r_split_data_count_per_batch, DimsVectorUtils::Count(group_dims, 2, 4),
-                         group_dims[1]);
-            }
-            PackC4(output_ptr, temp.force_to<float *>(), dims[2] * dims[3], dims[1]);
+    for (int b = 0; b < batch; b++) {
+        auto output_ptr = output_origin + b * r_ori_data_count_per_batch;
+        RawBuffer temp(group_ * r_split_data_count_per_batch * sizeof(T));
+        for (int g = 0; g < group_; g++) {
+            auto group_output_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(group_outputs_[g]->GetHandle()));
+            UnpackC4(temp.force_to<T *>() + g * DimsVectorUtils::Count(group_dims, 1, 4),
+                     group_output_ptr + b * r_split_data_count_per_batch, DimsVectorUtils::Count(group_dims, 2, 4),
+                     group_dims[1]);
         }
+        PackC4(output_ptr, temp.force_to<T *>(), dims[2] * dims[3], dims[1]);
+    }
+}
+
+Status ArmConvLayerGroup::CopyOutputSplitBlob(Blob *output) {
+    auto data_type  = output->GetBlobDesc().data_type;
+
+    if (data_type == DATA_TYPE_FLOAT) {
+        TransformOutput<float>(output);
+    } else if (data_type = DATA_TYPE_BFP16) {
+        TransformOutput<bfp16_t>(output);
     } else {
         return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
     }

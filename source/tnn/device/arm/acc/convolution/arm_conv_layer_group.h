@@ -47,6 +47,11 @@ private:
     Status CopyInputSplitBlob(Blob *input);
     Status CopyOutputSplitBlob(Blob *output);
 
+    template <typename T>
+    void TransformInput(Blob *input);
+    template <typename T>
+    void TransformOutput(Blob *input);
+
 private:
     std::vector<std::shared_ptr<ArmLayerAcc>> conv_acc_impls_;
     std::vector<std::shared_ptr<Blob>> group_inputs_;
