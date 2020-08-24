@@ -87,11 +87,11 @@ void NonMaxSuppressionMultiClassFastImpl(DetectionPostProcessLayerParam* param,
     NonMaxSuppressionSingleClasssImpl(decoded_boxes, max_scores.data(), param->max_detections, param->nms_iou_threshold,
                                       param->nms_score_threshold, &seleted);
 
-    const auto decodedBoxesPtr = reinterpret_cast<const BoxCornerEncoding*>(decoded_boxes->GetHandle().base);
-    auto detection_boxes_ptr   = reinterpret_cast<BoxCornerEncoding*>(detection_boxes->GetHandle().base);
-    auto detection_classes_ptr = static_cast<float*>(detection_class->GetHandle().base);
-    auto detection_scores_ptr  = static_cast<float*>(detection_scores->GetHandle().base);
-    auto num_detections_ptr    = static_cast<float*>(num_detections->GetHandle().base);
+    const auto decoded_boxes_ptr = reinterpret_cast<const BoxCornerEncoding*>(decoded_boxes->GetHandle().base);
+    auto detection_boxes_ptr     = reinterpret_cast<BoxCornerEncoding*>(detection_boxes->GetHandle().base);
+    auto detection_classes_ptr   = static_cast<float*>(detection_class->GetHandle().base);
+    auto detection_scores_ptr    = static_cast<float*>(detection_scores->GetHandle().base);
+    auto num_detections_ptr      = static_cast<float*>(num_detections->GetHandle().base);
 
     int output_box_index = 0;
     for (const auto& selected_index : seleted) {
@@ -99,7 +99,7 @@ void NonMaxSuppressionMultiClassFastImpl(DetectionPostProcessLayerParam* param,
         const int* class_indices = sorted_class_indices.data() + selected_index * num_classes;
         for (int col = 0; col < num_categories_per_anchor; ++col) {
             int boxOffset                    = num_categories_per_anchor * output_box_index + col;
-            detection_boxes_ptr[boxOffset]   = decodedBoxesPtr[selected_index];
+            detection_boxes_ptr[boxOffset]   = decoded_boxes_ptr[selected_index];
             detection_classes_ptr[boxOffset] = class_indices[col];
             detection_scores_ptr[boxOffset]  = box_scores[class_indices[col]];
             output_box_index++;
@@ -111,44 +111,44 @@ void NonMaxSuppressionSingleClasssImpl(Blob* decoded_boxes, const float* scores,
                                        float iou_threshold, float score_threshold, std::vector<int32_t>* selected) {
     ASSERT(iou_threshold >= 0.0f && iou_threshold <= 1.0f);
     ASSERT(decoded_boxes->GetBlobDesc().dims.size() == 4);
-    const int numBoxes = decoded_boxes->GetBlobDesc().dims[0];
+    const int num_boxes = decoded_boxes->GetBlobDesc().dims[0];
     ASSERT(decoded_boxes->GetBlobDesc().dims[1] == 4);
 
-    const int outputNum = std::min(max_detections, numBoxes);
-    std::vector<float> scoresData(numBoxes);
-    std::copy_n(scores, numBoxes, scoresData.begin());
+    const int output_num = std::min(max_detections, num_boxes);
+    std::vector<float> scores_data(num_boxes);
+    std::copy_n(scores, num_boxes, scores_data.begin());
 
     struct Candidate {
-        int boxIndex;
+        int box_index;
         float score;
     };
 
-    auto cmp = [](const Candidate bsI, const Candidate bsJ) { return bsI.score < bsJ.score; };
+    auto cmp = [](const Candidate bs_i, const Candidate bs_j) { return bs_i.score < bs_j.score; };
 
-    std::priority_queue<Candidate, std::deque<Candidate>, decltype(cmp)> candidatePriorityQueue(cmp);
+    std::priority_queue<Candidate, std::deque<Candidate>, decltype(cmp)> candidate_priority_queue(cmp);
 
-    for (int i = 0; i < scoresData.size(); ++i) {
-        if (scoresData[i] > score_threshold) {
-            candidatePriorityQueue.emplace(Candidate({i, scoresData[i]}));
+    for (int i = 0; i < scores_data.size(); ++i) {
+        if (scores_data[i] > score_threshold) {
+            candidate_priority_queue.emplace(Candidate({i, scores_data[i]}));
         }
     }
 
     // std::vector<float> selectedScores;
-    Candidate nextCandidate;
-    float iou, originalScore;
+    Candidate next_candidate;
+    float iou, original_score;
 
-    const auto boxesPtr = static_cast<float*>(decoded_boxes->GetHandle().base);
-    while (selected->size() < outputNum && !candidatePriorityQueue.empty()) {
-        nextCandidate = candidatePriorityQueue.top();
-        originalScore = nextCandidate.score;
-        candidatePriorityQueue.pop();
+    const auto boxes_ptr = static_cast<float*>(decoded_boxes->GetHandle().base);
+    while (selected->size() < output_num && !candidate_priority_queue.empty()) {
+        next_candidate = candidate_priority_queue.top();
+        original_score = next_candidate.score;
+        candidate_priority_queue.pop();
 
         // Overlapping boxes are likely to have similar scores,
         // therefore we iterate through the previously selected boxes backwards
         // in order to see if `next_candidate` should be suppressed.
         bool should_select = true;
         for (int j = (int)selected->size() - 1; j >= 0; --j) {
-            iou = IOU(boxesPtr, nextCandidate.boxIndex, selected->at(j));
+            iou = IOU(boxes_ptr, next_candidate.box_index, selected->at(j));
             if (iou == 0.0) {
                 continue;
             }
@@ -158,31 +158,31 @@ void NonMaxSuppressionSingleClasssImpl(Blob* decoded_boxes, const float* scores,
         }
 
         if (should_select) {
-            selected->push_back(nextCandidate.boxIndex);
-            // selectedScores.push_back(nextCandidate.score);
+            selected->push_back(next_candidate.box_index);
+            // selectedScores.push_back(next_candidate.score);
         }
     }
 }
 static inline float IOU(const float* boxes, int i, int j) {
-    const float yMinI = std::min<float>(boxes[i * 4 + 0], boxes[i * 4 + 2]);
-    const float xMinI = std::min<float>(boxes[i * 4 + 1], boxes[i * 4 + 3]);
-    const float yMaxI = std::max<float>(boxes[i * 4 + 0], boxes[i * 4 + 2]);
-    const float xMaxI = std::max<float>(boxes[i * 4 + 1], boxes[i * 4 + 3]);
-    const float yMinJ = std::min<float>(boxes[j * 4 + 0], boxes[j * 4 + 2]);
-    const float xMinJ = std::min<float>(boxes[j * 4 + 1], boxes[j * 4 + 3]);
-    const float yMaxJ = std::max<float>(boxes[j * 4 + 0], boxes[j * 4 + 2]);
-    const float xMaxJ = std::max<float>(boxes[j * 4 + 1], boxes[j * 4 + 3]);
-    const float areaI = (yMaxI - yMinI) * (xMaxI - xMinI);
-    const float areaJ = (yMaxJ - yMinJ) * (xMaxJ - xMinJ);
-    if (areaI <= 0 || areaJ <= 0)
+    const float y_min_i = std::min<float>(boxes[i * 4 + 0], boxes[i * 4 + 2]);
+    const float x_min_i = std::min<float>(boxes[i * 4 + 1], boxes[i * 4 + 3]);
+    const float y_max_i = std::max<float>(boxes[i * 4 + 0], boxes[i * 4 + 2]);
+    const float x_max_i = std::max<float>(boxes[i * 4 + 1], boxes[i * 4 + 3]);
+    const float y_min_j = std::min<float>(boxes[j * 4 + 0], boxes[j * 4 + 2]);
+    const float x_min_j = std::min<float>(boxes[j * 4 + 1], boxes[j * 4 + 3]);
+    const float y_max_j = std::max<float>(boxes[j * 4 + 0], boxes[j * 4 + 2]);
+    const float x_max_j = std::max<float>(boxes[j * 4 + 1], boxes[j * 4 + 3]);
+    const float area_i  = (y_max_i - y_min_i) * (x_max_i - x_min_i);
+    const float area_j  = (y_max_j - y_min_j) * (x_max_j - x_min_j);
+    if (area_i <= 0 || area_j <= 0)
         return 0.0;
-    const float intersectionYMin = std::max<float>(yMinI, yMinJ);
-    const float intersectionXMin = std::max<float>(xMinI, xMinJ);
-    const float intersectionYMax = std::min<float>(yMaxI, yMaxJ);
-    const float intersectionXMax = std::min<float>(xMaxI, xMaxJ);
-    const float intersectionArea = std::max<float>(intersectionYMax - intersectionYMin, 0.0) *
-                                   std::max<float>(intersectionXMax - intersectionXMin, 0.0);
-    return intersectionArea / (areaI + areaJ - intersectionArea);
+    const float intersection_y_min = std::max<float>(y_min_i, y_min_j);
+    const float intersection_x_min = std::max<float>(x_min_i, x_min_j);
+    const float intersection_y_max = std::min<float>(y_max_i, y_max_j);
+    const float intersection_x_max = std::min<float>(x_max_i, x_max_j);
+    const float intersection_area  = std::max<float>(intersection_y_max - intersection_y_min, 0.0) *
+                                    std::max<float>(intersection_x_max - intersection_x_min, 0.0);
+    return intersection_area / (area_i + area_j - intersection_area);
 }
 
 }  // namespace TNN_NS
