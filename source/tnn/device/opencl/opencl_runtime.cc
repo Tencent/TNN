@@ -37,7 +37,7 @@ int OpenCLRuntime::ref_count_              = 0;
 bool OpenCLRuntime::init_done_             = false;
 
 OpenCLRuntime *OpenCLRuntime::GetInstance() {
-    // don't use DCL, otherwise, ref_count may be wrong due to enable_increase_count_ 
+    // don't use DCL
     std::unique_lock<std::mutex> lck(g_mtx);  
     if (nullptr == opencl_runtime_singleton_.get()) {
         opencl_runtime_singleton_.reset(new OpenCLRuntime());

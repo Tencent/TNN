@@ -29,6 +29,7 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         LOGE("acl init falied\n");
         return ret;
     }
+    AtlasRuntime::IncreaseRef();
 
     // Set Device
     ret = AtlasRuntime::GetInstance()->SetDevice(net_config.device_id);
@@ -197,6 +198,7 @@ Status AtlasNetwork::DeInit() {
         context_ = nullptr;
     }
 
+    AtlasRuntime::DecreaseRef();
     return TNN_OK;
 }
 
