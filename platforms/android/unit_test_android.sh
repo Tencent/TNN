@@ -10,6 +10,7 @@ FILTER=""
 ANDROID_DIR=/data/local/tmp/ocl_test
 ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_ocl
+ADB=adb
 
 function usage() {
     echo "-64\tBuild 64bit."
@@ -45,6 +46,7 @@ function build_android() {
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_TEST_ENABLE:BOOL="ON"  \
           -DTNN_UNIT_TEST_ENABLE:BOOL="ON"  \
+          -DTNN_ARM_ENABLE:BOOL="ON" \
           -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
           -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
@@ -59,23 +61,23 @@ function run() {
 
     mkdir -p $DUMP_DIR
 
-    adb shell "mkdir -p $ANDROID_DIR"
+    $ADB shell "mkdir -p $ANDROID_DIR"
     find . -name "*.so" | while read solib; do
-        adb push $solib  $ANDROID_DIR
+        $ADB push $solib  $ANDROID_DIR
     done
-    adb push  test/unit_test/unit_test  $ANDROID_DIR
-    adb shell chmod 0777 $ANDROID_DIR/unit_test
+    $ADB push  test/unit_test/unit_test  $ANDROID_DIR
+    $ADB shell chmod 0777 $ANDROID_DIR/unit_test
 
-    adb shell "mkdir -p $ANDROID_DIR/dump_data"
+    $ADB shell "mkdir -p $ANDROID_DIR/dump_data"
 
     if [ "" != "$BUILD_ONLY" ]; then
         echo "build done!"
         exit 0
     fi
 
-    adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
-    adb shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
-    adb pull $ANDROID_DIR/test_log.txt $DUMP_DIR
+    $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
+    $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
+    $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     cat $DUMP_DIR/test_log.txt
 }
 
@@ -96,6 +98,11 @@ while [ "$1" != "" ]; do
         -f)
             shift
             FILTER=$1
+            shift
+            ;;
+        -d)
+            shift
+            ADB="adb -s $1"
             shift
             ;;
         *)

@@ -390,9 +390,14 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
         }
-        auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
+
+        auto scale_handle = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle;
+        auto scale_data   = scale_handle.force_to<float *>();
+        auto scale_count  = scale_handle.GetDataCount();
+
         for (int i = 0; i < dims[1]; i++) {
-            fused_int8_scale[i] = blob_scale[i] * param.scale[i];
+            auto scale_idx = scale_count == 1? 0 : i;
+            fused_int8_scale[i] = scale_data[scale_idx] * param.scale[i];
         }
     }
     if (image.GetMatType() == NCHW_FLOAT) {
