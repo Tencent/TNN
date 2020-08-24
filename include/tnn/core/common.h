@@ -54,7 +54,7 @@ typedef enum {
     // METAL: prefer fp16
     PRECISION_AUTO = -1,
     // Normal precision
-    // ARM: run with fp32
+    // ARM: run fp16 if device support fp16, else run fp32.
     // OPNECL: run with mixed pricision
     // METAL: run with fp16
     PRECISION_NORMAL = 0,
