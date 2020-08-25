@@ -42,14 +42,16 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
 
     for (int g = 0; g < group_; g++) {
         BlobDesc empty_desc;
-        group_inputs_.push_back(std::make_shared<Blob>(empty_desc));
-        group_outputs_.push_back(std::make_shared<Blob>(empty_desc));
+        group_inputs_.emplace_back(std::make_shared<Blob>(empty_desc));
+        group_outputs_.emplace_back(std::make_shared<Blob>(empty_desc));
     }
 
     RETURN_ON_NEQ(SetGroupParam(group_conv_param_), TNN_OK);
     RETURN_ON_NEQ(SplitResource(resources), TNN_OK);
     RETURN_ON_NEQ(SetSplitBlobDesc(inputs[0], group_inputs_), TNN_OK);
     RETURN_ON_NEQ(SetSplitBlobDesc(outputs[0], group_outputs_), TNN_OK);
+    RETURN_ON_NEQ(SetSplitBlobScale(inputs[0], group_inputs_), TNN_OK);
+    RETURN_ON_NEQ(SetSplitBlobScale(outputs[0], group_outputs_), TNN_OK);
 
     for (int g = 0; g < group_; g++) {
         std::vector<Blob *> local_inputs;
@@ -66,7 +68,7 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
         RETURN_ON_NEQ(tmp_acc->Init(context_, group_conv_param_.get(), resources[g].get(), local_inputs, local_outputs),
                       TNN_OK);
 
-        conv_acc_impls_.push_back(tmp_acc);
+        conv_acc_impls_.emplace_back(tmp_acc);
     }
 
     return TNN_OK;
@@ -220,7 +222,7 @@ Status ArmConvLayerGroup::SetSplitBlobScale(Blob *blob, std::vector<std::shared_
 
         // set int8 group bias
         if (int8_res->bias_handle.GetDataCount() == 1) {
-            new_res->bias_handle = RawBuffer(sizeof(float), int8_res->bias_handle.force_to<char *>());
+            new_res->bias_handle = RawBuffer(sizeof(int32_t), int8_res->bias_handle.force_to<char *>());
         } else {
             new_res->bias_handle =
                 RawBuffer(group_bias_bytes_size, int8_res->bias_handle.force_to<char *>() + g * group_bias_bytes_size);
@@ -269,18 +271,20 @@ static inline void _memcpy_2d(int8_t *dst, int8_t *src, int height, int width, i
 
 template <>
 void ArmConvLayerGroup::TransformInput<int8_t>(Blob *input) {
-    auto dims       = input->GetBlobDesc().dims;
+    auto input_int8 = reinterpret_cast<BlobInt8 *>(input);
+
+    auto dims       = input_int8->GetBlobDesc().dims;
     auto group_dims = group_inputs_[0]->GetBlobDesc().dims;
     auto batch      = dims[0];
 
     auto src_stride   = ROUND_UP(dims[1], 4);
     auto dst_stride   = ROUND_UP(group_dims[1], 4);
-    auto input_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
+    auto input_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input_int8->GetHandle()));
     auto plane        = dims[0] * dims[2] * dims[3];
 
     for (int g = 0; g < group_; g++) {
         auto group_input_ptr = reinterpret_cast<int8_t *>(GetBlobHandlePtr(group_inputs_[g]->GetHandle()));
-        _memcpy_2d(group_input_ptr, input_origin + g * dims[1], plane, group_dims[1], dst_stride, src_stride);
+        _memcpy_2d(group_input_ptr, input_origin + g * group_dims[1], plane, group_dims[1], dst_stride, src_stride);
     }
 }
 
@@ -326,18 +330,20 @@ void ArmConvLayerGroup::TransformOutput(Blob *output) {
 
 template <>
 void ArmConvLayerGroup::TransformOutput<int8_t>(Blob *output) {
-    auto dims       = output->GetBlobDesc().dims;
+    auto output_int8 = reinterpret_cast<BlobInt8 *>(output);
+
+    auto dims       = output_int8->GetBlobDesc().dims;
     auto group_dims = group_inputs_[0]->GetBlobDesc().dims;
     auto batch      = dims[0];
 
     auto src_stride    = ROUND_UP(group_dims[1], 4);
     auto dst_stride    = ROUND_UP(dims[1], 4);
-    auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+    auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output_int8->GetHandle()));
     auto plane         = dims[0] * dims[2] * dims[3];
 
     for (int g = 0; g < group_; g++) {
         auto group_output_ptr = reinterpret_cast<int8_t *>(GetBlobHandlePtr(group_outputs_[g]->GetHandle()));
-        _memcpy_2d(output_origin + g * dims[1], group_output_ptr, plane, group_dims[1], dst_stride, src_stride);
+        _memcpy_2d(output_origin + g * group_dims[1], group_output_ptr, plane, group_dims[1], dst_stride, src_stride);
     }
 }
 
@@ -346,7 +352,7 @@ Status ArmConvLayerGroup::CopyOutputSplitBlob(Blob *output) {
 
     if (data_type == DATA_TYPE_FLOAT) {
         TransformOutput<float>(output);
-    } else if (data_type = DATA_TYPE_BFP16) {
+    } else if (data_type == DATA_TYPE_BFP16) {
         TransformOutput<bfp16_t>(output);
     } else if (data_type == DATA_TYPE_INT8) {
         TransformOutput<int8_t>(output);
@@ -382,15 +388,15 @@ Status ArmConvLayerGroup::SplitResource(std::vector<std::shared_ptr<LayerResourc
             auto scale_handle = conv_res->scale_handle;
             if (scale_handle.GetDataCount() == 1) {
                 // channel shared scale
-                group_res->bias_handle = RawBuffer(sizeof(float), scale_handle.force_to<char *>());
+                group_res->scale_handle = RawBuffer(sizeof(float), scale_handle.force_to<char *>());
             } else {
                 auto group_scale_bytes_size = scale_handle.GetBytesSize() / group_;
-                group_res->bias_handle =
+                group_res->scale_handle =
                     RawBuffer(group_scale_bytes_size, scale_handle.force_to<char *>() + g * group_scale_bytes_size);
             }
         }
 
-        resources.push_back(std::shared_ptr<LayerResource>(group_res));
+        resources.emplace_back(std::shared_ptr<LayerResource>(group_res));
     }
 
     return TNN_OK;
