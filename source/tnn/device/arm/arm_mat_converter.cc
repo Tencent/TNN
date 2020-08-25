@@ -91,32 +91,45 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth());
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() +
+                                          param.top_left_x + param.top_left_y * src.GetWidth());
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth());
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
+        }
     } else if (src.GetMatType() == N8UC3) {
         // element size 3
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), (param.top_left_x + param.top_left_y * src.GetWidth()) * 3);
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width * 3, param.height, src.GetWidth() * 3, dst.GetWidth() * 3);
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * 3 +
+                                          (param.top_left_x + param.top_left_y * src.GetWidth()) * 3);
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * 3);
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width * 3, param.height, src.GetWidth() * 3, dst.GetWidth() * 3);
+        }
     } else if (src.GetMatType() == N8UC4) {
         // element size 4
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), (param.top_left_x + param.top_left_y * src.GetWidth()) * 4);
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width * 4, param.height, src.GetWidth() * 4, dst.GetWidth() * 4);
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * 4 +
+                                          (param.top_left_x + param.top_left_y * src.GetWidth()) * 4);
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * 4);
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width * 4, param.height, src.GetWidth() * 4, dst.GetWidth() * 4);
+        }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.top_left_x % 2 || param.top_left_y % 2 || param.width % 2 || param.height % 2) {
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");
         }
-        // crop y
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth());
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
-        // crop uv
-        src_ptr = GET_OFFSET_PTR(
-            src.GetData(), src.GetWidth() * src.GetHeight() + param.top_left_x + param.top_left_y * src.GetWidth() / 2);
-        dst_ptr = GET_OFFSET_PTR(dst.GetData(), dst.GetWidth() * dst.GetHeight());
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height / 2, src.GetWidth(), dst.GetWidth());
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            // crop y
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * 3 / 2 +
+                                          param.top_left_x + param.top_left_y * src.GetWidth());
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * 3 / 2);
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
+            // crop uv
+            src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * 3 / 2 +
+                      src.GetWidth() * src.GetHeight() + param.top_left_x + param.top_left_y * src.GetWidth() / 2);
+            dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * 3 / 2 +
+                      dst.GetWidth() * dst.GetHeight());
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width, param.height / 2, src.GetWidth(), dst.GetWidth());
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
