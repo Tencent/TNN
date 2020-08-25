@@ -99,7 +99,7 @@ public:
 
 protected:
     int Compare(Blob* cpu_blob, Blob* device_blob);
-    int CreateTestData(int batch, int channel, int input_size, MatType mat_type, bool resize_flag);
+    int CreateTestData(int batch, int channel, int input_size, MatType mat_type, int output_size);
     int DestroyTestData();
 
     void* mat_in_data_;

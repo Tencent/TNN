@@ -94,18 +94,23 @@ __kernel void image_bilinear(GLOBAL_SIZE_2_DIMS __read_only image2d_t sourceImag
                             float widthNormalizationFactor,
                             float heightNormalizationFactor,
                             int src_width,
-                            int src_height){
-    int w_idx  = get_global_id(0);
+                            int src_height,
+                            int dst_width,
+                            int dst_height){
+    int cw_idx  = get_global_id(0);
     int bh_idx = get_global_id(1);
-    DEAL_NON_UNIFORM_DIM2(w_idx, bh_idx);
-    int2 coordinate = (int2)(w_idx, bh_idx);
+    DEAL_NON_UNIFORM_DIM2(cw_idx, bh_idx);
 
-    float pos_x = (w_idx + 0.5f) * widthNormalizationFactor - 0.5f;
+    const int batch_idx         = bh_idx / dst_height;
+    int2 coordinate = (int2)(cw_idx, bh_idx);
+
+    float pos_x = (cw_idx + 0.5f) * widthNormalizationFactor - 0.5f;
     float pos_y = (bh_idx + 0.5f) * heightNormalizationFactor - 0.5f;
 
     float rat_x,rat_y;
     int x = floor(pos_x);
     int y = floor(pos_y);
+
     rat_x = pos_x - x;
     rat_y = pos_y - y;
     if (x < 0) {
@@ -116,15 +121,15 @@ __kernel void image_bilinear(GLOBAL_SIZE_2_DIMS __read_only image2d_t sourceImag
         x = src_width - 2;
         rat_x = 1.f;
     }
-    if (y < 0) {
-        y = 0;
+    if (y < batch_idx*src_height) {
+        y = batch_idx*src_height;
         rat_y = 0.f;
     }
-    if (y >= src_height - 1) {
-        y = src_height - 2;
+    if (y >= (batch_idx+1)*src_height - 1) {
+        y = (batch_idx+1)*src_height - 2;
         rat_y = 1.f;
     }
-    
+
     float4 colour_upleft = read_imagef(sourceImage, SAMPLER, (int2)(x,y));
     float4 colour_downleft = read_imagef(sourceImage, SAMPLER, (int2)(x,y+1));
     float4 colour_upright = read_imagef(sourceImage, SAMPLER, (int2)(x+1,y));
