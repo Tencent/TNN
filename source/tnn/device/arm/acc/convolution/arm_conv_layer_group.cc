@@ -57,10 +57,10 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
         local_inputs.emplace_back(group_inputs_[g].get());
         local_outputs.emplace_back(group_outputs_[g].get());
         std::shared_ptr<ArmLayerAcc> tmp_acc = nullptr;
-        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-            CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
-        } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
             CreateImpInt8(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
+        } else {
+            CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
         }
         CHECK_PARAM_NULL(tmp_acc);
         RETURN_ON_NEQ(tmp_acc->Init(context_, group_conv_param_.get(), resources[g].get(), local_inputs, local_outputs),
@@ -165,17 +165,19 @@ Status ArmConvLayerGroup::SetSplitBlobDesc(Blob *blob, std::vector<std::shared_p
 }
 
 Status ArmConvLayerGroup::SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> &blobs, RawBuffer &buf) {
-    auto dims  = blobs[0]->GetBlobDesc().dims;
-    auto batch = dims[0];
+    auto dims      = blobs[0]->GetBlobDesc().dims;
+    auto batch     = dims[0];
+    auto data_type = blobs[0]->GetBlobDesc().data_type;
 
-    if (blobs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8) {
         auto r_split_data_count_per_batch = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
-        RawBuffer temp(group_ * batch * r_split_data_count_per_batch * sizeof(float));
+        auto element_size                 = DataTypeUtils::GetBytesSize(data_type);
+        RawBuffer temp(group_ * batch * r_split_data_count_per_batch * element_size);
 
         for (int g = 0; g < group_; g++) {
             BlobHandle handle;
-            handle.base =
-                reinterpret_cast<void *>((temp.force_to<float *>() + g * r_split_data_count_per_batch * batch));
+            handle.base = reinterpret_cast<void *>(
+                (temp.force_to<char *>() + g * r_split_data_count_per_batch * batch * element_size));
             handle.bytes_offset = 0;
             blobs[g].get()->SetHandle(handle);
         }
@@ -183,6 +185,53 @@ Status ArmConvLayerGroup::SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> 
         buf = temp;
     } else {
         return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
+    }
+
+    return TNN_OK;
+}
+
+Status ArmConvLayerGroup::SetSplitBlobScale(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs) {
+    auto data_type = blob->GetBlobDesc().data_type;
+
+    if (data_type != DATA_TYPE_INT8) {
+        // non int8 blob have no scale handle
+        return TNN_OK;
+    }
+
+    auto int8_blob = reinterpret_cast<BlobInt8 *>(blob);
+    auto int8_res  = int8_blob->GetIntResource();
+
+    for (int g = 0; g < group_; g++) {
+        auto old_blob = blobs[g];
+        auto new_blob = new BlobInt8(old_blob->GetBlobDesc(), old_blob->GetHandle());
+        auto new_res  = new IntScaleResource();
+        CHECK_PARAM_NULL(new_blob);
+        CHECK_PARAM_NULL(new_res);
+        auto group_scale_bytes_size = int8_res->scale_handle.GetBytesSize() / group_;
+        auto group_bias_bytes_size  = int8_res->bias_handle.GetBytesSize() / group_;
+
+        // set int8 group scale
+        if (int8_res->scale_handle.GetDataCount() == 1) {
+            new_res->scale_handle = RawBuffer(sizeof(float), int8_res->scale_handle.force_to<char *>());
+        } else {
+            new_res->scale_handle = RawBuffer(group_scale_bytes_size,
+                                              int8_res->scale_handle.force_to<char *>() + g * group_scale_bytes_size);
+        }
+
+        // set int8 group bias
+        if (int8_res->bias_handle.GetDataCount() == 1) {
+            new_res->bias_handle = RawBuffer(sizeof(float), int8_res->bias_handle.force_to<char *>());
+        } else {
+            new_res->bias_handle =
+                RawBuffer(group_bias_bytes_size, int8_res->bias_handle.force_to<char *>() + g * group_bias_bytes_size);
+        }
+
+        // set int8 group resource
+        new_blob->SetIntResource(new_res);
+
+        // replace blob with int8 blob
+        blobs[g] = std::shared_ptr<Blob>(new_blob);
+        group_scale_res_.emplace_back(std::shared_ptr<IntScaleResource>(new_res));
     }
 
     return TNN_OK;
@@ -212,6 +261,29 @@ void ArmConvLayerGroup::TransformInput(Blob *input) {
     }
 }
 
+static inline void _memcpy_2d(int8_t *dst, int8_t *src, int height, int width, int dst_stride, int src_stride) {
+    for (int h = 0; h < height; h++) {
+        memcpy(dst + h * dst_stride, src + h * src_stride, width);
+    }
+}
+
+template <>
+void ArmConvLayerGroup::TransformInput<int8_t>(Blob *input) {
+    auto dims       = input->GetBlobDesc().dims;
+    auto group_dims = group_inputs_[0]->GetBlobDesc().dims;
+    auto batch      = dims[0];
+
+    auto src_stride   = ROUND_UP(dims[1], 4);
+    auto dst_stride   = ROUND_UP(group_dims[1], 4);
+    auto input_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
+    auto plane        = dims[0] * dims[2] * dims[3];
+
+    for (int g = 0; g < group_; g++) {
+        auto group_input_ptr = reinterpret_cast<int8_t *>(GetBlobHandlePtr(group_inputs_[g]->GetHandle()));
+        _memcpy_2d(group_input_ptr, input_origin + g * dims[1], plane, group_dims[1], dst_stride, src_stride);
+    }
+}
+
 Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
     auto data_type = input->GetBlobDesc().data_type;
 
@@ -219,6 +291,8 @@ Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
         TransformInput<float>(input);
     } else if (data_type == DATA_TYPE_BFP16) {
         TransformInput<bfp16_t>(input);
+    } else if (data_type == DATA_TYPE_INT8) {
+        TransformInput<int8_t>(input);
     } else {
         return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
     }
@@ -250,13 +324,32 @@ void ArmConvLayerGroup::TransformOutput(Blob *output) {
     }
 }
 
+template <>
+void ArmConvLayerGroup::TransformOutput<int8_t>(Blob *output) {
+    auto dims       = output->GetBlobDesc().dims;
+    auto group_dims = group_inputs_[0]->GetBlobDesc().dims;
+    auto batch      = dims[0];
+
+    auto src_stride    = ROUND_UP(group_dims[1], 4);
+    auto dst_stride    = ROUND_UP(dims[1], 4);
+    auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+    auto plane         = dims[0] * dims[2] * dims[3];
+
+    for (int g = 0; g < group_; g++) {
+        auto group_output_ptr = reinterpret_cast<int8_t *>(GetBlobHandlePtr(group_outputs_[g]->GetHandle()));
+        _memcpy_2d(output_origin + g * dims[1], group_output_ptr, plane, group_dims[1], dst_stride, src_stride);
+    }
+}
+
 Status ArmConvLayerGroup::CopyOutputSplitBlob(Blob *output) {
-    auto data_type  = output->GetBlobDesc().data_type;
+    auto data_type = output->GetBlobDesc().data_type;
 
     if (data_type == DATA_TYPE_FLOAT) {
         TransformOutput<float>(output);
     } else if (data_type = DATA_TYPE_BFP16) {
         TransformOutput<bfp16_t>(output);
+    } else if (data_type == DATA_TYPE_INT8) {
+        TransformOutput<int8_t>(output);
     } else {
         return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
     }
@@ -273,17 +366,28 @@ Status ArmConvLayerGroup::SplitResource(std::vector<std::shared_ptr<LayerResourc
 
     for (int g = 0; g < group_; g++) {
         auto group_res = new ConvLayerResource();
-        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
-            group_res->filter_handle =
-                RawBuffer(group_filter_bytes_size, origin_filter_ptr + g * group_filter_bytes_size);
-            if (conv_param->bias) {
-                auto group_bias_bytes_size = conv_res->bias_handle.GetBytesSize() / group_;
-                auto origin_bias_ptr       = conv_res->bias_handle.force_to<char *>();
+        // split filter
+        group_res->filter_handle = RawBuffer(group_filter_bytes_size, origin_filter_ptr + g * group_filter_bytes_size);
 
-                group_res->bias_handle = RawBuffer(group_bias_bytes_size, origin_bias_ptr + g * group_bias_bytes_size);
+        // split bias if needed
+        if (conv_param->bias) {
+            auto group_bias_bytes_size = conv_res->bias_handle.GetBytesSize() / group_;
+            auto origin_bias_ptr       = conv_res->bias_handle.force_to<char *>();
+
+            group_res->bias_handle = RawBuffer(group_bias_bytes_size, origin_bias_ptr + g * group_bias_bytes_size);
+        }
+
+        // split filter scale if int8
+        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_INT8) {
+            auto scale_handle = conv_res->scale_handle;
+            if (scale_handle.GetDataCount() == 1) {
+                // channel shared scale
+                group_res->bias_handle = RawBuffer(sizeof(float), scale_handle.force_to<char *>());
+            } else {
+                auto group_scale_bytes_size = scale_handle.GetBytesSize() / group_;
+                group_res->bias_handle =
+                    RawBuffer(group_scale_bytes_size, scale_handle.force_to<char *>() + g * group_scale_bytes_size);
             }
-        } else {
-            return Status(TNNERR_LAYER_ERR, "split int8 resource not supported");
         }
 
         resources.push_back(std::shared_ptr<LayerResource>(group_res));

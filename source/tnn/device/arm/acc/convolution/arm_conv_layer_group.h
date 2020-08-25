@@ -43,6 +43,7 @@ private:
 
     Status SetSplitBlobDesc(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs);
     Status SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> &blobs, RawBuffer &buf);
+    Status SetSplitBlobScale(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs);
 
     Status CopyInputSplitBlob(Blob *input);
     Status CopyOutputSplitBlob(Blob *output);
@@ -58,6 +59,7 @@ private:
     std::vector<std::shared_ptr<Blob>> group_outputs_;
 
     std::shared_ptr<LayerParam> group_conv_param_ = nullptr;
+    std::vector<std::shared_ptr<IntScaleResource>> group_scale_res_;
 
     int group_;
 };
