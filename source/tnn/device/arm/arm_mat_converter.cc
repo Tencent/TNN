@@ -141,7 +141,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 
     if (src.GetMatType() == NGRAY) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            warpaffine_bilinear_c1((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            warpaffine_bilinear_c1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                    (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
                                    param.transform, param.border_val);
         } else {
@@ -149,7 +149,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
         }
     } else if (src.GetMatType() == N8UC3) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            warpaffine_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            warpaffine_bilinear_c3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                    (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
                                    param.transform, param.border_val);
         } else {

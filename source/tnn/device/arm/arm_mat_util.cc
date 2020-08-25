@@ -24,6 +24,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -593,15 +594,15 @@ static void initInterTab2D() {
 // from dst position (x, y):
 // src_x = adelta[2*x]   + bdelta[2*y]
 // src_y = adelta[2*x+1] + bdelta[2*y+1]
-static void warpaffine_init(uint8_t* dst, int dst_w, int dst_h, int channel, const float border_val,
+static void warpaffine_init(uint8_t* dst, int batch, int dst_w, int dst_h, int channel, const float border_val,
                             const float (*transform)[3], int** buffer) {
     uint8_t border_ival = (uint8_t)border_val;
     if (border_ival) {
-        for (int i = 0; i < dst_h * dst_w * channel; ++i) {
+        for (int i = 0; i < batch * dst_h * dst_w * channel; ++i) {
             dst[i] = border_ival;
         }
     } else {
-        memset(dst, 0, dst_h * dst_w * channel);
+        memset(dst, 0, batch * dst_h * dst_w * channel);
     }
 
     // Init LookUp Table
@@ -647,7 +648,7 @@ static void warpaffine_init(uint8_t* dst, int dst_w, int dst_h, int channel, con
 
 static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
                                        const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
-                                       int y, int& x_count, int& end_x) {
+                                       int y, int src_offset, int& x_count, int& end_x) {
     const unsigned char* src2 = src + src_w * channel;
 
     short xy_loc_buf[dst_w * 2];
@@ -664,6 +665,7 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
     int16x8_t _mask    = vdupq_n_s16(31);
     int16x8_t _coeff   = {1,32,1,32,1,32,1,32};
     int32x4_t _channel = vdupq_n_s32(channel);
+    int32x4_t _soffset = vdupq_n_s32(src_offset);
     int16x4_t _src_w   = {1, (short)src_w,1,(short)src_w};
     for (; x < dst_w - 3; x += 4) {
         int32x4_t _xyxy0   = vaddq_s32(vld1q_s32(adelta), _offset);
@@ -678,10 +680,7 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
 
         int32x4_t _src_0   = vmull_s16(_xyxy0s, _src_w);
         int32x4_t _src_1   = vmull_s16(vget_high_s16(_xyxy01s), _src_w);
-        //vst1q_s32(sc_loc_buf_p, vmulq_s32(_channel, vpaddq_s32(_src_0, _src_1)));
-        int32x2_t _acc_0   = vpadd_s32(vget_low_s32(_src_0), vget_high_s32(_src_0));
-        int32x2_t _acc_1   = vpadd_s32(vget_low_s32(_src_1), vget_high_s32(_src_1));
-        vst1q_s32(sc_loc_buf_p, vmulq_s32(_channel, vcombine_s32(_acc_0, _acc_1)));
+        vst1q_s32(sc_loc_buf_p, vaddq_s32(vmulq_s32(_channel, VPADDQ_S32(_src_0, _src_1)), _soffset));
 
         _xyxy0s            = vshrn_n_s32(_xyxy0, 5);
         //_xyxy01s           = vshrn_high_n_s32(_xyxy0s, _xyxy1, 5);
@@ -704,7 +703,7 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
         xy_loc_buf[2 * x]     = new_x_loc;
         xy_loc_buf[2 * x + 1] = new_y_loc;
         tb_loc_buf[x] = ((new_x >> 5) & 31) + ((new_y >> 5) & 31) * 32;
-        sc_loc_buf[x] = (new_x_loc + new_y_loc * src_w) * channel;
+        sc_loc_buf[x] = (new_x_loc + new_y_loc * src_w) * channel + src_offset;
     }
 
     for (x = 0; x < dst_w; ++x) {
@@ -793,13 +792,7 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             int32x4_t _val2    = vmull_s16(_tab2, vget_low_s16(_src16_1));
             int32x4_t _val3    = vmull_s16(_tab3, vget_high_s16(_src16_1));
 
-            //int32x4_t _res0123 = vpaddq_s32(vpaddq_s32(_val0, _val1), vpaddq_s32(_val2, _val3));
-            int32x2x4_t _acc;
-            _acc.val[0]        = vpadd_s32(vget_low_s32(_val0), vget_high_s32(_val0));
-            _acc.val[1]        = vpadd_s32(vget_low_s32(_val1), vget_high_s32(_val1));
-            _acc.val[2]        = vpadd_s32(vget_low_s32(_val2), vget_high_s32(_val2));
-            _acc.val[3]        = vpadd_s32(vget_low_s32(_val3), vget_high_s32(_val3));
-            int32x4_t _res0123 = vcombine_s32(vpadd_s32(_acc.val[0], _acc.val[1]), vpadd_s32(_acc.val[2], _acc.val[3]));
+            int32x4_t _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
             _res0123           = vaddq_s32(_res0123, _offset);
             int16x4_t _res16   = vshrn_n_s32(_res0123, 15);
             uint8x8_t _resu8   = vqmovun_s16(vcombine_s16(_res16, _res16));
@@ -865,7 +858,6 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
 
             int32x4_t _val0, _val1, _val2, _val3, _res0123;
-            int32x2x4_t _acc;
             int16x4_t _res16;
             uint8x8x3_t _resu8;
 
@@ -873,12 +865,7 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
             _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
             _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            //_res0123 = vpaddq_s32(vpaddq_s32(_val0, _val1), vpaddq_s32(_val2, _val3));
-            _acc.val[0]        = vpadd_s32(vget_low_s32(_val0), vget_high_s32(_val0));
-            _acc.val[1]        = vpadd_s32(vget_low_s32(_val1), vget_high_s32(_val1));
-            _acc.val[2]        = vpadd_s32(vget_low_s32(_val2), vget_high_s32(_val2));
-            _acc.val[3]        = vpadd_s32(vget_low_s32(_val3), vget_high_s32(_val3));
-            _res0123 = vcombine_s32(vpadd_s32(_acc.val[0], _acc.val[1]), vpadd_s32(_acc.val[2], _acc.val[3]));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
             _res0123 = vaddq_s32(_res0123, _offset);
             _res16   = vshrn_n_s32(_res0123, 15);
             _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
@@ -887,12 +874,7 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
             _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
             _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            //_res0123 = vpaddq_s32(vpaddq_s32(_val0, _val1), vpaddq_s32(_val2, _val3));
-            _acc.val[0]        = vpadd_s32(vget_low_s32(_val0), vget_high_s32(_val0));
-            _acc.val[1]        = vpadd_s32(vget_low_s32(_val1), vget_high_s32(_val1));
-            _acc.val[2]        = vpadd_s32(vget_low_s32(_val2), vget_high_s32(_val2));
-            _acc.val[3]        = vpadd_s32(vget_low_s32(_val3), vget_high_s32(_val3));
-            _res0123 = vcombine_s32(vpadd_s32(_acc.val[0], _acc.val[1]), vpadd_s32(_acc.val[2], _acc.val[3]));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
             _res0123 = vaddq_s32(_res0123, _offset);
             _res16   = vshrn_n_s32(_res0123, 15);
             _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
@@ -901,12 +883,7 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
             _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
             _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
-            //_res0123 = vpaddq_s32(vpaddq_s32(_val0, _val1), vpaddq_s32(_val2, _val3));
-            _acc.val[0]        = vpadd_s32(vget_low_s32(_val0), vget_high_s32(_val0));
-            _acc.val[1]        = vpadd_s32(vget_low_s32(_val1), vget_high_s32(_val1));
-            _acc.val[2]        = vpadd_s32(vget_low_s32(_val2), vget_high_s32(_val2));
-            _acc.val[3]        = vpadd_s32(vget_low_s32(_val3), vget_high_s32(_val3));
-            _res0123 = vcombine_s32(vpadd_s32(_acc.val[0], _acc.val[1]), vpadd_s32(_acc.val[2], _acc.val[3]));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
             _res0123 = vaddq_s32(_res0123, _offset);
             _res16   = vshrn_n_s32(_res0123, 15);
             _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
@@ -949,28 +926,34 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
     }
 }
 
-void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                             const float (*transform)[3], const float border_val) {
-    int schannel   = 1;
+    int schannel  = 1;
+    int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
-    int* buf_loc   = new int[dst_w];
-    short* tab_loc = new short[dst_w];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int* buf_loc        = new int[dst_w * max_num_threads];
+    short* tab_loc      = new short[dst_w * max_num_threads];
 
     const unsigned char* src2 = src + src_w * schannel;
 
-    for (int y = 0; y < dst_h; ++y) {
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int thread_id    = OMP_TID_;
         int x_count      = 0;
         int end_x        = 0;
         int dst_loc_base = y * dst_w * schannel;
+        int* buf_loc_t   = buf_loc + thread_id * dst_w;
+        short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc, tab_loc, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc, tab_loc, src, src2, dst);
+        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -979,28 +962,34 @@ void warpaffine_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* d
     free(buffer);
 }
 
-void warpaffine_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                             const float (*transform)[3], const float border_val) {
-    int schannel   = 3;
+    int schannel  = 3;
+    int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
-    int* buf_loc   = new int[dst_w];
-    short* tab_loc = new short[dst_w];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int* buf_loc        = new int[dst_w * max_num_threads];
+    short* tab_loc      = new short[dst_w * max_num_threads];
 
     const unsigned char* src2 = src + src_w * schannel;
 
-    for (int y = 0; y < dst_h; ++y) {
-        int x_count        = 0;
-        int end_x          = 0;
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int thread_id    = OMP_TID_;
+        int x_count      = 0;
+        int end_x        = 0;
         int dst_loc_base = y * dst_w * schannel;
+        int* buf_loc_t   = buf_loc + thread_id * dst_w;
+        short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc, tab_loc, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc, tab_loc, src, src2, dst);
+        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
