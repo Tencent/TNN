@@ -18,11 +18,11 @@ set(TNNInclude ${TNNRoot}/include)
 
 include_directories(${TNNInclude})
 include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/../samples)
+include_directories(${CMAKE_SOURCE_DIR}/../base)
 link_directories(${TNN_LIB_PATH})
 
 
-file(GLOB_RECURSE SRC "src/*.cc" "${CMAKE_SOURCE_DIR}/../samples/*.cc")
+file(GLOB_RECURSE SRC "src/*.cc" "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
 add_executable(demo_arm_linux ${SRC})
 target_link_libraries(demo_arm_linux TNN)

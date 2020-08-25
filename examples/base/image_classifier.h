@@ -12,14 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ImageClassifier_hpp
-#define ImageClassifier_hpp
+#ifndef TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
+#define TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
 
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
-#include "TNNSDKSample.h"
+
+#include "tnn_sdk_sample.h"
 
 class ImageClassifier : public TNN_NS::TNNSDKSample {
 public:
@@ -28,4 +29,4 @@ public:
     int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id);
 };
 
-#endif /* ImageClassifier_hpp */
+#endif // TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
