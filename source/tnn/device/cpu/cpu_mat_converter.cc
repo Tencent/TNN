@@ -47,66 +47,35 @@ Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 
 Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret            = TNN_OK;
-    std::vector<int> src_dims = src.GetDims();
-    std::vector<int> dst_dims = dst.GetDims();
-    int w = dst.GetWidth();
-    int h = dst.GetHeight();
-    int rows = src.GetWidth();
-    int cols = src.GetHeight();
-    int channel = src.GetChannel();
-    unsigned char* ptr = (unsigned char*)src.GetData();
-    unsigned char* part = (unsigned char*)malloc(sizeof(unsigned char)*w*rows*channel);
-    unsigned char* dst_ptr = (unsigned char*)dst.GetData();
-    float w_scale = param.scale_w;
-    float h_scale = param.scale_h;
-    float wscale = cols / (float)w;
-    float hscale = rows / (float)h;
+    if (src.GetData() == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input mat is null");
+    }
 
-	unsigned char val;
+    if (src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+
+    if (dst.GetData() == nullptr) {
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    }
 
     if (src.GetMatType() == NCHW_FLOAT) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else if (src.GetMatType() == N8UC4) {
-        ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
-    } else if (src.GetMatType() == N8UC3) {
-        for (int r = 0; r < rows; r++)
-            for (int c = 0; c < w; c++)
-                for (int k = 0; k < channel; k++)
-                {
-                    if (c == 0 || c == w - 1)
-                    {
-                        val = ptr[r*cols*channel + c*channel + k];
-                    }
-                    else 
-                    {
-                        float x1 = c * wscale;
-                        int x2 = (int)x1;
-                        float diffx = x1 - x2;
-                        val = (1 - diffx)*ptr[r*cols*channel + c*channel + x2] + diffx*ptr[r*cols*channel + c*channel + x2 + 1];
-                    }
-                    part[r*w*channel + c*channel + k] = val;
-                }
-
-        for (int r = 0; r < h; r++)
-        {
-            float y1 = r * hscale;
-            int y2 = (int)y1;
-            float diffy = y1 - y2;
-            for (int c = 0; c < w; c++)
-                for (int k = 0; k < channel; k++)
-                {
-                    if (r == 0 || r == h - 1)
-                    {
-                        val = ptr[r*w*channel + c*channel+k];
-                    }
-                    else
-                    {
-                        val = (1 - diffy)* ptr[y2*w*channel + c*channel + k] + diffy * ptr[(y2+1)*w*channel + c*channel + k];
-                    }
-                    dst_ptr[r*w*channel + c*channel + k] = val;
-                }
+        int channel = src.GetChannel();
+        if (param.type == INTERP_TYPE_LINEAR) {
+            for (int batch = 0; batch < src.GetBatch(); batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                resize_bilinear(src_ptr, src.GetWidth(), src.GetHeight(),
+                               dst_ptr, dst.GetWidth(), dst.GetHeight());
+            } 
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
-    free(part);
+    } else if (src.GetMatType() == N8UC3) {
+        ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else if (src.GetMatType() == NGRAY) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else if (src.GetMatType() == RESERVED_BFP16_TEST) {
@@ -143,9 +112,13 @@ Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
         mat_memcpy_2d(src_ptr, dst_ptr, param.width * 3, param.height, src.GetWidth() * 3, dst.GetWidth() * 3);
     } else if (src.GetMatType() == N8UC4) {
         // element size 4
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), (param.top_left_x + param.top_left_y * src.GetWidth()) * 4);
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        mat_memcpy_2d(src_ptr, dst_ptr, param.width * 4, param.height, src.GetWidth() * 4, dst.GetWidth() * 4);
+        int channel = 4;
+        for (int batch = 0; batch < src.GetBatch(); batch++)
+        {
+            auto src_ptr = GET_OFFSET_PTR((uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel, (param.top_left_x + param.top_left_y * src.GetWidth()) * channel);
+            auto dst_ptr = GET_OFFSET_PTR((uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel, 0);
+            mat_memcpy_2d(src_ptr, dst_ptr, param.width * channel, param.height, src.GetWidth() * channel, dst.GetWidth() * channel);
+        } 
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.top_left_x % 2 || param.top_left_y % 2 || param.width % 2 || param.height % 2) {
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");

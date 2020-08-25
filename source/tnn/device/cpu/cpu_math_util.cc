@@ -13,9 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/cpu_math_util.h"
-
+#include <algorithm>
 #include <type_traits>
-
 #include "tnn/core/macro.h"
 #include "tnn/utils/naive_compute.h"
 
@@ -30,6 +29,98 @@ namespace TNN_NS {
 #define INTER_BITS      5
 #define INTER_TAB_SIZE  (1<<INTER_BITS)
 #define KSIZE 2
+static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
+                                     const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
+    if (sy == prev_sy) {
+        // reuse all rows
+    } else if (sy == prev_sy + 1) {
+        // hresize one row
+        short* rows0_old  = *rows0;
+        *rows0            = *rows1;
+        *rows1            = rows0_old;
+        const uint8_t* S1 = src + src_stride * (sy + 1);
+
+        short* rows1p        = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
+
+            const uint8_t* S1p = S1 + sx;
+
+            for (int dc = 0; dc < c; ++dc) {
+                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+
+            ialphap += 2;
+            rows1p += c;
+        }
+    } else {
+        // hresize two rows
+        const uint8_t* S0 = src + src_stride * (sy);
+        const uint8_t* S1 = src + src_stride * (sy + 1);
+
+        short* rows0p        = *rows0;
+        short* rows1p        = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
+
+            const uint8_t* S0p = S0 + sx;
+            const uint8_t* S1p = S1 + sx;
+
+            for (int dc = 0; dc < c; ++dc) {
+                rows0p[dc]         = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
+                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+
+            ialphap += 2;
+            rows0p += c;
+            rows1p += c;
+        }
+    }
+}
+
+static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
+                                     uint8_t* Dp) {
+    int remain = w * c;
+    for (; remain; --remain) {
+        *Dp++ = (uint8_t)(
+            ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
+    }
+}
+
+static void calculate_position_and_ratio(int length, double scale, int border, int channel,
+                                         int* position, short* ratio) {
+    const int INTER_RESIZE_COEF_BITS  = 11;
+    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
+    float pos_f;
+    float rat_f;
+    int pos_i;
+    for (int i = 0; i < length; i++) {
+        pos_f = (float)((i + 0.5) * scale - 0.5);
+        pos_i = static_cast<int>(floor(pos_f));
+        rat_f = pos_f - pos_i;
+
+        if (pos_i < 0) {
+            pos_i = 0;
+            rat_f = 0.f;
+        }
+        if (pos_i >= border - 1) {
+            pos_i = border - 2;
+            rat_f = 1.f;
+        }
+
+        position[i] = pos_i * channel;
+
+        float a0 = (1.f - rat_f) * INTER_RESIZE_COEF_SCALE;
+        float a1 = rat_f * INTER_RESIZE_COEF_SCALE;
+
+        ratio[i * 2]     = SATURATE_CAST_SHORT(a0);
+        ratio[i * 2 + 1] = SATURATE_CAST_SHORT(a1);
+    }
+}
 
 static inline void interpolateLinear(float x, float* coeffs) {
     coeffs[0] = 1.f - x;
@@ -40,6 +131,65 @@ static void initInterTab1D(float* tab, int tabsz) {
     float scale = 1.f / tabsz;
     for (int i = 0; i < tabsz; i++, tab += 2)
         interpolateLinear(i * scale, tab);
+}
+
+static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf) {
+    const int INTER_RESIZE_COEF_BITS  = 11;
+    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
+
+    double scale_x = (double)src_w / w;
+    double scale_y = (double)src_h / h;
+
+    *buf = new int[w + h + w + h];
+
+    int* xofs = *buf;
+    int* yofs = *buf + w;
+
+    short* ialpha = (short*)(*buf + w + h);
+    short* ibeta  = (short*)(*buf + w + h + w);
+
+    calculate_position_and_ratio(w, scale_x, src_w, c, xofs, ialpha);
+    calculate_position_and_ratio(h, scale_y, src_h, 1, yofs, ibeta);
+}
+
+void resize_bilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
+                             uint8_t* dst, int w, int h, int stride) {
+    int* buf = nullptr;
+    get_resize_buf(src_w, src_h, w, h, 4, &buf);
+    int* xofs = buf;
+    int* yofs = buf + w;
+    short* ialpha = (short*)(buf + w + h);
+    short* ibeta  = (short*)(buf + w + h + w);
+
+    // loop body
+    short* rows0 = new short[w * 4];
+    short* rows1 = new short[w * 4];
+
+    int prev_sy = -2;
+
+    for (int dy = 0; dy < h; dy++) {
+        int sy = yofs[dy];
+        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
+        prev_sy = sy;
+
+        // vresize
+        short b0 = ibeta[0];
+        short b1 = ibeta[1];
+
+        uint8_t* Dp   = dst + stride * (dy);
+
+        resize_calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
+
+        ibeta += 2;
+    }
+
+    delete[] rows0;
+    delete[] rows1;
+    delete[] buf;
+}
+
+void resize_bilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
 void warpaffine_bilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
@@ -172,5 +322,4 @@ void warpaffine_bilinear(const uint8_t* src, int src_w, int src_h, int channel, 
 
     free(buffer);
 }
-
 }  // namespace TNN_NS
