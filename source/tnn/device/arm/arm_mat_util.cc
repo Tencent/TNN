@@ -346,35 +346,49 @@ static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0,
     }
 }
 
-void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+void resize_bilinear_c1_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
-    int* buf = nullptr;
-    get_resize_buf(src_w, src_h, w, h, 1, &buf);
-    int* xofs = buf;
-    int* yofs = buf + w;
+    int schannel  = 1;
+    int* buf      = nullptr;
+    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
     short* ibeta  = (short*)(buf + w + h + w);
 
+    int src_plane = src_h * src_stride;
+
     // loop body
-    short* rows0 = new short[w];
-    short* rows1 = new short[w];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[w * max_num_threads];
+    short* rows1        = new short[w * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int    prev_sy[max_num_threads];
 
-    int prev_sy = -2;
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * w;
+            rows1_t[t] = rows1 + t * w;
+        }
 
-    for (int dy = 0; dy < h; dy++) {
-        int sy = yofs[dy];
-        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 1, w, ialpha);
-        prev_sy = sy;
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id  = OMP_TID_;
+            int sy         = yofs[dy];
+            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            prev_sy[thread_id] = sy;
 
-        // vresize
-        short b0 = ibeta[0];
-        short b1 = ibeta[1];
+            // vresize
+            short b0 = ibeta[dy * 2];
+            short b1 = ibeta[dy * 2 + 1];
 
-        uint8_t* Dp   = dst + stride * (dy);
+            uint8_t* Dp   = dst + stride * (b * h + dy);
 
-        resize_calculate_one_row(rows0, rows1, b0, b1, w, 1, Dp);
-
-        ibeta += 2;
+            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+        }
     }
 
     delete[] rows0;
@@ -382,35 +396,49 @@ void resize_bilinear_c1_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+void resize_bilinear_c2_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
-    int* buf = nullptr;
-    get_resize_buf(src_w, src_h, w, h, 2, &buf);
-    int* xofs = buf;
-    int* yofs = buf + w;
+    int schannel  = 2;
+    int* buf      = nullptr;
+    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
     short* ibeta  = (short*)(buf + w + h + w);
 
+    int src_plane = src_h * src_stride;
+
     // loop body
-    short* rows0 = new short[w * 2 + 2];
-    short* rows1 = new short[w * 2 + 2];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 2 + 2) * max_num_threads];
+    short* rows1        = new short[(w * 2 + 2) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int    prev_sy[max_num_threads];
 
-    int prev_sy = -2;
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 2 + 2);
+            rows1_t[t] = rows1 + t * (w * 2 + 2);
+        }
 
-    for (int dy = 0; dy < h; dy++) {
-        int sy = yofs[dy];
-        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 2, w, ialpha);
-        prev_sy = sy;
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id  = OMP_TID_;
+            int sy         = yofs[dy];
+            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            prev_sy[thread_id] = sy;
 
-        // vresize
-        short b0 = ibeta[0];
-        short b1 = ibeta[1];
+            // vresize
+            short b0 = ibeta[dy * 2];
+            short b1 = ibeta[dy * 2 + 1];
 
-        uint8_t* Dp   = dst + stride * (dy);
+            uint8_t* Dp   = dst + stride * (b * h + dy);
 
-        resize_calculate_one_row(rows0, rows1, b0, b1, w, 2, Dp);
-
-        ibeta += 2;
+            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+        }
     }
 
     delete[] rows0;
@@ -418,35 +446,49 @@ void resize_bilinear_c2_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+void resize_bilinear_c3_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
-    int* buf = nullptr;
-    get_resize_buf(src_w, src_h, w, h, 3, &buf);
-    int* xofs = buf;
-    int* yofs = buf + w;
+    int schannel  = 3;
+    int* buf      = nullptr;
+    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
     short* ibeta  = (short*)(buf + w + h + w);
 
+    int src_plane = src_h * src_stride;
+
     // loop body
-    short* rows0 = new short[w * 3 + 1];
-    short* rows1 = new short[w * 3 + 1];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 3 + 1) * max_num_threads];
+    short* rows1        = new short[(w * 3 + 1) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int    prev_sy[max_num_threads];
 
-    int prev_sy = -2;
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 3 + 1);
+            rows1_t[t] = rows1 + t * (w * 3 + 1);
+        }
 
-    for (int dy = 0; dy < h; dy++) {
-        int sy = yofs[dy];
-        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 3, w, ialpha);
-        prev_sy = sy;
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id  = OMP_TID_;
+            int sy         = yofs[dy];
+            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            prev_sy[thread_id] = sy;
 
-        // vresize
-        short b0 = ibeta[0];
-        short b1 = ibeta[1];
+            // vresize
+            short b0 = ibeta[dy * 2];
+            short b1 = ibeta[dy * 2 + 1];
 
-        uint8_t* Dp   = dst + stride * (dy);
+            uint8_t* Dp   = dst + stride * (b * h + dy);
 
-        resize_calculate_one_row(rows0, rows1, b0, b1, w, 3, Dp);
-
-        ibeta += 2;
+            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+        }
     }
 
     delete[] rows0;
@@ -454,35 +496,49 @@ void resize_bilinear_c3_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_stride,
+void resize_bilinear_c4_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
-    int* buf = nullptr;
-    get_resize_buf(src_w, src_h, w, h, 4, &buf);
-    int* xofs = buf;
-    int* yofs = buf + w;
+    int schannel  = 4;
+    int* buf      = nullptr;
+    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
     short* ibeta  = (short*)(buf + w + h + w);
 
+    int src_plane = src_h * src_stride;
+
     // loop body
-    short* rows0 = new short[w * 4];
-    short* rows1 = new short[w * 4];
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 4) * max_num_threads];
+    short* rows1        = new short[(w * 4) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int    prev_sy[max_num_threads];
 
-    int prev_sy = -2;
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 4);
+            rows1_t[t] = rows1 + t * (w * 4);
+        }
 
-    for (int dy = 0; dy < h; dy++) {
-        int sy = yofs[dy];
-        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
-        prev_sy = sy;
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id  = OMP_TID_;
+            int sy         = yofs[dy];
+            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            prev_sy[thread_id] = sy;
 
-        // vresize
-        short b0 = ibeta[0];
-        short b1 = ibeta[1];
+            // vresize
+            short b0 = ibeta[dy * 2];
+            short b1 = ibeta[dy * 2 + 1];
 
-        uint8_t* Dp   = dst + stride * (dy);
+            uint8_t* Dp   = dst + stride * (b * h + dy);
 
-        resize_calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
-
-        ibeta += 2;
+            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+        }
     }
 
     delete[] rows0;
@@ -490,35 +546,40 @@ void resize_bilinear_c4_impl(const uint8_t* src, int src_w, int src_h, int src_s
     delete[] buf;
 }
 
-void resize_bilinear_yuv420sp(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+void resize_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
     // assert src_w % 2 == 0
     // assert src_h % 2 == 0
     // assert w % 2 == 0
     // assert h % 2 == 0
 
-    const uint8_t* srcY = src;
-    uint8_t* dstY       = dst;
-    resize_bilinear_c1(srcY, src_w, src_h, dstY, w, h);
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = w * h * 3 / 2;
 
-    const uint8_t* srcUV = src + src_w * src_h;
-    uint8_t* dstUV       = dst + w * h;
-    resize_bilinear_c2(srcUV, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        resize_bilinear_c1(srcY, 1, src_w, src_h, dstY, w, h);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + w * h;
+        resize_bilinear_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+    }
 }
 
-void resize_bilinear_c1(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c1_impl(src, src_w, src_h, src_w, dst, w, h, w);
+void resize_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c1_impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
 }
 
-void resize_bilinear_c2(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c2_impl(src, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+void resize_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c2_impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
 }
 
-void resize_bilinear_c3(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c3_impl(src, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+void resize_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c3_impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
 }
 
-void resize_bilinear_c4(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c4_impl(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+void resize_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_bilinear_c4_impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
 

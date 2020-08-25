@@ -41,28 +41,28 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
-            resize_bilinear_c1((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            resize_bilinear_c1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC3) {
         if (param.type == INTERP_TYPE_LINEAR) {
-            resize_bilinear_c3((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            resize_bilinear_c3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC4) {
         if (param.type == INTERP_TYPE_LINEAR) {
-            resize_bilinear_c4((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            resize_bilinear_c4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.type == INTERP_TYPE_LINEAR) {
-            resize_bilinear_yuv420sp((uint8_t*)src.GetData(), src.GetWidth(), src.GetHeight(),
+            resize_bilinear_yuv420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
                                      (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
