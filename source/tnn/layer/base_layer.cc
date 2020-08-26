@@ -71,6 +71,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
 }
 
 Status BaseLayer::InferOutputDataType() {
+    // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;

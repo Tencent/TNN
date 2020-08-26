@@ -33,7 +33,8 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     }
     execute_units_.resize(1);
 
-    if (OpenCLRuntime::GetInstance()->GetFp16Enable()) {
+    if (OpenCLRuntime::GetInstance()->GetFp16Enable() && context->GetPrecision() != PRECISION_HIGH) {
+        LOGD("OpenCL Blob Pricision is Half!\n");
         for (auto blob : inputs) {
             blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
         }
@@ -41,6 +42,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
             blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
         }
     } else {
+        LOGD("OpenCL Blob Pricision is Float!\n");
         for (auto blob : inputs) {
             blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
         }

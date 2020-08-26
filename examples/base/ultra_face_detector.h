@@ -12,15 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef UltraFaceDetector_hpp
-#define UltraFaceDetector_hpp
+#ifndef TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_
+#define TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_ 
 
-#include "TNNSDKSample.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "tnn_sdk_sample.h"
 
 #define num_featuremap 4
 #define hard_nms 1
@@ -87,4 +87,4 @@ private:
     std::vector<std::vector<float>> priors = {};
 };
 
-#endif /* UltraFaceDetector_hpp */
+#endif // TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_

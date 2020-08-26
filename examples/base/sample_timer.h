@@ -12,29 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ANDROID_TNN_JNI_H_
-#define ANDROID_TNN_JNI_H_
+#ifndef TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_
+#define TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_
 
-#include <jni.h>
+#include <chrono>
 #include <string>
-#include <android/log.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "tnn/core/macro.h"
 
-JNIEXPORT JNICALL jint Java_com_tencent_tnn_demo_TNNLib_init(
-        JNIEnv *env, jobject thiz, jstring protoFilePath, jstring modelFilePath, jstring device);
+namespace TNN_NS {
 
-JNIEXPORT JNICALL jfloatArray Java_com_tencent_tnn_demo_TNNLib_forward(
-        JNIEnv *env, jobject thiz, jobject imageSource);
+using std::chrono::time_point;
+using std::chrono::system_clock;
 
-JNIEXPORT JNICALL jint Java_com_tencent_tnn_demo_TNNLib_deinit(
-        JNIEnv *env, jobject thiz);
+class SampleTimer {
+public:
+    SampleTimer() {};
+    void Start();
+    void Stop();
+    void Reset();
+    double GetTime();
 
+private:
+    time_point<system_clock> start_;
+    time_point<system_clock> stop_;
+};
 
-#ifdef __cplusplus
-}
-#endif
+} // namespace TNN_NS
 
-#endif // ANDROID_TNN_JNI_H_
+#endif // TNN_EXAMPLES_BASE_SAMPLE_TIMER_H_ 

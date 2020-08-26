@@ -14,7 +14,7 @@
 
 #import "TNNFaceDetectorController.h"
 #import "UIImage+Utility.h"
-#import "UltraFaceDetector.h"
+#import "ultra_face_detector.h"
 #import <Metal/Metal.h>
 #import <tnn/tnn.h>
 
