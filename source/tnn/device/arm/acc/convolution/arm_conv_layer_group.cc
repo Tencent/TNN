@@ -40,6 +40,16 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
 
     group_ = conv_param->group;
 
+    if (group_inputs_.size() == group_ && group_outputs_.size() == group_) {
+        // has been init, just return;
+        return TNN_OK;
+    } else {
+        group_inputs_.clear();
+        group_outputs_.clear();
+        group_scale_res_.clear();
+        conv_acc_impls_.clear();
+    }
+
     for (int g = 0; g < group_; g++) {
         BlobDesc empty_desc;
         group_inputs_.emplace_back(std::make_shared<Blob>(empty_desc));
@@ -304,6 +314,9 @@ Status ArmConvLayerGroup::CopyInputSplitBlob(Blob *input) {
     return TNN_OK;
 }
 
+/*
+float and bfp16 layout: NC4HW4
+*/
 template <typename T>
 void ArmConvLayerGroup::TransformOutput(Blob *output) {
     auto dims       = output->GetBlobDesc().dims;
@@ -328,6 +341,9 @@ void ArmConvLayerGroup::TransformOutput(Blob *output) {
     }
 }
 
+/*
+int8 layout: NHWC4
+*/
 template <>
 void ArmConvLayerGroup::TransformOutput<int8_t>(Blob *output) {
     auto output_int8 = reinterpret_cast<BlobInt8 *>(output);

@@ -397,7 +397,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
         for (int i = 0; i < dims[1]; i++) {
             auto scale_idx = scale_count == 1? 0 : i;
-            fused_int8_scale[i] = scale_data[scale_idx] * param.scale[i];
+            fused_int8_scale[i] = scale_data[scale_idx];
         }
     }
     if (image.GetMatType() == NCHW_FLOAT) {
