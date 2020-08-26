@@ -32,7 +32,7 @@ namespace TNN_NS {
 #define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
 #define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
 
-void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
+void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
     auto dst_ptr = reinterpret_cast<uint8_t*>(dst);
 
