@@ -83,9 +83,6 @@ static void calculate_position_and_ratio(int length, double scale, int border, i
 // ibeta[2*y+1]
 //     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
 static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf) {
-    const int INTER_RESIZE_COEF_BITS  = 11;
-    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-
     double scale_x = (double)src_w / w;
     double scale_y = (double)src_h / h;
 
@@ -582,6 +579,212 @@ void resize_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uin
     return resize_bilinear_c4_impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
+static void calculate_position_and_mask(int length, double scale, int border, int channel,
+                                        int* position, uint8_t* mask) {
+    float pos_f;
+    float rat_f;
+    int pos_i;
+    for (int i = 0; i < length; i++) {
+        pos_f = (float)((i + 0.5) * scale - 0.5);
+        // pos_f = i * scale;
+        pos_i = static_cast<int>(floor(pos_f));
+        rat_f = pos_f - pos_i;
+
+        if (pos_i < 0) {
+            pos_i = 0;
+            rat_f = 0.f;
+        }
+        if (pos_i >= border - 1) {
+            pos_i = border - 2;
+            rat_f = 1.f;
+        }
+
+        position[i] = pos_i * channel;
+
+        mask[i] = (rat_f <= 0.5) ? -1 : 0;
+    }
+}
+
+// Meanings of xofs, yofs, ialpha, ibeta in src image:
+//                               |  ialpha[x] (1: left, 0: right)  |
+//     --       (xofs[x], yofs[y])                                 (xofs[x]+1, yofs[y])
+// ibeta[y]
+// (1: top,                            (x*scale_x, y*scale_y)
+//  0: bottom)
+//     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
+static void get_resize_buf_nearset(int src_w, int src_h, int w, int h, int c, int** buf) {
+    double scale_x = (double)src_w / w;
+    double scale_y = (double)src_h / h;
+
+    *buf = new int[w + h + w + h];
+
+    int* xofs = *buf;
+    int* yofs = *buf + w;
+
+    uint8_t* ialpha = (uint8_t*)(*buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
+
+    calculate_position_and_mask(w, scale_x, src_w, c, xofs, ialpha);
+    calculate_position_and_mask(h, scale_y, src_h, 1, yofs, ibeta);
+}
+
+void resize_nearest_c1_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                            uint8_t* dst, int w, int h, int stride) {
+    int schannel  = 1;
+    int* buf      = nullptr;
+    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
+
+            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
+            uint8_t* Dp       = dst + stride * (b * h + dy);
+
+            for (int dx = 0; dx < w; dx++) {
+                int sx = xofs[dx];
+                Dp[dx] = (ialpha[dx] == 0) ? Sp[sx + 1] : Sp[sx];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void resize_nearest_c2_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                            uint8_t* dst, int w, int h, int stride) {
+    int schannel  = 2;
+    int* buf      = nullptr;
+    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
+
+            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
+            uint8_t* Dp       = dst + stride * (b * h + dy);
+
+            for (int dx = 0; dx < w; dx++) {
+                int sx = xofs[dx];
+                Dp[dx * 2]     = (ialpha[dx] == 0) ? Sp[sx + 2] : Sp[sx];
+                Dp[dx * 2 + 1] = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx + 1];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void resize_nearest_c3_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                            uint8_t* dst, int w, int h, int stride) {
+    int schannel  = 3;
+    int* buf      = nullptr;
+    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
+
+            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
+            uint8_t* Dp       = dst + stride * (b * h + dy);
+
+            for (int dx = 0; dx < w; dx++) {
+                int sx = xofs[dx];
+                Dp[dx * 3]     = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx];
+                Dp[dx * 3 + 1] = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx + 1];
+                Dp[dx * 3 + 2] = (ialpha[dx] == 0) ? Sp[sx + 5] : Sp[sx + 2];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void resize_nearest_c4_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                            uint8_t* dst, int w, int h, int stride) {
+    int schannel  = 4;
+    int* buf      = nullptr;
+    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
+
+            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
+            uint8_t* Dp       = dst + stride * (b * h + dy);
+
+            for (int dx = 0; dx < w; dx++) {
+                int sx = xofs[dx];
+                Dp[dx * 4]     = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx];
+                Dp[dx * 4 + 1] = (ialpha[dx] == 0) ? Sp[sx + 5] : Sp[sx + 1];
+                Dp[dx * 4 + 2] = (ialpha[dx] == 0) ? Sp[sx + 6] : Sp[sx + 2];
+                Dp[dx * 4 + 3] = (ialpha[dx] == 0) ? Sp[sx + 7] : Sp[sx + 3];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void resize_nearest_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_nearest_c1_impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
+}
+
+void resize_nearest_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_nearest_c2_impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+}
+
+void resize_nearest_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_nearest_c3_impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+}
+
+void resize_nearest_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return resize_nearest_c4_impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+}
+
+void resize_nearest_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert w % 2 == 0
+    // assert h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = w * h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        resize_nearest_c1(srcY, 1, src_w, src_h, dstY, w, h);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + w * h;
+        resize_nearest_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+    }
+}
 
 #define INTER_REMAP_COEF_BITS  15
 #define INTER_REMAP_COEF_SCALE (1<<INTER_REMAP_COEF_BITS)
