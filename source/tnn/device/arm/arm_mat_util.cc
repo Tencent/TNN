@@ -647,7 +647,49 @@ void resize_nearest_c1_impl(const uint8_t* src, int batch, int src_w, int src_h,
             const uint8_t* Sp = src + src_stride * (b * src_h + sy);
             uint8_t* Dp       = dst + stride * (b * h + dy);
 
-            for (int dx = 0; dx < w; dx++) {
+            int dx = 0;
+#ifdef TNN_USE_NEON
+            int32x4_t _sx = int32x4_t();
+            uint8x8_t _S0 = uint8x8_t();
+            uint8x8_t _S1 = uint8x8_t();
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            for (; dx < w>>3<<3; dx += 8) {
+                _sx = vld1q_s32(xofs_p);
+
+                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 0);
+                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 1);
+                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 2);
+                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 3);
+
+                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 0);
+                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 1);
+                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 2);
+                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 3);
+
+                _sx = vld1q_s32(xofs_p + 4);
+
+                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 4);
+                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 5);
+                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 6);
+                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 7);
+
+                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 4);
+                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 5);
+                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 6);
+                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 7);
+
+                uint8x8_t _mask = vld1_u8(ialpha_p);
+
+                vst1_u8(Dp_p, vbsl_u8(_mask, _S0, _S1));
+
+                xofs_p   += 8;
+                ialpha_p += 8;
+                Dp_p     += 8;
+            }
+#endif
+            for (; dx < w; dx++) {
                 int sx = xofs[dx];
                 Dp[dx] = (ialpha[dx] == 0) ? Sp[sx + 1] : Sp[sx];
             }
@@ -676,7 +718,52 @@ void resize_nearest_c2_impl(const uint8_t* src, int batch, int src_w, int src_h,
             const uint8_t* Sp = src + src_stride * (b * src_h + sy);
             uint8_t* Dp       = dst + stride * (b * h + dy);
 
-            for (int dx = 0; dx < w; dx++) {
+            int dx = 0;
+#ifdef TNN_USE_NEON
+            int32x4_t _sx   = int32x4_t();
+            uint8x8x2_t _S0 = uint8x8x2_t();
+            uint8x8x2_t _S1 = uint8x8x2_t();
+            uint8x8x2_t _S2 = uint8x8x2_t();
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            for (; dx < w>>3<<3; dx += 8) {
+                _sx = vld1q_s32(xofs_p);
+
+                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 0);
+                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 1);
+                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 2);
+                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 3);
+
+                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 0);
+                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 1);
+                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 2);
+                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 3);
+
+                _sx = vld1q_s32(xofs_p + 4);
+
+                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 4);
+                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 5);
+                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 6);
+                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 7);
+
+                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 4);
+                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 5);
+                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 6);
+                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 7);
+
+                uint8x8_t _mask = vld1_u8(ialpha_p);
+
+                _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
+                _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
+                vst2_u8(Dp_p, _S2);
+
+                xofs_p   += 8;
+                ialpha_p += 8;
+                Dp_p     += 8 * 2;
+            }
+#endif
+            for (; dx < w; dx++) {
                 int sx = xofs[dx];
                 Dp[dx * 2]     = (ialpha[dx] == 0) ? Sp[sx + 2] : Sp[sx];
                 Dp[dx * 2 + 1] = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx + 1];
@@ -706,7 +793,53 @@ void resize_nearest_c3_impl(const uint8_t* src, int batch, int src_w, int src_h,
             const uint8_t* Sp = src + src_stride * (b * src_h + sy);
             uint8_t* Dp       = dst + stride * (b * h + dy);
 
-            for (int dx = 0; dx < w; dx++) {
+            int dx = 0;
+#ifdef TNN_USE_NEON
+            int32x4_t _sx   = int32x4_t();
+            uint8x8x3_t _S0 = uint8x8x3_t();
+            uint8x8x3_t _S1 = uint8x8x3_t();
+            uint8x8x3_t _S2 = uint8x8x3_t();
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            for (; dx < w>>3<<3; dx += 8) {
+                _sx = vld1q_s32(xofs_p);
+
+                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 0);
+                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 1);
+                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 2);
+                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 3);
+
+                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 0);
+                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 1);
+                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 2);
+                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 3);
+
+                _sx = vld1q_s32(xofs_p + 4);
+
+                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 4);
+                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 5);
+                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 6);
+                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 7);
+
+                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 4);
+                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 5);
+                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 6);
+                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 7);
+
+                uint8x8_t _mask = vld1_u8(ialpha_p);
+
+                _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
+                _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
+                _S2.val[2] = vbsl_u8(_mask, _S0.val[2], _S1.val[2]);
+                vst3_u8(Dp_p, _S2);
+
+                xofs_p   += 8;
+                ialpha_p += 8;
+                Dp_p     += 8 * 3;
+            }
+#endif
+            for (; dx < w; dx++) {
                 int sx = xofs[dx];
                 Dp[dx * 3]     = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx];
                 Dp[dx * 3 + 1] = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx + 1];
@@ -737,7 +870,54 @@ void resize_nearest_c4_impl(const uint8_t* src, int batch, int src_w, int src_h,
             const uint8_t* Sp = src + src_stride * (b * src_h + sy);
             uint8_t* Dp       = dst + stride * (b * h + dy);
 
-            for (int dx = 0; dx < w; dx++) {
+            int dx = 0;
+#ifdef TNN_USE_NEON
+            int32x4_t _sx   = int32x4_t();
+            uint8x8x4_t _S0 = uint8x8x4_t();
+            uint8x8x4_t _S1 = uint8x8x4_t();
+            uint8x8x4_t _S2 = uint8x8x4_t();
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            for (; dx < w>>3<<3; dx += 8) {
+                _sx = vld1q_s32(xofs_p);
+
+                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 0);
+                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 1);
+                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 2);
+                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 3);
+
+                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 0);
+                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 1);
+                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 2);
+                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 3);
+
+                _sx = vld1q_s32(xofs_p + 4);
+
+                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 4);
+                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 5);
+                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 6);
+                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 7);
+
+                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 4);
+                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 5);
+                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 6);
+                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 7);
+
+                uint8x8_t _mask = vld1_u8(ialpha_p);
+
+                _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
+                _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
+                _S2.val[2] = vbsl_u8(_mask, _S0.val[2], _S1.val[2]);
+                _S2.val[3] = vbsl_u8(_mask, _S0.val[3], _S1.val[3]);
+                vst4_u8(Dp_p, _S2);
+
+                xofs_p   += 8;
+                ialpha_p += 8;
+                Dp_p     += 8 * 4;
+            }
+#endif
+            for (; dx < w; dx++) {
                 int sx = xofs[dx];
                 Dp[dx * 4]     = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx];
                 Dp[dx * 4 + 1] = (ialpha[dx] == 0) ? Sp[sx + 5] : Sp[sx + 1];
