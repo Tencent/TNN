@@ -86,6 +86,24 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
 
 ArmConvLayerGroup::~ArmConvLayerGroup() {}
 
+Status ArmConvLayerGroup::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (conv_acc_impls_.size() == 0) {
+        return Status(TNNERR_LAYER_ERR, "Error: group conv impl is nil");
+    } else {
+        RETURN_ON_NEQ(SetSplitBlobDesc(inputs[0], group_inputs_), TNN_OK);
+        RETURN_ON_NEQ(SetSplitBlobDesc(outputs[0], group_outputs_), TNN_OK);
+        for (int g = 0; g < group_; g++) {
+            std::vector<Blob *> local_inputs;
+            std::vector<Blob *> local_outputs;
+            local_inputs.emplace_back(group_inputs_[g].get());
+            local_outputs.emplace_back(group_outputs_[g].get());
+            RETURN_ON_NEQ(conv_acc_impls_[g]->Reshape(local_inputs, local_outputs), TNN_OK);
+        }
+    }
+
+    return TNN_OK;
+}
+
 /*
 get different impl based on conv params
 ArmConvInt8LayerCommon always as the last solution

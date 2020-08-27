@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // stride
                                             testing::Values(1, 2),
                                             // group
-                                            testing::Values(1, 2),
+                                            testing::Values(1, 2, 3, 8),
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16)));
 
