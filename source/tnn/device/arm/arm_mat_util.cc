@@ -1264,6 +1264,92 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
             dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
         }
+    } else if (channel == 2) {
+#ifdef TNN_USE_NEON
+        uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 2;
+        int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        for (; x <= end_x - 3; x += 4) {
+            int32x4_t _src_loc = vld1q_s32(buf_loc_p);
+            uint8x8x2_t _src01 = uint8x8x2_t();
+            _src01 = vld2_lane_u8(src1 + _src_loc[0], _src01, 0);
+            _src01 = vld2_lane_u8(src1 + _src_loc[0] + 2, _src01, 1);
+            _src01 = vld2_lane_u8(src2 + _src_loc[0], _src01, 2);
+            _src01 = vld2_lane_u8(src2 + _src_loc[0] + 2, _src01, 3);
+            _src01 = vld2_lane_u8(src1 + _src_loc[1], _src01, 4);
+            _src01 = vld2_lane_u8(src1 + _src_loc[1] + 2, _src01, 5);
+            _src01 = vld2_lane_u8(src2 + _src_loc[1], _src01, 6);
+            _src01 = vld2_lane_u8(src2 + _src_loc[1] + 2, _src01, 7);
+            int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
+            int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
+            uint8x8x2_t _src23  = uint8x8x2_t();
+            _src23 = vld2_lane_u8(src1 + _src_loc[2], _src23, 0);
+            _src23 = vld2_lane_u8(src1 + _src_loc[2] + 2, _src23, 1);
+            _src23 = vld2_lane_u8(src2 + _src_loc[2], _src23, 2);
+            _src23 = vld2_lane_u8(src2 + _src_loc[2] + 2, _src23, 3);
+            _src23 = vld2_lane_u8(src1 + _src_loc[3], _src23, 4);
+            _src23 = vld2_lane_u8(src1 + _src_loc[3] + 2, _src23, 5);
+            _src23 = vld2_lane_u8(src2 + _src_loc[3], _src23, 6);
+            _src23 = vld2_lane_u8(src2 + _src_loc[3] + 2, _src23, 7);
+            int16x8_t _src16_10 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[0]));
+            int16x8_t _src16_11 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[1]));
+
+            int16x4_t _tab_loc = vld1_s16(tab_loc_p);
+            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+
+            int32x4_t _val0, _val1, _val2, _val3, _res0123;
+            int16x4_t _res16;
+            uint8x8x2_t _resu8;
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            vst2_lane_u8(dst_p, _resu8, 0);
+            vst2_lane_u8(dst_p + 2, _resu8, 1);
+            vst2_lane_u8(dst_p + 4, _resu8, 2);
+            vst2_lane_u8(dst_p + 6, _resu8, 3);
+
+            buf_loc_p += 4;
+            tab_loc_p += 4;
+            dst_p     += 8;
+        }
+#endif
+        for (; x <= end_x; x++) {
+            int dst_loc = dst_loc_base + x * 2;
+            int src_loc = buf_loc[x];
+            short* wtab = BilinearTab_i[tab_loc[x]][0];
+
+            int point00 = src1[src_loc];
+            int point01 = src1[src_loc + 1];
+            int point02 = src1[src_loc + 2];
+            int point03 = src1[src_loc + 3];
+            int point10 = src2[src_loc];
+            int point11 = src2[src_loc + 1];
+            int point12 = src2[src_loc + 2];
+            int point13 = src2[src_loc + 3];
+
+            int val_xy0      = wtab[0] * point00 + wtab[1] * point02 + wtab[2] * point10 + wtab[3] * point12;
+            int val_xy1      = wtab[0] * point01 + wtab[1] * point03 + wtab[2] * point11 + wtab[3] * point13;
+            dst[dst_loc]     = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
+            dst[dst_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + (1 << 14)) >> 15);
+        }
     } else if (channel == 3) {
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 3;
@@ -1367,12 +1453,168 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
             dst[dst_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + (1 << 14)) >> 15);
             dst[dst_loc + 2] = SATURATE_CAST_UCHAR((val_xy2 + (1 << 14)) >> 15);
         }
+    } else if (channel == 4) {
+#ifdef TNN_USE_NEON
+        uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 4;
+        int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        for (; x <= end_x - 3; x += 4) {
+            int32x4_t _src_loc = vld1q_s32(buf_loc_p);
+            uint8x8x4_t _src01 = uint8x8x4_t();
+            _src01 = vld4_lane_u8(src1 + _src_loc[0], _src01, 0);
+            _src01 = vld4_lane_u8(src1 + _src_loc[0] + 4, _src01, 1);
+            _src01 = vld4_lane_u8(src2 + _src_loc[0], _src01, 2);
+            _src01 = vld4_lane_u8(src2 + _src_loc[0] + 4, _src01, 3);
+            _src01 = vld4_lane_u8(src1 + _src_loc[1], _src01, 4);
+            _src01 = vld4_lane_u8(src1 + _src_loc[1] + 4, _src01, 5);
+            _src01 = vld4_lane_u8(src2 + _src_loc[1], _src01, 6);
+            _src01 = vld4_lane_u8(src2 + _src_loc[1] + 4, _src01, 7);
+            int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
+            int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
+            int16x8_t _src16_02 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[2]));
+            int16x8_t _src16_03 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[3]));
+            uint8x8x4_t _src23  = uint8x8x4_t();
+            _src23 = vld4_lane_u8(src1 + _src_loc[2], _src23, 0);
+            _src23 = vld4_lane_u8(src1 + _src_loc[2] + 4, _src23, 1);
+            _src23 = vld4_lane_u8(src2 + _src_loc[2], _src23, 2);
+            _src23 = vld4_lane_u8(src2 + _src_loc[2] + 4, _src23, 3);
+            _src23 = vld4_lane_u8(src1 + _src_loc[3], _src23, 4);
+            _src23 = vld4_lane_u8(src1 + _src_loc[3] + 4, _src23, 5);
+            _src23 = vld4_lane_u8(src2 + _src_loc[3], _src23, 6);
+            _src23 = vld4_lane_u8(src2 + _src_loc[3] + 4, _src23, 7);
+            int16x8_t _src16_10 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[0]));
+            int16x8_t _src16_11 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[1]));
+            int16x8_t _src16_12 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[2]));
+            int16x8_t _src16_13 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[3]));
+
+            int16x4_t _tab_loc = vld1_s16(tab_loc_p);
+            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+
+            int32x4_t _val0, _val1, _val2, _val3, _res0123;
+            int16x4_t _res16;
+            uint8x8x4_t _resu8;
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_03));
+            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_03));
+            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_13));
+            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_13));
+            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
+            _res0123 = vaddq_s32(_res0123, _offset);
+            _res16   = vshrn_n_s32(_res0123, 15);
+            _resu8.val[3] = vqmovun_s16(vcombine_s16(_res16, _res16));
+
+            vst4_lane_u8(dst_p, _resu8, 0);
+            vst4_lane_u8(dst_p + 4, _resu8, 1);
+            vst4_lane_u8(dst_p + 8, _resu8, 2);
+            vst4_lane_u8(dst_p + 12, _resu8, 3);
+
+            buf_loc_p += 4;
+            tab_loc_p += 4;
+            dst_p     += 16;
+        }
+#endif
+        for (; x <= end_x; x++) {
+            int dst_loc = dst_loc_base + x * 4;
+            int src_loc = buf_loc[x];
+            short* wtab = BilinearTab_i[tab_loc[x]][0];
+
+            int point00 = src1[src_loc];
+            int point01 = src1[src_loc + 1];
+            int point02 = src1[src_loc + 2];
+            int point03 = src1[src_loc + 3];
+            int point04 = src1[src_loc + 4];
+            int point05 = src1[src_loc + 5];
+            int point06 = src1[src_loc + 6];
+            int point07 = src1[src_loc + 7];
+            int point10 = src2[src_loc];
+            int point11 = src2[src_loc + 1];
+            int point12 = src2[src_loc + 2];
+            int point13 = src2[src_loc + 3];
+            int point14 = src2[src_loc + 4];
+            int point15 = src2[src_loc + 5];
+            int point16 = src2[src_loc + 6];
+            int point17 = src2[src_loc + 7];
+
+            int val_xy0      = wtab[0] * point00 + wtab[1] * point04 + wtab[2] * point10 + wtab[3] * point14;
+            int val_xy1      = wtab[0] * point01 + wtab[1] * point05 + wtab[2] * point11 + wtab[3] * point15;
+            int val_xy2      = wtab[0] * point02 + wtab[1] * point06 + wtab[2] * point12 + wtab[3] * point16;
+            int val_xy3      = wtab[0] * point03 + wtab[1] * point07 + wtab[2] * point13 + wtab[3] * point17;
+            dst[dst_loc]     = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
+            dst[dst_loc + 1] = SATURATE_CAST_UCHAR((val_xy1 + (1 << 14)) >> 15);
+            dst[dst_loc + 2] = SATURATE_CAST_UCHAR((val_xy2 + (1 << 14)) >> 15);
+            dst[dst_loc + 3] = SATURATE_CAST_UCHAR((val_xy3 + (1 << 14)) >> 15);
+        }
     }
 }
 
 void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                             const float (*transform)[3], const float border_val) {
     int schannel  = 1;
+    int src_plane = src_h * src_w * schannel;
+
+    int* buffer = nullptr;
+    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int* buf_loc        = new int[dst_w * max_num_threads];
+    short* tab_loc      = new short[dst_w * max_num_threads];
+
+    const unsigned char* src2 = src + src_w * schannel;
+
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int thread_id    = OMP_TID_;
+        int x_count      = 0;
+        int end_x        = 0;
+        int dst_loc_base = y * dst_w * schannel;
+        int* buf_loc_t   = buf_loc + thread_id * dst_w;
+        short* tab_loc_t = tab_loc + thread_id * dst_w;
+
+        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+    }
+
+    delete[] buf_loc;
+    delete[] tab_loc;
+
+    free(buffer);
+}
+
+void warpaffine_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                            const float (*transform)[3], const float border_val) {
+    int schannel  = 2;
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
@@ -1440,6 +1682,63 @@ void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h,
     delete[] tab_loc;
 
     free(buffer);
+}
+
+void warpaffine_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                            const float (*transform)[3], const float border_val) {
+    int schannel  = 4;
+    int src_plane = src_h * src_w * schannel;
+
+    int* buffer = nullptr;
+    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int* buf_loc        = new int[dst_w * max_num_threads];
+    short* tab_loc      = new short[dst_w * max_num_threads];
+
+    const unsigned char* src2 = src + src_w * schannel;
+
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int thread_id    = OMP_TID_;
+        int x_count      = 0;
+        int end_x        = 0;
+        int dst_loc_base = y * dst_w * schannel;
+        int* buf_loc_t   = buf_loc + thread_id * dst_w;
+        short* tab_loc_t = tab_loc + thread_id * dst_w;
+
+        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+    }
+
+    delete[] buf_loc;
+    delete[] tab_loc;
+
+    free(buffer);
+}
+
+void warpaffine_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                            const float (*transform)[3], const float border_val) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert dst_w % 2 == 0
+    // assert dst_h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = dst_w * dst_h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        warpaffine_bilinear_c1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + dst_w * dst_h;
+        warpaffine_bilinear_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+    }
 }
 
 }  // namespace TNN_NS
