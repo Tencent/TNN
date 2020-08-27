@@ -32,7 +32,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
 
-#define THREAD_NUM 32
+#define THREAD_NUM 100
 
 using namespace TNN_NS;
 TNN net_;
@@ -40,10 +40,10 @@ TNN net_;
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename>\n");
+        printf("./AtlasTest <config_filename> <input_filename> <thread num> <loop num>\n");
         return 0;
     } else {
-        if (argc < 3) {
+        if (argc < 5) {
             printf("invalid args\n");
             return 0;
         }
@@ -64,10 +64,12 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    int loop_count = 10;
+    int thread_num = atoi(argv[3]);
+    int loop_count = atoi(argv[4]);
+    printf("thread num: %d  loop count %d\n", thread_num, loop_count);
     do {
         TNNParam thread_param[THREAD_NUM];
-        for (int i = 0; i < THREAD_NUM; ++i) {
+        for (int i = 0; i < thread_num; ++i) {
             thread_param[i].input_file = argv[2];
             thread_param[i].device_id  = 0;
             thread_param[i].thread_id  = i;
@@ -76,13 +78,13 @@ int main(int argc, char* argv[]) {
 
         pthread_t thread[THREAD_NUM];
 
-        for (int t = 0; t < THREAD_NUM; ++t) {
+        for (int t = 0; t < thread_num; ++t) {
             if (pthread_create(&thread[t], NULL, &RunTNN, (void*)&thread_param[t]) != 0) {
                 return -1;
             }
         }
 
-        for (int t = 0; t < THREAD_NUM; t++) {
+        for (int t = 0; t < thread_num; t++) {
             pthread_join(thread[t], NULL);
         }
 
