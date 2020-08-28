@@ -12,20 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ImageClassifier_hpp
-#define ImageClassifier_hpp
+#ifndef ANDROID_IMAGE_CLASSIFY_JNI_H_
+#define ANDROID_IMAGE_CLASSIFY_JNI_H_
 
-#include <algorithm>
-#include <iostream>
-#include <string>
-#include <vector>
-#include "TNNSDKSample.h"
 
-class ImageClassifier : public TNN_NS::TNNSDKSample {
-public:
-    ~ImageClassifier();
-    ImageClassifier();
-    int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id);
-};
+#include <jni.h>
+#define TNN_CLASSIFY(sig) Java_com_tencent_tnn_demo_ImageClassify_##sig
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType);
+JNIEXPORT JNICALL jint TNN_CLASSIFY(deinit)(JNIEnv *env, jobject thiz);
+JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height);
 
-#endif /* ImageClassifier_hpp */
+#ifdef __cplusplus
+}
+#endif
+
+#endif // ANDROID_IMAGE_CLASSIFY_JNI_H_

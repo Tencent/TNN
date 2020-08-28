@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Neg, LAYER_NEG);
 
-string MetalNegLayerAcc::KernelName() {
+string MetalNegLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "neg";
 }
 

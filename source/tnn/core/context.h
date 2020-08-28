@@ -21,6 +21,7 @@
 
 #include "tnn/core/status.h"
 #include "tnn/core/profile.h"
+#include "tnn/core/common.h"
 
 namespace TNN_NS {
 
@@ -48,6 +49,12 @@ public:
     // @brief set threads run on device
     virtual Status SetNumThreads(int num_threads);
 
+    // @brief set precision to run on device
+    virtual Status SetPrecision(Precision precision);
+
+    // @brief get precision to run on device
+    virtual Precision GetPrecision();
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -59,6 +66,9 @@ public:
 protected:
     std::shared_ptr<ProfileResult> profiling_result_ = nullptr;
 #endif
+
+protected:
+    Precision precision_ = PRECISION_AUTO;
 };
 
 }  // namespace TNN_NS

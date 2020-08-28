@@ -67,7 +67,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     return status;
 }
 
-std::string MetalMultidirBroadcastLayerAcc::KernelName() {
+std::string MetalMultidirBroadcastLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 

@@ -12,25 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
-#define TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+#ifndef TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
+#define TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
 
-#include <sstream>
+#include <algorithm>
+#include <iostream>
 #include <string>
-#include "tnn/core/macro.h"
+#include <vector>
 
-namespace TNN_NS {
+#include "tnn_sdk_sample.h"
 
-template <typename T>
-std::string to_string(T value) {
-    std::ostringstream os;
-    os << value;
-    return os.str();
-}
+class ImageClassifier : public TNN_NS::TNNSDKSample {
+public:
+    ~ImageClassifier();
+    ImageClassifier();
+    int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id);
+};
 
-template <>
-std::string to_string<float>(float value);
-
-}  // namespace TNN_NS
-
-#endif  // TNN_SOURCE_TNN_UTILS_STRING_UTILS_H_
+#endif // TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_

@@ -1,8 +1,19 @@
+// Tencent is pleased to support the open source community by making TNN available.
 //
-// Created by tencent on 2020-04-29.
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
 //
-#include "facedetector_jni.h"
-#include "UltraFaceDetector.h"
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#include "face_detector_jni.h"
+#include "ultra_face_detector.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"
 #include <jni.h>
@@ -83,7 +94,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     int ret = kannarotate_yuv420sp((const unsigned char*)yuvDataRef, (int)width, (int)height, (unsigned char*)yuvData, (int)rotate);
     env->ReleaseByteArrayElements(yuv420sp, yuvDataRef, 0);
     unsigned char *rgbaData = new unsigned char[height * width * 4];
-    unsigned char *rgbData = new unsigned char[height * width * 3];
     yuv420sp_to_rgba_fast_asm((const unsigned char*)yuvData, height, width, (unsigned char*)rgbaData);
 //    stbi_write_jpg(rgba_image_name, height, width, 4, rgbaData, 95);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;

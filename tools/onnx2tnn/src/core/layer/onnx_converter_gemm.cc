@@ -20,15 +20,33 @@
 
 #include "half_utils.h"
 
+template <class T>
+onnx::TensorProto MakeTensor(const std::string &name, const std::vector<T> &v,
+                             const std::vector<int> &shape, onnx::TensorProto_DataType data_type)
+{
+    onnx::TensorProto tensor;
+
+    tensor.set_name(name);
+    for (auto dim : shape)
+    {
+        tensor.add_dims(dim);
+    }
+    tensor.set_data_type(data_type);
+    tensor.mutable_raw_data()->assign(
+            reinterpret_cast<const char *>(v.data()), v.size() * sizeof(T));
+
+    return tensor;
+}
+
 DECLARE_OP_CONVERTER(Gemm);
 
 string OnnxOpConverterGemm::TNNOpType(NodeProto& node,
-                                           OnnxNetInfo &net_info) {
+                                      OnnxNetInfo &net_info) {
     float alpha = get_node_attr_f(node, "alpha", 1.f);
     float beta  = get_node_attr_f(node, "beta", 1.f);
     int transA  = (int)get_node_attr_i(node, "transA", 0);
     int transB  = (int)get_node_attr_i(node, "transB", 0);
-    if (alpha == 1.f && beta == 1.f) {
+    if (alpha == 1.f) {
         // InnerProduct-like A * B + C
         if (transA == 0) {
             return "InnerProduct";
@@ -38,7 +56,7 @@ string OnnxOpConverterGemm::TNNOpType(NodeProto& node,
 }
 
 string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
-                                               OnnxNetInfo& net_info) {
+                                          OnnxNetInfo& net_info) {
     ostringstream layer_param;
 
     const std::string& onnx_op = node.op_type();
@@ -48,15 +66,21 @@ string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
     int broadcast = (int)get_node_attr_i(node, "broadcast", 0);
     int transA    = (int)get_node_attr_i(node, "transA", 0);
     int transB    = (int)get_node_attr_i(node, "transB", 0);
-    if (alpha == 1.f && beta == 1.f) {
+
+    if (!(beta == 1 || beta == 0)) {
+        DLog("error::Gemm convert failed: beta should be 0 or 1\n");
+        assert(0);
+    }
+
+    if (alpha == 1.f) {
         // InnerProduct-like A * B + C
         if (transA == 0) {
             int axis = 1;  // Fix TODO
             const onnx::TensorProto& weights =
-                net_info.weights_map[node.input(1)];
+                    net_info.weights_map[node.input(1)];
             int channel_output =
-                transB ? (int)weights.dims(0) : (int)weights.dims(1);
-            int has_bias = beta != 0.0f;
+                    transB ? (int)weights.dims(0) : (int)weights.dims(1);
+            int has_bias = 1;
             layer_param << channel_output << " " << has_bias << " "
                         << (int)0 << " " << axis << " ";
         }
@@ -70,8 +94,8 @@ string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
 }
 
 int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
-                                            NodeProto& node,
-                                            OnnxNetInfo& net_info) {
+                                       NodeProto& node,
+                                       OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
     std::string name = !node.name().empty() ? node.name() : node.output(0);
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
@@ -80,7 +104,7 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
     float beta  = get_node_attr_f(node, "beta", 1.f);
     int transA  = (int)get_node_attr_i(node, "transA", 0);
     int transB  = (int)get_node_attr_i(node, "transB", 0);
-    if (alpha == 1.f && beta == 1.f) {
+    if (alpha == 1.f) {
         // InnerProduct-like A * B + C
         if (transA == 0) {
             int axis = 1;  // Fix TODO
@@ -102,7 +126,7 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
 
                 float* permuted_data = new float[h * w];
                 auto bptr = get_tensor_proto_data(B);
-                
+
                 float* permuted_data_ptr = permuted_data;
                 for (int j = 0; j < w; j++) {
                     for (int k = 0; k < h; k++) {
@@ -111,12 +135,24 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
                         permuted_data_ptr++;
                     }
                 }
-                
+
                 WriteRawData(permuted_data, (int)(h * w), net_writer, net_info.data_type);
                 delete [] permuted_data;
             }
 
-            auto bias = get_node_attr_tensor(node, "C", net_info, 2);
+            int num_bias = B.dims(1);
+            if (transB == 1) {
+                num_bias = B.dims(0);
+            }
+
+            onnx::TensorProto bias;
+            if (node.input_size() == 3) {
+                bias = get_node_attr_tensor(node, "C", net_info, 2);
+            } else {
+                std::vector<int> bias_shape = {num_bias};
+                std::vector<float> bias_data(num_bias, 0.0f);
+                bias = MakeTensor("C", bias_data, bias_shape, onnx::TensorProto::FLOAT);
+            }
             WriteTensorData(bias, net_writer, net_info.data_type);
         }
     }

@@ -30,7 +30,7 @@ Status MetalReshapeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return MetalLayerAcc::AllocateBufferParam(inputs, outputs);;
 }
 
-std::string MetalReshapeLayerAcc::KernelName() {
+std::string MetalReshapeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "reshape_common";
 }
 

@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "UltraFaceDetector.h"
-#include <sys/time.h>
+#include "ultra_face_detector.h"
+#include "sample_timer.h"
 #include <cmath>
 #include <cstring>
 
@@ -118,11 +118,10 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
 
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
-    for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
+    tnn::SampleTimer timer;
+    for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {    
+        timer.Start();
 #endif
-        
         // step 1. set input mat
         TNN_NS::MatConvertParam input_convert_param;
         input_convert_param.scale = {1.0 / 128, 1.0 / 128, 1.0 / 128, 0.0};
@@ -157,9 +156,9 @@ int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
         }
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
-        bench_result_.AddTime(elapsed);
+        timer.Stop();
+        bench_result_.AddTime(timer.GetTime());
+        timer.Reset();
 #endif
 
         std::vector<FaceInfo> bbox_collection;

@@ -39,8 +39,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/string_utils.h"
-#include <iostream>
+#include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -291,9 +290,9 @@ namespace test {
 
     NetworkConfig GetNetworkConfig() {
         NetworkConfig config;
-        // Precision : HIGH for float computing.
+        // Precision : AUTO for float computing.
         config.precision = ConvertPrecision(FLAGS_pr);
-        
+
         // Device Type: ARM, OPENECL, ...
         if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
             std::cout << "ok" << std::endl;
@@ -432,7 +431,7 @@ namespace test {
                 DimsVector dims   = mat->GetDims();
                 std::string shape = "( ";
                 for (auto dim : dims) {
-                    shape += to_string(dim) + " ";
+                    shape += ToString(dim) + " ";
                 }
                 shape += ")";
                 LOGD("the output shape: %s\n", shape.c_str());
