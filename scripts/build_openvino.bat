@@ -1,6 +1,6 @@
 echo off
 set TNN_DIR=%~dp0\..\
-set thirdparty_dir=%TNN_DIR%\source\tnn\device\openvino\thirdparty
+set thirdparty_dir=%TNN_DIR%\source\tnn\network\openvino\thirdparty
 
 if not exist %thirdparty_dir% (
     mkdir %thirdparty_dir%\openvino

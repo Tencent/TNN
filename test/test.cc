@@ -295,7 +295,6 @@ namespace test {
 
         // Device Type: ARM, OPENECL, ...
         if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
-            std::cout << "ok" << std::endl;
             config.device_type = DEVICE_X86;
         } else {
             config.device_type = ConvertDeviceType(FLAGS_dt);
@@ -437,7 +436,6 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
-        std::cout << "Writing outputs" << std::endl;
         for (auto output : outputs) {
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());

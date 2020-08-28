@@ -51,7 +51,7 @@ Status PermuteOVLayerBuilder::Build() {
     for (auto item : paramlist->orders) {
         permutePattern.push_back(item);
     }
-    std::cout << size << std::endl;
+
     auto orderNode = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::i32, permuteShape, permutePattern);
     

@@ -59,10 +59,10 @@ Status PriorBoxOVLayerBuilder::Build() {
 
     auto size_shape = input_node[0]->get_output_shape(0);
     auto sizeNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, ngraph::Shape({2}), std::vector<int>({size_shape.at(2), size_shape.at(3)}));
+        ngraph::element::Type_t::i64, ngraph::Shape({2}), std::vector<size_t>({size_shape.at(2), size_shape.at(3)}));
     auto image_shape = input_node[1]->get_output_shape(0);
     auto imageNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, ngraph::Shape({2}), std::vector<int>({image_shape.at(2), image_shape.at(3)}));
+        ngraph::element::Type_t::i64, ngraph::Shape({2}), std::vector<size_t>({image_shape.at(2), image_shape.at(3)}));
     auto priorBoxNode = std::make_shared<ngraph::op::PriorBox>(
         sizeNode->output(0), imageNode->output(0), attrs);
     
