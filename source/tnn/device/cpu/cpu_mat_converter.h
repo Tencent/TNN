@@ -17,8 +17,7 @@
 #include "tnn/device/cpu/acc/compute/compute_int8.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/blob_converter_internal.h"
-#include "tnn/utils/mat_converter.h"
-#include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_converter_acc.h"
 #include "tnn/device/cpu/cpu_math_util.h"
 
 namespace TNN_NS {

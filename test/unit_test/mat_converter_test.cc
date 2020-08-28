@@ -16,7 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/unit_test_macro.h"
 #include "tnn/core/blob_int8.h"
-#include "tnn/utils/mat_converter.h"
+#include "tnn/utils/mat_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -199,10 +199,9 @@ TEST_P(MatConverterTest, MatConverterTest) {
             Mat *src, *dst;
             src = &cpu_in_mat;
             dst = &device_mat;
-            MatConverter gpu_converter(src, dst);
-            gpu_converter.Copy(cpu_in_mat, device_mat, device_command_queue);
+            MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
 
-            gpu_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
 
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data_), static_cast<uint8_t*>(mat_in_data_),
                                       channel, channel, out_size_);
@@ -217,10 +216,9 @@ TEST_P(MatConverterTest, MatConverterTest) {
             src         = &cpu_in_mat;
             dst         = &device_mat;
             dst_ref     = &cpu_ref_mat;
-            MatConverter host_converter(src, dst_ref);
 
             LOGE("resizeon host start\n");
-            tnn::Status status = host_converter.Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
+            tnn::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
             if (status == TNN_OK)
             {
                 LOGE("resize test start\n");
@@ -231,11 +229,10 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            MatConverter device_converter(src, dst);
             LOGE("resize on device start\n");
-            status = device_converter.Copy(cpu_in_mat, device_in_mat,
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
-            status = device_converter.Resize(device_in_mat, device_mat,
+            status = MatUtils::Resize(device_in_mat, device_mat,
                                                  mat_converter_test_param.resize_param,
                                                  device_command_queue);
             if (status == TNN_OK)
@@ -248,7 +245,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            device_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);
@@ -261,9 +258,8 @@ TEST_P(MatConverterTest, MatConverterTest) {
             dst         = &device_mat;
             dst_ref     = &cpu_ref_mat;
 
-            MatConverter host_converter(src, dst_ref);
             LOGE("crop on host start\n");
-            tnn::Status status = host_converter.Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
+            tnn::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
             if (status == TNN_OK)
             {
                 LOGE("crop on host done\n");
@@ -274,11 +270,10 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            MatConverter device_converter(src, dst);
             LOGE("crop on device start\n");
-            status = device_converter.Copy(cpu_in_mat, device_in_mat,
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
-            status = device_converter.Crop(device_in_mat, device_mat,
+            status = MatUtils::Crop(device_in_mat, device_mat,
                                                  mat_converter_test_param.crop_param,
                                                  device_command_queue);
             if (status == TNN_OK)
@@ -291,7 +286,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            device_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);
@@ -304,9 +299,8 @@ TEST_P(MatConverterTest, MatConverterTest) {
             dst         = &device_mat;
             dst_ref     = &cpu_ref_mat;
 
-            MatConverter host_converter(src, dst_ref);
             LOGE("warp affine on host start\n");
-            tnn::Status status = host_converter.WarpAffine(cpu_in_mat, cpu_ref_mat,
+            tnn::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
             if (status == TNN_OK)
@@ -319,11 +313,10 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            MatConverter device_converter(src, dst);
             LOGE("warp affine on device start\n");
-            status = device_converter.Copy(cpu_in_mat, device_in_mat,
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
-            status = device_converter.WarpAffine(device_in_mat, device_mat,
+            status = MatUtils::WarpAffine(device_in_mat, device_mat,
                                                  mat_converter_test_param.warp_affine_param,
                                                  device_command_queue);
             if (status == TNN_OK)
@@ -336,7 +329,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 FAIL();
             }
 
-            device_converter.Copy(device_mat, cpu_out_mat, device_command_queue);
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);
