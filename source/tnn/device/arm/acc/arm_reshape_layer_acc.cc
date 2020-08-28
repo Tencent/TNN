@@ -37,9 +37,12 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
     auto size_in_bytes = dims_input[0] * dims_input[1] * dims_input[2] * dims_input[3] * data_byte_size;
 
-    void *workspace = context_->GetSharedWorkSpace(size_in_bytes);
+    void *workspace     = context_->GetSharedWorkSpace(size_in_bytes + 3 * data_byte_size);
     char *input_origin  = GetBlobHandlePtr(input->GetHandle());
     char *output_origin = GetBlobHandlePtr(output->GetHandle());
+
+    auto param    = (ReshapeLayerParam *)param_;
+    ASSERT(param != nullptr);
 
     if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format) {
         if (DATA_TYPE_FLOAT == in_data_type) {
@@ -48,14 +51,24 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                     reinterpret_cast<float *>(input_origin) + b * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3];
                 auto workspace_data =
                     reinterpret_cast<float *>(workspace) + b * dims_input[1] * dims_input[2] * dims_input[3];
-                UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                if (param->reshape_type == 0)
+                    UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                else if (param->reshape_type == 1)
+                    UnpackC4ToNHWC(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                else
+                    return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
             }
             for (int b = 0; b < dims_output[0]; b++) {
                 auto workspace_data =
                     reinterpret_cast<float *>(workspace) + b * dims_output[1] * dims_output[2] * dims_output[3];
                 auto output_data =
                     reinterpret_cast<float *>(output_origin) + b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
-                PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                if (param->reshape_type == 0)
+                    PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                else if (param->reshape_type == 1)
+                    PackC4FromNHWC(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                else
+                    return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
             }
         } else if (DATA_TYPE_BFP16 == in_data_type) {
             for (int b = 0; b < dims_input[0]; b++) {
@@ -63,14 +76,24 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                     reinterpret_cast<bfp16_t *>(input_origin) + b * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3];
                 auto workspace_data =
                     reinterpret_cast<bfp16_t *>(workspace) + b * dims_input[1] * dims_input[2] * dims_input[3];
-                UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                if (param->reshape_type == 0)
+                    UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                else if (param->reshape_type == 1)
+                    UnpackC4ToNHWC(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+                else
+                    return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
             }
             for (int b = 0; b < dims_output[0]; b++) {
                 auto workspace_data =
                     reinterpret_cast<bfp16_t *>(workspace) + b * dims_output[1] * dims_output[2] * dims_output[3];
                 auto output_data =
                     reinterpret_cast<bfp16_t *>(output_origin) + b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
-                PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                if (param->reshape_type == 0)
+                    PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                else if (param->reshape_type == 1)
+                    PackC4FromNHWC(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+                else
+                    return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
             }
         } else {
             return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");

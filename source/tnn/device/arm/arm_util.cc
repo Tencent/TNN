@@ -59,6 +59,19 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
+    for (int c = 0; c < channel; c += 4) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            float32x4_t v;
+            v = vld1q_f32(src_c + cur_hw * channel);
+            vst1q_f32(dst_c + cur_hw * 4, v);
+        }
+    }
+
+    return 0;
+}
 #endif
 
 char* GetBlobHandlePtr(BlobHandle handle) {
@@ -96,6 +109,35 @@ template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        if (channel % 4 == 0) {
+            return PackNeonNHWC((float *)dst, (const float *)src, hw, channel);
+        }
+    }
+#endif
+    int c, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * UP_DIV(channel, 4) * 4 * sizeof(Tout));
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane      = c / 4;
+            auto *dstPlane = plane * hw * 4 + dst;
+            int offset     = c % 4;
+            dstPlane[4 * cur_hw + offset] = src[idx++];
+        }
+    }
+
+    return 0;
+}
+
+template int PackC4FromNHWC(float *dst, const float *src, size_t hw, size_t channel);
+template int PackC4FromNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackC4FromNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackC4FromNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
 int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, float *scale) {
     int idx  = 0;
     int c_r4 = ROUND_UP(channel, 4);
@@ -130,6 +172,27 @@ template int UnpackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane         = c / 4;
+            const auto *src_c = plane * hw * 4 + src;
+            int offset        = c % 4;
+            dst[idx++] = src_c[4 * cur_hw + offset];
+        }
+    }
+    return 0;
+}
+
+template int UnpackC4ToNHWC(float *dst, const float *src, size_t hw, size_t channel);
+template int UnpackC4ToNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackC4ToNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackC4ToNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
 int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale) {
     int cur_hw;
