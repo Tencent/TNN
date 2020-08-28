@@ -65,11 +65,12 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         return 0;
     }
 
-    for (int c = 0; c < channel - 3; c += 4) {
+    auto cc = (channel>>2<<2);
+    float32x4_t v;
+    for (int c = 0; c < cc; c += 4) {
         auto src_c = src + c;
         auto dst_c = dst + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            float32x4_t v;
             v = vld1q_f32(src_c + cur_hw * channel);
             vst1q_f32(dst_c + cur_hw * 4, v);
         }
@@ -77,13 +78,43 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
 
     int remain = channel % 4;
     if (remain) {
-        auto src_c = src + (channel>>2<<2);
-        auto dst_c = dst + (channel>>2<<2) * hw;
+        auto src_c = src + cc;
+        auto dst_c = dst + cc * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            float32x4_t v = vdupq_n_f32(0);
+            v = vdupq_n_f32(0);
             for (int r = 0; r < remain; ++r)
                 v = vld1q_lane_f32(src_c + cur_hw * channel + r, v, r);
             vst1q_f32(dst_c + cur_hw * 4, v);
+        }
+    }
+
+    return 0;
+}
+int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(float));
+        return 0;
+    }
+
+    auto cc = (channel>>2<<2);
+    float32x4_t v;
+    for (int c = 0; c < cc; c += 4) {
+        auto dst_c = dst + c;
+        auto src_c = src + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = vld1q_f32(src_c + cur_hw * 4);
+            vst1q_f32(dst_c + cur_hw * channel, v);
+        }
+    }
+
+    int remain = channel % 4;
+    if (remain) {
+        auto dst_c = dst + cc;
+        auto src_c = src + cc * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = vld1q_f32(src_c + cur_hw * 4);
+            for (int r = 0; r < remain; ++r)
+                vst1q_lane_f32(dst_c + cur_hw * channel + r, v, r);
         }
     }
 
@@ -190,6 +221,11 @@ template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channe
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        return UnpackNeonNHWC((float *)dst, (const float *)src, hw, channel);
+    }
+#endif
     int cur_hw;
     int c;
     int idx = 0;
