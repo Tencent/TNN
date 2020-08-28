@@ -12,32 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_EXAMPLES_SAMPLES_TIMER_H_
-#define TNN_EXAMPLES_SAMPLES_TIMER_H_
+#ifndef ANDROID_IMAGE_CLASSIFY_JNI_H_
+#define ANDROID_IMAGE_CLASSIFY_JNI_H_
 
-#include <chrono>
-#include <string>
 
-#include "tnn/core/macro.h"
+#include <jni.h>
+#define TNN_CLASSIFY(sig) Java_com_tencent_tnn_demo_ImageClassify_##sig
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType);
+JNIEXPORT JNICALL jint TNN_CLASSIFY(deinit)(JNIEnv *env, jobject thiz);
+JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height);
 
-namespace TNN_NS {
+#ifdef __cplusplus
+}
+#endif
 
-using std::chrono::time_point;
-using std::chrono::system_clock;
-
-class SampleTimer {
-public:
-    SampleTimer() {};
-    void Start();
-    void Stop();
-    void Reset();
-    double GetTime();
-
-private:
-    time_point<system_clock> start_;
-    time_point<system_clock> stop_;
-};
-
-} // namespace TNN_NS
-
-#endif // TNN_TEST_TIMER_H_ 
+#endif // ANDROID_IMAGE_CLASSIFY_JNI_H_

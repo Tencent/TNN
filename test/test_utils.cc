@@ -69,7 +69,7 @@ Precision ConvertPrecision(std::string precision) {
     } else if ("LOW" == precision) {
         return PRECISION_LOW;
     } else {
-        return PRECISION_HIGH;
+        return PRECISION_AUTO;
     }
 }
 

@@ -21,7 +21,7 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, bool, DataType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32),
@@ -30,21 +30,22 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             testing::Values(1, 3),
                                             // stride
                                             testing::Values(1, 2),
-                                            // depthwise
-                                            testing::Values(true, false),
+                                            // group
+                                            testing::Values(1, 2, 3, 8),
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16)));
 
 TEST_P(ConvQuantLayerTest, ConvLayer) {
     // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int kernel         = std::get<3>(GetParam());
-    int stride         = std::get<4>(GetParam());
-    bool is_dw         = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    int batch             = std::get<0>(GetParam());
+    int channel_per_group = std::get<1>(GetParam());
+    int input_size        = std::get<2>(GetParam());
+    int kernel            = std::get<3>(GetParam());
+    int stride            = std::get<4>(GetParam());
+    DataType data_type    = std::get<6>(GetParam());
+    int group             = std::get<5>(GetParam());
+    int channel           = group * channel_per_group;
+    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
@@ -58,7 +59,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     param.name           = "Conv";
     param.input_channel  = channel;
     param.output_channel = channel;
-    param.group          = is_dw ? channel : 1;
+    param.group          = group;
     param.kernels        = {kernel, kernel};
     param.dialations     = {1, 1};
     param.strides        = {stride, stride};
@@ -67,8 +68,9 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
 
     // resource
     ConvLayerResource resource;
-    int filter_count = channel * channel * kernel * kernel;
-    RawBuffer filter(filter_count * sizeof(float));
+    auto element_size = (data_type == DATA_TYPE_INT8) ? 1 : 4;
+    int filter_count  = channel * channel * kernel * kernel / group;
+    RawBuffer filter(filter_count * element_size);
     RawBuffer bias(channel * sizeof(float));
     if (data_type == DATA_TYPE_BFP16) {
         InitRandom(filter.force_to<float*>(), filter_count, (float)1.0);
@@ -77,7 +79,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         RawBuffer scale(channel * sizeof(float));
         InitRandom(filter.force_to<int8_t*>(), filter_count, (int8_t)8);
         filter.SetDataType(data_type);
-        InitRandom(bias.force_to<int8_t*>(), channel, (int8_t)8);
+        InitRandom(bias.force_to<int32_t*>(), channel, (int32_t)8);
         InitRandom(scale.force_to<float*>(), channel, 1.0f);
         resource.scale_handle = scale;
     }

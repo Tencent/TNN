@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 #include "tnn/core/status.h"
+#include "tnn/core/common.h"
 #include "tnn/device/opencl/opencl_wrapper.h"
 
 namespace TNN_NS {
@@ -58,6 +59,7 @@ public:
     GpuInfo GetGpuInfo();
     bool GetFp16Enable() const;
     bool SetFp16Enable(bool enable);
+    void SetPrecision(Precision precision);
 
     Status BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                        const std::set<std::string> &build_options);
@@ -85,6 +87,7 @@ private:
     GpuInfo gpu_info_;
     bool support_fp16_ = false;
     bool fp16_enable_ = false;
+    Precision precision_ = PRECISION_AUTO;
 };
 
 }  // namespace TNN_NS
