@@ -32,7 +32,7 @@ namespace TNN_NS {
 #define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
 #define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
 
-void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
+void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
     auto dst_ptr = reinterpret_cast<uint8_t*>(dst);
 
@@ -44,8 +44,8 @@ void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, i
 
 }
 
-static void calculate_position_and_ratio(int length, double scale, int border, int channel,
-                                         int* position, short* ratio) {
+static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
+                                      int* position, short* ratio) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
     float pos_f;
@@ -82,7 +82,7 @@ static void calculate_position_and_ratio(int length, double scale, int border, i
 //     --                              (x*scale_x, y*scale_y)
 // ibeta[2*y+1]
 //     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf) {
+static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
     double scale_x = (double)src_w / w;
     double scale_y = (double)src_h / h;
 
@@ -94,12 +94,12 @@ static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf)
     short* ialpha = (short*)(*buf + w + h);
     short* ibeta  = (short*)(*buf + w + h + w);
 
-    calculate_position_and_ratio(w, scale_x, src_w, c, xofs, ialpha);
-    calculate_position_and_ratio(h, scale_y, src_h, 1, yofs, ibeta);
+    CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
+    CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
-static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
-                                     const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
+static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
+                                  const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
     if (sy == prev_sy) {
         // reuse all rows
     } else if (sy == prev_sy + 1) {
@@ -296,8 +296,8 @@ static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short**
     }
 }
 
-static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
-                                     uint8_t* Dp) {
+static void ResizeCalculateOneRow(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
+                                  uint8_t* Dp) {
 #ifndef TNN_USE_NEON
     int remain = w * c;
 #else
@@ -343,11 +343,11 @@ static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0,
     }
 }
 
-void resize_bilinear_c1_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                             uint8_t* dst, int w, int h, int stride) {
+void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                          uint8_t* dst, int w, int h, int stride) {
     int schannel  = 1;
     int* buf      = nullptr;
-    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
@@ -374,8 +374,8 @@ void resize_bilinear_c1_impl(const uint8_t* src, int batch, int src_w, int src_h
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
             int sy         = yofs[dy];
-            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
             prev_sy[thread_id] = sy;
 
             // vresize
@@ -384,7 +384,7 @@ void resize_bilinear_c1_impl(const uint8_t* src, int batch, int src_w, int src_h
 
             uint8_t* Dp   = dst + stride * (b * h + dy);
 
-            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
         }
     }
 
@@ -393,11 +393,11 @@ void resize_bilinear_c1_impl(const uint8_t* src, int batch, int src_w, int src_h
     delete[] buf;
 }
 
-void resize_bilinear_c2_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                             uint8_t* dst, int w, int h, int stride) {
+void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                          uint8_t* dst, int w, int h, int stride) {
     int schannel  = 2;
     int* buf      = nullptr;
-    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
@@ -424,8 +424,8 @@ void resize_bilinear_c2_impl(const uint8_t* src, int batch, int src_w, int src_h
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
             int sy         = yofs[dy];
-            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
             prev_sy[thread_id] = sy;
 
             // vresize
@@ -434,7 +434,7 @@ void resize_bilinear_c2_impl(const uint8_t* src, int batch, int src_w, int src_h
 
             uint8_t* Dp   = dst + stride * (b * h + dy);
 
-            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
         }
     }
 
@@ -443,11 +443,11 @@ void resize_bilinear_c2_impl(const uint8_t* src, int batch, int src_w, int src_h
     delete[] buf;
 }
 
-void resize_bilinear_c3_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                             uint8_t* dst, int w, int h, int stride) {
+void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                          uint8_t* dst, int w, int h, int stride) {
     int schannel  = 3;
     int* buf      = nullptr;
-    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
@@ -474,8 +474,8 @@ void resize_bilinear_c3_impl(const uint8_t* src, int batch, int src_w, int src_h
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
             int sy         = yofs[dy];
-            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
             prev_sy[thread_id] = sy;
 
             // vresize
@@ -484,7 +484,7 @@ void resize_bilinear_c3_impl(const uint8_t* src, int batch, int src_w, int src_h
 
             uint8_t* Dp   = dst + stride * (b * h + dy);
 
-            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
         }
     }
 
@@ -493,11 +493,11 @@ void resize_bilinear_c3_impl(const uint8_t* src, int batch, int src_w, int src_h
     delete[] buf;
 }
 
-void resize_bilinear_c4_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                             uint8_t* dst, int w, int h, int stride) {
+void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                          uint8_t* dst, int w, int h, int stride) {
     int schannel  = 4;
     int* buf      = nullptr;
-    get_resize_buf(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     short* ialpha = (short*)(buf + w + h);
@@ -524,8 +524,8 @@ void resize_bilinear_c4_impl(const uint8_t* src, int batch, int src_w, int src_h
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
             int sy         = yofs[dy];
-            resize_get_adjacent_rows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                     xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
+            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
+                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
             prev_sy[thread_id] = sy;
 
             // vresize
@@ -534,7 +534,7 @@ void resize_bilinear_c4_impl(const uint8_t* src, int batch, int src_w, int src_h
 
             uint8_t* Dp   = dst + stride * (b * h + dy);
 
-            resize_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
         }
     }
 
@@ -543,7 +543,7 @@ void resize_bilinear_c4_impl(const uint8_t* src, int batch, int src_w, int src_h
     delete[] buf;
 }
 
-void resize_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+void ResizeBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
     // assert src_w % 2 == 0
     // assert src_h % 2 == 0
     // assert w % 2 == 0
@@ -555,32 +555,32 @@ void resize_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_
     for (int b = 0; b < batch; ++b) {
         const uint8_t* srcY  = src + b * src_plane;
         uint8_t* dstY        = dst + b * dst_plane;
-        resize_bilinear_c1(srcY, 1, src_w, src_h, dstY, w, h);
+        ResizeBilinearC1(srcY, 1, src_w, src_h, dstY, w, h);
 
         const uint8_t* srcUV = srcY + src_w * src_h;
         uint8_t* dstUV       = dstY + w * h;
-        resize_bilinear_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+        ResizeBilinearC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
     }
 }
 
-void resize_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c1_impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
+void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
 }
 
-void resize_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c2_impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+void ResizeBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC2Impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
 }
 
-void resize_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c3_impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+void ResizeBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC3Impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
 }
 
-void resize_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear_c4_impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-static void calculate_position_and_mask(int length, double scale, int border, int channel,
-                                        int* position, uint8_t* mask) {
+static void CalculatePositionAndMask(int length, double scale, int border, int channel,
+                                     int* position, uint8_t* mask) {
     float pos_f;
     float rat_f;
     int pos_i;
@@ -612,7 +612,7 @@ static void calculate_position_and_mask(int length, double scale, int border, in
 // (1: top,                            (x*scale_x, y*scale_y)
 //  0: bottom)
 //     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void get_resize_buf_nearset(int src_w, int src_h, int w, int h, int c, int** buf) {
+static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
     double scale_x = (double)src_w / w;
     double scale_y = (double)src_h / h;
 
@@ -624,15 +624,15 @@ static void get_resize_buf_nearset(int src_w, int src_h, int w, int h, int c, in
     uint8_t* ialpha = (uint8_t*)(*buf + w + h);
     uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
 
-    calculate_position_and_mask(w, scale_x, src_w, c, xofs, ialpha);
-    calculate_position_and_mask(h, scale_y, src_h, 1, yofs, ibeta);
+    CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
+    CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
-void resize_nearest_c1_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                            uint8_t* dst, int w, int h, int stride) {
+void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                         uint8_t* dst, int w, int h, int stride) {
     int schannel  = 1;
     int* buf      = nullptr;
-    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     uint8_t* ialpha = (uint8_t*)(buf + w + h);
@@ -699,11 +699,11 @@ void resize_nearest_c1_impl(const uint8_t* src, int batch, int src_w, int src_h,
     delete[] buf;
 }
 
-void resize_nearest_c2_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                            uint8_t* dst, int w, int h, int stride) {
+void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                         uint8_t* dst, int w, int h, int stride) {
     int schannel  = 2;
     int* buf      = nullptr;
-    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     uint8_t* ialpha = (uint8_t*)(buf + w + h);
@@ -774,11 +774,11 @@ void resize_nearest_c2_impl(const uint8_t* src, int batch, int src_w, int src_h,
     delete[] buf;
 }
 
-void resize_nearest_c3_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                            uint8_t* dst, int w, int h, int stride) {
+void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                         uint8_t* dst, int w, int h, int stride) {
     int schannel  = 3;
     int* buf      = nullptr;
-    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     uint8_t* ialpha = (uint8_t*)(buf + w + h);
@@ -851,11 +851,11 @@ void resize_nearest_c3_impl(const uint8_t* src, int batch, int src_w, int src_h,
     delete[] buf;
 }
 
-void resize_nearest_c4_impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
-                            uint8_t* dst, int w, int h, int stride) {
+void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                         uint8_t* dst, int w, int h, int stride) {
     int schannel  = 4;
     int* buf      = nullptr;
-    get_resize_buf_nearset(src_w, src_h, w, h, schannel, &buf);
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
     int* xofs     = buf;
     int* yofs     = buf + w;
     uint8_t* ialpha = (uint8_t*)(buf + w + h);
@@ -930,23 +930,23 @@ void resize_nearest_c4_impl(const uint8_t* src, int batch, int src_w, int src_h,
     delete[] buf;
 }
 
-void resize_nearest_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_nearest_c1_impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
+void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
 }
 
-void resize_nearest_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_nearest_c2_impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+void ResizeNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC2Impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
 }
 
-void resize_nearest_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_nearest_c3_impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+void ResizeNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC3Impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
 }
 
-void resize_nearest_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_nearest_c4_impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+void ResizeNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-void resize_nearest_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
     // assert src_w % 2 == 0
     // assert src_h % 2 == 0
     // assert w % 2 == 0
@@ -958,11 +958,11 @@ void resize_nearest_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h
     for (int b = 0; b < batch; ++b) {
         const uint8_t* srcY  = src + b * src_plane;
         uint8_t* dstY        = dst + b * dst_plane;
-        resize_nearest_c1(srcY, 1, src_w, src_h, dstY, w, h);
+        ResizeNearestC1(srcY, 1, src_w, src_h, dstY, w, h);
 
         const uint8_t* srcUV = srcY + src_w * src_h;
         uint8_t* dstUV       = dstY + w * h;
-        resize_nearest_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+        ResizeNearestC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
     }
 }
 
@@ -973,15 +973,15 @@ void resize_nearest_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h
 #define KSIZE 2
 static short BilinearTab_i[INTER_TAB_SIZE*INTER_TAB_SIZE][KSIZE][KSIZE];
 
-static inline void interpolateLinear(float x, float* coeffs) {
+static inline void InterpolateLinear(float x, float* coeffs) {
     coeffs[0] = 1.f - x;
     coeffs[1] = x;
 }
 
-static void initInterTab1D(float* tab, int tabsz) {
+static void InitInterTab1D(float* tab, int tabsz) {
     float scale = 1.f / tabsz;
     for (int i = 0; i < tabsz; i++, tab += 2)
-        interpolateLinear(i * scale, tab);
+        InterpolateLinear(i * scale, tab);
 }
 
 // Interpolation table of size 32 x 32 x 4:
@@ -989,7 +989,7 @@ static void initInterTab1D(float* tab, int tabsz) {
 // (1*31/32, 0*31/32, 1*1/32,  0*1/32) , ... , (1/32*31/32, 31/32*31/32, 1/32*1/32,  31/32*1/32)
 //                                       ...
 // (1*1/32,  0*1/32,  1*31/32, 0*31/32), ... , (1/32*1/32,  31/32*1/32,  1/32*31/32, 31/32*31/32)
-static void initInterTab2D() {
+static void InitInterTab2D() {
     static bool inited = false;
     if (inited) {
         return;
@@ -1000,7 +1000,7 @@ static void initInterTab2D() {
 
     float* _tab = new float[2 * INTER_TAB_SIZE];
     int i, j, k1, k2;
-    initInterTab1D(_tab, INTER_TAB_SIZE);
+    InitInterTab1D(_tab, INTER_TAB_SIZE);
     for (i = 0; i < INTER_TAB_SIZE; i++) {
         for (j = 0; j < INTER_TAB_SIZE; j++, itab += ksize * ksize) {
             int isum = 0;
@@ -1038,8 +1038,8 @@ static void initInterTab2D() {
 // from dst position (x, y):
 // src_x = adelta[2*x]   + bdelta[2*y]
 // src_y = adelta[2*x+1] + bdelta[2*y+1]
-static void warpaffine_init(uint8_t* dst, int batch, int dst_w, int dst_h, int channel, const float border_val,
-                            const float (*transform)[3], int** buffer) {
+static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int channel, const float border_val,
+                           const float (*transform)[3], int** buffer) {
     uint8_t border_ival = (uint8_t)border_val;
     if (border_ival) {
         for (int i = 0; i < batch * dst_h * dst_w * channel; ++i) {
@@ -1050,7 +1050,7 @@ static void warpaffine_init(uint8_t* dst, int batch, int dst_w, int dst_h, int c
     }
 
     // Init LookUp Table
-    initInterTab2D();
+    InitInterTab2D();
 
     double m[6];
     double M[6];
@@ -1090,9 +1090,9 @@ static void warpaffine_init(uint8_t* dst, int batch, int dst_w, int dst_h, int c
     }
 }
 
-static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
-                                       const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
-                                       int y, int src_offset, int& x_count, int& end_x) {
+static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
+                                    const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
+                                    int y, int src_offset, int& x_count, int& end_x) {
     const unsigned char* src2 = src + src_w * channel;
 
     short xy_loc_buf[dst_w * 2];
@@ -1191,8 +1191,8 @@ static void warpaffine_prepare_one_row(int* buf_loc, short* tab_loc, int* adelta
     }
 }
 
-static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, int dst_loc_base, const int* buf_loc,
-                                         const short* tab_loc, const uint8_t* src1, const uint8_t* src2, uint8_t* dst) {
+static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int dst_loc_base, const int* buf_loc,
+                                      const short* tab_loc, const uint8_t* src1, const uint8_t* src2, uint8_t* dst) {
     const int* buf_loc_p   = buf_loc + begin_x;
     const short* tab_loc_p = tab_loc + begin_x;
     const short* tab_p     = BilinearTab_i[0][0];
@@ -1576,13 +1576,13 @@ static void warpaffine_calculate_one_row(int begin_x, int end_x, int channel, in
     }
 }
 
-void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                            const float (*transform)[3], const float border_val) {
+void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val) {
     int schannel  = 1;
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
@@ -1601,9 +1601,9 @@ void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h,
         int* buf_loc_t   = buf_loc + thread_id * dst_w;
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -1612,13 +1612,13 @@ void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h,
     free(buffer);
 }
 
-void warpaffine_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                            const float (*transform)[3], const float border_val) {
+void WarpAffineBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val) {
     int schannel  = 2;
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
@@ -1637,9 +1637,9 @@ void warpaffine_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h,
         int* buf_loc_t   = buf_loc + thread_id * dst_w;
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -1648,13 +1648,13 @@ void warpaffine_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h,
     free(buffer);
 }
 
-void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                            const float (*transform)[3], const float border_val) {
+void WarpAffineBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val) {
     int schannel  = 3;
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
@@ -1673,9 +1673,9 @@ void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h,
         int* buf_loc_t   = buf_loc + thread_id * dst_w;
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -1684,13 +1684,13 @@ void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h,
     free(buffer);
 }
 
-void warpaffine_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                            const float (*transform)[3], const float border_val) {
+void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val) {
     int schannel  = 4;
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
-    warpaffine_init(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
 
@@ -1709,9 +1709,9 @@ void warpaffine_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h,
         int* buf_loc_t   = buf_loc + thread_id * dst_w;
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        warpaffine_prepare_one_row(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                   dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
-        warpaffine_calculate_one_row(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -1720,8 +1720,8 @@ void warpaffine_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h,
     free(buffer);
 }
 
-void warpaffine_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                            const float (*transform)[3], const float border_val) {
+void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                                const float (*transform)[3], const float border_val) {
     // assert src_w % 2 == 0
     // assert src_h % 2 == 0
     // assert dst_w % 2 == 0
@@ -1733,11 +1733,11 @@ void warpaffine_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int 
     for (int b = 0; b < batch; ++b) {
         const uint8_t* srcY  = src + b * src_plane;
         uint8_t* dstY        = dst + b * dst_plane;
-        warpaffine_bilinear_c1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
+        WarpAffineBilinearC1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
 
         const uint8_t* srcUV = srcY + src_w * src_h;
         uint8_t* dstUV       = dstY + dst_w * dst_h;
-        warpaffine_bilinear_c2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+        WarpAffineBilinearC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
     }
 }
 

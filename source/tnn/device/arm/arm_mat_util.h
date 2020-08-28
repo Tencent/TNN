@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_ARM_MAT_UTIL_H_
-#define TNN_ARM_MAT_UTIL_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_UTIL_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_UTIL_H_
 
 #include <string.h>
 #include <sys/time.h>
@@ -27,33 +27,33 @@ namespace TNN_NS {
 
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
 
-void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
+void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
 
 // resize
-void resize_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
 
-void resize_nearest_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_nearest_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_nearest_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_nearest_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
-void resize_nearest_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
 
 // warp affine
-void warpaffine_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3], const float border_val = 0.0);
-void warpaffine_bilinear_c2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3], const float border_val = 0.0);
-void warpaffine_bilinear_c3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3], const float border_val = 0.0);
-void warpaffine_bilinear_c4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
-                            const float (*transform)[3], const float border_val = 0.0);
-void warpaffine_bilinear_yuv420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
-                                  const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                          const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                          const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                          const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                          const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                                const float (*transform)[3], const float border_val = 0.0);
 
 }  // namespace TNN_NS
 
-#endif
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_UTIL_H_
