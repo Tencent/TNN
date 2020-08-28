@@ -35,31 +35,45 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto dims_input    = input->GetBlobDesc().dims;
     auto dims_output   = output->GetBlobDesc().dims;
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
-    auto size_in_bytes = dims_input[0] * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3] * data_byte_size;
+    auto size_in_bytes = dims_input[0] * dims_input[1] * dims_input[2] * dims_input[3] * data_byte_size;
 
     void *workspace = context_->GetSharedWorkSpace(size_in_bytes);
     char *input_origin  = GetBlobHandlePtr(input->GetHandle());
     char *output_origin = GetBlobHandlePtr(output->GetHandle());
 
     if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format) {
-        for (int b = 0; b < dims_output[0]; b++) {
-            if (DATA_TYPE_FLOAT == in_data_type) {
+        if (DATA_TYPE_FLOAT == in_data_type) {
+            for (int b = 0; b < dims_input[0]; b++) {
                 auto input_data =
                     reinterpret_cast<float *>(input_origin) + b * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3];
-                auto output_data = reinterpret_cast<float *>(output_origin) +
-                                   b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
-                UnpackC4(reinterpret_cast<float *>(workspace), input_data, dims_input[2] * dims_input[3], dims_input[1]);
-                PackC4(output_data, reinterpret_cast<float *>(workspace), dims_output[2] * dims_output[3], dims_output[1]);
-            } else if (DATA_TYPE_BFP16 == in_data_type) {
-                auto input_data = reinterpret_cast<bfp16_t *>(input_origin) +
-                                  b * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3];
-                auto output_data = reinterpret_cast<bfp16_t *>(output_origin) +
-                                   b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
-                UnpackC4(reinterpret_cast<bfp16_t *>(workspace), input_data, dims_input[2] * dims_input[3], dims_input[1]);
-                PackC4(output_data, reinterpret_cast<bfp16_t *>(workspace), dims_output[2] * dims_output[3], dims_output[1]);
-            } else {
-                return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
+                auto workspace_data =
+                    reinterpret_cast<float *>(workspace) + b * dims_input[1] * dims_input[2] * dims_input[3];
+                UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
             }
+            for (int b = 0; b < dims_output[0]; b++) {
+                auto workspace_data =
+                    reinterpret_cast<float *>(workspace) + b * dims_output[1] * dims_output[2] * dims_output[3];
+                auto output_data =
+                    reinterpret_cast<float *>(output_origin) + b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
+                PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+            }
+        } else if (DATA_TYPE_BFP16 == in_data_type) {
+            for (int b = 0; b < dims_input[0]; b++) {
+                auto input_data =
+                    reinterpret_cast<bfp16_t *>(input_origin) + b * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3];
+                auto workspace_data =
+                    reinterpret_cast<bfp16_t *>(workspace) + b * dims_input[1] * dims_input[2] * dims_input[3];
+                UnpackC4(workspace_data, input_data, dims_input[2] * dims_input[3], dims_input[1]);
+            }
+            for (int b = 0; b < dims_output[0]; b++) {
+                auto workspace_data =
+                    reinterpret_cast<bfp16_t *>(workspace) + b * dims_output[1] * dims_output[2] * dims_output[3];
+                auto output_data =
+                    reinterpret_cast<bfp16_t *>(output_origin) + b * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3];
+                PackC4(output_data, workspace_data, dims_output[2] * dims_output[3], dims_output[1]);
+            }
+        } else {
+            return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
         }
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR nhwc/int8 fc, in todo list");
