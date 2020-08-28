@@ -60,12 +60,29 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     return 0;
 }
 int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
-    for (int c = 0; c < channel; c += 4) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(float));
+        return 0;
+    }
+
+    for (int c = 0; c < channel - 3; c += 4) {
         auto src_c = src + c;
         auto dst_c = dst + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
             float32x4_t v;
             v = vld1q_f32(src_c + cur_hw * channel);
+            vst1q_f32(dst_c + cur_hw * 4, v);
+        }
+    }
+
+    int remain = channel % 4;
+    if (remain) {
+        auto src_c = src + (channel>>2<<2);
+        auto dst_c = dst + (channel>>2<<2) * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            float32x4_t v = vdupq_n_f32(0);
+            for (int r = 0; r < remain; ++r)
+                v = vld1q_lane_f32(src_c + cur_hw * channel + r, v, r);
             vst1q_f32(dst_c + cur_hw * 4, v);
         }
     }
@@ -113,9 +130,7 @@ template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 #ifdef TNN_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
-        if (channel % 4 == 0) {
-            return PackNeonNHWC((float *)dst, (const float *)src, hw, channel);
-        }
+        return PackNeonNHWC((float *)dst, (const float *)src, hw, channel);
     }
 #endif
     int c, cur_hw;
