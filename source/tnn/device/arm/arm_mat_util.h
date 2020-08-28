@@ -27,7 +27,7 @@ namespace TNN_NS {
 
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
 
-void mat_memcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
+void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
 
 // resize
 void resize_bilinear_c1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
