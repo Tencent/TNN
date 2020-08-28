@@ -95,7 +95,7 @@ public:
     virtual std::shared_ptr<ProfileResult> FinishProfile();
 #endif
 
-private:
+protected:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
     AbstractDevice *device_ = nullptr;

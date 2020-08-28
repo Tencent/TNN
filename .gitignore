@@ -181,7 +181,8 @@ tags
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -483,5 +484,4 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
-
 

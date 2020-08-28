@@ -1,3 +1,4 @@
 build32
 build64
 release
+build_openvino
