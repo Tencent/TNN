@@ -159,11 +159,6 @@ TEST_P(MatConverterTest, MatConverterTest) {
     {
         GTEST_SKIP();
     }
-    // warp affine can not  support N8UC4 on Arm for now
-    if (device_type == DEVICE_ARM && (mat_converter_type == MatConverterType::WarpAffine))
-    {
-        GTEST_SKIP();
-    }
     if ((mat_type == NGRAY && channel != 1) || (mat_type == N8UC3 && channel != 3) || (mat_type == N8UC4 && channel != 4))
     {
         GTEST_SKIP();
