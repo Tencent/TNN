@@ -688,6 +688,9 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 ialpha_p += 8;
                 Dp_p     += 8;
             }
+            if (w % 8) {
+                dx -= 8;
+            }
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -761,6 +764,9 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 2;
+            }
+            if (w % 8) {
+                dx -= 8;
             }
 #endif
             for (; dx < w; dx++) {
@@ -837,6 +843,9 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 3;
+            }
+            if (w % 8) {
+                dx -= 8;
             }
 #endif
             for (; dx < w; dx++) {
@@ -915,6 +924,9 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 4;
+            }
+            if (w % 8) {
+                dx -= 8;
             }
 #endif
             for (; dx < w; dx++) {
@@ -1098,6 +1110,7 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
     short xy_loc_buf[dst_w * 2];
     short tb_loc_buf[dst_w];
     int   sc_loc_buf[dst_w];
+    int*   adelta_p     = adelta;
     short* xy_loc_buf_p = xy_loc_buf;
     short* tb_loc_buf_p = tb_loc_buf;
     int*   sc_loc_buf_p = sc_loc_buf;
@@ -1111,9 +1124,9 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
     int32x4_t _channel = vdupq_n_s32(channel);
     int32x4_t _soffset = vdupq_n_s32(src_offset);
     int16x4_t _src_w   = {1, (short)src_w,1,(short)src_w};
-    for (; x < dst_w - 3; x += 4) {
-        int32x4_t _xyxy0   = vaddq_s32(vld1q_s32(adelta), _offset);
-        int32x4_t _xyxy1   = vaddq_s32(vld1q_s32(adelta + 4), _offset);
+    for (; x < dst_w>>2<<2; x += 4) {
+        int32x4_t _xyxy0   = vaddq_s32(vld1q_s32(adelta_p), _offset);
+        int32x4_t _xyxy1   = vaddq_s32(vld1q_s32(adelta_p + 4), _offset);
         _xyxy0             = vaddq_s32(_xyxy0, _bdelta);
         _xyxy1             = vaddq_s32(_xyxy1, _bdelta);
         int16x4_t _xyxy0s  = vshrn_n_s32(_xyxy0, 10);
@@ -1133,10 +1146,13 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
         int16x8_t _tab_xys = vmulq_s16(vandq_s16(_xyxy01s, _mask), _coeff);
         vst1_s16(tb_loc_buf_p, vpadd_s16(vget_low_s16(_tab_xys), vget_high_s16(_tab_xys)));
 
-        adelta       += 8;
+        adelta_p     += 8;
         xy_loc_buf_p += 8;
         tb_loc_buf_p += 4;
         sc_loc_buf_p += 4;
+    }
+    if (dst_w % 4) {
+        x -= 4;
     }
 #endif
     for (; x < dst_w; ++x) {
@@ -1194,6 +1210,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 1;
         int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
             uint8x8_t _src01   = uint8x8_t();
@@ -1241,7 +1258,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             buf_loc_p += 4;
             tab_loc_p += 4;
             dst_p     += 4;
+            ++simd_loop;
         }
+        x = begin_x + (simd_loop << 2);
 #endif
         for (; x <= end_x; x++) {
             int dst_loc = dst_loc_base + x * 1;
@@ -1260,6 +1279,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 2;
         int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
             uint8x8x2_t _src01 = uint8x8x2_t();
@@ -1321,7 +1341,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             buf_loc_p += 4;
             tab_loc_p += 4;
             dst_p     += 8;
+            ++simd_loop;
         }
+        x = begin_x + (simd_loop << 2);
 #endif
         for (; x <= end_x; x++) {
             int dst_loc = dst_loc_base + x * 2;
@@ -1346,6 +1368,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 3;
         int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
             uint8x8x3_t _src01 = uint8x8x3_t();
@@ -1418,7 +1441,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             buf_loc_p += 4;
             tab_loc_p += 4;
             dst_p     += 12;
+            ++simd_loop;
         }
+        x = begin_x + (simd_loop << 2);
 #endif
         for (; x <= end_x; x++) {
             int dst_loc = dst_loc_base + x * 3;
@@ -1449,6 +1474,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 4;
         int32x4_t _offset      = vdupq_n_s32(1 << 14);
+        int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
             uint8x8x4_t _src01 = uint8x8x4_t();
@@ -1532,7 +1558,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             buf_loc_p += 4;
             tab_loc_p += 4;
             dst_p     += 16;
+            ++simd_loop;
         }
+        x = begin_x + (simd_loop << 2);
 #endif
         for (; x <= end_x; x++) {
             int dst_loc = dst_loc_base + x * 4;
