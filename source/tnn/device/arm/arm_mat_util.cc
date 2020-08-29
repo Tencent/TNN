@@ -1092,7 +1092,7 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
 
 static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
                                     const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
-                                    int y, int src_offset, int& x_count, int& end_x) {
+                                    int y, int src_offset, int& x_count, int& end_x, float border_val = 0) {
     const unsigned char* src2 = src + src_w * channel;
 
     short xy_loc_buf[dst_w * 2];
@@ -1173,18 +1173,10 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
 
             for (int c = 0; c < channel; ++c) {
                 int val_xy = 0;
-                if (mask0) {
-                    val_xy += wtab[0] * src[src_loc + c];
-                }
-                if (mask1) {
-                    val_xy += wtab[1] * src[src_loc + channel + c];
-                }
-                if (mask2) {
-                    val_xy += wtab[2] * src2[src_loc + c];
-                }
-                if (mask3) {
-                    val_xy += wtab[3] * src2[src_loc + channel + c];
-                }
+                val_xy += wtab[0] * (mask0 ? src[src_loc + c] : border_val);
+                val_xy += wtab[1] * (mask1 ? src[src_loc + channel + c] : border_val);
+                val_xy += wtab[2] * (mask2 ? src2[src_loc + c] : border_val);
+                val_xy += wtab[3] * (mask3 ? src2[src_loc + channel + c] : border_val);
                 dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
             }
         }
@@ -1602,7 +1594,7 @@ void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, u
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
         WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
         WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
@@ -1638,7 +1630,7 @@ void WarpAffineBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, u
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
         WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
         WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
@@ -1674,7 +1666,7 @@ void WarpAffineBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, u
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
         WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
         WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
@@ -1710,7 +1702,7 @@ void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, u
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
         WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x);
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
         WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
     }
 
