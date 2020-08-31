@@ -99,9 +99,6 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear(
                                                         texture2d<half, access::read> src_bgra        [[texture(0)]],
                                                         texture2d<half, access::write> dst_bgra       [[texture(1)]],
                                                         constant MetalResizeParams& parameters        [[buffer(0)]],
-#ifdef DUMP_BILINEAR_COOR
-                                                        device int* sample_coords                     [[buffer(1)]],
-#endif
                                                         ushort2 gid                                   [[thread_position_in_grid]])
 {
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
@@ -139,12 +136,7 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear(
     float4 p10 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0;
     float4 p01 = float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0;
     float4 p11 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0;
-#ifdef DUMP_BILINEAR_COOR
-    //compute offset
-    auto offset = (gid.y * parameters.resized_width + gid.x) * 2;
-    sample_coords[offset + 0] = xint;
-    sample_coords[offset + 1] = yint;
-#endif
+
     float x_ef0_ = (1 - xfrac) * 2048;
     float x_ef1_ = xfrac * 2048;
     
