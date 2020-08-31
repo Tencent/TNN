@@ -17,8 +17,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/device/opencl/opencl_utils.h"
-#include "tnn/utils/mat_converter.h"
-#include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_converter_acc.h"
 
 namespace TNN_NS {
 
