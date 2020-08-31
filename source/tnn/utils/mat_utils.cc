@@ -14,18 +14,31 @@
 
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/mat_utils.h"
-#include "tnn/utils/mat_converter.h"
+#include "tnn/utils/mat_converter_acc.h"
 
 namespace TNN_NS {
 
 Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
     DimsVector src_dims = src.GetDims();
     DimsVector dst_dims = dst.GetDims();
-    if(DimsVectorUtils::Equal(src_dims, dst_dims)) {
-        MatConverter convert(&src, &dst);
-        return convert.Copy(src, dst, command_queue);
+    if(DimsVectorUtils::Equal(src_dims, dst_dims) && (src.GetMatType() == dst.GetMatType())) {
+        DeviceType device_type = DEVICE_NAIVE;
+        // get device type
+        DeviceType src_dt = src.GetDeviceType();
+        DeviceType dst_dt = dst.GetDeviceType();
+        if (src_dt == dst_dt) {
+            device_type = src_dt;
+        } else if (DEVICE_NAIVE == src_dt || DEVICE_ARM == src_dt) {
+            device_type = dst_dt;
+        } else if (DEVICE_NAIVE == dst_dt || DEVICE_ARM == dst_dt) {
+            device_type = src_dt;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "src and dst DeviceType need be equal or one is device cpu");
+        }
+        auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(device_type);
+        return converter->Copy(src, dst, command_queue);
     }else {
-        return Status(TNNERR_PARAM_ERR, "src and dst dims not equal"); 
+        return Status(TNNERR_PARAM_ERR, "src and dst dims or MatType not equal"); 
     }
 }
 
@@ -36,8 +49,11 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
     if(param.scale_h == 0) {
          param.scale_h = (double)dst.GetHeight() / src.GetHeight();
     }
-    MatConverter convert(&src, &dst);
-    return convert.Resize(src, dst, param, command_queue);
+    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    }
+    auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    return converter->Resize(src, dst, param, command_queue);
 }
 
 Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
@@ -47,13 +63,19 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
     if(param.height == 0) {
          param.height = dst.GetHeight();
     }
-    MatConverter convert(&src, &dst);
-    return convert.Crop(src, dst, param, command_queue);
+    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    }
+    auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    return converter->Crop(src, dst, param, command_queue);
 }
 
 Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
-    MatConverter convert(&src, &dst);
-    return convert.WarpAffine(src, dst, param, command_queue);
+    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    }
+    auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    return converter->WarpAffine(src, dst, param, command_queue);
 }
 
 }  // namespace TNN_NS

@@ -15,7 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_CONVERTER_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_CONVERTER_H_
 
-#include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_converter_acc.h"
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/arm_util.h"
 

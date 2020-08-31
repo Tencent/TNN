@@ -12,27 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
-#define TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
+#ifndef TNN_CPU_MAT_UTIL_H_
+#define TNN_CPU_MAT_UTIL_H_
 
-#include "tnn/core/status.h"
-#include "tnn/utils/mat_converter_internal.h"
-#include "tnn/utils/mat_utils.h"
+#include <string.h>
+#include <sys/time.h>
+#include <cstdlib>
+
+#include "tnn/core/blob.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-class MatConverter {
-public:
-    MatConverter(Mat* src, Mat* dst);
-    virtual Status Copy(Mat& src, Mat& dst, void* command_queue);
-    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
-    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
-    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
+#define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
 
-private:
-    std::shared_ptr<MatConverterAcc> impl_ = nullptr;
-};
-
+void warpaffine_bilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val = 0.0);
+void resize_bilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h);
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_UTILS_MAT_CONVERTER_H_
+#endif
