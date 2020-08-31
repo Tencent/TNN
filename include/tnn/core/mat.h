@@ -16,6 +16,7 @@
 #define TNN_INCLUDE_TNN_CORE_MAT_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "tnn/core/common.h"
