@@ -29,7 +29,7 @@ namespace TNN_NS {
 #define INTER_BITS      5
 #define INTER_TAB_SIZE  (1<<INTER_BITS)
 #define KSIZE 2
-static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
+static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
                                      const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
     if (sy == prev_sy) {
         // reuse all rows
@@ -82,7 +82,7 @@ static void resize_get_adjacent_rows(int sy, int prev_sy, short** rows0, short**
     }
 }
 
-static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
+static void ResizeCalculateOneRow(short* rows0p, short* rows1p, const int b0, const int b1, const int w, const int c,
                                      uint8_t* Dp) {
     int remain = w * c;
     for (; remain; --remain) {
@@ -91,7 +91,7 @@ static void resize_calculate_one_row(short* rows0p, short* rows1p, const int b0,
     }
 }
 
-static void calculate_position_and_ratio(int length, double scale, int border, int channel,
+static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
                                          int* position, short* ratio) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
@@ -133,7 +133,7 @@ static void initInterTab1D(float* tab, int tabsz) {
         interpolateLinear(i * scale, tab);
 }
 
-static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf) {
+static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
 
@@ -148,14 +148,14 @@ static void get_resize_buf(int src_w, int src_h, int w, int h, int c, int** buf)
     short* ialpha = (short*)(*buf + w + h);
     short* ibeta  = (short*)(*buf + w + h + w);
 
-    calculate_position_and_ratio(w, scale_x, src_w, c, xofs, ialpha);
-    calculate_position_and_ratio(h, scale_y, src_h, 1, yofs, ibeta);
+    CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
+    CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
-void resize_bilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
+void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride) {
     int* buf = nullptr;
-    get_resize_buf(src_w, src_h, w, h, 4, &buf);
+    GetResizeBuf(src_w, src_h, w, h, 4, &buf);
     int* xofs = buf;
     int* yofs = buf + w;
     short* ialpha = (short*)(buf + w + h);
@@ -169,7 +169,7 @@ void resize_bilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        resize_get_adjacent_rows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
+        ResizeGetAdjacentRows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -178,7 +178,7 @@ void resize_bilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        resize_calculate_one_row(rows0, rows1, b0, b1, w, 4, Dp);
+        ResizeCalculateOneRow(rows0, rows1, b0, b1, w, 4, Dp);
 
         ibeta += 2;
     }
@@ -188,11 +188,11 @@ void resize_bilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
     delete[] buf;
 }
 
-void resize_bilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return resize_bilinear(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinear(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-void warpaffine_bilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
+void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
                          const float (*transform)[3], const float border_val)
 {
     // Init
