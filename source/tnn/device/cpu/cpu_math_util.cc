@@ -153,23 +153,23 @@ static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
 }
 
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
-                             uint8_t* dst, int w, int h, int stride) {
+                             uint8_t* dst, int w, int h, int stride, int channel) {
     int* buf = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, 4, &buf);
+    GetResizeBuf(src_w, src_h, w, h, channel, &buf);
     int* xofs = buf;
     int* yofs = buf + w;
     short* ialpha = (short*)(buf + w + h);
     short* ibeta  = (short*)(buf + w + h + w);
 
     // loop body
-    short* rows0 = new short[w * 4];
-    short* rows1 = new short[w * 4];
+    short* rows0 = new short[w * channel];
+    short* rows1 = new short[w * channel];
 
     int prev_sy = -2;
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        ResizeGetAdjacentRows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, 4, w, ialpha);
+        ResizeGetAdjacentRows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, channel, w, ialpha);
         prev_sy = sy;
 
         // vresize
@@ -178,7 +178,7 @@ void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
 
         uint8_t* Dp   = dst + stride * (dy);
 
-        ResizeCalculateOneRow(rows0, rows1, b0, b1, w, 4, Dp);
+        ResizeCalculateOneRow(rows0, rows1, b0, b1, w, channel, Dp);
 
         ibeta += 2;
     }
@@ -188,8 +188,8 @@ void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
     delete[] buf;
 }
 
-void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
-    return ResizeBilinear(src, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel) {
+    return ResizeBilinear(src, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
 }
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,

@@ -27,7 +27,7 @@ namespace TNN_NS {
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
                          const float (*transform)[3], const float border_val = 0.0);
-void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h);
+void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_CPU_CPU_MAT_UTIL_H_

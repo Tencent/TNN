@@ -61,7 +61,7 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 
     if (src.GetMatType() == NCHW_FLOAT) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
-    } else if (src.GetMatType() == N8UC4) {
+    } else if ((src.GetMatType() == N8UC4) || (src.GetMatType() == N8UC3) || (src.GetMatType() == NGRAY)) {
         int channel = src.GetChannel();
         if (param.type == INTERP_TYPE_LINEAR) {
             for (int batch = 0; batch < src.GetBatch(); batch++)
@@ -69,15 +69,11 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
                 uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
                 ResizeBilinear(src_ptr, src.GetWidth(), src.GetHeight(),
-                               dst_ptr, dst.GetWidth(), dst.GetHeight());
+                               dst_ptr, dst.GetWidth(), dst.GetHeight(), channel);
             } 
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
-    } else if (src.GetMatType() == N8UC3) {
-        ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
-    } else if (src.GetMatType() == NGRAY) {
-        ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else if (src.GetMatType() == RESERVED_BFP16_TEST) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else {
@@ -102,14 +98,22 @@ Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth());
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
+        int channel = 1;
+        for (int batch = 0; batch < src.GetBatch(); batch++)
+        {
+            auto src_ptr = GET_OFFSET_PTR((uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel, (param.top_left_x + param.top_left_y * src.GetWidth()) * channel);
+            auto dst_ptr = GET_OFFSET_PTR((uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel, 0);
+            MatMemcpy2D(src_ptr, dst_ptr, param.width * channel, param.height, src.GetWidth() * channel, dst.GetWidth() * channel);
+        } 
     } else if (src.GetMatType() == N8UC3) {
         // element size 3
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), (param.top_left_x + param.top_left_y * src.GetWidth()) * 3);
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        MatMemcpy2D(src_ptr, dst_ptr, param.width * 3, param.height, src.GetWidth() * 3, dst.GetWidth() * 3);
+        int channel = 3;
+        for (int batch = 0; batch < src.GetBatch(); batch++)
+        {
+            auto src_ptr = GET_OFFSET_PTR((uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel, (param.top_left_x + param.top_left_y * src.GetWidth()) * channel);
+            auto dst_ptr = GET_OFFSET_PTR((uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel, 0);
+            MatMemcpy2D(src_ptr, dst_ptr, param.width * channel, param.height, src.GetWidth() * channel, dst.GetWidth() * channel);
+        } 
     } else if (src.GetMatType() == N8UC4) {
         // element size 4
         int channel = 4;
