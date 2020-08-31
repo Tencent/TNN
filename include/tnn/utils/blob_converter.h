@@ -36,9 +36,9 @@ typedef enum {
     N8UC4      = 0x01,
     //gray: uint8
     NGRAY      = 0x10,
-    //yuv420sp
+    //YUV420SP, YYYYVUVUVU
     NNV21      = 0x11,
-    //yuv240
+    //YUV420SP, YYYYUVUVUV
     NNV12      = 0x12,
     //nchw: float
     NCHW_FLOAT = 0x20,
