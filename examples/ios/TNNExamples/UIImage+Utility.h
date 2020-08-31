@@ -17,6 +17,12 @@
 #include <tuple>
 
 namespace utility {
+/***
+@brief convert uiimage to rgba raw data
+@param image uimage
+ */
+std::shared_ptr<char> UIImageGetData(UIImage *image);
+
 /**
 @brief convert uiimage to rgba raw data, resize to height x width
 @param image uimage

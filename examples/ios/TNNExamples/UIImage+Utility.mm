@@ -15,6 +15,12 @@
 #import "UIImage+Utility.h"
 
 namespace utility {
+std::shared_ptr<char> UIImageGetData(UIImage *image) {
+    int height = (int)CGImageGetHeight(image.CGImage);
+    int width  = (int)CGImageGetWidth(image.CGImage);
+    return UIImageGetData(image, height, width, 0);
+}
+
 std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int gravity) {
     std::shared_ptr<char> data = nullptr;
     if (image == nil || image.CGImage == nil || height <= 0 || width <= 0) {
