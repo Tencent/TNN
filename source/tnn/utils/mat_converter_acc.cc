@@ -16,61 +16,9 @@
 #include <string>
 #include "tnn/utils/blob_converter.h"
 
-#include "tnn/utils/mat_converter.h"
-#include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_converter_acc.h"
 
 namespace TNN_NS {
-
-MatConverter::MatConverter(Mat* src, Mat* dst) {
-    DeviceType device_type = DEVICE_NAIVE;
-    // get device type
-    DeviceType src_dt = src->GetDeviceType();
-    DeviceType dst_dt = dst->GetDeviceType();
-    if (src_dt == dst_dt) {
-        device_type = src_dt;
-    } else if (DEVICE_NAIVE == src_dt || DEVICE_ARM == src_dt) {
-        device_type = dst_dt;
-    } else if (DEVICE_NAIVE == dst_dt || DEVICE_ARM == dst_dt) {
-        device_type = src_dt;
-    } else {
-        impl_ = nullptr;
-        return;
-    }
-
-    impl_ = MatConverterManager::Shared()->CreateMatConverterAcc(device_type);
-}
-
-Status MatConverter::Copy(Mat& src, Mat& dst, void* command_queue) {
-    if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
-    }
-
-    return impl_->Copy(src, dst, command_queue);
-}
-
-Status MatConverter::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
-    if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
-    }
-
-    return impl_->Resize(src, dst, param, command_queue);
-}
-
-Status MatConverter::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
-    if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
-    }
-
-    return impl_->Crop(src, dst, param, command_queue);
-}
-
-Status MatConverter::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
-    if (!impl_) {
-        return Status(TNNERR_INIT_LAYER, "mat converter is nil, check device type");
-    }
-
-    return impl_->WarpAffine(src, dst, param, command_queue);
-}
 
 std::shared_ptr<MatConverterManager>& MatConverterManager::Shared() {
     static std::once_flag once;

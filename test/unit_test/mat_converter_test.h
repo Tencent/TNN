@@ -25,7 +25,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/utils/blob_converter.h"
-#include "tnn/utils/mat_converter.h"
+#include "tnn/utils/mat_converter_acc.h"
 
 namespace TNN_NS {
 
