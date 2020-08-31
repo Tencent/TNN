@@ -21,6 +21,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/mat_utils.h"
 
 #define TNN_SDK_ENABLE_BENCHMARK 1
 
@@ -131,6 +132,18 @@ public:
     InputShapesMap input_shapes = {};
 };
 
+typedef enum {
+    TNNInterpNearest = 0,
+    TNNInterpLinear  = 1,
+} TNNInterpType;
+
+typedef enum {
+    TNNBorderConstant = 0,
+    TNNBorderReflect  = 1,
+    TNNBorderEdge     = 2,
+    
+} TNNBorderType;
+
 class TNNSDKSample {
 public:
     TNNSDKSample();
@@ -152,6 +165,11 @@ public:
 
     void setNpuModelPath(std::string stored_path);
     void setCheckNpuSwitch(bool option);
+    
+    Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
+    Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
+    Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
+    Status Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst);
 
 protected:
     BenchOption bench_option_;

@@ -306,6 +306,122 @@ void TNNSDKSample::setCheckNpuSwitch(bool option)
     check_npu_ = option;
 }
 
+Status TNNSDKSample::Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type) {
+    Status status = TNN_OK;
+    
+    void * command_queue = nullptr;
+    status = instance_->GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    InterpType type = INTERP_TYPE_NEAREST;
+    if(interp_type == TNNInterpNearest){
+        type = TNN_NS::INTERP_TYPE_NEAREST;
+    } else if(interp_type == TNNInterpLinear) {
+        type = TNN_NS::INTERP_TYPE_LINEAR;
+    }
+    
+    ResizeParam param;
+    param.type = type;
+    
+    auto dst_dims = dst->GetDims();
+    auto src_dims = src->GetDims();
+    param.scale_w = dst_dims[3] / static_cast<float>(src_dims[3]);
+    param.scale_h = dst_dims[2] / static_cast<float>(src_dims[2]);
+    
+    status = MatUtils::Resize(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("resize failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = instance_->GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    CropParam param;
+    param.top_left_x = start_x;
+    param.top_left_y = start_y;
+    auto dst_dims = dst->GetDims();
+    param.width  = dst_dims[3];
+    param.height = dst_dims[2];
+    
+    status = MatUtils::Crop(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("crop failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]) {
+    Status status = TNN_OK;
+    
+    void * command_queue = nullptr;
+    status = instance_->GetCommandQueue(&command_queue);
+    if (status != TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    InterpType itype = INTERP_TYPE_NEAREST;
+    if (interp_type == TNNInterpNearest){
+        itype = INTERP_TYPE_NEAREST;
+    } else if(interp_type == TNNInterpLinear) {
+        itype = INTERP_TYPE_LINEAR;
+    }
+    BorderType btype = BORDER_TYPE_CONSTANT;
+    if (border_type == TNNBorderConstant) {
+        btype = BORDER_TYPE_CONSTANT;
+    } else if(border_type == TNNBorderReflect) {
+        btype = BORDER_TYPE_REFLECT;
+    } else if(border_type == TNNBorderEdge) {
+        btype = BORDER_TYPE_EDGE;
+    }
+    WarpAffineParam param;
+    param.interp_type = itype;
+    param.border_type = btype;
+    
+    auto dst_dims = dst->GetDims();
+    auto src_dims = src->GetDims();
+    memcpy(param.transform, trans_mat, sizeof(float)*2*3);
+    
+    status = MatUtils::WarpAffine(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("warpaffine failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = instance_->GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    status = MatUtils::Copy(*(src.get()), *(dst.get()), command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("copy failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
 void TNNSDKSample::setNpuModelPath(std::string stored_path)
 {
     model_path_str_ = stored_path;
