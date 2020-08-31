@@ -191,54 +191,51 @@ typedef void(^CommonCallback)(Status);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-        
-        //resize
-        fps_counter_async_thread->Begin("resize");
+
 #if TEST_IMAGE_SSD
         static std::shared_ptr<char> image_data = nullptr;
         if (!image_data) {
             auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
                                                                                               ofType:nil]];
-            image_data = utility::UIImageGetData(image_png, target_height, target_width);
+            image_data = utility::UIImageGetData(image_png);
         }
         
 #else
-        auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
-//        auto image_terget = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
-//        UIImageWriteToSavedPhotosAlbum(image_terget, nil, nil, nil);
+        auto image_data = utility::CVImageBuffRefGetData(image_buffer);
 #endif
-        
+        std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+        auto origin_dims = {1, 3, origin_height, origin_width};
+        if (compute_units == TNNComputeUnitsCPU) {
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
+        } else {
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims);
+
+            id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+            if (!texture_rgba) {
+                status = Status(TNNERR_NET_ERR, "Error texture input rgba is nil");
+                return;
+            }
+
+            [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, origin_width, origin_height)
+                            mipmapLevel:0
+                              withBytes:image_data.get()
+                            bytesPerRow:origin_width*4];
+        }
+        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+        //resize
+        fps_counter_async_thread->Begin("resize");
+        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
         fps_counter_async_thread->End("resize");
+
         CVBufferRelease(image_buffer);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
-            if (compute_units == TNNComputeUnitsGPU) {
-                 auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-
-                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                if (!texture_rgba) {
-                    status = Status(TNNERR_NET_ERR, "Error texture input rgba is nil");
-                    break;
-                }
-
-                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
-                                mipmapLevel:0
-                                  withBytes:image_data.get()
-                                bytesPerRow:target_width*4];
-                fps_counter_async_thread->Begin("detect");
-                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
-                fps_counter_async_thread->End("detect");
-            }
-            else if (compute_units == TNNComputeUnitsCPU)
-            {
-                auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-                fps_counter_async_thread->Begin("detect");
-                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
-                fps_counter_async_thread->End("detect");
-            }
-            map_fps = fps_counter_async_thread->GetAllFPS();
+            fps_counter_async_thread->Begin("detect");
+            status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
+            fps_counter_async_thread->End("detect");
             
+            map_fps = fps_counter_async_thread->GetAllFPS();
         } while (0);
         
         dispatch_sync(dispatch_get_main_queue(), ^{

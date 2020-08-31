@@ -30,6 +30,10 @@ Status Facemesh::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
     
+    auto input_dims = GetInputShape();
+    option->input_height = input_dims[2];
+    option->input_width  = input_dims[3];
+
     return status;
 }
 

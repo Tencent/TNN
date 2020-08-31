@@ -41,6 +41,10 @@ Status BlazeFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     RETURN_VALUE_ON_NEQ(index == num_anchors*4, true,
     Status(TNNERR_PARAM_ERR, "TNNSDKOption.anchor_path doesnot contain valid blazeface anchors"));
     
+    auto input_dims = GetInputShape();
+    option->input_height = input_dims[2];
+    option->input_width  = input_dims[3];
+
     return status;
 }
 
