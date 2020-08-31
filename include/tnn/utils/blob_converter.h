@@ -30,11 +30,17 @@ namespace TNN_NS {
 
 typedef enum {
     INVALID    = -1,
+    //bgr or rgb: uint8
     N8UC3      = 0x00,
+    //bgra or rgba: uint8
     N8UC4      = 0x01,
+    //gray: uint8
     NGRAY      = 0x10,
+    //yuv420sp
     NNV21      = 0x11,
+    //yuv240
     NNV12      = 0x12,
+    //nchw: float
     NCHW_FLOAT = 0x20,
     // RESERVED FOR INTERNAL TEST USE
     RESERVED_BFP16_TEST = 0x200,
