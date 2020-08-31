@@ -96,8 +96,6 @@ using namespace TNN_NS;
     }
     
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-    const int target_height = 240;
-    const int target_width  = 320;
     
     auto option = std::make_shared<UltraFaceDetectorOption>();
     {
@@ -106,8 +104,6 @@ using namespace TNN_NS;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
         
-        option->input_width = target_width;
-        option->input_height = target_height;
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
     }
@@ -148,7 +144,8 @@ using namespace TNN_NS;
         
         
     }
-    DimsVector target_dims  = {1, 3, target_height, target_width};
+
+    auto target_dims = predictor->GetInputShape();
     auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
     status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
     
@@ -172,6 +169,8 @@ using namespace TNN_NS;
                                                        units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
                                                        (int)face_info.size(), bench_result.Description().c_str()];
 
+    auto target_width  = target_dims[3];
+    auto target_height = target_dims[2];
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     float scale_x               = image_orig_width / (float)target_width;

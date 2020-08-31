@@ -157,9 +157,7 @@ using namespace TNN_NS;
                         bytesPerRow:image_dims[3] * 4];
     }
     
-    const int target_height = 224;
-    const int target_width  = 224;
-    DimsVector target_dims = {1, 3, target_height, target_width};
+    auto target_dims = predictor->GetInputShape();
     auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
     status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
 

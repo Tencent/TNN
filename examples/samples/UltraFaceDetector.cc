@@ -40,8 +40,12 @@ Status UltraFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    auto in_w = option->input_width;
-    auto in_h = option->input_height;
+    auto input_dims = GetInputShape();
+    int in_h = input_dims[2];
+    int in_w = input_dims[3];
+    option->input_height = in_h;
+    option->input_width  = in_w;
+
     auto w_h_list = {in_w, in_h};
 
     for (auto size : w_h_list) {
