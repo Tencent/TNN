@@ -29,12 +29,6 @@ AbstractDevice* MatConverterTest::device_;
 Context* MatConverterTest::cpu_context_;
 Context* MatConverterTest::device_context_;
 
-void printinput(const uint8_t* ref_data, size_t n) {
-    for (unsigned long long i = 0; i < n; i++) {
-        LOGE("ERROR AT %llu result:%d\n", i, ref_data[i]);
-    }
-}
-
 void MatConverterTest::SetUpTestCase() {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);
@@ -118,7 +112,7 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // converter test param
                             testing::Values(
                                 // Copy
-                                // MatConverterTestParam(MatConverterType::Copy),
+                                MatConverterTestParam(MatConverterType::Copy),
                                 // Resize
                                 MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_LINEAR),
                                 MatConverterTestParam(MatConverterType::Resize, 2.0, 2.0, INTERP_TYPE_LINEAR),
@@ -190,10 +184,6 @@ TEST_P(MatConverterTest, MatConverterTest) {
     {
         case MatConverterType::Copy:
         {
-            #if 0
-            Mat *src, *dst;
-            src = &cpu_in_mat;
-            dst = &device_mat;
             MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
@@ -202,41 +192,21 @@ TEST_P(MatConverterTest, MatConverterTest) {
                                       channel, channel, out_size_);
 
             EXPECT_EQ(0, cmp_result);
-            #endif
             break;
         }
         case MatConverterType::Resize:
         {
-            Mat *src, *dst, *dst_ref;
-            src         = &cpu_in_mat;
-            dst         = &device_mat;
-            dst_ref     = &cpu_ref_mat;
-
-            LOGE("resizeon host start\n");
             tnn::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
-            if (status == TNN_OK)
-            {
-                LOGE("resize test start\n");
-            }
-            else
-            {
-                LOGE("resize test failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
-            LOGE("resize on device start\n");
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Resize(device_in_mat, device_mat,
                                                  mat_converter_test_param.resize_param,
                                                  device_command_queue);
-            if (status == TNN_OK)
-            {
-                LOGE("resize on device done\n");
-            }
-            else
-            {
-                LOGE("resize on device failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
@@ -248,36 +218,17 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::Crop:
         {
-            Mat *src, *dst, *dst_ref;
-            src         = &cpu_in_mat;
-            dst         = &device_mat;
-            dst_ref     = &cpu_ref_mat;
-
-            LOGE("crop on host start\n");
             tnn::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
-            if (status == TNN_OK)
-            {
-                LOGE("crop on host done\n");
-            }
-            else
-            {
-                LOGE("crop on host failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
-            LOGE("crop on device start\n");
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Crop(device_in_mat, device_mat,
                                                  mat_converter_test_param.crop_param,
                                                  device_command_queue);
-            if (status == TNN_OK)
-            {
-                LOGE("crop on device done\n");
-            }
-            else
-            {
-                LOGE("crop on device failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
@@ -289,38 +240,19 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::WarpAffine:
         {
-            Mat *src, *dst, *dst_ref;
-            src         = &cpu_in_mat;
-            dst         = &device_mat;
-            dst_ref     = &cpu_ref_mat;
-
-            LOGE("warp affine on host start\n");
             tnn::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
-            if (status == TNN_OK)
-            {
-                LOGE("warp affine on host done\n");
-            }
-            else
-            {
-                LOGE("warp affine on host failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
-            LOGE("warp affine on device start\n");
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::WarpAffine(device_in_mat, device_mat,
                                                  mat_converter_test_param.warp_affine_param,
                                                  device_command_queue);
-            if (status == TNN_OK)
-            {
-                LOGE("warp affine on device done\n");
-            }
-            else
-            {
-                LOGE("warp affine on device failed\n");
+            if (status != TNN_OK) {
                 FAIL();
             }
 
