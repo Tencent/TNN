@@ -217,7 +217,7 @@ kernel void copy_nchw_to_cpu(
                              constant MetalCopyParams& parameters   [[buffer(2)]],
                              ushort3 gid                            [[thread_position_in_grid]])
 {
-    if(any(gid >= ushort3(parameters.width, parameters.height, parameters.channel)))
+    if(any(gid >= ushort3(parameters.width, parameters.height, parameters.channel * parameters.batch)))
         return;
     auto offset = gid.z * parameters.width * parameters.height + gid.y * parameters.width + gid.x;
     out[offset] = in[offset];

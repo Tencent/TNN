@@ -157,6 +157,21 @@ TEST_P(MatConverterTest, MatConverterTest) {
     {
         GTEST_SKIP();
     }
+    {
+        // Metal device only supports NCHW_FLOAT and N8UC4 mat
+        if(device_type == DEVICE_METAL && !(mat_type == N8UC4 || mat_type == NCHW_FLOAT)) {
+            GTEST_SKIP();
+        }
+        // Only Copy supports NCHW_FLOAT
+        if(device_type == DEVICE_METAL && mat_type == NCHW_FLOAT && mat_converter_type != MatConverterType::Copy) {
+            GTEST_SKIP();
+        }
+        // Metal device only supports N8UC4 mat with batchsize = 1
+        if(device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
+            GTEST_SKIP();
+        }
+
+    }
 
     int output_size;
     if (mat_converter_type == MatConverterType::Resize){

@@ -31,7 +31,7 @@ public:
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
     
-    ~MetalMatConverterAcc();
+    ~MetalMatConverterAcc() {};
 protected:
     MetalResizeParams resize_param_;
     MetalCropParams crop_param_;
@@ -59,10 +59,6 @@ protected:
     
 };
 
-MetalMatConverterAcc::~MetalMatConverterAcc() {
-    ;
-}
-
 Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& src, Mat& dst) {
     resize_param_.batch    = src.GetBatch();
     resize_param_.width    = src.GetWidth();
@@ -73,10 +69,6 @@ Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& s
     //resize specific parameters
     resize_param_.scale_w  = param.scale_w;
     resize_param_.scale_h  = param.scale_h;
-    //TODO: align with opencv, how to perform rounding
-    //resize_param_.resized_width  = static_cast<int>(resize_param_.scale_w * resize_param_.width);
-    //resize_param_.resized_height = static_cast<int>(resize_param_.scale_h * resize_param_.height);
-    // align with arm
     resize_param_.resized_width = dst.GetWidth();
     resize_param_.resized_height = dst.GetHeight();
     
@@ -133,19 +125,6 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
                                                     length:sizeof(MetalWarpAffineParams)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
     // compute the inverse transformation matrix
-    /*
-     double D   = M[0] * M[4] - M[1] * M[3];
-     D          = D != 0 ? 1. / D : 0;
-     double A11 = M[4] * D, A22 = M[0] * D;
-     m[0]      = A11;
-     m[1]      = M[1] * (-D);
-     m[3]      = M[3] * (-D);
-     m[4]      = A22;
-     double b1 = -A11 * M[2] - m[1] * M[5];
-     double b2 = -m[3] * M[2] - A22 * M[5];
-     m[2]      = b1;
-     m[5]      = b2;
-     */
     float D   = param.transform[0][0] * param.transform[1][1] - param.transform[0][1] * param.transform[1][0];
     D          = D != 0 ? 1. / D : 0;
     float A11 = param.transform[1][1] * D, A22 = param.transform[0][0] * D;
@@ -473,25 +452,7 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             }
         }
     }
-    /*
-    if (device_ == nil) {
-        if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = nil;
-            if(src_device_type == DEVICE_METAL)
-                texture = (__bridge id<MTLTexture>)(src.GetData());
-            else
-                texture = (__bridge id<MTLTexture>)(dst.GetData());
-            device_     = texture.device;
-        } else if(src_mat_type == NCHW_FLOAT) {
-            id<MTLBuffer> buffer = nil;
-            if(src_device_type == DEVICE_METAL)
-                buffer = (__bridge id<MTLBuffer>)(src.GetData());
-            else
-                buffer = (__bridge id<MTLBuffer>)(dst.GetData());
-            device_     = buffer.device;
-        }
-    }
-     */
+
     if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT && src_mat_type != N8UC3) {
         return Status(TNNERR_PARAM_ERR, "not support yet");
     }
@@ -512,9 +473,9 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     if (status != TNN_OK) {
         return status;
     }
-    //check copy direction
+
     auto dims = src.GetDims();
-    
+    //check copy direction
     if (src_device_type == DEVICE_METAL) {
         // Metal => cpu
         // 1) metal => buffer
@@ -536,12 +497,13 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             return Status(TNNERR_INST_ERR, "tmp_buffer is nil");
         }
         do {
-            auto slice = UP_DIV(dims[1], 4);
+            auto slice = UP_DIV(dims[1], 4) * dims[0];
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], 1};
-            if(src_mat_type == NCHW_FLOAT) {
-                groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)dims[1]};
+            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
+            if (src_mat_type == NCHW_FLOAT) {
+                groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)slice};
             }
+
             auto command_buffer = [command_queue_impl commandBuffer];
             [command_buffer enqueue];
             auto encoder = [command_buffer computeCommandEncoder];
@@ -581,7 +543,7 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             if (!texture) {
                 return Status(TNNERR_INST_ERR, "dst GetTexture return nil");
             }
-            //This method does not synchronize against any GPU accesses to the texture
+            // TODO: check if this method will synchronize against GPU accesses to the texture
             [texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
                        mipmapLevel:0
                          withBytes:src.GetData()
@@ -594,7 +556,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
                                                             options:MTLResourceOptionCPUCacheModeDefault];
             memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
             // 2) buffer => metal
-            auto slice = UP_DIV(dims[1], 4);
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
             MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)dims[1]};
             auto command_buffer = [command_queue_impl commandBuffer];
@@ -619,7 +580,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
                                                             options:MTLResourceOptionCPUCacheModeDefault];
             memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
             // 2) buffer => metal
-            auto slice = UP_DIV(dims[1], 4);
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
             MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
             auto command_buffer = [command_queue_impl commandBuffer];
@@ -689,10 +649,7 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     if (status != TNN_OK) {
         return status;
     }
-#ifdef DUMP_BILINEAR_COOR
-    id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: resize_param_.resized_width*resize_param_.resized_height*2*sizeof(int)
-                                                    options:MTLResourceOptionCPUCacheModeDefault];
-#endif
+
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
         MTLSize groups = {(NSUInteger)((resize_param_.resized_width + group_threads.width - 1) / group_threads.width), (NSUInteger)resize_param_.resized_height, (NSUInteger)1};
@@ -708,10 +665,6 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         [encoder setTexture:input_texture atIndex:0];
         [encoder setTexture:output_texture atIndex:1];
         [encoder setBuffer:buffer_resize_param_ offset:0 atIndex:0];
-#ifdef DUMP_BILINEAR_COOR
-        //prepare a buffer for sample coordinate
-        [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
-#endif
         
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
@@ -720,18 +673,6 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         //wait to complete
         [command_buffer waitUntilCompleted];
     } while(0);
-#ifdef DUMP_BILINEAR_COOR
-    metal_coords.reset(new int[resize_param_.resized_width*resize_param_.resized_height*2]);
-    memcpy(metal_coords.get(), [tmp_buffer contents], sizeof(int)*resize_param_.resized_width*resize_param_.resized_height*2);
-    int offset = 0;
-    int* metal_coord_ptr = metal_coords.get();
-    for(int h=0; h<resize_param_.resized_height; ++h){
-        for(int w=0; w<resize_param_.resized_width; ++w){
-            printf("(%d,%d):(%d,%d)\n", w, h, metal_coord_ptr[offset], metal_coord_ptr[offset+1]);
-            offset += 2;
-        }
-    }
-#endif
     return TNN_OK;
 }
 
