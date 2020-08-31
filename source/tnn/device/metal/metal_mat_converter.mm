@@ -13,9 +13,8 @@
 // specific language governing permissions and limitations under the License.
 #import <Metal/Metal.h>
 
-#import "tnn/utils/mat_converter.h"
 #import "tnn/utils/mat_utils.h"
-#import "tnn/utils/mat_converter_internal.h"
+#import "tnn/utils/mat_converter_acc.h"
 #import "tnn/device//metal/metal_context.h"
 #import "tnn/device//metal/metal_command_queue.h"
 #import "tnn/device//metal/acc/metal_common.h"
