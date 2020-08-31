@@ -168,8 +168,6 @@ typedef void(^CommonCallback)(Status);
     if (!_viewModel || !_viewModel.predictor) return;
     
     const auto target_dims = self.viewModel.predictor->GetInputShape();
-    auto target_height = target_dims[2];
-    auto target_width = target_dims[3];
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
@@ -203,6 +201,8 @@ typedef void(^CommonCallback)(Status);
 #else
         auto image_data = utility::CVImageBuffRefGetData(image_buffer);
 #endif
+        fps_counter_async_thread->Begin("end2end");
+
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         auto origin_dims = {1, 3, origin_height, origin_width};
         if (compute_units == TNNComputeUnitsCPU) {
@@ -223,18 +223,18 @@ typedef void(^CommonCallback)(Status);
         }
         auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
         //resize
-        fps_counter_async_thread->Begin("resize");
+        //fps_counter_async_thread->Begin("resize");
         predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
-        fps_counter_async_thread->End("resize");
+        //fps_counter_async_thread->End("resize");
 
         CVBufferRelease(image_buffer);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
-            fps_counter_async_thread->Begin("detect");
+            //fps_counter_async_thread->Begin("detect");
             status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
-            fps_counter_async_thread->End("detect");
-            
+            //fps_counter_async_thread->End("detect");
+            fps_counter_async_thread->End("end2end");
             map_fps = fps_counter_async_thread->GetAllFPS();
         } while (0);
         
