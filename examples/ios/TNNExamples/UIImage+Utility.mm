@@ -151,6 +151,11 @@ UIImage *UIImageWithCVImageBuffRef(CVImageBufferRef imageBuffer) {
     return (image);
 }
 
+std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer) {
+    CGSize size = CVImageBufferGetDisplaySize(image_buffer);
+    return CVImageBuffRefGetData(image_buffer, size.height, size.width);
+}
+
 std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int target_height, int target_width) {
     std::shared_ptr<char> data = nullptr;
     if (image_buffer == nil){
