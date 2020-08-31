@@ -20,6 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
+#include "tnn/core/mat.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 
@@ -27,65 +28,6 @@
 #pragma warning(disable : 4251)
 
 namespace TNN_NS {
-
-typedef enum {
-    INVALID    = -1,
-    //bgr or rgb: uint8
-    N8UC3      = 0x00,
-    //bgra or rgba: uint8
-    N8UC4      = 0x01,
-    //gray: uint8
-    NGRAY      = 0x10,
-    //YUV420SP, YYYYVUVUVU
-    NNV21      = 0x11,
-    //YUV420SP, YYYYUVUVUV
-    NNV12      = 0x12,
-    //nchw: float
-    NCHW_FLOAT = 0x20,
-    // RESERVED FOR INTERNAL TEST USE
-    RESERVED_BFP16_TEST = 0x200,
-    RESERVED_FP16_TEST  = 0x201,
-    RESERVED_INT8_TEST  = 0x202,
-} PUBLIC MatType;
-
-class PUBLIC Mat {
-public:
-    ~Mat();
-    
-    Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
-    Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
-
-    DEPRECATED("use Mat(DeviceType, MatType, DimsVector, void*) instead")
-    Mat(DeviceType device_type, MatType mat_type, void* data) : Mat(device_type, mat_type, {1,0,0,0}, data) {};
-    
-public:
-    DeviceType GetDeviceType();
-    MatType GetMatType();
-    void* GetData();
-    int GetBatch();
-    int GetChannel();
-    int GetHeight();
-    int GetWidth();
-    int GetDim(int index);
-    DimsVector GetDims();
-
-    //    Mat(const Mat&) = delete;
-    //    Mat& operator=(const Mat&) = delete;
-
-private:
-    Mat(){};
-
-protected:
-    TNN_NS::DeviceType device_type_ = DEVICE_NAIVE;
-    TNN_NS::MatType mat_type_       = INVALID;
-    void* data_                     = nullptr;
-    DimsVector dims_ = {};
-
-private:
-    std::shared_ptr<void> data_alloc_ = nullptr;
-};
-
-using MatMap = std::map<std::string, std::shared_ptr<Mat>>;
 
 //formular: y = scale*x + bias
 struct PUBLIC MatConvertParam {
@@ -98,11 +40,11 @@ class BlobConverterAcc;
 class PUBLIC BlobConverter {
 public:
     explicit BlobConverter(Blob* blob);
-    virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue);
-    virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue);
 
-    virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue);
-    virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue);
 
 private:
     Blob* blob_ = nullptr;
