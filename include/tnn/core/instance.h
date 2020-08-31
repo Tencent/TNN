@@ -86,7 +86,7 @@ public:
     Status GetAllOutputBlobs(BlobMap& blobs);
 
     // set threads run on cpu
-    Status SetCpuNumThreads(int num_threads);
+    virtual Status SetCpuNumThreads(int num_threads);
 #if TNN_PROFILE
 public:
     /**start to profile each layer, dont call this func if you only want to profile the whole mode*/
