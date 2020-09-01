@@ -75,7 +75,7 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             // reverse_channel
                             testing::Values(false),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12,
+                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21,
                                             NCHW_FLOAT),  // datatype
                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
 

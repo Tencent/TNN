@@ -74,6 +74,8 @@ int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int o
 
 void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int height, int width);
 
+void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int height, int width);
+
 }  // namespace TNN_NS
 
 #endif
