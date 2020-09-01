@@ -75,7 +75,7 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             // reverse_channel
                             testing::Values(false),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY,
+                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12,
                                             NCHW_FLOAT),  // datatype
                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
 
@@ -103,6 +103,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
         GTEST_SKIP();
     } else if (mat_type == NGRAY && channel != 1) {
+        GTEST_SKIP();
+    } else if ((mat_type == NNV12 || mat_type == NNV21) && channel != 3) {
         GTEST_SKIP();
     }
 
