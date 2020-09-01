@@ -37,7 +37,7 @@ int Onnx2TNN::RemoveDropout(onnx::GraphProto* mutable_graph, std::vector<IndexNo
         node->set_op_type(k_tnn_noop_type);
         RemoveIndexNode(index_nodes, i);
         if (node_reference.find(node->output(0)) != node_reference.end()) {
-            node_reference[node->output(0)] = node_reference[node->output(0)] - 1;
+            node_reference.erase(node_reference.find(node->output(0)));
         }
     }
     ClearEmptyNode(index_nodes);

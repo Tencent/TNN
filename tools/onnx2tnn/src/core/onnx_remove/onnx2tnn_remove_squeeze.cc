@@ -30,7 +30,7 @@ int Onnx2TNN::RemoveSqueeze(onnx::GraphProto* mutable_graph, std::vector<IndexNo
         }
         RemoveIndexNode(index_nodes, i);
         if (node_reference.find(node->output(0)) != node_reference.end()) {
-            node_reference[node->output(0)] = node_reference[node->output(0)] - 1;
+            node_reference.erase(node_reference.find(node->output(0)));
         }
     }
     ClearEmptyNode(index_nodes);
