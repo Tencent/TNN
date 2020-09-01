@@ -115,7 +115,10 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
                                         static_cast<uint32_t>(output_dims[3]),
                                         static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-    execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
+
+    // to make full use of work-items in work-group
+    bool local_work_preferred = true;
+    execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0], local_work_preferred);
 
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
