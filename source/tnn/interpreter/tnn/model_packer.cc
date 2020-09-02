@@ -254,11 +254,11 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
     if (resource_map.find(layer_name) != resource_map.end() && resource_map.find(layer_name)->second != nullptr) {
         auto iter       = resource_map.find(layer_name);
         auto layer_info = FindLayerInfo(layer_name);
-        layer_header blob_scale_header;
-        blob_scale_header.name_     = iter->first;
-        blob_scale_header.type_     = LAYER_NOT_SUPPORT;
-        blob_scale_header.type_str_ = layer_info->type_str;
-        blob_scale_header.serialize(*serializer);
+        layer_header ly_header;
+        ly_header.name_     = iter->first;
+        ly_header.type_     = layer_info->type;
+        ly_header.type_str_ = layer_info->type_str;
+        ly_header.serialize(*serializer);
         LayerResource *layer_resource = iter->second.get();
         auto layer_interpreter        = layer_interpreter_map[layer_info->type];
         if (layer_interpreter != nullptr) {
@@ -267,14 +267,14 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
                 LOGE(
                     "Error: layer interpreter save resource failed (name:%s "
                     "type_from_str:%s type:%d)\n",
-                    blob_scale_header.name_.c_str(), blob_scale_header.type_str_.c_str(), blob_scale_header.type_);
+                    ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
                 return Status(TNNERR_PACK_MODEL, "model content is invalid");
             }
         } else {
             LOGE(
                 "Error: layer interpreter is null (name:%s "
                 "type_from_str:%s type:%d)\n",
-                blob_scale_header.name_.c_str(), blob_scale_header.type_str_.c_str(), blob_scale_header.type_);
+                ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
             return Status(TNNERR_PACK_MODEL, "unsupport layer resource type");
         }
     }
