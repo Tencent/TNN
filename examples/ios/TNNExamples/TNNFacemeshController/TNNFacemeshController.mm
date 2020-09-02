@@ -24,6 +24,8 @@
 #import "Facemesh.h"
 #import "UIImage+Utility.h"
 
+#define PROFILE 0
+
 using namespace std;
 using namespace TNN_NS;
 
@@ -208,7 +210,10 @@ using namespace TNN_NS;
     DimsVector target_face_mesh_dims = predictor_face_mesh->GetInputShape();
 
     auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-
+#if PROFILE
+        Timer timer;
+    const std::string tag = (units == TNNComputeUnitsCPU)? "CPU": "GPU";
+#endif
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     DimsVector image_dims = {1, 3, image_orig_height, image_orig_width};
@@ -237,7 +242,15 @@ using namespace TNN_NS;
     std::vector<BlazeFaceInfo> face_info;
     {
         auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_face_detector_dims);
+#if PROFILE
+        timer.start();
         status = predictor_face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
+        timer.printElapsed(tag, "Face Detector Resize");
+        printShape("Face Detector src", image_mat->GetDims());
+        printShape("Face Detector dst", input_mat->GetDims());
+#else
+        status = predictor_face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
+#endif
         if (status != TNN_OK) {
             self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
             NSLog(@"Error: %s", status.description().c_str());
@@ -279,14 +292,30 @@ using namespace TNN_NS;
             //TODO: how does utility handles double crop size?
             DimsVector crop_dims = {1, 3, static_cast<int>(crop_rect.size.height), static_cast<int>(crop_rect.size.width)};
             std::shared_ptr<TNN_NS::Mat> croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, crop_dims);
-            status = predictor_face_mesh->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
+#if PROFILE
+            timer.start();
+            status = predictor_face_detector->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
+            timer.printElapsed(tag, "Crop:");
+            printShape("Crop src", image_mat->GetDims());
+            printShape("Crop dst", croped_mat->GetDims());
+#else
+            status = predictor_face_detector->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
+#endif
             if (status != TNN_OK) {
                 self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                 NSLog(@"Error: %s", status.description().c_str());
                     return;
             }
             std::shared_ptr<TNN_NS::Mat> input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_face_mesh_dims);
-            status = predictor_face_mesh->Resize(croped_mat, input_mat, TNNInterpLinear);
+#if PROFILE
+            timer.start();
+            status = predictor_face_detector->Resize(croped_mat, input_mat, TNNInterpLinear);
+            timer.printElapsed(tag, "FaceMesh Resize:");
+            printShape("Face Mesh src", croped_mat->GetDims());
+            printShape("Face Mesh dst", input_mat->GetDims());
+#else
+            status = predictor_face_detector->Resize(croped_mat, input_mat, TNNInterpLinear);
+#endif
             if (status != TNN_OK) {
                 self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                 NSLog(@"Error: %s", status.description().c_str());

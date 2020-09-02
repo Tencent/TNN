@@ -26,11 +26,14 @@ public:
     void Begin(std::string tag);
     void End(std::string tag);
     double GetFPS(std::string tag);
+    double GetTime(std::string tag);
     std::map<std::string, double> GetAllFPS();
+    std::map<std::string, double> GetAllTime();
     
 protected:
     std::map<std::string, double> map_fps_ = {};
     std::map<std::string, double> map_start_time_ = {};
+    std::map<std::string, double> map_time_ = {};
     
 private:
     std::string RetifiedTag(std::string tag);

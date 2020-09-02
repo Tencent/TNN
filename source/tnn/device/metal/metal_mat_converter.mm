@@ -21,8 +21,32 @@
 #import "tnn/core/abstract_device.h"
 #import "tnn/utils/dims_vector_utils.h"
 
+#import <chrono>
+
+#define ENABLE_PIPELINE_CACHE 1
+#define ENABLE_TIMER 0
+#define KERNEL_SYNC 0
 
 namespace TNN_NS {
+
+class Timer {
+public:
+    using clock_t = std::chrono::high_resolution_clock;
+    using ms      = std::chrono::milliseconds;
+    using us      = std::chrono::microseconds;
+    Timer(){};
+    ~Timer(){};
+
+    void start() {
+        time_ = clock_t::now();
+    }
+    float end() {
+        auto t = std::chrono::duration_cast<us>(clock_t::now() -  time_);
+        return t.count();
+    }
+private:
+    clock_t::time_point time_;
+};
 
 class MetalMatConverterAcc : public MatConverterAcc {
 public:
@@ -73,6 +97,7 @@ Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& s
     //resize specific parameters
     resize_param_.scale_w  = param.scale_w;
     resize_param_.scale_h  = param.scale_h;
+
     //TODO: align with opencv, how to perform rounding
     //resize_param_.resized_width  = static_cast<int>(resize_param_.scale_w * resize_param_.width);
     //resize_param_.resized_height = static_cast<int>(resize_param_.scale_h * resize_param_.height);
@@ -188,6 +213,9 @@ Status MetalMatConverterAcc::AllocateBufferCopyParam(Mat& src, Mat& dst) {
 }
 
 Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string,  id <MTLComputePipelineState> > library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -203,8 +231,16 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
     
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+            kernel_name = std::string("mat_converter_texture_n8uc4_crop");
+            if (library_cache.count(kernel_name) > 0){
+                pipeline_process_ = library_cache[kernel_name];
+                return TNN_OK;
+            }
+#endif
             // metal N8UC4 image crop kernel
             func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_crop"];
         } else if(N8UC3 == src_mat_type) {
@@ -237,11 +273,20 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
         return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
-    
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
 Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue) {
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string,  id <MTLComputePipelineState> > library_cache;
+    //static NSMutableDictionary<NSString *, id<MTLComputePipelineState>> *library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -251,20 +296,35 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
     if (!library) {
         return Status(TNNERR_INVALID_INPUT, "metal library is nil");
     }
-    
-    auto src_mat_type = src.GetMatType();
-    auto dst_mat_type = dst.GetMatType();
-    
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             // metal N8UC4 image crop kernel
             if (0x00 == param.type) {
                 //INTERP_TYPE_NEAREST
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = string("mat_converter_texture_n8uc4_resize_nearest");
+                if (library_cache.count(kernel_name) != 0) {
+                    // cache hit
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+                // cache miss
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_nearest"];
             } else if (0x01 == param.type) {
                 //INTERP_TYPE_LINEAR
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = string("mat_converter_texture_n8uc4_resize_linear");
+                if (library_cache.count(kernel_name) != 0) {
+                    // cache hit
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+                // cache miss
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_linear"];
             }
         } else if (N8UC3 == src_mat_type) {
@@ -297,7 +357,9 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
         return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
-    
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
@@ -645,6 +707,10 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 }
 
 Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
+#if ENABLE_TIMER
+    Timer timer;
+    timer.start();
+#endif
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
     auto src_mat_type = src.GetMatType();
@@ -679,20 +745,27 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     }
     
     auto context_impl = command_queue_impl.metalContextImpl;
-    
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "prepare", timer.end());
+    timer.start();
+#endif
     auto status = AllocateBufferResizeParam(param, src, dst);
     if (status != TNN_OK) {
         return status;
     }
-    
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "allocate parameter", timer.end());
+    timer.start();
+#endif
     status = AllocateResizeComputePipeline(param, src, dst, command_queue);
     if (status != TNN_OK) {
         return status;
     }
-#ifdef DUMP_BILINEAR_COOR
-    id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: resize_param_.resized_width*resize_param_.resized_height*2*sizeof(int)
-                                                    options:MTLResourceOptionCPUCacheModeDefault];
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "allocate computepipeline", timer.end());
+    timer.start();
 #endif
+
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
         MTLSize groups = {(NSUInteger)((resize_param_.resized_width + group_threads.width - 1) / group_threads.width), (NSUInteger)resize_param_.resized_height, (NSUInteger)1};
@@ -708,29 +781,18 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         [encoder setTexture:input_texture atIndex:0];
         [encoder setTexture:output_texture atIndex:1];
         [encoder setBuffer:buffer_resize_param_ offset:0 atIndex:0];
-#ifdef DUMP_BILINEAR_COOR
-        //prepare a buffer for sample coordinate
-        [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
-#endif
         
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
         
         [command_buffer commit];
         //wait to complete
+#if KERNEL_SYNC
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
-#ifdef DUMP_BILINEAR_COOR
-    metal_coords.reset(new int[resize_param_.resized_width*resize_param_.resized_height*2]);
-    memcpy(metal_coords.get(), [tmp_buffer contents], sizeof(int)*resize_param_.resized_width*resize_param_.resized_height*2);
-    int offset = 0;
-    int* metal_coord_ptr = metal_coords.get();
-    for(int h=0; h<resize_param_.resized_height; ++h){
-        for(int w=0; w<resize_param_.resized_width; ++w){
-            printf("(%d,%d):(%d,%d)\n", w, h, metal_coord_ptr[offset], metal_coord_ptr[offset+1]);
-            offset += 2;
-        }
-    }
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "kernel", timer.end());
 #endif
     return TNN_OK;
 }
@@ -799,8 +861,10 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         [encoder endEncoding];
         
         [command_buffer commit];
+#if KERNEL_SYNC
         //wait to complete
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
     return TNN_OK;
 }

@@ -23,6 +23,10 @@
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
 
+void printShape(const std::string& msg, const DimsVector& shape) {
+    printf("%s:(%d,%d,%d,%d)\n", msg.c_str(), shape[0], shape[1], shape[2], shape[3]);
+}
+
 ObjectInfo ObjectInfo::FlipX() {
     ObjectInfo  info;
     info.score = this->score;

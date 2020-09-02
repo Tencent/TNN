@@ -18,6 +18,7 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 #include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
@@ -28,6 +29,31 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 namespace TNN_NS {
+
+class Timer {
+public:
+    using clock_t = std::chrono::high_resolution_clock;
+    using ms      = std::chrono::milliseconds;
+    using us      = std::chrono::microseconds;
+    Timer(){};
+    ~Timer(){};
+
+    void start() {
+        time_ = clock_t::now();
+    }
+    float end() {
+        auto t = std::chrono::duration_cast<us>(clock_t::now() -  time_);
+        return t.count();
+    }
+    void printElapsed(const std::string& tag, const std::string& msg) {
+        float t = end();
+        printf("%s, %s:%f\n", tag.c_str(), msg.c_str(), t);
+    }
+private:
+    clock_t::time_point time_;
+};
+
+void printShape(const std::string& msg, const DimsVector& shape);
 
 template<typename T1, typename T2, typename T3>
 using triple = std::tuple<T1, T2, T3>;

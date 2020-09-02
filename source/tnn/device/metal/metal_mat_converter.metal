@@ -64,13 +64,8 @@ kernel void mat_converter_texture_n8uc4_resize_linear(
     
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
-    
     float scale_w_inv = float(parameters.width) / float(parameters.resized_width);
     float scale_h_inv = float(parameters.height) / float(parameters.resized_height);
-    
-    //float x = min(float(gid.x*1.0 / parameters.scale_w), float(parameters.width-1));
-    //float y = min(float(gid.y*1.0 / parameters.scale_h), float(parameters.height-1));
-    
     float x = min(float(gid.x * scale_w_inv), float(parameters.width-1));
     float y = min(float(gid.y * scale_h_inv), float(parameters.height-1));
     
