@@ -11,6 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
 #import <Metal/Metal.h>
 
 #import "tnn/utils/mat_utils.h"
@@ -98,7 +99,7 @@ Status MetalMatConverterAcc::AllocateBufferCropParam(CropParam param, Mat& src, 
     crop_param_.top_left_y     = param.top_left_y;
     
     buffer_crop_param_ = [device_ newBufferWithBytes:&crop_param_
-                                              length:sizeof(MetalResizeParams)
+                                              length:sizeof(MetalCropParams)
                                              options:MTLResourceCPUCacheModeWriteCombined];
     
     if (!buffer_crop_param_) {
@@ -125,15 +126,17 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
                                                     length:sizeof(MetalWarpAffineParams)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
     // compute the inverse transformation matrix
-    float D   = param.transform[0][0] * param.transform[1][1] - param.transform[0][1] * param.transform[1][0];
-    D          = D != 0 ? 1. / D : 0;
-    float A11 = param.transform[1][1] * D, A22 = param.transform[0][0] * D;
-    warpaffine_param_.transform_inv[0][0]      = A11;
-    warpaffine_param_.transform_inv[0][1]      = param.transform[0][1] * (-D);
-    warpaffine_param_.transform_inv[1][0]      = param.transform[1][0] * (-D);
-    warpaffine_param_.transform_inv[1][1]      = A22;
-    float b1 = -A11 * param.transform[0][2] - warpaffine_param_.transform_inv[0][1] * param.transform[1][2];
-    float b2 = -warpaffine_param_.transform_inv[1][0] * param.transform[0][2] - A22 * param.transform[1][2];
+    float d   = param.transform[0][0] * param.transform[1][1] - param.transform[0][1] * param.transform[1][0];
+    d          = d != 0 ? 1. / d : 0;
+
+    float a11 = param.transform[1][1] * d, a22 = param.transform[0][0] * d;
+    warpaffine_param_.transform_inv[0][0]      = a11;
+    warpaffine_param_.transform_inv[0][1]      = param.transform[0][1] * (-d);
+    warpaffine_param_.transform_inv[1][0]      = param.transform[1][0] * (-d);
+    warpaffine_param_.transform_inv[1][1]      = a22;
+
+    float b1 = -a11 * param.transform[0][2] - warpaffine_param_.transform_inv[0][1] * param.transform[1][2];
+    float b2 = -warpaffine_param_.transform_inv[1][0] * param.transform[0][2] - a22 * param.transform[1][2];
     warpaffine_param_.transform_inv[0][2]      = b1;
     warpaffine_param_.transform_inv[1][2]      = b2;
     
@@ -184,36 +187,27 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
     
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
-            // metal N8UC4 image crop kernel
             func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_crop"];
         } else if(N8UC3 == src_mat_type) {
-            // matal N8UC3 image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if(NGRAY == src_mat_type) {
-            // metal gray image crop kernel(N8UC1)
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if(NNV21 == src_mat_type || NNV12 == src_mat_type) {
-            // metal NNV image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if(NCHW_FLOAT == src_mat_type) {
-            // metak NCHW_FLOAT image crop kernel
-            // arm converter doesnot support NCHW now.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "crop converter pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -238,42 +232,31 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
     
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
-            // metal N8UC4 image crop kernel
-            if (0x00 == param.type) {
-                //INTERP_TYPE_NEAREST
+            if (INTERP_TYPE_NEAREST == param.type) {
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_nearest"];
-            } else if (0x01 == param.type) {
-                //INTERP_TYPE_LINEAR
+            } else if (INTERP_TYPE_LINEAR == param.type) {
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_linear"];
             }
         } else if (N8UC3 == src_mat_type) {
-            // matal N8UC3 image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NGRAY == src_mat_type) {
-            // metal gray image crop kernel(N8UC1)
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NNV21 == src_mat_type || NNV12 == src_mat_type) {
-            // metal NNV image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NCHW_FLOAT == src_mat_type) {
-            // metak NCHW_FLOAT image crop kernel
-            // arm converter doesnot support NCHW now.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "resize pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -302,41 +285,31 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
         } else if (NCHW_FLOAT == src_mat_type) {
             func_process = [library newFunctionWithName:@"copy_nchw_to_cpu"];
         } else if (N8UC3 == src_mat_type) {
-            // matal N8UC3 image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NGRAY == src_mat_type) {
-            // metal gray image crop kernel(N8UC1)
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NNV21 == src_mat_type || NNV12 == src_mat_type) {
-            // metal NNV image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         }
     } else if(src_mat_type == N8UC3 || dst_mat_type == N8UC3) {
         auto src_device_type = src.GetDeviceType();
         auto dst_device_type = dst.GetDeviceType();
         if (src_device_type == DEVICE_METAL) {
-            // metal N8UC4 => arm N8UC3
             func_process = [library newFunctionWithName:@"copy_n8uc4_metal_to_n8uc3_cpu"];
-            //LOGE("metal N8UC4 to arm N8UC3\n");
         } else {
-            // arm N8UC3 => metal N8UC4
             func_process = [library newFunctionWithName:@"copy_n8uc3_cpu_to_n8uc4_metal"];
-            //LOGE("arm N8UC3 to metal N8UC4\n");
         }
     }else {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "copy pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -364,45 +337,33 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
-            // metal N8UC4 image crop kernel
-            if (0x00 == interp_type) {
-                //INTERP_TYPE_NEAREST
-                return Status(TNNERR_PARAM_ERR, "not support yet");
-            } else if (0x01 == interp_type && 0x00 == border_type) {
-                //INTERP_TYPE_LINEAR and border type const
+            if (INTERP_TYPE_NEAREST == interp_type) {
+                return Status(TNNERR_PARAM_ERR, "interp type not support yet");
+            } else if (INTERP_TYPE_LINEAR == interp_type && BORDER_TYPE_CONSTANT == border_type) {
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_warpaffine_linear_const"];
             } else {
-                //INTERP_TYPE_LINEAR and other border type
                 return Status(TNNERR_PARAM_ERR, "not support yet");
             }
         } else if (N8UC3 == src_mat_type) {
-            // matal N8UC3 image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NGRAY == src_mat_type) {
-            // metal gray image crop kernel(N8UC1)
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NNV21 == src_mat_type || NNV12 == src_mat_type) {
-            // metal NNV image crop kernel
-            // metal_device only support memory allocation for N8UC4/NCHW_FLOAT.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else if (NCHW_FLOAT == src_mat_type) {
-            // metak NCHW_FLOAT image crop kernel
-            // arm converter doesnot support NCHW now.
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support yet");
+            return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "warpaffine pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -412,27 +373,34 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
 Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
+
     auto src_mat_type    = src.GetMatType();
     auto dst_mat_type    = dst.GetMatType();
+
     if (src_device_type == dst_device_type) {
         return TNN_OK;
     }
-    // src or dst must be on Metal
+
     if (dst_device_type != DEVICE_METAL && src_device_type!=DEVICE_METAL) {
-        return Status(TNNERR_INVALID_INPUT, "both src and dst are not Metal Mat!");
+        return Status(TNNERR_INVALID_INPUT, "both src and dst are not Metal Mat");
     }
-    // support NAIVE and ARM
+
     if (!(src_device_type == DEVICE_NAIVE || src_device_type == DEVICE_ARM || dst_device_type == DEVICE_NAIVE || dst_device_type == DEVICE_ARM)) {
-        return Status(TNNERR_INVALID_INPUT, "unsupported device!");
+        return Status(TNNERR_INVALID_INPUT, "device type not support yet");
     }
-    // devan: support N8UC3 <=> N8UC4 copy
+
+    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT && src_mat_type != N8UC3) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+
     if (src_mat_type != dst_mat_type && !(src_mat_type == N8UC3 && dst_mat_type == N8UC4) && !(src_mat_type == N8UC4 && dst_mat_type == N8UC3)) {
-        return Status(TNNERR_INVALID_INPUT, "src and dst have different data type!");
+        return Status(TNNERR_INVALID_INPUT, "src and dst mat type must be same");
     }
-    // check if dims compatible
+
     if (! ((src_mat_type == dst_mat_type && DimsVectorUtils::Equal(src.GetDims(), dst.GetDims())) || ((src_mat_type == N8UC3 || dst_mat_type == N8UC3) && (src.GetHeight()==dst.GetHeight() && src.GetWidth()==dst.GetWidth()))) ) {
-        return Status(TNNERR_INVALID_INPUT, "src and dst have different dims!");
+        return Status(TNNERR_INVALID_INPUT, "src and dst shape not match");
     }
+
     if (device_ == nil) {
         if (src_device_type == DEVICE_METAL) {
             if(src_mat_type == N8UC4) {
@@ -451,10 +419,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
                 device_     = buffer.device;
             }
         }
-    }
-
-    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT && src_mat_type != N8UC3) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
     }
     
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
@@ -550,7 +514,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
                        bytesPerRow:dims[3]*4];
         } else if(src_mat_type == NCHW_FLOAT) {
             // 1) cpu => buffer
-            //TODO: will this cause memory leak?
             auto count = DimsVectorUtils::Count(dims);
             id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: count*4
                                                             options:MTLResourceOptionCPUCacheModeDefault];
@@ -607,32 +570,23 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
+
     auto src_mat_type = src.GetMatType();
     auto dst_mat_type = dst.GetMatType();
+
     if (dst_mat_type != src_mat_type) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
-    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+
+    if (src_mat_type != N8UC4) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
     //Get device
     if (device_ == nil) {
-        if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = nil;
-            if(src_device_type == DEVICE_METAL)
-                texture = (__bridge id<MTLTexture>)(src.GetData());
-            else
-                texture = (__bridge id<MTLTexture>)(dst.GetData());
-            device_     = texture.device;
-        } else if(src_mat_type == NCHW_FLOAT) {
-            id<MTLBuffer> buffer = nil;
-            if(src_device_type == DEVICE_METAL)
-                buffer = (__bridge id<MTLBuffer>)(src.GetData());
-            else
-                buffer = (__bridge id<MTLBuffer>)(dst.GetData());
-            device_     = buffer.device;
-        }
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
     }
+
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -679,32 +633,32 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
 Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
+
     auto src_mat_type = src.GetMatType();
     auto dst_mat_type = dst.GetMatType();
+
     if (dst_mat_type != src_mat_type) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
-    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+
+    if (src_device_type != dst_device_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst device type must be same");
+    }
+
+    if (src_mat_type != N8UC4) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
     //Get device
     if (device_ == nil) {
         if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = nil;
-            if(src_device_type == DEVICE_METAL)
-                texture = (__bridge id<MTLTexture>)(src.GetData());
-            else
-                texture = (__bridge id<MTLTexture>)(dst.GetData());
+            id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
             device_     = texture.device;
         } else if(src_mat_type == NCHW_FLOAT) {
-            id<MTLBuffer> buffer = nil;
-            if(src_device_type == DEVICE_METAL)
-                buffer = (__bridge id<MTLBuffer>)(src.GetData());
-            else
-                buffer = (__bridge id<MTLBuffer>)(dst.GetData());
+            id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(src.GetData());
             device_     = buffer.device;
         }
     }
+
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -721,6 +675,7 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
     if (status != TNN_OK) {
         return status;
     }
+
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
         MTLSize groups = {(NSUInteger)((param.width + group_threads.width - 1) / group_threads.width), (NSUInteger)param.height, (NSUInteger)1};
@@ -749,39 +704,34 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
 Status MetalMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
+
     auto src_mat_type = src.GetMatType();
     auto dst_mat_type = dst.GetMatType();
+
     if (dst_mat_type != src_mat_type) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
-    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
-        return Status(TNNERR_PARAM_ERR, "not support yet");
+
+    if (src_device_type != dst_device_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst device type must be same");
+    }
+
+    if (src_mat_type != N8UC4) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
     //Get device
     if (device_ == nil) {
-        if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = nil;
-            if(src_device_type == DEVICE_METAL)
-                texture = (__bridge id<MTLTexture>)(src.GetData());
-            else
-                texture = (__bridge id<MTLTexture>)(dst.GetData());
-            device_     = texture.device;
-        } else if(src_mat_type == NCHW_FLOAT) {
-            id<MTLBuffer> buffer = nil;
-            if(src_device_type == DEVICE_METAL)
-                buffer = (__bridge id<MTLBuffer>)(src.GetData());
-            else
-                buffer = (__bridge id<MTLBuffer>)(dst.GetData());
-            device_     = buffer.device;
-        }
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
     }
+
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
     }
     
     auto context_impl = command_queue_impl.metalContextImpl;
-    
+
     auto status = AllocateBufferWarpAffineParam(param, src, dst);
     if (status != TNN_OK) {
         return status;
