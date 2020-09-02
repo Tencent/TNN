@@ -534,8 +534,8 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
 #endif // TNN_USE_NEON
 
         for (; remain > 0; remain -= 2) {
-            int u = vuptr[0] - 128;
-            int v = vuptr[1] - 128;
+            int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
 
             int ruv = 102 * v;
             int guv = -52 * v + -25 * u;
@@ -761,8 +761,8 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
 #endif // TNN_USE_NEON
 
         for (; remain > 0; remain -= 2) {
-            int v = vuptr[0] - 128;
-            int u = vuptr[1] - 128;
+            int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
 
             int ruv = 102 * v;
             int guv = -52 * v + -25 * u;
