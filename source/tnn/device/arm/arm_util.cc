@@ -373,12 +373,16 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         int8x8_t _v25    = vdup_n_s8(25);
         // use 127 instead of 129 to prevent char overflow, add another 2 in asm
         int8x8_t _v127   = vdup_n_s8(127);
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240  = vdup_n_u8(240);
 
         if (nn > 0) {
             asm volatile(
                 "prfm  pldl1strm, [%[_vu], #128]    \n\t"
                 "ld1   {v2.8b},   [%[_vu]], #8      \n\t"
-                "sub   v2.8b, v2.8b, %[_v128].8b    \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
                 "0:                                 \n\t"
                 "prfm  pldl1strm, [%[_y0], #128]    \n\t"
                 "ld1   {v0.8b},   [%[_y0]], #8      \n\t"
@@ -417,7 +421,9 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
                 "subs %[_nn], %[_nn], #1            \n\t"
                 "prfm pstl1strm, [%[_r0]]           \n\t"
                 "st3 {v24.8b-v26.8b}, [%[_r0]], #24 \n\t"
-                "sub v2.8b, v2.8b, %[_v128].8b      \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
                 "prfm pstl1strm, [%[_r1]]           \n\t"
                 "st3 {v4.8b-v6.8b},   [%[_r1]], #24 \n\t"
                 "bne 0b                             \n\t"
@@ -435,9 +441,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
                   [_v25]"w"(_v25),
                   [_v127]"w"(_v127),
                   [_q1135]"w"(_q1135),
-                  [_v74]"w"(_v74)
+                  [_v74]"w"(_v74),
+                  [_v240]"w"(_v240)
                 : "cc", "memory", "x0", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v8",
-                  "v9", "v10", "v11", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
+                  "v9", "v10", "v11", "v12", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
             );
         }
 #else
@@ -448,12 +455,16 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         int8x8_t _v128 = vdup_n_s8(int8_t(128));
         // to much input w cause compile error, merge to one
         int8x8_t _vuvfilter = {102, 52, 25, 127, 0, 0, 0, 0};
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240     = vdup_n_u8(240);
 
         if (nn > 0) {
             asm volatile(
                 "pld        [%[_vu], #128]      \n"
                 "vld1.u8    {d2}, [%[_vu]]!     \n"
-                "vsub.i8    d2, d2, %[_v128]    \n"
+                "vcgt.u8    d27, d2, %[_v240]   \n"
+                "vbsl.u8    d27,  %[_v240], d2  \n"
+                "vsub.u8    d2, d27, %[_v128]   \n"
                 "vmov.s8    d10, %[_filt]       \n"
                 "vdup.8     d11, d10[1]         \n"   // v52
                 "vdup.8     d12, d10[2]         \n"   // v25
@@ -496,7 +507,9 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
                 "vld1.u8    {d2}, [%[_vu]]!     \n"
                 "subs       %[_nn], #1          \n"
                 "vst3.u8    {d24-d26}, [%[_r0]]!\n"
-                "vsub.s8    d2, d2, %[_v128]    \n"
+                "vcgt.u8    d27, d2, %[_v240]   \n"
+                "vbsl.u8    d27,  %[_v240], d2  \n"
+                "vsub.u8    d2, d27, %[_v128]   \n"
                 "vst3.u8    {d4-d6},   [%[_r1]]!\n"
                 "bne        0b                  \n"
                 "sub        %3, #8              \n"
@@ -510,8 +523,9 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
                 : [_v128]"w"(_v128),
                   [_filt]"w"(_vuvfilter),
                   [_v74]"w"(_v74),
-                  [_s1135]"r"(_s1135)
-                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "d26"
+                  [_s1135]"r"(_s1135),
+                  [_v240]"w"(_v240)
+                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "q13"
             );
         }
 #endif //__aarch64__
@@ -586,12 +600,16 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         int8x8_t _v25    = vdup_n_s8(25);
         // use 127 instead of 129 to prevent char overflow, add another 2 in asm
         int8x8_t _v127   = vdup_n_s8(127);
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240  = vdup_n_u8(240);
 
         if (nn > 0) {
             asm volatile(
                 "prfm  pldl1strm, [%[_vu], #128]    \n\t"
                 "ld1   {v2.8b},   [%[_vu]], #8      \n\t"
-                "sub   v2.8b, v2.8b, %[_v128].8b    \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
                 "0:                                 \n\t"
                 "prfm  pldl1strm, [%[_y0], #128]    \n\t"
                 "ld1   {v0.8b},   [%[_y0]], #8      \n\t"
@@ -630,7 +648,9 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                 "subs %[_nn], %[_nn], #1            \n\t"
                 "prfm pstl1strm, [%[_r0]]           \n\t"
                 "st3 {v24.8b-v26.8b}, [%[_r0]], #24 \n\t"
-                "sub v2.8b, v2.8b, %[_v128].8b      \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
                 "prfm pstl1strm, [%[_r1]]           \n\t"
                 "st3 {v4.8b-v6.8b},   [%[_r1]], #24 \n\t"
                 "bne 0b                             \n\t"
@@ -648,9 +668,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                   [_v25]"w"(_v25),
                   [_v127]"w"(_v127),
                   [_q1135]"w"(_q1135),
-                  [_v74]"w"(_v74)
+                  [_v74]"w"(_v74),
+                  [_v240]"w"(_v240)
                 : "cc", "memory", "x0", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v8",
-                  "v9", "v10", "v11", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
+                  "v9", "v10", "v11", "v13", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
             );
         }
 #else
@@ -661,12 +682,16 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         int8x8_t _v128 = vdup_n_s8(int8_t(128));
         // to much input w cause compile error, merge to one
         int8x8_t _vuvfilter = {102, 52, 25, 127, 0, 0, 0, 0};
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240     = vdup_n_u8(240);
 
         if (nn > 0) {
             asm volatile(
                 "pld        [%[_vu], #128]      \n"
                 "vld1.u8    {d2}, [%[_vu]]!     \n"
-                "vsub.i8    d2, d2, %[_v128]    \n"
+                "vcgt.u8    d27, d2, %[_v240]   \n"
+                "vbsl.u8    d27,  %[_v240], d2  \n"
+                "vsub.u8    d2, d27, %[_v128]   \n"
                 "vmov.s8    d10, %[_filt]       \n"
                 "vdup.8     d11, d10[1]         \n"   // v52
                 "vdup.8     d12, d10[2]         \n"   // v25
@@ -709,7 +734,9 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                 "vld1.u8    {d2}, [%[_vu]]!     \n"
                 "subs       %[_nn], #1          \n"
                 "vst3.u8    {d24-d26}, [%[_r0]]!\n"
-                "vsub.s8    d2, d2, %[_v128]    \n"
+                "vcgt.u8    d27, d2, %[_v240]   \n"
+                "vbsl.u8    d27,  %[_v240], d2  \n"
+                "vsub.u8    d2, d27, %[_v128]   \n"
                 "vst3.u8    {d4-d6},   [%[_r1]]!\n"
                 "bne        0b                  \n"
                 "sub        %3, #8              \n"
@@ -723,8 +750,9 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                 : [_v128]"w"(_v128),
                   [_filt]"w"(_vuvfilter),
                   [_v74]"w"(_v74),
-                  [_s1135]"r"(_s1135)
-                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "d26"
+                  [_s1135]"r"(_s1135),
+                  [_v240]"w"(_v240)
+                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "q13"
             );
         }
 #endif //__aarch64__

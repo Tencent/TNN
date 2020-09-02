@@ -104,7 +104,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         GTEST_SKIP();
     } else if (mat_type == NGRAY && channel != 1) {
         GTEST_SKIP();
-    } else if ((mat_type == NNV12 || mat_type == NNV21) && channel != 3) {
+    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0)) {
         GTEST_SKIP();
     }
 
