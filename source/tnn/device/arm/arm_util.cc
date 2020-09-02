@@ -671,7 +671,7 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                   [_v74]"w"(_v74),
                   [_v240]"w"(_v240)
                 : "cc", "memory", "x0", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v8",
-                  "v9", "v10", "v11", "v13", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
+                  "v9", "v10", "v11", "v12", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
             );
         }
 #else
