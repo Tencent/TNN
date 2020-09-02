@@ -103,12 +103,11 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // batch
                             testing::Values(1,2),
                             // channel
-                            testing::Values(4),
+                            testing::Values(1,3,4),
                             // input size
                             testing::Values(25),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY,
-                                            NCHW_FLOAT),
+                            testing::Values(N8UC4, N8UC3, NGRAY),
                             // converter test param
                             testing::Values(
                                 // Copy
@@ -149,7 +148,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
 
     DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
     // warp affine/resize only support N8UC4 on OpenCL for now
-    if(mat_type != N8UC4)
+    if(device_type == DEVICE_OPENCL && mat_type != N8UC4)
     {
         GTEST_SKIP();
     }
