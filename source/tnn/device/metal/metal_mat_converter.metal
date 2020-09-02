@@ -198,6 +198,26 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear_gather(
     dst_bgra.write(rst, uint2(gid));
 }
 
+kernel void bgr2gray_n8uc4_nchw_float(
+                              texture2d<half, access::read>  src_bgra[[texture(0)]],
+                              device float*                       out[[buffer(0)]],
+                              constant MetalBGR2GrayParams& parameters [[buffer(1)]],
+                              ushort2 gid[[thread_position_in_grid]])
+{
+    
+    if(any(gid >= ushort2(parameters.width, parameters.height)))
+        return;
+    auto out_offset = gid.y * parameters.width + gid.x;
+    
+    float4 rgb = float4(src_bgra.read(uint2(gid.xy))) * 255;
+    auto bgr = rgb.zyxw;
+    
+    float rst = float(0);
+    rst = bgr[0] * 0.114 + bgr[1] * 0.587 + bgr[2] * 0.299;
+    
+    out[out_offset] = rst;
+}
+
 kernel void copy_nchw_to_cpu(
                              device float* in                       [[buffer(0)]],
                              device float* out                      [[buffer(1)]],

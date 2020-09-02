@@ -55,6 +55,7 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
+    virtual Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
     
     ~MetalMatConverterAcc() {};
 protected:
@@ -62,6 +63,7 @@ protected:
     MetalCropParams crop_param_;
     MetalWarpAffineParams warpaffine_param_;
     MetalCopyParams copy_param_;
+    MetalBGR2GrayParams bgr2gray_param_;
     
     id<MTLDevice> device_                           = nil;
     //metal params
@@ -69,6 +71,7 @@ protected:
     id<MTLBuffer> buffer_crop_param_                = nil;
     id<MTLBuffer> buffer_warpaffine_param_          = nil;
     id<MTLBuffer> buffer_copy_param_                = nil;
+    id<MTLBuffer> buffer_bgr2gray_param_            = nil;
     
     id<MTLComputePipelineState> pipeline_process_   = nil;
     //Allocate metal kernel param
@@ -76,11 +79,13 @@ protected:
     Status AllocateBufferCropParam(CropParam param, Mat& src, Mat& dst);
     Status AllocateBufferWarpAffineParam(WarpAffineParam param, Mat& src, Mat& dst);
     Status AllocateBufferCopyParam(Mat& src, Mat& dst);
+    Status AllocateBufferBGR2GrayParam(Mat& src, Mat& dst);
     //Find corresponding metal kernel
     Status AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCopyComputePipeline(Mat& src, Mat& dst, void *command_queue);
+    Status AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue);
     
 };
 
@@ -194,6 +199,24 @@ Status MetalMatConverterAcc::AllocateBufferCopyParam(Mat& src, Mat& dst) {
     
     if (!buffer_copy_param_) {
         return Status(TNNERR_INVALID_INPUT, "buffer copy param is nil!");
+    }
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::AllocateBufferBGR2GrayParam(Mat& src, Mat& dst) {
+    bgr2gray_param_.batch    = src.GetBatch();
+    bgr2gray_param_.width    = src.GetWidth();
+    bgr2gray_param_.height   = src.GetHeight();
+    bgr2gray_param_.size     = bgr2gray_param_.width * bgr2gray_param_.height;
+    bgr2gray_param_.channel  = src.GetChannel();
+    bgr2gray_param_.slice    = UP_DIV(bgr2gray_param_.channel, 4);
+    
+    buffer_bgr2gray_param_ = [device_ newBufferWithBytes:&bgr2gray_param_
+                                              length:sizeof(MetalBGR2GrayParams)
+                                             options:MTLResourceCPUCacheModeWriteCombined];
+    
+    if (!buffer_bgr2gray_param_) {
+        return Status(TNNERR_INVALID_INPUT, "buffer bgr2gray param is nil!");
     }
     return TNN_OK;
 }
@@ -431,6 +454,43 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
         return Status(TNNERR_INVALID_INPUT, "warpaffine pipeline is nil");
+    }
+    pipeline_process_ = pipeline_process;
+    
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue) {
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+    
+    auto library = command_queue_impl.metalContextImpl.library;
+    if (!library) {
+        return Status(TNNERR_INVALID_INPUT, "metal library is nil");
+    }
+    
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+    
+    id<MTLFunction> func_process = nil;
+    
+    if (src_mat_type == N8UC4) {
+        if (NCHW_FLOAT == dst_mat_type) {
+            func_process = [library newFunctionWithName:@"bgr2gray_n8uc4_nchw_float"];
+        } else {
+            return Status(TNNERR_PARAM_ERR, "dst mat type not support yet");
+        }
+    }else {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+    if (!func_process) {
+        return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
+    }
+    auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
+    if (!pipeline_process) {
+        return Status(TNNERR_INVALID_INPUT, "bgr2gray pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -853,6 +913,69 @@ Status MetalMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         [command_buffer waitUntilCompleted];
     } while(0);
     
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
+    auto src_device_type = src.GetDeviceType();
+    auto dst_device_type = dst.GetDeviceType();
+    
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+    
+    if (src_mat_type != N8UC4 || dst_mat_type != NCHW_FLOAT) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+
+    if (src_device_type != dst_device_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst device type must be same");
+    }
+
+    //Get device
+    if (device_ == nil) {
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
+    }
+
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+    
+    auto context_impl = command_queue_impl.metalContextImpl;
+    
+    auto status = AllocateBufferBGR2GrayParam(src, dst);
+    if (status != TNN_OK) {
+        return status;
+    }
+    
+    status = AllocateBGR2GrayComputePipeline(src, dst, command_queue);
+    if (status != TNN_OK) {
+        return status;
+    }
+    
+    do {
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((bgr2gray_param_.width + group_threads.width - 1) / group_threads.width), (NSUInteger)bgr2gray_param_.height, (NSUInteger)1};
+        id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+        id<MTLBuffer> output = (__bridge id<MTLBuffer>)(dst.GetData());
+        
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+        
+        [encoder setTexture:input_texture atIndex:0];
+        [encoder setBuffer:output offset:0 atIndex:0];
+        [encoder setBuffer:buffer_bgr2gray_param_ offset:0 atIndex:1];
+        
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+        
+        [command_buffer commit];
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+    } while(0);
     return TNN_OK;
 }
 
