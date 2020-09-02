@@ -367,7 +367,7 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
         int8x8_t _v74    = vdup_n_s8(74);
-        int8x8_t _v128   = vdup_n_u8(128);
+        int8x8_t _v128   = vdup_n_s8(int8_t(128));
         int8x8_t _v102   = vdup_n_s8(102);
         int8x8_t _v52    = vdup_n_s8(52);
         int8x8_t _v25    = vdup_n_s8(25);
@@ -445,7 +445,7 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
-        int8x8_t _v128 = vdup_n_u8(128);
+        int8x8_t _v128 = vdup_n_s8(int8_t(128));
         // to much input w cause compile error, merge to one
         int8x8_t _vuvfilter = {102, 52, 25, 127, 0, 0, 0, 0};
 
@@ -580,7 +580,7 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
         int8x8_t _v74    = vdup_n_s8(74);
-        int8x8_t _v128   = vdup_n_u8(128);
+        int8x8_t _v128   = vdup_n_s8(int8_t(128));
         int8x8_t _v102   = vdup_n_s8(102);
         int8x8_t _v52    = vdup_n_s8(52);
         int8x8_t _v25    = vdup_n_s8(25);
@@ -658,7 +658,7 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
-        int8x8_t _v128 = vdup_n_u8(128);
+        int8x8_t _v128 = vdup_n_s8(int8_t(128));
         // to much input w cause compile error, merge to one
         int8x8_t _vuvfilter = {102, 52, 25, 127, 0, 0, 0, 0};
 
