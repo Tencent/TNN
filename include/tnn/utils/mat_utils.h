@@ -16,7 +16,7 @@
 #define TNN_INCLUDE_TNN_UTILS_MAT_UTILS_H_
 
 #include "tnn/core/status.h"
-#include "tnn/utils/blob_converter.h"
+#include "tnn/core/mat.h"
 
 namespace TNN_NS {
 
