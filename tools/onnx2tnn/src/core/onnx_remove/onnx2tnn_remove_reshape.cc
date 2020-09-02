@@ -145,8 +145,6 @@ int Onnx2TNN::RemoveConsecutiveReshape(onnx::GraphProto* mutable_graph,
                 node_reference.erase(item);
             }
             blob_names.erase(node_reshape_0->output(0));
-
-//            node->set_output(0, node_reshape->output(0));
             RemoveIndexNode(index_nodes, i);
         } while (0);
     }
