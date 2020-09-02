@@ -61,7 +61,6 @@
 		9D32FCAD24557EEC002DCDAB /* string_format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99024557EE7002DCDAB /* string_format.cc */; };
 		9D32FCAE24557EEC002DCDAB /* blob_dump_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */; };
 		9D32FCAF24557EEC002DCDAB /* blob_transfer_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */; };
-		9D32FCB024557EEC002DCDAB /* blob_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99324557EE7002DCDAB /* blob_converter.cc */; };
 		9D32FCB124557EEC002DCDAB /* data_format_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99424557EE7002DCDAB /* data_format_converter.h */; };
 		9D32FCB224557EEC002DCDAB /* wingorad_generater.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99524557EE7002DCDAB /* wingorad_generater.h */; };
 		9D32FCB324557EEC002DCDAB /* data_format_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99624557EE7002DCDAB /* data_format_converter.cc */; };
@@ -600,6 +599,7 @@
 		ECEC5D6B24FCE0780044DDF1 /* mat_converter_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */; };
 		ECEC5D6C24FCE0780044DDF1 /* mat_converter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */; };
 		ECEC5D6D24FCE0780044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */; };
+		ECEC5D8D24FF97DF0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D8C24FF97DF0044DDF1 /* mat.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -660,7 +660,6 @@
 		9D32F99024557EE7002DCDAB /* string_format.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = string_format.cc; sourceTree = "<group>"; };
 		9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_dump_utils.cc; sourceTree = "<group>"; };
 		9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_transfer_utils.cc; sourceTree = "<group>"; };
-		9D32F99324557EE7002DCDAB /* blob_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_converter.cc; sourceTree = "<group>"; };
 		9D32F99424557EE7002DCDAB /* data_format_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = data_format_converter.h; sourceTree = "<group>"; };
 		9D32F99524557EE7002DCDAB /* wingorad_generater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wingorad_generater.h; sourceTree = "<group>"; };
 		9D32F99624557EE7002DCDAB /* data_format_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_format_converter.cc; sourceTree = "<group>"; };
@@ -1199,6 +1198,7 @@
 		ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_acc.cc; sourceTree = "<group>"; };
 		ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_acc.h; sourceTree = "<group>"; };
 		ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
+		ECEC5D8C24FF97DF0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1347,7 +1347,6 @@
 				9D32F99024557EE7002DCDAB /* string_format.cc */,
 				9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */,
 				9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */,
-				9D32F99324557EE7002DCDAB /* blob_converter.cc */,
 				9D32F99424557EE7002DCDAB /* data_format_converter.h */,
 				9D32F99524557EE7002DCDAB /* wingorad_generater.h */,
 				9D32F99624557EE7002DCDAB /* data_format_converter.cc */,
@@ -1632,6 +1631,7 @@
 		9D32FC6424557EEB002DCDAB /* core */ = {
 			isa = PBXGroup;
 			children = (
+				ECEC5D8C24FF97DF0044DDF1 /* mat.cc */,
 				9D4C60CD246BF826006068D1 /* profile.cc */,
 				9D4C60CE246BF826006068D1 /* profile.h */,
 				9D32FC6524557EEB002DCDAB /* layer_type.cc */,
@@ -2463,7 +2463,6 @@
 				9D32FF4E24557EED002DCDAB /* conv_layer_interpreter.cc in Sources */,
 				9DD1FB82247CE9BE00800139 /* metal_div_layer_acc.mm in Sources */,
 				9DD1FCD8247CEA1500800139 /* arm_conv_layer_1x1.cc in Sources */,
-				9D32FCB024557EEC002DCDAB /* blob_converter.cc in Sources */,
 				9DD1FCD3247CEA1500800139 /* arm_conv_layer_common.cc in Sources */,
 				9D32FF1C24557EED002DCDAB /* max_layer_interpreter.cc in Sources */,
 				9DD1FB65247CE9BE00800139 /* metal_tanh_layer_acc.metal in Sources */,
@@ -2698,6 +2697,7 @@
 				9D32FCE524557EEC002DCDAB /* clip_layer.cc in Sources */,
 				9D32FF0C24557EED002DCDAB /* shuffle_layer_interpreter.cc in Sources */,
 				9DD1FCD1247CEA1500800139 /* arm_conv_int8_layer_depthwise.cc in Sources */,
+				ECEC5D8D24FF97DF0044DDF1 /* mat.cc in Sources */,
 				9D32FCE324557EEC002DCDAB /* softmax_layer.cc in Sources */,
 				9D32FF5824557EED002DCDAB /* hard_sigmoid_layer_interpreter.cc in Sources */,
 				9D32FF2A24557EED002DCDAB /* reduce_op_interpreter.cc in Sources */,
