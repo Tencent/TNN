@@ -521,11 +521,14 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             // 2) buffer => metal
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
             MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)dims[1]};
+            
             auto command_buffer = [command_queue_impl commandBuffer];
             [command_buffer enqueue];
             auto encoder = [command_buffer computeCommandEncoder];
             [encoder setComputePipelineState: pipeline_process_];
+            
             id<MTLBuffer> dst_buffer = (__bridge id<MTLBuffer>)(dst.GetData());
+            
             [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
             [encoder setBuffer:dst_buffer offset:0 atIndex:1];
             [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
@@ -541,9 +544,11 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
                                                             options:MTLResourceOptionCPUCacheModeDefault];
             memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
+            
             // 2) buffer => metal
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
             MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
+            
             auto command_buffer = [command_queue_impl commandBuffer];
             [command_buffer enqueue];
             auto encoder = [command_buffer computeCommandEncoder];
