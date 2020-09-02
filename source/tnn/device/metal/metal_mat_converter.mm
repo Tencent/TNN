@@ -207,7 +207,7 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
     }
     auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
     if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "crop converter pipeline is nil");
+        return Status(TNNERR_INVALID_INPUT, "crop pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
     
@@ -249,7 +249,7 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
             return Status(TNNERR_PARAM_ERR, "mat type not support yet");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
@@ -302,7 +302,7 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
             func_process = [library newFunctionWithName:@"copy_n8uc3_cpu_to_n8uc4_metal"];
         }
     }else {
-        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
     if (!func_process) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
@@ -538,7 +538,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             [command_buffer waitUntilCompleted];
         } else if(src_mat_type == N8UC3) {
             // 1) cpu => buffer
-            //TODO: will this cause memory leak?
             id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
                                                             options:MTLResourceOptionCPUCacheModeDefault];
             memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
@@ -650,13 +649,8 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
     }
     //Get device
     if (device_ == nil) {
-        if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
-            device_     = texture.device;
-        } else if(src_mat_type == NCHW_FLOAT) {
-            id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(src.GetData());
-            device_     = buffer.device;
-        }
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
     }
 
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
