@@ -1,0 +1,1 @@
+python int8.py --arch mobilenetv2 --exp_name mobilenet_v2_fp32_to_int8_qat --data_path ${your_path} --train_batch_size 30 --test_batch_size 30 --train_print 10 --max_epoch 30
