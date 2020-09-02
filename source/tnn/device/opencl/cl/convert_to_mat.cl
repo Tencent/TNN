@@ -172,3 +172,51 @@ __kernel void ConvertToN32FC4Image(
 
     write_imagef(output, coord, values);
 }
+
+__kernel void CopyToN8UC3(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
+                             __global uchar *output, __private const int height,
+                             __private const int width) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx         = image_height_idx / height;
+    const int height_idx        = image_height_idx % height;
+    const int width_idx         = image_width_idx % width;
+    const int channel_block_idx = image_width_idx / width;
+
+    int buffer_offset = ((batch_idx * height + height_idx) * width + width_idx +
+                         channel_block_idx) *
+                        3;
+
+    int2 coord      = (int2)(image_width_idx, image_height_idx);
+    float4 values_f = read_imagef(input_ptr, SAMPLER, coord);
+    uchar4 values = convert_uchar4_sat(values_f);
+
+    output[buffer_offset]     = values.x;
+    output[buffer_offset + 1] = values.y;
+    output[buffer_offset + 2] = values.z;
+}
+
+__kernel void CopyToN8UC4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
+                             __global uchar *output, __private const int height,
+                             __private const int width) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx         = image_height_idx / height;
+    const int height_idx        = image_height_idx % height;
+    const int width_idx         = image_width_idx % width;
+    const int channel_block_idx = image_width_idx / width;
+
+    int buffer_offset = ((batch_idx * height + height_idx) * width + image_width_idx) * 4;
+    int2 coord      = (int2)(image_width_idx, image_height_idx);
+    float4 values_f = read_imagef(input_ptr, SAMPLER, coord);
+    
+    uchar4 values = convert_uchar4_sat(values_f);
+
+    vstore4(values, 0, output + buffer_offset);
+}
