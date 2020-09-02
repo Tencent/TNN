@@ -66,6 +66,9 @@ public:
 
     //src and dst device type must be same.
     static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
+
+    //src and dst device type must be same.
+    static Status BGR2Gray(Mat& src, Mat& dst, void* command_queue);
 };
 
 }  // namespace TNN_NS

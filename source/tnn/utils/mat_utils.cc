@@ -78,4 +78,12 @@ Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* com
     return converter->WarpAffine(src, dst, param, command_queue);
 }
 
+Status MatUtils::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    }
+    auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    return converter->BGR2Gray(src, dst, command_queue);
+}
+
 }  // namespace TNN_NS

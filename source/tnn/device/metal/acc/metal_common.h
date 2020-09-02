@@ -488,6 +488,15 @@ struct MetalCopyParams {
     int batch;
 };
 
+struct MetalBGR2GrayParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \
