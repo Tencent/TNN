@@ -18,6 +18,7 @@
 #import "TNNBlazeFaceDetectorViewModel.h"
 #import "TNNSSDObjectDetectorViewModel.h"
 #import "TNNYoloObjectDetectorViewModel.h"
+#import "TNNYoutuFaceAlignController.h"
 
 using namespace std;
 
@@ -75,6 +76,8 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
     } else if (indexPath.section == 7) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
+    } else if (indexPath.section == 8) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuFaceAlignController"];
     }
     if (!vc) {
         return;

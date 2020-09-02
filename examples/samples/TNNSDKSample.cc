@@ -692,8 +692,7 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
 /*
  * Point
  */
-void Point(void *data_rgba, int image_height, int image_width,
-int x, int y, float z, float scale_x, float scale_y)
+void Point(void *data_rgba, int image_height, int image_width, int x, int y, float z, float scale_x, float scale_y)
 {
     RGBA *image_rgba = (RGBA *)data_rgba;
     int x_center = x * scale_x;
