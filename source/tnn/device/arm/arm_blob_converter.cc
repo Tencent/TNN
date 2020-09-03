@@ -441,6 +441,21 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     return TNN_OK;
 }
 
+void ScaleBias(float* data, int channel, int hw, float* scale, float* bias){
+    for(int c=0; c<channel; ++c) {
+        int plane      = c / 4;
+        int offset     =  c % 4;
+        auto *dataPlane = plane * hw * 4 + data;
+        for(int s=0; s<hw; ++s) {
+            for(int cc=0; cc<4 ;++cc){
+                auto i = dataPlane[s * 4 + cc];
+                i = i * scale[cc] + bias[cc];
+                dataPlane[s * 4 + cc] = i;
+            }
+        }
+    }
+}
+
 Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
     Status ret = TNN_OK;
     if (blob_ == nullptr) {
@@ -538,6 +553,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             for (int n = 0; n < dims[0]; n++) {
                 NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
                            reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+                //devandong
+                ScaleBias(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(), param.bias.data());
             }
         } else if (desc.data_type == DATA_TYPE_BFP16) {
             for (int n = 0; n < dims[0]; n++) {
