@@ -31,6 +31,7 @@ option(TNN_QUANTIZATION_ENABLE "Enable Test" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
+option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 
 message(${CMAKE_SOURCE_DIR})
@@ -169,6 +170,7 @@ message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
+message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 
 include_directories(include)
@@ -297,8 +299,15 @@ if(TNN_MODEL_CHECK_ENABLE)
     add_subdirectory(tools/model_check)
 endif()
 
-if(TNN_TEST_ENABLE)
+
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
     add_subdirectory(third_party/gflags)
+    get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+    include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
+endif ()
+
+
+if(TNN_TEST_ENABLE)
     add_subdirectory(test)
 endif()
 
@@ -306,3 +315,9 @@ if(TNN_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -coverage -fprofile-arcs -ftest-coverage")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -coverage -lgcov")
 endif()
+
+if(TNN_CONVERTER_ENABLE)
+    add_subdirectory(third_party/flatbuffers)
+    add_subdirectory(tools/converter)
+endif()
+
