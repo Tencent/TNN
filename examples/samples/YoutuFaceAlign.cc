@@ -16,6 +16,8 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include <sys/time.h>
 
+#define PROFILE 0
+
 namespace TNN_NS{
 
 Status YoutuFaceAlign::Init(std::shared_ptr<TNNSDKOption> option_i) {

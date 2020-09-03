@@ -22,6 +22,8 @@
 
 using namespace std;
 
+#define PROFILE 0
+
 #define RTN_WITH_SIGNAL(status) dispatch_semaphore_signal(_device_change_lock);return status
 
 @implementation TNNYoutuFaceAlignViewModel
@@ -225,8 +227,15 @@ using namespace std;
             
             //preprocess
             auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, input_dims);
+#if PROFILE
+            Timer timer;
+            const std::string tag = (units == TNNComputeUnitsCPU)? "CPU": "GPU";
+            timer.start();
             self.predictor->Resize(image_mat, input_mat, TNNInterpLinear);
-            
+            timer.printElapsed(tag, "FaceAlign Detector Resize");
+#else
+            self.predictor->Resize(image_mat, input_mat, TNNInterpLinear);
+#endif
             status = self.predictor->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output_face);
             
             if (status != TNN_OK) {
@@ -348,7 +357,7 @@ using namespace std;
         output->face.key_points = points;
         output->face.image_height = image_orig_height;
         output->face.image_width  = image_orig_width;
-        LOGE("output points size:%lu\n",  output->face.key_points.size());
+        //LOGE("output points size:%lu\n",  output->face.key_points.size());
     }
     //dispatch_semaphore_signal(_device_change_lock);
     //return status;

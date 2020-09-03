@@ -166,7 +166,7 @@ using namespace TNN_NS;
     Timer timer;
     timer.start();
     status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
-    timer.printElapsed(tag, "Reszie");
+    timer.printElapsed(tag, "Resize");
     printShape("Resize src", image_mat->GetDims());
     printShape("Resize dst", input_mat->GetDims());
 #else

@@ -175,6 +175,7 @@ typedef void(^CommonCallback)(Status);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
     int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
+    //NSLog(@"==== (%d, %d)", origin_height, origin_width);
     
     //异步运行模型
     CVBufferRetain(image_buffer);
@@ -185,7 +186,7 @@ typedef void(^CommonCallback)(Status);
         //resize
         fps_counter_async_thread->Begin("resize");
 
-        auto image_data = utility::CVImageBuffRefGetData(image_buffer, origin_height, origin_width);
+        auto image_data = utility::CVImageBuffRefGetData(image_buffer);
         
         fps_counter_async_thread->End("resize");
         CVBufferRelease(image_buffer);

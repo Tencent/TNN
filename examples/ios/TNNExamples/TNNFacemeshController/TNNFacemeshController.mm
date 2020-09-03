@@ -24,7 +24,7 @@
 #import "Facemesh.h"
 #import "UIImage+Utility.h"
 
-#define PROFILE 0
+#define PROFILE 1
 
 using namespace std;
 using namespace TNN_NS;
@@ -211,7 +211,7 @@ using namespace TNN_NS;
 
     auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 #if PROFILE
-        Timer timer;
+    Timer timer;
     const std::string tag = (units == TNNComputeUnitsCPU)? "CPU": "GPU";
 #endif
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
@@ -295,7 +295,7 @@ using namespace TNN_NS;
 #if PROFILE
             timer.start();
             status = predictor_face_detector->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
-            timer.printElapsed(tag, "Crop:");
+            timer.printElapsed(tag, "Crop");
             printShape("Crop src", image_mat->GetDims());
             printShape("Crop dst", croped_mat->GetDims());
 #else
@@ -310,7 +310,7 @@ using namespace TNN_NS;
 #if PROFILE
             timer.start();
             status = predictor_face_detector->Resize(croped_mat, input_mat, TNNInterpLinear);
-            timer.printElapsed(tag, "FaceMesh Resize:");
+            timer.printElapsed(tag, "FaceMesh Resize");
             printShape("Face Mesh src", croped_mat->GetDims());
             printShape("Face Mesh dst", input_mat->GetDims());
 #else
