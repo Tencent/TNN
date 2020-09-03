@@ -148,10 +148,12 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         ge::Model model(model_name_, model_name_ + "_v1");
         model.SetGraph(graph_);
         bool build_ret = ir_build.CreateModelBuff(model, build_mem_buff);
+        domi::BuildOptions options;
+        options.useOriginFormat = true;
         if (!build_ret) {
             return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, CreateModelBuff() failed");
         }
-        build_ret = ir_build.BuildIRModel(model, build_mem_buff);
+        build_ret = ir_build.BuildIRModel(model, build_mem_buff, options);
         if (!build_ret) {
             return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, BuildIRModel() failed");
         }
@@ -397,11 +399,13 @@ Status NpuNetwork::BuildModel(std::string model_path) {
     // Build the ir model
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData om_model_buff;
+    domi::BuildOptions options;
+    options.useOriginFormat = true;
     bool build_ret = ir_build.CreateModelBuff(model, om_model_buff);
     if (!build_ret) {
         return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, CreateModelBuff failed");
     }
-    build_ret = ir_build.BuildIRModel(model, om_model_buff);
+    build_ret = ir_build.BuildIRModel(model, om_model_buff, options);
     if (!build_ret) {
         return Status(TNNERR_HIAI_API_ERROR, "HIAI build model, BuildIRModel() failed");
     }
