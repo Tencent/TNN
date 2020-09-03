@@ -32,7 +32,7 @@ public:
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
 
 private:
-    void MatMemcpy_2d(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
+    void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride);
 };
 
 }  // namespace TNN_NS
