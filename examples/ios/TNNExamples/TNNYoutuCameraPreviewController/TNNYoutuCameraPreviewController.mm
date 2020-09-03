@@ -162,14 +162,14 @@ typedef void(^CommonCallback)(Status);
 
 #pragma mark - predict Interfaces
 - (void)predict:(CVImageBufferRef)image_buffer {
-    if (!_viewModel || !_viewModel.predictor) return;
+    if (!_viewModel) return;
     
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
     //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
-    auto predictor_async_thread = _viewModel.predictor;
+    //auto predictor_async_thread = _viewModel.predictor;
     //auto compute_units = _viewModel.predictor->GetComputeUnits();
     
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);

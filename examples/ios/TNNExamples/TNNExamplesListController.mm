@@ -19,6 +19,7 @@
 #import "TNNSSDObjectDetectorViewModel.h"
 #import "TNNYoloObjectDetectorViewModel.h"
 #import "TNNYoutuFaceAlignController.h"
+#import "TNNYoutuCameraPreviewController.h"
 
 using namespace std;
 
@@ -78,6 +79,12 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
     } else if (indexPath.section == 8) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuFaceAlignController"];
+        /*
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuCameraPreviewController"];
+        auto youtuCameraViewController = (TNNYoutuCameraPreviewController*)vc;
+        youtuCameraViewController.viewModel = [TNNYoutuFaceAlignViewModel new];
+        youtuCameraViewController.viewModel.title = @"人脸配准 - youtu";
+        */
     }
     if (!vc) {
         return;

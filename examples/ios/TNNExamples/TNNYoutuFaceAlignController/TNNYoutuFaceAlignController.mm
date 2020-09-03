@@ -58,7 +58,7 @@ using namespace TNN_NS;
     
     // Iterate all images
     self.result = [NSMutableArray array];
-    [[[NSBundle mainBundle] pathsForResourcesOfType:@"jpg" inDirectory:@"decoded_images/."] enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
+    [[[NSBundle mainBundle] pathsForResourcesOfType:@".jpg" inDirectory:@"decoded_images/."] enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
         NSString *path = [obj lastPathComponent];
         //printf("path:%s\n", std::string([path UTF8String]).c_str());
         if ([path hasSuffix:@"jpg"]) {
@@ -342,70 +342,6 @@ using namespace TNN_NS;
                     // scale the face point according to the original image size
                     auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
                     LOGE("%s, face_origin:(%f,%f,%f,%f), conf=%.4f\n", [[img_path lastPathComponent] UTF8String], face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2, face_orig.score);
-#if USE_PYTHON_OUTPUT
-                    //img 1 for zoi_shineiruoguang
-                    /*
-                     balzeface: (161.000000,407.000000,513.000000,759.000000)
-                     face_orig.x1 = 210;
-                     face_orig.y1 = 368;
-                     face_orig.x2 = 477;
-                     face_orig.y2 = 693;
-                     */
-                    
-                    /*blazeface:
-                    img 304: (99.000000,626.000000,414.000000,942.000000)
-                    img 305: (116.000000,637.000000,408.000000,929.000000)
-                    img 306:(131.000000,628.000000,436.000000,933.000000)
-                    img 307:(117.000000,634.000000,417.000000,935.000000)
-                    img 308: no faces
-                    img 309:(91.000000,537.000000,537.000000,984.000000)
-                    img 310: nofaces
-                    img 310:(112.000000,624.000000,407.000000,920.000000)
-                    img 312: no faces
-                    img 313: no faces
-                    img 314: (92.000000,533.000000,566.000000,1007.000000)
-                    img 315:(103.000000,508.000000,589.000000,994.000000)
-                    img 316:(105.000000,519.000000,583.000000,997.000000)
-                    img 317: (116.000000,507.000000,590.000000,981.000000)
-                    img 318:(121.000000,502.000000,592.000000,974.000000)
-                    img 319:(140.000000,496.000000,589.000000,945.000000)
-                    img 320:(152.000000,496.000000,577.000000,921.000000)
-                    */
-                    /*
-                     img 315 for zoi_shineiruoguang
-                     face_orig.x1 = 250;
-                     face_orig.y1 = 667;
-                     face_orig.x2 = 499;
-                     face_orig.y2 = 852;
-                     */
-                    
-                     /*
-                    balzeface:(189.000000,347.000000,497.000000,655.000000)
-                     //image 1 for shy_shineiruoguang
-                     face_orig.x1 = 240;
-                     face_orig.y1 = 306;
-                     face_orig.x2 = 469;
-                     face_orig.y2 = 616;
-                    */
-                    
-                    /*
-                    balzeface: (217.000000,321.000000,498.000000,603.000000)
-                    //image 1 for IMG_1166
-                    face_orig.x1 = 263;
-                    face_orig.y1 = 299;
-                    face_orig.x2 = 449;
-                    face_orig.y2 = 546;
-                    */
-                    
-                    /*
-                     balzeface: (177.000000,456.000000,556.000000,835.000000)
-                     //image 1 for jamie_shineiruoguang
-                     face_orig.x1 = 204;
-                     face_orig.y1 = 391;
-                     face_orig.x2 = 495;
-                     face_orig.y2 = 778;
-                     */
-#endif
                     // set face region for phase1 model
                     if(!self.predictor_phase1->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2)) {
                         //no invalid faces, return
@@ -455,6 +391,7 @@ using namespace TNN_NS;
                 phase1_pts = self.predictor_phase1->GetPrePts();
             }
             std::shared_ptr<TNN_NS::Mat> phase2_pts = nullptr;
+            /*
             //phase2 model
             {
                 // 1) prepare phase1 pts
@@ -486,7 +423,7 @@ using namespace TNN_NS;
                 }
                 auto bench_result     = self.predictor_phase2->GetBenchResult();
                 sum_time += bench_result.total;
-                image_data = nullptr;
+                
                 if (status != TNN_OK) {
                     self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                     NSLog(@"Error: %s", status.description().c_str());
@@ -500,6 +437,7 @@ using namespace TNN_NS;
                 }
                 phase2_pts = self.predictor_phase2->GetPrePts();
             }
+            */
             // draw points
             {
                 auto image_orig_data        = utility::UIImageGetData(input_image, image_orig_height, image_orig_width);
@@ -511,15 +449,17 @@ using namespace TNN_NS;
                 for(int pid=0; pid < pts_count_phase1; ++pid) {
                     int x = static_cast<int>(pts1[pid * 2 + 0]);
                     int y = static_cast<int>(pts1[pid * 2 + 1]);
-                    //TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, scale_x, scale_y, 1, {0, 255, 0, 0});
+                    TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
                 }
                 
-                auto pts_count_phase2 = TNN_NS::DimsVectorUtils::Count(phase2_pts->GetDims()) / 2;
-                float* pts2 = static_cast<float*>(phase2_pts->GetData());
-                for(int pid=0; pid < pts_count_phase2; ++pid) {
-                    int x = static_cast<int>(pts2[pid * 2 + 0]);
-                    int y = static_cast<int>(pts2[pid * 2 + 1]);
-                    //TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, scale_x, scale_y, 1, {0, 0, 255, 0});
+                if (phase2_pts != nullptr) {
+                    auto pts_count_phase2 = TNN_NS::DimsVectorUtils::Count(phase2_pts->GetDims()) / 2;
+                    float* pts2 = static_cast<float*>(phase2_pts->GetData());
+                    for(int pid=0; pid < pts_count_phase2; ++pid) {
+                        int x = static_cast<int>(pts2[pid * 2 + 0]);
+                        int y = static_cast<int>(pts2[pid * 2 + 1]);
+                        TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
+                    }
                 }
                 
                 UIImage *output_image = utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
@@ -534,7 +474,7 @@ using namespace TNN_NS;
                 [UIImageJPEGRepresentation(output_image, 1.0) writeToFile:path atomically:YES];
 #else
                 // write to album on real device
-                //UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
+                UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
 #endif
                 if(idx == [self.result count]) {
                     last_frame = output_image;

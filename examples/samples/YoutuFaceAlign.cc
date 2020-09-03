@@ -436,7 +436,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat>
     status = MatUtils::BGR2Gray(*(bgr_image.get()), *(grayMat.get()), command_queue);
 #endif
     if( status != TNN_OK) {
-        LOGE("metal BGR2Gray error:%s\n", status.description().c_str());
+        LOGE("BGR2Gray error:%s\n", status.description().c_str());
         return nullptr;
     }
     
