@@ -86,3 +86,9 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s-permute.tnnproto" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
     "yolov5"
+
+# download facemesh tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnmodel" \
+    "face_mesh"
