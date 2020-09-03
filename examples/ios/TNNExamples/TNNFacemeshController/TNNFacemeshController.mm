@@ -24,7 +24,7 @@
 #import "Facemesh.h"
 #import "UIImage+Utility.h"
 
-#define PROFILE 1
+#define PROFILE 0
 
 using namespace std;
 using namespace TNN_NS;
@@ -37,6 +37,7 @@ using namespace TNN_NS;
 @property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
 
+@property NSMutableArray *result;
 
 @property(nonatomic, strong) UIImage* image_orig;
 
@@ -51,9 +52,22 @@ using namespace TNN_NS;
 
 - (void)viewWillAppear:(BOOL) animated {
     [super viewWillAppear:animated];
-    //TODO: test image
+    /*
     self.image_orig = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"test_facemesh.jpg" ofType:nil]];
-    
+    self.imageView.image = self.image_orig;
+    */
+    // Iterate all images
+    self.result = [NSMutableArray array];
+    [[[NSBundle mainBundle] pathsForResourcesOfType:@".jpg" inDirectory:@"decoded_images/."] enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
+        NSString *path = [obj lastPathComponent];
+        //printf("path:%s\n", std::string([path UTF8String]).c_str());
+        if ([path hasSuffix:@"jpg"]) {
+            [self.result addObject:obj];
+        }
+    }];
+    // sort according to the name, ensure the images are processed frame by frame
+    [self.result sortUsingSelector:@selector(localizedStandardCompare:)];
+    self.image_orig = [UIImage imageWithContentsOfFile:self.result[0]];
     self.imageView.image = self.image_orig;
     
     auto view = self.labelResult.superview;
@@ -200,13 +214,204 @@ using namespace TNN_NS;
     return predictor;
 }
 
-- (IBAction)onBtnTNNExamples:(id)sender {
+- (void) predictOnImageList:(std::shared_ptr<TNNSDKSample>)face_detector: (std::shared_ptr<TNNSDKSample>)face_mesh {
+    //clear result
+    self.labelResult.text = nil;
+
+    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+
+    const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
+    const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
+    TNN_NS::DimsVector orig_image_dims = {1, 3, image_orig_height, image_orig_width};
+
+    DimsVector facedetector_input_dims = face_detector->GetInputShape();
+    DimsVector target_face_mesh_dims = face_mesh->GetInputShape();
+
+    auto idx = 0;
+
+    Status status = TNN_OK;
+    BenchOption bench_option;
+    bench_option.forward_count = 1;
+
+#if PROFILE
+    Timer timer;
+    const std::string tag = (face_detector->GetComputeUnits()==TNNComputeUnitsCPU)?"CPU":"GPU";
+#endif
+    
+    UIImage* last_frame = nil;
+    float sum_time = 0.f;
+    for (NSString * img_path in self.result) {
+        // use autoreleasepool to rease images allocated inside each loop right after each iteration completes,
+        // otherwise the memory will be released after the complete loop completes and the code will take too much memory.
+        @autoreleasepool {
+            LOGE("processing image[%d]:%s\n",idx++,  [[img_path lastPathComponent] UTF8String]);
+            auto input_image = [UIImage imageWithContentsOfFile:img_path];
+            auto image_data = utility::UIImageGetData(input_image);
+
+            std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+
+            std::vector<BlazeFaceInfo> face_info;
+            // face detector
+            {
+                face_detector->SetBenchOption(bench_option);
+                std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+
+                if (compute_units == TNNComputeUnitsGPU) {
+                    image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
+
+                    id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+                    if (!texture_rgba) {
+                        self.labelResult.text = @"Error texture input rgba is nil";
+                        NSLog(@"Error texture input rgba is nil");
+                        return;
+                    }
+                    [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
+                                    mipmapLevel:0
+                                      withBytes:image_data.get()
+                                    bytesPerRow:orig_image_dims[3] * 4];
+                } else if (compute_units == TNNComputeUnitsCPU) {
+                    image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
+                }
+                // preprocess
+                auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), N8UC4, facedetector_input_dims);
+#if PROFILE
+                timer.start();
+                face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
+                timer.printElapsed(tag, "FaceAlign Detector Resize");
+                auto image_dims = {1, 3, (int)CGImageGetHeight(input_image.CGImage), (int)CGImageGetWidth(input_image.CGImage)};
+                printShape("FaceAlign Detector Resize src", image_dims);
+                printShape("FaceAlign Detector Resize dst", facedetector_input_dims);
+#else
+                face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
+#endif
+                status = face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output);
+
+                if (status != TNN_OK) {
+                    self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+                    NSLog(@"Error: %s", status.description().c_str());
+                    return;
+                }
+                auto bench_result     = face_detector->GetBenchResult();
+                sum_time += bench_result.total;
+
+                if (sdk_output && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get()))
+                {
+                    auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get());
+                    face_info = face_output->face_list;
+                }
+                if(face_info.size() <= 0) {
+                    //no faces, return
+                    self.labelResult.text = @"Error no faces found!";
+                    NSLog(@"Error no faces found!");
+                    continue;
+                }
+            }
+            {
+                //face mesh
+                for (auto face : face_info) {
+                    auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
+                    //1.5*crop
+                    int crop_h = face_orig.y2 - face_orig.y1;
+                    int crop_w = face_orig.x2 - face_orig.x1;
+                    auto crop_rect = CGRectMake(face_orig.x1-0.25*crop_w,
+                                                face_orig.y1-0.25*crop_h,
+                                                1.5*crop_w,
+                                                1.5*crop_h);
+
+                    DimsVector crop_dims = {1, 3, static_cast<int>(crop_rect.size.height), static_cast<int>(crop_rect.size.width)};
+                    std::shared_ptr<TNN_NS::Mat> croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, crop_dims);
+#if PROFILE
+                    timer.start();
+                    status = face_detector->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
+                    timer.printElapsed(tag, "Crop");
+                    printShape("Crop src", image_mat->GetDims());
+                    printShape("Crop dst", croped_mat->GetDims());
+#else
+                    status = face_detector->Crop(image_mat, croped_mat, crop_rect.origin.x, crop_rect.origin.y);
+#endif
+                    if (status != TNN_OK) {
+                        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+                        NSLog(@"Error: %s", status.description().c_str());
+                        return;
+                    }
+                    std::shared_ptr<TNN_NS::Mat> input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_face_mesh_dims);
+#if PROFILE
+                    timer.start();
+                    status = face_detector->Resize(croped_mat, input_mat, TNNInterpLinear);
+                    timer.printElapsed(tag, "FaceMesh Resize");
+                    printShape("Face Mesh src", croped_mat->GetDims());
+                    printShape("Face Mesh dst", input_mat->GetDims());
+#else
+                    status = face_detector->Resize(croped_mat, input_mat, TNNInterpLinear);
+#endif
+                    if (status != TNN_OK) {
+                        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+                        NSLog(@"Error: %s", status.description().c_str());
+                        return;
+                    }
+
+                    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+                    status = face_mesh->Predict(std::make_shared<FacemeshInput>(input_mat), sdk_output);
+
+                    if (status != TNN_OK) {
+                        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+                        NSLog(@"Error: %s", status.description().c_str());
+                        return;
+                    }
+
+                    std::vector<FacemeshInfo> face_mesh_info;
+                    if (sdk_output && dynamic_cast<FacemeshOutput *>(sdk_output.get()))
+                    {
+                        auto face_output = dynamic_cast<FacemeshOutput *>(sdk_output.get());
+                        face_mesh_info = face_output->face_list;
+                    }
+
+                    Rectangle((void *)image_data.get(), image_orig_height, image_orig_width,
+                              crop_rect.origin.x,  crop_rect.origin.y,
+                              crop_rect.origin.x+crop_rect.size.width,
+                              crop_rect.origin.y+crop_rect.size.height);
+
+                    if (face_mesh_info.size() > 0) {
+                        auto face_mesh = face_mesh_info[0];
+                        auto face_mesh_crop = face_mesh.AdjustToViewSize(crop_rect.size.height, crop_rect.size.width, 2);
+                        face_mesh_crop = face_mesh_crop.AddOffset(crop_rect.origin.x, crop_rect.origin.y);
+                        //TODO: how to draw 2d points accoring to the 3d landmark
+                        for(auto& p:face_mesh_crop.key_points_3d) {
+                            TNN_NS::Point((void*)image_data.get(), image_orig_height, image_orig_width, std::get<0>(p), std::get<1>(p), std::get<2>(p)*(-7));
+                        }
+                    }
+                    UIImage *output_image = utility::UIImageWithDataRGBA((void *)image_data.get(), image_orig_height, image_orig_width);
+#if TARGET_IPHONE_SIMULATOR
+                    // save image on simulator
+                    NSString *out_name = [[img_path lastPathComponent] stringByReplacingOccurrencesOfString: @".jpg" withString:@"_out.jpg"];
+                    const std::string save_dir = "/Users/devandong/Desktop/tnn_output/";
+                    std::string save_path = save_dir+string([out_name UTF8String]);
+                    NSString *path = [NSString stringWithCString:save_path.c_str()
+                                                        encoding:[NSString defaultCStringEncoding]];
+                    [UIImageJPEGRepresentation(output_image, 1.0) writeToFile:path atomically:YES];
+#else
+                    // write to album on real device
+                    UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
+#endif
+                    if(idx == [self.result count]) {
+                        last_frame = output_image;
+                    }
+                }
+            }
+        }
+    }
+    // update view image
+    self.imageView.image = last_frame;
+    // update perf
+    float avg_time = sum_time / (idx * bench_option.forward_count);
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@\ntotal %d images\ntime per frame:%.3f ms", \
+                             compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", idx, avg_time];
+}
+
+- (void) predictOnImage:(std::shared_ptr<TNNSDKSample>)predictor_face_detector:(std::shared_ptr<TNNSDKSample>)predictor_face_mesh {
     Status status = TNN_OK;
     
-    auto predictor_face_detector = [self loadBalzeFace];
     DimsVector target_face_detector_dims = predictor_face_detector->GetInputShape();
-    
-    auto predictor_face_mesh = [self loadFaceMesh];
     DimsVector target_face_mesh_dims = predictor_face_mesh->GetInputShape();
 
     auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
@@ -254,7 +459,7 @@ using namespace TNN_NS;
         if (status != TNN_OK) {
             self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
             NSLog(@"Error: %s", status.description().c_str());
-                return;
+            return;
         }
 
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
@@ -263,15 +468,15 @@ using namespace TNN_NS;
         if (status != TNN_OK) {
             self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
             NSLog(@"Error: %s", status.description().c_str());
-                return;
+            return;
         }
-        
+
         if (sdk_output && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get()))
         {
             auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get());
             face_info = face_output->face_list;
         }
-        
+
         auto bench_result     = predictor_face_detector->GetBenchResult();
         self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
     }
@@ -287,9 +492,7 @@ using namespace TNN_NS;
                                         face_orig.y1-0.25*crop_h,
                                         1.5*crop_w,
                                         1.5*crop_h);
-            
-            
-            //TODO: how does utility handles double crop size?
+
             DimsVector crop_dims = {1, 3, static_cast<int>(crop_rect.size.height), static_cast<int>(crop_rect.size.width)};
             std::shared_ptr<TNN_NS::Mat> croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, crop_dims);
 #if PROFILE
@@ -304,7 +507,7 @@ using namespace TNN_NS;
             if (status != TNN_OK) {
                 self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                 NSLog(@"Error: %s", status.description().c_str());
-                    return;
+                return;
             }
             std::shared_ptr<TNN_NS::Mat> input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_face_mesh_dims);
 #if PROFILE
@@ -319,7 +522,7 @@ using namespace TNN_NS;
             if (status != TNN_OK) {
                 self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                 NSLog(@"Error: %s", status.description().c_str());
-                    return;
+                return;
             }
 
             std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
@@ -328,22 +531,22 @@ using namespace TNN_NS;
             if (status != TNN_OK) {
                 self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
                 NSLog(@"Error: %s", status.description().c_str());
-                    return;
+                return;
             }
-        
+
             std::vector<FacemeshInfo> face_mesh_info;
             if (sdk_output && dynamic_cast<FacemeshOutput *>(sdk_output.get()))
             {
                 auto face_output = dynamic_cast<FacemeshOutput *>(sdk_output.get());
                 face_mesh_info = face_output->face_list;
             }
-            
+
             auto image_orig_data  = utility::UIImageGetData(self.image_orig, image_orig_height, image_orig_width);
             Rectangle((void *)image_orig_data.get(), image_orig_height, image_orig_width,
                       crop_rect.origin.x,  crop_rect.origin.y,
                       crop_rect.origin.x+crop_rect.size.width,
                       crop_rect.origin.y+crop_rect.size.height);
-            
+
             if (face_mesh_info.size() > 0) {
                 auto face_mesh = face_mesh_info[0];
                 auto face_mesh_crop = face_mesh.AdjustToViewSize(crop_rect.size.height, crop_rect.size.width, 2);
@@ -354,13 +557,17 @@ using namespace TNN_NS;
                 }
             }
 
-            UIImage *output_image =
-                utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
+            UIImage *output_image = utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
             self.imageView.image = output_image;
         }
     }
+}
 
+- (IBAction)onBtnTNNExamples:(id)sender {
+    auto face_detector = [self loadBalzeFace];
+    auto face_mesh = [self loadFaceMesh];
+
+    [self predictOnImageList:face_detector :face_mesh];
 }
 
 @end
-

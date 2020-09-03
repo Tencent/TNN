@@ -58,6 +58,7 @@
 		ECAD84FD24D7F0AE0074EA95 /* Facemesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* Facemesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
 		ECE67A3225008BCB00B33A66 /* decoded_images in Resources */ = {isa = PBXBuildFile; fileRef = ECE67A3125008BCB00B33A66 /* decoded_images */; };
+		ECE67A3B25010EC600B33A66 /* decoded_images in Resources */ = {isa = PBXBuildFile; fileRef = ECE67A3A25010EC600B33A66 /* decoded_images */; };
 		ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */; };
@@ -168,6 +169,7 @@
 		ECAD84FC24D7F0AE0074EA95 /* Facemesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Facemesh.h; sourceTree = "<group>"; };
 		ECAD84FE24D801690074EA95 /* test_facemesh.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_facemesh.jpg; sourceTree = "<group>"; };
 		ECE67A3125008BCB00B33A66 /* decoded_images */ = {isa = PBXFileReference; lastKnownFileType = folder; path = decoded_images; sourceTree = "<group>"; };
+		ECE67A3A25010EC600B33A66 /* decoded_images */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = decoded_images; path = TNNExamples/TNNYoutuFaceAlignController/decoded_images; sourceTree = SOURCE_ROOT; };
 		ECEC5DB024FFCC6C0044DDF1 /* YoutuFaceAlign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YoutuFaceAlign.h; sourceTree = "<group>"; };
 		ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = YoutuFaceAlign.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
@@ -407,6 +409,7 @@
 		ECAD84F724D7EFCC0074EA95 /* TNNFacemeshController */ = {
 			isa = PBXGroup;
 			children = (
+				ECE67A3A25010EC600B33A66 /* decoded_images */,
 				ECAD84FE24D801690074EA95 /* test_facemesh.jpg */,
 				ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */,
 				ECAD84FA24D7F0400074EA95 /* TNNFacemeshController.h */,
@@ -521,6 +524,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D71E7A324C4F35A00074C1A /* gray_00001.jpg in Resources */,
+				ECE67A3B25010EC600B33A66 /* decoded_images in Resources */,
 				EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */,
 				9DD579FD23B5A20E00A96E63 /* LaunchScreen.storyboard in Resources */,
 				9D9187E3242C30D600DF2B79 /* test.jpg in Resources */,
