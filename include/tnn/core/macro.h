@@ -14,7 +14,8 @@
 
 #ifndef TNN_INCLUDE_TNN_CORE_MACRO_H_
 #define TNN_INCLUDE_TNN_CORE_MACRO_H_
-
+#include <stdio.h>
+#include <stdlib.h>
 // TNN namespcae
 #define TNN_NS__(x) tnn##x
 #define TNN_NS_(x) TNN_NS__(x)
@@ -104,7 +105,7 @@
     {                                                                                                                  \
         int res = (x);                                                                                                 \
         if (!res) {                                                                                                    \
-            LOGE("Error: assert failed");                                                                              \
+            LOGE("Error: assert failed\n");                                                                              \
             assert(res);                                                                                               \
         }                                                                                                              \
     }

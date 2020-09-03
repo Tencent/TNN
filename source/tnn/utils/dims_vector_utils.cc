@@ -79,4 +79,23 @@ bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index,
     return true;
 }
 
+DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
+    ASSERT(dims.size() == 4);
+    const int n           = dims[0];
+    const int c           = dims[1];
+    const int h           = dims[2];
+    const int w           = dims[3];
+    std::vector<int> nhwc = {n, h, w, c};
+    return nhwc;
+}
+
+DimsVector DimsVectorUtils::NHWC2NCHW(DimsVector dims) {
+    ASSERT(dims.size() == 4);
+    const int n           = dims[0];
+    const int h           = dims[1];
+    const int w           = dims[2];
+    const int c           = dims[3];
+    std::vector<int> nhwc = {n, c, h, w};
+    return nhwc;
+}
 }  // namespace TNN_NS

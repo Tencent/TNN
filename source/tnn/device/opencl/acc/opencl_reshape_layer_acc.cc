@@ -24,13 +24,33 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
+    ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    if (!reshape_param) {
+        LOGE("Error: layer param is null\n");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+    }
+
     run_3d_ndrange_ = false;
     op_name_        = "Reshape";
+
+    std::string im_to_bf_func_name, bf_to_im_func_name;
+    if (reshape_param->reshape_type == 0)
+    {
+        im_to_bf_func_name      = "ImageToNCHWBuffer";
+        bf_to_im_func_name      = "NCHWBufferToImage";
+    } else if (reshape_param->reshape_type == 1) {
+        // tensorflow reshape 对应的数据格式是 NHWC
+        im_to_bf_func_name      = "ImageToNHWCBuffer";
+        bf_to_im_func_name      = "NHWCBufferToImage";
+    } else {
+        LOGE("Error: Unsupport reshape type(%d)", reshape_param->reshape_type);
+        return Status(TNNERR_MODEL_ERR, "Error: OpenCLReshapeLayerAcc failed!\n");
+    }
 
     execute_units_.resize(2);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -39,7 +59,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;

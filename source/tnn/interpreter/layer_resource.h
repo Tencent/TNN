@@ -106,6 +106,10 @@ struct ConstLayerResource : public LayerResource {
     RawBuffer weight_handle;
 };
 
+struct DetectionPostProcessLayerResource : public LayerResource {
+    RawBuffer anchors_handle;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
