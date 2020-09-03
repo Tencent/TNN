@@ -22,7 +22,8 @@
 
 namespace TNN_NS {
 
-typedef std::function<int8_t(int8_t, int8_t)> INT8_OP;
+// use float data type for intermediate result
+typedef std::function<float(float, float)> INT8_OP;
 
 void CPU_INT8_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs, int scale_len,
                         void *output, float *scale_out, DimsVector dims, INT8_OP op) {
@@ -53,12 +54,12 @@ void CPU_INT8_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector
 
 void CPU_ADD(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs, int scale_len, void *output,
              float *scale_out, DimsVector dims) {
-    INT8_OP add_op = [](int8_t a, int8_t b) -> int8_t { return a + b; };
+    INT8_OP add_op = [](float a, float b) -> float { return a + b; };
     CPU_INT8_CALCULATE(input_ptrs, scale_ptrs, scale_len, output, scale_out, dims, add_op);
 }
 void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs, int scale_len, void *output,
              float *scale_out, DimsVector dims) {
-    INT8_OP sub_op = [](int8_t a, int8_t b) -> int8_t { return a - b; };
+    INT8_OP sub_op = [](float a, float b) -> float { return a - b; };
     CPU_INT8_CALCULATE(input_ptrs, scale_ptrs, scale_len, output, scale_out, dims, sub_op);
 }
 
