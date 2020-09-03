@@ -57,34 +57,33 @@ using namespace std;
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageClassifyController"];
     } else if (indexPath.section == 2){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageColourController"];
-    } else if (indexPath.section == 3){
+    } else if (indexPath.section == 3) {
+           vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
+    } else if (indexPath.section == 4){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
         cameraViewController.viewModel = [TNNBlazeFaceDetectorViewModel new];
         cameraViewController.viewModel.title = @"人脸检测 - BalzeFace";
         cameraViewController.viewModel.preferFrontCamera = true;
-    } else if (indexPath.section == 4) {
+    } else if (indexPath.section == 5) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
         cameraViewController.viewModel = [TNNSSDObjectDetectorViewModel new];
         cameraViewController.viewModel.title = @"物体检测 - mbv2+SSD";
-    } else if (indexPath.section == 5) {
+    } else if (indexPath.section == 6) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
         cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
         cameraViewController.viewModel.title = @"物体检测 - yolov5";
-    } else if (indexPath.section == 6) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
-    } else if (indexPath.section == 7) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
-    } else if (indexPath.section == 8) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuFaceAlignController"];
-        /*
+    }  else if (indexPath.section == 7) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuCameraPreviewController"];
         auto youtuCameraViewController = (TNNYoutuCameraPreviewController*)vc;
         youtuCameraViewController.viewModel = [TNNYoutuFaceAlignViewModel new];
         youtuCameraViewController.viewModel.title = @"人脸配准 - youtu";
-        */
+    } else if (indexPath.section == 8) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
+    } else if (indexPath.section == 9) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuFaceAlignController"];
     }
     if (!vc) {
         return;
