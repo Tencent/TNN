@@ -13,8 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include <tnn/utils/data_type_utils.h>
-#include "graph/attr_value.h"
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
@@ -43,11 +41,10 @@ Status NpuInstanceNormLayer::Convert() {
     NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
     weight_ops_.push_back(bias_const);
 
-    auto output = std::make_shared<ge::op::InstanceNorm>(outputs_name_[0]);
+    auto output = std::make_shared<hiai::op::InstanceNorm>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_input_scale(*scale);
-    output->set_input_bias(*bias_const);
-    output->set_attr_reduction_indices(ge::AttrValue::LIST_INT{1, 2});
+    output->set_input_gamma(*scale);
+    output->set_input_beta(*bias_const);
 
     ADD_OUTPUT_OP(output)
 }

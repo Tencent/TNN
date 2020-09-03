@@ -21,6 +21,7 @@
 
 #include "graph/op/array_defs.h"
 #include "graph/op/const_defs.h"
+#include "graph/compatible/all_ops.h"
 #include "graph/operator.h"
 #include "hiai_ir_build.h"
 #include "tnn/core/common.h"
