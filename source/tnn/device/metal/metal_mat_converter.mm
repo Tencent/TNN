@@ -407,6 +407,9 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
 }
 
 Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string, id<MTLComputePipelineState>> library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -425,11 +428,19 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             if (INTERP_TYPE_NEAREST == interp_type) {
                 return Status(TNNERR_PARAM_ERR, "interp type not support yet");
             } else if (INTERP_TYPE_LINEAR == interp_type && BORDER_TYPE_CONSTANT == border_type) {
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = "mat_converter_texture_n8uc4_warpaffine_linear_const";
+                if (library_cache.count(kernel_name) > 0) {
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_warpaffine_linear_const"];
             } else {
                 return Status(TNNERR_PARAM_ERR, "not support yet");
@@ -456,11 +467,17 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
         return Status(TNNERR_INVALID_INPUT, "warpaffine pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     
     return TNN_OK;
 }
 
 Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+        static std::map<std::string, id<MTLComputePipelineState>> library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -476,8 +493,16 @@ Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst,
     
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == N8UC4) {
         if (NCHW_FLOAT == dst_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+            kernel_name = "bgr2gray_n8uc4_nchw_float";
+            if (library_cache.count(kernel_name) > 0) {
+                pipeline_process_ = library_cache[kernel_name];
+                return TNN_OK;
+            }
+#endif
             func_process = [library newFunctionWithName:@"bgr2gray_n8uc4_nchw_float"];
         } else {
             return Status(TNNERR_PARAM_ERR, "dst mat type not support yet");
@@ -493,7 +518,9 @@ Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst,
         return Status(TNNERR_INVALID_INPUT, "bgr2gray pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
-    
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
@@ -909,8 +936,10 @@ Status MetalMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         [encoder endEncoding];
         
         [command_buffer commit];
+#if KERNEL_SYNC
         //wait to complete
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
     
     return TNN_OK;
@@ -973,8 +1002,10 @@ Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
         [encoder endEncoding];
         
         [command_buffer commit];
+#if KERNEL_SYNC
         //wait to complete
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
     return TNN_OK;
 }
