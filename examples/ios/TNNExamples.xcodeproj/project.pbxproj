@@ -760,7 +760,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/TNNExamples",
 				);
-				HEADER_SEARCH_PATHS = "/Users/devandong/working/eigen/eigen-3.3.7";
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = TNNExamples/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -789,7 +789,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/TNNExamples",
 				);
-				HEADER_SEARCH_PATHS = "/Users/devandong/working/eigen/eigen-3.3.7";
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = TNNExamples/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -87,7 +87,7 @@ Status YoutuFaceAlign::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     } else if(phase == 2) {
         pts = output->GetMat("850");
     }
-    auto InverseM = MatrixInverse(M, 2, 3);
+    auto InverseM = MatrixInverse2x3(M, 2, 3);
     //devandong: the diff of InverseM for phase2 model is larger the phase1
     // the maximum diff <= phase1: /phase2: 0.7
     LandMarkWarpAffine(pts, InverseM);
@@ -340,7 +340,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
     // 2) get svd result
     std::vector<float> u_mul;
     std::vector<float> vt_mul;
-    MatrixSVD(mul, cols, cols, u_mul, vt_mul);
+    MatrixSVD2x2(mul, cols, cols, u_mul, vt_mul);
     // 3) reconstruct r by (u_mul*vt_ul).T
     std::vector<float> r_mat(mul.size(), 0);
     for(int c1=0; c1<cols; ++c1){
@@ -444,26 +444,29 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat>
 }
 
 /*
- Compute the inverse matrix
+ Compute the inverse matrix for 2*3 warpAffine trans matrix
 */
-std::vector<float> YoutuFaceAlign::MatrixInverse(std::vector<float>& m, int rows, int cols, bool transMat) {
-    //general inverse matrix computation through eigen
-    if(transMat)
-        rows += 1;
-    Eigen::MatrixXf mat(rows, cols);
-    for(int r=0; r<rows; ++r){
-        for(int c=0; c<cols; ++c){
-            mat(r, c) = transMat&&(r==rows-1)? (c==cols-1) : m[r * cols + c];
-        }
-    }
-    
-    auto inverse_mat = mat.inverse();
+std::vector<float> YoutuFaceAlign::MatrixInverse2x3(std::vector<float>& m, int rows, int cols, bool transMat) {
     std::vector<float> inv(rows*cols, 0);
-    for(int r=0; r<rows; ++r){
-        for(int c=0; c<cols; ++c){
-            inv[r * cols + c] = inverse_mat(r, c);
-        }
+    if (!transMat) {
+        return inv;
     }
+    if (rows !=2 || cols != 3) {
+        return inv;
+    }
+    float d   = m[0] * m[4] - m[1] * m[3];
+    d          = d != 0 ? 1. / d : 0;
+
+    float a11 = m[4] * d, a22 = m[0] * d;
+    inv[0]      = a11;
+    inv[1]      = m[1] * (-d);
+    inv[3]      = m[3] * (-d);
+    inv[4]      = a22;
+
+    float b1 = -a11 * m[2] - inv[1] * m[5];
+    float b2 = -inv[3] * m[2] - a22 * m[5];
+    inv[2]      = b1;
+    inv[5]      = b2;
     
     return inv;
 }
@@ -586,5 +589,37 @@ void YoutuFaceAlign::MatrixSVD(const std::vector<float>m, int rows, int cols, st
     
 }
 #endif
+
+// svd for 2-by-2 matrix
+void YoutuFaceAlign::MatrixSVD2x2(const std::vector<float>a, int rows, int cols, std::vector<float>&u, std::vector<float>&vt) {
+    u.clear();
+    vt.clear();
+    if (rows != 2 || cols != 2) {
+        // not supported
+        return;
+    }
+    u.resize(2*2, 0);
+    vt.resize(2*2, 0);
+
+    float s[2];
+    float v[4];
+
+    s[0] = (sqrt(pow(a[0] - a[3], 2) + pow(a[1] + a[2], 2)) + sqrt(pow(a[0] + a[3], 2) + pow(a[1] - a[2], 2))) / 2;
+    s[1] = fabs(s[0] - sqrt(pow(a[0] - a[3], 2) + pow(a[1] + a[2], 2)));
+    v[2] = (s[0] > s[1]) ? sin((atan2(2 * (a[0] * a[1] + a[2] * a[3]), a[0] * a[0] - a[1] * a[1] + a[2] * a[2] - a[3] * a[3])) / 2) : 0;
+    v[0] = sqrt(1 - v[2] * v[2]);
+    v[1] = -v[2];
+    v[3] = v[0];
+
+    u[0] = (s[0] != 0) ? (a[0] * v[0] + a[1] * v[2]) / s[0] : 1;
+    u[2] = (s[0] != 0) ? (a[2] * v[0] + a[3] * v[2]) / s[0] : 0;
+    u[1] = (s[1] != 0) ? (a[0] * v[1] + a[1] * v[3]) / s[1] : -u[2];
+    u[3] = (s[1] != 0) ? (a[2] * v[1] + a[3] * v[3]) / s[1] : u[0];
+    // transpose
+    vt[0] = v[0];
+    vt[1] = v[2];
+    vt[2] = v[1];
+    vt[3] = v[3];
+}
 
 }
