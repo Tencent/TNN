@@ -135,7 +135,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_streamfacedetector);
+        setView(R.layout.fragment_streamobjectdetector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -251,7 +251,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
 
 
     public void openCamera() {
-        openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
+        openCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
     }
 
     private void openCamera(int cameraFacing) {
@@ -297,7 +297,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                     } else if (mUseGPU) {
                         device = 1;
                     }
-                    int ret = mObjectDetector.init(modelPath, NET_H_INPUT, NET_W_INPUT, 0.975f, 0.23f, 1, device);
+                    int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
                     if (ret == 0) {
                         mIsDetectingObject = true;
                     } else {
@@ -329,7 +329,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addObjectRect(objectInfoList,  mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
 
                             String result = "object count: " + objectCount + " " + Helper.getBenchResult();
                             TextView result_view = (TextView)$(R.id.result);

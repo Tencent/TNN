@@ -122,7 +122,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     unsigned char *rgbaData = new unsigned char[height * width * 4];
     yuv420sp_to_rgba_fast_asm((const unsigned char*)yuvData, height, width, (unsigned char*)rgbaData);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
-    TNN_NS::DimsVector target_dims = {1, 3, height, width};
+    TNN_NS::DimsVector target_dims = {1, 4, height, width};
 
     auto rgbTNN = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims, rgbaData);
     std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(rgbTNN);
