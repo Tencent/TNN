@@ -99,12 +99,16 @@ Status YoutuFaceAlign::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     }
     // prepare output
     YoutuFaceAlignInfo face;
+
     constexpr int pts_dim = 2;
     auto pts_cnt = pts->GetDims()[1] / pts_dim;
     auto pts_data = static_cast<float*>(pts->GetData());
+    face.key_points.resize(pts_cnt);
+
     for(int i=0; i<pts_cnt; ++i) {
-        face.key_points.push_back(std::make_pair(pts_data[i * pts_dim + 0], pts_data[i * pts_dim + 1]));
+        face.key_points[i] = std::make_pair(pts_data[i * pts_dim + 0], pts_data[i * pts_dim + 1]);
     }
+
     output->face = std::move(face);
     
     return status;
@@ -439,21 +443,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat>
     return grayMat;
 }
 
-// Sigmoid on given mat
-void YoutuFaceAlign::Sigmoid(std::shared_ptr<TNN_NS::Mat> mat) {
-    auto count = TNN_NS::DimsVectorUtils::Count(mat->GetDims());
-    float* v = static_cast<float*>(mat->GetData());
-    for(int i=0; i<count; ++i){
-        float in = v[i];
-        float rst = 1.0f / (1.0f + exp(-in));
-        v[i] = rst;
-    }
-}
-
 /*
  Compute the inverse matrix
- This is not a general solver for computing inverse matrix.
- It only works for the transformed matrix used in warpAffine
 */
 std::vector<float> YoutuFaceAlign::MatrixInverse(std::vector<float>& m, int rows, int cols, bool transMat) {
     //general inverse matrix computation through eigen

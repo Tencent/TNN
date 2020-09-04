@@ -117,12 +117,8 @@ private:
     
     std::shared_ptr<TNN_NS::Mat> AlignN(std::shared_ptr<TNN_NS::Mat> image, std::shared_ptr<TNN_NS::Mat> pre_pts, std::vector<float>mean, int net_h, int net_w, float net_scale, std::vector<float>&M);
     
-    std::shared_ptr<TNN_NS::Mat> BGRToGray(std::shared_ptr<TNN_NS::Mat>bgr_image);
-    
     // methods used in pre-processing and post-processing
-    std::shared_ptr<TNN_NS::Mat> BGR2Gray(std::shared_ptr<TNN_NS::Mat> bgr_mat);
-
-    void Sigmoid(std::shared_ptr<TNN_NS::Mat>mat);
+    std::shared_ptr<TNN_NS::Mat> BGRToGray(std::shared_ptr<TNN_NS::Mat> bgr_mat);
     
     std::vector<float> MatrixInverse(std::vector<float>& mat, int rows, int cols, bool transMat=true);
     
@@ -132,97 +128,12 @@ private:
     
     void MatrixStd(const float *ptr, unsigned int rows, unsigned int cols,int axis, std::vector<float>& stds);
     
-    void DrawPointOnImage(int x, int y,TNN_NS::Mat* image, int radius, int shift, std::array<int, 3> color);
-    
 #if USE_EIGEN
     void MatrixSVD(const std::vector<float>m, int rows, int cols, std::vector<float>&u, std::vector<float>&vt);
 #endif
 
     bool IsValidFace(float x1, float y1, float x2, float y2) {
         return (x2 - x1 >= min_face_size) && (y2-y1 >= min_face_size);
-    }
-    
-    void SaveMat(std::shared_ptr<TNN_NS::Mat> mat) {
-        void* data_ = mat->GetData();
-        auto dims = mat->GetDims();
-        int offset = 0;
-        const std::string save_path("/Users/devandong/Desktop/0_phase1.txt");
-        std::ofstream out(save_path);
-        if(mat->GetMatType() == TNN_NS::N8UC4){
-            unsigned char* data = static_cast<unsigned char*>(data_);
-            for(int h=0; h<dims[2]; ++h){
-                for(int w=0; w<dims[3]; ++w){
-                    unsigned r, g, b, a;
-                    r = static_cast<unsigned>(data[offset + 0]);
-                    g = static_cast<unsigned>(data[offset + 1]);
-                    b = static_cast<unsigned>(data[offset + 2]);
-                    a = static_cast<unsigned>(data[offset + 3]);
-                    out<<r<<","<<g<<","<<b<<","<<a<<std::endl;
-                    offset += 4;
-                }
-                out<<std::endl;
-            }
-        } else if(mat->GetMatType() == TNN_NS::NCHW_FLOAT){
-            float* data = static_cast<float*>(data_);
-            for(int c=0; c<dims[1]; ++c){
-                for(int h=0; h<dims[2]; ++h){
-                    for(int w=0; w<dims[3]; ++w){
-                        out<<data[offset]<<std::endl;
-                        offset += 1;
-                    }
-                    out<<std::endl;
-                }
-            }
-        }
-        out.close();
-    }
-    void PrintMat(std::shared_ptr<TNN_NS::Mat> mat) {
-        void* data_ = mat->GetData();
-        auto dims = mat->GetDims();
-        int offset = 0;
-        if(mat->GetMatType() == TNN_NS::N8UC4){
-            unsigned char* data = static_cast<unsigned char*>(data_);
-            for(int h=0; h<dims[2]; ++h){
-                for(int w=0; w<dims[3]; ++w){
-                    unsigned r, g, b, a;
-                    r = static_cast<unsigned>(data[offset + 0]);
-                    g = static_cast<unsigned>(data[offset + 1]);
-                    b = static_cast<unsigned>(data[offset + 2]);
-                    a = static_cast<unsigned>(data[offset + 3]);
-                    printf("%u,%u,%u,%u\n", r, g, b, a);
-                    offset += 4;
-                }
-                printf("\n");
-            }
-        } else if(mat->GetMatType() == TNN_NS::NCHW_FLOAT){
-            float* data = static_cast<float*>(data_);
-            for(int c=0; c<dims[1]; ++c){
-                for(int h=0; h<dims[2]; ++h){
-                    for(int w=0; w<dims[3]; ++w){
-                        printf("%f,\n", data[offset]);
-                        offset += 1;
-                    }
-                }
-            }
-        }
-    }
-
-    void Normalize(std::shared_ptr<TNN_NS::Mat> mat, float* scale, float* bias){
-        auto dims = mat->GetDims();
-        void* data_ = mat->GetData();
-        auto offset = 0;
-        if(mat->GetMatType() == TNN_NS::NCHW_FLOAT && mat->GetDeviceType() == TNN_NS::DEVICE_ARM){
-            float* data = static_cast<float*>(data_);
-            for(int c=0; c<dims[1]; ++c){
-                for(int h=0; h<dims[2]; ++h){
-                    for(int w=0; w<dims[3]; ++w){
-                        auto val = data[offset] * scale[c] + bias[c];
-                        data[offset] = val;
-                        offset += 1;
-                    }
-                }
-            }
-        }
     }
 
 private:
