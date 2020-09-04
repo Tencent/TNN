@@ -297,7 +297,18 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
             break;
         case DATA_FORMAT_NC4HW4:
         case DATA_FORMAT_NHWC4: {
-            ret_code = dump_nc4hw4_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
+#ifdef DUMP_RAW_INT8
+            /*
+             * dump the int8 data with out dequantization.
+             * this option is used for debug.
+             */
+            if (dev_blob_desc.data_type == DATA_TYPE_INT8) {
+                ret_code = dump_nhwc4_int8_blob(dev_blob->GetBlobDesc(), std::string(fname), (int8_t*)cpu_data);
+            } else
+#endif
+            {
+                ret_code = dump_nc4hw4_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
+            }
         } break;
         default:
             break;
