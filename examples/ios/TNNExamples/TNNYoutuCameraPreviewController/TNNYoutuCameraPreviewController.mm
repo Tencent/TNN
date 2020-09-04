@@ -169,8 +169,6 @@ typedef void(^CommonCallback)(Status);
     
     //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
-    //auto predictor_async_thread = _viewModel.predictor;
-    //auto compute_units = _viewModel.predictor->GetComputeUnits();
     
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
     int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
@@ -183,25 +181,21 @@ typedef void(^CommonCallback)(Status);
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
         
-        //resize
-        fps_counter_async_thread->Begin("resize");
-
         auto image_data = utility::CVImageBuffRefGetData(image_buffer);
         
-        fps_counter_async_thread->End("resize");
         CVBufferRelease(image_buffer);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
-            fps_counter_async_thread->Begin("detect");
-            
-            status = [self.viewModel Run:image_data:origin_height:origin_width:sdk_output];
-            
-            fps_counter_async_thread->End("detect");
-            map_fps = fps_counter_async_thread->GetAllFPS();
-            
+            status = [self.viewModel Run:image_data
+                                        height:origin_height
+                                        width:origin_width
+                                        output:sdk_output
+                                        counter:fps_counter_async_thread];
         } while (0);
-        
+
+        map_fps = fps_counter_async_thread->GetAllFPS();
+
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
@@ -257,6 +251,7 @@ typedef void(^CommonCallback)(Status);
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }

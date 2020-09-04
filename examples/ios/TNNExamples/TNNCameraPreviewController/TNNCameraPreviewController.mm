@@ -190,7 +190,9 @@ typedef void(^CommonCallback)(Status);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-
+#if defined(END2END)
+        fps_counter_async_thread->Begin("end2end");
+#endif
 #if TEST_IMAGE_SSD
         static std::shared_ptr<char> image_data = nullptr;
         if (!image_data) {
@@ -202,6 +204,7 @@ typedef void(^CommonCallback)(Status);
 #else
         auto image_data = utility::CVImageBuffRefGetData(image_buffer);
 #endif
+
 
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         auto origin_dims = {1, 3, origin_height, origin_width};
@@ -221,33 +224,40 @@ typedef void(^CommonCallback)(Status);
                               withBytes:image_data.get()
                             bytesPerRow:origin_width*4];
         }
-        //fps_counter_async_thread->Begin("end2end");
         auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
-
+#ifndef END2END
         //resize
         fps_counter_async_thread->Begin("resize");
+#endif
         predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
+#ifndef END2END
         fps_counter_async_thread->End("resize");
+#endif
 
         CVBufferRelease(image_buffer);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
+#ifndef END2END
             fps_counter_async_thread->Begin("detect");
+#endif
             status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
+#ifndef END2END
             fps_counter_async_thread->End("detect");
-            //fps_counter_async_thread->End("end2end");
-            map_fps = fps_counter_async_thread->GetAllFPS();
+#endif
         } while (0);
-        
-        auto time = fps_counter_async_thread->GetAllTime();
+#if defined(END2END)
+        fps_counter_async_thread->End("end2end");
+#endif
+        map_fps = fps_counter_async_thread->GetAllFPS();
+        //auto time = fps_counter_async_thread->GetAllTime();
 
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
                      withStatus:status];
-            //[self showFPS:map_fps];
-            [self showTime: time];
+            [self showFPS:map_fps];
+            //[self showTime: time];
         });
         
         dispatch_semaphore_signal(self.inflightSemaphore);
@@ -475,6 +485,7 @@ typedef void(^CommonCallback)(Status);
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }

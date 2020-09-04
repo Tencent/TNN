@@ -180,7 +180,11 @@ using namespace std;
     return status;
 }
 
--(Status)Run:(shared_ptr<char>)image_data:(int)height:(int)width:(std::shared_ptr<TNNSDKOutput>&) sdk_output {
+-(Status)Run:(std::shared_ptr<char>)image_data
+             height:(int) height
+             width :(int) width
+             output:(std::shared_ptr<TNNSDKOutput>&) sdk_output
+            counter:(std::shared_ptr<TNNFPSCounter>) counter {
     dispatch_semaphore_wait(_device_change_lock, DISPATCH_TIME_FOREVER);
     
     Status status = TNN_OK;
@@ -190,40 +194,42 @@ using namespace std;
     const int image_orig_height = height;
     const int image_orig_width  = width;
     TNN_NS::DimsVector orig_image_dims = {1, 3, image_orig_height, image_orig_width};
+
+    // mat for the input image
+    shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+    // construct image_mat
+    if (units == TNNComputeUnitsGPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
+
+        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+        if (!texture_rgba) {
+            NSLog(@"Error texture input rgba is nil");
+            RTN_WITH_SIGNAL(status);
+        }
+        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
+                        mipmapLevel:0
+                          withBytes:image_data.get()
+                        bytesPerRow:orig_image_dims[3] * 4];
+    } else if (units == TNNComputeUnitsCPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
+    }
+
+    //counter->Begin("End2End");
     // output of each model
     std::shared_ptr<TNNSDKOutput> sdk_output_face = nullptr;
     std::shared_ptr<TNNSDKOutput> sdk_output1 = nullptr;
     std::shared_ptr<TNNSDKOutput> sdk_output2 = nullptr;
     
     std::shared_ptr<TNN_NS::Mat> phase1_pts = nullptr;
-    // mat for the input image
-    shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+    counter->Begin("Phase1");
     //phase1 model
     {
         // 1) prepare input for phase1 model
         if(!self.prev_face) {
             // i) get face from detector
             const int facedetector_input_height = 128;
-            const int facedetector_input_width = 128;
+            const int facedetector_input_width  = 128;
             DimsVector input_dims = {1, 3, facedetector_input_height, facedetector_input_width};
-            
-            if (units == TNNComputeUnitsGPU) {
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
-                
-                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                if (!texture_rgba) {
-                    NSLog(@"Error texture input rgba is nil");
-                    //dispatch_semaphore_signal(_device_change_lock);
-                    //return status;
-                    RTN_WITH_SIGNAL(status);
-                }
-                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
-                                mipmapLevel:0
-                                  withBytes:image_data.get()
-                                bytesPerRow:orig_image_dims[3] * 4];
-            } else if (units == TNNComputeUnitsCPU) {
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
-            }
             
             //preprocess
             auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, input_dims);
@@ -240,8 +246,6 @@ using namespace std;
             
             if (status != TNN_OK) {
                 NSLog(@"Error: %s", status.description().c_str());
-                //dispatch_semaphore_signal(_device_change_lock);
-                //return status;
                 RTN_WITH_SIGNAL(status);
             }
             std::vector<BlazeFaceInfo> face_info;
@@ -253,8 +257,6 @@ using namespace std;
             if(face_info.size() <= 0) {
                 //no faces, return
                 NSLog(@"Error no faces found!");
-                //dispatch_semaphore_signal(_device_change_lock);
-                //return status;
                 RTN_WITH_SIGNAL(status);
             }
             auto face = face_info[0];
@@ -267,37 +269,13 @@ using namespace std;
                 //no invalid faces, return
                 NSLog(@"Error no valid faces found!");
                 RTN_WITH_SIGNAL(status);
-                //dispatch_semaphore_signal(_device_change_lock);
-                //return status;
             }
         }
         // 2) predict
-        if (units == TNNComputeUnitsGPU) {
-            if (image_mat == nullptr) {
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
-                
-                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                if (!texture_rgba) {
-                    NSLog(@"Error texture input rgba is nil");
-                    dispatch_semaphore_signal(_device_change_lock);
-                    return status;
-                }
-                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
-                                mipmapLevel:0
-                                  withBytes:image_data.get()
-                                bytesPerRow:orig_image_dims[3] * 4];
-            }
-        } else if (units == TNNComputeUnitsCPU) {
-            if (image_mat == nullptr)
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
-        }
-        
         status = self.predictor_phase1->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output1);
         
         if (status != TNN_OK) {
             NSLog(@"Error: %s", status.description().c_str());
-            //dispatch_semaphore_signal(_device_change_lock);
-            //return status;
             RTN_WITH_SIGNAL(status);
         }
         // update prev_face
@@ -307,60 +285,40 @@ using namespace std;
         }
         phase1_pts = self.predictor_phase1->GetPrePts();
     }
+    counter->End("Phase1");
+
+    counter->Begin("Phase2");
     std::shared_ptr<TNN_NS::Mat> phase2_pts = nullptr;
     //phase2 model
     {
         // 1) prepare phase1 pts
         self.predictor_phase2->SetPrePts(phase1_pts, true);
         // 2) predict
-        if (units == TNNComputeUnitsGPU) {
-            if (image_mat == nullptr) {
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
-                
-                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                if (!texture_rgba) {
-                    NSLog(@"Error texture input rgba is nil");
-                    dispatch_semaphore_signal(self.device_change_lock);
-                    return status;
-                }
-                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
-                                mipmapLevel:0
-                                  withBytes:image_data.get()
-                                bytesPerRow:orig_image_dims[3] * 4];
-            }
-        } else if (units == TNNComputeUnitsCPU) {
-            if (image_mat == nullptr)
-                image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
-        }
         status = self.predictor_phase2->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output2);
         
         if (status != TNN_OK) {
             NSLog(@"Error: %s", status.description().c_str());
-            //dispatch_semaphore_signal(_device_change_lock);
-            //return status;
             RTN_WITH_SIGNAL(status);
         }
         phase2_pts = self.predictor_phase2->GetPrePts();
     }
+    counter->End("Phase2");
     {
         sdk_output = std::make_shared<YoutuFaceAlignOutput>();
         auto phase1_output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output1.get());
         auto phase2_output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output2.get());
-        
+
         auto& points        = phase1_output->face.key_points;
-        //LOGE("points size:%lu\n", points.size());
         auto& points_phase2 = phase2_output->face.key_points;
-        
+
         points.insert(points.end(), points_phase2.begin(), points_phase2.end());
-        //LOGE("points size:%lu\n", points.size());
+
         auto output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output.get());
         output->face.key_points = points;
         output->face.image_height = image_orig_height;
         output->face.image_width  = image_orig_width;
-        //LOGE("output points size:%lu\n",  output->face.key_points.size());
     }
-    //dispatch_semaphore_signal(_device_change_lock);
-    //return status;
+    //counter->End("End2End");
     RTN_WITH_SIGNAL(status);
 }
 
@@ -370,7 +328,6 @@ using namespace std;
         auto face_output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output.get());
         face = face_output->face;
     }
-    //LOGE("output points size:%lu\n",  face.key_points.size());
     return face;
 }
 

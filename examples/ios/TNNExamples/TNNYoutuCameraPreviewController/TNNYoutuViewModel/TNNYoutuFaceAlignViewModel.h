@@ -16,6 +16,7 @@
 #import "TNNViewModel.h"
 #import "TNNYoutuFaceAlignViewModel.h"
 #import "YoutuFaceAlign.h"
+#import "TNNFPSCounter.h"
 
 #import "UIImage+Utility.h"
 
@@ -28,7 +29,8 @@
 @property (nonatomic, strong) dispatch_semaphore_t device_change_lock;
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
--(Status)Run:(std::shared_ptr<char>)image_data:(int)height:(int)width:(std::shared_ptr<TNNSDKOutput>&) sdk_output;
+
+-(Status)Run:(std::shared_ptr<char>)image_data height:(int) height width :(int) width output:(std::shared_ptr<TNNSDKOutput>&) sdk_output counter:(std::shared_ptr<TNNFPSCounter>) counter;
 
 -(YoutuFaceAlignInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output;
 
