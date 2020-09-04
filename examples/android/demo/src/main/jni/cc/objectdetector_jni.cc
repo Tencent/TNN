@@ -87,7 +87,7 @@ JNIEXPORT JNICALL jboolean TNN_OBJECT_DETECTOR(checkNpu)(JNIEnv *env, jobject th
     protoContent = fdLoadFile(modelPathStr + "/yolov5s-permute.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/yolov5s.tnnmodel");
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
     option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
