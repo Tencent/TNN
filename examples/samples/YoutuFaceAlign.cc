@@ -558,38 +558,6 @@ void YoutuFaceAlign::MatrixStd(const float *ptr, unsigned int rows, unsigned int
     stds[0] = static_cast<float>(std);
 }
 
-#if USE_EIGEN
-void YoutuFaceAlign::MatrixSVD(const std::vector<float>m, int rows, int cols, std::vector<float>&u, std::vector<float>&vt) {
-    //TODO: do we need to use double in svd?
-    // construct eigen matrix
-    Eigen::MatrixXf mat(rows, cols);
-    for(int r=0; r<rows; ++r) {
-        for(int c=0; c<cols; ++c) {
-            mat(r, c) = m[r * cols + c];
-        }
-    }
-    
-    //TODO: which svd method to use?
-    Eigen::JacobiSVD<Eigen::MatrixXf> svd(mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    auto u_mat = svd.matrixU();
-    auto v_mat = svd.matrixV();
-    // save u and vt
-    u.resize(u_mat.rows() * u_mat.cols());
-    for(int r=0; r<u_mat.rows(); ++r){
-        for(int c=0; c<u_mat.cols(); ++c) {
-            u[r * u_mat.cols() + c] = u_mat(r, c);
-        }
-    }
-    vt.resize(v_mat.rows()*v_mat.cols());
-    for(int c=0; c<v_mat.cols(); ++c){
-        for(int r=0; r<v_mat.rows(); ++r) {
-            vt[c * v_mat.rows() + r] = v_mat(r, c);
-        }
-    }
-    
-}
-#endif
-
 // svd for 2-by-2 matrix
 void YoutuFaceAlign::MatrixSVD2x2(const std::vector<float>a, int rows, int cols, std::vector<float>&u, std::vector<float>&vt) {
     u.clear();

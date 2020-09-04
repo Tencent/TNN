@@ -15,9 +15,6 @@
 #ifndef YoutuFaceAlign_hpp
 #define YoutuFaceAlign_hpp
 
-// using Eigen to do SVD
-#define USE_EIGEN 0
-
 #include "TNNSDKSample.h"
 #include <algorithm>
 #include <memory>
@@ -27,10 +24,6 @@
 #include <array>
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-
-#if USE_EIGEN
-#include <Eigen/Dense>
-#endif
 
 namespace TNN_NS{
 
@@ -128,9 +121,6 @@ private:
     
     void MatrixStd(const float *ptr, unsigned int rows, unsigned int cols,int axis, std::vector<float>& stds);
     
-#if USE_EIGEN
-    void MatrixSVD(const std::vector<float>m, int rows, int cols, std::vector<float>&u, std::vector<float>&vt);
-#endif
     void MatrixSVD2x2(const std::vector<float>a, int rows, int cols, std::vector<float>&u, std::vector<float>&vt);
 
     bool IsValidFace(float x1, float y1, float x2, float y2) {
