@@ -12,6 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_SIGNED_MUL_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SIGNED_MUL_LAYER_ACC_H_
+
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
@@ -30,3 +33,5 @@ private:
 };
 
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_SIGNED_MUL_LAYER_ACC_H_

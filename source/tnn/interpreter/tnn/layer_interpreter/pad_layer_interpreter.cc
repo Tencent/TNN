@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
-
 #include <limits.h>
 #include <stdlib.h>
+
+#include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 
 namespace TNN_NS {
 
@@ -83,7 +83,8 @@ Status PadLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* 
     }
 
     output_stream << "0 0 " << layer_param->pads[2] << " " << layer_param->pads[3] << " " << layer_param->pads[0] << " "
-                  << layer_param->pads[1] << " 0 0 " << layer_param->type << " ";
+                  << layer_param->pads[1] << " " << layer_param->pads[4] << " " << layer_param->pads[5] << " "
+                  << layer_param->type << " ";
 
     return TNN_OK;
 }
