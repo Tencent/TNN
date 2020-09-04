@@ -166,7 +166,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
         for (int i = 0; i < objectInfoList.size(); i++) {
             jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
             int landmarkNum = objectInfoList[i].key_points.size();
-            LOGI("object[%d] %f %f %f %f score %f landmark size %d", i, objectInfoList[i].x1, objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2, objectInfoList[i].score, landmarkNum);
+            LOGI("object[%d] %f %f %f %f score %f landmark size %d, label_id: %d", i, objectInfoList[i].x1, objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2, objectInfoList[i].score, landmarkNum, objectInfoList[i].class_id);
             env->SetFloatField(objObjectInfo, fidx1, objectInfoList[i].x1 * scale_w);
             env->SetFloatField(objObjectInfo, fidy1, objectInfoList[i].y1 * scale_h);
             env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2 * scale_w);
