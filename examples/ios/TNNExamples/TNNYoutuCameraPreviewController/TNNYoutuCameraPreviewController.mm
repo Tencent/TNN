@@ -180,7 +180,7 @@ typedef void(^CommonCallback)(Status);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-        
+        //fps_counter_async_thread->Begin("End2End");
         auto image_data = utility::CVImageBuffRefGetData(image_buffer);
         
         CVBufferRelease(image_buffer);
@@ -193,14 +193,16 @@ typedef void(^CommonCallback)(Status);
                                         output:sdk_output
                                         counter:fps_counter_async_thread];
         } while (0);
-
+        //fps_counter_async_thread->End("End2End");
         map_fps = fps_counter_async_thread->GetAllFPS();
+        auto map_time = fps_counter_async_thread->GetAllTime();
 
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
                      withStatus:status];
             [self showFPS:map_fps];
+            //[self showTime:map_time];
         });
         
         dispatch_semaphore_signal(self.inflightSemaphore);
@@ -252,6 +254,17 @@ typedef void(^CommonCallback)(Status);
     for (auto item : map_fps) {
         [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
         NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
+    }
+    self.labelFPS.text = fps;
+}
+
+- (void)showTime:(std::map<std::string, double>) map_time {
+    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
+                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+    int index = 0;
+    for (auto item : map_time) {
+        [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }

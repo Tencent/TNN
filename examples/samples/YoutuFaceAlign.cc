@@ -75,11 +75,8 @@ Status YoutuFaceAlign::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     std::shared_ptr<Mat> vis = nullptr;
     if(phase ==  1) {
         pts = output->GetMat("852");
-        vis = output->GetMat("853");
-        auto pred_label = output->GetMat("854");
-        Sigmoid(pred_label);
-        Sigmoid(vis);
         
+        auto pred_label = output->GetMat("855");
         float *label_ptr = static_cast<float*>(pred_label->GetData());
         if(label_ptr[0] > face_threshold) {
             prev_face = true;
@@ -89,8 +86,6 @@ Status YoutuFaceAlign::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
         }
     } else if(phase == 2) {
         pts = output->GetMat("850");
-        vis = output->GetMat("851");
-        Sigmoid(vis);
     }
     auto InverseM = MatrixInverse(M, 2, 3);
     //devandong: the diff of InverseM for phase2 model is larger the phase1
@@ -278,7 +273,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
         dims[1] = channel / 2;
         dims[2] = 2;
     } else if(phase == 2) {
-        // phase2 model only use part of pts
+        // phase2 model only uses part of pts
         dims[1] = 76;
         dims[2] = 2;
     }
@@ -408,7 +403,6 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
 }
 
 // change BGR Mat to Gray Mat
-// luma transform algorithm: gray = 0.114*B + 0.587*G + 0.299*R
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat> bgr_image) {
     if(bgr_image->GetMatType() != N8UC4){
         return nullptr;

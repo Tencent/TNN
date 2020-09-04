@@ -98,12 +98,12 @@ using namespace std;
     if(1 == phase) {
         model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy_remove_vis_addsigmoid.opt.tnnproto"
                                                      ofType:nil];
     } else if(2 == phase) {
         model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy_remove_vis.opt.tnnproto"
                                                      ofType:nil];
     } else{
         NSLog(@"Error: facealign model phase is invalid");
@@ -195,6 +195,7 @@ using namespace std;
     const int image_orig_width  = width;
     TNN_NS::DimsVector orig_image_dims = {1, 3, image_orig_height, image_orig_width};
 
+    counter->Begin("Copy");
     // mat for the input image
     shared_ptr<TNN_NS::Mat> image_mat = nullptr;
     // construct image_mat
@@ -213,8 +214,8 @@ using namespace std;
     } else if (units == TNNComputeUnitsCPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
     }
+    counter->End("Copy");
 
-    //counter->Begin("End2End");
     // output of each model
     std::shared_ptr<TNNSDKOutput> sdk_output_face = nullptr;
     std::shared_ptr<TNNSDKOutput> sdk_output1 = nullptr;
@@ -303,6 +304,7 @@ using namespace std;
         phase2_pts = self.predictor_phase2->GetPrePts();
     }
     counter->End("Phase2");
+
     {
         sdk_output = std::make_shared<YoutuFaceAlignOutput>();
         auto phase1_output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output1.get());
@@ -318,7 +320,6 @@ using namespace std;
         output->face.image_height = image_orig_height;
         output->face.image_width  = image_orig_width;
     }
-    //counter->End("End2End");
     RTN_WITH_SIGNAL(status);
 }
 
