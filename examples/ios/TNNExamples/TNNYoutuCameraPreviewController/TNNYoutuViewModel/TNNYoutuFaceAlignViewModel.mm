@@ -24,16 +24,7 @@ using namespace std;
 
 #define PROFILE 0
 
-#define RTN_WITH_SIGNAL(status) dispatch_semaphore_signal(_device_change_lock);return status
-
 @implementation TNNYoutuFaceAlignViewModel
-
--(id)init{
-    NSLog(@"Initializing...");
-    id o =[super init];
-    _device_change_lock = dispatch_semaphore_create(1);
-    return o;
-}
 
 - (std::shared_ptr<BlazeFaceDetector>) loadFaceDetector:(TNNComputeUnits)units {
     std::shared_ptr<BlazeFaceDetector> predictor = nullptr;
@@ -160,10 +151,6 @@ using namespace std;
 }
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
-    
-    dispatch_semaphore_wait(_device_change_lock, DISPATCH_TIME_FOREVER);
-    //NSLog(@"%d: %@", __LINE__, [NSThread currentThread]);
-    
     Status status = TNN_OK;
     auto face_detector = [self loadFaceDetector:units];
     auto predictor_phase1 = [self loadYoutuFaceAlign:units :1];
@@ -175,8 +162,6 @@ using namespace std;
     //TODO: we need to set it to false when change camera
     self.prev_face = false;
     
-    dispatch_semaphore_signal(_device_change_lock);
-    
     return status;
 }
 
@@ -185,10 +170,12 @@ using namespace std;
              width :(int) width
              output:(std::shared_ptr<TNNSDKOutput>&) sdk_output
             counter:(std::shared_ptr<TNNFPSCounter>) counter {
-    dispatch_semaphore_wait(_device_change_lock, DISPATCH_TIME_FOREVER);
-    
     Status status = TNN_OK;
     
+    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
+    auto face_detector_async_thread = self.predictor;
+    auto align_phase1_async_thread = self.predictor_phase1;
+    auto align_phase2_async_thread = self.predictor_phase2;
     auto units = self.predictor->GetComputeUnits();
     
     const int image_orig_height = height;
@@ -204,8 +191,8 @@ using namespace std;
 
         id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
         if (!texture_rgba) {
-            NSLog(@"Error texture input rgba is nil");
-            RTN_WITH_SIGNAL(status);
+            status = Status(TNNERR_NO_RESULT, "Error texture input rgba is nil");
+            return status;
         }
         [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
                         mipmapLevel:0
@@ -222,33 +209,29 @@ using namespace std;
     std::shared_ptr<TNNSDKOutput> sdk_output2 = nullptr;
     
     std::shared_ptr<TNN_NS::Mat> phase1_pts = nullptr;
+    
     counter->Begin("Phase1");
     //phase1 model
     {
         // 1) prepare input for phase1 model
         if(!self.prev_face) {
             // i) get face from detector
-            const int facedetector_input_height = 128;
-            const int facedetector_input_width  = 128;
-            DimsVector input_dims = {1, 3, facedetector_input_height, facedetector_input_width};
+            auto facedetector_input_dims = face_detector_async_thread->GetInputShape();
             
             //preprocess
-            auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, input_dims);
+            auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, facedetector_input_dims);
 #if PROFILE
             Timer timer;
             const std::string tag = (units == TNNComputeUnitsCPU)? "CPU": "GPU";
             timer.start();
-            self.predictor->Resize(image_mat, input_mat, TNNInterpLinear);
+            face_detector_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
             timer.printElapsed(tag, "FaceAlign Detector Resize");
 #else
-            self.predictor->Resize(image_mat, input_mat, TNNInterpLinear);
+            face_detector_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
 #endif
-            status = self.predictor->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output_face);
+            status = face_detector_async_thread->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output_face);
+            RETURN_ON_NEQ(status, TNN_OK);
             
-            if (status != TNN_OK) {
-                NSLog(@"Error: %s", status.description().c_str());
-                RTN_WITH_SIGNAL(status);
-            }
             std::vector<BlazeFaceInfo> face_info;
             if (sdk_output_face && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output_face.get()))
             {
@@ -257,8 +240,8 @@ using namespace std;
             }
             if(face_info.size() <= 0) {
                 //no faces, return
-                NSLog(@"Error no faces found!");
-                RTN_WITH_SIGNAL(status);
+                LOGD("Error no faces found!\n");
+                return status;
             }
             auto face = face_info[0];
             // scale the face point according to the original image size
@@ -266,25 +249,23 @@ using namespace std;
             //LOGE("face_origin:(%f,%f,%f,%f), conf=%.4f\n", face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2, face_orig.score);
             
             // set face region for phase1 model
-            if(!self.predictor_phase1->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2)) {
+            if(!align_phase1_async_thread->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2)) {
                 //no invalid faces, return
-                NSLog(@"Error no valid faces found!");
-                RTN_WITH_SIGNAL(status);
+                LOGD("Error no valid faces found!\n");
+                return status;
             }
         }
-        // 2) predict
-        status = self.predictor_phase1->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output1);
         
-        if (status != TNN_OK) {
-            NSLog(@"Error: %s", status.description().c_str());
-            RTN_WITH_SIGNAL(status);
-        }
+        // 2) predict
+        status = align_phase1_async_thread->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output1);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
         // update prev_face
-        self.prev_face = self.predictor_phase1->GetPrevFace();
+        self.prev_face = align_phase1_async_thread->GetPrevFace();
         if(!self.prev_face) {
             LOGE("Next frame will use face detector!\n");
         }
-        phase1_pts = self.predictor_phase1->GetPrePts();
+        phase1_pts = align_phase1_async_thread->GetPrePts();
     }
     counter->End("Phase1");
 
@@ -293,15 +274,11 @@ using namespace std;
     //phase2 model
     {
         // 1) prepare phase1 pts
-        self.predictor_phase2->SetPrePts(phase1_pts, true);
+        align_phase2_async_thread->SetPrePts(phase1_pts, true);
         // 2) predict
-        status = self.predictor_phase2->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output2);
-        
-        if (status != TNN_OK) {
-            NSLog(@"Error: %s", status.description().c_str());
-            RTN_WITH_SIGNAL(status);
-        }
-        phase2_pts = self.predictor_phase2->GetPrePts();
+        status = align_phase2_async_thread->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output2);
+        RETURN_ON_NEQ(status, TNN_OK);
+        phase2_pts = align_phase2_async_thread->GetPrePts();
     }
     counter->End("Phase2");
 
@@ -320,7 +297,7 @@ using namespace std;
         output->face.image_height = image_orig_height;
         output->face.image_width  = image_orig_width;
     }
-    RTN_WITH_SIGNAL(status);
+    return status;
 }
 
 -(YoutuFaceAlignInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output {

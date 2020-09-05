@@ -32,12 +32,16 @@ typedef void(^CommonCallback)(Status);
 
 @property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
 @property (nonatomic, strong) NSArray<UIColor *> *colors;
+
+
+@property (nonatomic, assign) bool enablePredict;
 @end
 
 @implementation TNNYoutuCameraPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    _enablePredict = true;
     self.navigationItem.title = _viewModel.title;
     
     //colors for each class
@@ -154,15 +158,22 @@ typedef void(^CommonCallback)(Status);
     position = (position == AVCaptureDevicePositionBack) ?
     AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
     
-    [self.cameraDevice switchCamera:position
-                         withPreset:AVCaptureSessionPreset640x480
-                         completion:^(BOOL succes) {
-    }];
+    self.enablePredict = false;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self.cameraDevice switchCamera:position
+                             withPreset:AVCaptureSessionPreset640x480
+                             completion:^(BOOL succes) {
+            self.enablePredict = true;
+        }];
+    });
+
 }
 
 #pragma mark - predict Interfaces
 - (void)predict:(CVImageBufferRef)image_buffer {
-    if (!_viewModel) return;
+    if (!_viewModel || !image_buffer) return;
+    
+    auto enable_predict_async_thread = self.enablePredict;
     
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
@@ -186,13 +197,13 @@ typedef void(^CommonCallback)(Status);
         CVBufferRelease(image_buffer);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-        do {
+        if (enable_predict_async_thread) {
             status = [self.viewModel Run:image_data
                                         height:origin_height
                                         width:origin_width
                                         output:sdk_output
                                         counter:fps_counter_async_thread];
-        } while (0);
+        }
         //fps_counter_async_thread->End("End2End");
         map_fps = fps_counter_async_thread->GetAllFPS();
         auto map_time = fps_counter_async_thread->GetAllTime();
