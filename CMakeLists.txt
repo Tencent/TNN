@@ -173,6 +173,10 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
+if(TNN_SYMBOL_HIDE AND UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
+
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCpu>")
@@ -223,10 +227,6 @@ if(TNN_NPU_ENABLE)
     else()
         set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
     endif()
-endif()
-
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
 if(TNN_BUILD_SHARED)

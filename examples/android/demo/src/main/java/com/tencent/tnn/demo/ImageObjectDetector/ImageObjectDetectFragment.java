@@ -172,9 +172,6 @@ public class ImageObjectDetectFragment extends BaseFragment {
     private void startDetect() {
 
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
-        float scalew = originBitmap.getWidth()/(float)NET_W_INPUT;
-        float scaleh = originBitmap.getHeight()/(float)NET_H_INPUT;
-        Bitmap scaleBitmap = Bitmap.createScaledBitmap(originBitmap, NET_W_INPUT, NET_H_INPUT, false);
         ImageView source = (ImageView)$(R.id.origin);
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
@@ -188,7 +185,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         int result = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            ObjectDetector.ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
+            ObjectDetector.ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
             int objectCount = 0;
             if (objectInfoList != null) {
@@ -205,7 +202,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
                 ArrayList<Rect> rects = new ArrayList<Rect>();
                 for (int i=0; i<objectInfoList.length; i++)
                 {
-                    rects.add(new Rect((int)(objectInfoList[i].x1 * scalew), (int)(objectInfoList[i].y1 * scaleh), (int)(objectInfoList[i].x2 * scalew), (int)(objectInfoList[i].y2*scaleh)));
+                    rects.add(new Rect((int)(objectInfoList[i].x1), (int)(objectInfoList[i].y1), (int)(objectInfoList[i].x2), (int)(objectInfoList[i].y2)));
                 }
                 for (int i=0; i<rects.size(); i++) {
                     Log.d(TAG, "rect " + rects.get(i));

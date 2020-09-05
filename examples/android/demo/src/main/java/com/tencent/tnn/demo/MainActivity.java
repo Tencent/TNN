@@ -82,14 +82,15 @@ public class MainActivity extends Activity {
                 }
             }
         });
-        findViewById(R.id.image_object_detectssd_btn).setOnClickListener(new View.OnClickListener() {
+
+        findViewById(R.id.stream_object_detect_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!isShowedActivity) {
                     isShowedActivity = true;
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
-                    intent.setClass(activity, ImageObjectDetectSSDActivity.class);
+                    intent.setClass(activity, StreamObjectDetectActivity.class);
                     activity.startActivity(intent);
                 }
             }
