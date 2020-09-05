@@ -22,12 +22,12 @@
     std::shared_ptr<TNNFPSCounter> _fps_counter;
 }
 
-@property (nonatomic, strong) TNNYoutuFaceAlignViewModel *viewModel;
+@property (nonatomic, strong) TNNYoutuViewModel *viewModel;
 
 - (void)showSDKOutput:(std::shared_ptr<TNN_NS::TNNSDKOutput>)output
            withStatus:(TNN_NS::Status)status;
 
-- (void)showFaceAlignment:(TNN_NS::YoutuFaceAlignInfo) face
+- (void)showFaceAlignment:(TNN_NS::ObjectInfo) face
                            withOriginImageSize:(CGSize)origin_size
                            withStatus:(TNN_NS::Status)status;
 @end

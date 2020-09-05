@@ -300,8 +300,8 @@ using namespace std;
     return status;
 }
 
--(YoutuFaceAlignInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output {
-    YoutuFaceAlignInfo face;
+-(ObjectInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output {
+    ObjectInfo face;
     if (sdk_output && dynamic_cast<YoutuFaceAlignOutput *>(sdk_output.get())) {
         auto face_output = dynamic_cast<YoutuFaceAlignOutput *>(sdk_output.get());
         face = face_output->face;

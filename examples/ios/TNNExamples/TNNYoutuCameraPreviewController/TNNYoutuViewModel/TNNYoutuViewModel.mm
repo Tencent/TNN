@@ -12,24 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import <Foundation/Foundation.h>
 #import "TNNYoutuViewModel.h"
-#import "TNNYoutuFaceAlignViewModel.h"
-#import "YoutuFaceAlign.h"
-#import "TNNFPSCounter.h"
 
-#import "UIImage+Utility.h"
+@implementation TNNYoutuViewModel
+-(Status)Run:(std::shared_ptr<char>)image_data height:(int) height width :(int) width output:(std::shared_ptr<TNNSDKOutput>&) sdk_output counter:(std::shared_ptr<TNNFPSCounter>) counter {
+    return TNN_OK;
+}
 
-@interface TNNYoutuFaceAlignViewModel : TNNYoutuViewModel
-@property (nonatomic, assign) std::shared_ptr<YoutuFaceAlign> predictor_phase1;
-@property (nonatomic, assign) std::shared_ptr<YoutuFaceAlign> predictor_phase2;
-
-@property bool prev_face;
-
--(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
-
--(Status)Run:(std::shared_ptr<char>)image_data height:(int) height width :(int) width output:(std::shared_ptr<TNNSDKOutput>&) sdk_output counter:(std::shared_ptr<TNNFPSCounter>) counter;
-
--(ObjectInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output;
-
+-(ObjectInfo)getFace:(std::shared_ptr<TNNSDKOutput>)sdk_output {
+    return {};
+}
 @end
+

@@ -14,15 +14,13 @@
 
 #import <Foundation/Foundation.h>
 #import "TNNYoutuViewModel.h"
-#import "TNNYoutuFaceAlignViewModel.h"
-#import "YoutuFaceAlign.h"
+#import "Facemesh.h"
 #import "TNNFPSCounter.h"
 
 #import "UIImage+Utility.h"
 
-@interface TNNYoutuFaceAlignViewModel : TNNYoutuViewModel
-@property (nonatomic, assign) std::shared_ptr<YoutuFaceAlign> predictor_phase1;
-@property (nonatomic, assign) std::shared_ptr<YoutuFaceAlign> predictor_phase2;
+@interface TNNFacemeshViewModel : TNNYoutuViewModel
+@property (nonatomic, assign) std::shared_ptr<Facemesh> face_mesh;
 
 @property bool prev_face;
 

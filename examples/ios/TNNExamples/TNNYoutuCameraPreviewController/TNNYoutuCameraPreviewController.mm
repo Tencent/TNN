@@ -228,7 +228,7 @@ typedef void(^CommonCallback)(Status);
     [self showFaceAlignment:face withOriginImageSize:size withStatus:status];
 }
 
-- (void)showFaceAlignment:(YoutuFaceAlignInfo) face
+- (void)showFaceAlignment:(ObjectInfo) face
             withOriginImageSize:(CGSize)origin_size
             withStatus:(Status)status {
     //Object
@@ -250,6 +250,13 @@ typedef void(^CommonCallback)(Status);
             view_face = view_face.FlipX();
         }
         auto pts = view_face.key_points;
+        if (pts.size() <= 0 && view_face.key_points_3d.size() > 0) {
+            pts.resize(view_face.key_points_3d.size());
+            auto idx = 0;
+            for(auto& p3d:view_face.key_points_3d) {
+                pts[idx++] = std::make_pair(std::get<0>(p3d), std::get<1>(p3d));
+            }
+        }
         [_boundingBoxes[0] showMarkAtPoints:pts withColor:self.colors[0]];
     }
     //status
