@@ -160,12 +160,12 @@ using namespace TNN_NS;
     if(1 == phase) {
         model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy_remove_vis_addsigmoid.opt.tnnproto"
                                                      ofType:nil];
     } else if(2 == phase) {
         model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy_remove_vis.opt.tnnproto"
                                                      ofType:nil];
     } else{
         self.labelResult.text = @"facealign model phase is invalid";
@@ -463,7 +463,7 @@ using namespace TNN_NS;
                 [UIImageJPEGRepresentation(output_image, 1.0) writeToFile:path atomically:YES];
 #else
                 // write to album on real device
-                //UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
+                UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
 #endif
                 if(idx == [self.result count]) {
                     last_frame = output_image;
