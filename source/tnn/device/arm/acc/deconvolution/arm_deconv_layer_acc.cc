@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_stride.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_common.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_depthwise.h"
 
@@ -72,8 +73,12 @@ ArmDeconvLayerAcc::~ArmDeconvLayerAcc() {}
 void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (ArmDeconvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvLayerDepthwise *>(deconv_acc_impl_.get())) {
-            auto deconv_acc = std::make_shared<ArmDeconvLayerDepthwise>();
+            auto deconv_acc  = std::make_shared<ArmDeconvLayerDepthwise>();
             deconv_acc_impl_ = deconv_acc;
+        }
+    } else if (ArmDeconvLayerStride::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
+        if (!dynamic_cast<ArmDeconvLayerStride*>(deconv_acc_impl_.get())) {
+            deconv_acc_impl_ = std::make_shared<ArmDeconvLayerStride>();
         }
     }
     if (!deconv_acc_impl_) {
