@@ -254,6 +254,8 @@ using namespace std;
             // set result
             sdk_output = std::make_shared<FacemeshOutput>();
             auto output = dynamic_cast<FacemeshOutput *>(sdk_output.get());
+            face_mesh_cropped.image_width = image_orig_width;
+            face_mesh_cropped.image_height = image_orig_height;
             output->face_list.push_back(*reinterpret_cast<FacemeshInfo*>(&face_mesh_cropped));
         }
     }
