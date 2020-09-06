@@ -31,7 +31,7 @@ bool ArmDeconvLayerStride::isPrefered(ConvLayerParam *param, const std::vector<B
                                       const std::vector<Blob *> &outputs) {
     if (!param)
         return false;
-    return false;
+    // return false;
     // select stride
     return param->group == 1 && param->strides[0] > 1 && param->strides[1] > 1 && param->dialations[0] == 1 &&
            param->dialations[1] == 1;
@@ -147,7 +147,7 @@ Status ArmDeconvLayerStride::CreateStrideConvUnit() {
             stride_conv_param->strides        = {1, 1};
             stride_conv_param->kernels        = {kc_x, kc_y};
             stride_conv_param->pad_type       = -1;
-            stride_conv_param->pads           = {kc_x - 1, kc_x - 1, ky - 1, ky - 1};
+            stride_conv_param->pads           = {kc_x - 1, kc_x - 1, kc_y - 1, kc_y - 1};
             stride_conv_param->dialations     = {1, 1};
             stride_conv_param->input_channel  = param->input_channel;
             stride_conv_param->output_channel = param->output_channel;
