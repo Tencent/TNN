@@ -16,8 +16,6 @@ using namespace TNN_NS;
 typedef void(^CommonCallback)(Status);
 #define kMaxBuffersInFlight 1
 
-#define TEST_IMAGE_SSD 0
-
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
@@ -189,10 +187,6 @@ typedef void(^CommonCallback)(Status);
         image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
     }
     //NSLog(@"==== (%d, %d)", origin_height, origin_width);
-
-#if TEST_IMAGE_SSD
-    origin_image_size = CGSizeMake(768, 538);
-#endif
     
     //异步运行模型
     CVBufferRetain(image_buffer);
@@ -233,7 +227,7 @@ typedef void(^CommonCallback)(Status);
 #ifndef END2END
             fps_counter_async_thread->Begin("detect");
 #endif
-            status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
+            status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(input_mat), sdk_output);
 #ifndef END2END
             fps_counter_async_thread->End("detect");
 #endif
