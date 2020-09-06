@@ -117,6 +117,10 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
                 cpu_net_config.network_type  = NETWORK_TYPE_DEFAULT;
 
                 cpu_input_shape                  = modifyInterpreterCPU();
+                if (cpu_input_shape.empty()) {
+                    LOGE("When split the arm can not find input in  npu\n");
+                    return Status(TNNERR_LAYER_ERR, "When split the arm can not find input in  npu");
+                }
                 net_structure_->inputs_shape_map = cpu_input_shape;
                 build_ret = default_network_->Init(cpu_net_config, model_config, interpreter, cpu_input_shape);
                 if (build_ret != TNN_OK) {
@@ -339,6 +343,10 @@ InputShapesMap NpuNetwork::modifyInterpreterCPU() {
             if (visited_.count(input) > 0) {
                 if (cpu_input_shapes_map.count(input) == 0) {
                     cpu_input_shapes_map[input] = global_operator_map_[input]->GetShape();
+                } else {
+                    cpu_input_shapes_map.clear();
+                    LOGE("[TNN/NPU] can not find in the visited\n");
+                    return cpu_input_shapes_map;
                 }
             }
         }
@@ -426,7 +434,8 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
         if (cur_layer == nullptr) {
-            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+            LOGE("Error Init layer  %d, npu does not support \n",layer_info->type);
+            return Status(TNNERR_LAYER_ERR, "CreateLayer failed");
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);

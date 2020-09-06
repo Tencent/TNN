@@ -5,13 +5,13 @@ PUSH_MODEL=""
 BUILD_ONLY=""
 BUILD="32"
 WORK_DIR=`pwd`
-MODEL_DIR=$WORK_DIR/../../model/face_detector/
+MODEL_DIR=$WORK_DIR//
 ANDROID_DIR=/data/local/tmp/npu_test
 ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_npu
 
 MODEL_TYPE=tnn
-MODEL_NAME=version-slim-320_simplified.tnnproto
+MODEL_NAME=
 #INPUT_FILE_NAME=input_128.txt
 
 function usage() {
