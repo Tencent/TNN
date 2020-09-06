@@ -164,7 +164,10 @@ typedef void(^CommonCallback)(Status);
 }
 
 #pragma mark - predict Interfaces
-- (void)predict:(CVImageBufferRef)image_buffer {
+- (void)predictSampleBuffer:(CMSampleBufferRef)video_buffer
+                 withCamera:(TNNCameraVideoDevice *)camera
+               andPosition:(AVCaptureDevicePosition)position
+                atTimestamp:(CMTime)time {
     if (!_viewModel || !_viewModel.predictor) return;
     
     const auto target_dims = self.viewModel.predictor->GetInputShape();
@@ -176,9 +179,15 @@ typedef void(^CommonCallback)(Status);
     auto predictor_async_thread = _viewModel.predictor;
     auto compute_units = _viewModel.predictor->GetComputeUnits();
     
+    CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
     int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
+    
+    id<MTLTexture> image_texture = nil;
+    if (compute_units == TNNComputeUnitsGPU) {
+        image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
+    }
     //NSLog(@"==== (%d, %d)", origin_height, origin_width);
 
 #if TEST_IMAGE_SSD
@@ -187,43 +196,25 @@ typedef void(^CommonCallback)(Status);
     
     //异步运行模型
     CVBufferRetain(image_buffer);
+    auto image_texture_ref = CFBridgingRetain(image_texture);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
 #if defined(END2END)
         fps_counter_async_thread->Begin("end2end");
 #endif
-#if TEST_IMAGE_SSD
-        static std::shared_ptr<char> image_data = nullptr;
-        if (!image_data) {
-            auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
-                                                                                              ofType:nil]];
-            image_data = utility::UIImageGetData(image_png);
-        }
-        
-#else
-        auto image_data = utility::CVImageBuffRefGetData(image_buffer);
-#endif
 
-
+        //Note：智能指针必须在resize后才能释放
+        std::shared_ptr<char> image_data = nullptr;
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         auto origin_dims = {1, 3, origin_height, origin_width};
         if (compute_units == TNNComputeUnitsCPU) {
+            image_data = utility::CVImageBuffRefGetData(image_buffer);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
         } else {
-            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims);
-
-            id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-            if (!texture_rgba) {
-                status = Status(TNNERR_NET_ERR, "Error texture input rgba is nil");
-                return;
-            }
-
-            [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, origin_width, origin_height)
-                            mipmapLevel:0
-                              withBytes:image_data.get()
-                            bytesPerRow:origin_width*4];
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, (void *)image_texture_ref);
         }
+        
         auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
 #ifndef END2END
         //resize
@@ -235,6 +226,7 @@ typedef void(^CommonCallback)(Status);
 #endif
 
         CVBufferRelease(image_buffer);
+        CFBridgingRelease(image_texture_ref);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
@@ -260,128 +252,6 @@ typedef void(^CommonCallback)(Status);
             //[self showTime: time];
         });
         
-        dispatch_semaphore_signal(self.inflightSemaphore);
-    });
-
-}
-
-- (void)predictWithImageBuffer:(CVImageBufferRef)image_buffer {
-    if (!_viewModel || !_viewModel.predictor) return;
-
-    const auto target_dims = self.viewModel.predictor->GetInputShape();
-    // block until the next GPU buffer is available.
-    dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
-
-    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
-    auto fps_counter_async_thread = _fps_counter;
-    auto predictor_async_thread = _viewModel.predictor;
-    auto compute_units = _viewModel.predictor->GetComputeUnits();
-    if (compute_units != TNNComputeUnitsCPU)
-        return;
-
-    int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
-    int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
-    CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
-
-    //异步运行模型
-    CVBufferRetain(image_buffer);
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        //fps_counter_async_thread->Begin("end2end");
-
-        Status status = TNN_OK;
-        std::map<std::string, double> map_fps;
-        fps_counter_async_thread->Begin("resize");
-        auto image_data = utility::CVImageBuffRefGetData(image_buffer);
-
-        std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-        auto origin_dims = {1, 3, origin_height, origin_width};
-
-        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
-        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
-        //resize
-        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
-        fps_counter_async_thread->End("resize");
-
-        CVBufferRelease(image_buffer);
-
-        std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-        do {
-            fps_counter_async_thread->Begin("detect");
-            status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
-            fps_counter_async_thread->End("detect");
-        } while (0);
-        //fps_counter_async_thread->End("end2end");
-        map_fps = fps_counter_async_thread->GetAllFPS();
-        auto time = fps_counter_async_thread->GetAllTime();
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            [self showSDKOutput:sdk_output
-            withOriginImageSize:origin_image_size
-                     withStatus:status];
-            //[self showFPS:map_fps];
-            [self showTime:time];
-        });
-
-        dispatch_semaphore_signal(self.inflightSemaphore);
-    });
-
-}
-
-- (void)predictWithTexture:(id<MTLTexture>)texture {
-    if (!_viewModel || !_viewModel.predictor) return;
-
-    const auto target_dims = self.viewModel.predictor->GetInputShape();
-    // block until the next GPU buffer is available.
-    dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
-
-    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
-    auto fps_counter_async_thread = _fps_counter;
-    auto predictor_async_thread = _viewModel.predictor;
-    auto compute_units = _viewModel.predictor->GetComputeUnits();
-    if(compute_units != TNNComputeUnitsGPU)
-        return;
-
-    int origin_width = (int)texture.width;
-    int origin_height = (int)texture.height;
-    CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
-
-    //异步运行模型
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        //fps_counter_async_thread->Begin("end2end");
-
-        Status status = TNN_OK;
-
-        std::map<std::string, double> map_fps;
-        std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-        auto origin_dims = {1, 3, origin_height, origin_width};
-
-        fps_counter_async_thread->Begin("resize");
-        void *memory = (void *)CFBridgingRetain(texture);
-        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, memory);
-
-        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
-        //resize
-        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
-        fps_counter_async_thread->End("resize");
-
-        std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-        do {
-            fps_counter_async_thread->Begin("detect");
-            status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
-            fps_counter_async_thread->End("detect");
-        } while (0);
-        //fps_counter_async_thread->End("end2end");
-        map_fps = fps_counter_async_thread->GetAllFPS();
-        auto time = fps_counter_async_thread->GetAllTime();
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            [self showSDKOutput:sdk_output
-            withOriginImageSize:origin_image_size
-                     withStatus:status];
-            //[self showFPS:map_fps];
-            [self showTime:time];
-        });
-
         dispatch_semaphore_signal(self.inflightSemaphore);
     });
 
@@ -506,33 +376,10 @@ typedef void(^CommonCallback)(Status);
      didCaptureVideo:(CMSampleBufferRef)videoBuffer
         withPosition:(AVCaptureDevicePosition)position
          atTimestamp:(CMTime)time {
-    auto imageBuffer = CMSampleBufferGetImageBuffer(videoBuffer);
-    [self predict:imageBuffer];
-    /*
-    auto predictor_async = self.viewModel.predictor;
-    // why predictor_async could be nullptr?
-    if(!predictor_async)
-        return;
-    auto units = predictor_async->GetComputeUnits();
-    if (units == TNNComputeUnitsGPU) {
-        id<MTLTexture> texture = [self.cameraDevice getMTLTexture:videoBuffer];
-        if (!texture) {
-            return;
-        }
-         [self predictWithTexture:texture];
-    } else {
-        auto imageBuffer = CMSampleBufferGetImageBuffer(videoBuffer);
-        [self predictWithImageBuffer:imageBuffer];
-    }
-     */
+    [self predictSampleBuffer:videoBuffer
+                   withCamera:camera
+                  andPosition:position
+                  atTimestamp:time];
 }
 
-- (void)cameraDevice:(TNNCameraVideoDevice *)camera
-                    metalTexture:(id<MTLTexture>)metalTexture
-                    withPosition:(AVCaptureDevicePosition)withPosition
-                    atTimestamp:(CMTime)atTimestamp {
-    if(self.switchGPU.isOn) {
-        [self predictWithTexture:metalTexture];
-    }
-}
 @end

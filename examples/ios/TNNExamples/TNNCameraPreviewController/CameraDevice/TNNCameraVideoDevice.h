@@ -60,6 +60,7 @@ typedef void(^CameraSetupCallback)(BOOL);
          completion:(CameraSetupCallback)completion;
 
 -(id<MTLTexture>)getMTLTexture:(CMSampleBufferRef)sampleBuffer;
+-(id<MTLTexture>)getMTLTextureFromImageBuffer:(CVImageBufferRef)imageBuffer;
 -(UIImage *)getUIImage:(CMSampleBufferRef)sampleBuffer;
 
 - (AVCaptureDevicePosition)cameraPosition;
