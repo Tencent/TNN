@@ -55,7 +55,8 @@ Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         return ret;
     }
 
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    auto data_type = inputs[0]->GetBlobDesc().data_type;
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
         GetImpFP(inputs, outputs);
     } else {
         return Status(TNNERR_NET_ERR, "int8 deconv impl is not supported");

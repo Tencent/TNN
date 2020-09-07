@@ -59,6 +59,9 @@ private:
 
     Status CopyOutputSplitBlob(Blob *output);
 
+    template <typename T>
+    void CopyWithStride(ConvUnit &unit, Blob* output);
+
 private:
     std::vector<ConvUnit> conv_units_;
 };

@@ -59,7 +59,8 @@ Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerReso
         std::vector<Blob *> local_outputs;
         local_outputs.emplace_back(unit.blob.get());
         std::shared_ptr<ArmLayerAcc> tmp_acc = nullptr;
-        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        auto data_type = inputs[0]->GetBlobDesc().data_type;
+        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
             CreateImpFP(inputs, local_outputs, unit.param.get(), tmp_acc);
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: stride conv not support data type");
@@ -207,6 +208,52 @@ Status ArmDeconvLayerStride::SetSplitBlobHandle(Blob *blob, RawBuffer &buf) {
     return TNN_OK;
 }
 
+template <typename T>
+void ArmDeconvLayerStride::CopyWithStride(ConvUnit &unit, Blob *output) {
+    auto param                = reinterpret_cast<ConvLayerParam *>(param_);
+    auto dims                 = output->GetBlobDesc().dims;
+    auto pad_y                = param->pads[2];
+    auto pad_x                = param->pads[0];
+    auto stride_y             = param->strides[1];
+    auto stride_x             = param->strides[0];
+    auto batch                = dims[0];
+    auto oh                   = dims[2];
+    auto ow                   = dims[3];
+    auto output_origin        = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
+    auto stride_dims          = unit.blob->GetBlobDesc().dims;
+    auto stride_oh            = stride_dims[2];
+    auto stride_ow            = stride_dims[3];
+    auto stride_output_origin = reinterpret_cast<T *>(GetBlobHandlePtr(unit.blob->GetHandle()));
+    int y_start               = std::ceil(1.0 * (pad_y - unit.y_offset) / stride_y);
+    y_start                   = std::max(y_start, 0);
+    int y_end                 = std::floor(1.0 * (pad_y + oh - unit.y_offset - 1) / stride_y);
+    y_end                     = std::min(y_end, stride_oh);
+    int x_start               = std::ceil(1.0 * (pad_x - unit.x_offset) / stride_x);
+    x_start                   = std::max(x_start, 0);
+    int x_end                 = std::floor(1.0 * (pad_x + ow - unit.x_offset - 1) / stride_x);
+    x_end                     = std::min(x_end, stride_ow);
+
+    for (int b = 0; b < batch; b++) {
+        auto src_b = stride_output_origin + b * ROUND_UP(stride_dims[1], 4) * stride_dims[2] * stride_dims[3];
+        auto dst_b = output_origin + b * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+        for (int oz = 0; oz < UP_DIV(dims[1], 4); oz++) {
+            auto src_z       = src_b + oz * stride_dims[2] * stride_dims[3] * 4;
+            auto dst_z       = dst_b + oz * dims[2] * dims[3] * 4;
+            auto src_y_start = src_z;
+            auto dst_y_start = dst_z + (unit.y_offset - pad_y) * ow * 4;
+            for (int y = y_start; y <= y_end; y++) {
+                auto src_y       = src_y_start + y * stride_ow * 4;
+                auto dst_y       = dst_y_start + y * stride_y * ow * 4;
+                auto src_x_start = src_y;
+                auto dst_x_start = dst_y + (unit.x_offset - pad_x) * 4;
+                for (int x = x_start; x <= x_end; x++) {
+                    Float4::save(dst_x_start + x * stride_x * 4, Float4::load(src_x_start + x * 4));
+                }
+            }
+        }
+    }
+}
+
 Status ArmDeconvLayerStride::CopyOutputSplitBlob(Blob *output) {
     auto param         = reinterpret_cast<ConvLayerParam *>(param_);
     auto dims          = output->GetBlobDesc().dims;
@@ -218,38 +265,15 @@ Status ArmDeconvLayerStride::CopyOutputSplitBlob(Blob *output) {
     auto oh            = dims[2];
     auto ow            = dims[3];
     auto output_origin = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+    auto data_type     = output->GetBlobDesc().data_type;
 
     for (auto &unit : conv_units_) {
-        auto stride_dims          = unit.blob->GetBlobDesc().dims;
-        auto stride_oh            = stride_dims[2];
-        auto stride_ow            = stride_dims[3];
-        auto stride_output_origin = reinterpret_cast<float *>(GetBlobHandlePtr(unit.blob->GetHandle()));
-        for (int b = 0; b < batch; b++) {
-            auto src_b = stride_output_origin + b * ROUND_UP(stride_dims[1], 4) * stride_dims[2] * stride_dims[3];
-            auto dst_b = output_origin + b * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
-            for (int oz = 0; oz < UP_DIV(dims[1], 4); oz++) {
-                auto src_z       = src_b + oz * stride_dims[2] * stride_dims[3] * 4;
-                auto dst_z       = dst_b + oz * dims[2] * dims[3] * 4;
-                int y_start      = std::ceil(1.0 * (pad_y - unit.y_offset) / stride_y);
-                y_start          = std::max(y_start, 0);
-                int y_end        = std::floor(1.0 * (pad_y + oh - unit.y_offset - 1) / stride_y);
-                y_end            = std::min(y_end, stride_oh);
-                auto src_y_start = src_z;
-                auto dst_y_start = dst_z + (unit.y_offset - pad_y) * ow * 4;
-                for (int y = y_start; y <= y_end; y++) {
-                    auto src_y       = src_y_start + y * stride_ow * 4;
-                    auto dst_y       = dst_y_start + y * stride_y * ow * 4;
-                    int x_start      = std::ceil(1.0 * (pad_x - unit.x_offset) / stride_x);
-                    x_start          = std::max(x_start, 0);
-                    int x_end        = std::floor(1.0 * (pad_x + ow - unit.x_offset - 1) / stride_x);
-                    x_end            = std::min(x_end, stride_ow);
-                    auto src_x_start = src_y;
-                    auto dst_x_start = dst_y + (unit.x_offset - pad_x) * 4;
-                    for (int x = x_start; x <= x_end; x++) {
-                        Float4::save(dst_x_start + x * stride_x * 4, Float4::load(src_x_start + x * 4));
-                    }
-                }
-            }
+        if (data_type == DATA_TYPE_FLOAT) {
+            CopyWithStride<float>(unit, output);
+        } else if (data_type == DATA_TYPE_BFP16) {
+            CopyWithStride<bfp16_t>(unit, output);
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: stride conv not support data type");
         }
     }
 
@@ -272,6 +296,18 @@ static inline void _rotete_180(T *ptr, int col, int row) {
     delete[] rot_ptr;
 }
 
+template <typename T>
+static inline void _crop_stride(T *dst, T *src, int x_offset, int y_offset, int kx, int ky, int kc_x, int kc_y, int sx,
+                                int sy) {
+    for (int fy = 0; fy < kc_y; fy++) {
+        auto ori_fy = y_offset + fy * sy;
+        for (int fx = 0; fx < kc_x; fx++) {
+            auto ori_fx         = x_offset + fx * sx;
+            dst[fx + fy * kc_x] = src[ori_fy * kx + ori_fx];
+        }
+    }
+}
+
 Status ArmDeconvLayerStride::SplitResource() {
     auto param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
@@ -285,6 +321,8 @@ Status ArmDeconvLayerStride::SplitResource() {
     auto group          = param->group;
     auto output_channel = param->output_channel;
     auto input_channel  = conv_res->filter_handle.GetDataCount() / group / (kx * ky * output_channel);
+    auto data_type      = conv_res->filter_handle.GetDataType();
+    auto element_size   = DataTypeUtils::GetBytesSize(data_type);
     DimsVector res_dims = {input_channel, output_channel, ky, kx};
     for (auto &conv_unit : conv_units_) {
         auto kc_x                      = conv_unit.kc_x;
@@ -293,26 +331,31 @@ Status ArmDeconvLayerStride::SplitResource() {
         auto y_offset                  = conv_unit.y_offset;
         auto stride_conv_res           = conv_unit.resource.get();
         DimsVector unit_res_dims       = {output_channel, input_channel, kc_y, kc_x};
-        stride_conv_res->filter_handle = RawBuffer(kc_x * kc_y * input_channel * output_channel * sizeof(float));
+        stride_conv_res->filter_handle = RawBuffer(kc_x * kc_y * input_channel * output_channel * element_size);
 
         for (int ic = 0; ic < input_channel; ic++) {
             for (int oc = 0; oc < output_channel; oc++) {
-                auto dst = stride_conv_res->filter_handle.force_to<float *>() +
-                           oc * DimsVectorUtils::Count(unit_res_dims, 1) +
-                           ic * DimsVectorUtils::Count(unit_res_dims, 2);
-                auto src = conv_res->filter_handle.force_to<float *>() + ic * DimsVectorUtils::Count(res_dims, 1) +
-                           oc * DimsVectorUtils::Count(res_dims, 2);
+                auto dst =
+                    stride_conv_res->filter_handle.force_to<char *>() +
+                    (oc * DimsVectorUtils::Count(unit_res_dims, 1) + ic * DimsVectorUtils::Count(unit_res_dims, 2)) *
+                        element_size;
+                auto src = conv_res->filter_handle.force_to<char *>() +
+                           (ic * DimsVectorUtils::Count(res_dims, 1) + oc * DimsVectorUtils::Count(res_dims, 2)) *
+                               element_size;
 
-                for (int fy = 0; fy < kc_y; fy++) {
-                    auto ori_fy = y_offset + fy * sy;
-                    for (int fx = 0; fx < kc_x; fx++) {
-                        auto ori_fx         = x_offset + fx * sx;
-                        dst[fx + fy * kc_x] = src[ori_fy * kx + ori_fx];
-                    }
+                if (data_type == DATA_TYPE_FLOAT) {
+                    auto dst_ = reinterpret_cast<float *>(dst);
+                    auto src_ = reinterpret_cast<float *>(src);
+                    _crop_stride(dst_, src_, x_offset, y_offset, kx, ky, kc_x, kc_y, sx, sy);
+                    _rotete_180(dst_, kc_x, kc_y);
+                } else if (data_type == DATA_TYPE_BFP16) {
+                    auto dst_ = reinterpret_cast<bfp16_t *>(dst);
+                    auto src_ = reinterpret_cast<bfp16_t *>(src);
+                    _crop_stride(dst, src, x_offset, y_offset, kx, ky, kc_x, kc_y, sx, sy);
+                    _rotete_180(dst, kc_x, kc_y);
+                } else {
+                    return Status(TNNERR_LAYER_ERR, "Error: stride conv resource not support data type");
                 }
-
-                // Todo: rotate 180
-                _rotete_180(dst, kc_x, kc_y);
             }
         }
 
