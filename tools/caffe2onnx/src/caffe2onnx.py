@@ -640,7 +640,7 @@ class Caffe2Onnx():
                 # 4.添加节点到节点列表
                 self.onnxNodeList.append(Upsample_node)
 
-            elif Layers[i] == 'Interp':
+            elif Layers[i].type == 'Interp':
                 input_name, input_shape = self.GetLastLayerOutNameAndShape(Layers[i])
                 output_name = self.GetCurrentLayerOutName(Layers[i])
                 node_name = Layers[i].name
