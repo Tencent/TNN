@@ -21,7 +21,7 @@
 namespace TNN_NS {
 Status FaceDetectAligner::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
     if (sdks.size() < 3) {
-        return Status(TNNERR_INST_ERR, "FaceDetectAligner::Init has incalid sdks, its size < 3");
+        return Status(TNNERR_INST_ERR, "FaceDetectAligner::Init has invalid sdks, its size < 3");
     }
     
     predictor_detect_ = sdks[0];
