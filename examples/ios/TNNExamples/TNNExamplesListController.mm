@@ -20,8 +20,8 @@
 #import "TNNYoloObjectDetectorViewModel.h"
 #import "TNNYoutuFaceAlignController.h"
 #import "TNNYoutuCameraPreviewController.h"
-#import "TNNYoutuFaceAlignViewModel.h"
 #import "TNNFaceDetectAlignerViewModel.h"
+#import "TNNFaceDetectMeshViewModel.h"
 #import "TNNFacemeshViewModel.h"
 
 using namespace std;
@@ -80,19 +80,16 @@ using namespace std;
         cameraViewController.viewModel.title = @"物体检测 - yolov5";
     }  else if (indexPath.section == 7) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
-        auto youtuCameraViewController = (TNNCameraPreviewController*)vc;
-        youtuCameraViewController.viewModel = [TNNFaceDetectAlignerViewModel new];
-        youtuCameraViewController.viewModel.title = @"人脸检测配准 - 腾讯优图";
-        youtuCameraViewController.viewModel.preferFrontCamera = true;
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNFaceDetectAlignerViewModel new];
+        cameraViewController.viewModel.title = @"人脸检测配准 - 腾讯优图";
+        cameraViewController.viewModel.preferFrontCamera = true;
     } else if (indexPath.section == 8) {
-        //vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNFacemeshController"];
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuCameraPreviewController"];
-        auto youtuCameraViewController = (TNNYoutuCameraPreviewController*)vc;
-        youtuCameraViewController.viewModel = [TNNFacemeshViewModel new];
-        youtuCameraViewController.viewModel.title = @"Facemesh";
-        youtuCameraViewController.viewModel.preferFrontCamera = true;
-    } else if (indexPath.section == 9) {
-        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNYoutuFaceAlignController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNFaceDetectMeshViewModel new];
+        cameraViewController.viewModel.title = @"Facemesh";
+        cameraViewController.viewModel.preferFrontCamera = true;
     }
     if (!vc) {
         return;

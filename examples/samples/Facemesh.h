@@ -74,6 +74,7 @@ public:
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
     
 private:
     void GenerateLandmarks(std::vector<FacemeshInfo> &landmarks, TNN_NS::Mat &score_mat, TNN_NS::Mat &landmark_mat, FacemeshOption* option, FaceRect& rect);

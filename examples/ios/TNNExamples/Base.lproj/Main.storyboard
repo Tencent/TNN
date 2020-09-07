@@ -647,7 +647,7 @@
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="视频输入" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jHo-mU-WeU">
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="视频输入" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jHo-mU-WeU" userLabel="视频输入，多SDK组合">
                                                     <rect key="frame" x="20" y="43.666666666666664" width="69.333333333333329" height="20.999999999999993"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                     <nil key="textColor"/>
@@ -660,39 +660,6 @@
                                                 <constraint firstItem="a09-1e-gGp" firstAttribute="leading" secondItem="wPN-N7-9mw" secondAttribute="leading" constant="20" id="Wdn-4O-pdQ"/>
                                                 <constraint firstAttribute="bottom" secondItem="jHo-mU-WeU" secondAttribute="bottom" priority="250" constant="15.5" id="aID-iS-rpK"/>
                                                 <constraint firstItem="jHo-mU-WeU" firstAttribute="leading" secondItem="wPN-N7-9mw" secondAttribute="leading" constant="20" id="rou-FQ-8v9"/>
-                                            </constraints>
-                                        </tableViewCellContentView>
-                                    </tableViewCell>
-                                </cells>
-                            </tableViewSection>
-                            <tableViewSection id="ozh-JQ-I08">
-                                <cells>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" rowHeight="80" id="nMR-0m-cJO">
-                                        <rect key="frame" x="0.0" y="1252" width="375" height="80"/>
-                                        <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="nMR-0m-cJO" id="PFw-f9-RwW">
-                                            <rect key="frame" x="0.0" y="0.0" width="375" height="80"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Youtu FaceAlign" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VVd-Mb-bKS">
-                                                    <rect key="frame" x="21" y="15" width="132" height="21"/>
-                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="单输入多输出" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="uvD-fk-4wJ" userLabel="单输入多输出">
-                                                    <rect key="frame" x="20" y="43.666666666666664" width="104" height="20.999999999999993"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                            </subviews>
-                                            <constraints>
-                                                <constraint firstItem="uvD-fk-4wJ" firstAttribute="top" secondItem="VVd-Mb-bKS" secondAttribute="bottom" constant="7.5" id="6uY-CR-Qf5"/>
-                                                <constraint firstAttribute="bottom" secondItem="uvD-fk-4wJ" secondAttribute="bottom" priority="250" constant="15.5" id="8uj-kn-0x0"/>
-                                                <constraint firstItem="VVd-Mb-bKS" firstAttribute="leading" secondItem="PFw-f9-RwW" secondAttribute="leading" constant="20" id="Anh-cf-7jh"/>
-                                                <constraint firstItem="VVd-Mb-bKS" firstAttribute="top" secondItem="PFw-f9-RwW" secondAttribute="top" constant="15" id="NJ2-sl-rGY"/>
-                                                <constraint firstItem="uvD-fk-4wJ" firstAttribute="leading" secondItem="PFw-f9-RwW" secondAttribute="leading" constant="20" id="aMc-kg-qBs"/>
                                             </constraints>
                                         </tableViewCellContentView>
                                     </tableViewCell>
@@ -1155,7 +1122,6 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="r4k-fv-Y5N"/>
         <segue reference="ZB4-bX-xVl"/>
     </inferredMetricsTieBreakers>
     <resources>

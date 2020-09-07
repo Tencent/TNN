@@ -50,6 +50,26 @@ std::shared_ptr<TNNSDKOutput> Facemesh::CreateSDKOutput() {
     return std::make_shared<FacemeshOutput>();
 }
 
+std::shared_ptr<Mat> Facemesh::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
+                                                                   std::string name) {
+    auto target_dims = GetInputShape(name);
+    auto input_height = input_mat->GetHeight();
+    auto input_width = input_mat->GetWidth();
+    if (target_dims.size() >= 4 &&
+        (input_height != target_dims[2] || input_width != target_dims[3])) {
+        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
+                                                        input_mat->GetMatType(), target_dims);
+        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
+        if (status == TNN_OK) {
+            return target_mat;
+        } else {
+            LOGE("%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
+    return input_mat;
+}
+
 Status Facemesh::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     Status status = TNN_OK;
     auto option = dynamic_cast<FacemeshOption *>(option_.get());
@@ -139,6 +159,7 @@ void Facemesh::GenerateLandmarks(std::vector<FacemeshInfo> &detects, TNN_NS::Mat
         y = round(y * image_h);
         
         info.key_points_3d.push_back(std::make_tuple(x, y, z));
+        info.key_points.push_back(std::make_pair(x, y));
     }
     detects.push_back(std::move(info));
 }

@@ -194,9 +194,6 @@ typedef void(^CommonCallback)(Status);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-#if defined(END2END)
-        fps_counter_async_thread->Begin("end2end");
-#endif
 
         //Note：智能指针必须在resize后才能释放
         std::shared_ptr<char> image_data = nullptr;
@@ -221,17 +218,10 @@ typedef void(^CommonCallback)(Status);
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
-#ifndef END2END
             fps_counter_async_thread->Begin("detect");
-#endif
             status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
-#ifndef END2END
             fps_counter_async_thread->End("detect");
-#endif
         } while (0);
-#if defined(END2END)
-        fps_counter_async_thread->End("end2end");
-#endif
         
         CVBufferRelease(image_buffer);
         CFBridgingRelease(image_texture_ref);

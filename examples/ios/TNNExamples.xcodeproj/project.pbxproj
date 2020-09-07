@@ -61,6 +61,8 @@
 		ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */; };
 		ECAD84FD24D7F0AE0074EA95 /* Facemesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* Facemesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
+		ECD14A022505F88C00271443 /* FaceDetectMesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* FaceDetectMesh.cc */; };
+		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
 		ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */; };
@@ -178,6 +180,10 @@
 		ECAD84FB24D7F0AE0074EA95 /* Facemesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Facemesh.cc; sourceTree = "<group>"; };
 		ECAD84FC24D7F0AE0074EA95 /* Facemesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Facemesh.h; sourceTree = "<group>"; };
 		ECAD84FE24D801690074EA95 /* test_facemesh.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_facemesh.jpg; sourceTree = "<group>"; };
+		ECD14A002505F88C00271443 /* FaceDetectMesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FaceDetectMesh.cc; sourceTree = "<group>"; };
+		ECD14A012505F88C00271443 /* FaceDetectMesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FaceDetectMesh.h; sourceTree = "<group>"; };
+		ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectMeshViewModel.mm; sourceTree = "<group>"; };
+		ECD14A052505FE3100271443 /* TNNFaceDetectMeshViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFaceDetectMeshViewModel.h; sourceTree = "<group>"; };
 		ECEC5DB024FFCC6C0044DDF1 /* YoutuFaceAlign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YoutuFaceAlign.h; sourceTree = "<group>"; };
 		ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = YoutuFaceAlign.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
@@ -265,6 +271,8 @@
 				9D71E7C524C5BE7000074C1A /* TNNFaceDetectorViewModel.mm */,
 				9D71E7C124C5BE1200074C1A /* TNNViewModel.mm */,
 				9D71E7C224C5BE1200074C1A /* TNNViewModel.h */,
+				ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */,
+				ECD14A052505FE3100271443 /* TNNFaceDetectMeshViewModel.h */,
 			);
 			path = TNNViewModel;
 			sourceTree = "<group>";
@@ -379,6 +387,8 @@
 				EC4E1B5324C97A5E00B88179 /* BlazeFaceDetector.h */,
 				ECAD84FB24D7F0AE0074EA95 /* Facemesh.cc */,
 				ECAD84FC24D7F0AE0074EA95 /* Facemesh.h */,
+				ECD14A002505F88C00271443 /* FaceDetectMesh.cc */,
+				ECD14A012505F88C00271443 /* FaceDetectMesh.h */,
 			);
 			name = samples;
 			path = ../../samples;
@@ -591,6 +601,7 @@
 				ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */,
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
+				ECD14A022505F88C00271443 /* FaceDetectMesh.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
 				EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */,
@@ -599,6 +610,7 @@
 				9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */,
 				9D71E7C624C5BE7000074C1A /* TNNFaceDetectorViewModel.mm in Sources */,
 				9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */,
+				ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
 				9D961FEA241163EE009B3FB1 /* TNNExamplesListController.mm in Sources */,
 				ECEF96DD24AED66D0094CB8B /* ObjectDetectorSSD.cc in Sources */,
