@@ -280,7 +280,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
-            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
