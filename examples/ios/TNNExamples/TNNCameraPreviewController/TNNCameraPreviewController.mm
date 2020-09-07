@@ -209,25 +209,22 @@ typedef void(^CommonCallback)(Status);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, (void *)image_texture_ref);
         }
         
-        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
-#ifndef END2END
-        //resize
-        fps_counter_async_thread->Begin("resize");
-#endif
-        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
-#ifndef END2END
-        fps_counter_async_thread->End("resize");
-#endif
-
-        CVBufferRelease(image_buffer);
-        CFBridgingRelease(image_texture_ref);
+//        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+//#ifndef END2END
+//        //resize
+//        fps_counter_async_thread->Begin("resize");
+//#endif
+//        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
+//#ifndef END2END
+//        fps_counter_async_thread->End("resize");
+//#endif
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
 #ifndef END2END
             fps_counter_async_thread->Begin("detect");
 #endif
-            status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(input_mat), sdk_output);
+            status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
 #ifndef END2END
             fps_counter_async_thread->End("detect");
 #endif
@@ -235,6 +232,10 @@ typedef void(^CommonCallback)(Status);
 #if defined(END2END)
         fps_counter_async_thread->End("end2end");
 #endif
+        
+        CVBufferRelease(image_buffer);
+        CFBridgingRelease(image_texture_ref);
+        
         map_fps = fps_counter_async_thread->GetAllFPS();
         //auto time = fps_counter_async_thread->GetAllTime();
 

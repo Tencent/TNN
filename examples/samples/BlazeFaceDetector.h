@@ -60,10 +60,14 @@ public:
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
+                                                            std::string name = kTNNSDKDefaultName);
     
 private:
-    void GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS::Mat &scores, TNN_NS::Mat &boxes, int image_w, int image_h, float min_score_threshold);
-    void BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vector<BlazeFaceInfo> &output, float min_suppression_threshold);
+    void GenerateBBox(std::vector<BlazeFaceInfo> &detects, Mat &scores, Mat &boxes,
+                      int image_w, int image_h, float min_score_threshold);
+    void BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vector<BlazeFaceInfo> &output,
+                     float min_suppression_threshold);
     
     std::vector<float> anchors;
     

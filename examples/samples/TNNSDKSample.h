@@ -174,10 +174,10 @@ class TNNSDKSample {
 public:
     TNNSDKSample();
     virtual ~TNNSDKSample();
-    TNNComputeUnits GetComputeUnits();
+    virtual TNNComputeUnits GetComputeUnits();
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
-    DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
+    virtual DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
 
 
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
@@ -187,11 +187,14 @@ public:
     virtual MatConvertParam GetConvertParamForOutput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
-
+    
+    virtual std::shared_ptr<TNN_NS::Mat> ProcessSDKInputMat(std::shared_ptr<TNN_NS::Mat> mat,
+                                                            std::string name = kTNNSDKDefaultName);
 
     void setNpuModelPath(std::string stored_path);
     void setCheckNpuSwitch(bool option);
     
+    virtual Status GetCommandQueue(void **command_queue);
     Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
@@ -203,7 +206,7 @@ protected:
 
     std::vector<std::string> GetInputNames();
     std::vector<std::string> GetOutputNames();
-
+    
 protected:
     std::shared_ptr<TNN> net_             = nullptr;
     std::shared_ptr<Instance> instance_   = nullptr;
@@ -211,6 +214,22 @@ protected:
     DeviceType device_type_               = DEVICE_ARM;
     std::string model_path_str_           = "";
     bool check_npu_                       = false;
+};
+
+class TNNSDKComposeSample : public TNNSDKSample {
+public:
+    TNNSDKComposeSample();
+    virtual ~TNNSDKComposeSample();
+    virtual TNNComputeUnits GetComputeUnits();
+    
+    virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
+    virtual DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
+    virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
+    virtual Status GetCommandQueue(void **command_queue);
+    
+protected:
+    std::vector<std::shared_ptr<TNNSDKSample>> sdks_ = {};
+    
 };
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
