@@ -14,6 +14,7 @@
 
 #include "tnn/device/arm/arm_mat_util.h"
 
+#include <malloc.h>
 #include <type_traits>
 
 #ifdef TNN_USE_NEON
@@ -1086,7 +1087,7 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
     m[2]      = b1;
     m[5]      = b2;
 
-    int status = posix_memalign(reinterpret_cast<void**>(buffer), 32, (dst_w + dst_h) * 2 * sizeof(int));
+    *buffer = reinterpret_cast<int*>(memalign(32, (dst_w + dst_h) * 2 * sizeof(int)));
 
     int* adelta = *buffer;
     int* bdelta = *buffer + dst_w * 2;
