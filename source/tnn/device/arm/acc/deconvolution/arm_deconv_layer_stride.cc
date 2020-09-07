@@ -31,10 +31,9 @@ bool ArmDeconvLayerStride::isPrefered(ConvLayerParam *param, const std::vector<B
                                       const std::vector<Blob *> &outputs) {
     if (!param)
         return false;
-    // return false;
-    // select stride
+
     return param->group == 1 && param->strides[0] > 1 && param->strides[1] > 1 && param->dialations[0] == 1 &&
-           param->dialations[1] == 1;
+           param->dialations[1] == 1 && param->kernels[0] > 1 && param->kernels[1] > 1;
 }
 
 Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -142,21 +141,20 @@ Status ArmDeconvLayerStride::CreateStrideConvUnit() {
             int kc_x = 1 + (kx - x - 1) / sx;
 
             ConvUnit conv_unit;
-            auto stride_conv_param            = new ConvLayerParam();
-            auto stride_conv_resource         = new ConvLayerResource();
-            stride_conv_param->strides        = {1, 1};
-            stride_conv_param->kernels        = {kc_x, kc_y};
-            stride_conv_param->pad_type       = -1;
-            stride_conv_param->pads           = {kc_x - 1, kc_x - 1, kc_y - 1, kc_y - 1};
-            stride_conv_param->dialations     = {1, 1};
-            stride_conv_param->input_channel  = param->input_channel;
-            stride_conv_param->output_channel = param->output_channel;
-            conv_unit.param = std::shared_ptr<ConvLayerParam>(stride_conv_param);
-            conv_unit.resource = std::shared_ptr<ConvLayerResource>(stride_conv_resource);
-            conv_unit.y_offset = y;
-            conv_unit.x_offset = x;
-            conv_unit.kc_y = kc_y;
-            conv_unit.kc_x = kc_x;
+            auto stride_conv_param        = new ConvLayerParam();
+            auto stride_conv_resource     = new ConvLayerResource();
+            *stride_conv_param            = *param;
+            stride_conv_param->strides    = {1, 1};
+            stride_conv_param->kernels    = {kc_x, kc_y};
+            stride_conv_param->pad_type   = -1;
+            stride_conv_param->pads       = {kc_x - 1, kc_x - 1, kc_y - 1, kc_y - 1};
+            stride_conv_param->dialations = {1, 1};
+            conv_unit.param               = std::shared_ptr<ConvLayerParam>(stride_conv_param);
+            conv_unit.resource            = std::shared_ptr<ConvLayerResource>(stride_conv_resource);
+            conv_unit.y_offset            = y;
+            conv_unit.x_offset            = x;
+            conv_unit.kc_y                = kc_y;
+            conv_unit.kc_x                = kc_x;
 
             BlobDesc empty_desc;
             conv_unit.blob = std::make_shared<Blob>(empty_desc);
@@ -271,7 +269,7 @@ static inline void _rotete_180(T *ptr, int col, int row) {
     }
 
     memcpy(ptr, rot_ptr, col * row * sizeof(T));
-    delete []rot_ptr;
+    delete[] rot_ptr;
 }
 
 Status ArmDeconvLayerStride::SplitResource() {
@@ -316,6 +314,11 @@ Status ArmDeconvLayerStride::SplitResource() {
                 // Todo: rotate 180
                 _rotete_180(dst, kc_x, kc_y);
             }
+        }
+
+        if (param->bias) {
+            stride_conv_res->bias_handle =
+                RawBuffer(conv_res->bias_handle.GetBytesSize(), conv_res->bias_handle.force_to<char *>());
         }
     }
 
