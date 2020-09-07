@@ -18,11 +18,8 @@
 #import "TNNBlazeFaceDetectorViewModel.h"
 #import "TNNSSDObjectDetectorViewModel.h"
 #import "TNNYoloObjectDetectorViewModel.h"
-#import "TNNYoutuFaceAlignController.h"
-#import "TNNYoutuCameraPreviewController.h"
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
-#import "TNNFacemeshViewModel.h"
 
 using namespace std;
 

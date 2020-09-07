@@ -51,8 +51,6 @@
 		D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */ = {isa = PBXBuildFile; fileRef = D1330F4A244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm */; };
 		D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */; };
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
-		EC0C038C2503AEB80009E222 /* TNNFacemeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0C038B2503AEB80009E222 /* TNNFacemeshViewModel.mm */; };
-		EC0C03912503BB860009E222 /* TNNYoutuViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0C03902503BB860009E222 /* TNNYoutuViewModel.mm */; };
 		EC1B9AA824BC0B7B0003A742 /* ObjectDetectorYolo.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */; };
 		EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */; };
 		EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */; };
@@ -67,8 +65,6 @@
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */; };
 		ECEC65AB24FFD5830044DDF1 /* mean_pts_phase1.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */; };
-		ECEC65AC24FFD5830044DDF1 /* TNNYoutuCameraPreviewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B624FFD5820044DDF1 /* TNNYoutuCameraPreviewController.mm */; };
-		ECEC65AD24FFD5830044DDF1 /* TNNYoutuFaceAlignViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61BA24FFD5820044DDF1 /* TNNYoutuFaceAlignViewModel.mm */; };
 		ECEF96DD24AED66D0094CB8B /* ObjectDetectorSSD.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* ObjectDetectorSSD.cc */; };
 /* End PBXBuildFile section */
 
@@ -163,10 +159,6 @@
 		D1330F4B244AC4FA00CEBF29 /* TNNCameraVideoDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNCameraVideoDevice.h; sourceTree = "<group>"; };
 		D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = camera_rotate_fill.png; sourceTree = "<group>"; };
-		EC0C038B2503AEB80009E222 /* TNNFacemeshViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFacemeshViewModel.mm; sourceTree = "<group>"; };
-		EC0C038D2503AED20009E222 /* TNNFacemeshViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFacemeshViewModel.h; sourceTree = "<group>"; };
-		EC0C038F2503BB580009E222 /* TNNYoutuViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNYoutuViewModel.h; sourceTree = "<group>"; };
-		EC0C03902503BB860009E222 /* TNNYoutuViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuViewModel.mm; sourceTree = "<group>"; };
 		EC1B9AA624BC0B4B0003A742 /* ObjectDetectorYolo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjectDetectorYolo.h; sourceTree = "<group>"; };
 		EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjectDetectorYolo.cc; sourceTree = "<group>"; };
 		EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_blazeface.jpg; sourceTree = "<group>"; };
@@ -190,10 +182,6 @@
 		ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuFaceAlignController.h; sourceTree = "<group>"; };
 		ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mean_pts_phase2.txt; sourceTree = "<group>"; };
 		ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mean_pts_phase1.txt; sourceTree = "<group>"; };
-		ECEC61B624FFD5820044DDF1 /* TNNYoutuCameraPreviewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuCameraPreviewController.mm; sourceTree = "<group>"; };
-		ECEC61B724FFD5820044DDF1 /* TNNYoutuCameraPreviewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuCameraPreviewController.h; sourceTree = "<group>"; };
-		ECEC61B924FFD5820044DDF1 /* TNNYoutuFaceAlignViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuFaceAlignViewModel.h; sourceTree = "<group>"; };
-		ECEC61BA24FFD5820044DDF1 /* TNNYoutuFaceAlignViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignViewModel.mm; sourceTree = "<group>"; };
 		ECEF96D924AED3980094CB8B /* ObjectDetectorSSD.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjectDetectorSSD.h; sourceTree = "<group>"; };
 		ECEF96DC24AED66C0094CB8B /* ObjectDetectorSSD.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjectDetectorSSD.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -307,7 +295,6 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
-				ECEC61B524FFD5820044DDF1 /* TNNYoutuCameraPreviewController */,
 				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
 				9DDED30B2429A839000C09EA /* samples */,
@@ -447,29 +434,6 @@
 				ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */,
 			);
 			path = TNNYoutuFaceAlignController;
-			sourceTree = "<group>";
-		};
-		ECEC61B524FFD5820044DDF1 /* TNNYoutuCameraPreviewController */ = {
-			isa = PBXGroup;
-			children = (
-				ECEC61B624FFD5820044DDF1 /* TNNYoutuCameraPreviewController.mm */,
-				ECEC61B724FFD5820044DDF1 /* TNNYoutuCameraPreviewController.h */,
-				ECEC61B824FFD5820044DDF1 /* TNNYoutuViewModel */,
-			);
-			path = TNNYoutuCameraPreviewController;
-			sourceTree = "<group>";
-		};
-		ECEC61B824FFD5820044DDF1 /* TNNYoutuViewModel */ = {
-			isa = PBXGroup;
-			children = (
-				ECEC61B924FFD5820044DDF1 /* TNNYoutuFaceAlignViewModel.h */,
-				ECEC61BA24FFD5820044DDF1 /* TNNYoutuFaceAlignViewModel.mm */,
-				EC0C038B2503AEB80009E222 /* TNNFacemeshViewModel.mm */,
-				EC0C038D2503AED20009E222 /* TNNFacemeshViewModel.h */,
-				EC0C038F2503BB580009E222 /* TNNYoutuViewModel.h */,
-				EC0C03902503BB860009E222 /* TNNYoutuViewModel.mm */,
-			);
-			path = TNNYoutuViewModel;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -616,14 +580,10 @@
 				ECEF96DD24AED66D0094CB8B /* ObjectDetectorSSD.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* FaceDetectAligner.cc in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
-				ECEC65AC24FFD5830044DDF1 /* TNNYoutuCameraPreviewController.mm in Sources */,
 				9D9187E7242C31B900DF2B79 /* ImageClassifier.cc in Sources */,
 				9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */,
 				EC4E1B5424C97A5E00B88179 /* BlazeFaceDetector.cc in Sources */,
 				9D71E7A424C4F35A00074C1A /* TNNImageColourController.mm in Sources */,
-				EC0C03912503BB860009E222 /* TNNYoutuViewModel.mm in Sources */,
-				ECEC65AD24FFD5830044DDF1 /* TNNYoutuFaceAlignViewModel.mm in Sources */,
-				EC0C038C2503AEB80009E222 /* TNNFacemeshViewModel.mm in Sources */,
 				ECAD84FD24D7F0AE0074EA95 /* Facemesh.cc in Sources */,
 				D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */,
 				9D71E78B24C0AF4200074C1A /* TNNBoundingBox.mm in Sources */,
