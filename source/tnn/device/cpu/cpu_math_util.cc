@@ -133,6 +133,32 @@ static void initInterTab1D(float* tab, int tabsz) {
         interpolateLinear(i * scale, tab);
 }
 
+static void CalculatePositionAndMask(int length, double scale, int border, int channel,
+                                     int* position, uint8_t* mask) {
+    float pos_f;
+    float rat_f;
+    int pos_i;
+    for (int i = 0; i < length; i++) {
+        pos_f = (float)((i + 0.5) * scale - 0.5);
+        // pos_f = i * scale;
+        pos_i = static_cast<int>(floor(pos_f));
+        rat_f = pos_f - pos_i;
+
+        if (pos_i < 0) {
+            pos_i = 0;
+            rat_f = 0.f;
+        }
+        if (pos_i >= border - 1) {
+            pos_i = border - 2;
+            rat_f = 1.f;
+        }
+
+        position[i] = pos_i * channel;
+
+        mask[i] = (rat_f <= 0.5) ? -1 : 0;
+    }
+}
+
 static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
@@ -152,7 +178,23 @@ static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
     CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
-void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
+static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
+    double scale_x = (double)src_w / w;
+    double scale_y = (double)src_h / h;
+
+    *buf = new int[w + h + w + h];
+
+    int* xofs = *buf;
+    int* yofs = *buf + w;
+
+    uint8_t* ialpha = (uint8_t*)(*buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
+
+    CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
+    CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
+}
+
+void ResizeBilinearImpl(const uint8_t* src, int src_w, int src_h, int src_stride,
                              uint8_t* dst, int w, int h, int stride, int channel) {
     int* buf = nullptr;
     GetResizeBuf(src_w, src_h, w, h, channel, &buf);
@@ -188,8 +230,42 @@ void ResizeBilinear(const uint8_t* src, int src_w, int src_h, int src_stride,
     delete[] buf;
 }
 
+void ResizeNearestImpl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
+                         uint8_t* dst, int w, int h, int stride, int channel) {
+    int* buf      = nullptr;
+    GetResizeBufNearset(src_w, src_h, w, h, channel, &buf);
+    int* xofs     = buf;
+    int* yofs     = buf + w;
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        for (int dy = 0; dy < h; dy++) {
+            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
+
+            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
+            uint8_t* Dp       = dst + stride * (b * h + dy);
+
+            int dx = 0;
+            for (; dx < w; dx++) {
+                int sx = xofs[dx];
+                for(int dc = 0; dc < channel; dc++) {
+                    Dp[dx*channel + dc] = (ialpha[dx] == 0) ? Sp[sx + dc + channel] : Sp[sx + dc];
+                }
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel) {
-    return ResizeBilinear(src, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
+    return ResizeBilinearImpl(src, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
+}
+
+void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel) {
+    return ResizeNearestImpl(src, batch, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
 }
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
