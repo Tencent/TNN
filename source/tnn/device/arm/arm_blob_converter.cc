@@ -397,7 +397,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
         for (int i = 0; i < dims[1]; i++) {
             auto scale_idx = scale_count == 1? 0 : i;
-            fused_int8_scale[i] = scale_data[scale_idx] * param.scale[i];
+            fused_int8_scale[i] = scale_data[scale_idx];
         }
     }
     if (image.GetMatType() == NCHW_FLOAT) {
@@ -549,6 +549,34 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
             } else {
                 GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * hw,
                            reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale[0], param.bias[0], hw);
+            }
+        }
+    } else if (image.GetMatType() == NNV12) {
+        Mat bgr(DEVICE_ARM, N8UC3, image.GetDims());
+        for (int n = 0; n < dims[0]; n++) {
+            NV12ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
+            if (desc.data_type == DATA_TYPE_INT8) {
+                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
+                          reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
+                          fused_int8_bias.data(), hw);
+            } else {
+                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
+                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
+            }
+        }
+    } else if (image.GetMatType() == NNV21) {
+        Mat bgr(DEVICE_ARM, N8UC3, image.GetDims());
+        for (int n = 0; n < dims[0]; n++) {
+            NV21ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
+            if (desc.data_type == DATA_TYPE_INT8) {
+                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
+                          reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
+                          fused_int8_bias.data(), hw);
+            } else {
+                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
+                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
             }
         }
     } else if (image.GetMatType() == NCHW_FLOAT) {

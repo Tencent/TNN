@@ -34,6 +34,12 @@ public:
 
     // @brief equal of dims0 and dims1, [start_index, end_index)
     static bool Equal(DimsVector dims0, DimsVector dims1, int start_index = 0, int end_index = -1);
+
+    // @brief NCHW dims vector to NHWC dims vector
+    static DimsVector NCHW2NHWC(DimsVector dims);
+
+    // @brief NHWC dims vector to NCHW
+    static DimsVector NHWC2NCHW(DimsVector dims);
 };
 
 }  // namespace TNN_NS
