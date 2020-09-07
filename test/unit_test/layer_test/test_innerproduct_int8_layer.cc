@@ -41,6 +41,11 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, input_channel, input_size, 1, DATA_TYPE_INT8);
     auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_INT8);
+    // assign output dims to ensure output resourse be created correctly
+    outputs_desc[0].dims.push_back(batch);
+    outputs_desc[0].dims.push_back(output_channel);
+    outputs_desc[0].dims.push_back(1);
+    outputs_desc[0].dims.push_back(1);
 
     // param
     InnerProductLayerParam param;
