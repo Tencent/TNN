@@ -59,7 +59,7 @@ Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerReso
         std::vector<Blob *> local_outputs;
         local_outputs.emplace_back(unit.blob.get());
         std::shared_ptr<ArmLayerAcc> tmp_acc = nullptr;
-        auto data_type = inputs[0]->GetBlobDesc().data_type;
+        auto data_type                       = inputs[0]->GetBlobDesc().data_type;
         if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
             CreateImpFP(inputs, local_outputs, unit.param.get(), tmp_acc);
         } else {
@@ -81,6 +81,17 @@ Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerReso
 ArmDeconvLayerStride::~ArmDeconvLayerStride() {}
 
 Status ArmDeconvLayerStride::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (conv_units_.size() == 0) {
+        return Status(TNNERR_LAYER_ERR, "Error: group conv impl is nil");
+    } else {
+        RETURN_ON_NEQ(SetSplitBlobDesc(inputs[0]), TNN_OK);
+        for (auto &unit : conv_units_) {
+            std::vector<Blob *> local_outputs;
+            local_outputs.emplace_back(unit.blob.get());
+            RETURN_ON_NEQ(unit.conv_acc_impl->Reshape(inputs, local_outputs), TNN_OK);
+        }
+    }
+
     return TNN_OK;
 }
 
