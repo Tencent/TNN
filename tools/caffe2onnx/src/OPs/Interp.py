@@ -29,8 +29,8 @@ def get_interp_attri(layer, input_shape):
     H, W = input_shape[0][2], input_shape[0][3]
 
     sacles = [1.0, 1.0, 1.0, 1.0]
-    if height > H and width > width:
-        if height / H == width / H:
+    if height > H and width > W:
+        if height / H == width / W:
             scale = float(height / H)
             scales = [1.0, 1.0, scale, scale]
             attributes = {"mode": "linear",
