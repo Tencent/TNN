@@ -19,7 +19,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 
 namespace TNN_NS {
 

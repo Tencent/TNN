@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import <Foundation/Foundation.h>
-#import "TNNSDKSample.h"
+#import "tnn_sdk_sample.h"
 
 using namespace::TNN_NS;
 

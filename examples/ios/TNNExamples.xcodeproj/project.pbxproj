@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		61B859D124EBB7C000979BEC /* image_classifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = 61B859C924EBB7C000979BEC /* image_classifier.cc */; };
-		61B859D224EBB7C000979BEC /* ultra_face_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */; };
 		9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */; };
 		9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */; };
 		9D49E7A42504BB5D00DD81D7 /* FaceDetectAligner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E7A22504BB5D00DD81D7 /* FaceDetectAligner.cc */; };
@@ -51,6 +49,10 @@
 		D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */; };
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
 		EC1B9AA824BC0B7B0003A742 /* ObjectDetectorYolo.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */; };
+		EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72B250797C800EE3899 /* image_classifier.cc */; };
+		EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */; };
+		EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72E250797C800EE3899 /* sample_timer.cc */; };
+		EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72F250797C800EE3899 /* ultra_face_detector.cc */; };
 		EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */; };
 		EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */; };
 		EC4E1B5424C97A5E00B88179 /* BlazeFaceDetector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B5224C97A5E00B88179 /* BlazeFaceDetector.cc */; };
@@ -85,8 +87,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		61B859C924EBB7C000979BEC /* image_classifier.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image_classifier.cc; sourceTree = "<group>"; };
-		61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ultra_face_detector.cc; sourceTree = "<group>"; };
 		9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+Utility.h"; sourceTree = "<group>"; };
 		9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "UIImage+Utility.mm"; sourceTree = "<group>"; };
 		9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectAlignerViewModel.mm; sourceTree = "<group>"; };
@@ -146,10 +146,6 @@
 		9DD57A1623B5ACF900A96E63 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		9DD57A1823B5AD0100A96E63 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		9DDED3092429A0BE000C09EA /* model */ = {isa = PBXFileReference; lastKnownFileType = folder; name = model; path = ../../../model; sourceTree = "<group>"; };
-		9DDED30C2429A839000C09EA /* TNNSDKSample.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TNNSDKSample.cc; sourceTree = "<group>"; };
-		9DDED30D2429A839000C09EA /* TNNSDKSample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNSDKSample.h; sourceTree = "<group>"; };
-		9DDED30E2429A839000C09EA /* UltraFaceDetector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UltraFaceDetector.cc; sourceTree = "<group>"; };
-		9DDED30F2429A839000C09EA /* UltraFaceDetector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UltraFaceDetector.h; sourceTree = "<group>"; };
 		9DF1A0B624A8987C00E1376D /* FaceGrayTransfer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FaceGrayTransfer.h; sourceTree = "<group>"; };
 		9DF1A0B724A8987C00E1376D /* FaceGrayTransfer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FaceGrayTransfer.cc; sourceTree = "<group>"; };
 		D1330F46244AC2D900CEBF29 /* TNNCameraPreviewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNCameraPreviewController.mm; sourceTree = "<group>"; };
@@ -160,6 +156,14 @@
 		D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = camera_rotate_fill.png; sourceTree = "<group>"; };
 		EC1B9AA624BC0B4B0003A742 /* ObjectDetectorYolo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjectDetectorYolo.h; sourceTree = "<group>"; };
 		EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjectDetectorYolo.cc; sourceTree = "<group>"; };
+		EC2CF729250797C800EE3899 /* sample_timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sample_timer.h; sourceTree = "<group>"; };
+		EC2CF72A250797C800EE3899 /* tnn_sdk_sample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tnn_sdk_sample.h; sourceTree = "<group>"; };
+		EC2CF72B250797C800EE3899 /* image_classifier.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image_classifier.cc; sourceTree = "<group>"; };
+		EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tnn_sdk_sample.cc; sourceTree = "<group>"; };
+		EC2CF72D250797C800EE3899 /* ultra_face_detector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ultra_face_detector.h; sourceTree = "<group>"; };
+		EC2CF72E250797C800EE3899 /* sample_timer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sample_timer.cc; sourceTree = "<group>"; };
+		EC2CF72F250797C800EE3899 /* ultra_face_detector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ultra_face_detector.cc; sourceTree = "<group>"; };
+		EC2CF730250797C800EE3899 /* image_classifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image_classifier.h; sourceTree = "<group>"; };
 		EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_blazeface.jpg; sourceTree = "<group>"; };
 		EC4E1B4E24C97A0500B88179 /* TNNBlazefaceDetectorController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNBlazefaceDetectorController.h; sourceTree = "<group>"; };
 		EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazefaceDetectorController.mm; sourceTree = "<group>"; };
@@ -280,7 +284,6 @@
 				9DD579EC23B5A20500A96E63 /* TNNExamples */,
 				9DD579EB23B5A20500A96E63 /* Products */,
 				9DD57A1023B5A8D000A96E63 /* Frameworks */,
-				EC2CF71C25078A2E00EE3899 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -352,6 +355,14 @@
 		9DDED30B2429A839000C09EA /* base */ = {
 			isa = PBXGroup;
 			children = (
+				EC2CF72B250797C800EE3899 /* image_classifier.cc */,
+				EC2CF730250797C800EE3899 /* image_classifier.h */,
+				EC2CF72E250797C800EE3899 /* sample_timer.cc */,
+				EC2CF729250797C800EE3899 /* sample_timer.h */,
+				EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */,
+				EC2CF72A250797C800EE3899 /* tnn_sdk_sample.h */,
+				EC2CF72F250797C800EE3899 /* ultra_face_detector.cc */,
+				EC2CF72D250797C800EE3899 /* ultra_face_detector.h */,
 				9D49E7A22504BB5D00DD81D7 /* FaceDetectAligner.cc */,
 				9D49E7A32504BB5D00DD81D7 /* FaceDetectAligner.h */,
 				ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */,
@@ -360,10 +371,6 @@
 				9D71E79224C1980700074C1A /* TNNFPSCounter.h */,
 				9DF1A0B724A8987C00E1376D /* FaceGrayTransfer.cc */,
 				9DF1A0B624A8987C00E1376D /* FaceGrayTransfer.h */,
-				9DDED30C2429A839000C09EA /* TNNSDKSample.cc */,
-				9DDED30D2429A839000C09EA /* TNNSDKSample.h */,
-				9DDED30E2429A839000C09EA /* UltraFaceDetector.cc */,
-				9DDED30F2429A839000C09EA /* UltraFaceDetector.h */,
 				ECEF96DC24AED66C0094CB8B /* ObjectDetectorSSD.cc */,
 				ECEF96D924AED3980094CB8B /* ObjectDetectorSSD.h */,
 				EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */,
@@ -400,15 +407,6 @@
 				9D71E78A24C0AF4200074C1A /* TNNBoundingBox.mm */,
 			);
 			path = CameraDevice;
-			sourceTree = "<group>";
-		};
-		EC2CF71C25078A2E00EE3899 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				61B859C924EBB7C000979BEC /* image_classifier.cc */,
-				61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */,
-			);
-			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */ = {
@@ -572,6 +570,7 @@
 				ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */,
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
+				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
 				ECD14A022505F88C00271443 /* FaceDetectMesh.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
@@ -594,11 +593,12 @@
 				D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */,
 				9D71E78B24C0AF4200074C1A /* TNNBoundingBox.mm in Sources */,
 				9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */,
-				61B859D124EBB7C000979BEC /* image_classifier.cc in Sources */,
-				61B859D224EBB7C000979BEC /* ultra_face_detector.cc in Sources */,
+				EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */,
+				EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */,
 				D1330F47244AC2D900CEBF29 /* TNNCameraPreviewController.mm in Sources */,
 				9DF1A0B824A8987C00E1376D /* FaceGrayTransfer.cc in Sources */,
 				EC1B9AA824BC0B7B0003A742 /* ObjectDetectorYolo.cc in Sources */,
+				EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */,
 				9D71E79324C1980700074C1A /* TNNFPSCounter.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

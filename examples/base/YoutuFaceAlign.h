@@ -15,7 +15,7 @@
 #ifndef YoutuFaceAlign_hpp
 #define YoutuFaceAlign_hpp
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include <algorithm>
 #include <memory>
 #include <iostream>

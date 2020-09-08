@@ -15,7 +15,7 @@
 #ifndef BlazeFaceDetector_hpp
 #define BlazeFaceDetector_hpp
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include <algorithm>
 #include <iostream>
 #include <string>

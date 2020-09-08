@@ -15,7 +15,7 @@
 #ifndef ObjectDetector_h
 #define ObjectDetector_h
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include <memory>
 #include <string>
 

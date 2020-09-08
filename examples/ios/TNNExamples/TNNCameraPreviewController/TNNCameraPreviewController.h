@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNExamplesController.h"
-#import "TNNSDKSample.h"
+#import "tnn_sdk_sample.h"
 #import "TNNFPSCounter.h"
 #import "TNNViewModel.h"
 

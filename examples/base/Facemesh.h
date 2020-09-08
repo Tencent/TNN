@@ -15,7 +15,7 @@
 #ifndef Facemesh_hpp
 #define Facemesh_hpp
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include <algorithm>
 #include <iostream>
 #include <string>

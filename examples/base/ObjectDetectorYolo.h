@@ -15,7 +15,7 @@
 #ifndef ObjectDetectorYolo_h
 #define ObjectDetectorYolo_h
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include <memory>
 #include <string>
 #include <vector>

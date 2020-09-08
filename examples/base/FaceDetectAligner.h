@@ -22,7 +22,7 @@
 #include <vector>
 #include <array>
 
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 

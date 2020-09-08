@@ -15,7 +15,7 @@
 #include "FaceDetectAligner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "BlazeFaceDetector.h"
-#include "TNNSDKSample.h"
+#include "tnn_sdk_sample.h"
 #include "YoutuFaceAlign.h"
 
 namespace TNN_NS {

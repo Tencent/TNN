@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNFaceDetectorViewModel.h"
-#import "UltraFaceDetector.h"
+#import "ultra_face_detector.h"
 
 using namespace std;
 

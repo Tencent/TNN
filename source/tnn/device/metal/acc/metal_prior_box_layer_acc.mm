@@ -27,7 +27,7 @@ class MetalPriorBoxLayerAcc : public MetalLayerAcc {
 public:
     virtual ~MetalPriorBoxLayerAcc();
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual std::string KernelName();
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                          const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs);
@@ -60,7 +60,7 @@ Status MetalPriorBoxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
 
-std::string MetalPriorBoxLayerAcc::KernelName() {
+std::string MetalPriorBoxLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "copy_buffer_2_buffer";
 }
 
