@@ -36,7 +36,8 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
-    Status BinaryFunc(float *output_ptr, float *input0_ptr, float *input1_ptr, DimsVector &dims0, DimsVector &dims1);
+    template <typename Tout, typename Tin1, typename Tin2>
+    Status BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0, DimsVector &dims1);
 
     virtual bool DataTypeSupported(DataType data_type) override;
     

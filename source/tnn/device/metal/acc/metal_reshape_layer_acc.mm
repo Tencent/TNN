@@ -27,11 +27,42 @@ Status MetalReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
 Status MetalReshapeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                  const std::vector<Blob *> &outputs) {
-    return MetalLayerAcc::AllocateBufferParam(inputs, outputs);;
+    id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    auto dims_input      = inputs[0]->GetBlobDesc().dims;
+    auto dims_output     = outputs[0]->GetBlobDesc().dims;
+    // buffer_param_
+    {
+        MetalReshapeParams metal_params;
+        metal_params.input_width   = dims_input[3];
+        metal_params.input_height  = dims_input[2];
+        metal_params.input_size    = metal_params.input_height * metal_params.input_width;
+        metal_params.input_slice   = UP_DIV(dims_input[1], 4);
+        metal_params.input_channel = dims_input[1];
+
+        metal_params.output_width   = dims_output[3];
+        metal_params.output_height  = dims_output[2];
+        metal_params.output_size    = metal_params.output_height * metal_params.output_width;
+        metal_params.output_slice   = UP_DIV(dims_output[1], 4);
+        metal_params.output_channel = dims_output[1];
+        metal_params.batch          = dims_output[0];
+
+        buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(metal_params)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+    return TNN_OK;
 }
 
-std::string MetalReshapeLayerAcc::KernelName() {
-    return "reshape_common";
+std::string MetalReshapeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    bool layout_nchw_ = (layer_param->reshape_type == 0);
+    std::string kernel_name = "";
+    if (layout_nchw_) {
+        kernel_name = "reshape_common_nchw";
+    } else {
+        kernel_name = "reshape_common_nhwc";
+    }
+    return kernel_name;
 }
 
 Status MetalReshapeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,

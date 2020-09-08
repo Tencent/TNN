@@ -19,7 +19,7 @@
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(LogSigmoid, LAYER_LOGSIGMOID);
 
-string MetalLogSigmoidLayerAcc::KernelName() {
+string MetalLogSigmoidLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "log_sigmoid";
 }
 

@@ -18,7 +18,25 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC(Pooling, LAYER_POOLING);
+class MetalPoolingLayerAcc : public MetalLayerAcc {
+public:                                                                                                            
+    virtual ~MetalPoolingLayerAcc(){};                                                                     
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 
+    virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);     
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs, 
+                            const std::vector<Blob *> &outputs, 
+                            MTLSize &size); 
+    virtual Status ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size);
+    virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, 
+                                const std::vector<Blob *> &inputs, 
+                                const std::vector<Blob *> &outputs);
+private:
+    bool use_global_pooling_ = false;
+};
 
 Status MetalPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto pool_param = dynamic_cast<PoolingLayerParam *>(param_);
@@ -37,6 +55,11 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
+    // check if global average pooling
+    use_global_pooling_ = (pool_param->kernels[0] == dims_input[3]) && \
+                            (pool_param->kernels[1] == dims_input[2] && \
+                            (pool_param->pads[0] == 0) && \
+                            (pool_param->pads[2] == 0));
     // buffer_param_
     {
         MetalPoolParams metal_params;
@@ -56,13 +79,11 @@ Status MetalPoolingLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-std::string MetalPoolingLayerAcc::KernelName() {
+std::string MetalPoolingLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     const int pool_type = param->pool_type;
-    return pool_type == 0 ? "pooling_max" : "pooling_avg";
+    return pool_type == 0 ? use_global_pooling_ ? "pooling_global_max" : "pooling_max" : use_global_pooling_ ? "pooling_global_average" : "pooling_avg";
 }
-
-
 
 Status MetalPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
@@ -83,8 +104,27 @@ Status MetalPoolingLayerAcc::SetKernelEncoderParam(
 Status MetalPoolingLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, false);
+    if (use_global_pooling_) {
+        //diapatch kernel with threadGroups and threads
+        size = MTLSizeMake(32, 1, 1);
+    } else {
+        auto dims_output = outputs[0]->GetBlobDesc().dims;
+        size = GetDefaultThreadSize(dims_output, false);
+    }
+    return TNN_OK;
+}
+
+Status MetalPoolingLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size) {
+    if (use_global_pooling_) {
+        auto dims_output  = outputs[0]->GetBlobDesc().dims;
+        auto output_slice = UP_DIV(dims_output[1], 4);
+        auto batch        = dims_output[0];
+        size = MTLSizeMake((NSUInteger)1, (NSUInteger)1, (NSUInteger)batch * output_slice);
+    } else {
+        size = MTLSizeMake(0, 0, 0);
+    }
     return TNN_OK;
 }
 

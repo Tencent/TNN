@@ -31,6 +31,8 @@ namespace TNN_NS {
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
     NETWORK_TYPE_DEFAULT);
 
+std::mutex DefaultNetwork::optimize_mtx_;
+
 DefaultNetwork::DefaultNetwork()
     : device_(nullptr), context_(nullptr), blob_manager_(nullptr), net_structure_(nullptr) {}
 
@@ -51,7 +53,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                             InputShapesMap inputs_shape) {
-    _config                                      = net_config;
+    config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
@@ -74,6 +76,11 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
+    ret = context_->SetPrecision(net_config.precision);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+
     ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {
         return ret;
@@ -84,9 +91,13 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * The optimization process may change the network structure accoundingly.
      * eg. fuse conv+bn, conv+relu.
      */
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
-    if (ret != TNN_OK) {
-        return ret;
+    {
+        // use mutex to protect net_resource and net_structure in multi-thread
+        std::unique_lock<std::mutex> lck(optimize_mtx_);
+        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
+        if (ret != TNN_OK) {
+            return ret;
+        }
     }
 
     blob_manager_ = new BlobManager(device_);
@@ -156,7 +167,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                 blob = new_blob;
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             inputs.push_back(blob);
@@ -207,13 +218,16 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                 blob = new_blob;
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             outputs.push_back(blob);
         }
 
-        LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
+        LayerResource *layer_resource = nullptr;
+        if (net_resource->resource_map.count(layer_name) != 0) {
+            layer_resource = net_resource->resource_map[layer_name].get();
+        }
 
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {

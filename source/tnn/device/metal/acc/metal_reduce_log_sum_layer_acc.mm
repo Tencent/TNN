@@ -18,7 +18,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_REDUCE_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
 
-std::string MetalReduceLogSumLayerAcc::KernelName() {
+std::string MetalReduceLogSumLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (axis_ == 0) {
         return "reduce_log_sum_axis_0_common";
     } else if (axis_ == 1) {

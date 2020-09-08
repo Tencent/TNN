@@ -70,12 +70,20 @@ Status StrideSliceLayer::InferOutputShape() {
     } else {
         //前闭后开区间
         for (int i = 0; i < input_dims.size(); i++) {
+            if (begins[i] < 0) {
+                begins[i] += input_blob->GetBlobDesc().dims[i];
+            }
             if (ends[i] == 0) {
                 ends[i] = input_dims[i];
             }
 
             if (ends[i] < 0) {
                 ends[i] += input_dims[i];
+            }
+
+            if (begins[i] >= ends[i]) {
+                LOGE("StrideSliceLayer param is invalid\n");
+                return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid");
             }
 
             sizes[i] = (ends[i] - begins[i] - 1) / strides[i] + 1;
@@ -88,6 +96,12 @@ Status StrideSliceLayer::InferOutputShape() {
     }
 
     output_blob->GetBlobDesc().dims = sizes;
+
+    std::reverse(begins.begin(), begins.end());
+    std::reverse(ends.begin(), ends.end());
+
+    layer_param->begins = begins;
+    layer_param->ends   = ends;
 
     return TNN_OK;
 }

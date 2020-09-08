@@ -30,7 +30,7 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
 public:
-    virtual std::string KernelName();
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs,
                                      MTLSize &size);
@@ -47,7 +47,7 @@ protected:
     class Metal##type_string##LayerAcc : public MetalMultidirBroadcastLayerAcc {                                       \
     public:                                                                                                            \
         virtual ~Metal##type_string##LayerAcc(){};                                                                     \
-        virtual std::string KernelName();                                                                              \
+        virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);         \
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
         virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
     }

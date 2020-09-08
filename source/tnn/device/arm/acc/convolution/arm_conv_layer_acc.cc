@@ -24,6 +24,7 @@
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise_s1.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_layer_group.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
@@ -41,6 +42,8 @@ static std::shared_ptr<LayerResource> CreateFp32ConvResource(ConvLayerResource *
 Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret;
+    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
+    CHECK_PARAM_NULL(conv_param);
     ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource);
     CHECK_PARAM_NULL(conv_res);
 
@@ -53,10 +56,15 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     if (ret != TNN_OK)
         return ret;
 
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        GetImpInt8(inputs, outputs);
+    auto data_type = inputs[0]->GetBlobDesc().data_type;
+    if (conv_param->group != 1 && conv_param->group != inputs[0]->GetBlobDesc().dims[1]) {
+        conv_acc_impl_ = std::make_shared<ArmConvLayerGroup>();
     } else {
-        GetImpFP(inputs, outputs);
+        if (data_type == DATA_TYPE_INT8) {
+            GetImpInt8(inputs, outputs);
+        } else {
+            GetImpFP(inputs, outputs);
+        }
     }
 
     if (!conv_acc_impl_) {

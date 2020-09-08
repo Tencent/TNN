@@ -31,6 +31,15 @@ Status Context::SetNumThreads(int num_threads) {
     return TNN_OK;
 }
 
+Status Context::SetPrecision(Precision precision) {
+    precision_ = precision;
+    return TNN_OK;
+}
+
+Precision Context::GetPrecision() {
+    return precision_;
+}
+
 #if TNN_PROFILE
 void Context::StartProfile() {
     profile_layer     = true;

@@ -51,7 +51,7 @@ Status MetalNormalizeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     return TNN_OK;
 }
 
-std::string MetalNormalizeLayerAcc::KernelName() {
+std::string MetalNormalizeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 

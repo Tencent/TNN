@@ -8,7 +8,7 @@
 #import "TNNBoundingBox.h"
 #include "TNNFPSCounter.h"
 #import "UIImage+Utility.h"
-#import "UltraFaceDetector.h"
+#import "ultra_face_detector.h"
 
 using namespace std;
 using namespace TNN_NS;

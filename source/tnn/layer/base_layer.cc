@@ -47,11 +47,13 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     }
 
     status = InferOutputShape();
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
     if (status != TNN_OK) {
         return status;
+    }
+    for (auto& output_blob : output_blobs) {
+        LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", output_blob->GetBlobDesc().name.c_str(),
+             output_blob->GetBlobDesc().dims[0], output_blob->GetBlobDesc().dims[1], output_blob->GetBlobDesc().dims[2],
+             output_blob->GetBlobDesc().dims[3]);
     }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {
@@ -71,6 +73,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
 }
 
 Status BaseLayer::InferOutputDataType() {
+    // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;

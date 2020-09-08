@@ -491,6 +491,22 @@ struct MetalCopyParams {
     int batch;
 };
 
+/** Reshape Param Struct **/
+struct MetalReshapeParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
+    int batch;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \

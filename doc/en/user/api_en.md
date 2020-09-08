@@ -165,7 +165,7 @@ struct PUBLIC NetworkConfig {
     std::vector<std::string> library_path = {}; 
 
     // compute precision
-    Precision precision = PRECISION_HIGH;
+    Precision precision = PRECISION_AUTO;
 };
 ```
 NetworkConfig parameter description:

@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Pow, LAYER_POWER);
 
-string MetalPowLayerAcc::KernelName() {
+string MetalPowLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "pow";
 }
 

@@ -121,6 +121,18 @@ private:
                 bandwidth:(TNN_NS::MetalBandwidth)bandwidth;
 
 /**
+ * @brief dispatch encoder with specified settings
+ * @param encoder           command encoder
+ * @param threadsPerGroup   threadsPerGroup size
+ * @param groups            threadGroups
+ * @param bandwidth         bandwidth
+ */
+- (Status)dispatchEncoder:(id<MTLComputeCommandEncoder>)encoder
+                  threadsPerGroup:(MTLSize)threadsPerGroup
+                  groups:(MTLSize)groups
+                  bandwidth:(TNN_NS::MetalBandwidth)bandwidth;
+
+/**
  * @brief befor instace forword
  */
 - (Status)onInstanceForwardBegin;

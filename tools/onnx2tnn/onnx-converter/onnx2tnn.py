@@ -38,7 +38,7 @@ def parse_path(path: str):
 
 def do_optimize(onnx_net_path, input_shape):
     try:
-        import onnx_optimizer.onnx_optimizer as opt
+        import onnx2tnn.onnx_optimizer.onnx_optimizer as opt
     except ImportError:
         print("\n\n t fail")
         os.system(sys.executable + " onnx_optimizer " + onnx_net_path)

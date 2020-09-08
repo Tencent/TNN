@@ -150,10 +150,10 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
-    if (param->type == 1) {  // nearest
+    if (param->mode == 1) {  // nearest
         upsample_nearest2d(output_data, input_data, input_height, input_width, output_height, output_width,
                            output_channel, (bool)param->align_corners);
-    } else if (param->type == 2) {  // bilinear/linear
+    } else if (param->mode == 2) {  // bilinear/linear
         upsample_bilinear2d(output_data, input_data, input_height, input_width, output_height, output_width,
                             output_channel, (bool)param->align_corners);
 
