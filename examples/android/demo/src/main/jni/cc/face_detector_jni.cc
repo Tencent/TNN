@@ -209,7 +209,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     bench_option.forward_count = 20;
     gDetector->SetBenchOption(bench_option);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
-    TNN_NS::DimsVector target_dims = {1, 3, height, width};
+    TNN_NS::DimsVector target_dims = {1, 4, height, width};
     auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims, sourcePixelscolor);
     auto asyncRefDetector = gDetector;
     std::vector<TNN_NS::FaceInfo> faceInfoList;
