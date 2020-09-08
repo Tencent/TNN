@@ -4,7 +4,7 @@
 #include <vector>
 #include <android/bitmap.h>
 #include "objectdetectorssd_jni.h"
-#include "ObjectDetectorSSD.h"
+#include "object_detector_ssd.h"
 #include "helper_jni.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"

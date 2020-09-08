@@ -2,7 +2,7 @@
 // Created by tencent on 2020-04-29.
 //
 #include "objectdetector_jni.h"
-#include "ObjectDetectorYolo.h"
+#include "object_detector_yolo.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"
 #include <jni.h>

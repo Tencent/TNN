@@ -518,6 +518,10 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     return ret;
 }
 
+Status OpenCLMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
+    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support bgr2gray"); 
+}
+
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);
 REGISTER_MAT_CONVERTER(OpenCL, DEVICE_OPENCL);
 }  // namespace TNN_NS

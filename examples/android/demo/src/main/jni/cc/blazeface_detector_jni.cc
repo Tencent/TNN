@@ -3,7 +3,7 @@
 //
 
 #include "blazeface_detector_jni.h"
-#include "BlazeFaceDetector.h"
+#include "blazeface_detector.h"
 #include <jni.h>
 #include "helper_jni.h"
 #include <android/bitmap.h>

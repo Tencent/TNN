@@ -4,7 +4,7 @@
 
 #ifndef ANDROID_BLAZEFACE_DETECTOR_JNI_H
 #define ANDROID_BLAZEFACE_DETECTOR_JNI_H
-#include "BlazeFaceDetector.h"
+#include "blazeface_detector.h"
 #include <jni.h>
 #include "helper_jni.h"
 #include <android/bitmap.h>
