@@ -266,16 +266,6 @@ void ArmDeconvLayerStride::CopyWithStride(ConvUnit &unit, Blob *output) {
 }
 
 Status ArmDeconvLayerStride::CopyOutputSplitBlob(Blob *output) {
-    auto param         = reinterpret_cast<ConvLayerParam *>(param_);
-    auto dims          = output->GetBlobDesc().dims;
-    auto pad_y         = param->pads[2];
-    auto pad_x         = param->pads[0];
-    auto stride_y      = param->strides[1];
-    auto stride_x      = param->strides[0];
-    auto batch         = dims[0];
-    auto oh            = dims[2];
-    auto ow            = dims[3];
-    auto output_origin = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
     auto data_type     = output->GetBlobDesc().data_type;
 
     for (auto &unit : conv_units_) {

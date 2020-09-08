@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_LAYER_GROUP_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_LAYER_GROUP_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_DECONV_LAYER_STRIDE_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_DECONV_LAYER_STRIDE_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_device.h"
@@ -68,4 +68,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_LAYER_GROUP_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_DECONV_LAYER_STRIDE_H_
