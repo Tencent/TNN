@@ -29,6 +29,20 @@
 
 namespace TNN_NS {
 
+static inline void *armMalloc(size_t size) {
+#if _POSIX_C_SOURCE >= 200112L || (__ANDROID__ && __ANDROID_API__ >= 17)
+    void *ptr = 0;
+    if (posix_memalign(&ptr, 32, size))
+        ptr = 0;
+    return ptr;
+#elif __ANDROID__ && __ANDROID_API__ < 17
+    return memalign(32, size);
+#else
+    return malloc(size);
+#endif
+}
+
+
 #define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), 0), UCHAR_MAX)
 #define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
 #define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
@@ -1087,7 +1101,7 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
     m[2]      = b1;
     m[5]      = b2;
 
-    *buffer = reinterpret_cast<int*>(memalign(32, (dst_w + dst_h) * 2 * sizeof(int)));
+    *buffer = reinterpret_cast<int*>(armMalloc((dst_w + dst_h) * 2 * sizeof(int)));
 
     int* adelta = *buffer;
     int* bdelta = *buffer + dst_w * 2;
