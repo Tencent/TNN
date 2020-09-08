@@ -755,6 +755,9 @@ void Point(void *data_rgba, int image_height, int image_width, int x, int y, flo
     int x_end   = (x+1) * scale_x;
     int y_start = (y-1) * scale_y;
     int y_end   = (y+1) * scale_y;
+
+    x_center = std::min(std::max(0, x_center), image_width  - 1);
+    y_center = std::min(std::max(0, y_center), image_height - 1);
     
     x_start = std::min(std::max(0, x_start), image_width - 1);
     x_end   = std::min(std::max(0, x_end), image_width - 1);

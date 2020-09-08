@@ -58,7 +58,7 @@ using namespace std;
     } else if (indexPath.section == 2){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageColourController"];
     } else if (indexPath.section == 3) {
-           vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
     } else if (indexPath.section == 4){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
         auto cameraViewController = (TNNCameraPreviewController*)vc;
