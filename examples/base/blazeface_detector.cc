@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "BlazeFaceDetector.h"
+#include "blazeface_detector.h"
 #include <sys/time.h>
 #include <cmath>
 #include <fstream>

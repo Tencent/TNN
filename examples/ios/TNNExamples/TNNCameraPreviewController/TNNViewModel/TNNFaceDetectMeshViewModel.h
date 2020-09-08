@@ -14,7 +14,7 @@
 
 #import <Foundation/Foundation.h>
 #import "TNNViewModel.h"
-#import "TNNFPSCounter.h"
+#import "tnn_fps_counter.h"
 
 #import "UIImage+Utility.h"
 

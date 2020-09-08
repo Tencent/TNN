@@ -6,7 +6,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <tnn/tnn.h>
 #import "TNNBoundingBox.h"
-#include "TNNFPSCounter.h"
+#include "tnn_fps_counter.h"
 #import "UIImage+Utility.h"
 #import "ultra_face_detector.h"
 

@@ -13,9 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNFaceDetectMeshViewModel.h"
-#import "FaceDetectMesh.h"
-#import "Facemesh.h"
-#import "BlazeFaceDetector.h"
+#import "face_detect_mesh.h"
+#import "face_mesh.h"
+#import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 
 #import <Metal/Metal.h>

@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNSSDObjectDetectorViewModel.h"
-#import "ObjectDetectorSSD.h"
+#import "object_detector_ssd.h"
 
 using namespace std;
 

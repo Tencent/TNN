@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNYoloObjectDetectorViewModel.h"
-#import "ObjectDetectorYolo.h"
+#import "object_detector_yolo.h"
 
 using namespace std;
 

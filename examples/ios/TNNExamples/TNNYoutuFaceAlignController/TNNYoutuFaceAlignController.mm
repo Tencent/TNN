@@ -14,7 +14,7 @@
 
 #import "TNNYoutuFaceAlignController.h"
 #import "YoutuFaceAlign.h"
-#import "BlazeFaceDetector.h"
+#import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
 #import <cstdlib>

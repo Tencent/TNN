@@ -20,8 +20,8 @@
 #import <tuple>
 #import <tnn/tnn.h>
 
-#import "BlazeFaceDetector.h"
-#import "Facemesh.h"
+#import "blazeface_detector.h"
+#import "face_mesh.h"
 #import "UIImage+Utility.h"
 
 #define PROFILE 0

@@ -1,6 +1,6 @@
 //  Copyright © 2020 tencent. All rights reserved.
 
-#include "TNNFPSCounter.h"
+#include "tnn_fps_counter.h"
 #include <sys/time.h>
 
 const std::string kFPSCounterDefaultTag = "fps.default.tag";

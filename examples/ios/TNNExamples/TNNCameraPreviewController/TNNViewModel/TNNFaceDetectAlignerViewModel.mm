@@ -13,9 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNFaceDetectAlignerViewModel.h"
-#import "FaceDetectAligner.h"
+#import "face_detect_aligner.h"
 #import "YoutuFaceAlign.h"
-#import "BlazeFaceDetector.h"
+#import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 
 #import <Metal/Metal.h>

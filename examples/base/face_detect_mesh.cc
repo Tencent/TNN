@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "FaceDetectMesh.h"
+#include "face_detect_mesh.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "BlazeFaceDetector.h"
+#include "blazeface_detector.h"
 #include "tnn_sdk_sample.h"
-#include "Facemesh.h"
+#include "face_mesh.h"
 
 namespace TNN_NS {
 Status FaceDetectMesh::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {

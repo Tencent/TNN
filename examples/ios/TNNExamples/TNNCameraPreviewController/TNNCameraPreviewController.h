@@ -14,7 +14,7 @@
 
 #import "TNNExamplesController.h"
 #import "tnn_sdk_sample.h"
-#import "TNNFPSCounter.h"
+#import "tnn_fps_counter.h"
 #import "TNNViewModel.h"
 
 @interface TNNCameraPreviewController : TNNExamplesController {

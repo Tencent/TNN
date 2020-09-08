@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "FaceGrayTransfer.h"
+#include "face_gray_transfer.h"
 #include <sys/time.h>
 #include <cmath>
 

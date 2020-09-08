@@ -18,7 +18,7 @@
 #include <iostream>
 #import <tnn/tnn.h>
 
-#import "FaceGrayTransfer.h"
+#import "face_gray_transfer.h"
 #import "UIImage+Utility.h"
 
 using namespace std;

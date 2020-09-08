@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNObjectDetectorController.h"
-#import "ObjectDetectorSSD.h"
+#import "object_detector_ssd.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
 #import <cstdlib>

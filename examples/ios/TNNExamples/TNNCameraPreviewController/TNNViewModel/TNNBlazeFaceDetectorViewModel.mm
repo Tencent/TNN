@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNBlazeFaceDetectorViewModel.h"
-#import "BlazeFaceDetector.h"
+#import "blazeface_detector.h"
 
 using namespace std;
 
