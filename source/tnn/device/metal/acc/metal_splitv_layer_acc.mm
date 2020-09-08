@@ -29,7 +29,7 @@ Status MetalSplitVLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
 }
 
-std::string MetalSplitVLayerAcc::KernelName() {
+std::string MetalSplitVLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 

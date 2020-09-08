@@ -72,8 +72,10 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             testing::Values(0.5, 1.0),
                             // bias
                             testing::Values(0.0, 1.0),
+                            // reverse_channel
+                            testing::Values(false),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY,
+                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21,
                                             NCHW_FLOAT),  // datatype
                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
 
@@ -83,8 +85,9 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     int input_size          = std::get<2>(GetParam());
     float scale             = std::get<3>(GetParam());
     float bias              = std::get<4>(GetParam());
-    MatType mat_type        = std::get<5>(GetParam());
-    DataType blob_data_type = std::get<6>(GetParam());
+    bool reverse_channel    = std::get<5>(GetParam());
+    MatType mat_type        = std::get<6>(GetParam());
+    DataType blob_data_type = std::get<7>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
     if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
@@ -100,6 +103,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
         GTEST_SKIP();
     } else if (mat_type == NGRAY && channel != 1) {
+        GTEST_SKIP();
+    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0)) {
         GTEST_SKIP();
     }
 
@@ -178,6 +183,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     BlobConverter device_converter(device_blob);
 
     MatConvertParam from_mat_param;
+    from_mat_param.reverse_channel = reverse_channel;
 
     if (mat_type != NCHW_FLOAT) {
         from_mat_param.scale = {scale * 1, scale * 2, scale * 3, scale * 4};
@@ -189,6 +195,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
 
     MatConvertParam to_mat_param;
+    to_mat_param.reverse_channel = reverse_channel;
     Mat mat_out_ref_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
     cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, mat_out_dev_nchw_data);

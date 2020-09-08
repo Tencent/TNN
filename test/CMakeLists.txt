@@ -1,5 +1,5 @@
 file(GLOB TEST_SRCS *.h *.cc)
-message(${TEST_SRCS})
+#message(${TEST_SRCS})
 
 get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..  ABSOLUTE)
 

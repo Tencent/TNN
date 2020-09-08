@@ -66,7 +66,7 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
-std::string MetalConvLayer1x1::KernelName() {
+std::string MetalConvLayer1x1::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "convolution_1x1";
 }
 

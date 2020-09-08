@@ -30,9 +30,24 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AddLayerTest,
                                             // weight index
                                             testing::Values(-1, 0, 1),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
 
 TEST_P(AddLayerTest, BinaryLayerTest) {
+    int batch               = std::get<0>(GetParam());
+    int channel             = std::get<1>(GetParam());
+    int input_size          = std::get<2>(GetParam());
+    int input_cnt           = std::get<3>(GetParam());
+    int param_size_type     = std::get<4>(GetParam());
+    int weight_index        = std::get<5>(GetParam());
+    DataType blob_data_type = std::get<6>(GetParam());
+
+    if (blob_data_type == DATA_TYPE_INT8) {
+        // currently only single batch and non-broadcasting add is implemented
+        if (batch != 1 || input_cnt != 2 || param_size_type != 2) {
+            GTEST_SKIP();
+        }
+    }
+
     RunBinaryTest();
 }
 

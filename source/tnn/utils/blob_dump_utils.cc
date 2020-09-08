@@ -25,6 +25,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/half_utils.h"
+#include "tnn/utils/bfp16_utils.h"
 
 namespace TNN_NS {
 
@@ -233,6 +234,10 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
         cpu_data    = new float[data_count];
         convert_ptr = std::shared_ptr<float>(cpu_data);
         ConvertFromHalfToFloat((void*)((char*)cpu_handle.base + cpu_handle.bytes_offset), cpu_data, data_count);
+    } else if (dev_blob_desc.data_type == DATA_TYPE_BFP16) {
+        cpu_data    = new float[data_count];
+        convert_ptr = std::shared_ptr<float>(cpu_data);
+        ConvertFromBFP16ToFloat((void*)((char*)cpu_handle.base + cpu_handle.bytes_offset), cpu_data, data_count);
     } else if (dev_blob_desc.data_type == DATA_TYPE_INT8) {
 #ifndef DUMP_RAW_INT8
         IntScaleResource* re = reinterpret_cast<BlobInt8*>(dev_blob)->GetIntResource();
@@ -292,7 +297,18 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
             break;
         case DATA_FORMAT_NC4HW4:
         case DATA_FORMAT_NHWC4: {
-            ret_code = dump_nc4hw4_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
+#ifdef DUMP_RAW_INT8
+            /*
+             * dump the int8 data with out dequantization.
+             * this option is used for debug.
+             */
+            if (dev_blob_desc.data_type == DATA_TYPE_INT8) {
+                ret_code = dump_nhwc4_int8_blob(dev_blob->GetBlobDesc(), std::string(fname), (int8_t*)cpu_data);
+            } else
+#endif
+            {
+                ret_code = dump_nc4hw4_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
+            }
         } break;
         default:
             break;

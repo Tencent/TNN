@@ -22,17 +22,7 @@ namespace TNN_NS {
 DECLARE_LAYER(Deconv, LAYER_DECONVOLUTION);
 
 Status DeconvLayer::InferOutputDataType() {
-    // Init base type, will re write in different device acc
-    ConvLayerResource* conv_resource = dynamic_cast<ConvLayerResource*>(resource_);
-    if (input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16 ||
-        input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
-    } else if (conv_resource) {
-        output_blobs_[0]->GetBlobDesc().data_type = conv_resource->filter_handle.GetDataType();
-    } else {
-        return Status(TNNERR_LAYER_ERR, "Error: deconv_resource is nil");
-    }
-    return TNN_OK;
+    return BaseLayer::InferOutputDataType();
 }
 
 Status DeconvLayer::InferOutputShape() {

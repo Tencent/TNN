@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(HardSigmoid, LAYER_HARDSIGMOID);
 
-string MetalHardSigmoidLayerAcc::KernelName() {
+string MetalHardSigmoidLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "hard_sigmoid";
 }
 

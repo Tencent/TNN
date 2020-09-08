@@ -122,7 +122,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
  *  This function allocates the memory for all blobs.
  *  The memory size is calclucated by each Device according to data_type \
  *  and data format.
- *  The size may be different for different divces.
+ *  The size may be different for different devices.
  */
 Status BlobManager::AllocateBlobMemory() {
     const auto &input_shapes_map = net_structure_->inputs_shape_map;

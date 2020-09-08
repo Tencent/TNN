@@ -84,7 +84,7 @@ Status MetalStrideSliceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
     return TNN_OK;
 }
 
-std::string MetalStrideSliceLayerAcc::KernelName() {
+std::string MetalStrideSliceLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "stride_slice_common";
 }
 

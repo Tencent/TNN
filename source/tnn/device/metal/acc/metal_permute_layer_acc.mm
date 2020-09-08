@@ -37,7 +37,7 @@ Status MetalPermuteLayerAcc::SetKernelEncoderParam(
     return MetalLayerAcc::SetKernelEncoderParam(encoder, inputs, outputs);
 }
 
-std::string MetalPermuteLayerAcc::KernelName() {
+std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
     if (layer_param->orders[0] == 0 && layer_param->orders[1] == 2 &&
         layer_param->orders[2] == 3 && layer_param->orders[3] == 1) {

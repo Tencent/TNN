@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Sin, LAYER_SIN);
 
-string MetalSinLayerAcc::KernelName() {
+string MetalSinLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "sin";
 }
 

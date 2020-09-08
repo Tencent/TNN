@@ -47,7 +47,7 @@ def onnx_fix_prelu(m: onnx.ModelProto) -> None:
         d4.dim_value = 1
         inp.type.tensor_type.shape.dim.extend([d1, d2, d3, d4])
 
-def onnx_optimizer(onnx_net_path, input_shape):
+def onnx_optimizer(onnx_net_path, input_shape=None):
         onnx_net_opt_path = onnx_net_path[:-5]+'.opt.onnx'
 
         print(os.getcwd())

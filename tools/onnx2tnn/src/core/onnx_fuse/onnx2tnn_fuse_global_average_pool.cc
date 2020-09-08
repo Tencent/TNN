@@ -35,9 +35,15 @@ int Onnx2TNN::FuseGlobalAveragePool(
 
                 std::vector<int> next_indexes =
                     GetNextIndexNode(index_nodes, i);
+      
                 if (next_indexes.size() != 1) {
                     break;
                 }
+
+                if (node_trans->output_size() !=1){
+                    break;
+                }
+
                 auto node_reduce_mean = index_nodes[i + 1].node;
 
                 // check op
@@ -67,6 +73,18 @@ int Onnx2TNN::FuseGlobalAveragePool(
                 node_trans->set_output(0, node_reduce_mean->output(0));
 
                 i += 1;
+            }
+            if(node->op_type() == "ReduceMean"){
+                //check reduce mean axes
+                auto node_reduce_mean =node;
+                vector<int64_t> axes = get_node_attr_ai(*node_reduce_mean, "axes");
+                if (axes.size() != 2 || axes[0] != 2 || axes[1] != 3) {
+                    break;
+                }
+                node_reduce_mean->set_op_type("GlobalAveragePool");
+                node_reference.erase(node_reference.find(node_reduce_mean->output(0)));
+                blob_names.erase(node_reduce_mean->output(0));
+
             }
         } while (0);
     }

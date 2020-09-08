@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		61B859D124EBB7C000979BEC /* image_classifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = 61B859C924EBB7C000979BEC /* image_classifier.cc */; };
+		61B859D224EBB7C000979BEC /* ultra_face_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */; };
 		9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */; };
 		9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */; };
 		9D49E7A42504BB5D00DD81D7 /* FaceDetectAligner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E7A22504BB5D00DD81D7 /* FaceDetectAligner.cc */; };
@@ -28,7 +30,6 @@
 		9D71E7CC24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D71E7CB24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm */; };
 		9D9187E3242C30D600DF2B79 /* test.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9D9187DE242C30D500DF2B79 /* test.jpg */; };
 		9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */; };
-		9D9187E7242C31B900DF2B79 /* ImageClassifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D9187E6242C31B900DF2B79 /* ImageClassifier.cc */; };
 		9D961FEA241163EE009B3FB1 /* TNNExamplesListController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */; };
 		9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FEB24116548009B3FB1 /* RootNavController.mm */; };
 		9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */; };
@@ -44,8 +45,6 @@
 		9DD57A1723B5ACF900A96E63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DD57A1623B5ACF900A96E63 /* Foundation.framework */; };
 		9DD57A1923B5AD0100A96E63 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DD57A1823B5AD0100A96E63 /* Accelerate.framework */; };
 		9DDED30A2429A0BE000C09EA /* model in Resources */ = {isa = PBXBuildFile; fileRef = 9DDED3092429A0BE000C09EA /* model */; };
-		9DDED3102429A839000C09EA /* TNNSDKSample.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DDED30C2429A839000C09EA /* TNNSDKSample.cc */; };
-		9DDED3112429A839000C09EA /* UltraFaceDetector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DDED30E2429A839000C09EA /* UltraFaceDetector.cc */; };
 		9DF1A0B824A8987C00E1376D /* FaceGrayTransfer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF1A0B724A8987C00E1376D /* FaceGrayTransfer.cc */; };
 		D1330F47244AC2D900CEBF29 /* TNNCameraPreviewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = D1330F46244AC2D900CEBF29 /* TNNCameraPreviewController.mm */; };
 		D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */ = {isa = PBXBuildFile; fileRef = D1330F4A244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm */; };
@@ -86,6 +85,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		61B859C924EBB7C000979BEC /* image_classifier.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image_classifier.cc; sourceTree = "<group>"; };
+		61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ultra_face_detector.cc; sourceTree = "<group>"; };
 		9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+Utility.h"; sourceTree = "<group>"; };
 		9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "UIImage+Utility.mm"; sourceTree = "<group>"; };
 		9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectAlignerViewModel.mm; sourceTree = "<group>"; };
@@ -122,8 +123,6 @@
 		9D9187DD242C30D500DF2B79 /* TNNFaceDetectorController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNFaceDetectorController.h; sourceTree = "<group>"; };
 		9D9187DE242C30D500DF2B79 /* test.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test.jpg; sourceTree = "<group>"; };
 		9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectorController.mm; sourceTree = "<group>"; };
-		9D9187E5242C31B900DF2B79 /* ImageClassifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageClassifier.h; sourceTree = "<group>"; };
-		9D9187E6242C31B900DF2B79 /* ImageClassifier.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageClassifier.cc; sourceTree = "<group>"; };
 		9D961FE8241163EE009B3FB1 /* TNNExamplesListController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNExamplesListController.h; sourceTree = "<group>"; };
 		9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNExamplesListController.mm; sourceTree = "<group>"; };
 		9D961FEB24116548009B3FB1 /* RootNavController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RootNavController.mm; sourceTree = "<group>"; };
@@ -281,6 +280,7 @@
 				9DD579EC23B5A20500A96E63 /* TNNExamples */,
 				9DD579EB23B5A20500A96E63 /* Products */,
 				9DD57A1023B5A8D000A96E63 /* Frameworks */,
+				EC2CF71C25078A2E00EE3899 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -297,7 +297,7 @@
 			children = (
 				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
-				9DDED30B2429A839000C09EA /* samples */,
+				9DDED30B2429A839000C09EA /* base */,
 				9DDED3092429A0BE000C09EA /* model */,
 				9DD579ED23B5A20500A96E63 /* AppDelegate.h */,
 				9DD579EE23B5A20500A96E63 /* AppDelegate.mm */,
@@ -349,7 +349,7 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		9DDED30B2429A839000C09EA /* samples */ = {
+		9DDED30B2429A839000C09EA /* base */ = {
 			isa = PBXGroup;
 			children = (
 				9D49E7A22504BB5D00DD81D7 /* FaceDetectAligner.cc */,
@@ -364,8 +364,6 @@
 				9DDED30D2429A839000C09EA /* TNNSDKSample.h */,
 				9DDED30E2429A839000C09EA /* UltraFaceDetector.cc */,
 				9DDED30F2429A839000C09EA /* UltraFaceDetector.h */,
-				9D9187E6242C31B900DF2B79 /* ImageClassifier.cc */,
-				9D9187E5242C31B900DF2B79 /* ImageClassifier.h */,
 				ECEF96DC24AED66C0094CB8B /* ObjectDetectorSSD.cc */,
 				ECEF96D924AED3980094CB8B /* ObjectDetectorSSD.h */,
 				EC1B9AA724BC0B7B0003A742 /* ObjectDetectorYolo.cc */,
@@ -377,8 +375,8 @@
 				ECD14A002505F88C00271443 /* FaceDetectMesh.cc */,
 				ECD14A012505F88C00271443 /* FaceDetectMesh.h */,
 			);
-			name = samples;
-			path = ../../samples;
+			name = base;
+			path = ../../base;
 			sourceTree = "<group>";
 		};
 		D1330F45244AC2D900CEBF29 /* TNNCameraPreviewController */ = {
@@ -402,6 +400,15 @@
 				9D71E78A24C0AF4200074C1A /* TNNBoundingBox.mm */,
 			);
 			path = CameraDevice;
+			sourceTree = "<group>";
+		};
+		EC2CF71C25078A2E00EE3899 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				61B859C924EBB7C000979BEC /* image_classifier.cc */,
+				61B859CD24EBB7C000979BEC /* ultra_face_detector.cc */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */ = {
@@ -580,7 +587,6 @@
 				ECEF96DD24AED66D0094CB8B /* ObjectDetectorSSD.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* FaceDetectAligner.cc in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
-				9D9187E7242C31B900DF2B79 /* ImageClassifier.cc in Sources */,
 				9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */,
 				EC4E1B5424C97A5E00B88179 /* BlazeFaceDetector.cc in Sources */,
 				9D71E7A424C4F35A00074C1A /* TNNImageColourController.mm in Sources */,
@@ -588,8 +594,8 @@
 				D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */,
 				9D71E78B24C0AF4200074C1A /* TNNBoundingBox.mm in Sources */,
 				9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */,
-				9DDED3112429A839000C09EA /* UltraFaceDetector.cc in Sources */,
-				9DDED3102429A839000C09EA /* TNNSDKSample.cc in Sources */,
+				61B859D124EBB7C000979BEC /* image_classifier.cc in Sources */,
+				61B859D224EBB7C000979BEC /* ultra_face_detector.cc in Sources */,
 				D1330F47244AC2D900CEBF29 /* TNNCameraPreviewController.mm in Sources */,
 				9DF1A0B824A8987C00E1376D /* FaceGrayTransfer.cc in Sources */,
 				EC1B9AA824BC0B7B0003A742 /* ObjectDetectorYolo.cc in Sources */,

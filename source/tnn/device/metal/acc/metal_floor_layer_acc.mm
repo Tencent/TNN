@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Floor, LAYER_FLOOR);
 
-string MetalFloorLayerAcc::KernelName() {
+string MetalFloorLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "floor";
 }
 

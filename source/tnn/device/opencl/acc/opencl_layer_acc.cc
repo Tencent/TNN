@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -33,7 +33,8 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     }
     execute_units_.resize(1);
 
-    if (OpenCLRuntime::GetInstance()->GetFp16Enable()) {
+    if (OpenCLRuntime::GetInstance()->GetFp16Enable() && context->GetPrecision() != PRECISION_HIGH) {
+        LOGD("OpenCL Blob Pricision is Half!\n");
         for (auto blob : inputs) {
             blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
         }
@@ -41,6 +42,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
             blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
         }
     } else {
+        LOGD("OpenCL Blob Pricision is Float!\n");
         for (auto blob : inputs) {
             blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
         }
@@ -131,7 +133,7 @@ void OpenCLLayerAcc::UpdateProfilingData(OpenCLProfilingData *pdata, std::vector
                                          std::vector<uint32_t> lws, int idx) {
     AbstractLayerAcc::UpdateProfilingData(pdata, param_, input_dims_, output_dims_);
     if (idx != 0)
-        pdata->layer_name += "_" + to_string(idx);
+        pdata->layer_name += "_" + ToString(idx);
     pdata->op_name         = op_name_;
     pdata->global_worksize = gws;
     pdata->local_worksize  = lws;

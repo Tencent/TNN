@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Abs, LAYER_ABS);
 
-string MetalAbsLayerAcc::KernelName() {
+string MetalAbsLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "abs";
 }
 

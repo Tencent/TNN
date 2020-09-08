@@ -491,12 +491,29 @@ struct MetalCopyParams {
     int batch;
 };
 
+
 struct MetalBGR2GrayParams {
     int width;
     int height;
     int size;
     int channel;
     int slice;
+    int batch;
+};
+
+/** Reshape Param Struct **/
+struct MetalReshapeParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
     int batch;
 };
 

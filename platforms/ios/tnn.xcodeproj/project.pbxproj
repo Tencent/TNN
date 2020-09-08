@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1FC98D8D25039D6000A81D79 /* arm_conv_layer_group.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */; };
+		1FC98D8E25039D6000A81D79 /* arm_conv_layer_group.h in Headers */ = {isa = PBXBuildFile; fileRef = 1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */; };
 		9D29E25122DC89310050DC63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D29E25022DC89300050DC63 /* Foundation.framework */; };
 		9D2DB1D622D759C8000C508F /* tnn.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D2DB1D422D759C8000C508F /* tnn.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9D31636023169B1600531250 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D31635F23169B1600531250 /* CoreML.framework */; };
@@ -55,7 +57,7 @@
 		9D32FCA724557EEC002DCDAB /* omp_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98A24557EE7002DCDAB /* omp_utils.h */; };
 		9D32FCA824557EEC002DCDAB /* half_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F98B24557EE7002DCDAB /* half_utils.cc */; };
 		9D32FCA924557EEC002DCDAB /* blob_memory_size_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */; };
-		9D32FCAA24557EEC002DCDAB /* string_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98D24557EE7002DCDAB /* string_utils.h */; };
+		9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98D24557EE7002DCDAB /* string_utils_inner.h */; };
 		9D32FCAB24557EEC002DCDAB /* blob_transfer_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */; };
 		9D32FCAC24557EEC002DCDAB /* split_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F98F24557EE7002DCDAB /* split_utils.h */; };
 		9D32FCAD24557EEC002DCDAB /* string_format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99024557EE7002DCDAB /* string_format.cc */; };
@@ -592,15 +594,16 @@
 		9DF19EA224A200AC00E1376D /* metal_cpu_adapter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */; };
 		9DF26BD924645EA500F22F0D /* naive_compute.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF26BD724645EA500F22F0D /* naive_compute.cc */; };
 		9DF26BDA24645EA500F22F0D /* naive_compute.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF26BD824645EA500F22F0D /* naive_compute.h */; };
-		ECEC5D4C24FCBD2D0044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D4924FCBD2C0044DDF1 /* mat_utils.cc */; };
-		ECEC5D4D24FCBD2D0044DDF1 /* mat_converter_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D4A24FCBD2C0044DDF1 /* mat_converter_acc.cc */; };
-		ECEC5D4E24FCBD2D0044DDF1 /* mat_converter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D4B24FCBD2D0044DDF1 /* mat_converter_acc.h */; };
-		ECEC5D5324FCBD440044DDF1 /* arm_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D4F24FCBD440044DDF1 /* arm_mat_util.h */; };
-		ECEC5D5424FCBD440044DDF1 /* arm_mat_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D5024FCBD440044DDF1 /* arm_mat_converter.h */; };
-		ECEC5D5524FCBD440044DDF1 /* arm_mat_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5124FCBD440044DDF1 /* arm_mat_util.cc */; };
-		ECEC5D5624FCBD440044DDF1 /* arm_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5224FCBD440044DDF1 /* arm_mat_converter.cc */; };
-		ECEC5D5924FCBD520044DDF1 /* metal_mat_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5724FCBD510044DDF1 /* metal_mat_converter.mm */; };
-		ECEC5D5A24FCBD520044DDF1 /* metal_mat_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5824FCBD520044DDF1 /* metal_mat_converter.metal */; };
+		EC2CF72525078C1200EE3899 /* metal_mat_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */; };
+		EC2CF72625078C1200EE3899 /* metal_mat_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */; };
+		ECEC5D6424FCDBA50044DDF1 /* arm_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */; };
+		ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */; };
+		ECEC5D6624FCDBA50044DDF1 /* arm_mat_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */; };
+		ECEC5D6724FCDBA50044DDF1 /* arm_mat_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6324FCDBA50044DDF1 /* arm_mat_util.cc */; };
+		ECEC5D6B24FCE0780044DDF1 /* mat_converter_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */; };
+		ECEC5D6C24FCE0780044DDF1 /* mat_converter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */; };
+		ECEC5D6D24FCE0780044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */; };
+		ECEC5D8D24FF97DF0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D8C24FF97DF0044DDF1 /* mat.cc */; };
 		ECEC5DA824FFC6FE0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DA724FFC6FD0044DDF1 /* mat.cc */; };
 		ECEF975224AF2B2A0094CB8B /* cpu_device.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96F424AF2B2A0094CB8B /* cpu_device.cc */; };
 		ECEF975324AF2B2A0094CB8B /* cpu_blob_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEF96F524AF2B2A0094CB8B /* cpu_blob_converter.h */; };
@@ -693,19 +696,11 @@
 		ECEF97AA24AF2B2B0094CB8B /* cpu_binary_op_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF974E24AF2B2A0094CB8B /* cpu_binary_op_layer_acc.cc */; };
 		ECEF97AB24AF2B2B0094CB8B /* cpu_reduce_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF974F24AF2B2A0094CB8B /* cpu_reduce_layer_acc.cc */; };
 		ECEF97AC24AF2B2B0094CB8B /* cpu_softplus_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF975024AF2B2A0094CB8B /* cpu_softplus_layer_acc.cc */; };
-		ECEC5D5E24FCDB8E0044DDF1 /* metal_mat_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5C24FCDB8E0044DDF1 /* metal_mat_converter.metal */; };
-		ECEC5D5F24FCDB8E0044DDF1 /* metal_mat_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D5D24FCDB8E0044DDF1 /* metal_mat_converter.mm */; };
-		ECEC5D6424FCDBA50044DDF1 /* arm_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */; };
-		ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */; };
-		ECEC5D6624FCDBA50044DDF1 /* arm_mat_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */; };
-		ECEC5D6724FCDBA50044DDF1 /* arm_mat_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6324FCDBA50044DDF1 /* arm_mat_util.cc */; };
-		ECEC5D6B24FCE0780044DDF1 /* mat_converter_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */; };
-		ECEC5D6C24FCE0780044DDF1 /* mat_converter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */; };
-		ECEC5D6D24FCE0780044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */; };
-		ECEC5D8D24FF97DF0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D8C24FF97DF0044DDF1 /* mat.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_layer_group.cc; sourceTree = "<group>"; };
+		1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_layer_group.h; sourceTree = "<group>"; };
 		9D24B9562351FFE1000E1F04 /* tnn copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "tnn copy-Info.plist"; path = "/Volumes/BANQ/Projects/MLProjects/tnn-open2/platforms/ios/tnn copy-Info.plist"; sourceTree = "<absolute>"; };
 		9D29E25022DC89300050DC63 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.2.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		9D2DB1D122D759C8000C508F /* tnn.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = tnn.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -757,7 +752,7 @@
 		9D32F98A24557EE7002DCDAB /* omp_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = omp_utils.h; sourceTree = "<group>"; };
 		9D32F98B24557EE7002DCDAB /* half_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = half_utils.cc; sourceTree = "<group>"; };
 		9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_memory_size_utils.h; sourceTree = "<group>"; };
-		9D32F98D24557EE7002DCDAB /* string_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string_utils.h; sourceTree = "<group>"; };
+		9D32F98D24557EE7002DCDAB /* string_utils_inner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string_utils_inner.h; sourceTree = "<group>"; };
 		9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_transfer_utils.h; sourceTree = "<group>"; };
 		9D32F98F24557EE7002DCDAB /* split_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = split_utils.h; sourceTree = "<group>"; };
 		9D32F99024557EE7002DCDAB /* string_format.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = string_format.cc; sourceTree = "<group>"; };
@@ -1294,15 +1289,16 @@
 		9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_cpu_adapter_acc.h; sourceTree = "<group>"; };
 		9DF26BD724645EA500F22F0D /* naive_compute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = naive_compute.cc; sourceTree = "<group>"; };
 		9DF26BD824645EA500F22F0D /* naive_compute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = naive_compute.h; sourceTree = "<group>"; };
-		ECEC5D4924FCBD2C0044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
-		ECEC5D4A24FCBD2C0044DDF1 /* mat_converter_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_acc.cc; sourceTree = "<group>"; };
-		ECEC5D4B24FCBD2D0044DDF1 /* mat_converter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_acc.h; sourceTree = "<group>"; };
-		ECEC5D4F24FCBD440044DDF1 /* arm_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_util.h; sourceTree = "<group>"; };
-		ECEC5D5024FCBD440044DDF1 /* arm_mat_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_converter.h; sourceTree = "<group>"; };
-		ECEC5D5124FCBD440044DDF1 /* arm_mat_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_util.cc; sourceTree = "<group>"; };
-		ECEC5D5224FCBD440044DDF1 /* arm_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_converter.cc; sourceTree = "<group>"; };
-		ECEC5D5724FCBD510044DDF1 /* metal_mat_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_mat_converter.mm; sourceTree = "<group>"; };
-		ECEC5D5824FCBD520044DDF1 /* metal_mat_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_mat_converter.metal; sourceTree = "<group>"; };
+		EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_mat_converter.mm; sourceTree = "<group>"; };
+		EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_mat_converter.metal; sourceTree = "<group>"; };
+		ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_converter.cc; sourceTree = "<group>"; };
+		ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_util.h; sourceTree = "<group>"; };
+		ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_converter.h; sourceTree = "<group>"; };
+		ECEC5D6324FCDBA50044DDF1 /* arm_mat_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_util.cc; sourceTree = "<group>"; };
+		ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_acc.cc; sourceTree = "<group>"; };
+		ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_acc.h; sourceTree = "<group>"; };
+		ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
+		ECEC5D8C24FF97DF0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
 		ECEC5DA724FFC6FD0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
 		ECEF96F424AF2B2A0094CB8B /* cpu_device.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_device.cc; sourceTree = "<group>"; };
 		ECEF96F524AF2B2A0094CB8B /* cpu_blob_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cpu_blob_converter.h; sourceTree = "<group>"; };
@@ -1395,16 +1391,6 @@
 		ECEF974E24AF2B2A0094CB8B /* cpu_binary_op_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_binary_op_layer_acc.cc; sourceTree = "<group>"; };
 		ECEF974F24AF2B2A0094CB8B /* cpu_reduce_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_reduce_layer_acc.cc; sourceTree = "<group>"; };
 		ECEF975024AF2B2A0094CB8B /* cpu_softplus_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_softplus_layer_acc.cc; sourceTree = "<group>"; };
-		ECEC5D5C24FCDB8E0044DDF1 /* metal_mat_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_mat_converter.metal; sourceTree = "<group>"; };
-		ECEC5D5D24FCDB8E0044DDF1 /* metal_mat_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_mat_converter.mm; sourceTree = "<group>"; };
-		ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_converter.cc; sourceTree = "<group>"; };
-		ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_util.h; sourceTree = "<group>"; };
-		ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_converter.h; sourceTree = "<group>"; };
-		ECEC5D6324FCDBA50044DDF1 /* arm_mat_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_util.cc; sourceTree = "<group>"; };
-		ECEC5D6824FCE0780044DDF1 /* mat_converter_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_acc.cc; sourceTree = "<group>"; };
-		ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_acc.h; sourceTree = "<group>"; };
-		ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
-		ECEC5D8C24FF97DF0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1543,10 +1529,10 @@
 				9D852BCA24584E6A003F4E41 /* bfp16.h */,
 				9D32F99924557EE7002DCDAB /* blob_converter_internal.cc */,
 				9D32F99724557EE7002DCDAB /* blob_converter_internal.h */,
-				9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */,
 				9D32F98924557EE7002DCDAB /* blob_dump_utils.h */,
 				9D32F99B24557EE7002DCDAB /* blob_memory_size_utils.cc */,
 				9D32F98C24557EE7002DCDAB /* blob_memory_size_utils.h */,
+				9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */,
 				9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */,
 				9D32F98E24557EE7002DCDAB /* blob_transfer_utils.h */,
 				9D32F9A124557EE7002DCDAB /* cpu_utils.cc */,
@@ -1565,7 +1551,7 @@
 				9D32F98F24557EE7002DCDAB /* split_utils.h */,
 				9D32F99024557EE7002DCDAB /* string_format.cc */,
 				9D32F99F24557EE7002DCDAB /* string_format.h */,
-				9D32F98D24557EE7002DCDAB /* string_utils.h */,
+				9D32F98D24557EE7002DCDAB /* string_utils_inner.h */,
 				9D32F99C24557EE7002DCDAB /* wingorad_generater.cc */,
 				9D32F99524557EE7002DCDAB /* wingorad_generater.h */,
 			);
@@ -1843,7 +1829,6 @@
 				9D32FC7124557EEB002DCDAB /* abstract_device.h */,
 				9D32FC7624557EEB002DCDAB /* abstract_layer_acc.cc */,
 				ECEC5D8C24FF97DF0044DDF1 /* mat.cc */,
-				9D4C60CD246BF826006068D1 /* profile.cc */,
 				9D32FC6924557EEB002DCDAB /* abstract_layer_acc.h */,
 				9D32FC6624557EEB002DCDAB /* abstract_network.cc */,
 				9D32FC7324557EEB002DCDAB /* abstract_network.h */,
@@ -1874,8 +1859,8 @@
 		9DD1FA8C247CE9BE00800139 /* metal */ = {
 			isa = PBXGroup;
 			children = (
-				ECEC5D5C24FCDB8E0044DDF1 /* metal_mat_converter.metal */,
-				ECEC5D5D24FCDB8E0044DDF1 /* metal_mat_converter.mm */,
+				EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */,
+				EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */,
 				9DD1FA8D247CE9BE00800139 /* coreml_network.mm */,
 				9DD1FA8F247CE9BE00800139 /* metal_command_queue.h */,
 				9DD1FA90247CE9BE00800139 /* coreml_network.h */,
@@ -2241,6 +2226,8 @@
 				9DD1FC53247CEA1300800139 /* arm_conv_layer_acc.cc */,
 				9DD1FC54247CEA1300800139 /* arm_conv_layer_depthwise.h */,
 				9DD1FC55247CEA1300800139 /* arm_conv_layer_depthwise_s1.cc */,
+				1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */,
+				1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */,
 			);
 			path = convolution;
 			sourceTree = "<group>";
@@ -2410,7 +2397,6 @@
 				9DD1FB46247CE9BE00800139 /* metal_unary_layer_acc.h in Headers */,
 				9DD1FCD4247CEA1500800139 /* arm_conv_layer_1x1.h in Headers */,
 				9D32FCB124557EEC002DCDAB /* data_format_converter.h in Headers */,
-				ECEC5D5324FCBD440044DDF1 /* arm_mat_util.h in Headers */,
 				9D32FC8424557EEC002DCDAB /* net_optimizer_manager.h in Headers */,
 				9DDA70A1241F9A0300F17A1C /* core in Headers */,
 				9DD1FCD7247CEA1500800139 /* arm_conv_int8_layer_common.h in Headers */,
@@ -2428,7 +2414,6 @@
 				9DD1FC7B247CEA1400800139 /* arm_binary_layer_acc.h in Headers */,
 				9DD1FC9A247CEA1400800139 /* compute.h in Headers */,
 				9D32FC8A24557EEC002DCDAB /* shared_memory_manager.h in Headers */,
-				ECEC5D5424FCBD440044DDF1 /* arm_mat_converter.h in Headers */,
 				ECEF975524AF2B2A0094CB8B /* cpu_context.h in Headers */,
 				ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */,
 				9D852BCC24584E6A003F4E41 /* bfp16.h in Headers */,
@@ -2495,6 +2480,7 @@
 				9D32FC9B24557EEC002DCDAB /* blob_2d_memory.h in Headers */,
 				9D32FF4624557EED002DCDAB /* ncnn_optimizer_manager.h in Headers */,
 				9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */,
+				1FC98D8E25039D6000A81D79 /* arm_conv_layer_group.h in Headers */,
 				9DD1FC89247CEA1400800139 /* arm_deconv_layer_acc.h in Headers */,
 				ECEF978324AF2B2B0094CB8B /* compute_int8.h in Headers */,
 				9DD1FC8A247CEA1400800139 /* arm_deconv_layer_depthwise.h in Headers */,
@@ -2528,7 +2514,7 @@
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
 				9DD1FCB9247CEA1400800139 /* arm_layer_acc.h in Headers */,
 				9DD1FCD5247CEA1500800139 /* arm_conv_layer_common.h in Headers */,
-				9D32FCAA24557EEC002DCDAB /* string_utils.h in Headers */,
+				9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */,
 				9D32FC8324557EEC002DCDAB /* optimizer_const.h in Headers */,
 				9DD1FC7F247CEA1400800139 /* arm_unary_layer_acc.h in Headers */,
 				9D32FF3B24557EED002DCDAB /* net_resource.h in Headers */,
@@ -2539,7 +2525,6 @@
 				9DD1FCDF247CEA1500800139 /* arm_conv_int8_layer_depthwise.h in Headers */,
 				9DD1FC8B247CEA1400800139 /* arm_deconv_layer_common.h in Headers */,
 				9D32FCAB24557EEC002DCDAB /* blob_transfer_utils.h in Headers */,
-				ECEC5D4E24FCBD2D0044DDF1 /* mat_converter_acc.h in Headers */,
 				9DD1FC8C247CEA1400800139 /* arm_hard_swish_acc.h in Headers */,
 				9DD1FCF0247CEA1500800139 /* arm_device.h in Headers */,
 				9DD1FB75247CE9BE00800139 /* metal_deconv_layer_depthwise.h in Headers */,
@@ -2619,12 +2604,12 @@
 			files = (
 				ECEF97A524AF2B2B0094CB8B /* cpu_reduce_l2_layer_acc.cc in Sources */,
 				9D32FCF824557EEC002DCDAB /* elu_layer.cc in Sources */,
+				1FC98D8D25039D6000A81D79 /* arm_conv_layer_group.cc in Sources */,
 				9DD1FB4D247CE9BE00800139 /* metal_common.metal in Sources */,
 				9DD1FC9B247CEA1400800139 /* compute_int8.cc in Sources */,
 				9D32FF2724557EED002DCDAB /* pooling_3d_layer_interpreter.cc in Sources */,
 				9D32FCC624557EEC002DCDAB /* reduce_prod_layer.cc in Sources */,
 				9DD1FCE6247CEA1500800139 /* arm_reduce_max_layer_acc.cc in Sources */,
-				ECEC5D5A24FCBD520044DDF1 /* metal_mat_converter.metal in Sources */,
 				9D32FF1F24557EED002DCDAB /* hard_swish_layer_interpreter.cc in Sources */,
 				9DD1FB5E247CE9BE00800139 /* metal_reduce_log_sum_layer_acc.mm in Sources */,
 				9D32FCC924557EEC002DCDAB /* exp_layer.cc in Sources */,
@@ -2816,7 +2801,6 @@
 				9D32FCF024557EEC002DCDAB /* mul_layer.cc in Sources */,
 				9D32FF2B24557EED002DCDAB /* hdrguide_layer_interpreter.cc in Sources */,
 				ECEF975724AF2B2A0094CB8B /* cpu_context.cc in Sources */,
-				ECEC5D4C24FCBD2D0044DDF1 /* mat_utils.cc in Sources */,
 				9DD1FC78247CEA1400800139 /* arm_relu_layer_acc.cc in Sources */,
 				9DD1FB9D247CE9BE00800139 /* metal_softplus_layer_acc.mm in Sources */,
 				9DD1FCB6247CEA1400800139 /* CONV_DW_5X5_FLOAT_SLIDEW.S in Sources */,
@@ -2857,6 +2841,7 @@
 				ECEC5D6724FCDBA50044DDF1 /* arm_mat_util.cc in Sources */,
 				9DD1FB47247CE9BE00800139 /* metal_multidir_broadcast_layer_acc.mm in Sources */,
 				9D32FCCB24557EEC002DCDAB /* shuffle_layer.cc in Sources */,
+				EC2CF72525078C1200EE3899 /* metal_mat_converter.mm in Sources */,
 				9D32FD0B24557EEC002DCDAB /* hard_sigmoid_layer.cc in Sources */,
 				9DD1FCEB247CEA1500800139 /* arm_reduce_sum_layer_acc.cc in Sources */,
 				9D32FCD024557EEC002DCDAB /* reshape_layer.cc in Sources */,
@@ -2877,7 +2862,6 @@
 				9DD1FCB1247CEA1400800139 /* CONV_DW_3X3_FLOAT_SLIDEW.S in Sources */,
 				ECEF978224AF2B2B0094CB8B /* compute_elewise.cc in Sources */,
 				9DD1FB92247CE9BE00800139 /* metal_tan_layer_acc.mm in Sources */,
-				ECEC5D5E24FCDB8E0044DDF1 /* metal_mat_converter.metal in Sources */,
 				9DD1FB8E247CE9BE00800139 /* metal_elu_layer_acc.mm in Sources */,
 				9D32FCD724557EEC002DCDAB /* reciprocal_layer.cc in Sources */,
 				ECEF975C24AF2B2A0094CB8B /* cpu_reorg_layer_acc.cc in Sources */,
@@ -2941,7 +2925,6 @@
 				9DD1FCB5247CEA1400800139 /* CONV_BFP16_SLIDEW_C3.S in Sources */,
 				9D32FCFD24557EEC002DCDAB /* reduce_layer.cc in Sources */,
 				9DD1FB90247CE9BE00800139 /* metal_concat_layer_acc.mm in Sources */,
-				ECEC5D5524FCBD440044DDF1 /* arm_mat_util.cc in Sources */,
 				9D32FF5D24557EED002DCDAB /* deconv_layer_interpreter.cc in Sources */,
 				9DD1FCCB247CEA1500800139 /* arm_permute_layer_acc.cc in Sources */,
 				9DD1FCC4247CEA1400800139 /* arm_abs_layer_acc.cc in Sources */,
@@ -3010,7 +2993,6 @@
 				9D32FCAE24557EEC002DCDAB /* blob_dump_utils.cc in Sources */,
 				9DD1FBC1247CE9BE00800139 /* metal_inner_product_layer_acc.metal in Sources */,
 				9DD1FB57247CE9BE00800139 /* metal_reduce_sum_layer_acc.mm in Sources */,
-				ECEC5D5F24FCDB8E0044DDF1 /* metal_mat_converter.mm in Sources */,
 				9D32FCED24557EEC002DCDAB /* sin_layer.cc in Sources */,
 				ECEF976924AF2B2B0094CB8B /* cpu_reformat_layer_acc.cc in Sources */,
 				9DD1FCA3247CEA1400800139 /* CONV_DW_3X3_BFP16_SLIDEW.S in Sources */,
@@ -3065,7 +3047,6 @@
 				9DD1FB61247CE9BE00800139 /* metal_batch_norm_layer_acc.metal in Sources */,
 				9DD1FB79247CE9BE00800139 /* metal_deconv_layer_depthwise.metal in Sources */,
 				9D32FCDE24557EEC002DCDAB /* conv_layer.cc in Sources */,
-				ECEC5D5924FCBD520044DDF1 /* metal_mat_converter.mm in Sources */,
 				9D32FCF424557EEC002DCDAB /* reduce_log_sum_exp_layer.cc in Sources */,
 				9D32FCF924557EEC002DCDAB /* log_layer.cc in Sources */,
 				9D32FF6024557EED002DCDAB /* concat_layer_interpreter.cc in Sources */,
@@ -3099,13 +3080,11 @@
 				9D32FD0024557EEC002DCDAB /* relu_layer.cc in Sources */,
 				ECEF979B24AF2B2B0094CB8B /* cpu_elu_layer_acc.cc in Sources */,
 				9DD1FB7E247CE9BE00800139 /* metal_reciprocal_layer_acc.metal in Sources */,
-				ECEC5D4D24FCBD2D0044DDF1 /* mat_converter_acc.cc in Sources */,
 				9DD1FB80247CE9BE00800139 /* metal_shuffle_layer_acc.metal in Sources */,
 				9D32FF5524557EED002DCDAB /* binary_op_interpreter.cc in Sources */,
 				9D32FF7824557EED002DCDAB /* instance.cc in Sources */,
 				9D32FF3C24557EED002DCDAB /* default_model_packer.cc in Sources */,
 				9DD1FB60247CE9BE00800139 /* metal_selu_layer_acc.metal in Sources */,
-				ECEC5D5624FCBD440044DDF1 /* arm_mat_converter.cc in Sources */,
 				9DD1FC73247CEA1400800139 /* arm_scale_layer_acc.cc in Sources */,
 				9DD1FCCC247CEA1500800139 /* arm_neg_layer_acc.cc in Sources */,
 				9DD1FCA6247CEA1400800139 /* CONV_FLOAT_O4.S in Sources */,
@@ -3152,6 +3131,7 @@
 				9DD1FC93247CEA1400800139 /* arm_softmax_layer_acc.cc in Sources */,
 				9D32FCC524557EEC002DCDAB /* tan_layer.cc in Sources */,
 				9DD1FCDB247CEA1500800139 /* arm_conv_layer_depthwise.cc in Sources */,
+				EC2CF72625078C1200EE3899 /* metal_mat_converter.metal in Sources */,
 				9DD1FB86247CE9BE00800139 /* metal_hdrguide_layer_acc.metal in Sources */,
 				ECEF977124AF2B2B0094CB8B /* cpu_sin_layer_acc.cc in Sources */,
 			);
@@ -3194,7 +3174,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 70;
+				CURRENT_PROJECT_VERSION = 71;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -3256,7 +3236,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 70;
+				CURRENT_PROJECT_VERSION = 71;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -3288,7 +3268,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 70;
+				DYLIB_CURRENT_VERSION = 71;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_VERSION = A;
@@ -3342,7 +3322,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 70;
+				DYLIB_CURRENT_VERSION = 71;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_VERSION = A;

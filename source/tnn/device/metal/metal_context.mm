@@ -228,6 +228,21 @@ Status MetalContext::Synchronize() {
 }
 
 - (Status)dispatchEncoder:(id<MTLComputeCommandEncoder>)encoder
+                  threadsPerGroup:(MTLSize)threadsPerGroup
+                  groups:(MTLSize)groups
+                bandwidth:(TNN_NS::MetalBandwidth)bandwidth {
+    MTLSize totalThreads = MTLSizeMake(
+        threadsPerGroup.width  * groups.width,
+        threadsPerGroup.height * groups.height,
+        threadsPerGroup.depth  * groups.depth
+    );
+    return [self dispatchEncoder:encoder
+                         threads:totalThreads
+                 threadsPerGroup:threadsPerGroup
+                       bandwidth:bandwidth];
+}
+
+- (Status)dispatchEncoder:(id<MTLComputeCommandEncoder>)encoder
                   threads:(MTLSize)threads
           threadsPerGroup:(MTLSize)threadsPerGroup
                 bandwidth:(TNN_NS::MetalBandwidth)bandwidth {

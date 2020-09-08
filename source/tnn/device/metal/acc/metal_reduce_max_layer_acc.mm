@@ -18,7 +18,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_REDUCE_ACC(ReduceMax, LAYER_REDUCE_MAX);
 
-std::string MetalReduceMaxLayerAcc::KernelName() {
+std::string MetalReduceMaxLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (axis_ == 0) {
         return "reduce_max_axis_0_common";
     } else if (axis_ == 1) {

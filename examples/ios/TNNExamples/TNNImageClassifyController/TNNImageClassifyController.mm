@@ -18,7 +18,7 @@
 #include <iostream>
 #import <tnn/tnn.h>
 
-#import "ImageClassifier.h"
+#import "image_classifier.h"
 #import "UIImage+Utility.h"
 
 using namespace std;
