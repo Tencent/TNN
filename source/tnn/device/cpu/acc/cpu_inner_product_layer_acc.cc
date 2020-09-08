@@ -108,8 +108,7 @@ Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const
                 dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         NaiveFC(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(),
-                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_handle.GetDataCount(), bias_data,
-                dims_input, dims_output);
+                dims_output[1], bias_data, dims_input, dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         RawBuffer weight_bf16 = RawBuffer(resource->weight_handle.GetDataCount() * sizeof(bfp16_t));
         ConvertFromFloatToBFP16((float *)weight_data, weight_bf16.force_to<void *>(),

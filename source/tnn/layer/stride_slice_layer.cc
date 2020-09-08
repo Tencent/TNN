@@ -70,6 +70,9 @@ Status StrideSliceLayer::InferOutputShape() {
     } else {
         //前闭后开区间
         for (int i = 0; i < input_dims.size(); i++) {
+            if (begins[i] < 0) {
+                begins[i] += input_blob->GetBlobDesc().dims[i];
+            }
             if (ends[i] == 0) {
                 ends[i] = input_dims[i];
             }
