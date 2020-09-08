@@ -66,15 +66,23 @@ Status FileReader::Read(Blob* output_blob, const std::string file_path,
         f_stream.close();
 
     } else if (format == IMAGE) {
+        int blob_c = 0;
+        if (output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            blob_c = output_blob->GetBlobDesc().dims[1];
+        } else {
+            LOGE("The blob data format is not support yet!\n");
+            return TNNERR_INVALID_INPUT;
+        }
+
         int w                   = 0;
         int h                   = 0;
         int c                   = 0;
-        unsigned char* img_data = stbi_load(file_path.c_str(), &w, &h, &c, 0);
+        unsigned char* img_data = stbi_load(file_path.c_str(), &w, &h, &c, blob_c);
         if (img_data == nullptr) {
             LOGE("load image data falied!\n");
             return TNNERR_INVALID_INPUT;
         }
-        ret = PreProcessImage(img_data, output_blob, w, h, c);
+        ret = PreProcessImage(img_data, output_blob, w, h, blob_c);
         stbi_image_free(img_data);
 
     } else {

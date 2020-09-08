@@ -62,12 +62,18 @@ cd <path_to_tnn>/scripts
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
  OPENCL="ON"                    # ON表示编译带有Arm GPU版本的库
+ NPU="ON"                       # ON表示编译带有Arm NPU版本的库
  SHARING_MEM_WITH_OPENGL=0      # 1表示OpenGL的Texture可以与OpenCL共享
 ```
+NPU PS: 
+运行前需要下载DDK, 并放到指定文件夹。 具体请参考:
+[FAQ](../faq.md)如何创建NPU编译环境? 
+
 3）执行编译脚本
 ```
 ./build_android.sh
 ```
+
 编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。
 
 ## 三、ARM Linux跨平台交叉编译

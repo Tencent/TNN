@@ -146,9 +146,7 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
     
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
     

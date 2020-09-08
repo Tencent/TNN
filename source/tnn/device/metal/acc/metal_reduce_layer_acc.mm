@@ -64,9 +64,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 
     auto context_impl = context_->getMetalContextImpl();
     auto encoder      = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
 
     auto input  = inputs[0];
     auto output = outputs[0];

@@ -395,6 +395,9 @@ struct MetalPadParams {
     int pad_r;
     int pad_t;
     int pad_b;
+    int pad_c_b;
+    int pad_c_e;
+    int input_channel;
 };
 
 /** Image Converter Param Struct **/
@@ -430,6 +433,62 @@ struct MetalSignedMulParams {
     float alpha;
     float beta;
     float gamma_inv;
+};
+
+struct MetalResizeParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    float scale_w;
+    float scale_h;
+    
+    int resized_width;
+    int resized_height;
+    int type;
+};
+
+struct MetalCropParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    int crop_width;
+    int crop_height;
+    int top_left_x;
+    int top_left_y;
+};
+
+struct MetalWarpAffineParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    int resized_width;
+    int resized_height;
+    // double is not supported in Metal
+    float transform_inv[2][3];
+    int interp_type;
+    int border_type;
+    float border_val;
+};
+
+struct MetalCopyParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \

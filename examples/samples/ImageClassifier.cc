@@ -16,57 +16,44 @@
 #include <sys/time.h>
 #include <cmath>
 
-ImageClassifier::ImageClassifier() {}
+namespace TNN_NS {
+
+ImageClassifierOutput::~ImageClassifierOutput() {}
 
 ImageClassifier::~ImageClassifier() {}
 
-int ImageClassifier::Classify(std::shared_ptr<TNN_NS::Mat> image_mat, int image_height, int image_width, int &class_id) {
-    if (!image_mat || !image_mat->GetData()) {
-        std::cout << "image is empty ,please check!" << std::endl;
-        return -1;
-    }
+MatConvertParam ImageClassifier::GetConvertParamForInput(std::string tag) {
+    MatConvertParam input_cvt_param;
+    input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
+    input_cvt_param.bias  = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
+    return input_cvt_param;
+}
 
-#if TNN_SDK_ENABLE_BENCHMARK
-    bench_result_.Reset();
-    for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
-#endif
-        
-        // step 1. set input mat
-        TNN_NS::MatConvertParam input_cvt_param;
-        input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
-        input_cvt_param.bias  = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
-        auto status = instance_->SetInputMat(image_mat, input_cvt_param);
-        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-        
-        // step 2. Forward
-        status = instance_->ForwardAsync(nullptr);
-        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-        
-        // step 3. get output mat
-        std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
-        status = instance_->GetOutputMat(output_mat_scores);
-        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+std::shared_ptr<TNNSDKOutput> ImageClassifier::CreateSDKOutput() {
+    return std::make_shared<ImageClassifierOutput>();
+}
 
-#if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
-        bench_result_.AddTime(elapsed);
-#endif
-
-        class_id           = -1;
-        float *scores_data = (float *)output_mat_scores.get()->GetData();
-        float max_v        = scores_data[0];
-        for (int i = 1; i < output_mat_scores->GetChannel(); ++i) {
-            if (max_v < scores_data[i]) {
-                max_v    = scores_data[i];
-                class_id = i;
-            }
+Status ImageClassifier::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
+    Status status = TNN_OK;
+    auto output = dynamic_cast<ImageClassifierOutput *>(output_.get());
+    RETURN_VALUE_ON_NEQ(!output, false,
+                        Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
+    
+    auto output_mat_scores = output->GetMat();
+    RETURN_VALUE_ON_NEQ(!output_mat_scores, false,
+                        Status(TNNERR_PARAM_ERR, "output_mat_scores is invalid"));
+    
+    int class_id           = -1;
+    float *scores_data = (float *)output_mat_scores.get()->GetData();
+    float max_v        = scores_data[0];
+    for (int i = 1; i < output_mat_scores->GetChannel(); ++i) {
+        if (max_v < scores_data[i]) {
+            max_v    = scores_data[i];
+            class_id = i;
         }
-
-#if TNN_SDK_ENABLE_BENCHMARK
     }
-#endif
-    return 0;
+    output->class_id = class_id;
+    return status;
+}
+
 }

@@ -54,8 +54,16 @@ cd <path_to_tnn>/scripts
  ARM="ON"                       # ON to build for ARM CPU
  OPENMP="ON"                    # ON to build for OpenMP
  OPENCL="ON"                    # ON to build for GPU
+ NPU="ON"                       # ON to enable NPU
  SHARING_MEM_WITH_OPENGL=0      # 1 for sharing OpenGL texture with openCL
 ```
+
+  NPU PS: 
+    You need to download the DDK library files and copy them to the specified directory. See:
+    NPU Compilation Prerequisite in [FAQ](../faq_en.md).
+    
+    
+    
 3）execute the building script
 ```
 ./build_android.sh

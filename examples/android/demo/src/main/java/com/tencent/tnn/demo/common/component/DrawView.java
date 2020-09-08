@@ -9,6 +9,9 @@ import android.util.Log;
 import android.view.SurfaceView;
 
 import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.ObjectDetector;
+import com.tencent.tnn.demo.ObjectDetectorSSD;
+
 
 import java.util.ArrayList;
 
@@ -17,18 +20,16 @@ public class DrawView extends SurfaceView
 {
     private static String TAG = DrawView.class.getSimpleName();
     private Paint paint = new Paint();
+    private ArrayList<String> labels = new ArrayList<String>();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
-
 
     public DrawView(Context context, AttributeSet attrs)
     {
         super(context, attrs);
         paint.setARGB(255, 0, 255, 0);
-        paint.setStrokeWidth(3);
         paint.setStyle(Paint.Style.STROKE);
         setWillNotDraw(false);
     }
-
 
     public void addFaceRect(FaceDetector.FaceInfo[] facestatus, int w, int h)
     {
@@ -47,6 +48,33 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
+    public void addObjectRect(ObjectDetector.ObjectInfo[] objectstatus, int w, int h) {
+        addObjectRect(objectstatus, w, h, true);
+    }
+
+    public void addObjectRect(ObjectDetector.ObjectInfo[] objectstatus, int w, int h, boolean isyolo)
+    {
+        rects.clear();
+        labels.clear();
+        Log.d(TAG, "canvas " + getWidth() + "x" + getHeight() + " wh " + w + "x" +h);
+        float scalew = getWidth() / (float)w;
+        float scaleh = getHeight() / (float)h;
+        if (objectstatus != null && objectstatus.length!=0)
+        {
+            for (int i=0; i<objectstatus.length; i++)
+            {
+                rects.add(new Rect((int)(objectstatus[i].x1 * scalew), (int)(objectstatus[i].y1 * scaleh), (int)(objectstatus[i].x2 * scalew), (int)(objectstatus[i].y2 * scaleh)));
+                if (isyolo) {
+                    labels.add(String.format("%s : %f", ObjectDetector.label_list[objectstatus[i].class_id], objectstatus[i].score));
+                } else {
+                    labels.add(String.format("%s : %f", ObjectDetectorSSD.voc_classes[objectstatus[i].class_id], objectstatus[i].score));
+                }
+            }
+        }
+
+        postInvalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas)
     {
@@ -57,6 +85,9 @@ public class DrawView extends SurfaceView
                 Log.d(TAG, "rect " + rects.get(i));
                 paint.setARGB(255, 0, 255, 0);
                 canvas.drawRect(rects.get(i), paint);
+                if(labels.size() > 0) {
+                    canvas.drawText(labels.get(i), rects.get(i).left, rects.get(i).top - 5, paint);
+                }
             }
 
         }

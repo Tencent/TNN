@@ -12,10 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/blob_converter.h"
+#include "tnn/core/mat.h"
+
 #include "tnn/core/abstract_device.h"
 #include "tnn/utils/dims_vector_utils.h"
+
 namespace TNN_NS {
+
 Mat::~Mat() {
     data_alloc_ = nullptr;
     data_       = nullptr;

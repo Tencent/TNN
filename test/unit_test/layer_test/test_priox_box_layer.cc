@@ -48,10 +48,6 @@ TEST_P(PriorBoxLayerTest, PriorBoxLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
-
     std::vector<float> min_sizes = {min_size};
     std::vector<float> max_sizes = {max_size};
     float offset                 = 0.5;
