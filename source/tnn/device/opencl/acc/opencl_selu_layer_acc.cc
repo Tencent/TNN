@@ -14,6 +14,9 @@
 
 #include <sstream>
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+#include <sys/system_properties.h>
+#endif
 
 namespace TNN_NS {
 
@@ -28,9 +31,27 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     run_3d_ndrange_ = true;
     op_name_        = "Selu";
 
+    std::set<std::string> build_options;
+    bool force_fp32 = false;
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+    char sdk[128] = "0";
+    __system_property_get("ro.build.version.sdk", sdk);
+
+    int sdk_version = atoi(sdk);
+
+    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    force_fp32 = (sdk_version <= 25);
+#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
+    force_fp32 = true;
+#endif
+
+    if (force_fp32) {
+        build_options.emplace("-DFORCE_FP32");
+    }
+
     // create kernel
     std::string kernel_name = "Selu";
-    ret                     = CreateExecuteUnit(execute_units_[0], "selu", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "selu", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

@@ -13,7 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_reduce_layer_acc.h"
-
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+#include <sys/system_properties.h>
+#endif
 namespace TNN_NS {
 
 DECLARE_OPENCL_REDUCE_ACC(ReduceLogSumExp);
@@ -36,6 +38,24 @@ std::set<std::string> OpenCLReduceLogSumExpLayerAcc::CreateBuildOptions() {
     std::string inner   = " -DINNEROPERATOR=r.x+r.y+r.z+r.w ";
     std::string post    = " -DPOSTOPERATOR=log(r) ";
     build_options.emplace(init + compute + inner + post);
+
+    bool force_fp32 = false;
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+    char sdk[128] = "0";
+    __system_property_get("ro.build.version.sdk", sdk);
+
+    int sdk_version = atoi(sdk);
+
+    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    force_fp32 = (sdk_version <= 25);
+#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
+    force_fp32 = true;
+#endif
+
+    if (force_fp32) {
+        build_options.emplace("-DFORCE_FP32");
+    }
+
     return build_options;
 }
 
