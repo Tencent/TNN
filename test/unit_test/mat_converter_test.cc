@@ -105,7 +105,7 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // channel
                             testing::Values(1,3,4),
                             // input size
-                            testing::Values(25),
+                            testing::Values(25,324,756,1080),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY),
                             // converter test param
@@ -114,7 +114,7 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::Copy),
                                 // Resize
                                 MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_LINEAR),
-                                MatConverterTestParam(MatConverterType::Resize, 2.0, 2.0, INTERP_TYPE_LINEAR),
+                                MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_NEAREST),
                                 // Crop
                                 MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
                                 MatConverterTestParam(MatConverterType::Crop, 5, 5, 10, 10),

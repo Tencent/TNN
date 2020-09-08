@@ -311,7 +311,14 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
     OpenCLExecuteUnit unit;
     if(execute_map_.count(key) == 0) {
         std::string program_name = "normalize";
-        std::string kernel_name = "image_bilinear";
+        std::string kernel_name = "";
+        if(param.type == INTERP_TYPE_LINEAR) {
+            kernel_name = "ResizeBilinear";
+        } else if(param.type == INTERP_TYPE_NEAREST) {
+            kernel_name = "ResizeNearest";
+        } else {
+            return Status(TNNERR_PARAM_ERR, "resize type is illegal");
+        }
         ret = CreateExecuteUnit(unit, program_name, kernel_name);
         if(ret != TNN_OK) {
             return ret;

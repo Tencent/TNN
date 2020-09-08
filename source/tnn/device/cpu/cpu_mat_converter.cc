@@ -71,6 +71,9 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
                 ResizeBilinear(src_ptr, src.GetWidth(), src.GetHeight(),
                                dst_ptr, dst.GetWidth(), dst.GetHeight(), channel);
             } 
+        } else if(param.type == INTERP_TYPE_NEAREST) {
+            ResizeNearest((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
+            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),channel);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
