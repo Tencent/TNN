@@ -62,8 +62,7 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     force_fp32 = true;
 #endif
 
-    if (force_fp32)
-    {
+    if (force_fp32) {
         build_options.emplace("-DFORCE_FP32");
     }
 

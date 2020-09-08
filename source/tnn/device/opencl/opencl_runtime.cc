@@ -262,8 +262,7 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     std::string build_options_str;
     bool force_fp32 = false;
     auto it         = build_options.find("-DFORCE_FP32");
-    if (it != build_options.end())
-    {
+    if (it != build_options.end()) {
         force_fp32 = true;
     }
     //set default macro
