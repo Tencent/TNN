@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.ImageObjectDetectorSSD;
+package com.tencent.tnn.demo.ImageBlazeFaceDetector;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -15,25 +15,24 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.tencent.tnn.demo.BlazeFaceDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
-import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
-import com.tencent.tnn.demo.ObjectDetectorSSD;
 
 import java.util.ArrayList;
 
 
-public class ImageObjectDetectSSDFragment extends BaseFragment {
+public class ImageBlazeFaceDetectFragment extends BaseFragment {
 
-    private final static String TAG = ImageObjectDetectSSDFragment.class.getSimpleName();
-    private ObjectDetectorSSD imageObjectDetectorSSD = new ObjectDetectorSSD();
+    private final static String TAG = BlazeFaceDetector.class.getSimpleName();
+    private BlazeFaceDetector mFaceDetector = new BlazeFaceDetector();
 
-    private static final String IMAGE = "004545.jpg";
-    private static final int NET_H_INPUT = 300;
-    private static final int NET_W_INPUT = 300;
+    private static final String IMAGE = "test_blazeface.jpg";
+    private static final int NET_H_INPUT = 128;
+    private static final int NET_W_INPUT = 128;
     private Paint mPaint = new Paint();
     private DrawView mDrawView;
     private ToggleButton mGPUSwitch;
@@ -52,7 +51,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
         String modelPath = initModel();
-        NpuEnable = imageObjectDetectorSSD.checkNpu(modelPath);
+        NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
     private String initModel() {
@@ -61,13 +60,15 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "mobilenetv2_ssd.tnnmodel",
-                "mobilenetv2_ssd.tnnproto",
+                "blazeface.tnnmodel",
+                "blazeface.tnnproto",
+                "blazeface_anchors.txt"
         };
+
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath;
-            FileUtils.copyAsset(getActivity().getAssets(), "mobilenet_v2-ssd/" + modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "blazeface/" + modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
@@ -109,7 +110,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imageobjectdetector);
+        setView(R.layout.fragment_imagefacedetector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -167,60 +168,53 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
 
 
     private void startDetect() {
+
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
-        ImageView source = (ImageView)$(R.id.origin);
+        Bitmap scaleBitmap = Bitmap.createScaledBitmap(originBitmap, NET_W_INPUT, NET_H_INPUT, false);
+        ImageView source = (ImageView) $(R.id.origin);
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseNPU) {
+        if (mUseNPU) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if (mUseGPU) {
             device = 1;
         }
-        int result = imageObjectDetectorSSD.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
-        if(result == 0) {
-            Log.d(TAG, "detect from image");
-            ObjectDetector.ObjectInfo[] objectInfoList = imageObjectDetectorSSD.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
-            Log.d(TAG, "detect from image result " + objectInfoList);
-            int objectCount = 0;
-            if (objectInfoList != null) {
-                objectCount = objectInfoList.length;
-            }
-            if(objectInfoList != null && objectInfoList.length > 0) {
-                Log.d(TAG, "detect object size " + objectInfoList.length);
-
-                mPaint.setARGB(255, 0, 255, 0);
-                mPaint.setFilterBitmap(true);
-                mPaint.setStyle(Paint.Style.STROKE);
-                Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
-                Canvas canvas = new Canvas(scaleBitmap2);
-                ArrayList<Rect> rects = new ArrayList<Rect>();
-                for (int i = 0; i < objectInfoList.length; i++) {
-                    rects.add(new Rect((int) (objectInfoList[i].x1), (int) (objectInfoList[i].y1), (int) (objectInfoList[i].x2), (int) (objectInfoList[i].y2)));
-                }
-                for (int i = 0; i < rects.size(); i++) {
-                    Log.d(TAG, "rect " + rects.get(i));
-                    Rect rect = rects.get(i);
-                    mPaint.setARGB(255, 0, 255, 0);
-                    canvas.drawRect(rect, mPaint);
-                    ObjectDetector.ObjectInfo info = objectInfoList[i];
-                    if (info.class_id < ObjectDetectorSSD.voc_classes.length) {
-                        mPaint.setTextSize(18);
-                        canvas.drawText(String.format("%s : %f", ObjectDetectorSSD.voc_classes[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
-                    }
-                }
-                source.setImageBitmap(scaleBitmap2);
-                source.draw(canvas);
-
-
-            }
-            String benchResult = "object count: " + objectCount + " " + Helper.getBenchResult();
-            TextView result_view = (TextView) $(R.id.result);
-            result_view.setText(benchResult);
-        } else {
-            Log.e(TAG, "failed to init model " + result);
+        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+        Log.d(TAG, "detect from image");
+        BlazeFaceDetector.BlazeFaceInfo[] faceInfoList = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
+//        BlazefaceDetector.FaceInfo[] res = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
+        int faceCount = 0;
+        if (faceInfoList != null) {
+            faceCount = faceInfoList.length;
         }
+        mPaint.setStyle(Paint.Style.STROKE);
+        Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
+        Canvas canvas = new Canvas(scaleBitmap2);
+        ArrayList<Rect> rects = new ArrayList<Rect>();
+
+        for (int i = 0; i < faceInfoList.length; i++) {
+            BlazeFaceDetector.BlazeFaceInfo tmpFaceInfo = faceInfoList[i];
+            rects.add(new Rect((int) (tmpFaceInfo.x1), (int) (tmpFaceInfo.y1), (int) (tmpFaceInfo.x2), (int) (tmpFaceInfo.y2)));
+            for (int j = 0; j < tmpFaceInfo.keypoints.length; j++) {
+                mPaint.setARGB(255, 0, 255, 0);
+                mPaint.setStrokeWidth(5);
+                canvas.drawPoint(tmpFaceInfo.keypoints[j][0], tmpFaceInfo.keypoints[j][1], mPaint);
+            }
+        }
+        mPaint.setStrokeWidth(8);
+        for (int i = 0; i < rects.size(); i++) {
+            Log.d(TAG, "rect " + rects.get(i));
+            Rect rect = rects.get(i);
+            mPaint.setARGB(255, 0, 255, 0);
+            canvas.drawRect(rect, mPaint);
+        }
+        source.setImageBitmap(scaleBitmap2);
+        source.draw(canvas);
+        String benchResult = "face count: "  + faceCount+ " " + Helper.getBenchResult();
+        TextView result_view = (TextView) $(R.id.result);
+        result_view.setText(benchResult);
     }
 
     @Override
