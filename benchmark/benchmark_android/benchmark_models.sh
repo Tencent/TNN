@@ -28,14 +28,14 @@ benchmark_model_list=(
 )
 
 function usage() {
-    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>"
+    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/GPU>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -b    build targets only"
     echo "        -f    build profiling targets "
     echo "        -d    run with specified device"
-    echo "        -t    CPU/GPU specify the platform to run"
+    echo "        -t    NAIVE/GPU specify the platform to run"
 }
 
 function exit_with_msg() {
@@ -56,6 +56,23 @@ function build_android_bench() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
+
+    NAIVE=OFF
+    if [ "$DEVICE_TYPE" = "NAIVE" ];then
+        NAIVE=ON
+    fi
+    OPENCL=OFF
+    if [ "$DEVICE_TYPE" = "GPU" ];then
+        OPENCL=ON
+    fi
+    ARM=OFF
+    if [ "$DEVICE_TYPE" = "" ];then
+        ARM=ON
+    fi
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+        ARM=ON
+    fi
+
     mkdir -p build
     cd $BUILD_DIR
     cmake ../../.. \
@@ -65,8 +82,9 @@ function build_android_bench() {
           -DANDROID_STL=${STL}\
           -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
-          -DTNN_ARM_ENABLE:BOOL=ON \
-          -DTNN_OPENCL_ENABLE:BOOL=ON \
+          -DTNN_ARM_ENABLE:BOOL=${ARM} \
+          -DTNN_NAIVE_ENABLE:BOOL=${NAIVE} \
+          -DTNN_OPENCL_ENABLE:BOOL=${OPENCL} \
           -DTNN_OPENMP_ENABLE:BOOL=ON \
           -DTNN_TEST_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
@@ -105,14 +123,13 @@ function bench_android() {
         benchmark_model_list=`ls *.tnnproto`
     fi
 
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ];then
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         DEVICE_TYPE=""
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
-        device=ARM
+    if [ "$DEVICE_TYPE" = "NAIVE" ];then
+        device=NAIVE
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-
         for benchmark_model in ${benchmark_model_list[*]}
         do
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
@@ -124,8 +141,17 @@ function bench_android() {
         LOOP_COUNT=1
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "GPU" ];then
         device=OPENCL
+        $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+        done
+    fi
+
+    if [ "$DEVICE_TYPE" = "" ];then
+        device=ARM
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do

@@ -12,13 +12,13 @@ LOOP_COUNT=10
 ADB=adb
 
 function usage() {
-    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <CPU/GPU>"
+    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <NAIVE/GPU>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -d    run with specified device"
     echo "        -f    specified layer"
-    echo "        -t    CPU/GPU specify the platform to run"
+    echo "        -t    NAIVE/GPU specify the platform to run"
 }
 
 function exit_with_msg() {
@@ -39,6 +39,23 @@ function build_android_bench() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
+
+    NAIVE=OFF
+    if [ "$DEVICE_TYPE" = "NAIVE" ];then
+        NAIVE=ON
+    fi
+    OPENCL=OFF
+    if [ "$DEVICE_TYPE" = "GPU" ];then
+        OPENCL=ON
+    fi
+    ARM=OFF
+    if [ "$DEVICE_TYPE" = "" ];then
+        ARM=ON
+    fi
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+        ARM=ON
+    fi
+
     mkdir -p build
     cd $BUILD_DIR
     cmake ../../.. \
@@ -48,8 +65,9 @@ function build_android_bench() {
           -DANDROID_STL=c++_static \
           -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
-          -DTNN_ARM_ENABLE:BOOL=ON \
-          -DTNN_OPENCL_ENABLE:BOOL=ON \
+          -DTNN_ARM_ENABLE:BOOL=${ARM} \
+          -DTNN_NAIVE_ENABLE:BOOL=${NAIVE} \
+          -DTNN_OPENCL_ENABLE:BOOL=${OPENCL} \
           -DTNN_TEST_ENABLE:BOOL=ON \
           -DTNN_UNIT_TEST_ENABLE:BOOL=ON \
           -DTNN_UNIT_TEST_BENCHMARK:BOOL=ON \
@@ -73,16 +91,21 @@ function bench_android() {
     $ADB shell chmod 0777 $ANDROID_DIR/unit_test
 
     $ADB shell "getprop ro.product.model > ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ];then
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         DEVICE_TYPE=""
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
+    if [ "$DEVICE_TYPE" = "" ];then
         $ADB shell "echo '\nbenchmark device: ARM \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt ARM --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "NAIVE" ];then
+        $ADB shell "echo '\nbenchmark device: NAIVE \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
+        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt NAIVE --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
+    fi
+
+    if [ "$DEVICE_TYPE" = "GPU" ];then
         LOOP_COUNT=1
         $ADB shell "echo '\nbenchmark device: OPENCL \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
