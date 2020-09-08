@@ -18,7 +18,7 @@
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -78,7 +78,7 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     }
 
     //create identifier
-    std::string mat_key = to_string(src.GetDeviceType()) + "_" + to_string(dst.GetDeviceType());
+    std::string mat_key = ToString(src.GetDeviceType()) + "_" + ToString(dst.GetDeviceType());
     //create convert unit only once for every key
     OpenCLExecuteUnit unit;
     if(copy_flag){

@@ -14,7 +14,7 @@
 
 #include "tnn/device/arm/arm_mat_util.h"
 
-#include <malloc.h>
+#include "stdlib.h"
 #include <type_traits>
 
 #ifdef TNN_USE_NEON
