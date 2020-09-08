@@ -14,6 +14,9 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+#include <sys/system_properties.h>
+#endif
 
 namespace TNN_NS {
 
@@ -44,7 +47,27 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid softmax axis");
     }
-    ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name);
+
+    std::set<std::string> build_options;
+    bool force_fp32 = false;
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+    char sdk[128] = "0";
+    __system_property_get("ro.build.version.sdk", sdk);
+
+    int sdk_version = atoi(sdk);
+
+    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    force_fp32 = (sdk_version <= 25);
+#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
+    force_fp32 = true;
+#endif
+
+    if (force_fp32)
+    {
+        build_options.emplace("-DFORCE_FP32");
+    }
+
+    ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -87,6 +110,7 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int>(channels));
         execute_units_[0].ocl_kernel.setArg(idx++, remainChannels);
+
         execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
     } else if (2 == softmax_param->axis) {
         if (execute_units_[0].workgroupsize_max > 256) {
