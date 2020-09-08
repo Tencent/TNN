@@ -1,8 +1,12 @@
 //
-// Created by tencent on 2020-04-29.
+// Created by 李烨 on 3/9/20.
 //
-#include "objectdetector_jni.h"
-#include "ObjectDetectorYolo.h"
+
+#include <vector>
+#include <android/bitmap.h>
+#include "objectdetectorssd_jni.h"
+#include "ObjectDetectorSSD.h"
+#include "helper_jni.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"
 #include <jni.h>
@@ -10,8 +14,11 @@
 #include <android/bitmap.h>
 #include "tnn/utils/mat_utils.h"
 
-static std::shared_ptr<TNN_NS::ObjectDetectorYolo> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
+static std::shared_ptr<TNN_NS::ObjectDetectorSSD> gDetector;
+static int gComputeUnitType = 0;
+static int target_height = 300;
+static int target_width = 300;
+static std::vector<int> target_dims = {1, 3, target_height, target_width};
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
 static jfieldID fidx1;
@@ -21,72 +28,76 @@ static jfieldID fidy2;
 static jfieldID fidscore;
 static jfieldID fidlandmarks;
 static jfieldID fidcls;
-// Jni functions
 
-JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jfloat scoreThreshold, jfloat iouThreshold, jint topk, jint computUnitType)
-{
+JNIEXPORT JNICALL jint
+TNN_OBJECT_DETECTORSSD(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height,
+                             jfloat scoreThreshold, jfloat iouThreshold, jint topk,
+                             jint computUnitType) {
     // Reset bench description
     setBenchResult("");
     std::vector<int> nchw = {1, 3, height, width};
-    gDetector = std::make_shared<TNN_NS::ObjectDetectorYolo>();
+    gDetector = std::make_shared<TNN_NS::ObjectDetectorSSD>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/yolov5s-permute.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/yolov5s.tnnmodel");
-    LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
+    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnmodel");
+    LOGI("proto content size %d model content size %d", protoContent.length(),
+         modelContent.length());
     gComputeUnitType = computUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-    option->library_path="";
+    option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
-    LOGE("the device type  %d device npu" ,gComputeUnitType);
+
+    LOGI("the device type %d device npu", gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for npu store the om file
-        LOGE("the device type  %d device npu" ,gComputeUnitType);
+        LOGI("the device type  %d device npu", gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
     } else {
-	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-    	status = gDetector->Init(option);
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        status = gDetector->Init(option);
     }
 
     if (status != TNN_NS::TNN_OK) {
-        LOGE("detector init failed %d", (int)status);
+        LOGE("detector init failed %d", (int) status);
         return -1;
     }
     TNN_NS::BenchOption bench_option;
     bench_option.forward_count = 1;
     gDetector->SetBenchOption(bench_option);
-    if (clsObjectInfo == NULL)
-    {
-        clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/ObjectDetector$ObjectInfo")));
+    if (clsObjectInfo == NULL) {
+        clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(
+                env->FindClass("com/tencent/tnn/demo/ObjectDetector$ObjectInfo")));
         midconstructorObjectInfo = env->GetMethodID(clsObjectInfo, "<init>", "()V");
-        fidx1 = env->GetFieldID(clsObjectInfo, "x1" , "F");
-        fidy1 = env->GetFieldID(clsObjectInfo, "y1" , "F");
-        fidx2 = env->GetFieldID(clsObjectInfo, "x2" , "F");
-        fidy2 = env->GetFieldID(clsObjectInfo, "y2" , "F");
-        fidscore = env->GetFieldID(clsObjectInfo, "score" , "F");
-        fidlandmarks = env->GetFieldID(clsObjectInfo, "landmarks" , "[F");
+        fidx1 = env->GetFieldID(clsObjectInfo, "x1", "F");
+        fidy1 = env->GetFieldID(clsObjectInfo, "y1", "F");
+        fidx2 = env->GetFieldID(clsObjectInfo, "x2", "F");
+        fidy2 = env->GetFieldID(clsObjectInfo, "y2", "F");
+        fidscore = env->GetFieldID(clsObjectInfo, "score", "F");
+        fidlandmarks = env->GetFieldID(clsObjectInfo, "landmarks", "[F");
         fidcls = env->GetFieldID(clsObjectInfo, "class_id", "I");
     }
 
     return 0;
 }
 
-JNIEXPORT JNICALL jboolean TNN_OBJECT_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
-    TNN_NS::ObjectDetectorYolo tmpDetector;
+JNIEXPORT JNICALL jboolean
+TNN_OBJECT_DETECTORSSD(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+    TNN_NS::ObjectDetectorSSD tmpDetector;
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/yolov5s-permute.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/yolov5s.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnmodel");
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsNPU;
     option->library_path = "";
@@ -98,17 +109,13 @@ JNIEXPORT JNICALL jboolean TNN_OBJECT_DETECTOR(checkNpu)(JNIEnv *env, jobject th
     return ret == TNN_NS::TNN_OK;
 }
 
-JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
-{
+JNIEXPORT JNICALL jint TNN_OBJECT_DETECTORSSD(deinit)(JNIEnv *env, jobject thiz) {
 
     gDetector = nullptr;
     return 0;
 }
 
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-//#include "stb_image_write.h"
-JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate)
-{
+JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate) {
     jobjectArray objectInfoArray;
     auto asyncRefDetector = gDetector;
     std::vector<TNN_NS::ObjectInfo> objectInfoList;
@@ -116,16 +123,18 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
     LOGI("detect from stream %d x %d r %d", width, height, rotate);
     unsigned char *yuvData = new unsigned char[height * width * 3 / 2];
     jbyte *yuvDataRef = env->GetByteArrayElements(yuv420sp, 0);
-    int ret = kannarotate_yuv420sp((const unsigned char*)yuvDataRef, (int)width, (int)height, (unsigned char*)yuvData, (int)rotate);
+    int ret = kannarotate_yuv420sp((const unsigned char *) yuvDataRef, (int) width, (int) height,
+                                   (unsigned char *) yuvData, (int) rotate);
     env->ReleaseByteArrayElements(yuv420sp, yuvDataRef, 0);
     unsigned char *rgbaData = new unsigned char[height * width * 4];
-    yuv420sp_to_rgba_fast_asm((const unsigned char*)yuvData, height, width, (unsigned char*)rgbaData);
+    yuv420sp_to_rgba_fast_asm((const unsigned char *) yuvData, height, width,
+                              (unsigned char *) rgbaData);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
 
     TNN_NS::DimsVector input_dims = {1, 4, width, height};
-    TNN_NS::DimsVector resize_dims = {1, 4, 448, 640};
-    float scale_h = input_dims[2] / 448.0f;
-    float scale_w = input_dims[3] / 640.0f;
+    TNN_NS::DimsVector resize_dims = {1, 4, 300, 300};
+    float scale_h = input_dims[2] / 300.0f;
+    float scale_w = input_dims[3] / 300.0f;
 
     auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, input_dims, rgbaData);
     auto resize_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, resize_dims);
@@ -139,11 +148,11 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
     asyncRefDetector->ProcessSDKOutput(output);
-    objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(output.get())->object_list;
-    delete [] yuvData;
-    delete [] rgbaData;
+    objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorSSDOutput *>(output.get())->object_list;
+    delete[] yuvData;
+    delete[] rgbaData;
     if (status != TNN_NS::TNN_OK) {
-        LOGE("failed to detect %d", (int)status);
+        LOGE("failed to detect %d", (int) status);
         return 0;
     }
 
@@ -157,7 +166,8 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
-    std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
+    std::string resultTips = std::string(
+            computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);
     LOGI("object info list size %d", objectInfoList.size());
     // TODO: copy object info list
@@ -166,7 +176,9 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
         for (int i = 0; i < objectInfoList.size(); i++) {
             jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
             int landmarkNum = objectInfoList[i].key_points.size();
-            LOGI("object[%d] %f %f %f %f score %f landmark size %d, label_id: %d", i, objectInfoList[i].x1, objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2, objectInfoList[i].score, landmarkNum, objectInfoList[i].class_id);
+            LOGI("object[%d] %f %f %f %f score %f landmark size %d", i, objectInfoList[i].x1,
+                 objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2,
+                 objectInfoList[i].score, landmarkNum);
             env->SetFloatField(objObjectInfo, fidx1, objectInfoList[i].x1 * scale_w);
             env->SetFloatField(objObjectInfo, fidy1, objectInfoList[i].y1 * scale_h);
             env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2 * scale_w);
@@ -180,15 +192,15 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
     } else {
         return 0;
     }
-
 }
 
-JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height)
-{
+JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width,jint height) {
     jobjectArray objectInfoArray;
     int ret = -1;
-    AndroidBitmapInfo  sourceInfocolor;
-    void*              sourcePixelscolor;
+    AndroidBitmapInfo sourceInfocolor;
+    void *sourcePixelscolor;
+    int image_orig_height = height;
+    int image_orig_width = width;
 
     if (AndroidBitmap_getInfo(env, imageSource, &sourceInfocolor) < 0) {
         return 0;
@@ -198,40 +210,29 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
         return 0;
     }
 
-    if ( AndroidBitmap_lockPixels(env, imageSource, &sourcePixelscolor) < 0) {
+    if (AndroidBitmap_lockPixels(env, imageSource, &sourcePixelscolor) < 0) {
         return 0;
     }
     TNN_NS::BenchOption bench_option;
     bench_option.forward_count = 20;
     gDetector->SetBenchOption(bench_option);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
-    TNN_NS::DimsVector input_dims = {1, 4, height, width};
-    auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, input_dims, sourcePixelscolor);
-
-    TNN_NS::DimsVector target_dims = {1, 4, 448, 640};
-    auto resize_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims);
-
-    TNN_NS::ResizeParam param;
-    TNN_NS::MatUtils::Resize(*input_mat, *resize_mat, param, NULL);
-
-    float scale_h = height / 448.0f;
-    float scale_w = width / 640.0f;
-
-
+    TNN_NS::DimsVector target_dims = {1, 3, height, width};
+    auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims,
+                                                   sourcePixelscolor);
     auto asyncRefDetector = gDetector;
-    std::vector<TNN_NS::ObjectInfo> objectInfoList;
 
-    std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(resize_mat);
+    std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(input_mat);
     std::shared_ptr<TNN_NS::TNNSDKOutput> output = std::make_shared<TNN_NS::TNNSDKOutput>();
 
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
     AndroidBitmap_unlockPixels(env, imageSource);
 
     asyncRefDetector->ProcessSDKOutput(output);
-    objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(output.get())->object_list;
+    std::vector<TNN_NS::ObjectInfo> objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorSSDOutput *>(output.get())->object_list;
 
     if (status != TNN_NS::TNN_OK) {
-        LOGE("failed to detect %d", (int)status);
+        LOGE("failed to detect %d", (int) status);
         return 0;
     }
     LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
@@ -244,7 +245,8 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
-    std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
+    std::string resultTips = std::string(
+            computeUnitTips + asyncRefDetector->GetBenchResult().Description());
     setBenchResult(resultTips);
     LOGI("object info list size %d", objectInfoList.size());
     // TODO: copy object info list
@@ -253,11 +255,13 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
         for (int i = 0; i < objectInfoList.size(); i++) {
             jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
             int landmarkNum = objectInfoList[i].key_points.size();
-            LOGI("object[%d] %f %f %f %f score %f landmark size %d", i, objectInfoList[i].x1, objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2, objectInfoList[i].score, landmarkNum);
-            env->SetFloatField(objObjectInfo, fidx1, objectInfoList[i].x1 * scale_w);
-            env->SetFloatField(objObjectInfo, fidy1, objectInfoList[i].y1 * scale_h);
-            env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2 * scale_w);
-            env->SetFloatField(objObjectInfo, fidy2, objectInfoList[i].y2 * scale_h);
+            LOGI("object[%d] %f %f %f %f score %f landmark size %d", i, objectInfoList[i].x1,
+                 objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2,
+                 objectInfoList[i].score, landmarkNum);
+            env->SetFloatField(objObjectInfo, fidx1, objectInfoList[i].x1);
+            env->SetFloatField(objObjectInfo, fidy1, objectInfoList[i].y1);
+            env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2);
+            env->SetFloatField(objObjectInfo, fidy2, objectInfoList[i].y2);
             env->SetFloatField(objObjectInfo, fidscore, objectInfoList[i].score);
             env->SetIntField(objObjectInfo, fidcls, objectInfoList[i].class_id);
             env->SetObjectArrayElement(objectInfoArray, i, objObjectInfo);
@@ -267,6 +271,5 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
     } else {
         return 0;
     }
-
-    return 0;
 }
+

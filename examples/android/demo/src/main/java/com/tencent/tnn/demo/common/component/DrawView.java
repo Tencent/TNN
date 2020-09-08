@@ -10,6 +10,7 @@ import android.view.SurfaceView;
 
 import com.tencent.tnn.demo.FaceDetector;
 import com.tencent.tnn.demo.ObjectDetector;
+import com.tencent.tnn.demo.ObjectDetectorSSD;
 
 
 import java.util.ArrayList;
@@ -47,7 +48,11 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectDetector.ObjectInfo[] objectstatus, int w, int h)
+    public void addObjectRect(ObjectDetector.ObjectInfo[] objectstatus, int w, int h) {
+        addObjectRect(objectstatus, w, h, true);
+    }
+
+    public void addObjectRect(ObjectDetector.ObjectInfo[] objectstatus, int w, int h, boolean isyolo)
     {
         rects.clear();
         labels.clear();
@@ -59,7 +64,11 @@ public class DrawView extends SurfaceView
             for (int i=0; i<objectstatus.length; i++)
             {
                 rects.add(new Rect((int)(objectstatus[i].x1 * scalew), (int)(objectstatus[i].y1 * scaleh), (int)(objectstatus[i].x2 * scalew), (int)(objectstatus[i].y2 * scaleh)));
-                labels.add(String.format("%s : %f", ObjectDetector.label_list[objectstatus[i].class_id], objectstatus[i].score));
+                if (isyolo) {
+                    labels.add(String.format("%s : %f", ObjectDetector.label_list[objectstatus[i].class_id], objectstatus[i].score));
+                } else {
+                    labels.add(String.format("%s : %f", ObjectDetectorSSD.voc_classes[objectstatus[i].class_id], objectstatus[i].score));
+                }
             }
         }
 

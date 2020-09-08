@@ -9,9 +9,11 @@ import android.widget.TextView;
 
 import com.tencent.tnn.demo.ImageClassifyDetector.ImageClassifyDetectActivity;
 import com.tencent.tnn.demo.ImageFaceDetector.ImageFaceDetectActivity;
+import com.tencent.tnn.demo.ImageObjectDetectorSSD.ImageObjectDetectSSDActivity;
 import com.tencent.tnn.demo.StreamFaceDetector.StreamFaceDetectActivity;
 import com.tencent.tnn.demo.ImageObjectDetector.ImageObjectDetectActivity;
 import com.tencent.tnn.demo.StreamObjectDetector.StreamObjectDetectActivity;
+import com.tencent.tnn.demo.StreamObjectDetectorSSD.StreamObjectDetectSSDActivity;
 
 
 public class MainActivity extends Activity {
@@ -90,6 +92,31 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, StreamObjectDetectActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+        findViewById(R.id.image_object_detectssd_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, ImageObjectDetectSSDActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.stream_object_detectssd_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, StreamObjectDetectSSDActivity.class);
                     activity.startActivity(intent);
                 }
             }
