@@ -16,6 +16,6 @@
 
 static char *branch_name_tnn = "feature_demo";
 static char *commit_date_tnn = "2020-09-08";
-static char *commit_hash_tnn = "d73af4d";
+static char *commit_hash_tnn = "6c96d79";
 
 #endif //TNN_INCLUDE_TNN_VERSION_H_

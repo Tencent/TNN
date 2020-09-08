@@ -275,7 +275,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
         for (int i = 0; i < face_info.size(); i++) {
             jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
             int keypointsNum = face_info[i].key_points.size();
-            auto face_orig = face_info[i].AdjustToViewSize(height, width, 2);
+            auto face_orig = face_info[i].AdjustToViewSize(width, height, 2);
             LOGE("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
                  face_orig.x2, face_orig.y2, face_orig.score, keypointsNum);
             env->SetFloatField(objFaceInfo, fidx1, face_orig.x1);
