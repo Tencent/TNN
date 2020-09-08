@@ -13,9 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
-#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
-#include <sys/system_properties.h>
-#endif
 
 namespace TNN_NS {
 
@@ -37,23 +34,7 @@ std::set<std::string> OpenCLExpLayerAcc::CreateBuildOptions() {
     std::string compute = "exp(in)";
     build_options.emplace(" -DOPERATOR=" + compute);
 
-    bool force_fp32 = false;
-#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
-    char sdk[128] = "0";
-    __system_property_get("ro.build.version.sdk", sdk);
-
-    int sdk_version = atoi(sdk);
-
-    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
-    force_fp32 = (sdk_version <= 25);
-#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
-    force_fp32 = true;
-#endif
-
-    if (force_fp32) {
-        build_options.emplace("-DFORCE_FP32");
-    }
-
+    AdjustBuildOptionForFp32(build_options);
     return build_options;
 }
 
