@@ -1,5 +1,5 @@
 //
-// Created by 李烨 on 18/8/20.
+// Created by tencent on 2020-04-30.
 //
 
 #include "blazeface_detector_jni.h"

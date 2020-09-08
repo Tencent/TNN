@@ -1,7 +1,6 @@
 //
-// Created by 李烨 on 3/9/20.
+// Created by tencent on 2020-04-30.
 //
-
 #include <vector>
 #include <android/bitmap.h>
 #include "objectdetectorssd_jni.h"
@@ -277,4 +276,3 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromImage)(JNIEnv *e
         return 0;
     }
 }
-
