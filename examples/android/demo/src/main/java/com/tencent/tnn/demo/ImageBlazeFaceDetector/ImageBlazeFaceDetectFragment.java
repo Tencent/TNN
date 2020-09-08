@@ -62,7 +62,6 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "blazeface.tnnmodel",
                 "blazeface.tnnproto",
-                "blazeface_anchors.txt"
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -70,6 +69,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
             String interModelFilePath = targetDir + "/" + modelFilePath;
             FileUtils.copyAsset(getActivity().getAssets(), "blazeface/" + modelFilePath, interModelFilePath);
         }
+        FileUtils.copyAsset(getActivity().getAssets(),"blazeface_anchors.txt", targetDir + "/blazeface_anchors.txt");
         return targetDir;
     }
 
@@ -184,7 +184,6 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         Log.d(TAG, "detect from image");
         BlazeFaceDetector.BlazeFaceInfo[] faceInfoList = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
-//        BlazefaceDetector.FaceInfo[] res = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
         int faceCount = 0;
         if (faceInfoList != null) {
             faceCount = faceInfoList.length;

@@ -78,7 +78,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "blazeface.tnnmodel",
                 "blazeface.tnnproto",
-                "blazeface_anchors.txt"
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -86,6 +85,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             String interModelFilePath = targetDir + "/" + modelFilePath;
             FileUtils.copyAsset(getActivity().getAssets(), "blazeface/" + modelFilePath, interModelFilePath);
         }
+        FileUtils.copyAsset(getActivity().getAssets(),"blazeface_anchors.txt", targetDir + "/blazeface_anchors.txt");
         return targetDir;
     }
     @Override
