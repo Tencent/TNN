@@ -33,7 +33,7 @@ bool ArmDeconvLayerStride::isPrefered(ConvLayerParam *param, const std::vector<B
         return false;
 
     return param->group == 1 && param->strides[0] > 1 && param->strides[1] > 1 && param->dialations[0] == 1 &&
-           param->dialations[1] == 1 && param->kernels[0] > 1 && param->kernels[1] > 1;
+           param->dialations[1] == 1 && param->kernels[0] >= param->strides[0] && param->kernels[1] >= param->strides[1];
 }
 
 Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -238,11 +238,11 @@ void ArmDeconvLayerStride::CopyWithStride(ConvUnit &unit, Blob *output) {
     int y_start               = std::ceil(1.0 * (pad_y - unit.y_offset) / stride_y);
     y_start                   = std::max(y_start, 0);
     int y_end                 = std::floor(1.0 * (pad_y + oh - unit.y_offset - 1) / stride_y);
-    y_end                     = std::min(y_end, stride_oh);
+    y_end                     = std::min(y_end, stride_oh - 1);
     int x_start               = std::ceil(1.0 * (pad_x - unit.x_offset) / stride_x);
     x_start                   = std::max(x_start, 0);
     int x_end                 = std::floor(1.0 * (pad_x + ow - unit.x_offset - 1) / stride_x);
-    x_end                     = std::min(x_end, stride_ow);
+    x_end                     = std::min(x_end, stride_ow - 1);
 
     for (int b = 0; b < batch; b++) {
         auto src_b = stride_output_origin + b * ROUND_UP(stride_dims[1], 4) * stride_dims[2] * stride_dims[3];
@@ -266,7 +266,7 @@ void ArmDeconvLayerStride::CopyWithStride(ConvUnit &unit, Blob *output) {
 }
 
 Status ArmDeconvLayerStride::CopyOutputSplitBlob(Blob *output) {
-    auto data_type     = output->GetBlobDesc().data_type;
+    auto data_type = output->GetBlobDesc().data_type;
 
     for (auto &unit : conv_units_) {
         if (data_type == DATA_TYPE_FLOAT) {
