@@ -292,6 +292,14 @@ API_AVAILABLE(ios(10.0)){
         return nil;
     }
     
+    return [self getMTLTextureFromImageBuffer:imageBuffer];
+}
+
+-(id<MTLTexture>)getMTLTextureFromImageBuffer:(CVImageBufferRef)imageBuffer {
+    if (!_textureCache || !imageBuffer) {
+        return nil;
+    }
+    
     auto width = CVPixelBufferGetWidth(imageBuffer);
     auto height = CVPixelBufferGetHeight(imageBuffer);
     
@@ -311,7 +319,6 @@ API_AVAILABLE(ios(10.0)){
     auto mtl_texture =  CVMetalTextureGetTexture(texture_ref);
     CVBufferRelease(texture_ref);
     return mtl_texture;
-//
 }
 
 -(UIImage *)getUIImage:(CMSampleBufferRef)sampleBuffer {

@@ -40,8 +40,12 @@ Status UltraFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    auto in_w = option->input_width;
-    auto in_h = option->input_height;
+    auto input_dims = GetInputShape();
+    int in_h = input_dims[2];
+    int in_w = input_dims[3];
+    option->input_height = in_h;
+    option->input_width  = in_w;
+
     auto w_h_list = {in_w, in_h};
 
     for (auto size : w_h_list) {
@@ -93,6 +97,26 @@ MatConvertParam UltraFaceDetector::GetConvertParamForInput(std::string tag) {
 
 std::shared_ptr<TNNSDKOutput> UltraFaceDetector::CreateSDKOutput() {
     return std::make_shared<UltraFaceDetectorOutput>();
+}
+
+std::shared_ptr<Mat> UltraFaceDetector::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
+                                                                   std::string name) {
+    auto target_dims = GetInputShape(name);
+    auto input_height = input_mat->GetHeight();
+    auto input_width = input_mat->GetWidth();
+    if (target_dims.size() >= 4 &&
+        (input_height != target_dims[2] || input_width != target_dims[3])) {
+        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
+                                                        input_mat->GetMatType(), target_dims);
+        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
+        if (status == TNN_OK) {
+            return target_mat;
+        } else {
+            LOGE("%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
+    return input_mat;
 }
 
 Status UltraFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {

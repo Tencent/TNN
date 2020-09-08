@@ -21,6 +21,8 @@
 using namespace std;
 using namespace TNN_NS;
 
+#define PROFILE 1
+
 @interface TNNFaceDetectorController ()
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
@@ -94,14 +96,9 @@ using namespace TNN_NS;
         NSLog(@"Error: proto or model path is invalid");
         return;
     }
-
-    const int target_height = 240;
-    const int target_width  = 320;
-    DimsVector target_dims  = {1, 3, target_height, target_width};
-
-    auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
-
+    
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    
     auto option = std::make_shared<UltraFaceDetectorOption>();
     {
         option->proto_content = proto_content;
@@ -109,8 +106,6 @@ using namespace TNN_NS;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
         
-        option->input_width = target_width;
-        option->input_height = target_height;
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
     }
@@ -122,33 +117,53 @@ using namespace TNN_NS;
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
-
+    
     BenchOption bench_option;
     bench_option.forward_count = 20;
     predictor->SetBenchOption(bench_option);
     
-    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-    auto compute_units = predictor->GetComputeUnits();
-    if (compute_units == TNNComputeUnitsGPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-
+    auto image_data = utility::UIImageGetData(self.image_orig);
+    //preprocess
+    const int origin_height = (int)CGImageGetHeight(self.image_orig.CGImage);
+    const int origin_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
+    DimsVector image_dims = {1, 3, origin_height, origin_width};
+    std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+    if(units == TNNComputeUnitsCPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
+    } else {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
         id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
         if (!texture_rgba) {
             self.labelResult.text = @"Error texture input rgba is nil";
             NSLog(@"Error texture input rgba is nil");
             return;
         }
-
-        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
-                        mipmapLevel:0
-                          withBytes:image_data.get()
-                        bytesPerRow:target_width * 4];
         
-        status = predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
+        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, image_dims[3], image_dims[2])
+                        mipmapLevel:0
+                        withBytes:image_data.get()
+                        bytesPerRow:image_dims[3] * 4];
+        
+        
     }
+
+    auto target_dims = predictor->GetInputShape();
+    auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+#if PROFILE
+    const std::string tag = (units == TNNComputeUnitsCPU)?"CPU":"GPU";
+    Timer timer;
+    timer.start();
+    status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
+    timer.printElapsed(tag, "Resize");
+    printShape("Resize src", image_mat->GetDims());
+    printShape("Resize dst", input_mat->GetDims());
+#else
+    status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
+#endif
+    
+    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+    status = predictor->Predict(std::make_shared<UltraFaceDetectorInput>(input_mat), sdk_output);
+    
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
@@ -163,9 +178,11 @@ using namespace TNN_NS;
     
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
-                                                       compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
                                                        (int)face_info.size(), bench_result.Description().c_str()];
 
+    auto target_width  = target_dims[3];
+    auto target_height = target_dims[2];
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     float scale_x               = image_orig_width / (float)target_width;

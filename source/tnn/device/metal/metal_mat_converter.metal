@@ -64,18 +64,14 @@ kernel void mat_converter_texture_n8uc4_resize_linear(
     
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
-    
+
     float scale_w_inv = float(parameters.width) / float(parameters.resized_width);
     float scale_h_inv = float(parameters.height) / float(parameters.resized_height);
     
-    //float x = min(float(gid.x*1.0 / parameters.scale_w), float(parameters.width-1));
-    //float y = min(float(gid.y*1.0 / parameters.scale_h), float(parameters.height-1));
-    
     float x = min(float(gid.x * scale_w_inv), float(parameters.width-1));
     float y = min(float(gid.y * scale_h_inv), float(parameters.height-1));
-    
+
     auto sampled_color = src_bgra.sample(s, float2(x, y));
-    
     dst_bgra.write(sampled_color, uint2(gid));
 }
 
@@ -201,6 +197,26 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear_gather(
     rst[3] = wvec[0] + wvec[1] + wvec[2] + wvec[3];
     
     dst_bgra.write(rst, uint2(gid));
+}
+
+kernel void bgr2gray_n8uc4_nchw_float(
+                              texture2d<half, access::read>  src_bgra[[texture(0)]],
+                              device float*                       out[[buffer(0)]],
+                              constant MetalBGR2GrayParams& parameters [[buffer(1)]],
+                              ushort2 gid[[thread_position_in_grid]])
+{
+    
+    if(any(gid >= ushort2(parameters.width, parameters.height)))
+        return;
+    auto out_offset = gid.y * parameters.width + gid.x;
+    
+    float4 rgb = float4(src_bgra.read(uint2(gid.xy))) * 255;
+    auto bgr = rgb.zyxw;
+    
+    float rst = float(0);
+    rst = bgr[0] * 0.114 + bgr[1] * 0.587 + bgr[2] * 0.299;
+    
+    out[out_offset] = rst;
 }
 
 kernel void copy_nchw_to_cpu(

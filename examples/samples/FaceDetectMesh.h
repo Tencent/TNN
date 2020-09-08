@@ -12,32 +12,35 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNFPSCounter_hpp
-#define TNNFPSCounter_hpp
+#ifndef FaceDetectMesh_hpp
+#define FaceDetectMesh_hpp
+
 #include <algorithm>
-#include <map>
 #include <memory>
+#include <iostream>
 #include <string>
 #include <vector>
+#include <array>
 
-class TNNFPSCounter {
+#include "TNNSDKSample.h"
+#include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+
+namespace TNN_NS{
+
+class FaceDetectMesh : public TNN_NS::TNNSDKComposeSample {
 public:
-    TNNFPSCounter();
-    void Begin(std::string tag);
-    void End(std::string tag);
-    double GetFPS(std::string tag);
-    double GetTime(std::string tag);
-    std::map<std::string, double> GetAllFPS();
-    std::map<std::string, double> GetAllTime();
-    
+    virtual ~FaceDetectMesh() {}
+
+    virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
+
+    virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
+
 protected:
-    std::map<std::string, double> map_fps_ = {};
-    std::map<std::string, double> map_start_time_ = {};
-    std::map<std::string, double> map_time_ = {};
-    
-private:
-    std::string RetifiedTag(std::string tag);
-    double GetStartTime(std::string tag);
+    std::shared_ptr<TNNSDKSample> predictor_detect_ = nullptr;
+    std::shared_ptr<TNNSDKSample> predictor_mesh_ = nullptr;
 };
 
-#endif
+}
+
+#endif /* FaceDetectMesh_hpp */

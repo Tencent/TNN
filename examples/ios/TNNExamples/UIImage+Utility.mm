@@ -15,6 +15,12 @@
 #import "UIImage+Utility.h"
 
 namespace utility {
+std::shared_ptr<char> UIImageGetData(UIImage *image) {
+    int height = (int)CGImageGetHeight(image.CGImage);
+    int width  = (int)CGImageGetWidth(image.CGImage);
+    return UIImageGetData(image, height, width, 0);
+}
+
 std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int gravity) {
     std::shared_ptr<char> data = nullptr;
     if (image == nil || image.CGImage == nil || height <= 0 || width <= 0) {
@@ -143,6 +149,11 @@ UIImage *UIImageWithCVImageBuffRef(CVImageBufferRef imageBuffer) {
     CGImageRelease(quartzImage);
     
     return (image);
+}
+
+std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer) {
+    CGSize size = CVImageBufferGetDisplaySize(image_buffer);
+    return CVImageBuffRefGetData(image_buffer, size.height, size.width);
 }
 
 std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int target_height, int target_width) {

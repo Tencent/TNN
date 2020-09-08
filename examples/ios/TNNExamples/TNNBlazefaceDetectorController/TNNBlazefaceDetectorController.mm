@@ -21,6 +21,8 @@
 #import <string>
 #import <tnn/tnn.h>
 
+#define PROFILE 1
+
 using namespace std;
 using namespace TNN_NS;
 
@@ -100,14 +102,9 @@ using namespace TNN_NS;
         NSLog(@"Error: proto or model path is invalid");
         return;
     }
-    //blazeface requires input with shape 128*128
-    const int target_height = 128;
-    const int target_width  = 128;
-    DimsVector target_dims  = {1, 3, target_height, target_width};
 
-    auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width, 1);
-//    auto image_crop_resized = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
-//    UIImageWriteToSavedPhotosAlbum(image_crop_resized, nil, nil, nil);
+    //auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width, 1);
+    auto image_data = utility::UIImageGetData(self.image_orig);
 
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<BlazeFaceDetectorOption>();
@@ -116,9 +113,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
-        
-        option->input_width = target_width;
-        option->input_height = target_height;
+
         //min_score_thresh
         option->min_score_threshold = 0.75;
         //min_suppression_thresh
@@ -136,15 +131,22 @@ using namespace TNN_NS;
     }
 
     BenchOption bench_option;
-    
     bench_option.forward_count = 20;
     predictor->SetBenchOption(bench_option);
-        
-    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-    auto compute_units = predictor->GetComputeUnits();
-    if (compute_units == TNNComputeUnitsGPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
+#if PROFILE
+    Timer timer;
+    const std::string tag = (units==TNNComputeUnitsCPU)?"CPU":"GPU";
+#endif
+    //preprocess
+    const int origin_height = (int)CGImageGetHeight(self.image_orig.CGImage);
+    const int origin_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
+    DimsVector image_dims = {1, 3, origin_height, origin_width};
+    std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
 
+    if(units == TNNComputeUnitsCPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
+    } else {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
         id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
         if (!texture_rgba) {
             self.labelResult.text = @"Error texture input rgba is nil";
@@ -152,16 +154,27 @@ using namespace TNN_NS;
             return;
         }
 
-        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
+        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, image_dims[3], image_dims[2])
                         mipmapLevel:0
-                        withBytes:image_data.get()
-                        bytesPerRow:target_width * 4];
-            
-        status = predictor->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = predictor->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output);
+                          withBytes:image_data.get()
+                        bytesPerRow:image_dims[3] * 4];
     }
+
+    auto target_dims = predictor->GetInputShape();
+    auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+#if PROFILE
+    timer.start();
+    status = predictor->Resize(image_mat, input_mat, TNNInterpNearest);
+    timer.printElapsed(tag, "Resize");
+    printShape("Resize src", image_mat->GetDims());
+    printShape("Resize dst", input_mat->GetDims());
+#else
+    status = predictor->Resize(image_mat, input_mat, TNNInterpNearest);
+#endif
+
+    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+    status = predictor->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output);
+
     if (status != TNN_OK) {
         self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
@@ -176,7 +189,7 @@ using namespace TNN_NS;
     }
     
     auto bench_result     = predictor->GetBenchResult();
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);

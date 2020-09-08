@@ -16,8 +16,6 @@ using namespace TNN_NS;
 typedef void(^CommonCallback)(Status);
 #define kMaxBuffersInFlight 1
 
-#define TEST_IMAGE_SSD 0
-
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
@@ -164,12 +162,13 @@ typedef void(^CommonCallback)(Status);
 }
 
 #pragma mark - predict Interfaces
-- (void)predict:(CVImageBufferRef)image_buffer {
+- (void)predictSampleBuffer:(CMSampleBufferRef)video_buffer
+                 withCamera:(TNNCameraVideoDevice *)camera
+               andPosition:(AVCaptureDevicePosition)position
+                atTimestamp:(CMTime)time {
     if (!_viewModel || !_viewModel.predictor) return;
     
     const auto target_dims = self.viewModel.predictor->GetInputShape();
-    auto target_height = target_dims[2];
-    auto target_width = target_dims[3];
     // block until the next GPU buffer is available.
     dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
@@ -178,74 +177,64 @@ typedef void(^CommonCallback)(Status);
     auto predictor_async_thread = _viewModel.predictor;
     auto compute_units = _viewModel.predictor->GetComputeUnits();
     
+    CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
     int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
-
-#if TEST_IMAGE_SSD
-    origin_image_size = CGSizeMake(768, 538);
-#endif
+    
+    id<MTLTexture> image_texture = nil;
+    if (compute_units == TNNComputeUnitsGPU) {
+        image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
+    }
+    //NSLog(@"==== (%d, %d)", origin_height, origin_width);
     
     //异步运行模型
     CVBufferRetain(image_buffer);
+    auto image_texture_ref = CFBridgingRetain(image_texture);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-        
-        //resize
-        fps_counter_async_thread->Begin("resize");
-#if TEST_IMAGE_SSD
-        static std::shared_ptr<char> image_data = nullptr;
-        if (!image_data) {
-            auto image_png = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"dog_cropped.jpg"
-                                                                                              ofType:nil]];
-            image_data = utility::UIImageGetData(image_png, target_height, target_width);
+
+        //Note：智能指针必须在resize后才能释放
+        std::shared_ptr<char> image_data = nullptr;
+        std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+        auto origin_dims = {1, 3, origin_height, origin_width};
+        if (compute_units == TNNComputeUnitsCPU) {
+            image_data = utility::CVImageBuffRefGetData(image_buffer);
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
+        } else {
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, (void *)image_texture_ref);
         }
         
-#else
-        auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
-//        auto image_terget = utility::UIImageWithDataRGBA(image_data.get(), target_height, target_width);
-//        UIImageWriteToSavedPhotosAlbum(image_terget, nil, nil, nil);
-#endif
-        
-        fps_counter_async_thread->End("resize");
-        CVBufferRelease(image_buffer);
+//        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+//#ifndef END2END
+//        //resize
+//        fps_counter_async_thread->Begin("resize");
+//#endif
+//        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
+//#ifndef END2END
+//        fps_counter_async_thread->End("resize");
+//#endif
         
         std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
         do {
-            if (compute_units == TNNComputeUnitsGPU) {
-                 auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-
-                id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                if (!texture_rgba) {
-                    status = Status(TNNERR_NET_ERR, "Error texture input rgba is nil");
-                    break;
-                }
-
-                [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
-                                mipmapLevel:0
-                                  withBytes:image_data.get()
-                                bytesPerRow:target_width*4];
-                fps_counter_async_thread->Begin("detect");
-                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
-                fps_counter_async_thread->End("detect");
-            }
-            else if (compute_units == TNNComputeUnitsCPU)
-            {
-                auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-                fps_counter_async_thread->Begin("detect");
-                status = predictor_async_thread->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output);
-                fps_counter_async_thread->End("detect");
-            }
-            map_fps = fps_counter_async_thread->GetAllFPS();
-            
+            fps_counter_async_thread->Begin("detect");
+            status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
+            fps_counter_async_thread->End("detect");
         } while (0);
         
+        CVBufferRelease(image_buffer);
+        CFBridgingRelease(image_texture_ref);
+        
+        map_fps = fps_counter_async_thread->GetAllFPS();
+        //auto time = fps_counter_async_thread->GetAllTime();
+
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
                      withStatus:status];
             [self showFPS:map_fps];
+            //[self showTime: time];
         });
         
         dispatch_semaphore_signal(self.inflightSemaphore);
@@ -351,6 +340,18 @@ typedef void(^CommonCallback)(Status);
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
+    }
+    self.labelFPS.text = fps;
+}
+
+- (void)showTime:(std::map<std::string, double>) map_time {
+    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
+                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+    int index = 0;
+    for (auto item : map_time) {
+        [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }
@@ -360,9 +361,10 @@ typedef void(^CommonCallback)(Status);
      didCaptureVideo:(CMSampleBufferRef)videoBuffer
         withPosition:(AVCaptureDevicePosition)position
          atTimestamp:(CMTime)time {
-//    auto texture = [camera getMTLTexture:videoBuffer];
-//    NSLog(@"texture:%p", texture);
-    auto imageBuffer = CMSampleBufferGetImageBuffer(videoBuffer);
-    [self predict:imageBuffer];
+    [self predictSampleBuffer:videoBuffer
+                   withCamera:camera
+                  andPosition:position
+                  atTimestamp:time];
 }
+
 @end

@@ -12,32 +12,18 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNFPSCounter_hpp
-#define TNNFPSCounter_hpp
-#include <algorithm>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#import <Foundation/Foundation.h>
+#import "TNNViewModel.h"
+#import "TNNFPSCounter.h"
 
-class TNNFPSCounter {
-public:
-    TNNFPSCounter();
-    void Begin(std::string tag);
-    void End(std::string tag);
-    double GetFPS(std::string tag);
-    double GetTime(std::string tag);
-    std::map<std::string, double> GetAllFPS();
-    std::map<std::string, double> GetAllTime();
-    
-protected:
-    std::map<std::string, double> map_fps_ = {};
-    std::map<std::string, double> map_start_time_ = {};
-    std::map<std::string, double> map_time_ = {};
-    
-private:
-    std::string RetifiedTag(std::string tag);
-    double GetStartTime(std::string tag);
-};
+#import "UIImage+Utility.h"
 
-#endif
+@interface TNNFaceDetectAlignerViewModel : TNNViewModel
+@property bool prev_face;
+
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
+
+//Object Detection
+-(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+@end

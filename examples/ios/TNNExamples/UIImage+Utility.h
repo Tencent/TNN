@@ -17,6 +17,12 @@
 #include <tuple>
 
 namespace utility {
+/***
+@brief convert uiimage to rgba raw data without resizing
+@param image uimage
+ */
+std::shared_ptr<char> UIImageGetData(UIImage *image);
+
 /**
 @brief convert uiimage to rgba raw data, resize to height x width
 @param image uimage
@@ -38,6 +44,12 @@ UIImage * UIImageCrop(UIImage *image, CGRect rect);
  @param width image width
  */
 UIImage *UIImageWithDataRGBA(void *image_data, int height, int width);
+
+/**
+@brief convert imageBuffer to rgba raw data without resizing
+@param imageBuffer image buffer
+*/
+std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef imageBuffer);
 
 /**
 @brief convert imageBuffer to rgba raw data, resize to height x width

@@ -22,8 +22,32 @@
 #import "tnn/core/abstract_device.h"
 #import "tnn/utils/dims_vector_utils.h"
 
+#import <chrono>
+
+#define ENABLE_PIPELINE_CACHE 1
+#define ENABLE_TIMER 0
+#define KERNEL_SYNC 0
 
 namespace TNN_NS {
+
+class Timer {
+public:
+    using clock_t = std::chrono::high_resolution_clock;
+    using ms      = std::chrono::milliseconds;
+    using us      = std::chrono::microseconds;
+    Timer(){};
+    ~Timer(){};
+
+    void start() {
+        time_ = clock_t::now();
+    }
+    float end() {
+        auto t = std::chrono::duration_cast<us>(clock_t::now() -  time_);
+        return t.count();
+    }
+private:
+    clock_t::time_point time_;
+};
 
 class MetalMatConverterAcc : public MatConverterAcc {
 public:
@@ -31,6 +55,7 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
+    virtual Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
     
     ~MetalMatConverterAcc() {};
 protected:
@@ -38,6 +63,7 @@ protected:
     MetalCropParams crop_param_;
     MetalWarpAffineParams warpaffine_param_;
     MetalCopyParams copy_param_;
+    MetalBGR2GrayParams bgr2gray_param_;
     
     id<MTLDevice> device_                           = nil;
     //metal params
@@ -45,6 +71,7 @@ protected:
     id<MTLBuffer> buffer_crop_param_                = nil;
     id<MTLBuffer> buffer_warpaffine_param_          = nil;
     id<MTLBuffer> buffer_copy_param_                = nil;
+    id<MTLBuffer> buffer_bgr2gray_param_            = nil;
     
     id<MTLComputePipelineState> pipeline_process_   = nil;
     //Allocate metal kernel param
@@ -52,11 +79,13 @@ protected:
     Status AllocateBufferCropParam(CropParam param, Mat& src, Mat& dst);
     Status AllocateBufferWarpAffineParam(WarpAffineParam param, Mat& src, Mat& dst);
     Status AllocateBufferCopyParam(Mat& src, Mat& dst);
+    Status AllocateBufferBGR2GrayParam(Mat& src, Mat& dst);
     //Find corresponding metal kernel
     Status AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCopyComputePipeline(Mat& src, Mat& dst, void *command_queue);
+    Status AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue);
     
 };
 
@@ -70,6 +99,7 @@ Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& s
     //resize specific parameters
     resize_param_.scale_w  = param.scale_w;
     resize_param_.scale_h  = param.scale_h;
+
     resize_param_.resized_width = dst.GetWidth();
     resize_param_.resized_height = dst.GetHeight();
     
@@ -169,7 +199,28 @@ Status MetalMatConverterAcc::AllocateBufferCopyParam(Mat& src, Mat& dst) {
     return TNN_OK;
 }
 
+Status MetalMatConverterAcc::AllocateBufferBGR2GrayParam(Mat& src, Mat& dst) {
+    bgr2gray_param_.batch    = src.GetBatch();
+    bgr2gray_param_.width    = src.GetWidth();
+    bgr2gray_param_.height   = src.GetHeight();
+    bgr2gray_param_.size     = bgr2gray_param_.width * bgr2gray_param_.height;
+    bgr2gray_param_.channel  = src.GetChannel();
+    bgr2gray_param_.slice    = UP_DIV(bgr2gray_param_.channel, 4);
+    
+    buffer_bgr2gray_param_ = [device_ newBufferWithBytes:&bgr2gray_param_
+                                              length:sizeof(MetalBGR2GrayParams)
+                                             options:MTLResourceCPUCacheModeWriteCombined];
+    
+    if (!buffer_bgr2gray_param_) {
+        return Status(TNNERR_INVALID_INPUT, "buffer bgr2gray param is nil!");
+    }
+    return TNN_OK;
+}
+
 Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string,  id <MTLComputePipelineState> > library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -184,9 +235,18 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
     auto dst_mat_type = dst.GetMatType();
     
     id<MTLFunction> func_process = nil;
-    
+
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+            kernel_name = std::string("mat_converter_texture_n8uc4_crop");
+            if (library_cache.count(kernel_name) > 0){
+                pipeline_process_ = library_cache[kernel_name];
+                return TNN_OK;
+            }
+#endif
+            // metal N8UC4 image crop kernel
             func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_crop"];
         } else if(N8UC3 == src_mat_type) {
             return Status(TNNERR_PARAM_ERR, "mat type not support yet");
@@ -211,10 +271,19 @@ Status MetalMatConverterAcc::AllocateCropComputePipeline(CropParam param, Mat& s
     }
     pipeline_process_ = pipeline_process;
     
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
 Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue) {
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string,  id <MTLComputePipelineState> > library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -224,17 +293,33 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
     if (!library) {
         return Status(TNNERR_INVALID_INPUT, "metal library is nil");
     }
-    
-    auto src_mat_type = src.GetMatType();
-    auto dst_mat_type = dst.GetMatType();
-    
+
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             if (INTERP_TYPE_NEAREST == param.type) {
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = string("mat_converter_texture_n8uc4_resize_nearest");
+                if (library_cache.count(kernel_name) != 0) {
+                    // cache hit
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+                // cache miss
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_nearest"];
             } else if (INTERP_TYPE_LINEAR == param.type) {
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = string("mat_converter_texture_n8uc4_resize_linear");
+                if (library_cache.count(kernel_name) != 0) {
+                    // cache hit
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+                // cache miss
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_resize_linear"];
             }
         } else if (N8UC3 == src_mat_type) {
@@ -259,7 +344,9 @@ Status MetalMatConverterAcc::AllocateResizeComputePipeline(ResizeParam param, Ma
         return Status(TNNERR_INVALID_INPUT, "resize pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
-    
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
@@ -317,6 +404,9 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
 }
 
 Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string, id<MTLComputePipelineState>> library_cache;
+#endif
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
         return Status(TNNERR_INST_ERR, "command queue is nil");
@@ -335,11 +425,19 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     
     id<MTLFunction> func_process = nil;
     
+    std::string kernel_name("");
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             if (INTERP_TYPE_NEAREST == interp_type) {
                 return Status(TNNERR_PARAM_ERR, "interp type not support yet");
             } else if (INTERP_TYPE_LINEAR == interp_type && BORDER_TYPE_CONSTANT == border_type) {
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = "mat_converter_texture_n8uc4_warpaffine_linear_const";
+                if (library_cache.count(kernel_name) > 0) {
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+#endif
                 func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_warpaffine_linear_const"];
             } else {
                 return Status(TNNERR_PARAM_ERR, "not support yet");
@@ -366,7 +464,60 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
         return Status(TNNERR_INVALID_INPUT, "warpaffine pipeline is nil");
     }
     pipeline_process_ = pipeline_process;
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue) {
+#if ENABLE_PIPELINE_CACHE
+        static std::map<std::string, id<MTLComputePipelineState>> library_cache;
+#endif
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+    
+    auto library = command_queue_impl.metalContextImpl.library;
+    if (!library) {
+        return Status(TNNERR_INVALID_INPUT, "metal library is nil");
+    }
+    
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+    
+    id<MTLFunction> func_process = nil;
+    
+    std::string kernel_name("");
+    if (src_mat_type == N8UC4) {
+        if (NCHW_FLOAT == dst_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+            kernel_name = "bgr2gray_n8uc4_nchw_float";
+            if (library_cache.count(kernel_name) > 0) {
+                pipeline_process_ = library_cache[kernel_name];
+                return TNN_OK;
+            }
+#endif
+            func_process = [library newFunctionWithName:@"bgr2gray_n8uc4_nchw_float"];
+        } else {
+            return Status(TNNERR_PARAM_ERR, "dst mat type not support yet");
+        }
+    }else {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+    if (!func_process) {
+        return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
+    }
+    auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
+    if (!pipeline_process) {
+        return Status(TNNERR_INVALID_INPUT, "bgr2gray pipeline is nil");
+    }
+    pipeline_process_ = pipeline_process;
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
     return TNN_OK;
 }
 
@@ -572,6 +723,10 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 }
 
 Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
+#if ENABLE_TIMER
+    Timer timer;
+    timer.start();
+#endif
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
 
@@ -597,16 +752,26 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     }
     
     auto context_impl = command_queue_impl.metalContextImpl;
-    
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "prepare", timer.end());
+    timer.start();
+#endif
     auto status = AllocateBufferResizeParam(param, src, dst);
     if (status != TNN_OK) {
         return status;
     }
-    
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "allocate parameter", timer.end());
+    timer.start();
+#endif
     status = AllocateResizeComputePipeline(param, src, dst, command_queue);
     if (status != TNN_OK) {
         return status;
     }
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "allocate computepipeline", timer.end());
+    timer.start();
+#endif
 
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
@@ -629,8 +794,13 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         
         [command_buffer commit];
         //wait to complete
+#if KERNEL_SYNC
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
+#if ENABLE_TIMER
+    LOGE("%s time: %f us\n", "kernel", timer.end());
+#endif
     return TNN_OK;
 }
 
@@ -694,8 +864,10 @@ Status MetalMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         [encoder endEncoding];
         
         [command_buffer commit];
+#if KERNEL_SYNC
         //wait to complete
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
     return TNN_OK;
 }
@@ -761,10 +933,77 @@ Status MetalMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         [encoder endEncoding];
         
         [command_buffer commit];
+#if KERNEL_SYNC
         //wait to complete
         [command_buffer waitUntilCompleted];
+#endif
     } while(0);
     
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
+    auto src_device_type = src.GetDeviceType();
+    auto dst_device_type = dst.GetDeviceType();
+    
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+    
+    if (src_mat_type != N8UC4 || dst_mat_type != NCHW_FLOAT) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+
+    if (src_device_type != dst_device_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst device type must be same");
+    }
+
+    //Get device
+    if (device_ == nil) {
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
+    }
+
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+    
+    auto context_impl = command_queue_impl.metalContextImpl;
+    
+    auto status = AllocateBufferBGR2GrayParam(src, dst);
+    if (status != TNN_OK) {
+        return status;
+    }
+    
+    status = AllocateBGR2GrayComputePipeline(src, dst, command_queue);
+    if (status != TNN_OK) {
+        return status;
+    }
+    
+    do {
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((bgr2gray_param_.width + group_threads.width - 1) / group_threads.width), (NSUInteger)bgr2gray_param_.height, (NSUInteger)1};
+        id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+        id<MTLBuffer> output = (__bridge id<MTLBuffer>)(dst.GetData());
+        
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+        
+        [encoder setTexture:input_texture atIndex:0];
+        [encoder setBuffer:output offset:0 atIndex:0];
+        [encoder setBuffer:buffer_bgr2gray_param_ offset:0 atIndex:1];
+        
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+        
+        [command_buffer commit];
+#if KERNEL_SYNC
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+#endif
+    } while(0);
     return TNN_OK;
 }
 

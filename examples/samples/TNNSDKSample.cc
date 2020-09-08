@@ -23,6 +23,10 @@
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
 
+void printShape(const std::string& msg, const DimsVector& shape) {
+    printf("%s:(%d,%d,%d,%d)\n", msg.c_str(), shape[0], shape[1], shape[2], shape[3]);
+}
+
 ObjectInfo ObjectInfo::FlipX() {
     ObjectInfo  info;
     info.score = this->score;
@@ -306,6 +310,129 @@ void TNNSDKSample::setCheckNpuSwitch(bool option)
     check_npu_ = option;
 }
 
+Status TNNSDKSample::GetCommandQueue(void **command_queue) {
+    if (instance_) {
+        return instance_->GetCommandQueue(command_queue);
+    }
+    return Status(TNNERR_INST_ERR, "instance_ GetCommandQueue return nil");
+}
+
+Status TNNSDKSample::Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type) {
+    Status status = TNN_OK;
+    
+    void * command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    InterpType type = INTERP_TYPE_NEAREST;
+    if(interp_type == TNNInterpNearest){
+        type = TNN_NS::INTERP_TYPE_NEAREST;
+    } else if(interp_type == TNNInterpLinear) {
+        type = TNN_NS::INTERP_TYPE_LINEAR;
+    }
+    
+    ResizeParam param;
+    param.type = type;
+    
+    auto dst_dims = dst->GetDims();
+    auto src_dims = src->GetDims();
+    param.scale_w = dst_dims[3] / static_cast<float>(src_dims[3]);
+    param.scale_h = dst_dims[2] / static_cast<float>(src_dims[2]);
+    
+    status = MatUtils::Resize(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("resize failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    CropParam param;
+    param.top_left_x = start_x;
+    param.top_left_y = start_y;
+    auto dst_dims = dst->GetDims();
+    param.width  = dst_dims[3];
+    param.height = dst_dims[2];
+    
+    status = MatUtils::Crop(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("crop failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]) {
+    Status status = TNN_OK;
+    
+    void * command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    InterpType itype = INTERP_TYPE_NEAREST;
+    if (interp_type == TNNInterpNearest){
+        itype = INTERP_TYPE_NEAREST;
+    } else if(interp_type == TNNInterpLinear) {
+        itype = INTERP_TYPE_LINEAR;
+    }
+    BorderType btype = BORDER_TYPE_CONSTANT;
+    if (border_type == TNNBorderConstant) {
+        btype = BORDER_TYPE_CONSTANT;
+    } else if(border_type == TNNBorderReflect) {
+        btype = BORDER_TYPE_REFLECT;
+    } else if(border_type == TNNBorderEdge) {
+        btype = BORDER_TYPE_EDGE;
+    }
+    WarpAffineParam param;
+    param.interp_type = itype;
+    param.border_type = btype;
+    
+    auto dst_dims = dst->GetDims();
+    auto src_dims = src->GetDims();
+    memcpy(param.transform, trans_mat, sizeof(float)*2*3);
+    
+    status = MatUtils::WarpAffine(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("warpaffine failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
+Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    status = MatUtils::Copy(*(src.get()), *(dst.get()), command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("copy failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
 void TNNSDKSample::setNpuModelPath(std::string stored_path)
 {
     model_path_str_ = stored_path;
@@ -453,6 +580,11 @@ TNN_NS::Status TNNSDKSample::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> outp
     return TNN_OK;
 }
 
+std::shared_ptr<TNN_NS::Mat> TNNSDKSample::ProcessSDKInputMat(std::shared_ptr<TNN_NS::Mat> mat,
+                                                              std::string name) {
+    return mat;
+}
+
 TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output) {
     Status status = TNN_OK;
     if (!input || input->IsEmpty()) {
@@ -471,14 +603,16 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         // step 1. set input mat
         auto input_names = GetInputNames();
         if (input_names.size() == 1) {
-            auto input_convert_param = GetConvertParamForInput();
             auto input_mat = input->GetMat();
+            input_mat = ProcessSDKInputMat(input_mat);
+            auto input_convert_param = GetConvertParamForInput();
             auto status = instance_->SetInputMat(input_mat, input_convert_param);
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
         } else {
             for (auto name : input_names) {
-                auto input_convert_param = GetConvertParamForInput(name);
                 auto input_mat = input->GetMat(name);
+                input_mat = ProcessSDKInputMat(input_mat, name);
+                auto input_convert_param = GetConvertParamForInput(name);
                 auto status = instance_->SetInputMat(input_mat, input_convert_param, name);
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
@@ -524,6 +658,46 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
     // Detection done
     
     return status;
+}
+
+#pragma mark - TNNSDKComposeSample
+TNNSDKComposeSample::TNNSDKComposeSample() {}
+
+TNNSDKComposeSample::~TNNSDKComposeSample() {
+    sdks_ = {};
+}
+
+Status TNNSDKComposeSample::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
+    sdks_ = sdks;
+    return TNN_OK;
+}
+
+TNNComputeUnits TNNSDKComposeSample::GetComputeUnits() {
+    if (sdks_.size() > 0) {
+        return sdks_[0]->GetComputeUnits();
+    }
+    return TNNComputeUnitsCPU;
+}
+
+Status TNNSDKComposeSample::GetCommandQueue(void **command_queue) {
+    if (sdks_.size() > 0) {
+        return sdks_[0]->GetCommandQueue(command_queue);
+    }
+    return Status(TNNERR_INST_ERR, "instance_ GetCommandQueue return nil");
+}
+
+DimsVector TNNSDKComposeSample::GetInputShape(std::string name) {
+    DimsVector shape = {};
+    if (sdks_.size() > 0) {
+        return sdks_[0]->GetInputShape(name);
+    }
+    return shape;
+}
+
+TNN_NS::Status TNNSDKComposeSample::Predict(std::shared_ptr<TNNSDKInput> input,
+                                            std::shared_ptr<TNNSDKOutput> &output) {
+    LOGE("subclass of TNNSDKComposeSample must implement this interface\n");
+    return Status(TNNERR_NO_RESULT, "subclass of TNNSDKComposeSample must implement this interface");
 }
 
 /*
@@ -572,8 +746,7 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
 /*
  * Point
  */
-void Point(void *data_rgba, int image_height, int image_width,
-int x, int y, float z, float scale_x, float scale_y)
+void Point(void *data_rgba, int image_height, int image_width, int x, int y, float z, float scale_x, float scale_y)
 {
     RGBA *image_rgba = (RGBA *)data_rgba;
     int x_center = x * scale_x;
@@ -582,6 +755,9 @@ int x, int y, float z, float scale_x, float scale_y)
     int x_end   = (x+1) * scale_x;
     int y_start = (y-1) * scale_y;
     int y_end   = (y+1) * scale_y;
+
+    x_center = std::min(std::max(0, x_center), image_width  - 1);
+    y_center = std::min(std::max(0, y_center), image_height - 1);
     
     x_start = std::min(std::max(0, x_start), image_width - 1);
     x_end   = std::min(std::max(0, x_end), image_width - 1);

@@ -24,6 +24,26 @@ ObjectDetectorSSDOutput::~ObjectDetectorSSDOutput() {}
 
 ObjectDetectorSSD::~ObjectDetectorSSD() {}
 
+std::shared_ptr<Mat> ObjectDetectorSSD::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
+                                                                   std::string name) {
+    auto target_dims = GetInputShape(name);
+    auto input_height = input_mat->GetHeight();
+    auto input_width = input_mat->GetWidth();
+    if (target_dims.size() >= 4 &&
+        (input_height != target_dims[2] || input_width != target_dims[3])) {
+        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
+                                                        input_mat->GetMatType(), target_dims);
+        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
+        if (status == TNN_OK) {
+            return target_mat;
+        } else {
+            LOGE("%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
+    return input_mat;
+}
+
 MatConvertParam ObjectDetectorSSD::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
@@ -72,7 +92,7 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
         
         info.class_id = data[i*7+1];
         if(info.class_id < 0 || info.class_id >= sizeof(voc_classes)/sizeof(*voc_classes)) {
-            LOGE("invalid object classid:%d\n", info.class_id);
+            //LOGE("invalid object classid:%d\n", info.class_id);
             continue;
         }
         info.score = data[i*7+2];

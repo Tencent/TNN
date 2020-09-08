@@ -210,6 +210,10 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     return ret;
 }
 
+Status CpuMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
+    return TNN_OK;
+}
+
 void CpuMatConverterAcc::MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
     auto dst_ptr = reinterpret_cast<uint8_t*>(dst);

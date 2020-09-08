@@ -59,6 +59,8 @@ public:
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
+                                                            std::string name = kTNNSDKDefaultName);
     
 private:
     void GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
