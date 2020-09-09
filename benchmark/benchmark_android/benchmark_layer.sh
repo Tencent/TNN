@@ -12,13 +12,13 @@ LOOP_COUNT=10
 ADB=adb
 
 function usage() {
-    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <NAIVE/OPENCL>"
+    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <OPENCL>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -d    run with specified device"
     echo "        -f    specified layer"
-    echo "        -t    NAIVE/OPENCL specify the platform to run"
+    echo "        -t    OPENCL specify the platform to run"
 }
 
 function exit_with_msg() {

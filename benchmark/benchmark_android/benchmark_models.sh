@@ -28,14 +28,14 @@ benchmark_model_list=(
 )
 
 function usage() {
-    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/OPENCL>"
+    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <OPENCL>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -b    build targets only"
     echo "        -f    build profiling targets "
     echo "        -d    run with specified device"
-    echo "        -t    NAIVE/OPENCL specify the platform to run"
+    echo "        -t    OPENCL specify the platform to run"
 }
 
 function exit_with_msg() {

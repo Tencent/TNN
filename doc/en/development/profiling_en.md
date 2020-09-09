@@ -101,7 +101,7 @@ Parameters：
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
     -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected
-    -t    add <NAIVE/OPENCL> to indicate the platform to run.
+    -t    add <OPENCL> to indicate the platform to run.
 ```
 
 #### 4.1 Overall Network Performance Analysis：
