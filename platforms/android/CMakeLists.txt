@@ -22,13 +22,21 @@ endif()
 
 if(TNN_OPENCL_ENABLE)
     message(STATUS "Build TNN OpenCL")
-
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/opencl)
 endif()
 
 if(TNN_NPU_ENABLE)
     message(STATUS "Build TNN NPU")
+    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+        link_directories(
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/npu/hiai_ddk_latest/armeabi-v7a/
+        )
+    else()
+        link_directories(
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/npu/hiai_ddk_latest/arm64-v8a/
+        )
+    endif()
     target_link_libraries(TNN hiai hiai_ir hiai_ir_build hcl)
     include_directories(${PROJECT_SOURCE_DIR}/source/tnn/device/npu)
 endif()

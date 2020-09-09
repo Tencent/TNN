@@ -224,15 +224,6 @@ if(TNN_CUDA_ENABLE)
 endif()
 
 if(TNN_NPU_ENABLE)
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        link_directories(
-                ./third_party/npu/hiai_ddk_latest/armeabi-v7a/
-        )
-    else()
-        link_directories(
-                ./third_party/npu/hiai_ddk_latest/arm64-v8a/
-        )
-    endif()
     add_subdirectory(source/tnn/device/npu)
     if(TNN_CPU_ENABLE)
         set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
