@@ -101,11 +101,11 @@ int MatConverterTest::DestroyTestData()
 INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                          ::testing::Combine(
                             // batch
-                            testing::Values(1,2),
+                            testing::Values(1, 2), 
                             // channel
-                            testing::Values(1,3,4),
-                            // input size
-                            testing::Values(25,324,756,1080),
+                            testing::Values(1, 3, 4), 
+                            // inputsize
+                            testing::Values(20, 21, 26, 27),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY),
                             // converter test param
