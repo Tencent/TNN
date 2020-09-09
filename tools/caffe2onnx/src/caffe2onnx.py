@@ -63,8 +63,10 @@ class Caffe2Onnx():
                     else:
                         input_layer_name = lay.name
 
-                    in_tvi = helper.make_tensor_value_info(input_layer_name + "_input", TensorProto.FLOAT,
-                                                           lay.input_param.shape[0].dim)
+                    in_tvi = helper.make_tensor_value_info(
+                        input_layer_name + "_input", TensorProto.FLOAT,
+                        lay.input_param.shape[0].dim)
+
                     self.model_input_name.append(input_layer_name + "_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
@@ -74,7 +76,8 @@ class Caffe2Onnx():
 
         # 如果存在net.input
         elif net.input != []:
-            in_tvi = helper.make_tensor_value_info("input", TensorProto.FLOAT, net.input_dim)
+            in_tvi = helper.make_tensor_value_info("input", TensorProto.FLOAT,
+                                                   net.input_dim)
             self.model_input_name.append("input")
             self.model_input_shape.append(net.input_dim)
             self.onnxmodel.addInputsTVI(in_tvi)
@@ -114,11 +117,11 @@ class Caffe2Onnx():
                 shape = [p.num, p.channels, p.height, p.width]
                 shapes.append(shape)
         return shapes
+
     # 将参数添加到Inputs中,并生成tensor存储数据
     def AddInputsTVIFromParams(self, layer, ParamName, ParamType):
         ParamShape = []
         ParamData = []
-        input_name, input_shape = self.GetLastLayerOutNameAndShape(layer)
         # 根据这个layer名找出对应的caffemodel中的参数
         for model_layer in self.netModelCaffe:
             if layer.name == model_layer.name:
@@ -131,10 +134,16 @@ class Caffe2Onnx():
                         # 如果是bn层，params为[mean, var, s]，则需要把mean和var除以滑动系数s
                         ParamShape = ParamShape[:-1]
                         ParamData = [
-                            [q / (Params[-1].data[0]) for q in p.data] if i == 0 else [q / (Params[-1].data[0] + 1e-5) for q in p.data] for i, p in enumerate(Params[:-1])]  # with s
+                            [q / (Params[-1].data[0])
+                             for q in p.data] if i == 0 else
+                            [q / (Params[-1].data[0] + 1e-5) for q in p.data]
+                            for i, p in enumerate(Params[:-1])
+                        ]  # with s
                     elif len(ParamShape) == 2 and len(ParamShape[0]) == 4:
                         ParamShape = [[ParamShape[0][1]], [ParamShape[1][1]]]
-                        ParamData = [[q / 1. for q in p.data] if i == 0 else [q / (1. + 1e-5) for q in p.data] for i, p in enumerate(Params)]
+                        ParamData = [[q / 1. for q in p.data] if i == 0 else
+                                     [q / (1. + 1e-5) for q in p.data]
+                                     for i, p in enumerate(Params)]
                 if layer.type == "Reshape":
                     ParamShape = [[len(model_layer.reshape_param.shape.dim)]]
                     ParamData = [model_layer.reshape_param.shape.dim]
@@ -150,9 +159,6 @@ class Caffe2Onnx():
                 if layer.type == "Normalize":
                     if len(ParamShape) == 1:
                         ParamShape[0] = [1, ParamShape[0][0], 1, 1]
-                if layer.type == "PReLU":
-                    if len(ParamShape) == 1 and len(input_shape[0]) == 4:
-                        ParamShape[0] = [1, ParamShape[0][0], 1, 1]
 
                 # comment it for tvm because tvm use broadcast at prelu layer
                 # 个人感觉如果不用 tvm，就不需要使用 Prelu
@@ -166,8 +172,11 @@ class Caffe2Onnx():
             ParamType = ParamType[0:len(ParamShape)]
             for i in range(len(ParamShape)):
                 ParamName[i] = layer.name + ParamName[i]
-                p_tvi = helper.make_tensor_value_info(ParamName[i], ParamType[i], ParamShape[i])
-                p_t = helper.make_tensor(ParamName[i], ParamType[i], ParamShape[i], ParamData[i])
+                p_tvi = helper.make_tensor_value_info(ParamName[i],
+                                                      ParamType[i],
+                                                      ParamShape[i])
+                p_t = helper.make_tensor(ParamName[i], ParamType[i],
+                                         ParamShape[i], ParamData[i])
                 self.onnxmodel.addInputsTVI(p_tvi)
                 self.onnxmodel.addInitTensor(p_t)
                 # print("添加参数" + ParamName[i] + "输入信息和tensor数据")
@@ -176,12 +185,16 @@ class Caffe2Onnx():
         return ParamName
 
     # 手动将参数添加到输入信息中,并生成tensor存储数据
-    def AddInputsTVIMannul(self, layer, param_names, param_types, param_shapes, param_data):
+    def AddInputsTVIMannul(self, layer, param_names, param_types, param_shapes,
+                           param_data):
         node_names = copy.deepcopy(param_names)
         for i in range(len(param_shapes)):
             node_names[i] = layer.name + param_names[i]
-            p_tvi = helper.make_tensor_value_info(node_names[i], param_types[i], param_shapes[i])
-            p_t = helper.make_tensor(node_names[i], param_types[i], param_shapes[i], param_data[i])
+            p_tvi = helper.make_tensor_value_info(node_names[i],
+                                                  param_types[i],
+                                                  param_shapes[i])
+            p_t = helper.make_tensor(node_names[i], param_types[i],
+                                     param_shapes[i], param_data[i])
             self.onnxmodel.addInputsTVI(p_tvi)
             self.onnxmodel.addInitTensor(p_t)
         return node_names

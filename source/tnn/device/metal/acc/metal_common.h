@@ -395,6 +395,9 @@ struct MetalPadParams {
     int pad_r;
     int pad_t;
     int pad_b;
+    int pad_c_b;
+    int pad_c_e;
+    int input_channel;
 };
 
 /** Image Converter Param Struct **/
@@ -430,6 +433,22 @@ struct MetalSignedMulParams {
     float alpha;
     float beta;
     float gamma_inv;
+};
+
+/** Reshape Param Struct **/
+struct MetalReshapeParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
+    int batch;
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \

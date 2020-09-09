@@ -110,6 +110,114 @@ static void BlobToBGR(const float *src, uint8_t *dst, float *scale, float *bias,
     }
 }
 
+static void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
+    const unsigned char* yptr  = nv12;
+    const unsigned char* vuptr = nv12 + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgr;
+        unsigned char* rgb1 = bgr + w * 3;
+
+        for (int remain = w; remain > 0; remain -= 2) {
+            int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgb0  += 6;
+            rgb1  += 6;
+        }
+
+        yptr += 2*w;
+        bgr  += 2*3*w;
+    }
+}
+
+static void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
+    const unsigned char* yptr  = nv21;
+    const unsigned char* vuptr = nv21 + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgr;
+        unsigned char* rgb1 = bgr + w * 3;
+
+        for (int remain = w; remain > 0; remain -= 2) {
+            int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgb0  += 6;
+            rgb1  += 6;
+        }
+
+        yptr += 2*w;
+        bgr  += 2*3*w;
+    }
+}
+
 Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
     Status ret = TNN_OK;
     if (blob_ == nullptr) {
@@ -172,7 +280,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
-            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
@@ -194,6 +302,22 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         for (int n = 0; n < dims[0]; n++) {
             GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * hw, blob_data + n * hw, param.scale[0],
                        param.bias[0], hw);
+        }
+    } else if (image.GetMatType() == NNV12) {
+        Mat bgr(DEVICE_NAIVE, RESERVED_INT8_TEST, image.GetDims());
+        for (int n = 0; n < dims[0]; n++) {
+            NV12ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
+            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
+                      param.scale.data(), param.bias.data(), hw);
+        }
+    } else if (image.GetMatType() == NNV21) {
+        Mat bgr(DEVICE_NAIVE, RESERVED_INT8_TEST, image.GetDims());
+        for (int n = 0; n < dims[0]; n++) {
+            NV21ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
+            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
+                      param.scale.data(), param.bias.data(), hw);
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {

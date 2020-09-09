@@ -19,14 +19,7 @@ namespace TNN_NS {
 DECLARE_LAYER(HdrGuide, LAYER_HDRGUIDE);
 
 Status HdrGuideLayer::InferOutputDataType() {
-    HdrGuideLayerResource* hdrguide_resource = dynamic_cast<HdrGuideLayerResource*>(resource_);
-    if (hdrguide_resource) {
-        output_blobs_[0]->GetBlobDesc().data_type = hdrguide_resource->ccm_weight_handle.GetDataType();
-    } else {
-        LOGE("Error: hdrguide_resource is nil\n");
-        return Status(TNNERR_LAYER_ERR, "Error: hdrguide_resource is nil");
-    }
-    return TNN_OK;
+    return BaseLayer::InferOutputDataType();
 }
 
 Status HdrGuideLayer::InferOutputShape() {

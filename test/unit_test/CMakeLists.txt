@@ -9,7 +9,7 @@ if(TNN_UNIT_TEST_BENCHMARK)
 endif()
 
 file(GLOB UNIT_TEST_SRCS *.cc layer_test/*.cc utils/*.cc ../test_utils.cc ../flags.cc)
-message(${UNIT_TEST_SRCS})
+#message(${UNIT_TEST_SRCS})
 include_directories(${CMAKE_SOURCE_DIR}/test/unit_test)
 include_directories(${CMAKE_SOURCE_DIR})
 

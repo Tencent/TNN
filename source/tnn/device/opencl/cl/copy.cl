@@ -63,10 +63,10 @@ __kernel void CopyImageToBuffer(GLOBAL_SIZE_2_DIMS
                     int4 output_offset,
                     int2 input_wh,
                     int4 output_stride,
-                    int4 output_size/*nhwc*/
+                    int4 output_size
                     ) {
-    int h = output_size.z;
     int c = output_size.y;
+    int h = output_size.z;
     int w = output_size.w;
 
     int cw = get_global_id(0);
