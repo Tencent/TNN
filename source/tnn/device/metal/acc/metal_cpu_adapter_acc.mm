@@ -172,6 +172,8 @@ Status MetalCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std:
         auto device_output = outputs[i];
         auto cpu_output = cpu_blob_out_[i];
         auto dims = cpu_output->GetBlobDesc().dims;
+        // use the shape of cpu_blob
+        device_output->GetBlobDesc().dims = dims;
 
         BlobConverter blob_converter(device_output);
         MatConvertParam param;
@@ -190,14 +192,6 @@ Status MetalCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std:
             status = blob_converter.ConvertFromMat(mat, param, command_queue);
             if (status != TNN_OK) {
                 return status;
-            }
-        }
-        
-        // change the device_output dim for detection_output layer when necessary
-        if(impl_layer_type_ == LAYER_DETECTION_OUTPUT && device_output->GetBlobDesc().dims[2] != cpu_output->GetBlobDesc().dims[2]) {
-            // the detected object count will never exceed the 'keep_top_k' parameter, which is used to set the device_output dim
-            if (device_output->GetBlobDesc().dims[2] > cpu_output->GetBlobDesc().dims[2]) {
-                device_output->GetBlobDesc().dims[2] = cpu_output->GetBlobDesc().dims[2];
             }
         }
     }
