@@ -108,7 +108,7 @@ cd <path_to_tnn>/scripts
 
 |Option|默认值|说明|
 |------|:---:|----|
-|TNN_CPU_ENABLE| OFF | 代码source/device/cpu编译开关，代码仅用用于调试以及UnitTest基准测试，实现全部为c++代码，不包含特定CPU加速指令。|
+|TNN_NAIVE_ENABLE| OFF | 代码source/device/cpu编译开关，代码仅用用于调试以及UnitTest基准测试，实现全部为c++代码，不包含特定CPU加速指令。|
 |TNN_X86_ENABLE| OFF | 代码source/device/x86编译开关, 当前适配openvino实现，后续会迁入更多加速代码实现。|
 |TNN_ARM_ENABLE| OFF | 代码source/device/arm编译开关，代码包含neon加速指令, 且部分实现了int8加速。|
 |TNN_METAL_ENABLE| OFF | 代码source/device/metal编译开关，代码包含metal加速指令。|
@@ -121,7 +121,7 @@ cd <path_to_tnn>/scripts
 |TNN_OPENMP_ENABLE| OFF | OpenMP开关，控制是否打开openmp加速。|
 |TNN_BUILD_SHARED| ON | 动态库编译开关，关闭则编译静态库。|
 |TNN_TEST_ENABLE| OFF | test代码编译开关|
-|TNN_UNIT_TEST_ENABLE| OFF | unit test编译开关，打开unit test编译开关会自动打开TNN_CPU_ENABLE开关，作为测试基准。|
+|TNN_UNIT_TEST_ENABLE| OFF | unit test编译开关，打开unit test编译开关会自动打开TNN_NAIVE_ENABLE开关，作为测试基准。|
 |TNN_PROFILER_ENABLE| OFF | 性能调试开关，打开后会打印更多性能信息，仅用于调试。|
 |TNN_QUANTIZATION_ENABLE| OFF | 量化工具编译开关|
 |TNN_BENCHMARK_MODE| OFF | benchmark开关，打开后支持model weights文件为空，可自动生成数据。|

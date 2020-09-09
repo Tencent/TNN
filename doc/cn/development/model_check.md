@@ -8,7 +8,7 @@
 ## 二、编译
 编译model_check工具需要将以下宏设置为ON：  
 * 打开以下选项编译TNN（编译方法参照[TNN编译文档](../user/compile.md))
-* `TNN_CPU_ENABLE`  
+* `TNN_NAIVE_ENABLE`  
 * `TNN_MODEL_CHECK_ENABLE`
 * 对应device的宏，如`TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`
 
