@@ -1,3 +1,6 @@
 build32
 build64
 release
+build_aarch64_linux
+build_armhf_linux
+build_linux
