@@ -78,7 +78,7 @@ After the compilation is completed, the corresponding `armeabi-v7a` library, the
 ```
 cd <path_to_tnn>/scripts
 ```
-2）edit `build_arm_linux.sh` or `build_arm32hf_linux.sh` to config the building options  
+2）edit `build_aarch64_linux.sh` or `build_armhf_linux.sh` to config the building options  
 ```
  SHARED_LIB="ON"                # ON for dynamic lib，OFF for static lib
  ARM="ON"                       # ON to build for ARM CPU
@@ -95,7 +95,7 @@ cd <path_to_tnn>/scripts
 ```
 3）execute the building script
 ```
-./build_arm_linux.sh
+./build_aarch64_linux.sh  or  ./build_armhf_linux.sh
 ```
 
 ## Description for build options 

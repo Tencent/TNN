@@ -84,7 +84,7 @@ cd <path_to_tnn>/scripts
 ```
 cd <path_to_tnn>/scripts
 ```
-2）编辑`build_aarch_linux.sh` 或 `build_arm32hf_linux.sh` 修改配置选项 
+2）编辑`build_aarch64_linux.sh` 或 `build_armhf_linux.sh` 修改配置选项 
 ```
  SHARED_LIB="ON"                # ON表示编译动态库，OFF表示编译静态库
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
@@ -101,7 +101,7 @@ cd <path_to_tnn>/scripts
 ```
 3）执行编译脚本
 ```
-./build_arm_linux.sh
+./build_aarch64_linux.sh 或 ./build_armhf_linux.sh
 ```
 
 ## 编译参数option说明
