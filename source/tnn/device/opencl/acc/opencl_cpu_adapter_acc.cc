@@ -173,7 +173,8 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
         auto device_output = outputs[i];
         auto cpu_output = cpu_blob_out_[i];
         auto dims = cpu_output->GetBlobDesc().dims;
-
+        device_output->GetBlobDesc().dims = dims;
+        
         BlobConverter blob_converter(device_output);
         MatConvertParam param;
         if(DATA_FORMAT_NCHW == cpu_output->GetBlobDesc().data_format) {
