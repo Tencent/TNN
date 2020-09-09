@@ -19,6 +19,8 @@ include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
 include_directories(${BASE_SRC}/)
 include_directories(../demo/src/main/jni/cc/)
 
+set(CMAKE_BUILD_TYPE Release)
+
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
