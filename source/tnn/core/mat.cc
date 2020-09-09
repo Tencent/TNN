@@ -68,16 +68,10 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     dims_ = dims;
     
     auto device = GetDevice(device_type);
-    if (device == NULL) {
-        LOGE("Error: GetDevice(%d) return nil\n", device_type);
-        return;
-    }
+    ASSERT(device != NULL);
 
     int count = DimsVectorUtils::Count(dims);
-    if (count <= 0) {
-        LOGE("Error: shape is invalid, some dim is zero\n");
-        return;
-    }
+    ASSERT(count > 0);
 
     device_type_     = device_type;
     mat_type_        = mat_type;
