@@ -53,7 +53,7 @@ cd <path_to_tnn>/scripts
  SHARED_LIB="ON"                # ON for dynamic lib，OFF for static lib
  ARM="ON"                       # ON to build for ARM CPU
  OPENMP="ON"                    # ON to build for OpenMP
- OPENCL="ON"                    # ON to build for GPU
+ OPENCL="ON"                    # ON to build for GPU OPENCL
  SHARING_MEM_WITH_OPENGL=0      # 1 for sharing OpenGL texture with openCL
 ```
 3）execute the building script
@@ -83,7 +83,7 @@ cd <path_to_tnn>/scripts
  SHARED_LIB="ON"                # ON for dynamic lib，OFF for static lib
  ARM="ON"                       # ON to build for ARM CPU
  OPENMP="ON"                    # ON表示打开OpenMP
- OPENCL="OFF"                   # ON to build for GPU
+ OPENCL="OFF"                   # ON to build for GPU OPENCL
  #for arm64:
  CC=aarch64-linux-gnu-gcc       # set compiler for aarch64 C
  CXX=aarch64-linux-gnu-g++      # set compiler for aarch64 C++

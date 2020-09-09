@@ -94,14 +94,14 @@ Append model name to `benchmark_model_list` in `benchmark_models.sh`, such as：
 ### 4. Execute the script
 
 ```
-./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/GPU>
+./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/OPENCL>
 Parameters：
     -32   build 32-bit library, default is 64
     -c    clean and recompile
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
     -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected
-    -t    add <NAIVE/GPU> to indicate the platform to run.
+    -t    add <NAIVE/OPENCL> to indicate the platform to run.
 ```
 
 #### 4.1 Overall Network Performance Analysis：

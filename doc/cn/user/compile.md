@@ -61,7 +61,7 @@ cd <path_to_tnn>/scripts
  SHARED_LIB="ON"                # ON表示编译动态库，OFF表示编译静态库
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
- OPENCL="ON"                    # ON表示编译带有Arm GPU版本的库
+ OPENCL="ON"                    # ON表示编译带有Arm GPU OPENCL版本的库
  SHARING_MEM_WITH_OPENGL=0      # 1表示OpenGL的Texture可以与OpenCL共享
 ```
 3）执行编译脚本
@@ -89,7 +89,7 @@ cd <path_to_tnn>/scripts
  SHARED_LIB="ON"                # ON表示编译动态库，OFF表示编译静态库
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
- OPENCL="OFF"                   # ON表示编译带有Arm GPU版本的库
+ OPENCL="OFF"                   # ON表示编译带有Arm GPU OPENCL版本的库
  #ARM64:
  CC=aarch64-linux-gnu-gcc       # 指定C编译器
  CXX=aarch64-linux-gnu-g++      # 指定C++编译器
