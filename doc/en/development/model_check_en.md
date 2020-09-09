@@ -8,7 +8,7 @@ Check whether the output of the model on corresponding platform (OpenCL, Metal, 
 ## II. Compile
 To compile the model_check tool, the following macro must be set to ON:  
 * Turn on the following options to compile TNN (For the compilation method, please refer to [Compile TNN](../user/compile_en.md))
-* `TNN_CPU_ENABLE`  
+* `TNN_NAIVE_ENABLE`  
 * `TNN_MODEL_CHECK_ENABLE`
 * set for corresponding device，such as `TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`
 
