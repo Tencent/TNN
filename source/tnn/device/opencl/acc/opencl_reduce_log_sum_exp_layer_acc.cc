@@ -36,6 +36,8 @@ std::set<std::string> OpenCLReduceLogSumExpLayerAcc::CreateBuildOptions() {
     std::string inner   = " -DINNEROPERATOR=r.x+r.y+r.z+r.w ";
     std::string post    = " -DPOSTOPERATOR=log(r) ";
     build_options.emplace(init + compute + inner + post);
+
+    AdjustBuildOptionForFp32(build_options);
     return build_options;
 }
 
