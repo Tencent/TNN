@@ -28,14 +28,14 @@ benchmark_model_list=(
 )
 
 function usage() {
-    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/GPU>"
+    echo "usage: ./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/OPENCL>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -b    build targets only"
     echo "        -f    build profiling targets "
     echo "        -d    run with specified device"
-    echo "        -t    NAIVE/GPU specify the platform to run"
+    echo "        -t    NAIVE/OPENCL specify the platform to run"
 }
 
 function exit_with_msg() {
@@ -62,14 +62,14 @@ function build_android_bench() {
         NAIVE=ON
     fi
     OPENCL=OFF
-    if [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "OPENCL" ];then
         OPENCL=ON
     fi
     ARM=OFF
     if [ "$DEVICE_TYPE" = "" ];then
         ARM=ON
     fi
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+    if [ "$DEVICE_TYPE" != "OPENCL" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         ARM=ON
     fi
 
@@ -123,7 +123,7 @@ function bench_android() {
         benchmark_model_list=`ls *.tnnproto`
     fi
 
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+    if [ "$DEVICE_TYPE" != "OPENCL" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         DEVICE_TYPE=""
     fi
 
@@ -141,7 +141,7 @@ function bench_android() {
         LOOP_COUNT=1
     fi
 
-    if [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "OPENCL" ];then
         device=OPENCL
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}

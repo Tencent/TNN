@@ -87,14 +87,14 @@ cp mobilenet_v1.tnnproto .
 
 ### 4. 执行脚本
 ```
-./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/GPU>
+./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <NAIVE/OPENCL>
 参数说明：
     -32   编译32位的库，否则为64位
     -c    删除之前的编译文件，重新编译
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
     -d    如果连接了多个Android设备，则可以通过这个参数指定设备。需要加上<device-id>
-    -t    指定执行的平台。需要加上<NAIVE/GPU>
+    -t    指定执行的平台。需要加上<NAIVE/OPENCL>
 ```
 #### 4.1 全网络性能分析：
 分析整体网络耗时，执行多次，获取平均性能。  

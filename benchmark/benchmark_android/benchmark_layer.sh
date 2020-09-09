@@ -12,13 +12,13 @@ LOOP_COUNT=10
 ADB=adb
 
 function usage() {
-    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <NAIVE/GPU>"
+    echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <NAIVE/OPENCL>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -d    run with specified device"
     echo "        -f    specified layer"
-    echo "        -t    NAIVE/GPU specify the platform to run"
+    echo "        -t    NAIVE/OPENCL specify the platform to run"
 }
 
 function exit_with_msg() {
@@ -45,14 +45,14 @@ function build_android_bench() {
         NAIVE=ON
     fi
     OPENCL=OFF
-    if [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "OPENCL" ];then
         OPENCL=ON
     fi
     ARM=OFF
     if [ "$DEVICE_TYPE" = "" ];then
         ARM=ON
     fi
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+    if [ "$DEVICE_TYPE" != "OPENCL" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         ARM=ON
     fi
 
@@ -91,7 +91,7 @@ function bench_android() {
     $ADB shell chmod 0777 $ANDROID_DIR/unit_test
 
     $ADB shell "getprop ro.product.model > ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
+    if [ "$DEVICE_TYPE" != "OPENCL" ] && [ "$DEVICE_TYPE" != "NAIVE" ];then
         DEVICE_TYPE=""
     fi
 
@@ -105,7 +105,7 @@ function bench_android() {
         $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt NAIVE --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
     fi
 
-    if [ "$DEVICE_TYPE" = "GPU" ];then
+    if [ "$DEVICE_TYPE" = "OPENCL" ];then
         LOOP_COUNT=1
         $ADB shell "echo '\nbenchmark device: OPENCL \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
