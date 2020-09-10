@@ -52,7 +52,7 @@ Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
                         guard_index = cur_value > guard_value ? c : guard_index;
                     }
                 };  // end for loop
-                output_ptr[s] = (float)guard_index;
+                output_ptr[n * stride + s] = (float)guard_index;
             }
         }  // end for
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
