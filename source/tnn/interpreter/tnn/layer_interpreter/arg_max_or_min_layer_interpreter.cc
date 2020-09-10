@@ -32,10 +32,10 @@ Status ArgMaxOrMinLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int in
     }
 
     if (index < layer_cfg_arr.size()) {
-        p->keepdims = atoi(layer_cfg_arr[index++].c_str());
+        p->keep_dims = atoi(layer_cfg_arr[index++].c_str());
     }
-	if (p->keepdims != 1) {
-		p->keepdims = 1;
+	if (p->keep_dims != 1) {
+		p->keep_dims = 1;
 	}
 
     if (index < layer_cfg_arr.size()) {
@@ -52,7 +52,7 @@ Status ArgMaxOrMinLayerInterpreter::SaveProto(std::ofstream& output_stream, Laye
 	auto layer_param = dynamic_cast<ArgMaxOrMinLayerParam*>(param);
     output_stream << layer_param->mode << " ";
     output_stream << layer_param->axis << " ";
-    output_stream << layer_param->keepdims << " ";
+    output_stream << layer_param->keep_dims << " ";
     output_stream << layer_param->select_last_index << " ";
 
     return TNN_OK;
