@@ -38,27 +38,21 @@ Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_ptr = static_cast<float *>(output_blob->GetHandle().base);
-        float *pre_slice_ptr = input_ptr;
-        for (int i = 0; i < num * stride; ++i) {
-            // initial 0 index
-            output_ptr[i] = 0;
-        }
         for (int n = 0; n < num; ++n) {
-            for (int c = 0; c < channels; ++c) {
-                float* slice_ptr = pre_slice_ptr + c * stride;
-                for (int s = 0; s < stride; ++s) {
+            for (int s = 0; s < stride; ++s) {
+                int guard_index = 0;
+                for (int c = 1; c < channels; ++c) {
+                    float guard_value = input_ptr[n * stride * channels + guard_index * stride + s];
+                    float cur_value   = input_ptr[n * stride * channels + c * stride + s];
                     if (param->mode == 0) {
                         // ArgMin
-                        if (slice_ptr[s] <0 ){
-
-                            output_ptr[s] = (float) c;
-                        }
+                        guard_index = cur_value < guard_value ? c : guard_index;
                     } else {
                         // ArgMax
-
+                        guard_index = cur_value > guard_value ? c : guard_index;
                     }
-                }
-                pre_slice_ptr = slice_ptr;
+                };  // end for loop
+                output_ptr[s] = (float)guard_index;
             }
         }  // end for
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {

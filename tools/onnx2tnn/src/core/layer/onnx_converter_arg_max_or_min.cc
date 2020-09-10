@@ -34,10 +34,14 @@ string OnnxOpConverterArgMaxOrMin::TNNLayerParam(NodeProto &node, OnnxNetInfo &n
     if (net_info.opset >= 12) {
         select_last_index = get_node_attr_i(node, "select_last_index", 0);
     }
+    if (select_last_index != 0) {
+        LOGE("ArgMaxOrMin: do not support select last index for now.\n");
+        assert(0);
+    }
     if (onnx_op == "ArgMin"){
-        layer_param << 0;
+        layer_param << 0 << " ";
     } else if (onnx_op == "ArgMax") {
-        layer_param << 1;
+        layer_param << 1 << " ";
     } else {
         LOGE("ArgMaxOrMin: do not support type.\n");
         assert(0);
