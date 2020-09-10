@@ -15,15 +15,6 @@ public class ObjectDetector {
                 "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
                 "hair drier", "toothbrush"};
 
-    public static class ObjectInfo {
-        public float x1;
-        public float y1;
-        public float x2;
-        public float y2;
-        public float score;
-        public float[] landmarks;
-        public int class_id;
-    }
     public native int init(String modelPath, int width, int height, float scoreThreshold, float iouThreshold, int topk, int computeType);
     public native boolean checkNpu(String modelPath);
     public native int deinit();

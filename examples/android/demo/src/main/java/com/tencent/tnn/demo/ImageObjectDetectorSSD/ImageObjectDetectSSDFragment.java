@@ -18,6 +18,7 @@ import android.widget.ToggleButton;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.ObjectDetector;
+import com.tencent.tnn.demo.ObjectInfo;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
@@ -109,7 +110,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imageobjectdetector);
+        setView(R.layout.fragment_image_detector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -181,7 +182,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         int result = imageObjectDetectorSSD.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            ObjectDetector.ObjectInfo[] objectInfoList = imageObjectDetectorSSD.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
+            ObjectInfo[] objectInfoList = imageObjectDetectorSSD.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
             int objectCount = 0;
             if (objectInfoList != null) {
@@ -204,10 +205,10 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
                     Rect rect = rects.get(i);
                     mPaint.setARGB(255, 0, 255, 0);
                     canvas.drawRect(rect, mPaint);
-                    ObjectDetector.ObjectInfo info = objectInfoList[i];
-                    if (info.class_id < ObjectDetectorSSD.voc_classes.length) {
+                    ObjectInfo info = objectInfoList[i];
+                    if (info.class_id < ObjectDetectorSSD.label_list.length) {
                         mPaint.setTextSize(18);
-                        canvas.drawText(String.format("%s : %f", ObjectDetectorSSD.voc_classes[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
+                        canvas.drawText(String.format("%s : %f", ObjectDetectorSSD.label_list[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
                     }
                 }
                 source.setImageBitmap(scaleBitmap2);
