@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1FC98D8D25039D6000A81D79 /* arm_conv_layer_group.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */; };
+		1FC98D8E25039D6000A81D79 /* arm_conv_layer_group.h in Headers */ = {isa = PBXBuildFile; fileRef = 1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */; };
 		9D29E25122DC89310050DC63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D29E25022DC89300050DC63 /* Foundation.framework */; };
 		9D2DB1D622D759C8000C508F /* tnn.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D2DB1D422D759C8000C508F /* tnn.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9D31636023169B1600531250 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D31635F23169B1600531250 /* CoreML.framework */; };
@@ -591,9 +593,13 @@
 		9DF19EA224A200AC00E1376D /* metal_cpu_adapter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */; };
 		9DF26BD924645EA500F22F0D /* naive_compute.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF26BD724645EA500F22F0D /* naive_compute.cc */; };
 		9DF26BDA24645EA500F22F0D /* naive_compute.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF26BD824645EA500F22F0D /* naive_compute.h */; };
+		EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */ = {isa = PBXBuildFile; fileRef = EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */; };
+		EC2CF7512508A99C00EE3899 /* arm_deconv_layer_stride.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_layer_group.cc; sourceTree = "<group>"; };
+		1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_layer_group.h; sourceTree = "<group>"; };
 		9D24B9562351FFE1000E1F04 /* tnn copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "tnn copy-Info.plist"; path = "/Volumes/BANQ/Projects/MLProjects/tnn-open2/platforms/ios/tnn copy-Info.plist"; sourceTree = "<absolute>"; };
 		9D29E25022DC89300050DC63 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.2.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		9D2DB1D122D759C8000C508F /* tnn.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = tnn.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1181,6 +1187,8 @@
 		9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_cpu_adapter_acc.h; sourceTree = "<group>"; };
 		9DF26BD724645EA500F22F0D /* naive_compute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = naive_compute.cc; sourceTree = "<group>"; };
 		9DF26BD824645EA500F22F0D /* naive_compute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = naive_compute.h; sourceTree = "<group>"; };
+		EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_deconv_layer_stride.h; sourceTree = "<group>"; };
+		EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_deconv_layer_stride.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1916,6 +1924,8 @@
 		9DD1FBF4247CEA1300800139 /* deconvolution */ = {
 			isa = PBXGroup;
 			children = (
+				EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */,
+				EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */,
 				9DD1FBF5247CEA1300800139 /* arm_deconv_layer_acc.cc */,
 				9DD1FBF6247CEA1300800139 /* arm_deconv_layer_depthwise.cc */,
 				9DD1FBF7247CEA1300800139 /* arm_deconv_layer_common.cc */,
@@ -2003,6 +2013,8 @@
 				9DD1FC53247CEA1300800139 /* arm_conv_layer_acc.cc */,
 				9DD1FC54247CEA1300800139 /* arm_conv_layer_depthwise.h */,
 				9DD1FC55247CEA1300800139 /* arm_conv_layer_depthwise_s1.cc */,
+				1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */,
+				1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */,
 			);
 			path = convolution;
 			sourceTree = "<group>";
@@ -2126,6 +2138,7 @@
 				9D32FC9B24557EEC002DCDAB /* blob_2d_memory.h in Headers */,
 				9D32FF4624557EED002DCDAB /* ncnn_optimizer_manager.h in Headers */,
 				9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */,
+				1FC98D8E25039D6000A81D79 /* arm_conv_layer_group.h in Headers */,
 				9DD1FC89247CEA1400800139 /* arm_deconv_layer_acc.h in Headers */,
 				9DD1FC8A247CEA1400800139 /* arm_deconv_layer_depthwise.h in Headers */,
 				9DD1FB73247CE9BE00800139 /* metal_deconv_layer_acc.h in Headers */,
@@ -2152,6 +2165,7 @@
 				9D32FF4C24557EED002DCDAB /* ncnn_param_utils.h in Headers */,
 				9D32FCA624557EEC002DCDAB /* blob_dump_utils.h in Headers */,
 				9D32FF3924557EED002DCDAB /* default_model_packer.h in Headers */,
+				EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */,
 				9D2DB1D622D759C8000C508F /* tnn.h in Headers */,
 				9D32FF3724557EED002DCDAB /* layer_interpreter.h in Headers */,
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
@@ -2245,6 +2259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D32FCF824557EEC002DCDAB /* elu_layer.cc in Sources */,
+				1FC98D8D25039D6000A81D79 /* arm_conv_layer_group.cc in Sources */,
 				9DD1FB4D247CE9BE00800139 /* metal_common.metal in Sources */,
 				9DD1FC9B247CEA1400800139 /* compute_int8.cc in Sources */,
 				9D32FF2724557EED002DCDAB /* pooling_3d_layer_interpreter.cc in Sources */,
@@ -2453,6 +2468,7 @@
 				9D32FCD024557EEC002DCDAB /* reshape_layer.cc in Sources */,
 				9D32FF5324557EED002DCDAB /* slice_layer_interpreter.cc in Sources */,
 				9DD1FB71247CE9BE00800139 /* metal_batch_norm_layer_acc.mm in Sources */,
+				EC2CF7512508A99C00EE3899 /* arm_deconv_layer_stride.cc in Sources */,
 				9DD1FBAD247CE9BE00800139 /* metal_hard_sigmoid_layer_acc.mm in Sources */,
 				9DD1FC7D247CEA1400800139 /* arm_sign_layer_acc.cc in Sources */,
 				9DD1FBAB247CE9BE00800139 /* metal_instance_norm_layer_acc.metal in Sources */,
