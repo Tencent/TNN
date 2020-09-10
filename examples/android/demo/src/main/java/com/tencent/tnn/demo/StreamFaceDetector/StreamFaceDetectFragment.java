@@ -326,7 +326,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
                             if (faceInfoList != null) {
                                 faceCount = faceInfoList.length;
                             }
-                            mDrawView.addFaceRect(faceInfoList,  mCameraParameters.getPreviewSize().height,  mCameraParameters.getPreviewSize().width);
+                            mDrawView.addFaceRect(faceInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
 
                             String result = "face count: " + faceCount + " " + Helper.getBenchResult();
                             TextView result_view = (TextView)$(R.id.result);
