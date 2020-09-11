@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef FaceGrayTransfer_hpp
-#define FaceGrayTransfer_hpp
+#ifndef TNN_EXAMPLES_BASE_FACE_GRAY_TRANSFER_H_
+#define TNN_EXAMPLES_BASE_FACE_GRAY_TRANSFER_H_
 
 #include <algorithm>
 #include <iostream>
@@ -36,4 +36,4 @@ public:
 };
 
 }
-#endif /* FaceGrayTransfer_hpp */
+#endif //TNN_EXAMPLES_BASE_FACE_GRAY_TRANSFER_H_

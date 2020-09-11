@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef ObjectDetectorYolo_h
-#define ObjectDetectorYolo_h
+#ifndef TNN_EXAMPLES_BASE_OBJECT_DETECTOR_YOLO_H_
+#define TNN_EXAMPLES_BASE_OBJECT_DETECTOR_YOLO_H_
 
 #include "tnn_sdk_sample.h"
 #include <memory>
@@ -75,4 +75,4 @@ private:
 };
 
 }
-#endif /* ObjectDetectorYolo_h */
+#endif // TNN_EXAMPLES_BASE_OBJECT_DETECTOR_YOLO_H_

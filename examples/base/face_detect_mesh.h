@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef FaceDetectMesh_hpp
-#define FaceDetectMesh_hpp
+#ifndef TNN_EXAMPLES_BASE_FACE_DETECT_MESH_H_
+#define TNN_EXAMPLES_BASE_FACE_DETECT_MESH_H_
 
 #include <algorithm>
 #include <memory>
@@ -43,4 +43,4 @@ protected:
 
 }
 
-#endif /* FaceDetectMesh_hpp */
+#endif // TNN_EXAMPLES_BASE_FACE_DETECT_MESH_H_
