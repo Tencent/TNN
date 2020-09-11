@@ -16,8 +16,6 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include <sys/time.h>
 
-#define PROFILE 0
-
 namespace TNN_NS{
 
 Status YoutuFaceAlign::Init(std::shared_ptr<TNNSDKOption> option_i) {
@@ -237,18 +235,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::WarpByRect(std::shared_ptr<TNN_NS::
     param.interp_type = INTERP_TYPE_LINEAR;
     param.border_val = 0;
     memcpy(param.transform, transM, sizeof(float)*M.size());
-    
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
+
     status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-    timer.printElapsed(tag, "warpAffine phase1");
-    printShape("warpAffine phase1 src", image->GetDims());
-    printShape("warpAffine phase1 dst", transMatDims);
-#else
-    status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-#endif
     if (status != TNN_OK) {
         LOGE("WarpAffine Error:%s\n", status.description().c_str());
         return nullptr;
@@ -387,17 +375,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
     param.border_val = 0;
     float* transM = &(M[0]);
     memcpy(param.transform, transM, sizeof(float)*M.size());
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
+
     status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-    timer.printElapsed(tag, "warpAffine phase2");
-    printShape("warpAffine phase2 src", image->GetDims());
-    printShape("warpAffine phase2 dst", transMatDims);
-#else
-    status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-#endif
     if(status != TNN_OK) {
         LOGE("WarpAffine Error:%s\n", status.description().c_str());
         return nullptr;
@@ -424,17 +403,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat>
         LOGE("GetCommandQueue Error:%s\n", status.description().c_str());
         return nullptr;
     }
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
+
     status = MatUtils::BGR2Gray(*(bgr_image.get()), *(grayMat.get()), command_queue);
-    timer.printElapsed(tag, "bgr2gray");
-    printShape("bgr2gray src", bgr_image->GetDims());
-    printShape("bgr2gray dst", grayDims);
-#else
-    status = MatUtils::BGR2Gray(*(bgr_image.get()), *(grayMat.get()), command_queue);
-#endif
     if( status != TNN_OK) {
         LOGE("BGR2Gray error:%s\n", status.description().c_str());
         return nullptr;

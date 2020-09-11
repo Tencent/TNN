@@ -24,8 +24,6 @@
 using namespace std;
 using namespace TNN_NS;
 
-#define PROFILE 1
-
 @interface TNNImageClassifyController ()
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
@@ -161,17 +159,12 @@ using namespace TNN_NS;
     
     auto target_dims = predictor->GetInputShape();
     auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
-#if PROFILE
-    const std::string tag = (units == TNNComputeUnitsCPU)?"CPU":"GPU";
-    Timer timer;
-    timer.start();
     status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
-    timer.printElapsed(tag, "Resize");
-    printShape("Resize src", image_mat->GetDims());
-    printShape("Resize dst", input_mat->GetDims());
-#else
-    status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
-#endif
+    if (status != TNN_OK) {
+        NSLog(@"Error: %s", status.description().c_str());
+        return;
+    }
+
     std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
     status = predictor->Predict(std::make_shared<TNNSDKInput>(input_mat), sdk_output);
    
@@ -179,7 +172,7 @@ using namespace TNN_NS;
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
-    
+
     int class_id = -1;
     if (sdk_output && dynamic_cast<ImageClassifierOutput *>(sdk_output.get())) {
         auto classfy_output = dynamic_cast<ImageClassifierOutput *>(sdk_output.get());
