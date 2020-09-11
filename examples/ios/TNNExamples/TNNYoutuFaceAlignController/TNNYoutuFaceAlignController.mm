@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNYoutuFaceAlignController.h"
-#import "YoutuFaceAlign.h"
+#import "youtu_face_align.h"
 #import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>

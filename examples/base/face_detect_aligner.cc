@@ -16,7 +16,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "blazeface_detector.h"
 #include "tnn_sdk_sample.h"
-#include "YoutuFaceAlign.h"
+#include "youtu_face_align.h"
 
 namespace TNN_NS {
 Status FaceDetectAligner::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
