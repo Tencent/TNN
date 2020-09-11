@@ -657,7 +657,7 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
                 "vsub.u8    d2, d27, %[_v128]   \n"
                 "vst3.u8    {d4-d6},   [%[_r1]]!\n"
                 "bne        0b                  \n"
-                "sub        %3, #8              \n"
+                "sub        %[_vu], #8          \n"
 
                 : [_nn]"+r"(nn),
                   [_y0]"+r"(yptr0),
@@ -946,6 +946,480 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
 
         yptr += 2*w;
         bgr  += 2*3*w;
+    }
+}
+
+void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
+    const unsigned char* yptr  = nv12;
+    const unsigned char* vuptr = nv12 + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgra;
+        unsigned char* rgb1 = bgra + w * 4;
+
+#ifdef TNN_USE_NEON
+#if __aarch64__
+        int64_t nn = w >> 3;
+        int remain = w - (nn << 3);
+
+        int16x8_t _q1135 = vdupq_n_s16(1135);
+        int8x8_t _v74    = vdup_n_s8(74);
+        int8x8_t _v128   = vdup_n_s8(int8_t(128));
+        int8x8_t _v255   = vdup_n_s8(int8_t(255));
+        int8x8_t _v102   = vdup_n_s8(102);
+        int8x8_t _v52    = vdup_n_s8(52);
+        int8x8_t _v25    = vdup_n_s8(25);
+        // use 127 instead of 129 to prevent char overflow, add another 2 in asm
+        int8x8_t _v127   = vdup_n_s8(127);
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240  = vdup_n_u8(240);
+
+        if (nn > 0) {
+            asm volatile(
+                "prfm  pldl1strm, [%[_vu], #128]    \n\t"
+                "ld1   {v2.8b},   [%[_vu]], #8      \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
+                "mov   v27.8b, %[_v255].8b          \n\t"
+                "orr   v7.8b,  v27.8b, v27.8b       \n\t"
+                "0:                                 \n\t"
+                "prfm  pldl1strm, [%[_y0], #128]    \n\t"
+                "ld1   {v0.8b},   [%[_y0]], #8      \n\t"
+                "prfm  pldl1strm, [%[_y1], #128]    \n\t"
+                "ld1   {v1.8b},   [%[_y1]], #8      \n\t"
+                "umull v28.8h, v0.8b,  %[_v74].8b   \n\t"
+                "sub   v28.8h, v28.8h, %[_q1135].8h \n\t"   // v28 -> b0
+                "orr   v3.8b,  v2.8b,  v2.8b        \n\t"
+                "umull v29.8h, v1.8b,  %[_v74].8b   \n\t"
+                "sub   v29.8h, v29.8h, %[_q1135].8h \n\t"   // v29 -> b1
+                "orr   v9.16b, v28.16b, v28.16b     \n\t"   // v9  -> g0
+                "trn1  v31.8b, v2.8b, v3.8b         \n\t"   // u
+                "trn2  v30.8b, v2.8b, v3.8b         \n\t"   // v
+                "orr   v11.16b, v29.16b, v29.16b    \n\t"   // v11 -> g1
+                "sshll v13.8h, v31.8b, #1           \n\t"
+                "smlsl v9.8h,  v30.8b, %[_v52].8b   \n\t"
+                "orr   v8.16b, v28.16b, v28.16b     \n\t"   // v8  -> r0
+                "smlsl v11.8h, v30.8b, %[_v52].8b   \n\t"
+                "orr   v10.16b, v29.16b, v29.16b    \n\t"   // v10 -> r1
+                "smlal v8.8h,  v30.8b, %[_v102].8b  \n\t"
+                "smlal v28.8h, v31.8b, %[_v127].8b  \n\t"
+                "smlal v10.8h, v30.8b, %[_v102].8b  \n\t"
+                "add   v28.8h, v28.8h, v13.8h       \n\t"
+                "smlsl v9.8h,  v31.8b, %[_v25].8b   \n\t"
+                "smlal v29.8h, v31.8b, %[_v127].8b  \n\t"
+                "smlsl v11.8h, v31.8b, %[_v25].8b   \n\t"
+                "add   v29.8h, v29.8h, v13.8h       \n\t"
+                "sqshrun v26.8b, v8.8h,  #6         \n\t"   // v24-v27: b0g0r0a0
+                "sqshrun v24.8b, v28.8h, #6         \n\t"
+                "sqshrun v6.8b,  v10.8h, #6         \n\t"
+                "sqshrun v25.8b, v9.8h,  #6         \n\t"   // v4-v7: b1g1r1a1
+                "sqshrun v4.8b,  v29.8h, #6         \n\t"
+                "sqshrun v5.8b,  v11.8h, #6         \n\t"
+                "prfm pldl1strm, [%[_vu], #128]     \n\t"
+                "ld1 {v2.8b},    [%[_vu]], #8       \n\t"
+                "subs %[_nn], %[_nn], #1            \n\t"
+                "prfm pstl1strm, [%[_r0]]           \n\t"
+                "st4 {v24.8b-v27.8b}, [%[_r0]], #32 \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
+                "prfm pstl1strm, [%[_r1]]           \n\t"
+                "st4 {v4.8b-v7.8b},   [%[_r1]], #32 \n\t"
+                "bne 0b                             \n\t"
+                "sub %[_vu], %[_vu], #8             \n\t"
+
+                : [_nn]"+r"(nn),
+                  [_y0]"+r"(yptr0),
+                  [_y1]"+r"(yptr1),
+                  [_vu]"+r"(vuptr),
+                  [_r0]"+r"(rgb0),
+                  [_r1]"+r"(rgb1)
+                : [_v128]"w"(_v128),
+                  [_v102]"w"(_v102),
+                  [_v52]"w"(_v52),
+                  [_v25]"w"(_v25),
+                  [_v127]"w"(_v127),
+                  [_q1135]"w"(_q1135),
+                  [_v74]"w"(_v74),
+                  [_v240]"w"(_v240),
+                  [_v255]"w"(_v255)
+                : "cc", "memory", "x0", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8",
+                  "v9", "v10", "v11", "v12", "v13", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
+            );
+        }
+#else
+        int nn         = w >> 3;
+        int remain     = w - (nn << 3);
+        short _s1135   = 1135;
+        int8x8_t _v74  = vdup_n_s8(74);
+        int8x8_t _v128 = vdup_n_s8(int8_t(128));
+        // to much input w cause compile error, merge to one
+        int8x8_t _vuvfilter = {102, 52, 25, 127, int8_t(255), 0, 0, 0};
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240     = vdup_n_u8(240);
+
+        if (nn > 0) {
+            asm volatile(
+                "pld        [%[_vu], #128]      \n"
+                "vld1.u8    {d2}, [%[_vu]]!     \n"
+                "vcgt.u8    d9, d2, %[_v240]    \n"
+                "vbsl.u8    d9,  %[_v240], d2   \n"
+                "vsub.u8    d2, d9, %[_v128]    \n"
+                "vmov.s8    d10, %[_filt]       \n"
+                "vdup.8     d27, d10[4]         \n"   // v255
+                "vdup.8     d11, d10[1]         \n"   // v52
+                "vdup.8     d12, d10[2]         \n"   // v25
+                "vdup.8     d13, d10[3]         \n"   // v127
+                "vdup.16    q7,  %[_s1135]      \n"   // q1135
+                "vdup.8     d10, d10[0]         \n"   // v102
+                "0:                             \n"
+                "pld        [%[_y0], #128]      \n"
+                "vld1.u8    {d0}, [%[_y0]]!     \n"
+                "pld        [%[_y1], #128]      \n"
+                "vld1.u8    {d1}, [%[_y1]]!     \n"
+                "vmull.u8   q2, d0, %[_v74]     \n"
+                "vorr       d3, d2, d2          \n"
+                "vsub.s16   q2, q2, q7          \n"   // q2  -> b0
+                "vmull.u8   q3, d1, %[_v74]     \n"
+                "vorr       q9, q2, q2          \n"   // q9  -> g0
+                "vsub.s16   q3, q3, q7          \n"   // q3  -> b1
+                "vtrn.s8    d3, d2              \n"   // d3 -> u, d2 -> v
+                "vorr       q11, q3, q3         \n"   // q11 -> g1
+                "vshll.s8   q4, d3, #1          \n"
+                "vmlsl.s8   q9, d2, d11         \n"
+                "vorr       q8, q2, q2          \n"   // q8  -> r0
+                "vmlsl.s8   q11, d2, d11        \n"
+                "vorr       q10, q3, q3         \n"   // q10 -> r1
+                "vmlal.s8   q8, d2, d10         \n"
+                "vmlal.s8   q2, d3, d13         \n"
+                "vmlal.s8   q10, d2, d10        \n"
+                "vadd.s16   q2, q2, q4          \n"
+                "vmlsl.s8   q9, d3, d12         \n"
+                "vmlal.s8   q3, d3, d13         \n"
+                "vmlsl.s8   q11,d3, d12         \n"
+                "vadd.s16   q3, q3, q4          \n"
+                "vqshrun.s16 d26, q8, #6        \n"   // d24-d27: b0g0r0a0
+                "vqshrun.s16 d24, q2, #6        \n"
+                "vqshrun.s16 d3,  q3, #6        \n"
+                "vqshrun.s16 d25, q9, #6        \n"   // d3-d6: b1g1r1a1
+                "vqshrun.s16 d5, q10, #6        \n"
+                "vqshrun.s16 d4, q11, #6        \n"
+                "pld        [%[_vu], #128]      \n"
+                "vld1.u8    {d2}, [%[_vu]]!     \n"
+                "vorr       d6, d27, d27        \n"
+                "subs       %[_nn], #1          \n"
+                "vst4.u8    {d24-d27}, [%[_r0]]!\n"
+                "vcgt.u8    d9, d2, %[_v240]    \n"
+                "vbsl.u8    d9,  %[_v240], d2   \n"
+                "vsub.u8    d2, d9, %[_v128]    \n"
+                "vst4.u8    {d3-d6},   [%[_r1]]!\n"
+                "bne        0b                  \n"
+                "sub        %[_vu], #8          \n"
+
+                : [_nn]"+r"(nn),
+                  [_y0]"+r"(yptr0),
+                  [_y1]"+r"(yptr1),
+                  [_vu]"+r"(vuptr),
+                  [_r0]"+r"(rgb0),
+                  [_r1]"+r"(rgb1)
+                : [_v128]"w"(_v128),
+                  [_filt]"w"(_vuvfilter),
+                  [_v74]"w"(_v74),
+                  [_s1135]"r"(_s1135),
+                  [_v240]"w"(_v240)
+                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "q13"
+            );
+        }
+#endif //__aarch64__
+#else
+        int remain = w;
+#endif // TNN_USE_NEON
+
+        for (; remain > 0; remain -= 2) {
+            int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgb0[3] = 255;
+            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgb0[7] = 255;
+            rgb0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgb0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgb0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgb1[3] = 255;
+            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgb1[7] = 255;
+            rgb1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgb1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgb1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgb0  += 8;
+            rgb1  += 8;
+        }
+
+        yptr += 2*w;
+        bgra += 2*4*w;
+    }
+}
+
+void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
+    const unsigned char* yptr  = nv21;
+    const unsigned char* vuptr = nv21 + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgra;
+        unsigned char* rgb1 = bgra + w * 4;
+
+#ifdef TNN_USE_NEON
+#if __aarch64__
+        int64_t nn = w >> 3;
+        int remain = w - (nn << 3);
+
+        int16x8_t _q1135 = vdupq_n_s16(1135);
+        int8x8_t _v74    = vdup_n_s8(74);
+        int8x8_t _v128   = vdup_n_s8(int8_t(128));
+        int8x8_t _v255   = vdup_n_s8(int8_t(255));
+        int8x8_t _v102   = vdup_n_s8(102);
+        int8x8_t _v52    = vdup_n_s8(52);
+        int8x8_t _v25    = vdup_n_s8(25);
+        // use 127 instead of 129 to prevent char overflow, add another 2 in asm
+        int8x8_t _v127   = vdup_n_s8(127);
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240  = vdup_n_u8(240);
+
+        if (nn > 0) {
+            asm volatile(
+                "prfm  pldl1strm, [%[_vu], #128]    \n\t"
+                "ld1   {v2.8b},   [%[_vu]], #8      \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
+                "mov   v27.8b, %[_v255].8b          \n\t"
+                "orr   v7.8b,  v27.8b, v27.8b       \n\t"
+                "0:                                 \n\t"
+                "prfm  pldl1strm, [%[_y0], #128]    \n\t"
+                "ld1   {v0.8b},   [%[_y0]], #8      \n\t"
+                "prfm  pldl1strm, [%[_y1], #128]    \n\t"
+                "ld1   {v1.8b},   [%[_y1]], #8      \n\t"
+                "umull v28.8h, v0.8b,  %[_v74].8b   \n\t"
+                "sub   v28.8h, v28.8h, %[_q1135].8h \n\t"   // v28 -> b0
+                "orr   v3.8b,  v2.8b,  v2.8b        \n\t"
+                "umull v29.8h, v1.8b,  %[_v74].8b   \n\t"
+                "sub   v29.8h, v29.8h, %[_q1135].8h \n\t"   // v29 -> b1
+                "orr   v9.16b, v28.16b, v28.16b     \n\t"   // v9  -> g0
+                "trn1  v30.8b, v2.8b, v3.8b         \n\t"   // u
+                "trn2  v31.8b, v2.8b, v3.8b         \n\t"   // v
+                "orr   v11.16b, v29.16b, v29.16b    \n\t"   // v11 -> g1
+                "sshll v13.8h, v31.8b, #1           \n\t"
+                "smlsl v9.8h,  v30.8b, %[_v52].8b   \n\t"
+                "orr   v8.16b, v28.16b, v28.16b     \n\t"   // v8  -> r0
+                "smlsl v11.8h, v30.8b, %[_v52].8b   \n\t"
+                "orr   v10.16b, v29.16b, v29.16b    \n\t"   // v10 -> r1
+                "smlal v8.8h,  v30.8b, %[_v102].8b  \n\t"
+                "smlal v28.8h, v31.8b, %[_v127].8b  \n\t"
+                "smlal v10.8h, v30.8b, %[_v102].8b  \n\t"
+                "add   v28.8h, v28.8h, v13.8h       \n\t"
+                "smlsl v9.8h,  v31.8b, %[_v25].8b   \n\t"
+                "smlal v29.8h, v31.8b, %[_v127].8b  \n\t"
+                "smlsl v11.8h, v31.8b, %[_v25].8b   \n\t"
+                "add   v29.8h, v29.8h, v13.8h       \n\t"
+                "sqshrun v26.8b, v8.8h,  #6         \n\t"   // v24-v27: b0g0r0a0
+                "sqshrun v24.8b, v28.8h, #6         \n\t"
+                "sqshrun v6.8b,  v10.8h, #6         \n\t"
+                "sqshrun v25.8b, v9.8h,  #6         \n\t"   // v4-v7: b1g1r1a1
+                "sqshrun v4.8b,  v29.8h, #6         \n\t"
+                "sqshrun v5.8b,  v11.8h, #6         \n\t"
+                "prfm pldl1strm, [%[_vu], #128]     \n\t"
+                "ld1 {v2.8b},    [%[_vu]], #8       \n\t"
+                "subs %[_nn], %[_nn], #1            \n\t"
+                "prfm pstl1strm, [%[_r0]]           \n\t"
+                "st4 {v24.8b-v27.8b}, [%[_r0]], #32 \n\t"
+                "cmhi  v12.8b, v2.8b, %[_v240].8b   \n\t"
+                "bsl   v12.8b, %[_v240].8b, v2.8b   \n\t"
+                "sub   v2.8b, v12.8b, %[_v128].8b   \n\t"
+                "prfm pstl1strm, [%[_r1]]           \n\t"
+                "st4 {v4.8b-v7.8b},   [%[_r1]], #32 \n\t"
+                "bne 0b                             \n\t"
+                "sub %[_vu], %[_vu], #8             \n\t"
+
+                : [_nn]"+r"(nn),
+                  [_y0]"+r"(yptr0),
+                  [_y1]"+r"(yptr1),
+                  [_vu]"+r"(vuptr),
+                  [_r0]"+r"(rgb0),
+                  [_r1]"+r"(rgb1)
+                : [_v128]"w"(_v128),
+                  [_v102]"w"(_v102),
+                  [_v52]"w"(_v52),
+                  [_v25]"w"(_v25),
+                  [_v127]"w"(_v127),
+                  [_q1135]"w"(_q1135),
+                  [_v74]"w"(_v74),
+                  [_v240]"w"(_v240),
+                  [_v255]"w"(_v255)
+                : "cc", "memory", "x0", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8",
+                  "v9", "v10", "v11", "v12", "v13", "v24", "v25", "v26","v27", "v28", "v29", "v30", "v31"
+            );
+        }
+#else
+        int nn         = w >> 3;
+        int remain     = w - (nn << 3);
+        short _s1135   = 1135;
+        int8x8_t _v74  = vdup_n_s8(74);
+        int8x8_t _v128 = vdup_n_s8(int8_t(128));
+        // to much input w cause compile error, merge to one
+        int8x8_t _vuvfilter = {102, 52, 25, 127, int8_t(255), 0, 0, 0};
+        // saturate uv to 240 to avoid b overflow
+        uint8x8_t _v240     = vdup_n_u8(240);
+
+        if (nn > 0) {
+            asm volatile(
+                "pld        [%[_vu], #128]      \n"
+                "vld1.u8    {d2}, [%[_vu]]!     \n"
+                "vcgt.u8    d9, d2, %[_v240]    \n"
+                "vbsl.u8    d9,  %[_v240], d2   \n"
+                "vsub.u8    d2, d9, %[_v128]    \n"
+                "vmov.s8    d10, %[_filt]       \n"
+                "vdup.8     d27, d10[4]         \n"   // v255
+                "vdup.8     d11, d10[1]         \n"   // v52
+                "vdup.8     d12, d10[2]         \n"   // v25
+                "vdup.8     d13, d10[3]         \n"   // v127
+                "vdup.16    q7,  %[_s1135]      \n"   // q1135
+                "vdup.8     d10, d10[0]         \n"   // v102
+                "0:                             \n"
+                "pld        [%[_y0], #128]      \n"
+                "vld1.u8    {d0}, [%[_y0]]!     \n"
+                "pld        [%[_y1], #128]      \n"
+                "vld1.u8    {d1}, [%[_y1]]!     \n"
+                "vmull.u8   q2, d0, %[_v74]     \n"
+                "vorr       d3, d2, d2          \n"
+                "vsub.s16   q2, q2, q7          \n"   // q2  -> b0
+                "vmull.u8   q3, d1, %[_v74]     \n"
+                "vorr       q9, q2, q2          \n"   // q9  -> g0
+                "vsub.s16   q3, q3, q7          \n"   // q3  -> b1
+                "vtrn.s8    d2, d3              \n"   // d2 -> u, d3 -> v
+                "vorr       q11, q3, q3         \n"   // q11 -> g1
+                "vshll.s8   q4, d3, #1          \n"
+                "vmlsl.s8   q9, d2, d11         \n"
+                "vorr       q8, q2, q2          \n"   // q8  -> r0
+                "vmlsl.s8   q11, d2, d11        \n"
+                "vorr       q10, q3, q3         \n"   // q10 -> r1
+                "vmlal.s8   q8, d2, d10         \n"
+                "vmlal.s8   q2, d3, d13         \n"
+                "vmlal.s8   q10, d2, d10        \n"
+                "vadd.s16   q2, q2, q4          \n"
+                "vmlsl.s8   q9, d3, d12         \n"
+                "vmlal.s8   q3, d3, d13         \n"
+                "vmlsl.s8   q11,d3, d12         \n"
+                "vadd.s16   q3, q3, q4          \n"
+                "vqshrun.s16 d26, q8, #6        \n"   // d24-d27: b0g0r0a0
+                "vqshrun.s16 d24, q2, #6        \n"
+                "vqshrun.s16 d3,  q3, #6        \n"
+                "vqshrun.s16 d25, q9, #6        \n"   // d3-d6: b1g1r1a1
+                "vqshrun.s16 d5, q10, #6        \n"
+                "vqshrun.s16 d4, q11, #6        \n"
+                "pld        [%[_vu], #128]      \n"
+                "vld1.u8    {d2}, [%[_vu]]!     \n"
+                "vorr       d6, d27, d27        \n"
+                "subs       %[_nn], #1          \n"
+                "vst4.u8    {d24-d27}, [%[_r0]]!\n"
+                "vcgt.u8    d9, d2, %[_v240]    \n"
+                "vbsl.u8    d9,  %[_v240], d2   \n"
+                "vsub.u8    d2, d9, %[_v128]    \n"
+                "vst4.u8    {d3-d6},   [%[_r1]]!\n"
+                "bne        0b                  \n"
+                "sub        %[_vu], #8          \n"
+
+                : [_nn]"+r"(nn),
+                  [_y0]"+r"(yptr0),
+                  [_y1]"+r"(yptr1),
+                  [_vu]"+r"(vuptr),
+                  [_r0]"+r"(rgb0),
+                  [_r1]"+r"(rgb1)
+                : [_v128]"w"(_v128),
+                  [_filt]"w"(_vuvfilter),
+                  [_v74]"w"(_v74),
+                  [_s1135]"r"(_s1135),
+                  [_v240]"w"(_v240)
+                : "cc", "memory", "q0", "q1", "q2", "q3","q4","q5","q6","q7","q8", "q9", "q10", "q11", "q12", "q13"
+            );
+        }
+#endif //__aarch64__
+#else
+        int remain = w;
+#endif // TNN_USE_NEON
+
+        for (; remain > 0; remain -= 2) {
+            int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgb0[3] = 255;
+            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgb0[7] = 255;
+            rgb0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgb0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgb0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgb1[3] = 255;
+            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgb1[7] = 255;
+            rgb1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgb1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgb1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgb0  += 8;
+            rgb1  += 8;
+        }
+
+        yptr += 2*w;
+        bgra += 2*4*w;
     }
 }
 

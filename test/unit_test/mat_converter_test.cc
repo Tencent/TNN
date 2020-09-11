@@ -139,7 +139,9 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
-                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR)
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA)
                                                       )
                             ));
 
@@ -191,6 +193,12 @@ TEST_P(MatConverterTest, MatConverterTest) {
             GTEST_SKIP();
         }
         if (mat_converter_test_param.cvt_type == COLOR_CONVERT_NV21TOBGR && mat_type != N8UC3) {
+            GTEST_SKIP();
+        }
+        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_NV12TOBGRA && mat_type != N8UC4) {
+            GTEST_SKIP();
+        }
+        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_NV21TOBGRA && mat_type != N8UC4) {
             GTEST_SKIP();
         }
     }
