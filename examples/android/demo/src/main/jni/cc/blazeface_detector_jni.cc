@@ -1,7 +1,3 @@
-//
-// Created by tencent on 2020-04-30.
-//
-
 #include "blazeface_detector_jni.h"
 #include "blazeface_detector.h"
 #include <jni.h>

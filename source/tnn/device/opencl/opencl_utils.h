@@ -113,6 +113,8 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
                                         const uint32_t compute_units, const uint32_t max_workgroup_size,
                                         const uint32_t subgroup_size);
 
+Status AdjustBuildOptionForFp32(std::set<std::string>& build_options);
+
 std::vector<uint32_t> LocalWS3DDefault(OpenCLExecuteUnit &unit);
 
 std::vector<uint32_t> LocalWS3DDefault(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,

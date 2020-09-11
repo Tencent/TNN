@@ -28,9 +28,12 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     run_3d_ndrange_ = true;
     op_name_        = "Selu";
 
+    std::set<std::string> build_options;
+    AdjustBuildOptionForFp32(build_options);
+
     // create kernel
     std::string kernel_name = "Selu";
-    ret                     = CreateExecuteUnit(execute_units_[0], "selu", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "selu", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
