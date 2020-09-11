@@ -55,8 +55,8 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
-    virtual Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
-    
+    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
+
     ~MetalMatConverterAcc() {};
 protected:
     MetalResizeParams resize_param_;
@@ -86,7 +86,8 @@ protected:
     Status AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCopyComputePipeline(Mat& src, Mat& dst, void *command_queue);
     Status AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue);
-    
+
+    Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
 };
 
 Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& src, Mat& dst) {
@@ -1005,6 +1006,14 @@ Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
 #endif
     } while(0);
     return TNN_OK;
+}
+
+Status MetalMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) {
+    if (type != COLOR_CONVERT_BGRTOGRAY) {
+        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
+    }
+
+    return BGR2Gray(src, dst, command_queue);
 }
 
 DECLARE_MAT_CONVERTER_CREATER(Metal);

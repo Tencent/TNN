@@ -949,4 +949,34 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
     }
 }
 
+void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+    // NAIVE implementation, to optimize
+    int offset = 0;
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            unsigned b = bgr[offset * 3 + 0];
+            unsigned g = bgr[offset * 3 + 1];
+            unsigned r = bgr[offset * 3 + 2];
+            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
+            gray[offset] = gray_color;
+            offset += 1;
+        }
+    }
+}
+
+void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
+    // NAIVE implementation, to optimize
+    int offset = 0;
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            unsigned b = bgra[offset * 4 + 0];
+            unsigned g = bgra[offset * 4 + 1];
+            unsigned r = bgra[offset * 4 + 2];
+            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
+            gray[offset] = gray_color;
+            offset += 1;
+        }
+    }
+}
+
 }  // namespace TNN_NS

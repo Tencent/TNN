@@ -27,7 +27,7 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
-    virtual Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
+    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
 private:
     //Status CreateConvertUnit(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);
     Status SetConvertArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, bool convert_to_mat);

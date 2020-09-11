@@ -210,8 +210,8 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     return ret;
 }
 
-Status CpuMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
-    return TNN_OK;
+Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "color conversion not support yet");
 }
 
 void CpuMatConverterAcc::MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
