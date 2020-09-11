@@ -11,7 +11,7 @@
 #include "tnn/utils/mat_utils.h"
 
 static std::shared_ptr<TNN_NS::ObjectDetectorYolo> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
 static jfieldID fidx1;
@@ -42,14 +42,14 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstr
     option->library_path="";
     option->proto_content = protoContent;
     option->model_content = modelContent;
-    LOGE("the device type  %d device npu" ,gComputeUnitType);
+    LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
-        //add for npu store the om file
-        LOGE("the device type  %d device npu" ,gComputeUnitType);
-        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        //add for huawei_npu store the om file
+        LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
@@ -88,7 +88,7 @@ JNIEXPORT JNICALL jboolean TNN_OBJECT_DETECTOR(checkNpu)(JNIEnv *env, jobject th
     protoContent = fdLoadFile(modelPathStr + "/yolov5s-permute.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/yolov5s.tnnmodel");
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
@@ -153,7 +153,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
@@ -240,7 +240,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromImage)(JNIEnv *env,
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);

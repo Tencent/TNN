@@ -25,7 +25,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-set(TNN_NPU_ENABLE OFF CACHE BOOL "" FORCE)
+set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -34,7 +34,7 @@ file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS})
 
-if(TNN_NPU_ENABLE)
+if(TNN_HUAWEI_NPU_ENABLE)
     add_library(hiai
             SHARED
             IMPORTED)
@@ -88,7 +88,7 @@ target_link_libraries( # Specifies the target library.
                        # included in the NDK.
                        ${log-lib})
 
-if(TNN_NPU_ENABLE)
+if(TNN_HUAWEI_NPU_ENABLE)
     target_link_libraries( # Specifies the target library.
             tnn_wrapper hiai hiai_ir hiai_ir_build hcl)
 endif()

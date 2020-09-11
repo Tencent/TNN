@@ -13,7 +13,7 @@
 
 static std::shared_ptr<TNN_NS::BlazeFaceDetector> gDetector;
 static jclass clsFaceInfo;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static int target_width = 128;
 static int target_height = 128;
 
@@ -48,9 +48,9 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
-        //add for npu store the om file
-        LOGE("the device type  %d device npu", gComputeUnitType);
-        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        //add for huawei_npu store the om file
+        LOGE("the device type  %d device huawei_npu", gComputeUnitType);
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
@@ -107,7 +107,7 @@ TNN_BLAZEFACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::BlazeFaceDetectorOption>();
     makeBlazefaceDetectOption(option, lib_path, protoContent, modelContent);
-    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
 
     tmpDetector.setNpuModelPath(modelPathStr + "/");
     tmpDetector.setCheckNpuSwitch(true);
@@ -173,7 +173,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject image
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
 
     char temp[128] = "";
@@ -262,7 +262,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);

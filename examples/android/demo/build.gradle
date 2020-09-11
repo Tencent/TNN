@@ -56,8 +56,8 @@ task deleteFiles(type: Delete) {
 clean.dependsOn(deleteFiles)
 
 task copyFiles(type: Copy) {
-    if (file('../../../third_party/npu/hiai_ddk_latest').exists()) {
-        from '../../../third_party/npu/hiai_ddk_latest'
+    if (file('../../../third_party/huawei_npu/hiai_ddk_latest').exists()) {
+        from '../../../third_party/huawei_npu/hiai_ddk_latest'
         into 'src/main/jni/thirdparty/hiai_ddk'
     }
 }

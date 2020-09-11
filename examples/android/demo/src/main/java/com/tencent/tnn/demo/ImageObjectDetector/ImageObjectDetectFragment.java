@@ -40,9 +40,9 @@ public class ImageObjectDetectFragment extends BaseFragment {
     private Button mRunButton;
     private boolean mUseGPU = false;
     //add for npu
-    private ToggleButton mNPUswitch;
-    private boolean mUseNPU = false;
-    private TextView NpuTextView;
+    private ToggleButton mHuaweiNPUswitch;
+    private boolean mUseHuaweiNpu = false;
+    private TextView HuaweiNpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -84,9 +84,9 @@ public class ImageObjectDetectFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b)
     {
-        if(b && mNPUswitch.isChecked()){
-            mNPUswitch.setChecked(false);
-            mUseNPU = false;
+        if(b && mHuaweiNPUswitch.isChecked()){
+            mHuaweiNPUswitch.setChecked(false);
+            mUseHuaweiNpu = false;
         }
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
@@ -99,7 +99,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
-        mUseNPU = b;
+        mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
     }
@@ -126,19 +126,19 @@ public class ImageObjectDetectFragment extends BaseFragment {
         });
 
         $$(R.id.npu_switch);
-        mNPUswitch = $(R.id.npu_switch);
-        mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        mHuaweiNPUswitch = $(R.id.npu_switch);
+        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 onSwichNPU(b);
             }
         });
 
-        NpuTextView = $(R.id.npu_text);
+        HuaweiNpuTextView = $(R.id.npu_text);
 
         if (!NpuEnable) {
-            NpuTextView.setVisibility(View.INVISIBLE);
-            mNPUswitch.setVisibility(View.INVISIBLE);
+            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
+            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
         mDrawView = (DrawView) $(R.id.drawView);
         mRunButton = $(R.id.run_button);
@@ -178,7 +178,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseNPU) {
+        if(mUseHuaweiNpu) {
             device = 2;
         }else if(mUseGPU) {
             device = 1;

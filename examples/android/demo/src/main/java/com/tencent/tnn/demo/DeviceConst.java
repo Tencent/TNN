@@ -6,5 +6,5 @@ public class DeviceConst {
 
     public static String DEVICE_OPENCL = "OPENCL";
 
-    public static String DEVICE_NPU = "NPU";
+    public static String DEVICE_HUAWEI_NPU = "HUAWEI_NPU";
 }

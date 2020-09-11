@@ -51,14 +51,14 @@ TNN_OBJECT_DETECTORSSD(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint 
     option->proto_content = protoContent;
     option->model_content = modelContent;
 
-    LOGI("the device type %d device npu", gComputeUnitType);
+    LOGI("the device type %d device huawei_npu", gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
-        //add for npu store the om file
-        LOGI("the device type  %d device npu", gComputeUnitType);
-        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        //add for huawei_npu store the om file
+        LOGI("the device type  %d device huawei_npu", gComputeUnitType);
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
@@ -98,7 +98,7 @@ TNN_OBJECT_DETECTORSSD(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
     protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnmodel");
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
@@ -161,7 +161,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromStream)(JNIEnv *
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
@@ -248,7 +248,7 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromImage)(JNIEnv *e
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);

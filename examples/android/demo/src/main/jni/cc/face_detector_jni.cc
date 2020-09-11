@@ -21,7 +21,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<TNN_NS::UltraFaceDetector> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static jclass clsFaceInfo;
 static jmethodID midconstructorFaceInfo;
 static jfieldID fidx1;
@@ -58,9 +58,9 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
-        //add for npu store the om file
-        LOGE("the device type  %d device npu" ,gComputeUnitType);
-        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        //add for huawei_npu store the om file
+        LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
@@ -98,7 +98,7 @@ JNIEXPORT JNICALL jboolean TNN_FACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz
     protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     option->library_path = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
@@ -156,7 +156,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
@@ -233,7 +233,7 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);
