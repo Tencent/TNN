@@ -22,32 +22,10 @@
 #import "tnn/core/abstract_device.h"
 #import "tnn/utils/dims_vector_utils.h"
 
-#import <chrono>
-
 #define ENABLE_PIPELINE_CACHE 1
-#define ENABLE_TIMER 0
 #define KERNEL_SYNC 0
 
 namespace TNN_NS {
-
-class Timer {
-public:
-    using clock_t = std::chrono::high_resolution_clock;
-    using ms      = std::chrono::milliseconds;
-    using us      = std::chrono::microseconds;
-    Timer(){};
-    ~Timer(){};
-
-    void start() {
-        time_ = clock_t::now();
-    }
-    float end() {
-        auto t = std::chrono::duration_cast<us>(clock_t::now() -  time_);
-        return t.count();
-    }
-private:
-    clock_t::time_point time_;
-};
 
 class MetalMatConverterAcc : public MatConverterAcc {
 public:
@@ -534,7 +512,7 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     }
 
     if (dst_device_type != DEVICE_METAL && src_device_type!=DEVICE_METAL) {
-        return Status(TNNERR_INVALID_INPUT, "both src and dst are not Metal Mat");
+        return Status(TNNERR_INVALID_INPUT, "neither src nor dst is not Metal Mat");
     }
 
     if (!(src_device_type == DEVICE_NAIVE || src_device_type == DEVICE_ARM || dst_device_type == DEVICE_NAIVE || dst_device_type == DEVICE_ARM)) {
@@ -659,7 +637,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             if (!texture) {
                 return Status(TNNERR_INST_ERR, "dst GetTexture return nil");
             }
-            // TODO: check if this method will synchronize against GPU accesses to the texture
             [texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
                        mipmapLevel:0
                          withBytes:src.GetData()
@@ -724,10 +701,6 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 }
 
 Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
-#if ENABLE_TIMER
-    Timer timer;
-    timer.start();
-#endif
     auto src_device_type = src.GetDeviceType();
     auto dst_device_type = dst.GetDeviceType();
 
@@ -753,26 +726,16 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     }
     
     auto context_impl = command_queue_impl.metalContextImpl;
-#if ENABLE_TIMER
-    LOGE("%s time: %f us\n", "prepare", timer.end());
-    timer.start();
-#endif
+
     auto status = AllocateBufferResizeParam(param, src, dst);
     if (status != TNN_OK) {
         return status;
     }
-#if ENABLE_TIMER
-    LOGE("%s time: %f us\n", "allocate parameter", timer.end());
-    timer.start();
-#endif
+
     status = AllocateResizeComputePipeline(param, src, dst, command_queue);
     if (status != TNN_OK) {
         return status;
     }
-#if ENABLE_TIMER
-    LOGE("%s time: %f us\n", "allocate computepipeline", timer.end());
-    timer.start();
-#endif
 
     do {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
@@ -799,9 +762,6 @@ Status MetalMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         [command_buffer waitUntilCompleted];
 #endif
     } while(0);
-#if ENABLE_TIMER
-    LOGE("%s time: %f us\n", "kernel", timer.end());
-#endif
     return TNN_OK;
 }
 

@@ -8,4 +8,5 @@ public class ObjectInfo {
     public float score;
     public float[] landmarks;
     public int class_id;
+    public String label;
 }
