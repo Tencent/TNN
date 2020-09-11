@@ -44,7 +44,11 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid softmax axis");
     }
-    ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name);
+
+    std::set<std::string> build_options;
+    AdjustBuildOptionForFp32(build_options);
+
+    ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

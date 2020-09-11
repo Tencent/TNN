@@ -40,10 +40,10 @@ Status MetalUpsampleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
         
         float scale_x = 0;
         float scale_y = 0;
-        if (layer_param->type == 1) {
+        if (layer_param->mode == 1) {
             scale_x = (float)metal_params.input_width / (float)metal_params.output_width;
             scale_y = (float)metal_params.input_height / (float)metal_params.output_height;
-        } else if (layer_param->type == 2) {
+        } else if (layer_param->mode == 2) {
             if (layer_param->align_corners) {
                 scale_x = (metal_params.output_width > 1) ? (float)(metal_params.input_width - 1) / (metal_params.output_width - 1) : 0.f;
                 scale_y = (metal_params.output_height > 1) ? (float)(metal_params.input_height - 1) / (metal_params.output_height - 1) : 0.f;
@@ -81,10 +81,10 @@ Status MetalUpsampleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
 
 std::string MetalUpsampleLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
-    if (layer_param->type == 1) {
+    if (layer_param->mode == 1) {
         // nearest align_corners=False?待确认
         return "upsample_nearest";
-    } else if (layer_param->type == 2) {
+    } else if (layer_param->mode == 2) {
         // bilinear/linear align_corners=True
         if (layer_param->align_corners) {
             return "upsample_bilinear_align";

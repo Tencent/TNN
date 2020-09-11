@@ -23,7 +23,8 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(PRelu, LAYER_PRELU);
 
-Status ArmPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+template <typename T>
+Status ArmPReluLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
@@ -42,37 +43,45 @@ Status ArmPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     const int count        = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
     const int channel_size = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
-    if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-        const float *slope_data = layer_res->slope_handle.force_to<float *>();
+    const T *slope_data = layer_res->slope_handle.force_to<T *>();
 
-        float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
-        float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
-        if (layer_param->channel_shared) {
-            for (int n = 0; n < UP_DIV(count, 4); n++) {
-                Float4 v_data = Float4::load(input_data + n * 4);
-                Float4 v_res  = Float4::bsl_clt(v_data, Float4(0.f), v_data * slope_data[0], v_data);
-                Float4::save(output_data + n * 4, v_res);
-            }
-        } else {
-            for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
-                auto input_ptr  = input_data + batch_idx * width * height * ROUND_UP(channel, 4);
-                auto output_ptr = output_data + batch_idx * width * height * ROUND_UP(channel, 4);
-                for (int dz = 0; dz < UP_DIV(channel, 4); ++dz) {
-                    float *src_z   = input_ptr + dz * width * height * 4;
-                    float *dst_z   = output_ptr + dz * width * height * 4;
-                    Float4 v_slope = Float4::load(slope_data + dz * 4);
-                    for (int p = 0; p < width * height; p++) {
-                        Float4 v_data = Float4::load(src_z + p * 4);
-                        Float4 v_res  = Float4::bsl_clt(v_data, Float4(0.f), v_data * v_slope, v_data);
-                        Float4::save(dst_z + p * 4, v_res);
-                    }
+    T *input_data  = reinterpret_cast<T *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    T *output_data = reinterpret_cast<T *>(GetBlobHandlePtr(output_blob->GetHandle()));
+    if (layer_param->channel_shared) {
+        for (int n = 0; n < UP_DIV(count, 4); n++) {
+            Float4 v_data = Float4::load(input_data + n * 4);
+            Float4 v_res  = Float4::bsl_clt(v_data, Float4(0.f), v_data * slope_data[0], v_data);
+            Float4::save(output_data + n * 4, v_res);
+        }
+    } else {
+        for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
+            auto input_ptr  = input_data + batch_idx * width * height * ROUND_UP(channel, 4);
+            auto output_ptr = output_data + batch_idx * width * height * ROUND_UP(channel, 4);
+            for (int dz = 0; dz < UP_DIV(channel, 4); ++dz) {
+                T *src_z       = input_ptr + dz * width * height * 4;
+                T *dst_z       = output_ptr + dz * width * height * 4;
+                Float4 v_slope = Float4::load(slope_data + dz * 4);
+                for (int p = 0; p < width * height; p++) {
+                    Float4 v_data = Float4::load(src_z + p * 4);
+                    Float4 v_res  = Float4::bsl_clt(v_data, Float4(0.f), v_data * v_slope, v_data);
+                    Float4::save(dst_z + p * 4, v_res);
                 }
             }
         }
-    } else {
-        ASSERT(0);
     }
+
     return TNN_OK;
+}
+
+Status ArmPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (in_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (in_data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    } else {
+        return TNNERR_LAYER_ERR;
+    }
 }
 
 REGISTER_ARM_ACC(PRelu, LAYER_PRELU)

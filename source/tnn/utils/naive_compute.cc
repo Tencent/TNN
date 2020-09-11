@@ -27,7 +27,7 @@
 namespace TNN_NS {
 
 int8_t float2int8(float val) {
-    return static_cast<int8_t>(MAX(MIN(val, 127.0f), -127.0f));
+    return static_cast<int8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 127.0f), -127.0f));
 }
 
 /*

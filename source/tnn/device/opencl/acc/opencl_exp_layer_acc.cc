@@ -33,6 +33,8 @@ std::set<std::string> OpenCLExpLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string compute = "exp(in)";
     build_options.emplace(" -DOPERATOR=" + compute);
+
+    AdjustBuildOptionForFp32(build_options);
     return build_options;
 }
 

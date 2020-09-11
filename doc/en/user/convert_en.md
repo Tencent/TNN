@@ -125,7 +125,7 @@ Here are the explanations for each parameter:
 - in parameter (required)
     Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
 - on parameter (required)
-    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use ";" to split
+    Specify the name of the model output through the "-on" parameter. If the model has multiple outputs, use ";" to split
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
