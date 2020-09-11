@@ -358,6 +358,47 @@ static void ResizeCalculateOneRow(short* rows0p, short* rows1p, const int b0, co
     }
 }
 
+struct ResizeBilinearKernelParm {
+    ResizeBilinearKernelParm(int* _xofs, int* _yofs, short* _ialpha, short* _ibeta,
+                             const uint8_t* _src, uint8_t* _dst, int _src_plane, int _src_stride, int _schannel) {
+        xofs       = _xofs;
+        yofs       = _yofs;
+        ialpha     = _ialpha;
+        ibeta      = _ibeta;
+        src        = _src;
+        dst        = _dst;
+        src_plane  = _src_plane;
+        src_stride = _src_stride;
+        schannel   = _schannel;
+    };
+
+    int* xofs;
+    int* yofs;
+    short* ialpha;
+    short* ibeta;
+    const uint8_t* src;
+    uint8_t* dst;
+    int src_plane;
+    int src_stride;
+    int schannel;
+};
+
+void ResizeBilinearOneRow(ResizeBilinearKernelParm& param, int thread_id, short** rows0_t, short** rows1_t,
+                          int* prev_sy, int b, int w, int h, int stride, int dy) {
+    int sy = param.yofs[dy];
+    ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id], param.xofs,
+                          param.src + b * param.src_plane, param.src_stride, param.schannel, w, param.ialpha);
+    prev_sy[thread_id] = sy;
+
+    // vresize
+    short b0 = param.ibeta[dy * 2];
+    short b1 = param.ibeta[dy * 2 + 1];
+
+    uint8_t* Dp   = param.dst + stride * (b * h + dy);
+
+    ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, param.schannel, Dp);
+}
+
 void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
     int schannel  = 1;
@@ -369,6 +410,8 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     short* ibeta  = (short*)(buf + w + h + w);
 
     int src_plane = src_h * src_stride;
+
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
@@ -388,18 +431,7 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
-            int sy         = yofs[dy];
-            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
-            prev_sy[thread_id] = sy;
-
-            // vresize
-            short b0 = ibeta[dy * 2];
-            short b1 = ibeta[dy * 2 + 1];
-
-            uint8_t* Dp   = dst + stride * (b * h + dy);
-
-            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeBilinearOneRow(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
         }
     }
 
@@ -420,6 +452,8 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
     int src_plane = src_h * src_stride;
 
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 2 + 2) * max_num_threads];
@@ -438,18 +472,7 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
-            int sy         = yofs[dy];
-            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
-            prev_sy[thread_id] = sy;
-
-            // vresize
-            short b0 = ibeta[dy * 2];
-            short b1 = ibeta[dy * 2 + 1];
-
-            uint8_t* Dp   = dst + stride * (b * h + dy);
-
-            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeBilinearOneRow(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
         }
     }
 
@@ -470,6 +493,8 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
     int src_plane = src_h * src_stride;
 
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 3 + 1) * max_num_threads];
@@ -488,18 +513,7 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
-            int sy         = yofs[dy];
-            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
-            prev_sy[thread_id] = sy;
-
-            // vresize
-            short b0 = ibeta[dy * 2];
-            short b1 = ibeta[dy * 2 + 1];
-
-            uint8_t* Dp   = dst + stride * (b * h + dy);
-
-            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeBilinearOneRow(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
         }
     }
 
@@ -520,6 +534,8 @@ void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
     int src_plane = src_h * src_stride;
 
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 4) * max_num_threads];
@@ -538,18 +554,7 @@ void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, i
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
             int thread_id  = OMP_TID_;
-            int sy         = yofs[dy];
-            ResizeGetAdjacentRows(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id],
-                                  xofs, src + b * src_plane, src_stride, schannel, w, ialpha);
-            prev_sy[thread_id] = sy;
-
-            // vresize
-            short b0 = ibeta[dy * 2];
-            short b1 = ibeta[dy * 2 + 1];
-
-            uint8_t* Dp   = dst + stride * (b * h + dy);
-
-            ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, schannel, Dp);
+            ResizeBilinearOneRow(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
         }
     }
 
