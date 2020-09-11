@@ -155,7 +155,7 @@ namespace test {
             }
 
             timer.Print();
-
+#ifdef FORWARD_CALLBACK_ENABLE
             if (FLAGS_md) {
                 auto dump_blob = [&](std::vector<TNN_NS::Blob*>& blobs, TNN_NS::LayerInfo* info) {
                     for(auto blob: blobs) {
@@ -209,7 +209,7 @@ namespace test {
                     }
                 }
             }
- 
+ #endif
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
         }
