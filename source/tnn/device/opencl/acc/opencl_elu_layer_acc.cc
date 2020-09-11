@@ -39,6 +39,8 @@ std::set<std::string> OpenCLEluLayerAcc::CreateBuildOptions() {
     }
     std::string compute = "select(in,(FLOAT)(" + ToString(elu_param->alpha) + "f)*(exp(in)-(FLOAT)(1.0f)),in<0)";
     build_options.emplace(" -DOPERATOR=" + compute);
+
+    AdjustBuildOptionForFp32(build_options);
     return build_options;
 }
 

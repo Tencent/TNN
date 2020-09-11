@@ -605,6 +605,8 @@
 		ECEC5D6D24FCE0780044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */; };
 		ECEC5D8D24FF97DF0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D8C24FF97DF0044DDF1 /* mat.cc */; };
 		ECEC5DA824FFC6FE0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DA724FFC6FD0044DDF1 /* mat.cc */; };
+		EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */ = {isa = PBXBuildFile; fileRef = EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */; };
+		EC2CF7512508A99C00EE3899 /* arm_deconv_layer_stride.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1209,6 +1211,8 @@
 		ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
 		ECEC5D8C24FF97DF0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
 		ECEC5DA724FFC6FD0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
+		EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_deconv_layer_stride.h; sourceTree = "<group>"; };
+		EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_deconv_layer_stride.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1956,6 +1960,8 @@
 		9DD1FBF4247CEA1300800139 /* deconvolution */ = {
 			isa = PBXGroup;
 			children = (
+				EC2CF74F2508A99C00EE3899 /* arm_deconv_layer_stride.cc */,
+				EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */,
 				9DD1FBF5247CEA1300800139 /* arm_deconv_layer_acc.cc */,
 				9DD1FBF6247CEA1300800139 /* arm_deconv_layer_depthwise.cc */,
 				9DD1FBF7247CEA1300800139 /* arm_deconv_layer_common.cc */,
@@ -2198,6 +2204,7 @@
 				9D32FF4C24557EED002DCDAB /* ncnn_param_utils.h in Headers */,
 				9D32FCA624557EEC002DCDAB /* blob_dump_utils.h in Headers */,
 				9D32FF3924557EED002DCDAB /* default_model_packer.h in Headers */,
+				EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */,
 				9D2DB1D622D759C8000C508F /* tnn.h in Headers */,
 				9D32FF3724557EED002DCDAB /* layer_interpreter.h in Headers */,
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
@@ -2503,6 +2510,7 @@
 				9D32FCD024557EEC002DCDAB /* reshape_layer.cc in Sources */,
 				9D32FF5324557EED002DCDAB /* slice_layer_interpreter.cc in Sources */,
 				9DD1FB71247CE9BE00800139 /* metal_batch_norm_layer_acc.mm in Sources */,
+				EC2CF7512508A99C00EE3899 /* arm_deconv_layer_stride.cc in Sources */,
 				9DD1FBAD247CE9BE00800139 /* metal_hard_sigmoid_layer_acc.mm in Sources */,
 				9DD1FC7D247CEA1400800139 /* arm_sign_layer_acc.cc in Sources */,
 				9DD1FBAB247CE9BE00800139 /* metal_instance_norm_layer_acc.metal in Sources */,

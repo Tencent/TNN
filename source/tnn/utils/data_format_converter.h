@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_UTILS_DATA_FORMAT_CONVERTER_H_
 
 #include <cstdint>
+#include <cstring>
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
