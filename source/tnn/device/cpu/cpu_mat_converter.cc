@@ -210,8 +210,30 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     return ret;
 }
 
-Status CpuMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
-    return TNN_OK;
+Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    Status ret = TNN_OK;
+
+    if (src.GetData() == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input mat is null");
+    }
+
+    if (src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+
+    if (dst.GetData() == nullptr) {
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    }
+
+    if (type == COLOR_CONVERT_BGRTOGRAY) {
+        BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 3);
+    } else if (type == COLOR_CONVERT_BGRATOGRAY) {
+        BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 4);
+    } else {
+        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
+    }
+
+    return ret;
 }
 
 void CpuMatConverterAcc::MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {

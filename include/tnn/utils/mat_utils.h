@@ -31,6 +31,15 @@ typedef enum {
     BORDER_TYPE_EDGE     = 0x02,
 } PUBLIC BorderType;
 
+typedef enum {
+    COLOR_CONVERT_NV12TOBGR  = 0x00,
+    COLOR_CONVERT_NV12TOBGRA = 0x01,
+    COLOR_CONVERT_NV21TOBGR  = 0x02,
+    COLOR_CONVERT_NV21TOBGRA = 0x03,
+    COLOR_CONVERT_BGRTOGRAY  = 0x04,
+    COLOR_CONVERT_BGRATOGRAY = 0x05,
+} PUBLIC ColorConversionType;
+
 struct PUBLIC ResizeParam {
     float scale_w = 0.0f;
     float scale_h = 0.0f;
@@ -68,7 +77,7 @@ public:
     static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 
     //src and dst device type must be same.
-    static Status BGR2Gray(Mat& src, Mat& dst, void* command_queue);
+    static Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue);
 };
 
 }  // namespace TNN_NS

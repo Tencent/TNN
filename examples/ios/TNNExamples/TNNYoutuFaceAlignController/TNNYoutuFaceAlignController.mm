@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNYoutuFaceAlignController.h"
-#import "YoutuFaceAlign.h"
+#import "youtu_face_align.h"
 #import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
@@ -24,8 +24,6 @@
 
 using namespace std;
 using namespace TNN_NS;
-
-#define PROFILE 0
 
 @interface TNNYoutuFaceAlignController ()
 
@@ -246,13 +244,6 @@ using namespace TNN_NS;
     self.predictor_phase2 = [self loadYoutuFaceAlign:2];
     
     TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-    if(compute_units == TNNComputeUnitsCPU) {
-        // 24ms for arm
-        LOGE("run ARM model!\n");
-    } else {
-        // 14ms for metal
-        LOGE("run Metal model!\n");
-    }
     
     self.prev_face = false;
     
@@ -311,18 +302,8 @@ using namespace TNN_NS;
                     }
                     // preprocess
                     auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), N8UC4, facedetector_input_dims);
-#if PROFILE
-                    Timer timer;
-                    const std::string tag = (self.face_detector->GetComputeUnits()==TNNComputeUnitsCPU)?"CPU":"GPU";
-                    timer.start();
                     self.face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
-                    timer.printElapsed(tag, "FaceAlign Detector Resize");
-                    auto image_dims = {1, 3, (int)CGImageGetHeight(input_image.CGImage), (int)CGImageGetWidth(input_image.CGImage)};
-                    printShape("FaceAlign Detector Resize src", image_dims);
-                    printShape("FaceAlign Detector Resize dst", facedetector_input_dims);
-#else
-                    self.face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
-#endif
+
                     status = self.face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output);
 
                     if (status != TNN_OK) {
@@ -456,7 +437,8 @@ using namespace TNN_NS;
 #if TARGET_IPHONE_SIMULATOR
                 // save image on simulator
                 NSString *out_name = [[img_path lastPathComponent] stringByReplacingOccurrencesOfString: @".jpg" withString:@"_out.jpg"];
-                const std::string save_dir = "/Users/devandong/Desktop/tnn_output/";
+                // set to destination directory
+                const std::string save_dir = "/tmp/";
                 std::string save_path = save_dir+string([out_name UTF8String]);
                 NSString *path = [NSString stringWithCString:save_path.c_str()
                                                     encoding:[NSString defaultCStringEncoding]];

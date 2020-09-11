@@ -12,11 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "YoutuFaceAlign.h"
+#include "youtu_face_align.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include <sys/time.h>
-
-#define PROFILE 0
 
 namespace TNN_NS{
 
@@ -88,8 +86,6 @@ Status YoutuFaceAlign::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
         pts = output->GetMat("850");
     }
     auto InverseM = MatrixInverse2x3(M, 2, 3);
-    //devandong: the diff of InverseM for phase2 model is larger the phase1
-    // the maximum diff <= phase1: /phase2: 0.7
     LandMarkWarpAffine(pts, InverseM);
     if(phase == 1){
         // save pts for next frame
@@ -139,12 +135,9 @@ Status YoutuFaceAlign::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_p
             // use face region from face detector
             input = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
         } else{
-            //devandong: the maximum diff of the input < 0.34
             input = AlignN(input_mat, pre_pts, mean, image_h, image_w, net_scale, M);
         }
         // BGR2Gray
-        //devandong
-        // the maximum diff for the input < phase1: /phase2: 0.297
         input = BGRToGray(input);
         // Normalize
         auto input_convert_param = GetConvertParamForInput();
@@ -237,18 +230,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::WarpByRect(std::shared_ptr<TNN_NS::
     param.interp_type = INTERP_TYPE_LINEAR;
     param.border_val = 0;
     memcpy(param.transform, transM, sizeof(float)*M.size());
-    
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
+
     status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-    timer.printElapsed(tag, "warpAffine phase1");
-    printShape("warpAffine phase1 src", image->GetDims());
-    printShape("warpAffine phase1 dst", transMatDims);
-#else
-    status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-#endif
     if (status != TNN_OK) {
         LOGE("WarpAffine Error:%s\n", status.description().c_str());
         return nullptr;
@@ -387,17 +370,8 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
     param.border_val = 0;
     float* transM = &(M[0]);
     memcpy(param.transform, transM, sizeof(float)*M.size());
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
+
     status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-    timer.printElapsed(tag, "warpAffine phase2");
-    printShape("warpAffine phase2 src", image->GetDims());
-    printShape("warpAffine phase2 dst", transMatDims);
-#else
-    status = MatUtils::WarpAffine(*(image.get()), *(transMat.get()), param, command_queue);
-#endif
     if(status != TNN_OK) {
         LOGE("WarpAffine Error:%s\n", status.description().c_str());
         return nullptr;
@@ -408,39 +382,65 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
 
 // change BGR Mat to Gray Mat
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat> bgr_image) {
+    Status status = TNN_OK;
+
     if(bgr_image->GetMatType() != N8UC4){
         return nullptr;
     }
-    auto grayDims = bgr_image->GetDims();
-    grayDims[1] = 1;
-    
-    auto grayMat = std::make_shared<TNN_NS::Mat>(bgr_image->GetDeviceType(), TNN_NS::NCHW_FLOAT, grayDims);
-    
-    Status status = TNN_OK;
 
+    // only arm supports bgr2gray for now, construct arm input mat when necessary
+    std::shared_ptr<TNN_NS::Mat> bgrInputMat = nullptr;
+    if (DEVICE_ARM == bgr_image->GetDeviceType()) {
+        bgrInputMat = bgr_image;
+    } else if (DEVICE_METAL == bgr_image->GetDeviceType()) {
+        // condtruct an arm mat
+        bgrInputMat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, bgr_image->GetMatType(), bgr_image->GetDims());
+        status = Copy(bgr_image, bgrInputMat);
+        if (status != TNN_OK) {
+            LOGE("Copy bgrInput Error:%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
+
+    auto grayDims = bgrInputMat->GetDims();
+    grayDims[1] = 1;
+    auto grayMat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NGRAY, grayDims);
+    
     void* command_queue = nullptr;
     status = instance_->GetCommandQueue(&command_queue);
     if(status != TNN_OK) {
         LOGE("GetCommandQueue Error:%s\n", status.description().c_str());
         return nullptr;
     }
-#if PROFILE
-    Timer timer;
-    timer.start();
-    const std::string tag = this->GetComputeUnits()==TNNComputeUnitsCPU?"CPU":"GPU";
-    status = MatUtils::BGR2Gray(*(bgr_image.get()), *(grayMat.get()), command_queue);
-    timer.printElapsed(tag, "bgr2gray");
-    printShape("bgr2gray src", bgr_image->GetDims());
-    printShape("bgr2gray dst", grayDims);
-#else
-    status = MatUtils::BGR2Gray(*(bgr_image.get()), *(grayMat.get()), command_queue);
-#endif
-    if( status != TNN_OK) {
-        LOGE("BGR2Gray error:%s\n", status.description().c_str());
+    status = MatUtils::CvtColor(*(bgrInputMat.get()), *(grayMat.get()), COLOR_CONVERT_BGRATOGRAY, command_queue);
+    if(status != TNN_OK) {
+        LOGE("CvtColor error:%s\n", status.description().c_str());
         return nullptr;
     }
+
+    // convert ngray mat to nchw_float
+    auto grayMatFloat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NCHW_FLOAT, grayMat->GetDims());
+    float* grayFloatData  = static_cast<float*>(grayMatFloat->GetData());
+    uint8_t* grayUintData = static_cast<uint8_t*>(grayMat->GetData());
+    for(int i=0; i<grayDims[2]*grayDims[3]; ++i) {
+        grayFloatData[i] = grayUintData[i];
+    }
+
+    // copy when necessary
+    std::shared_ptr<TNN_NS::Mat> outputMat = nullptr;
+    if (DEVICE_ARM == bgr_image->GetDeviceType()) {
+        outputMat = grayMatFloat;
+    } else {
+        // copy cpu grat mat to metal
+        outputMat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::NCHW_FLOAT, grayMatFloat->GetDims());
+        status = Copy(grayMatFloat, outputMat);
+        if (status != TNN_OK) {
+            LOGE("Copy grayOutput Error:%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
     
-    return grayMat;
+    return outputMat;
 }
 
 /*

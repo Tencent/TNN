@@ -47,31 +47,6 @@ Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     return ret;
 }
 
-Status ArmMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
-    Status ret = TNN_OK;
-    // NAIVE implementation, to optimize
-    if (src.GetMatType() != N8UC4 || dst.GetMatType() != NCHW_FLOAT) {
-         return Status(TNNERR_PARAM_ERR, "not support yet");
-    }
-    unsigned char* bgr_data = reinterpret_cast<unsigned char*>(src.GetData());
-    float* gray_data = static_cast<float*>(dst.GetData());
-    int offset = 0;
-    auto grayDims = dst.GetDims();
-
-    for(int h=0; h<grayDims[2]; ++h) {
-        for(int w=0; w<grayDims[3]; ++w) {
-            unsigned b = bgr_data[offset * 4 + 0];
-            unsigned g = bgr_data[offset * 4 + 1];
-            unsigned r = bgr_data[offset * 4 + 2];
-            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
-            gray_data[offset] = gray_color;
-            offset += 1;
-        }
-    }
-
-    return ret;
-}
-
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
@@ -250,6 +225,37 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 
     return ret;
 }
+
+Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    Status ret = TNN_OK;
+
+    if (src.GetData() == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input mat is null");
+    }
+
+    if (src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+
+    if (dst.GetData() == nullptr) {
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    }
+
+    if (type == COLOR_CONVERT_NV12TOBGR) {
+        NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else if (type == COLOR_CONVERT_NV21TOBGR) {
+        NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else if (type == COLOR_CONVERT_BGRTOGRAY) {
+        BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else if (type == COLOR_CONVERT_BGRATOGRAY) {
+        BGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else {
+        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
+    }
+
+    return ret;
+}
+
 
 DECLARE_MAT_CONVERTER_CREATER(Arm);
 REGISTER_MAT_CONVERTER(Arm, DEVICE_ARM);

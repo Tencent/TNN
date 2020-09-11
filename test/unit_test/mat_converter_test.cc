@@ -134,7 +134,10 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
                                                       INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN)
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                // CvtColor
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY)
                                                       )
                             ));
 
@@ -170,6 +173,18 @@ TEST_P(MatConverterTest, MatConverterTest) {
             GTEST_SKIP();
         }
 
+    }
+
+    if (mat_converter_type == MatConverterType::CvtColor) {
+        if (device_type != DEVICE_ARM) {
+            GTEST_SKIP();
+        }
+        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
+            GTEST_SKIP();
+        }
+        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
+            GTEST_SKIP();
+        }
     }
 
     int output_size;
@@ -271,6 +286,33 @@ TEST_P(MatConverterTest, MatConverterTest) {
             }
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
+                                      channel, channel, out_size_);
+            EXPECT_EQ(0, cmp_result);
+            break;
+        }
+        case MatConverterType::CvtColor:
+        {
+            tnn::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
+            if (status != TNN_OK) {
+                FAIL();
+            }
+
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
+                                           device_command_queue);
+            status = MatUtils::CvtColor(device_in_mat, device_mat,
+                                                 mat_converter_test_param.cvt_type,
+                                                 device_command_queue);
+            if (status != TNN_OK) {
+                FAIL();
+            }
+
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+
+            if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRTOGRAY ||
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY) {
+                out_size_ /= channel;
+            }
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);

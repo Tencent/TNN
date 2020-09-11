@@ -14,7 +14,7 @@
 
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "face_detect_aligner.h"
-#import "YoutuFaceAlign.h"
+#import "youtu_face_align.h"
 #import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 

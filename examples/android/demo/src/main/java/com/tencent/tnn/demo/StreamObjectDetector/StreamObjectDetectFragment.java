@@ -15,6 +15,7 @@ import android.widget.ToggleButton;
 import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
+import com.tencent.tnn.demo.ObjectInfo;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.CameraSetting;
 import com.tencent.tnn.demo.common.component.DrawView;
@@ -135,7 +136,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_streamobjectdetector);
+        setView(R.layout.fragment_stream_detector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -323,13 +324,13 @@ public class StreamObjectDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingObject) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            ObjectDetector.ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             Log.i(TAG, "detect from stream ret " + objectInfoList);
                             int objectCount = 0;
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addObjectRect(objectInfoList,  ObjectDetector.label_list, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
 
                             String result = "object count: " + objectCount + " " + Helper.getBenchResult();
                             TextView result_view = (TextView)$(R.id.result);

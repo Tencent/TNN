@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/cpu_math_util.h"
+#include "tnn/device/cpu/cpu_mat_util.h"
 #include <algorithm>
 #include <type_traits>
 #include "tnn/core/macro.h"
@@ -398,4 +398,19 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
 
     free(buffer);
 }
+
+void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
+    int offset = 0;
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            unsigned b = src[offset * channel + 0];
+            unsigned g = src[offset * channel + 1];
+            unsigned r = src[offset * channel + 2];
+            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
+            dst[offset] = gray_color;
+            offset += 1;
+        }
+    }
+}
+
 }  // namespace TNN_NS

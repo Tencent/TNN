@@ -18,7 +18,7 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/blob_converter_internal.h"
 #include "tnn/utils/mat_converter_acc.h"
-#include "tnn/device/cpu/cpu_math_util.h"
+#include "tnn/device/cpu/cpu_mat_util.h"
 
 namespace TNN_NS {
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
@@ -30,7 +30,7 @@ public:
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL);
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
-    virtual Status BGR2Gray(Mat& src, Mat& dst, void* command_queue);
+    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
 
 private:
     void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride);

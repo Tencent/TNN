@@ -132,7 +132,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_streamfacedetector);
+        setView(R.layout.fragment_stream_detector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);

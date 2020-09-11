@@ -110,7 +110,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imagefacedetector);
+        setView(R.layout.fragment_image_detector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);

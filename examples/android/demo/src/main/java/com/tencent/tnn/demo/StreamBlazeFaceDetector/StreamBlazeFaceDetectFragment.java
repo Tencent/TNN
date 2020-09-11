@@ -1,6 +1,5 @@
 package com.tencent.tnn.demo.StreamBlazeFaceDetector;
 
-import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
@@ -23,7 +22,6 @@ import com.tencent.tnn.demo.common.fragment.BaseFragment;
 import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 
 public class StreamBlazeFaceDetectFragment extends BaseFragment {
@@ -134,7 +132,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_streamfacedetector);
+        setView(R.layout.fragment_stream_detector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);

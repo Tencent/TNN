@@ -18,6 +18,7 @@ import android.widget.ToggleButton;
 import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
+import com.tencent.tnn.demo.ObjectInfo;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
@@ -112,7 +113,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imageobjectdetector);
+        setView(R.layout.fragment_image_detector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -185,7 +186,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         int result = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            ObjectDetector.ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
+            ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
             int objectCount = 0;
             if (objectInfoList != null) {
@@ -209,7 +210,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
                     Rect rect = rects.get(i);
                     mPaint.setARGB(255, 0, 255, 0);
                     canvas.drawRect(rect, mPaint);
-                    ObjectDetector.ObjectInfo info = objectInfoList[i];
+                    ObjectInfo info = objectInfoList[i];
                     if(info.class_id < ObjectDetector.label_list.length) {
                         canvas.drawText(String.format("%s : %f", ObjectDetector.label_list[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
                     }

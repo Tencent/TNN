@@ -518,8 +518,8 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     return ret;
 }
 
-Status OpenCLMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
-    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support bgr2gray"); 
+Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
 }
 
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);

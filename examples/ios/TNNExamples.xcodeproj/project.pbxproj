@@ -62,7 +62,7 @@
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
-		ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */; };
+		ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */; };
 		ECEC65AB24FFD5830044DDF1 /* mean_pts_phase1.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */; };
@@ -179,8 +179,8 @@
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
 		ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectMeshViewModel.mm; sourceTree = "<group>"; };
 		ECD14A052505FE3100271443 /* TNNFaceDetectMeshViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFaceDetectMeshViewModel.h; sourceTree = "<group>"; };
-		ECEC5DB024FFCC6C0044DDF1 /* YoutuFaceAlign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YoutuFaceAlign.h; sourceTree = "<group>"; };
-		ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = YoutuFaceAlign.cc; sourceTree = "<group>"; };
+		ECEC5DB024FFCC6C0044DDF1 /* youtu_face_align.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = youtu_face_align.h; sourceTree = "<group>"; };
+		ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = youtu_face_align.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
 		ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuFaceAlignController.h; sourceTree = "<group>"; };
 		ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mean_pts_phase2.txt; sourceTree = "<group>"; };
@@ -365,8 +365,8 @@
 				EC2CF72D250797C800EE3899 /* ultra_face_detector.h */,
 				9D49E7A22504BB5D00DD81D7 /* face_detect_aligner.cc */,
 				9D49E7A32504BB5D00DD81D7 /* face_detect_aligner.h */,
-				ECEC5DB124FFCC6C0044DDF1 /* YoutuFaceAlign.cc */,
-				ECEC5DB024FFCC6C0044DDF1 /* YoutuFaceAlign.h */,
+				ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */,
+				ECEC5DB024FFCC6C0044DDF1 /* youtu_face_align.h */,
 				9D71E79124C1980700074C1A /* tnn_fps_counter.cc */,
 				9D71E79224C1980700074C1A /* tnn_fps_counter.h */,
 				9DF1A0B724A8987C00E1376D /* face_gray_transfer.cc */,
@@ -567,7 +567,7 @@
 				9D71E7C324C5BE1200074C1A /* TNNViewModel.mm in Sources */,
 				9DD579F523B5A20500A96E63 /* TNNExamplesController.mm in Sources */,
 				9D71E7BB24C5685F00074C1A /* TNNYoloObjectDetectorController.mm in Sources */,
-				ECEC5DB224FFCC6C0044DDF1 /* YoutuFaceAlign.cc in Sources */,
+				ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */,
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,

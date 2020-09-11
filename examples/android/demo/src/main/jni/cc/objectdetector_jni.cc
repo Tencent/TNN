@@ -67,7 +67,7 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstr
     gDetector->SetBenchOption(bench_option);
     if (clsObjectInfo == NULL)
     {
-        clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/ObjectDetector$ObjectInfo")));
+        clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/ObjectInfo")));
         midconstructorObjectInfo = env->GetMethodID(clsObjectInfo, "<init>", "()V");
         fidx1 = env->GetFieldID(clsObjectInfo, "x1" , "F");
         fidy1 = env->GetFieldID(clsObjectInfo, "y1" , "F");
