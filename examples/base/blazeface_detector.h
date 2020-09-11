@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef BlazeFaceDetector_hpp
-#define BlazeFaceDetector_hpp
+#ifndef TNN_EXAMPLES_BASE_BLAZEFACE_DETECTOR_H_
+#define TNN_EXAMPLES_BASE_BLAZEFACE_DETECTOR_H_
 
 #include "tnn_sdk_sample.h"
 #include <algorithm>
@@ -78,4 +78,4 @@ private:
 
 }
 
-#endif /* BlazeFaceDetector_hpp */
+#endif // TNN_EXAMPLES_BASE_BLAZEFACE_DETECTOR_H_

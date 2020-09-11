@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef FaceDetectAligner_hpp
-#define FaceDetectAligner_hpp
+#ifndef TNN_EXAMPLES_BASE_FACE_DETECT_ALIGNER_H_
+#define TNN_EXAMPLES_BASE_FACE_DETECT_ALIGNER_H_
 
 #include <algorithm>
 #include <memory>
@@ -79,4 +79,4 @@ protected:
 
 }
 
-#endif /* YoutuFaceAlign_hpp */
+#endif // TNN_EXAMPLES_BASE_FACE_DETECT_ALIGNER_H_

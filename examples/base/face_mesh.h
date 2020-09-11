@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef Facemesh_hpp
-#define Facemesh_hpp
+#ifndef TNN_EXAMPLES_BASE_FACE_MESH_H_
+#define TNN_EXAMPLES_BASE_FACE_MESH_H_
 
 #include "tnn_sdk_sample.h"
 #include <algorithm>
@@ -92,4 +92,4 @@ private:
 }
 
 
-#endif /* Facemesh_hpp */
+#endif // TNN_EXAMPLES_BASE_FACE_MESH_H_
