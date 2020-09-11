@@ -162,19 +162,27 @@
 #define TNN_USE_NEON
 #endif
 
-#define RETURN_ON_NEQ(status, expected)                                                                                \
-    do {                                                                                                               \
-        auto _status = status;                                                                                         \
-        if (_status != expected) {                                                                                     \
-            return _status;                                                                                            \
-        }                                                                                                              \
+#define RETURN_VALUE_ON_NEQ(status, expected, value)                  \
+    do {                                                                                                         \
+        auto _status = (status);                                                                         \
+        if (_status != (expected)) {                                                                     \
+            return (value);                                                                                 \
+        }                                                                                                          \
     } while (0)
 
-#define CHECK_PARAM_NULL(param)                                                                                        \
-    do {                                                                                                               \
-        if (!param) {                                                                                                  \
+#define RETURN_ON_NEQ(status, expected)                                         \
+    do {                                                                                                        \
+        auto _status = (status);                                                                        \
+        if (_status != (expected)) {                                                                    \
+            return _status;                                                                               \
+        }                                                                                                         \
+    } while (0)
+
+#define CHECK_PARAM_NULL(param)                                                   \
+    do {                                                                                                         \
+        if (!param) {                                                                                        \
             return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
-        }                                                                                                              \
+        }                                                                                                          \
     } while (0)
 
 

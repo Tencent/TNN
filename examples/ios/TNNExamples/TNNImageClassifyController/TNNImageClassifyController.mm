@@ -113,59 +113,80 @@ using namespace TNN_NS;
         return;
     }
 
-    const int target_height = 224;
-    const int target_width  = 224;
-    DimsVector target_dims = {1, 3, target_height, target_width};
-
-    auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
-
     TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-
-    ImageClassifier classifier;
-    auto status = classifier.Init(proto_content, model_content, path_library.UTF8String, units);
+    auto option = std::make_shared<TNNSDKOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = path_library.UTF8String;
+        option->compute_units = units;
+    }
+    auto predictor = std::make_shared<ImageClassifier>();
+    auto status = predictor->Init(option);
     if (status != TNN_OK) {
-        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
-
+    
     BenchOption bench_option;
     bench_option.forward_count = 20;
-    classifier.SetBenchOption(bench_option);
-
-    int class_id       = -1;
-    auto compute_units = classifier.GetComputeUnits();
-    if (compute_units == TNNComputeUnitsGPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-
+    predictor->SetBenchOption(bench_option);
+    
+    auto image_data = utility::UIImageGetData(self.image_orig);
+    //preprocess
+    const int origin_height = (int)CGImageGetHeight(self.image_orig.CGImage);
+    const int origin_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
+    DimsVector image_dims = {1, 3, origin_height, origin_width};
+    std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+    
+    if(units == TNNComputeUnitsCPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
+    } else {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
         id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
         if (!texture_rgba) {
+            self.labelResult.text = @"Error texture input rgba is nil";
             NSLog(@"Error texture input rgba is nil");
             return;
         }
-
-        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
+        
+        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, image_dims[3], image_dims[2])
                         mipmapLevel:0
                           withBytes:image_data.get()
-                        bytesPerRow:target_width * 4];
-        status = classifier.Classify(image_mat, target_height, target_width, class_id);
-    } else if (compute_units == TNNComputeUnitsCPU) {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = classifier.Classify(image_mat, target_height, target_width, class_id);
+                        bytesPerRow:image_dims[3] * 4];
     }
+    
+    auto target_dims = predictor->GetInputShape();
+    auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+    status = predictor->Resize(image_mat, input_mat, TNNInterpLinear);
     if (status != TNN_OK) {
         NSLog(@"Error: %s", status.description().c_str());
         return;
     }
 
+    std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+    status = predictor->Predict(std::make_shared<TNNSDKInput>(input_mat), sdk_output);
+   
+    if (status != TNN_OK) {
+        NSLog(@"Error: %s", status.description().c_str());
+        return;
+    }
+
+    int class_id = -1;
+    if (sdk_output && dynamic_cast<ImageClassifierOutput *>(sdk_output.get())) {
+        auto classfy_output = dynamic_cast<ImageClassifierOutput *>(sdk_output.get());
+        class_id = classfy_output->class_id;
+    }
+    
     string class_result = "";
     if (class_id < _allClasses.count) {
         class_result = _allClasses[class_id].UTF8String;
     }
 
-    auto bench_result     = classifier.GetBenchResult();
+    auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@\nclass:%s\ntime:\n%s",
-                                                       compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
                                                        class_result.c_str(), bench_result.Description().c_str()];
 }
 

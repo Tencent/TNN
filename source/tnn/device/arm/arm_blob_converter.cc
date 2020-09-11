@@ -328,8 +328,8 @@ template <typename T>
 void NHWCChannelReverse(T *src, T *dst, int channel, int hw) {
     for (int i = 0; i < hw; i++) {
         for (int c = 0; c < channel / 2; c++) {
-            T tmp = src[i * channel + c];
-            dst[i * channel + c] = src[i * channel + channel - 1 - c];
+            T tmp                              = src[i * channel + c];
+            dst[i * channel + c]               = src[i * channel + channel - 1 - c];
             dst[i * channel + channel - 1 - c] = tmp;
         }
     }
@@ -350,8 +350,8 @@ void RGBChannelReverse(uint8_t *src, uint8_t *dst, int channel, int hw) {
     }
 #endif
     for (; i < hw; i++) {
-        uint8_t tmp = src[i * 3];
-        dst[i * 3] = src[i * 3 + 2];
+        uint8_t tmp    = src[i * 3];
+        dst[i * 3]     = src[i * 3 + 2];
         dst[i * 3 + 2] = tmp;
     }
 }
@@ -371,8 +371,8 @@ void RGBAChannelReverse(uint8_t *src, uint8_t *dst, int channel, int hw) {
     }
 #endif
     for (; i < hw; i++) {
-        uint8_t tmp = src[i * 4];
-        dst[i * 4] = src[i * 4 + 2];
+        uint8_t tmp    = src[i * 4];
+        dst[i * 4]     = src[i * 4 + 2];
         dst[i * 4 + 2] = tmp;
     }
 }
@@ -396,7 +396,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         auto scale_count  = scale_handle.GetDataCount();
 
         for (int i = 0; i < dims[1]; i++) {
-            auto scale_idx = scale_count == 1? 0 : i;
+            auto scale_idx      = scale_count == 1 ? 0 : i;
             fused_int8_scale[i] = scale_data[scale_idx];
         }
     }
@@ -453,6 +453,18 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     }
 
     return TNN_OK;
+}
+
+void ScaleBias(float *data, int channel, int hw, float *scale, float *bias) {
+    for (int c = 0; c < channel; ++c) {
+        int plane       = c / 4;
+        int offset      = c % 4;
+        auto *dataPlane = plane * hw * 4 + data;
+        for (int s = 0; s < hw; ++s) {
+            auto v            = dataPlane[offset];
+            dataPlane[offset] = v * scale[c] + bias[c];
+        }
+    }
 }
 
 Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam param, void *command_queue) {
@@ -526,7 +538,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
                            fused_int8_bias.data(), hw);
             } else {
                 BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                           reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
+                           reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
+                           hw);
             }
         }
     } else if (image.GetMatType() == N8UC3) {
@@ -537,7 +550,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
                           fused_int8_bias.data(), hw);
             } else {
                 BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
+                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
+                          hw);
             }
         }
     } else if (image.GetMatType() == NGRAY) {
@@ -562,7 +576,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
                           fused_int8_bias.data(), hw);
             } else {
                 BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
-                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
+                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
+                          hw);
             }
         }
     } else if (image.GetMatType() == NNV21) {
@@ -576,19 +591,30 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
                           fused_int8_bias.data(), hw);
             } else {
                 BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
-                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(), hw);
+                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
+                          hw);
             }
         }
     } else if (image.GetMatType() == NCHW_FLOAT) {
         if (desc.data_type == DATA_TYPE_INT8) {
             for (int n = 0; n < dims[0]; n++) {
                 NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                           reinterpret_cast<int8_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, fused_int8_scale.data());
+                           reinterpret_cast<int8_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw,
+                           fused_int8_scale.data());
             }
         } else if (desc.data_type == DATA_TYPE_FLOAT) {
             for (int n = 0; n < dims[0]; n++) {
                 NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
                            reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+                if (dims[0] == 1 && dims[1] == 2 && hw == 81) {
+                    auto ptr = reinterpret_cast<float *>(handle_ptr);
+                    for (int i = 0; i < hw; i++) {
+                        printf("Init %f %f %f %f\n", ptr[i * 4 + 0], ptr[i * 4 + 1], ptr[i * 4 + 2], ptr[i * 4 + 3]);
+                    }
+                }
+                // devandong
+                ScaleBias(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
+                          param.bias.data());
             }
         } else if (desc.data_type == DATA_TYPE_BFP16) {
             for (int n = 0; n < dims[0]; n++) {
@@ -605,8 +631,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
         }
     } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
         DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
-                                                        reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1], dims[2],
-                                                        dims[3]);
+                                                        reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1],
+                                                        dims[2], dims[3]);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }

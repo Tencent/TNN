@@ -35,6 +35,12 @@ struct Float4 {
     Float4(const float v) {
         value = vdupq_n_f32(v);
     }
+    Float4(const float32x4_t& v) {
+        value = v;
+    }
+    Float4(const float32x4_t&& v) {
+        value = std::move(v);
+    }
     Float4(const Float4& lr) {
         value = lr.value;
     }

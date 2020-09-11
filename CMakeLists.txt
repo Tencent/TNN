@@ -16,9 +16,7 @@ option(TNN_ARM_ENABLE "Enable Arm" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
-option(TNN_DSP_ENABLE "Enable DSP" OFF)
-option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
-option(TNN_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
@@ -158,9 +156,7 @@ message(STATUS "\tArm:\t${TNN_ARM_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
-message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
-message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
-message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
+message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -188,6 +184,10 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/optimizer/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
+
+if(TNN_SYMBOL_HIDE AND UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
 
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
@@ -223,48 +223,22 @@ if(TNN_CUDA_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
-if(TNN_DSP_ENABLE)
-    add_subdirectory(source/tnn/device/dsp)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNDSP>")
+if(TNN_HUAWEI_NPU_ENABLE)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/arm-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
+                third_party/huawei_npu/hiai_ddk_latest/armeabi-v7a/
+        )
     else()
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/aarch64-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
+                third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/
+        )
     endif()
-endif()
-
-if(TNN_ATLAS_ENABLE)
-    add_subdirectory(source/tnn/device/atlas)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
-
-    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake)
-    find_package(DDK REQUIRED)
-    include_directories(${DDK_INCLUDE_DIRS} ${DDK_CEREAL_INCLUDE_DIRS} ${DDK_PROTOBUF_INCLUDE_DIRS})
-    include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
-endif()
-
-if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib
-            )
+    add_subdirectory(source/tnn/device/huawei_npu)
+    if(TNN_CPU_ENABLE)
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
     else()
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib64
-            )
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
     endif()
-endif()
-
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
 if(TNN_BUILD_SHARED)

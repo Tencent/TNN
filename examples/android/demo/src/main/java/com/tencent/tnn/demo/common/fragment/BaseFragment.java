@@ -17,6 +17,7 @@ public abstract class BaseFragment extends Fragment implements View.OnClickListe
     private LinearLayout root;
     private TitleBar titleBar;
     private LayoutInflater mInflater;
+    public boolean NpuEnable = false;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {

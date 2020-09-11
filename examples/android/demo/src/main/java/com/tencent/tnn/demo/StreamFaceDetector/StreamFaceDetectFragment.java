@@ -49,6 +49,10 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
+    //add for npu
+    private ToggleButton mHuaweiNPUswitch;
+    private boolean mUseHuaweiNpu = false;
+    private TextView HuaweiNpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -59,6 +63,8 @@ public class StreamFaceDetectFragment extends BaseFragment {
         System.loadLibrary("tnn_wrapper");
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
+        String modelPath = initModel();
+        NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -87,15 +93,34 @@ public class StreamFaceDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-
-    private void onSwichGPU(boolean b)
+    private void restartCamera()
     {
-        mUseGPU = b;
-        TextView result_view = (TextView)$(R.id.result);
-        result_view.setText("");
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
+    }
+    private void onSwichGPU(boolean b)
+    {
+        if (b && mHuaweiNPUswitch.isChecked()) {
+            mHuaweiNPUswitch.setChecked(false);
+            mUseHuaweiNpu = false;
+        }
+        mUseGPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+        restartCamera();
+    }
+
+    private void onSwichNPU(boolean b)
+    {
+        if (b && mGPUSwitch.isChecked()) {
+            mGPUSwitch.setChecked(false);
+            mUseGPU = false;
+        }
+        mUseHuaweiNpu = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+        restartCamera();
     }
 
     private void clickBack() {
@@ -107,7 +132,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_streamfacedetector);
+        setView(R.layout.fragment_stream_detector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -118,6 +143,20 @@ public class StreamFaceDetectFragment extends BaseFragment {
                 onSwichGPU(b);
             }
         });
+
+        $$(R.id.npu_switch);
+        mHuaweiNPUswitch = $(R.id.npu_switch);
+        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwichNPU(b);
+            }
+        });
+        HuaweiNpuTextView = $(R.id.npu_text);
+        if (!NpuEnable) {
+            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
+            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
+        }
         init();
     }
 
@@ -249,7 +288,13 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     mCameraWidth = parameters.getPreviewSize().width;
                     mCameraHeight = parameters.getPreviewSize().height;
                     String modelPath = initModel();
-                    int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, mUseGPU?1:0);
+                    int device = 0;
+                    if (mUseHuaweiNpu) {
+                        device = 2;
+                    } else if (mUseGPU) {
+                        device = 1;
+                    }
+                    int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
                     if (ret == 0) {
                         mIsDetectingFace = true;
                     } else {
