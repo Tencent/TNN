@@ -34,7 +34,8 @@ enum class MatConverterType
     Copy = 1,
     Resize = 2,
     Crop = 3,
-    WarpAffine = 4
+    WarpAffine = 4,
+    CvtColor = 5
 };
 
 struct MatConverterTestParam
@@ -46,6 +47,8 @@ struct MatConverterTestParam
     CropParam crop_param;
     // WarpAffine
     WarpAffineParam warp_affine_param;
+    // CvtColor
+    ColorConversionType cvt_type;
 
     // for Copy
     MatConverterTestParam(MatConverterType converter_type) :
@@ -90,6 +93,10 @@ struct MatConverterTestParam
         warp_affine_param.border_type       = border_type;
         warp_affine_param.border_val        = border_val;
     }
+
+    // for CvtColor
+    MatConverterTestParam(MatConverterType converter_type, ColorConversionType type) :
+        mat_converter_type(converter_type), cvt_type(type) { }
 };
 
 class MatConverterTest : public ::testing::TestWithParam<std::tuple<int, int, int, MatType, MatConverterTestParam>> {

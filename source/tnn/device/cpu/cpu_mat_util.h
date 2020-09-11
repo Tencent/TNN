@@ -29,6 +29,8 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
                          const float (*transform)[3], const float border_val = 0.0);
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
 void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
+void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_CPU_CPU_MAT_UTIL_H_
