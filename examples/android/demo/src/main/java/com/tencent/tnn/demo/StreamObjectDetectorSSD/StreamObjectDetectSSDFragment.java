@@ -55,9 +55,9 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
     //add for npu
-    private ToggleButton mNPUswitch;
-    private boolean mUseNPU = false;
-    private TextView NpuTextView;
+    private ToggleButton mHuaweiNPUswitch;
+    private boolean mUseHuaweiNpu = false;
+    private TextView HuaweiNpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -106,9 +106,9 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
     }
     private void onSwichGPU(boolean b)
     {
-        if (b && mNPUswitch.isChecked()) {
-            mNPUswitch.setChecked(false);
-            mUseNPU = false;
+        if (b && mHuaweiNPUswitch.isChecked()) {
+            mHuaweiNPUswitch.setChecked(false);
+            mUseHuaweiNpu = false;
         }
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
@@ -122,7 +122,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
-        mUseNPU = b;
+        mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
         restartCamera();
@@ -150,17 +150,17 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         });
 
         $$(R.id.npu_switch);
-        mNPUswitch = $(R.id.npu_switch);
-        mNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        mHuaweiNPUswitch = $(R.id.npu_switch);
+        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 onSwichNPU(b);
             }
         });
-        NpuTextView = $(R.id.npu_text);
+        HuaweiNpuTextView = $(R.id.npu_text);
         if (!NpuEnable) {
-            NpuTextView.setVisibility(View.INVISIBLE);
-            mNPUswitch.setVisibility(View.INVISIBLE);
+            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
+            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
         init();
     }
@@ -293,7 +293,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                     mCameraHeight = parameters.getPreviewSize().height;
                     String modelPath = initModel();
                     int device = 0;
-                    if (mUseNPU) {
+                    if (mUseHuaweiNpu) {
                         device = 2;
                     } else if (mUseGPU) {
                         device = 1;

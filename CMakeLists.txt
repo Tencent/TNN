@@ -16,7 +16,7 @@ option(TNN_ARM_ENABLE "Enable Arm" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
-option(TNN_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
@@ -156,7 +156,7 @@ message(STATUS "\tArm:\t${TNN_ARM_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
-message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
+message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -223,8 +223,17 @@ if(TNN_CUDA_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
-if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
+if(TNN_HUAWEI_NPU_ENABLE)
+    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+        link_directories(
+                third_party/huawei_npu/hiai_ddk_latest/armeabi-v7a/
+        )
+    else()
+        link_directories(
+                third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/
+        )
+    endif()
+    add_subdirectory(source/tnn/device/huawei_npu)
     if(TNN_CPU_ENABLE)
         set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
     else()

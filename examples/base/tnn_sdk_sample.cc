@@ -469,12 +469,12 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         device_type_ = TNN_NS::DEVICE_OPENCL;
 #endif
     }
-    else if (option->compute_units == TNNComputeUnitsNPU) {
-        device_type_      = TNN_NS::DEVICE_NPU;
+    else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
+        device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
-        device_type_      = TNN_NS::DEVICE_NPU;
+        device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
     }
     
@@ -483,8 +483,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
-        if(device_type_ == TNN_NS::DEVICE_NPU){
-            network_config.network_type = NETWORK_TYPE_NPU;
+        if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
+            network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
         }
         auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
 
@@ -503,8 +503,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 
 TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
-        case DEVICE_NPU:
-            return TNNComputeUnitsNPU;
+        case DEVICE_HUAWEI_NPU:
+            return TNNComputeUnitsHuaweiNPU;
         case DEVICE_METAL:
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;

@@ -92,8 +92,8 @@ typedef enum {
     TNNComputeUnitsCPU = 0,
     // run on gpu, if failed run on cpu
     TNNComputeUnitsGPU = 1,
-    // run on npu, if failed run on cpu
-    TNNComputeUnitsNPU = 2,
+    // run on huawei_npu, if failed run on cpu
+    TNNComputeUnitsHuaweiNPU = 2,
 } TNNComputeUnits;
 
 typedef  struct{

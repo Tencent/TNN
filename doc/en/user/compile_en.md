@@ -118,7 +118,7 @@ cd <path_to_tnn>/scripts
 |TNN_CUDA_ENABLE| OFF | Code source/device/cuda compilation switch, the code contains cuda acceleration instructions, currently only a small part of the implementation has been migrated.|
 |TNN_DSP_ENABLE| OFF | Code source/device/dsp compilation switch, currently adapted to snpe implementation.|
 |TNN_ATLAS_ENABLE| OFF | The code source/device/atlas compilation switch is currently adapted to Huawei's atlas acceleration framework.|
-|TNN_NPU_ENABLE| OFF | The code source/device/npu compilation switch is currently adapted to the HiAI acceleration framework.|
+|TNN_HUAWEI_NPU_ENABLE| OFF | The code source/device/npu compilation switch is currently adapted to the HiAI acceleration framework.|
 |TNN_SYMBOL_HIDE| ON | The symbols of the acceleration library are hidden, and the default non-public interface symbols of release are not visible.|
 |TNN_OPENMP_ENABLE| OFF | OpenMP switch, control whether to open openmp acceleration.|
 |TNN_BUILD_SHARED| ON | The dynamic library compilation switch, close to compile the static library.|
