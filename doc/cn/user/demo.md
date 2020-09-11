@@ -108,11 +108,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    1).  想要使用NPU, 打开工程后，需要手动设置打开NPU：
    在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用华为NPU。
    ````
-<<<<<<< HEAD
         set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
-=======
-        #set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
->>>>>>> 872455072036cb8be546b541a23819aaf5890768
    ````
    2). 第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
    Clean Project 再重新运行。
