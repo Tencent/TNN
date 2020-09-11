@@ -49,11 +49,7 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectInfo[] objectstatus, int w, int h) {
-        addObjectRect(objectstatus, w, h, true);
-    }
-
-    public void addObjectRect(ObjectInfo[] objectstatus, int w, int h, boolean isyolo)
+    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list, int w, int h)
     {
         rects.clear();
         labels.clear();
@@ -65,11 +61,7 @@ public class DrawView extends SurfaceView
             for (int i=0; i<objectstatus.length; i++)
             {
                 rects.add(new Rect((int)(objectstatus[i].x1 * scalew), (int)(objectstatus[i].y1 * scaleh), (int)(objectstatus[i].x2 * scalew), (int)(objectstatus[i].y2 * scaleh)));
-                if (isyolo) {
-                    labels.add(String.format("%s : %f", ObjectDetector.label_list[objectstatus[i].class_id], objectstatus[i].score));
-                } else {
-                    labels.add(String.format("%s : %f", ObjectDetectorSSD.label_list[objectstatus[i].class_id], objectstatus[i].score));
-                }
+                labels.add(String.format("%s : %f", label_list[objectstatus[i].class_id], objectstatus[i].score));
             }
         }
 

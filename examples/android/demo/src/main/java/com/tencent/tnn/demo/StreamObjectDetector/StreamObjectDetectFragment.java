@@ -330,7 +330,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addObjectRect(objectInfoList,  ObjectDetector.label_list, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
 
                             String result = "object count: " + objectCount + " " + Helper.getBenchResult();
                             TextView result_view = (TextView)$(R.id.result);
