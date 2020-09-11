@@ -6,7 +6,7 @@
 Refer to [Install and Compile](./compile_en.md).
 Enable the test options：
 * `TNN_TEST_ENABLE:BOOL=ON`  
-* set corresponding devices，such as `TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`, `TNN_NPU_ENABLE`
+* set corresponding devices，such as `TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`, `TNN_HUAWEI_NPU_ENABLE`
 * After the compilation is completed, an executable file 'test/ TNNTest' will be generated in the build directory, which can be run directly in Linux, Android ADB and other environments
 
 ## II. Usage 

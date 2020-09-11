@@ -43,10 +43,10 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
     } else if (gComputeUnitType == 2) {
-        LOGI("the device type  %d device npu" ,gComputeUnitType);
+        LOGI("the device type  %d device huawei_npu" ,gComputeUnitType);
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
-        option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     } else {
 	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
     }
@@ -70,7 +70,7 @@ JNIEXPORT jboolean TNN_CLASSIFY(checkNpu)(JNIEnv *env, jobject thiz, jstring mod
     modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
-    option->compute_units = TNN_NS::TNNComputeUnitsNPU;
+    option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     option->input_shapes = {};
     option->library_path="";
     option->proto_content = protoContent;
@@ -127,7 +127,7 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
     if (gComputeUnitType == 1) {
         device = "gpu";
     } else if (gComputeUnitType == 2) {
-        device = "npu";
+        device = "huawei_npu";
     }
     sprintf(temp, " device: %s \ntime: ", device.c_str());
     std::string computeUnitTips(temp);

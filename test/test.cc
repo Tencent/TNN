@@ -279,9 +279,6 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
 
                 config.params.push_back(model_content);
-		        //add for npu
-                std::string path_to_om = "";
-                config.params.push_back(path_to_om);
             } else {
                 config.params.push_back(model_path);
             }
@@ -305,6 +302,9 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
+        //add for cache; When using NPU, it is the path to store the om
+//        config.cache_path = "/data/local/tmp/npu_test/";
+        config.cache_path = "";
         return config;
     }
 

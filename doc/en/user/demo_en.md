@@ -107,7 +107,7 @@
    1).  After opening the TNN example project，you need to uncomment the code  in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use NPU ：
    
    ````
-        #set(TNN_NPU_ENABLE ON CACHE BOOL "" FORCE)
+        #set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
       
    2). If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
