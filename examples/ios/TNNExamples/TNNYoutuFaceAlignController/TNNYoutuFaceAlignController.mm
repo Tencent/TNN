@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNYoutuFaceAlignController.h"
-#import "YoutuFaceAlign.h"
+#import "youtu_face_align.h"
 #import "blazeface_detector.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
@@ -437,7 +437,8 @@ using namespace TNN_NS;
 #if TARGET_IPHONE_SIMULATOR
                 // save image on simulator
                 NSString *out_name = [[img_path lastPathComponent] stringByReplacingOccurrencesOfString: @".jpg" withString:@"_out.jpg"];
-                const std::string save_dir = "/Users/devandong/Desktop/tnn_output/";
+                // set to destination directory
+                const std::string save_dir = "/tmp/";
                 std::string save_path = save_dir+string([out_name UTF8String]);
                 NSString *path = [NSString stringWithCString:save_path.c_str()
                                                     encoding:[NSString defaultCStringEncoding]];

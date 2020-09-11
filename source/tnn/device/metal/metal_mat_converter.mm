@@ -968,12 +968,8 @@ Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
     return TNN_OK;
 }
 
-Status MetalMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) {
-    if (type != COLOR_CONVERT_BGRTOGRAY) {
-        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
-    }
-
-    return BGR2Gray(src, dst, command_queue);
+Status MetalMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "metal not support color conversion");
 }
 
 DECLARE_MAT_CONVERTER_CREATER(Metal);
