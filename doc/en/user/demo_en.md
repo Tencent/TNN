@@ -94,20 +94,20 @@
 
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
   
-   PS for NPU :
-   You need to download the DDK before run the demo. Refer to： [FAQ](../faq_en.md): NPU Compilation Prerequisite.
+   PS for Huawei NPU :
+   You need to download the DDK before run the demo. Refer to： [FAQ](../faq_en.md): Huawei NPU Compilation Prerequisite.
  
 
 2. Open the TNNExamples project
 
    Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project.
    
-   PS for NPU ：
+   PS for Huawei NPU ：
    
-   1).  After opening the TNN example project，you need to uncomment the code  in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use NPU ：
+   1).  After opening the TNN example project，you need to set the TNN_HUAWEI_NPU_ENABLE switch to ON in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use Huawei NPU ：
    
    ````
-        #set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
+        set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
       
    2). If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，

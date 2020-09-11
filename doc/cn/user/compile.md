@@ -62,12 +62,12 @@ cd <path_to_tnn>/scripts
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
  OPENCL="ON"                    # ON表示编译带有Arm GPU版本的库
- NPU="ON"                       # ON表示编译带有Arm NPU版本的库
+ HUAWEI_NPU="ON"                # ON表示编译带有Arm GPU NPU版本的库
  SHARING_MEM_WITH_OPENGL=0      # 1表示OpenGL的Texture可以与OpenCL共享
 ```
-NPU PS: 
-运行前需要下载DDK, 并放到指定文件夹。 具体请参考:
-[FAQ](../faq.md)如何创建NPU编译环境? 
+华为NPU PS: 
+运行前需要下载DDK, 并放到指定文件夹。 或是用脚本直接下载具体请参考:
+[FAQ](../faq.md)如何创建华为NPU编译环境? 
 
 3）执行编译脚本
 ```
@@ -122,7 +122,7 @@ cd <path_to_tnn>/scripts
 |TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，代码包含cuda加速指令, 当前仅迁移了小部分实现。|
 |TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
-|TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/npu编译开关，当前适配HiAI加速框架。|
+|TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/huawei_npu编译开关，当前适配HiAI加速框架。|
 |TNN_SYMBOL_HIDE| ON | 加速库符号隐藏，release发布默认非public接口符号不可见。|
 |TNN_OPENMP_ENABLE| OFF | OpenMP开关，控制是否打开openmp加速。|
 |TNN_BUILD_SHARED| ON | 动态库编译开关，关闭则编译静态库。|

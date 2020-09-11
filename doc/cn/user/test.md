@@ -15,9 +15,9 @@
 TNNTest
 必选参数：
     -mp 模型proto位置(模型model需要在同文件夹下同前缀名)
-    -dt DEVICE类型（ARM, OPENCL, NPU）
+    -dt DEVICE类型（ARM, OPENCL, HUAWEI_NPU）
 常用可选参数：
-    -nt network类型（默认naive， Npu需要特殊指定 -nt NPU）
+    -nt network类型（默认naive， 华为Npu需要特殊指定 -nt HUAWEI_NPU）
     -op 输出文件位置   
     -ic 循环次数  
     -wc warmup运行次数
@@ -31,7 +31,7 @@ TNNTest
 也可作为benchmark工具使用，使用时需要制定wc >= 1，因为第一次运行会准备内存、上下文等增加时间消耗
 
 ```
-### 2.  NPU
+P.S. 华为NPU
 NPU需要把HiAI so动态库push到手机上，并将他们添加到LD_LIBRARY_PATH环境变量中.
-可以参考 TNN/platform/android/test_android_npu.sh 运行TNNTest
+可以参考 TNN/platform/android/test_android.sh 运行TNNTest
  

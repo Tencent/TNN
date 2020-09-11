@@ -14,7 +14,7 @@ TNN currently support main-stream CNN networks：
 - Segmentation: FCN PSPNet
 
 
-| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | NPU |
+| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei Npu |
 |---------------------------|----------|-----|-------|-------|--------|-------|------|
 | AlexNet                   | yes      | yes |       |       |        |       |      |
 | DenseNet(121)             | yes      | yes |       |       |        |       |      |
@@ -100,14 +100,14 @@ TNN currently support main-stream CNN networks：
 | Normalize                | Reduce + Clip + Expand + Div                   | yes | yes   | yes   | yes    | yes   |       |
 | Normalize                | Mul(square)+Reduce+Max+Sqrt+Mul                | yes | yes   | yes   | yes    | yes   |       |
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   |       |
-| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   |       |
-| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       | yes   |
+| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes   |
+| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |       |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes   |
 | Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |       |
-| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       |       |
+| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       |  yes  |
 | Reciprocal               | Reciprocal                                     | yes |       |       | yes    | yes   |       |
 | ReduceL1                 | ReduceL1                                       | yes |       |       |        |       |       |
 | ReduceL2                 | ReduceL2                                       | yes |       |       |        | yes   |       |
@@ -155,3 +155,4 @@ TNN currently support main-stream CNN networks：
 | ARMv8  | Yes     |
 | OpenCL | Yes     |
 | Metal  | Yes     |
+| HuaweiNPU | Yes     |
