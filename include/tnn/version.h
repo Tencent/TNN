@@ -14,8 +14,8 @@
 #ifndef TNN_INCLUDE_TNN_VERSION_H_
 #define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "temp_npu_merge";
-static char *commit_date_tnn = "2020-09-10";
-static char *commit_hash_tnn = "8d52a71";
+static char *branch_name_tnn = "master";
+static char *commit_date_tnn = "2020-09-11";
+static char *commit_hash_tnn = "523b2cc";
 
 #endif //TNN_INCLUDE_TNN_VERSION_H_
