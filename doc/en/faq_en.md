@@ -14,7 +14,16 @@
         protobuf >= 3.0
         
 
-## NPU Compilation Prerequisite:
+## Huawei NPU Compilation Prerequisite:
+You need the ddk to support where you could obain by 
+Either 
+Option 1 :
+Go to <TNN_PROJECT>/thrid_party/huawei_npu/, use ./download_ddk.sh to download the ddk.
+````
+cd <TNN_PROJECT>/thrid_party/huawei_npu/
+./download_ddk.sh 
+````
+Option 2 :
 1. Downlaod DDK from the following path [https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
 2. unzip 
 3. Go to the `ddk/ai_ddk_lib` directory under the downloaded folder 

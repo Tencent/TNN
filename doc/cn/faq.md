@@ -13,14 +13,20 @@
         onnx-simplifier>=0.2.4
         protobuf >= 3.0
 
-## 如何创建NPU编译环境? 
+## 如何创建华为NPU编译环境? 
+选项1: 
+  在 <TNN_PROJECT>/thrid_party/huawei_npu/ 下运行 ./download_ddk.sh 脚本下载最新版的ddk。
+  
+
+选项2：
 1. 到华为开发者联盟下载DDK[https://developer.huawei.com/consumer/cn/doc/overview/HUAWEI_HiAI]
 2. 解压缩
 3. 进入到下载文件夹下的`ddk/ai_ddk_lib`目录
 4. 在`<path_to_tnn>/third_party/npu/hiai_ddk_latest/`下创建`armeabi-v7a`文件夹， 并将ai_ddk_lib目录下的lib文件夹中所有文件复制到 `<path_to_tnn>/third_party/npu/hiai_ddk_latest/armeabi-v7a`
 5. 在`<path_to_tnn>/third_party/npu/hiai_ddk_latest/`下创建`arm64-v8a`文件夹，并将ai_ddk_lib目录下的lib64文件夹中所有文件复制到 `<path_to_tnn>/third_party/npu/hiai_ddk_latest/arm64-v8a`
 6. 将ai_ddk_lib目录下include`文件夹`复制到 `<path_to_tnn>/third_party/npu/hiai_ddk_latest/`目录下
-7. 最终 `<path_to_tnn>/third_party/npu/hiai_ddk_latest/`文件结构应该如下：
+
+### 最终 `<path_to_tnn>/third_party/npu/hiai_ddk_latest/`文件结构应该如下：
 
 ```
 hiai_ddk_latest

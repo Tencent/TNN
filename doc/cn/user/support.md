@@ -12,7 +12,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 - Detection: Yolo-v2 MobileNet-YOLOV3 ...
 - Segmentation: FCN PSPNet
 
-| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | NPU |
+| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
 |---------------------------|----------|-----|-------|-------|--------|-------|------|
 | AlexNet                   | yes      | yes |       |       |        |       |      |
 | DenseNet(121)             | yes      | yes |       |       |        |       |      |
@@ -50,7 +50,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 # 支持OP 
 
-| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | NPU |
+| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
 |--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|----- |
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  |
 | Acos                     | Acos                                           | yes |       |       | yes    | yes   | yes  |
@@ -98,14 +98,14 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Normalize                | Reduce + Clip + Expand + Div                   | yes | yes   | yes   | yes    | yes   |      |
 | Normalize                | Mul(square)+Reduce+Max+Sqrt+Mul                | yes | yes   | yes   | yes    | yes   |      |
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes  |
-| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   |      |
-| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       | yes  |
+| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes  |
+| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |      |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes  |
 | Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |      |
-| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       |      |
+| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       | yes  |
 | Reciprocal               | Reciprocal                                     | yes |       |       | yes    | yes   | yes  |
 | ReduceL1                 | ReduceL1                                       | yes |       |       |        |       |      |
 | ReduceL2                 | ReduceL2                                       | yes |       |       |        | yes   |      |
@@ -155,6 +155,6 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | ARMv8  | Yes     |
 | OpenCL | Yes     |
 | Metal  | Yes     |
-| Npu    | Yes     |
+| 华为Npu | Yes     |
 
 
