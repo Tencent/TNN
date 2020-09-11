@@ -302,7 +302,8 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
-        //add for cache; When using NPU, it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
+        //add for cache; When using Huawei NPU, 
+	//it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
         config.cache_path = "";
         return config;
     }
