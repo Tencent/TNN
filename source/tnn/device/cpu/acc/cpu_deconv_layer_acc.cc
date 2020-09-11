@@ -75,7 +75,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     // NOTE: weight is format [n][i][o][h][w]
     // different form conv weight layout [n][o][i][h][w]
     void *weight_ptr   = resource->filter_handle.force_to<void *>();
-    void *bias_ptr     = resource->bias_handle.force_to<void *>();
+    void *bias_ptr     = param->bias? resource->bias_handle.force_to<void *>() : nullptr;
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
