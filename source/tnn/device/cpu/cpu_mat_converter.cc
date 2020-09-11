@@ -225,7 +225,11 @@ Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
         dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
     }
 
-    if (type == COLOR_CONVERT_BGRTOGRAY) {
+    if (type == COLOR_CONVERT_NV12TOBGR) {
+        YUVToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), true);
+    } else if (type == COLOR_CONVERT_NV21TOBGR) {
+        YUVToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), false);
+    } else if (type == COLOR_CONVERT_BGRTOGRAY) {
         BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 3);
     } else if (type == COLOR_CONVERT_BGRATOGRAY) {
         BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 4);
