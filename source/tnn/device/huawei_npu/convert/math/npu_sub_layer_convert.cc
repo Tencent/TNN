@@ -9,13 +9,25 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "temp_npu_merge";
-static char *commit_date_tnn = "2020-09-10";
-static char *commit_hash_tnn = "8d52a71";
+#include <graph/op/all_ops.h>
+#include "npu_binary_layer_convert.h"
+#include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
+#include "tnn/device/huawei_npu/convert/npu_utils.h"
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+namespace TNN_NS {
+
+class NpuSubLayer : public NpuBinaryLayer {
+public:
+    NpuSubLayer(LayerType ignore) : NpuBinaryLayer(LAYER_SUB) {}
+    ~NpuSubLayer() {}
+    Status Convert() {
+        return NpuBinaryLayer::BinaryConvert<ge::op::Sub>();
+    }
+};
+
+REGISTER_NPU_LAYER(Sub, LAYER_SUB);
+
+}  // namespace TNN_NS

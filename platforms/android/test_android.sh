@@ -11,6 +11,14 @@ NEED_REBUILD=true
 NEED_PUSH=true
 INPUT_PATH=
 
+WORK_DIR=`pwd`
+ABI="armeabi-v7a"
+if [ "$DEVICE" == "HUAWEI_NPU" ]
+then
+    export HUAWEI_NPU="ON"
+    export TNN_ROOT=${WORK_DIR}/../../
+fi
+
 if $NEED_REBUILD
 then
     ../../scripts/build_android.sh -ic
@@ -34,11 +42,25 @@ then
     adb push ${TEST_MODEL_PATH} ${ANDROID_DIR}/test.tnnmodel
 fi
 
-if [ -n "$INPUT_PATH" ]
+if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
-    adb shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    echo "Run Huawei Npu"
+    adb shell "mkdir -p $ANDROID_DIR/lib"
+    adb push $WORK_DIR/../../third_party/huawei_npu/cpp_lib/$ABI/* $ANDROID_DIR/lib
+    adb push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/lib
+    if [ -n "$INPUT_PATH" ]
+    then
+      adb shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    else
+      adb shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    fi
 else
-    adb shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    if [ -n "$INPUT_PATH" ]
+    then
+      adb shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    else
+      adb shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT >> $ANDROID_DIR/test.log"
+    fi
 fi
 
 adb pull $ANDROID_DIR/${DEVICE}_output.data ${DEVICE}_output.data

@@ -71,7 +71,7 @@ TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， MET
 NPU需要特殊指定network类型。
 
 ```cpp
-config.network_type = TNN_NS::NETWORK_TYPE_NPU;
+config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
 ```
 
 ### 步骤3. 输入设定

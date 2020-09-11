@@ -6,7 +6,7 @@
 参考[安装编译](./compile.md)。
 打开测试模型开关：  
 * `TNN_TEST_ENABLE:BOOL=ON`  
-* 对应device的宏，如`TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`,`TNN_NPU_ENABLE`
+* 对应device的宏，如`TNN_OPENCL_ENABLE`, `TNN_ARM_ENABLE`,`TNN_HUAWEI_NPU_ENABLE`
 * 编译完成后，build目录下会生成测试可执行文件test/TNNTest，可在Linux, 安卓ADB等环境下直接运行
 
 ## 二、测试方法使用

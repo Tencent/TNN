@@ -122,7 +122,7 @@ cd <path_to_tnn>/scripts
 |TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，代码包含cuda加速指令, 当前仅迁移了小部分实现。|
 |TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
-|TNN_NPU_ENABLE| OFF | 代码source/device/npu编译开关，当前适配HiAI加速框架。|
+|TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/npu编译开关，当前适配HiAI加速框架。|
 |TNN_SYMBOL_HIDE| ON | 加速库符号隐藏，release发布默认非public接口符号不可见。|
 |TNN_OPENMP_ENABLE| OFF | OpenMP开关，控制是否打开openmp加速。|
 |TNN_BUILD_SHARED| ON | 动态库编译开关，关闭则编译静态库。|
