@@ -362,6 +362,10 @@ struct ArgMaxOrMinLayerParam : public LayerParam {
     int select_last_index;
 };
 
+struct PixelShuffleLayerParam : public LayerParam {
+    int upscale_factor;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
