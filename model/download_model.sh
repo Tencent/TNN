@@ -92,3 +92,15 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnproto" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnmodel" \
     "face_mesh"
+
+# download YouTu face alignment phase1 tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel" \
+    "youtu_face_alignment"
+
+# download YouTu face alignment phase2 tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel" \
+    "youtu_face_alignment"
