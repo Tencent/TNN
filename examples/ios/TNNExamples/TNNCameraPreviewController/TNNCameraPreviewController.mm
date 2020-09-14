@@ -5,302 +5,366 @@
 #import <Metal/Metal.h>
 #import <CoreMedia/CoreMedia.h>
 #import <tnn/tnn.h>
+#import "TNNBoundingBox.h"
+#include "tnn_fps_counter.h"
 #import "UIImage+Utility.h"
 #import "ultra_face_detector.h"
 
 using namespace std;
 using namespace TNN_NS;
 
+typedef void(^CommonCallback)(Status);
+#define kMaxBuffersInFlight 1
+
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
-    std::shared_ptr<UltraFaceDetector> detector_;
+    std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
+@property (nonatomic, weak) IBOutlet UILabel *labelFPS;
 @property (nonatomic, weak) IBOutlet UISwitch *switchGPU;
 @property (nonatomic, weak) IBOutlet UIButton *rotateCamera;
-@property (nonatomic, strong) IBOutlet UISwitch *startDetect;
-@property (nonatomic, assign) Boolean isStartDetect;
-@property (nonatomic, strong) TNNCameraVideoDevice *cameraDevice;
-@property (nonatomic, assign) uint64_t frameCount;
-@property (nonatomic, strong) NSString *label;
-@property (nonatomic, assign) Boolean isFront;
-@property (nonatomic, assign) Boolean useGPU;
 
+@property (nonatomic, strong) TNNCameraVideoDevice *cameraDevice;
+@property (nonatomic, strong) NSString *label;
+
+@property (nonatomic, strong) dispatch_semaphore_t inflightSemaphore;
+
+@property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
+@property (nonatomic, strong) NSArray<UIColor *> *colors;
 @end
 
 @implementation TNNCameraPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.cameraDevice = [[TNNCameraVideoDevice alloc] initWithPreviewView:self.cameraPreview];
-    self.cameraDevice.delegate = self;
-    self.isStartDetect = YES;
-    self.isFront = YES;
-    self.useGPU = NO;
-    self.frameCount = 0;
-    detector_ = nullptr;
+    self.navigationItem.title = _viewModel.title;
     
-    [self.cameraDevice startSession];
+    //colors for each class
+    auto colors = [NSMutableArray array];
+    for (NSNumber *r in @[@(0.2), @(0.4), @(0.6), @(0.8), @(1.0)]) {
+        for (NSNumber *g in @[@(0.3), @(0.7)]) {
+            for (NSNumber *b in @[@(0.4), @(0.8)]) {
+                [colors addObject:[UIColor colorWithRed:[r floatValue]
+                                                  green:[g floatValue]
+                                                   blue:[b floatValue]
+                                                  alpha:1]];
+            }
+        }
+    }
+    self.colors = colors;
+    
+    _object_list_last = {};
+    _fps_counter = std::make_shared<TNNFPSCounter>();
+    
+    _boundingBoxes = [NSArray array];
+    _inflightSemaphore = dispatch_semaphore_create(kMaxBuffersInFlight);
+    
+    self.cameraDevice = [[TNNCameraVideoDevice alloc] init];
+    self.cameraDevice.delegate = self;
+    if (self.cameraDevice.videoPreviewLayer) {
+        [self.cameraPreview.layer addSublayer:self.cameraDevice.videoPreviewLayer];
+        [self resizePreviewLayer];
+    }
+    
+    // add the bounding box layers to the UI, on top of the video preview.
+    [self setupBoundingBox:12];
+    
+    //set up camera
+    auto camera = _viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
+    [_cameraDevice switchCamera:camera
+                     withPreset:AVCaptureSessionPreset640x480
+                     completion:^(BOOL) {
+    }];
+    
+    //init network
+    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    [self loadNeuralNetwork:units callback:^(Status status) {
+        if (status != TNN_OK) {
+            //刷新界面
+            [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
+        }
+    }];
+    
 }
 
-- (void)viewWillAppear:(BOOL)animated
-{
-    [super viewWillAppear:animated];
-    
-    auto view = self.cameraPreview.superview;
-    [self.cameraPreview removeFromSuperview];
-    [self.labelResult removeFromSuperview];
-    int width = view.frame.size.width - 60;
-    int height = width * 640 / 480;
-    
-    self.cameraPreview.frame = CGRectMake(30, 100, width, height);
-    [view addSubview:self.cameraPreview];
-    self.labelResult.frame = CGRectMake(self.cameraPreview.frame.origin.x, self.cameraPreview.frame.origin.y + height + 5, self.labelResult.frame.size.width, self.labelResult.frame.size.height);
-    [view addSubview:self.labelResult];
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self resizePreviewLayer];
 }
 
 - (void)viewWillDisappear:(BOOL)animated
 {
     [super viewWillDisappear:animated];
     
-    //for safety, set detector_ nullptr after stop camera
+    //for safety, set _predictor nullptr after stop camera
     [self.cameraDevice stopSession];
-    detector_ = nullptr;
+}
+
+- (void)setupBoundingBox:(NSUInteger)maxNumber {
+    // Set up the bounding boxes.
+    auto boundingBoxes = [NSMutableArray arrayWithArray:_boundingBoxes];
+    for (NSUInteger i=_boundingBoxes.count; i<maxNumber; i++) {
+        [boundingBoxes addObject:[[TNNBoundingBox alloc] init]];
+    }
+    
+    for (TNNBoundingBox *iter in boundingBoxes) {
+        [iter hide];
+        [iter removeFromSuperLayer];
+        
+        [iter addToLayer:_cameraPreview.layer];
+    }
+    self.boundingBoxes = boundingBoxes;
+}
+
+- (void)resizePreviewLayer {
+    if (_cameraDevice && _cameraPreview) {
+        _cameraDevice.videoPreviewLayer.frame = _cameraPreview.bounds;
+    }
+}
+
+- (void)loadNeuralNetwork:(TNNComputeUnits)units
+                 callback:(CommonCallback)callback {
+    //异步加载模型
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        Status status = [self.viewModel loadNeuralNetworkModel:units];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (callback) {
+                callback(status);
+            }
+        });
+    });
 }
 
 #pragma mark - IBAction Interfaces
 
 - (IBAction)onSwitchGPU:(id)sender
 {
-    self.useGPU = !self.useGPU;
-    self.frameCount = 0;
+    //init network
+    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    [self loadNeuralNetwork:units callback:^(Status status) {
+        if (status != TNN_OK) {
+            //刷新界面
+            [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
+        }
+    }];
 }
 
 - (IBAction)onCameraRotate:(id)sender {
-    self.isFront = !self.isFront;
-    [self.cameraDevice rotateCamera];
+    auto position = [self.cameraDevice cameraPosition];
+    position = (position == AVCaptureDevicePositionBack) ?
+    AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
+    
+    [self.cameraDevice switchCamera:position
+                         withPreset:AVCaptureSessionPreset640x480
+                         completion:^(BOOL succes) {
+    }];
 }
 
-#pragma mark - Detect Interfaces
-
-- (std::vector<FaceInfo>)detectFace:(CVImageBufferRef)image_buffer
-{
-    const int target_height = 640;
-    const int target_width = 480;
-//    const int target_height = 320;
-//    const int target_width = 240;
-    CGSize image_buffer_size = CVImageBufferGetDisplaySize(image_buffer);
-    DimsVector target_dims = {1, 3, target_height, target_width};
+#pragma mark - predict Interfaces
+- (void)predictSampleBuffer:(CMSampleBufferRef)video_buffer
+                 withCamera:(TNNCameraVideoDevice *)camera
+               andPosition:(AVCaptureDevicePosition)position
+                atTimestamp:(CMTime)time {
+    if (!_viewModel || !_viewModel.predictor) return;
     
-    TNN_NS::Status status;
-    std::vector<FaceInfo> face_info;
-    if (!self.isStartDetect) {
-        detector_ = nullptr;
-        return face_info;
-    }
+    const auto target_dims = self.viewModel.predictor->GetInputShape();
+    // block until the next GPU buffer is available.
+    dispatch_semaphore_wait(_inflightSemaphore, DISPATCH_TIME_FOREVER);
     
-    auto image_data = utility::CVImageBuffRefGetData(image_buffer, target_height, target_width);
+    //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
+    auto fps_counter_async_thread = _fps_counter;
+    auto predictor_async_thread = _viewModel.predictor;
+    auto compute_units = _viewModel.predictor->GetComputeUnits();
     
-    ++self.frameCount;
-    if (self.frameCount == 1) {
-        //Get metallib path from app bundle
-        //PS：A script(Build Phases -> Run Script) is added to copy the metallib file from tnn framework project to TNNExamples app
-        //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
-        auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib"
-        ofType:nil];
-#if TNN_SDK_USE_NCNN_MODEL
-            auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.bin"
-                                                               ofType:nil];
-            auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.param"
-                                                               ofType:nil];
-#else
-            auto model_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnmodel"
-                                                               ofType:@""];
-            auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/face_detector/version-slim-320_simplified.tnnproto"
-                                                               ofType:@""];
-#endif
-        if (model_path.length <= 0 || proto_path.length <= 0) {
-            self.label = @"proto or model path is invalid";
-            [self updateLabel:self.label];
-            NSLog(@"Error: proto or model path is invalid");
-            return face_info;
-        }
-
-        NSString *protoFormat = [NSString stringWithContentsOfFile:proto_path
-                                                       encoding:NSUTF8StringEncoding
-                                                          error:nil];
-        string proto_content = protoFormat.UTF8String;
-        NSData *data = [NSData dataWithContentsOfFile:model_path];
-        string model_content = [data length] > 0 ? string((const char *)[data bytes], [data length]) : "";
-        if (proto_content.size() <= 0 || model_content.size() <=0) {
-            self.label =@"proto or model path is invalid";
-            [self updateLabel:self.label];
-            NSLog(@"Error: proto or model path is invalid");
-            return face_info;
-        }
-        
-        
-        TNNComputeUnits units = self.useGPU ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-        
-        detector_ = std::make_shared<UltraFaceDetector>(target_width, target_height, 1, 0.975, 0.23, 1);
-        std::vector<int> nchw = {1, 3, target_height, target_width};
-        status = detector_->Init(proto_content, model_content, library_path.UTF8String, units, nchw);
-        if (status != TNN_OK) {
-            self.label = [NSString stringWithFormat:@"%s", status.description().c_str()];
-            [self updateLabel:self.label];
-            NSLog(@"Error: %s", status.description().c_str());
-            return face_info;
-        }
-        
-        BenchOption bench_option;
-        bench_option.forward_count = 1;
-        detector_->SetBenchOption(bench_option);
-    }
+    CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
+    int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
+    int origin_height = (int)CVPixelBufferGetHeight(image_buffer);
+    CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
     
-    if (detector_ == nullptr) return face_info;
-    
-    //for muti-thread safety, increase ref count, to insure detector is not released while detecting face
-    auto detector_async_thread = detector_;
-    
-    auto compute_units = detector_async_thread->GetComputeUnits();
+    id<MTLTexture> image_texture = nil;
     if (compute_units == TNNComputeUnitsGPU) {
-         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
-        
-        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-        if (!texture_rgba) {
-            self.label = @"Error texture input rgba is nil";
-            [self updateLabel:self.label];
-            NSLog(@"Error texture input rgba is nil");
-            return face_info;
+        image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
+    }
+    //NSLog(@"==== (%d, %d)", origin_height, origin_width);
+    
+    //异步运行模型
+    CVBufferRetain(image_buffer);
+    auto image_texture_ref = CFBridgingRetain(image_texture);
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        Status status = TNN_OK;
+        std::map<std::string, double> map_fps;
+
+        //Note：智能指针必须在resize后才能释放
+        std::shared_ptr<char> image_data = nullptr;
+        std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+        auto origin_dims = {1, 3, origin_height, origin_width};
+        if (compute_units == TNNComputeUnitsCPU) {
+            image_data = utility::CVImageBuffRefGetData(image_buffer);
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
+        } else {
+            image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, (void *)image_texture_ref);
         }
         
-        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, target_width, target_height)
-                        mipmapLevel:0
-                          withBytes:image_data.get()
-                        bytesPerRow:target_width*4];
-        status = detector_async_thread->Detect(image_mat, target_height, target_width, face_info);
-    }
-    else if (compute_units == TNNComputeUnitsCPU)
-    {
-        auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
-        status = detector_async_thread->Detect(image_mat, target_height, target_width, face_info);
-    }
-    
-    face_info = AdjustFaceInfoToOriginalSize(face_info, target_height, target_width,
-                                             image_buffer_size.height, image_buffer_size.width);
-    
+//        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
+//#ifndef END2END
+//        //resize
+//        fps_counter_async_thread->Begin("resize");
+//#endif
+//        predictor_async_thread->Resize(image_mat, input_mat, TNNInterpLinear);
+//#ifndef END2END
+//        fps_counter_async_thread->End("resize");
+//#endif
+        
+        std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+        do {
+            fps_counter_async_thread->Begin("detect");
+            status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
+            fps_counter_async_thread->End("detect");
+        } while (0);
+        
+        CVBufferRelease(image_buffer);
+        CFBridgingRelease(image_texture_ref);
+        
+        map_fps = fps_counter_async_thread->GetAllFPS();
+        //auto time = fps_counter_async_thread->GetAllTime();
+
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self showSDKOutput:sdk_output
+            withOriginImageSize:origin_image_size
+                     withStatus:status];
+            [self showFPS:map_fps];
+            //[self showTime: time];
+        });
+        
+        dispatch_semaphore_signal(self.inflightSemaphore);
+    });
+
+}
+
+- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
+       withOriginImageSize:(CGSize)size
+           withStatus:(Status)status {
+    auto object_list = [self.viewModel getObjectList:output];
+    [self showObjectInfo:object_list withOriginImageSize:size withStatus:status];
+}
+
+- (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
+            withOriginImageSize:(CGSize)origin_size
+            withStatus:(Status)status {
+    //status
     if (status != TNN_OK) {
-        self.label = [NSString stringWithUTF8String:status.description().c_str()];
-        [self updateLabel:self.label];
-        NSLog(@"Error: %s", status.description().c_str());
-        return face_info;
-    }
-
-    auto bench_result = detector_async_thread->GetBenchResult();
-    self.label = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
-                             compute_units == TNNComputeUnitsGPU ? @"gpu": @"arm",
-                             (int)face_info.size(),
-                             bench_result.Description().c_str()];
-    [self updateLabel:self.label];
-    return face_info;
-}
-#pragma mark - Draw Image Intefaces
-
-- (void)drawPreview:(CMSampleBufferRef)buffer {
-    CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(buffer);
-    CGSize size = CVImageBufferGetDisplaySize(image_buffer);
-    int target_height = 640;
-    int target_width = 480;
-//    if (target_height != (int)size.height && target_width != (int)size.width) {
-//        target_height = size.height;
-//        target_width = size.width;
-//        dispatch_async(dispatch_get_main_queue(), ^{
-//            self.cameraPreview.frame = CGRectMake(self.cameraPreview.frame.origin.x, self.cameraPreview.frame.origin.y, 240, 320);
-//        });
-//    }
-    
-    //check release mode at Product->Scheme when running
-    //运行时请在Product->Scheme中确认意见调整到release模式
-    std::vector<FaceInfo> faceInfo = [self detectFace:image_buffer];
-    
-    
-    std::vector<CGRect> faceRects;
-    for (int i = 0; i < faceInfo.size(); i++) {
-        auto face = faceInfo[i];
-        CGRect faceRect = CGRectMake(face.x1, face.y1, face.x2-face.x1, face.y2-face.y1);
-        faceRects.push_back(faceRect);
-    }
-    
-    UIImage *originImage = utility::UIImageWithCVImageBuffRef(image_buffer);
-    [self drawFaceRectWithImage:originImage withRects:faceRects];
-}
-
-- (void)drawFaceRectWithImage:(UIImage*)image withRects:(std::vector<CGRect>)rects
-{
-    CGSize imageSize = image.size;
-    //UIGraphicsBeginImageContextWithOptions(imageSize,YES,1.0);
-    UIGraphicsBeginImageContextWithOptions(imageSize,NO,1.0);
-    [image drawInRect:CGRectMake(0, 0, imageSize.width, imageSize.height)];
-    
-    //step1: clear all content
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetFillColorWithColor(context, [UIColor clearColor].CGColor);
-    CGContextFillRect(context, CGRectMake(0, 0, imageSize.width, imageSize.height));
-    
-    CGContextSetStrokeColorWithColor(context, [UIColor redColor].CGColor);
-    CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
-    if (imageSize.height > 0 && imageSize.width > 0) {
-        for (int i = 0; i < rects.size(); ++i) {
-            CGRect rect = rects[i];
-            CGContextMoveToPoint(context, rect.origin.x, rect.origin.y);
-            CGContextAddLineToPoint(context, rect.origin.x, rect.origin.y + rect.size.height);
-            CGContextStrokePath(context);
-            CGContextMoveToPoint(context, rect.origin.x, rect.origin.y);
-            CGContextAddLineToPoint(context, (rect.origin.x + rect.size.width), rect.origin.y);
-            CGContextStrokePath(context);
-            CGContextMoveToPoint(context, (rect.origin.x + rect.size.width), rect.origin.y + rect.size.height);
-            CGContextAddLineToPoint(context, rect.origin.x, rect.origin.y + rect.size.height);
-            CGContextStrokePath(context);
-            CGContextMoveToPoint(context, (rect.origin.x + rect.size.width), rect.origin.y + rect.size.height);
-            CGContextAddLineToPoint(context, (rect.origin.x + rect.size.width), rect.origin.y);
-            CGContextStrokePath(context);
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        
+        for (int i=0; i<_boundingBoxes.count; i++) {
+            [_boundingBoxes[i] hide];
+        }
+    } else {
+        object_list = [self reorder:object_list];
+        
+        //Object
+        auto camera_pos = [self.cameraDevice cameraPosition];
+        auto camera_gravity = [self.cameraDevice.videoPreviewLayer videoGravity];
+        int video_gravity = 0;
+        if (camera_gravity == AVLayerVideoGravityResizeAspectFill) {
+            video_gravity = 2;
+        } else if(camera_gravity == AVLayerVideoGravityResizeAspect) {
+            video_gravity = 1;
+        }
+        for (int i=0; i<_boundingBoxes.count; i++) {
+            if ( i < object_list.size()) {
+                auto object = object_list[i];
+                auto view_width = self.cameraPreview.bounds.size.width;
+                auto view_height = self.cameraPreview.bounds.size.height;
+                auto label = [self.viewModel labelForObject:object];
+                auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
+                view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
+                if (camera_pos == AVCaptureDevicePositionFront) {
+                    view_face = view_face.FlipX();
+                }
+                [_boundingBoxes[i] showText:label
+                                  withColor:self.colors[i]
+                                    atFrame:CGRectMake(view_face.x1, view_face.y1,
+                                                       view_face.x2-view_face.x1,
+                                                       view_face.y2-view_face.y1)];
+    //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor orangeColor]];
+            } else {
+                [_boundingBoxes[i] hide];
+            }
         }
     }
-    
-    UIImage *o_image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UIImage *flip_image = o_image;
-        if (self.isFront) {
-            UIImageOrientation orientation = UIImageOrientationUpMirrored;
-            flip_image = [UIImage imageWithCGImage:o_image.CGImage scale:o_image.scale orientation:orientation];
-        }
-        [self.cameraPreview setImage:flip_image];
-    });
 }
 
+- (std::vector<std::shared_ptr<ObjectInfo> >)reorder:(std::vector<std::shared_ptr<ObjectInfo> >) object_list {
+    if (_object_list_last.size() > 0 && object_list.size() > 0) {
+        std::vector<std::shared_ptr<ObjectInfo> > object_list_reorder;
+        //按照原有排序插入object_list中原先有的元素
+        for (int index_last = 0; index_last < _object_list_last.size(); index_last++) {
+            auto object_last = _object_list_last[index_last];
+            //寻找最匹配元素
+            int index_target = 0;
+            float area_target = -1;
+            for (int index=0; index<object_list.size(); index++) {
+                auto object = object_list[index];
+                auto area = object_last->IntersectionRatio(object.get());
+                if (area > area_target) {
+                    area_target = area;
+                    index_target = index;
+                }
+            }
 
-#pragma mark - Camera Interfaces
-- (void)cameraDeviceEvent:(CameraDeviceEvent)event withAguments:(NSDictionary *)args {
-    switch (event) {
-        case CameraDeviceEvent_FrameReceived:
-        {
-            CMSampleBufferRef buffer = (CMSampleBufferRef)[[args objectForKey:@"buffer"] integerValue];
-            [self drawPreview:buffer];
+            if (area_target > 0) {
+                object_list_reorder.push_back(object_list[index_target]);
+                //删除指定下标元素
+                object_list.erase(object_list.begin() + index_target);
+            }
         }
-            break;
-            
-        default:
-            break;
+
+        //插入原先没有的元素
+        if (object_list.size() > 0) {
+            object_list_reorder.insert(object_list_reorder.end(), object_list.begin(), object_list.end());
+        }
+
+        _object_list_last = object_list_reorder;
+        return object_list_reorder;
+    } else{
+        _object_list_last = object_list;
+        return object_list;
     }
 }
 
+- (void)showFPS:(std::map<std::string, double>) map_fps {
+    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
+                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+    int index = 0;
+    for (auto item : map_fps) {
+        [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
+    }
+    self.labelFPS.text = fps;
+}
 
-- (void)updateLabel:(NSString *)text
-{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.labelResult.text = self.label;
-    });
+- (void)showTime:(std::map<std::string, double>) map_time {
+    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
+                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+    int index = 0;
+    for (auto item : map_time) {
+        [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
+    }
+    self.labelFPS.text = fps;
+}
+
+#pragma mark - TNNCameraVideoDeviceDelegate
+- (void)cameraDevice:(TNNCameraVideoDevice *)camera
+     didCaptureVideo:(CMSampleBufferRef)videoBuffer
+        withPosition:(AVCaptureDevicePosition)position
+         atTimestamp:(CMTime)time {
+    [self predictSampleBuffer:videoBuffer
+                   withCamera:camera
+                  andPosition:position
+                  atTimestamp:time];
 }
 
 @end

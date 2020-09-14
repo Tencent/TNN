@@ -1,12 +1,10 @@
 package com.tencent.tnn.demo.ImageClassifyDetector;
 
 import android.graphics.Bitmap;
-import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -14,17 +12,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.tencent.tnn.demo.FaceDetector;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.ImageClassify;
 import com.tencent.tnn.demo.R;
-import com.tencent.tnn.demo.common.component.CameraSetting;
-import com.tencent.tnn.demo.common.component.DrawView;
 import com.tencent.tnn.demo.common.fragment.BaseFragment;
-import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 
@@ -39,6 +32,11 @@ public class ImageClassifyDetectFragment extends BaseFragment {
     private ToggleButton mGPUSwitch;
     private Button mRunButton;
     private boolean mUseGPU = false;
+    //add for npu
+    private ToggleButton mHuaweiNPUswitch;
+    private boolean mUseHuaweiNpu = false;
+    private TextView HuaweiNpuTextView;
+
     /**********************************     Get Preview Advised    **********************************/
 
     @Override
@@ -46,6 +44,8 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        String modelPath = initModel();
+        NpuEnable = mImageClassify.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -77,7 +77,22 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b)
     {
+        if (b && mHuaweiNPUswitch.isChecked()) {
+            mHuaweiNPUswitch.setChecked(false);
+            mUseHuaweiNpu = false;
+        }
         mUseGPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+    }
+
+    private void onSwichNPU(boolean b)
+    {
+        if (b && mGPUSwitch.isChecked()) {
+            mGPUSwitch.setChecked(false);
+            mUseGPU = false;
+        }
+        mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
     }
@@ -91,7 +106,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imageclassifydetector);
+        setView(R.layout.fragment_image_detector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -102,6 +117,21 @@ public class ImageClassifyDetectFragment extends BaseFragment {
                 onSwichGPU(b);
             }
         });
+        $$(R.id.npu_switch);
+        mHuaweiNPUswitch = $(R.id.npu_switch);
+        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwichNPU(b);
+            }
+        });
+
+        HuaweiNpuTextView = $(R.id.npu_text);
+        if (!NpuEnable) {
+            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
+            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
+        }
+
         mRunButton = $(R.id.run_button);
         mRunButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -141,7 +171,13 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
-        int result = mImageClassify.init(modelPath, NET_INPUT, NET_INPUT, mUseGPU?1:0);
+        int device = 0;
+        if (mUseHuaweiNpu) {
+            device = 2;
+        } else if (mUseGPU) {
+            device = 1;
+        }
+        int result = mImageClassify.init(modelPath, NET_INPUT, NET_INPUT, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
             int [] indexArray= mImageClassify.detectFromImage(scaleBitmap, NET_INPUT, NET_INPUT);

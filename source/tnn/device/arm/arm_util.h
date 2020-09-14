@@ -82,6 +82,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int height, int wi
 
 void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int height, int width);
 
+void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width);
+
+void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width);
+
 }  // namespace TNN_NS
 
 #endif

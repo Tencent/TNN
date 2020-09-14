@@ -58,7 +58,7 @@
 ## 二、Android/ArmLinux平台耗时测试
 ### 1. 环境搭建  
 #### 1.1 编译环境  
-参考[TNN编译文档](../user/compile.md) 中Android库编译，检查环境是否满足要求。  
+参考[TNN编译文档](../user/compile.md) 中Android/Armlinux库编译，检查环境是否满足要求。  
 
 #### 1.2 执行环境  
 * adb命令配置  
@@ -93,7 +93,6 @@ cp mobilenet_v1.tnnproto .
     -c    删除之前的编译文件，重新编译
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
-    -d    如果连接了多个Android设备，则可以通过这个参数指定设备。需要加上<device-id>
     -t    指定执行的平台。需要加上<CPU/GPU>
 ```
 #### 4.1 全网络性能分析：

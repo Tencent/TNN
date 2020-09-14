@@ -11,7 +11,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 1. 第一步是把训练好的模型转换成TNN的模型，为此我们提供了丰富的工具来帮助你完成这一步，无论你使用的是 TensorFlow、PyTorch、或者 Caffe，都可以轻松完成转换。
 详细的手把手教程可以参见这里[如何转换模型](doc/cn/user/convert.md)。
 
-2. 当你完成了模型的转换，第二步就是编译目标平台的 TNN 引擎了，你可以根据自己的目标平台的硬件支持情况，选择 CPU/ARM/OpenCL/Metal 等加速方案。
+2. 当你完成了模型的转换，第二步就是编译目标平台的 TNN 引擎了，你可以根据自己的目标平台的硬件支持情况，选择 CPU/ARM/OpenCL/Metal/NPU 等加速方案。
    对于这些平台，TNN 都提供了一键编译的脚本，使用非常方便。详细步骤可以参考这里[如何编译TNN](doc/cn/user/compile.md)。
 
 3. 最后一步就是使用编译好的 TNN 引擎进行推理，你可以在自己的应用程序中嵌入对 TNN 的调用，这方面我们提供了丰富而详实的 demo 来帮助你完成。
@@ -41,25 +41,25 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
     * 麒麟970：
 
-        | model                     | cpu time(单线程，ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 88           |   12         |
-        | Mobilenet_v1_int8         | 55           |              |
-        | Mobilenet_v2              | 58           |   11         |
-        | Mobilenet_v2_int8         | 41           |              |
-        | squeezenet_v1.0           | 127          |   20         |
-        | squeezenet_v1.0_int8      | 82           |              |
+        | model                     | cpu time(单线程，ms) | gpu time(ms) | npu time(ms)|
+        |---------------------------|--------------|--------------|---------------|
+        | Mobilenet_v1              | 88           |   12         |       4.9     |                                    
+        | Mobilenet_v1_int8         | 55           |              |               |
+        | Mobilenet_v2              | 58           |   11         |       8.0     |                               
+        | Mobilenet_v2_int8         | 41           |              |               |
+        | squeezenet_v1.0           | 127          |   20         |       5.1     |                
+        | squeezenet_v1.0_int8      | 82           |              |               |      
 
     * 骁龙835：
 
         | model                     | cpu time(单线程，ms) | gpu time(ms) |
         |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |
-        | Mobilenet_v1_int8         | 62           |              |
-        | Mobilenet_v2              | 61           |   14         |
-        | Mobilenet_v2_int8         | 47           |              |
-        | squeezenet_v1.0           | 122          |   28         |
-        | squeezenet_v1.0_int8      | 93           |              |
+        | Mobilenet_v1              | 94           |   16         |           
+        | Mobilenet_v1_int8         | 62           |              |           
+        | Mobilenet_v2              | 61           |   14         |           
+        | Mobilenet_v2_int8         | 47           |              |           
+        | squeezenet_v1.0           | 122          |   28         |           
+        | squeezenet_v1.0_int8      | 93           |              |           
 
     * 骁龙845：
 

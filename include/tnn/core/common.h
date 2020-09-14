@@ -76,7 +76,8 @@ typedef enum {
     NETWORK_TYPE_COREML   = 0x2000,
     NETWORK_TYPE_SNPE     = 0x3000,
     NETWORK_TYPE_HIAI     = 0x4000,
-    NETWORK_TYPE_ATLAS    = 0x5000
+    NETWORK_TYPE_ATLAS    = 0x5000,
+    NETWORK_TYPE_HUAWEI_NPU = 0x6000
 } NetworkType;
 
 typedef enum {
@@ -88,7 +89,7 @@ typedef enum {
     DEVICE_CUDA   = 0x1020,
     DEVICE_DSP    = 0x1030,
     DEVICE_ATLAS  = 0x1040,
-    DEVICE_NPU    = 0x1050
+    DEVICE_HUAWEI_NPU = 0x1050
 } DeviceType;
 
 typedef enum {
@@ -136,6 +137,9 @@ struct PUBLIC NetworkConfig {
 
     // compute precision
     Precision precision = PRECISION_AUTO;
+
+    //cache path to store possible cache models
+    std::string cache_path = "";
 };
 
 struct PUBLIC ModelConfig {

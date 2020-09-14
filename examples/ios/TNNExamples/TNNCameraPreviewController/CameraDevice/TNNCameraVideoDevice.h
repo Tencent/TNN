@@ -15,6 +15,8 @@
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
+#import <Metal/Metal.h>
+#import <CoreMedia/CoreMedia.h>
 
 typedef NS_ENUM(NSInteger, CameraDeviceEvent) {
     CameraDeviceEvent_Started = 0,
@@ -29,19 +31,37 @@ typedef NS_ENUM(NSInteger, CameraDeviceEvent) {
     CameraDeviceEvent_ExposureBegan,
     CameraDeviceEvent_ExposureEnded,
 };
+@class TNNCameraVideoDevice;
+
+typedef void(^CameraSetupCallback)(BOOL);
 
 @protocol TNNCameraVideoDeviceDelegate <NSObject>
-
-- (void)cameraDeviceEvent:(CameraDeviceEvent)event withAguments:(NSDictionary *)args;
-
+@optional
+- (void)cameraDevice:(TNNCameraVideoDevice *)camera
+     didCaptureVideo:(CMSampleBufferRef)videoBuffer
+        withPosition:(AVCaptureDevicePosition)position
+         atTimestamp:(CMTime)time;
+- (void)cameraDevice:(TNNCameraVideoDevice *)camera
+     didCapturePhoto:(CMSampleBufferRef)photoBuffer
+         previewImage:(CMSampleBufferRef)previewBuffer;
 @end
 
 @interface TNNCameraVideoDevice : NSObject
 @property (nonatomic, weak) NSObject<TNNCameraVideoDeviceDelegate> *delegate;
+@property (nonatomic, strong, readonly) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
 
-- (id)initWithPreviewView:(UIView *)view;
+- (instancetype)init;
 - (void)startSession;
 - (void)stopSession;
-- (AVCaptureDevicePosition)rotateCamera;
 
+- (void)switchCamera:(AVCaptureDevicePosition)sessionPreset
+          withPreset:(AVCaptureSessionPreset)sessionPreset
+         completion:(CameraSetupCallback)completion;
+
+-(id<MTLTexture>)getMTLTexture:(CMSampleBufferRef)sampleBuffer;
+-(id<MTLTexture>)getMTLTextureFromImageBuffer:(CVImageBufferRef)imageBuffer;
+-(UIImage *)getUIImage:(CMSampleBufferRef)sampleBuffer;
+
+- (AVCaptureDevicePosition)cameraPosition;
 @end

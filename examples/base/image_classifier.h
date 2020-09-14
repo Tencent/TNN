@@ -22,11 +22,24 @@
 
 #include "tnn_sdk_sample.h"
 
+namespace TNN_NS {
+
+class ImageClassifierOutput : public TNNSDKOutput {
+public:
+    ImageClassifierOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~ImageClassifierOutput();
+    
+    int class_id = -1;
+};
+
 class ImageClassifier : public TNN_NS::TNNSDKSample {
 public:
-    ~ImageClassifier();
-    ImageClassifier();
-    int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id);
+    virtual ~ImageClassifier();
+    virtual MatConvertParam GetConvertParamForInput(std::string tag = "");
+    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
 };
+
+}
 
 #endif // TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
