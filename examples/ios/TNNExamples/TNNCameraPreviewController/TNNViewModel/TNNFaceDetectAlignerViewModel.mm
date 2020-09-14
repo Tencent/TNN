@@ -86,14 +86,14 @@ using namespace std;
     NSString *proto_path = nil;
     
     if(1 == phase) {
-        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnmodel"
+        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy_remove_vis_addsigmoid.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase1.tnnproto"
                                                      ofType:nil];
     } else if(2 == phase) {
-        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnmodel"
+        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy_remove_vis.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase2.tnnproto"
                                                      ofType:nil];
     } else{
         NSLog(@"Error: facealign model phase is invalid");
@@ -154,6 +154,15 @@ using namespace std;
     auto face_detector = [self loadFaceDetector:units];
     auto predictor_phase1 = [self loadYoutuFaceAlign:units :1];
     auto predictor_phase2 = [self loadYoutuFaceAlign:units :2];
+    
+    if (!face_detector) {
+        return Status(TNNERR_MODEL_ERR, "loadFaceDetector failed: pls make sure the face detect model is downloaded");
+    }
+    
+    if (!predictor_phase1 || !predictor_phase2) {
+        return Status(TNNERR_MODEL_ERR, "loadYoutuFaceAlign failed: pls make sure the face alignment model is downloaded");
+    }
+    
     
     auto predictor = std::make_shared<FaceDetectAligner>();
     status = predictor->Init({face_detector, predictor_phase1, predictor_phase2});
