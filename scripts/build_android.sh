@@ -47,8 +47,6 @@ then
     echo "NPU Enable"
     # set c++ shared
     STL="c++_shared"
-    # set android API
-    ANDROID_API_LEVEL="android-19"
     #start to cp
     if [ ! -d $TNN_ROOT/third_party/huawei_npu/cpp_lib/ ]; then
          mkdir -p $TNN_ROOT/third_party/huawei_npu/cpp_lib/
