@@ -884,7 +884,7 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
                 "vsub.u8    d2, d27, %[_v128]   \n"
                 "vst3.u8    {d4-d6},   [%[_r1]]!\n"
                 "bne        0b                  \n"
-                "sub        %3, #8              \n"
+                "sub        %[_vu], #8          \n"
 
                 : [_nn]"+r"(nn),
                   [_y0]"+r"(yptr0),
