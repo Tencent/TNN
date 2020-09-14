@@ -31,7 +31,8 @@ Status OpenCLTanLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
 std::set<std::string> OpenCLTanLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
-    std::string compute = "tan(in)";
+    // 使用sin和cos计算Tan，而不是tan计算的原因是OpenCL tan在部分机型上（如LON-AL00）会出现错误
+    std::string compute = "sin(in)/cos(in)";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }
