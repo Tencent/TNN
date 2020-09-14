@@ -2,113 +2,173 @@
 
 #import "TNNCameraVideoDevice.h"
 #import <AVFoundation/AVFoundation.h>
+#import <CoreVideo/CoreVideo.h>
+#import <Metal/Metal.h>
 
-@interface TNNCameraVideoDevice ()<AVCaptureVideoDataOutputSampleBufferDelegate>
-{
-    dispatch_queue_t videoProcessingQueue;
+API_AVAILABLE(ios(10.0))
+@interface TNNCameraVideoDevice ()<AVCaptureVideoDataOutputSampleBufferDelegate,
+AVCapturePhotoCaptureDelegate> {
 }
-
-
 @property (nonatomic, strong) AVCaptureSession *captureSession;
 @property (nonatomic, strong) AVCaptureDevice *captureDevice;
 @property (nonatomic, strong) AVCaptureDeviceInput *captureDeviceInput;
-@property (nonatomic, strong) AVCaptureStillImageOutput *stillImageOutput;
 @property (nonatomic, strong) AVCaptureVideoDataOutput *videoOutput;
+@property (nonatomic, strong) AVCapturePhotoOutput *photoOutput;
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *videoPreviewLayer;
-@property (nonatomic, weak) UIView *previewView;
 
-@property (nonatomic, strong) dispatch_queue_t bufferQueue;
+@property (nonatomic, strong) dispatch_queue_t queue;
+@property (nonatomic, strong) id <MTLDevice> device;
 
+@property (nonatomic, assign) CVMetalTextureCacheRef textureCache;
 @end
 
 @implementation TNNCameraVideoDevice
 
-
-- (void)setupCaptureSession {
-    // 1.创建会话
-    self.captureSession = [[AVCaptureSession alloc] init];
-    self.captureSession.sessionPreset = AVCaptureSessionPreset640x480;
-    // 2.创建输入设备
-    self.captureDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    NSArray *array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    for (AVCaptureDevice *dev in array) {
-        if (dev.position == AVCaptureDevicePositionFront) self.captureDevice = dev;
-    }
-    
-    // 3.创建输入
-    NSError *error = nil;
-    self.captureDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:self.captureDevice error:&error];
-    // 3.创建输出
-    self.stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
-    self.stillImageOutput.outputSettings = @{AVVideoCodecKey : AVVideoCodecJPEG};
-    // 4.连接输入与会话
-    if ([self.captureSession canAddInput:self.captureDeviceInput]) {
-        [self.captureSession addInput:self.captureDeviceInput];
-    }
-    // 5.连接输出与会话
-    if ([self.captureSession canAddOutput:self.stillImageOutput]) {
-        [self.captureSession addOutput:self.stillImageOutput];
-    }
-    
-    //初始化Queue
-    videoProcessingQueue = dispatch_queue_create("com.tencent.tnn.videoProcessingQueue", NULL);
-    self.bufferQueue = dispatch_queue_create("com.tencent.tnn.videoBuffer", NULL);
-    [self initVideoOutput];
-    self.videoPreviewLayer = [AVCaptureVideoPreviewLayer layerWithSession:self.captureSession];
-    self.videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-}
-
-- (id)initWithPreviewView:(UIView *)view
+- (instancetype)init
 {
     self = [super init];
     if (self) {
-        self.previewView = view;
-        [self setupCaptureSession];
-        [self.previewView.layer addSublayer:self.videoPreviewLayer];
+        _queue = dispatch_queue_create("camera.queue", NULL);
+        _captureSession = [[AVCaptureSession alloc] init];
+        _device = MTLCreateSystemDefaultDevice();
+        
+        _videoPreviewLayer = [AVCaptureVideoPreviewLayer layerWithSession:_captureSession];
+        _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+        _videoPreviewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+        
+        _textureCache = nil;
     }
     return self;
 }
 
-- (void)startSession {
-    if(![self.captureSession isRunning]) {
-        [self.captureSession startRunning];
+
+- (void)dealloc {
+    if (_textureCache) {
+        CFRelease(_textureCache);
+        _textureCache = nil;
     }
 }
 
-- (void)stopSession {
-    if([self.captureSession isRunning]) {
-        [self.captureSession stopRunning];
-    }
+- (void)switchCamera:(AVCaptureDevicePosition)position
+ withPreset:(AVCaptureSessionPreset)sessionPreset
+completion:(CameraSetupCallback)completion {
+    [self stopSession];
+    dispatch_async(_queue, ^{
+        auto success = [self switchCamera:position withPreset:sessionPreset];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (success) {
+                [self startSession];
+            }
+            completion(success);
+        });
+    });
 }
 
-- (void)initVideoOutput
+- (BOOL)switchCamera:(AVCaptureDevicePosition)position
+          withPreset:(AVCaptureSessionPreset)sessionPreset {
+    CVMetalTextureCacheFlush(_textureCache, 0);
+    if (CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, _device, nil, &_textureCache) != kCVReturnSuccess) {
+        NSLog(@"Error: setupCaptureSession could not create a texture cache");
+        return NO;
+    }
+    
+    // 1.创建会话
+    [_captureSession beginConfiguration];
+    _captureSession.sessionPreset = sessionPreset;
+    
+    // 2.创建输入设备
+    _captureDevice = [self cameraWithPosition:position];
+    if (!_captureDevice) {
+        NSLog(@"Error: no video AVCaptureDevice availablee");
+        return NO;
+    }
+    
+    // 3.创建输入，并连接会话
+    if (_captureDeviceInput) {
+        [_captureSession removeInput:_captureDeviceInput];
+        _captureDeviceInput = nil;
+    }
+    NSError *error = nil;
+    _captureDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:_captureDevice error:&error];
+    if (error || !_captureDeviceInput) {
+        NSLog(@"Error: no video AVCaptureDeviceInput availablee");
+        return NO;
+    }
+    if ([_captureSession canAddInput:_captureDeviceInput]) {
+        [_captureSession addInput:_captureDeviceInput];
+    }
+    
+    // 4.创建输出，并连接会话
+    if (_photoOutput) {
+        [_captureSession removeOutput:_photoOutput];
+        _photoOutput = nil;
+    }
+    if (@available(iOS 10.0, *)) {
+        _photoOutput = [[AVCapturePhotoOutput alloc] init];
+    }
+    if (_photoOutput && [_captureSession canAddOutput:_photoOutput]) {
+        [_captureSession addOutput:_photoOutput];
+    }
+    [self addVideoOutput];
+    
+    [_captureSession commitConfiguration];
+    return YES;
+}
+
+- (void)addVideoOutput
 {
-    self.videoOutput = [[AVCaptureVideoDataOutput alloc] init];
-    self.videoOutput.alwaysDiscardsLateVideoFrames = YES;
-    self.videoOutput.videoSettings = @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA) };
-    [self.videoOutput setSampleBufferDelegate:self queue:videoProcessingQueue];
-    if ([self.captureSession canAddOutput:self.videoOutput]) {
-        [self.captureSession addOutput:self.videoOutput];
+    if (_videoOutput) {
+        [_captureSession removeOutput:_videoOutput];
+        _videoOutput = nil;
+    }
+    _videoOutput = [[AVCaptureVideoDataOutput alloc] init];
+    _videoOutput.alwaysDiscardsLateVideoFrames = YES;
+    _videoOutput.videoSettings = @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA) };
+    [_videoOutput setSampleBufferDelegate:self queue:_queue];
+    if ([_captureSession canAddOutput:_videoOutput]) {
+        [_captureSession addOutput:_videoOutput];
     } else {
         NSLog(@"couldn't add video output");
     }
-    AVCaptureConnection *connection =
-    [self.videoOutput connectionWithMediaType:AVMediaTypeVideo];
+    auto connection = [_videoOutput connectionWithMediaType:AVMediaTypeVideo];
     connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+}
+
+- (AVCaptureDevice *) cameraWithPosition:(AVCaptureDevicePosition) position
+{
+    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    for (AVCaptureDevice *device in devices)
+    {
+        if ([device position] == position) return device;
+    }
+    return nil;
+}
+
+- (AVCaptureDevicePosition)cameraPosition {
+    auto pos = AVCaptureDevicePositionUnspecified;
+    if (_captureDevice) {
+        pos = _captureDevice.position;
+        return pos;
+    }
+    if (_captureSession.inputs.count > 0) {
+        auto currentCameraInput = [_captureSession.inputs objectAtIndex:0];
+        pos = ((AVCaptureDeviceInput*)currentCameraInput).device.position;
+    }
+    return pos;
 }
 
 - (AVCaptureDevicePosition)rotateCamera
 {
     AVCaptureDevicePosition pos = AVCaptureDevicePositionUnspecified;
     //Change camera source
-    if(self.captureSession)
+    if(_captureSession)
     {
         //Indicate that some changes will be made to the session
-        [self.captureSession beginConfiguration];
+        [_captureSession beginConfiguration];
 
         //Remove existing input
-        AVCaptureInput* currentCameraInput = [self.captureSession.inputs objectAtIndex:0];
-        [self.captureSession removeInput:currentCameraInput];
+        AVCaptureInput* currentCameraInput = [_captureSession.inputs objectAtIndex:0];
+        [_captureSession removeInput:currentCameraInput];
 
         //Get new input
         AVCaptureDevice *newCamera = nil;
@@ -122,66 +182,167 @@
           newCamera = [self cameraWithPosition:AVCaptureDevicePositionBack];
           pos = AVCaptureDevicePositionBack;
         }
-        self.captureDevice = newCamera;
+        _captureDevice = newCamera;
         //Add input to session
         NSError *err = nil;
-        self.captureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:self.captureDevice error:&err];
-        if(!self.captureDeviceInput || err)
+        _captureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:_captureDevice error:&err];
+        if(!_captureDeviceInput || err)
         {
           NSLog(@"Error creating capture device input: %@", err.localizedDescription);
         }
         else
         {
-          [self.captureSession addInput:self.captureDeviceInput];
+          [_captureSession addInput:_captureDeviceInput];
         }
-        [self.captureSession removeOutput:self.videoOutput];
-        [self initVideoOutput];
+        [_captureSession removeOutput:_videoOutput];
+        [self addVideoOutput];
         //Commit all the configuration changes at once
-        [self.captureSession commitConfiguration];
+        [_captureSession commitConfiguration];
     }
     return pos;
 }
 
-- (AVCaptureDevice *) cameraWithPosition:(AVCaptureDevicePosition) position
-{
-    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    for (AVCaptureDevice *device in devices)
-    {
-        if ([device position] == position) return device;
+
+- (void)startSession {
+    if(![_captureSession isRunning]) {
+        [_captureSession startRunning];
     }
-    return nil;
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
-{
+- (void)stopSession {
+    if([_captureSession isRunning]) {
+        [_captureSession stopRunning];
+    }
 }
 
-- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection
-{
-    AVCaptureInputPort *inputPort = [connection.inputPorts objectAtIndex:0];
-    AVCaptureDeviceInput *input = (AVCaptureDeviceInput *)inputPort.input;
-    AVCaptureDevicePosition inputPos = input.device.position;
+//Capture a single frame of the camera input
+-(void)capturePhoto:(AVCapturePhotoSettings *)settings  API_AVAILABLE(ios(10.0)){
+    if (settings == nil) {
+        settings = [AVCapturePhotoSettings photoSettingsWithFormat:
+                    @{(NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA) }];
+        
+        settings.previewPhotoFormat = @{
+            (NSString *)kCVPixelBufferPixelFormatTypeKey : settings.availablePreviewPhotoPixelFormatTypes[0],
+            (NSString *)kCVPixelBufferHeightKey : @(480),
+            (NSString *)kCVPixelBufferWidthKey : @(360)
+        };
+    }
     
+    [_photoOutput capturePhotoWithSettings:settings
+                                      delegate:self];
+}
+
+#pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+       fromConnection:(AVCaptureConnection *)connection
+{
+    auto inputPort = [connection.inputPorts objectAtIndex:0];
+    auto input = (AVCaptureDeviceInput *)inputPort.input;
+    auto inputPos = input.device.position;
+
     if (inputPos == AVCaptureDevicePositionUnspecified) {
         NSLog(@"captureOutput, camera position unspecified, drop it!!!!");
         return;
     }
-    static NSInteger nProcessFrame = 0;
-    if (nProcessFrame > 0) {
-        return;    //last frame not finished
+    auto timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+
+    if (_delegate && [_delegate respondsToSelector:@selector(cameraDevice:didCaptureVideo:withPosition:atTimestamp:)]) {
+        [_delegate cameraDevice:self
+                    didCaptureVideo:sampleBuffer
+                       withPosition:inputPos
+                        atTimestamp:timestamp];
     }
-    nProcessFrame++;
-    __block CMSampleBufferRef currentBuffer;
-    CMSampleBufferCreateCopy(kCFAllocatorDefault, sampleBuffer, &currentBuffer);
-    dispatch_async(self.bufferQueue, ^{
-        NSDictionary *args = @{@"buffer": @((NSInteger)currentBuffer), @"position": @(inputPos)};
-        if (self.delegate && [self.delegate respondsToSelector:@selector(cameraDeviceEvent:withAguments:)]) {
-            [self.delegate cameraDeviceEvent:CameraDeviceEvent_FrameReceived withAguments:args];
-        }
-        CFRelease(currentBuffer);
-        nProcessFrame--;
-    });
     
+}
+
+-(void)captureOutput:(AVCapturePhotoOutput *)output
+ didDropSampleBuffer:(nonnull CMSampleBufferRef)sampleBuffer
+      fromConnection:(nonnull AVCaptureConnection *)connection  API_AVAILABLE(ios(10.0)){
+    NSLog(@"dropped frame");
+}
+
+#pragma mark - AVCapturePhotoCaptureDelegate
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+didFinishProcessingPhotoSampleBuffer:(nullable CMSampleBufferRef)photoSampleBuffer
+previewPhotoSampleBuffer:(nullable CMSampleBufferRef)previewPhotoSampleBuffer
+     resolvedSettings:(nonnull AVCaptureResolvedPhotoSettings *)resolvedSettings
+      bracketSettings:(nullable AVCaptureBracketedStillImageSettings *)bracketSettings
+                error:(nullable NSError *)error
+API_AVAILABLE(ios(10.0)){
+    if (error) {
+        NSLog(@"captureOutput, error:%@", error.description);
+        return;
+    }
+    if (_delegate && [_delegate respondsToSelector:@selector(cameraDevice:didCapturePhoto:previewImage:)]) {
+        [_delegate cameraDevice:self
+                    didCapturePhoto:photoSampleBuffer
+                       previewImage:previewPhotoSampleBuffer];
+    }
+    
+}
+
+-(id<MTLTexture>)getMTLTexture:(CMSampleBufferRef)sampleBuffer {
+    if (!_textureCache || !sampleBuffer) {
+        return nil;
+    }
+    
+    auto imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+    if (!imageBuffer) {
+        return nil;
+    }
+    
+    return [self getMTLTextureFromImageBuffer:imageBuffer];
+}
+
+-(id<MTLTexture>)getMTLTextureFromImageBuffer:(CVImageBufferRef)imageBuffer {
+    if (!_textureCache || !imageBuffer) {
+        return nil;
+    }
+    
+    auto width = CVPixelBufferGetWidth(imageBuffer);
+    auto height = CVPixelBufferGetHeight(imageBuffer);
+    
+    CVMetalTextureRef texture_ref = nil;
+    if (CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                  _textureCache,
+                                                  imageBuffer,
+                                                  nil,
+                                                  MTLPixelFormatBGRA8Unorm,
+                                                  width,
+                                                  height,
+                                                  0,
+                                                  &texture_ref) != kCVReturnSuccess) {
+        NSLog(@"Error: CVMetalTextureCacheCreateTextureFromImage could not create a CVMetalTextureRef");
+        return nil;
+    }
+    auto mtl_texture =  CVMetalTextureGetTexture(texture_ref);
+    CVBufferRelease(texture_ref);
+    return mtl_texture;
+}
+
+-(UIImage *)getUIImage:(CMSampleBufferRef)sampleBuffer {
+    if (!sampleBuffer) {
+        return nil;
+    }
+    
+    auto imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+    if (!imageBuffer) {
+        return nil;
+    }
+    
+    auto width = CVPixelBufferGetWidth(imageBuffer);
+    auto height = CVPixelBufferGetHeight(imageBuffer);
+    auto rect = CGRectMake(0, 0, width, height);
+    
+    auto ciImage = [CIImage imageWithCVPixelBuffer:imageBuffer];
+    auto ciContext = [CIContext contextWithOptions:nil];
+    auto cgImage = [ciContext createCGImage:ciImage fromRect:rect];
+    if (!cgImage) {
+        return nil;
+    }
+    
+    return [UIImage imageWithCGImage:cgImage];
 }
 
 @end

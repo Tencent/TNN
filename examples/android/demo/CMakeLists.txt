@@ -18,12 +18,14 @@ include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/incl
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
 include_directories(${BASE_SRC}/)
 include_directories(../demo/src/main/jni/cc/)
+include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/include)
 
 set(CMAKE_BUILD_TYPE Release)
 
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -31,6 +33,41 @@ file(GLOB_RECURSE WRAPPER_SRCS ../demo/src/main/jni/cc/*.cc)
 file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS})
+
+if(TNN_HUAWEI_NPU_ENABLE)
+    add_library(hiai
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai.so)
+
+    add_library(hiai_ir
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir.so)
+
+    add_library(hiai_ir_build
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir_build
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir_build.so)
+
+    add_library(hcl
+            SHARED
+            IMPORTED)
+    set_target_properties(hcl
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhcl.so)
+endif()
+
 
 find_library( # Sets the name of the path variable.
               log-lib
@@ -51,6 +88,7 @@ target_link_libraries( # Specifies the target library.
                        # included in the NDK.
                        ${log-lib})
 
-
-
-
+if(TNN_HUAWEI_NPU_ENABLE)
+    target_link_libraries( # Specifies the target library.
+            tnn_wrapper hiai hiai_ir hiai_ir_build hcl)
+endif()

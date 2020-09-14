@@ -21,7 +21,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>User camera for detect</string>
+	<string>Use camera for detect</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Use Photo for saving photo</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Use Photo for saving photo</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

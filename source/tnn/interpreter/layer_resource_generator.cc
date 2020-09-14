@@ -45,7 +45,6 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
         auto layer_res = new ConvLayerResource();
 
         auto dims = inputs[0]->GetBlobDesc().dims;
-
         if (layer_param->quantized) {
             layer_res->filter_handle = RawBuffer(dims[1] * layer_param->output_channel * layer_param->kernels[0] *
                                                  layer_param->kernels[1] / layer_param->group * sizeof(int8_t));
@@ -56,7 +55,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
         } else {
             layer_res->filter_handle =
-                RawBuffer(layer_param->input_channel * layer_param->output_channel * layer_param->kernels[0] *
+                RawBuffer(dims[1]* layer_param->output_channel * layer_param->kernels[0] *
                           layer_param->kernels[1] / layer_param->group * sizeof(float));
 
             if (layer_param->bias) {
