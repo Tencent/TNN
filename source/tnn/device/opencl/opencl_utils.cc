@@ -225,44 +225,17 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
     return lws;
 }
 
-std::vector<uint32_t> CalculateLocalSize2D(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size) {
-    std::vector<uint32_t> lws;
-    lws.clear();
-
-    uint32_t local_work_size        = 1;
-    uint32_t global_max_work_size   = std::min<uint32_t>(gws[0], gws[1]);
-
-    for (; local_work_size * local_work_size <= max_workgroup_size && local_work_size <= global_max_work_size; local_work_size <<= 1);
-
-    lws = {local_work_size >> 1, local_work_size >> 1};
-
-    return lws;
-}
-
 // calculate 3d local size
-std::vector<uint32_t> LocalWS3DDefault(OpenCLExecuteUnit &unit, bool local_work_preferred) {
-    return LocalWS3DDefault(unit.global_work_size, unit.workgroupsize_max, unit.sub_group_size, local_work_preferred);
+std::vector<uint32_t> LocalWS3DDefault(OpenCLExecuteUnit &unit) {
+    return LocalWS3DDefault(unit.global_work_size, unit.workgroupsize_max, unit.sub_group_size);
 }
 
 // adreno will calculate local size, others will return empty local size. the priority is lws[1] > lws[2] > lws[0]
 std::vector<uint32_t> LocalWS3DDefault(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
-                                       const uint32_t subgroup_size, bool local_work_preferred) {
+                                       const uint32_t subgroup_size) {
     GpuInfo gpu_info = OpenCLRuntime::GetInstance()->GetGpuInfo();
     std::vector<uint32_t> lws;
     lws.clear();
-
-    if (local_work_preferred)
-    {
-        lws.resize(3);
-        std::vector<uint32_t> lws_2d_temp   = CalculateLocalSize2D({gws[1], gws[2]}, max_workgroup_size);
-        lws[1]                              = lws_2d_temp[0];
-        lws[2]                              = lws_2d_temp[1];
-        const uint32_t lws_size             = lws[1] * lws[2];
-        lws[0]                              = std::max<uint32_t>(max_workgroup_size / lws_size, 1);
-        while (gws[0] % lws[0] != 0) {
-            lws[0]--;
-        }
-    }
 
     if (gpu_info.type == GpuType::ADRENO) {
         uint32_t compute_units = OpenCLRuntime::GetInstance()->DeviceComputeUnits();
