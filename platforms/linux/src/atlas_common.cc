@@ -44,6 +44,7 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
 #endif
 
     auto input_dims           = input_blob->GetBlobDesc().dims;
+    //std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
     std::vector<int> mat_dims = input_dims;
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 
@@ -74,6 +75,7 @@ Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
     auto input_dims           = input_blob->GetBlobDesc().dims;
     int batch                 = input_dims[0];
     input_dims[0]             = 1;
+    //std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
     std::vector<int> mat_dims = input_dims;
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 

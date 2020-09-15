@@ -527,7 +527,7 @@ Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int>& input_dims, ac
             }
         }
     } else {
-        LOGD("get aipp info failed (ret=%d), use input info directly\n", acl_ret);
+        LOGE("get aipp info failed (ret=%d), use input info directly\n", acl_ret);
         // get dims info
         aclmdlIODims acl_dims;
         aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
