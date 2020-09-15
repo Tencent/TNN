@@ -15,6 +15,7 @@
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include <iostream>
 
 namespace TNN_NS {
 DECLARE_CPU_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
@@ -35,6 +36,7 @@ Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     if (stride == 0) {
         stride = 1;
     }
+    // std::cout << ">> cpu channels = " << channels << ", stride = " << stride << ", num = " << num << std::endl;
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_ptr = static_cast<float *>(output_blob->GetHandle().base);
@@ -53,8 +55,13 @@ Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
                     }
                 };  // end for loop
                 output_ptr[n * stride + s] = (float)guard_index;
+                // std::cout << output_ptr[n * stride + s] << " ";
             }
+            // if ((n + 1) % 9 == 0) {
+            //     std::cout << std::endl;
+            // }
         }  // end for
+        // std::cout << std::endl;
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
