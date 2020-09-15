@@ -30,7 +30,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path):
+def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path, is_tflite=False):
     cmd.run("pwd")
     relative_path = "bin/model_check"
     model_check_path = parse_path.parse_path(relative_path)
@@ -42,9 +42,9 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     ret = cmd.run(command)
 
     if ret == 0:
-        print_align_message()
+        print_align_message(is_tflite)
     else:
-        print_not_align_message()
+        print_not_align_message(None, is_tflie)
 
     return
 
@@ -163,15 +163,21 @@ def get_input_shape_from_tnn(tnn_proto_path):
     return input_info
 
 
-def print_not_align_message(reason=None):
+def print_not_align_message(reason=None, is_tflite=False):
     logging.error("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
-    logging.error("The onnx model not aligned with tnn model\n")
+    if is_tflite == True:
+       logging.error("The tflite model not aligned with tnn model\n")
+    else:
+       logging.error("The onnx model not aligned with tnn model\n")
     sys.exit(return_code.ALIGN_FAILED)
 
 
-def print_align_message():
+def print_align_message(is_tflite = False):
     logging.info("{}  Congratulations!   {}" .format("-" * 10, "-" * 10))
-    logging.info("The onnx model aligned with tnn model\n")
+    if is_tflite == True:
+       logging.info("The tflite model aligned with tnn model\n")
+    else:
+        logging.info("The onnx model aligned with tnn model\n")
 
 
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
@@ -228,7 +234,7 @@ def parse_input_names(input_names: str) -> dict:
 
 
 def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
-                refer_path: str = None, input_names: str = None, isTFLite: bool=False ) -> bool:
+                refer_path: str = None, input_names: str = None, is_tflite: bool=False ) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
@@ -237,7 +243,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     :param tnn_model_path:
     :return:
     """
-    logging.info("{}  align model (ONNX vs TNN),please wait a moment {}\n" .format("-" * 10, "-" * 10))
+    logging.info("{}  align model (tflite or ONNX vs TNN),please wait a moment {}\n" .format("-" * 10, "-" * 10))
 
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
@@ -250,11 +256,11 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         onnx_input_info = input_info
     else:
         tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
-        if isTFLite == True:
+        if is_tflite == True:
             onnx_input_info = get_input_shape_from_tflite(onnx_path)
         else:
             onnx_input_info = get_input_shape_from_onnx(onnx_path)
-    if isTFLite == True:
+    if is_tflite == True:
         check_input_lite_info(onnx_input_info, tnn_input_info)
     else:
        check_input_info(onnx_input_info, tnn_input_info)
@@ -268,7 +274,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             logging.error("Invalid input_file_path")
             sys.exit(return_code.ALIGN_FAILED)
     if refer_path is None:
-        if isTFLite == True:
+        if is_tflite == True:
             reference_output_path = run_tflite(onnx_path, input_path, onnx_input_info)
         else:
             reference_output_path = run_onnx(onnx_path, input_path, onnx_input_info)
@@ -278,7 +284,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         else:
             logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
-    run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path)
+    run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
     if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))
     if refer_path is None and os.path.exists(reference_output_path):

@@ -215,10 +215,8 @@ def parse_args():
     #tflie parser
     tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
                                           help="convert tensorflow-lite model to tnn model")
-    tflite2tnn_parser.add_argument('-tp',
-                           dest="tf_path",
+    tflite2tnn_parser.add_argument( dest="tf_path",
                            action='store',
-                           required=True,
                            help="the path for tensorflow-lite graphdef file")
 
     tflite2tnn_parser.add_argument('-o',
@@ -235,19 +233,6 @@ def parse_args():
                            required=False,
                            help="the version for model")
 
-    tflite2tnn_parser.add_argument('-optimize',
-                           dest='optimize',
-                           default=False,
-                           action='store_true',
-                           required=False,
-                           help="optimize the model")
-
-    tflite2tnn_parser.add_argument('-half',
-                           dest='half',
-                           default=False,
-                           action='store_true',
-                           required=False,
-                           help="optimize the model")
 
     tflite2tnn_parser.add_argument('-align',
                            dest='align',
@@ -255,14 +240,6 @@ def parse_args():
                            action='store_true',
                            required=False,
                            help='align the tf-lite model with tnn model')
-
-
-    tflite2tnn_parser.add_argument('-not_fold_const',
-                           dest='not_fold_const',
-                           default=False,
-                           action='store_true',
-                           required=False,
-                           help=argparse.SUPPRESS)
 
 
     tflite2tnn_parser.add_argument('-input_file',

@@ -15,14 +15,8 @@
 from utils import checker
 from utils import parse_path
 from utils import cmd
-from utils import data
-from utils import convert_name
+from utils import align_model
 from utils import return_code
-
-from converter import logging
-# from onnx_converter import onnx2tnn
-from onnx_converter import align_model
-
 from converter import logging
 
 import os
@@ -40,10 +34,6 @@ def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
         tnn_path = os.path.dirname(tf_path)
     checker.check_file_exist(tnn_path)
     command = command + " -od " + tnn_path + "/"
-    logging.info(tnn_path + " Converter tflite2tnn line40\n")
-    # command = command + " --opset 11"
-    # if not_fold_const is False:
-    #    command = command + " --fold_const"
     logging.debug(command)
     result = cmd.run(command)
     if result == 0:
@@ -52,7 +42,7 @@ def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
         return False
 
 
-def convert(tf_path,  output_dir, version, optimize, half, align=False, not_fold_const=False,
+def convert(tf_path,  output_dir, version,  align=False,
             input_path=None, refer_path=None):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
@@ -71,15 +61,8 @@ def convert(tf_path,  output_dir, version, optimize, half, align=False, not_fold
     if align is True:
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
-        if optimize is True:
-            tnn_proto_name = model_name+ '.opt' + proto_suffix
-            tnn_model_name = model_name + '.opt' + model_suffix
-        else:
-            tnn_proto_name = model_name + proto_suffix
-            tnn_model_name = model_name + model_suffix
+        tnn_proto_name = model_name + proto_suffix
+        tnn_model_name = model_name + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
-        logging.info(tnn_proto_path)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        logging.info(tnn_model_path)
-        logging.info("enter try tflite2tnn  align_model convert \n")
         align_model.align_model(tf_path, tnn_proto_path, tnn_model_path, input_path, refer_path, None, True)
