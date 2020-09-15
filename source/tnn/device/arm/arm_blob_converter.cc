@@ -456,13 +456,19 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 }
 
 void ScaleBias(float *data, int channel, int hw, float *scale, float *bias) {
-    for (int c = 0; c < channel; ++c) {
-        int plane       = c / 4;
-        int offset      = c % 4;
-        auto *dataPlane = plane * hw * 4 + data;
+    RawBuffer scale_buffer(ROUND_UP(channel, 4) * sizeof(float));
+    RawBuffer bias_buffer(ROUND_UP(channel, 4) * sizeof(float));
+    memcpy(scale_buffer.force_to<void *>(), scale, sizeof(float) * channel);
+    memcpy(bias_buffer.force_to<void *>(), bias, sizeof(float) * channel);
+    auto local_scale = scale_buffer.force_to<float *>();
+    auto local_bias  = bias_buffer.force_to<float *>();
+
+    for (int z = 0; z < UP_DIV(channel, 4); ++z) {
+        auto dst_z   = data + z * hw * 4;
+        auto v_scale = Float4::load(local_scale + z * 4);
+        auto v_bias  = Float4::load(local_bias + z * 4);
         for (int s = 0; s < hw; ++s) {
-            auto v            = dataPlane[offset];
-            dataPlane[offset] = v * scale[c] + bias[c];
+            Float4::save(dst_z + s * 4, Float4::load(dst_z + s * 4) * v_scale + v_bias);
         }
     }
 }
@@ -606,12 +612,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
             for (int n = 0; n < dims[0]; n++) {
                 NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
                            reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
-                if (dims[0] == 1 && dims[1] == 2 && hw == 81) {
-                    auto ptr = reinterpret_cast<float *>(handle_ptr);
-                    for (int i = 0; i < hw; i++) {
-                        printf("Init %f %f %f %f\n", ptr[i * 4 + 0], ptr[i * 4 + 1], ptr[i * 4 + 2], ptr[i * 4 + 3]);
-                    }
-                }
+
                 // devandong
                 ScaleBias(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
                           param.bias.data());
