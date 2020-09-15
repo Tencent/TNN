@@ -20,7 +20,9 @@ namespace TNN_NS {
 class PixelShuffleLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PixelShuffleLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         ::testing::Combine(testing::Values(1, 2),
+                                            testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32),
+                                            testing::Values(9, 10, 16, 19),
                                             // upscale_factor
                                             testing::Values(1, 2, 3)));
 
