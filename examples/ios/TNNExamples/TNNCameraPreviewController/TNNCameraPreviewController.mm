@@ -288,7 +288,7 @@ typedef void(^CommonCallback)(Status);
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
     //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
-                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor orangeColor]];
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor]];
             } else {
                 [_boundingBoxes[i] hide];
             }
