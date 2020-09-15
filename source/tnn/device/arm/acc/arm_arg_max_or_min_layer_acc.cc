@@ -14,6 +14,7 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -61,6 +62,7 @@ static Status ExecDimN(const std::vector<Blob *> &inputs, const std::vector<Blob
 
     auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+    OMP_PARALLEL_FOR_
     for (int o = 0; o < outer_dim; o += 4) {
         auto *input_ptr_o  = input_ptr + o;
         auto *output_ptr_o = output_ptr + o;
@@ -80,6 +82,7 @@ static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob
 
     auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+    OMP_PARALLEL_FOR_
     for (int i = 0; i < inner_dim; ++i) {
         auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
         auto *output_ptr_i = output_ptr + i * outer_dim;
@@ -103,6 +106,7 @@ static Status ExecDimW(const std::vector<Blob *> &inputs, const std::vector<Blob
 
     auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+    OMP_PARALLEL_FOR_
     for (int i = 0; i < inner_dim; ++i) {
         auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
         auto *output_ptr_i = output_ptr + i * outer_dim;
