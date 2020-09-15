@@ -119,21 +119,76 @@ static Status ExecFactor2(const std::vector<Blob *> &inputs, const std::vector<B
     return TNN_OK;
 }
 
+template<typename T>
+static Status ExecFactorCommon(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, void *workspace,
+                               int upscale_factor) {
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+
+    auto ic    = input_dims[1];
+    auto ic_r4 = ROUND_UP(input_dims[1], 4);
+    auto ih    = input_dims[2];
+    auto iw    = input_dims[3];
+    auto oc    = output_dims[1];
+    auto oc_r4 = ROUND_UP(output_dims[1], 4);
+    auto oh    = output_dims[2];
+    auto ow    = output_dims[3];
+
+    auto input_plane     = ic * ih * iw;
+    auto input_plane_r4  = ic_r4 * ih * iw;
+    auto output_plane    = oc * oh * ow;
+    auto output_plane_r4 = oc_r4 * oh * ow;
+
+    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
+    auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+
+    for (int b = 0; b < output_dims[0]; ++b) {
+        auto workspace_data_src = reinterpret_cast<T *>(workspace) + b * output_plane;
+        auto workspace_data_dst = reinterpret_cast<T *>(workspace) + (output_dims[0] + b) * output_plane;
+        std::cout << (int64_t)workspace_data_dst << std::endl;
+        auto input_data         = input_ptr + b * input_plane_r4;
+        auto output_data        = output_ptr + b * output_plane_r4;
+
+        UnpackC4ToNHWC(workspace_data_src, input_data, ih * iw, ic);
+
+        int src_index = 0;
+        for (int h = 0; h < ih; ++h) {
+            auto dst_data_h = workspace_data_dst + h * iw * ic;
+            for (int w = 0; w < iw; ++w) {
+                auto dst_data_w = dst_data_h + w * ic / upscale_factor;
+                for (int c = 0; c < ic; ++c) {
+                    T src = workspace_data_src[src_index++];
+                    int dst_c = c / (upscale_factor * upscale_factor);
+                    int dst_h = c % (upscale_factor * upscale_factor) / upscale_factor;
+                    int dst_w = c % (upscale_factor * upscale_factor) % upscale_factor;
+                    auto dst_data_c = dst_data_w + dst_h * ow * oc + dst_w * oc + dst_c;
+                    *dst_data_c = src;
+                }
+            }
+        }
+
+        PackC4FromNHWC(output_data, workspace_data_dst, oh * ow, oc);
+    }
+
+    return TNN_OK;
+}
+
 template <typename T>
 Status ArmPixelShuffleLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param         = dynamic_cast<PixelShuffleLayerParam *>(param_);
     int upscale_factor = param->upscale_factor;
 
-    if (upscale_factor == 1) {
-        return ExecFactor1<T>(inputs, outputs);
-    }
-
     int data_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto size_in_bytes = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims) * data_byte_size;
-    void *workspace    = context_->GetSharedWorkSpace(size_in_bytes);
 
-    if (upscale_factor == 2) {
+    if (upscale_factor == 1) {
+        return ExecFactor1<T>(inputs, outputs);
+    } else if (upscale_factor == 2) {
+        void *workspace = context_->GetSharedWorkSpace(size_in_bytes);
         return ExecFactor2<T>(inputs, outputs, workspace);
+    } else if (upscale_factor > 0) {
+        void *workspace = context_->GetSharedWorkSpace(size_in_bytes * 2);
+        return ExecFactorCommon<T>(inputs, outputs, workspace, upscale_factor);
     } else {
         return Status(TNNERR_PARAM_ERR, "pixel shuffle upscale factor not support");
     }
