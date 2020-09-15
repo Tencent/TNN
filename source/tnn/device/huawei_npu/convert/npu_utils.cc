@@ -150,4 +150,54 @@ std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputSh
     }
     return model_suffix_stream.str();
 }
+
+//check Npu init situation
+Status NpuUtils::InitCheck(std::shared_ptr<hiai::AiModelMngerClient>& client, int& version_num) {
+    // Start to load HiAi API
+    if (client == nullptr) {
+        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: HiaiDDK API load error, check ddk");
+    }
+
+    // init Ai Model Manager Client
+    hiai::AIStatus ret = client->Init(nullptr);
+    if (ret != hiai::AI_SUCCESS) {
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: huawei_npu is not installed");
+    }
+    // get rom version
+    const char *version = client->GetVersion();
+    if (version == nullptr) {
+        return Status(TNNERR_NPU_LOAD_ERROR,
+                      "ERROR: GetRomVersion(ROM): huawei_npu is not installed or rom version is too low");
+    }
+    // check if NPU version is greater than 300
+    version_num = NpuUtils::checkNpuVersion(version);
+    LOGI("[TNN/NPU]ddk current version: %s", version);
+    if (version_num < 320) {
+        return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: huawei_npu is installed but is below 100.320.xxx.xxx");
+    }
+    return TNN_OK;
+}
+
+void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string>& visited,
+    std::map<std::string, shared_ptr<OperatorInfo>>& global_operator_map) {
+    std::vector<shared_ptr<LayerInfo>> layers;
+    // only view input
+    InputShapesMap sub_input_shapes_map;
+    for (int i = cpu_count; i < net_structure->layers.size(); i++) {
+        std::shared_ptr<LayerInfo> &layer_info = net_structure->layers[i];
+        for (std::string &input : layer_info->inputs) {
+            // if the subnetwork input exists in visited
+            if (visited.count(input) > 0) {
+                //if the input has not defined in new inputShapeMap yet
+                if (sub_input_shapes_map.count(input) == 0) {
+                    sub_input_shapes_map[input] = global_operator_map[input]->GetShape();
+                }
+            }
+        }
+        layers.push_back(layer_info);
+    }
+    net_structure->layers = layers;
+    net_structure->inputs_shape_map = sub_input_shapes_map;
+}
+
 }  // namespace tnn

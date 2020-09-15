@@ -15,15 +15,18 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_UTILS_H_
 #define TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_UTILS_H_
 
+#include <HiAiModelManagerService.h>
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
+#include <tnn/interpreter/net_structure.h>
 #include <tnn/interpreter/raw_buffer.h>
 
+#include "graph/compatible/all_ops.h"
 #include "graph/op/array_defs.h"
 #include "graph/op/const_defs.h"
-#include "graph/compatible/all_ops.h"
 #include "graph/operator.h"
 #include "hiai_ir_build.h"
+#include "npu_base_layer_convert.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
@@ -59,6 +62,11 @@ public:
     static int checkNpuVersion(const char *version);
 
     static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
+
+    static Status InitCheck(std::shared_ptr<hiai::AiModelMngerClient>& client, int& version_num);
+
+    static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string>& visited,
+                                                   std::map<std::string, shared_ptr<OperatorInfo>>& global_operator_map);
 };
 
 }  // namespace TNN_NS

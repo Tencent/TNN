@@ -105,11 +105,10 @@ private:
 
     Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
-    Status BuildModel(std::string model_path);
+    Status InitBlobs(InputShapesMap& instance_input_shapes_map, InputShapesMap& cpu_input_shape);
 
-    Status InitCheck();
-
-    InputShapesMap modifyInterpreterCPU();
+    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
+                                      AbstractModelInterpreter *interpreter);
 
     AbstractDevice *device_ = nullptr;
 
@@ -125,7 +124,7 @@ private:
     ge::Graph graph_ = ge::Graph("graph");
 
     // the boolean controls if build from om or build from memory
-    bool from_path_ = true;
+    bool use_path_ = true;
     // the name of the model
     std::string model_name_;
     int version_num_ = 0;
@@ -138,10 +137,10 @@ private:
     BlobMap output_blob_map_;
 
     // here to add sub network :
-    std::shared_ptr<DefaultNetwork> default_network_;
+    std::shared_ptr<DefaultNetwork> sub_network_;
     int cpu_count_;
     std::set<std::string> visited_;
-    bool useCPU = false;
+    bool use_subnet_ = false;
     BlobMap npu_inter_out_blobmap_;
     BlobMap cpu_inter_in_blobmap_;
 };
