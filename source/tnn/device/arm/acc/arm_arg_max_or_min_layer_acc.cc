@@ -30,10 +30,6 @@ Status ArmArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     }
 }
 
-static Status ExecDimN() {
-    return TNN_OK;
-}
-
 static Status ExecDimC() {
     return TNN_OK;
 }
@@ -54,6 +50,25 @@ static Status ExecDimC() {
         }                                                                                   \
     }                                                                                       \
     Float4::save(output_ptr_base, guard_index);
+
+template<typename T, int mode>
+static Status ExecDimN(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+
+    int inner_dim    = 1;
+    int reduce_dim   = input_dims[0];
+    int outer_dim    = UP_DIV(input_dims[1], 4) * input_dims[2] * input_dims[3] * 4;
+
+    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
+    auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+    for (int o = 0; o < outer_dim; o += 4) {
+        auto *input_ptr_o  = input_ptr + o;
+        auto *output_ptr_o = output_ptr + o;
+        ARGMAXMINCAL(input_ptr_o, output_ptr_o, mode);
+    }
+
+    return TNN_OK;
+}
 
 template<typename T, int mode>
 static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -103,7 +118,11 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
     int axis   = param->axis;
 
     if (axis == 0) {
-        return ExecDimN();
+        if (param->mode == 0) {
+            return ExecDimN<T, 0>(inputs, outputs);
+        } else {
+            return ExecDimN<T, 1>(inputs, outputs);
+        }
     } else if (axis == 1) {
         return ExecDimC();
     } else if (axis == 2) {
