@@ -81,14 +81,14 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         input_inf_[i].type         = type;
         input_inf_[i].layout       = rk::nn::DataLayoutType::NCHW;
 
-        // add blob
-        char layer_name[16];
-        sprintf(layer_name, "%d", i);
+        auto it = instance_input_shapes_map.begin();
+        std::advance(it, i);
+
         BlobDesc desc;
         desc.device_type = DEVICE_RKNPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
-        desc.name        = layer_name;
+        desc.name        = it->first;
         for (auto dim : dims) {
             desc.dims.push_back((int)dim);
         }
@@ -114,14 +114,11 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         // add blob
         auto it = net_structure_->outputs.begin();
         std::advance(it, i);
-        std::string name = *it;
-        char layer_name[name.size() + 1];
-        strcpy(layer_name, name.c_str());
         BlobDesc desc;
         desc.device_type = DEVICE_RKNPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
-        desc.name        = layer_name;
+        desc.name        = *it;
         for (auto dim : dims) {
             desc.dims.push_back((int)dim);
         }
