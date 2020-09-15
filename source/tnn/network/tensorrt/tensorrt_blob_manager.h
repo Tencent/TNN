@@ -39,7 +39,7 @@ public:
     Status AllocateBlobMemory() override;
 
     // @brief Allocate a memory buffer
-    Status MemAlloc(void* ptr, size_t size);
+    Status MemAlloc(void** ptr, size_t size);
 
     // @brief Free a memory buffer
     Status MemFree(void* ptr);

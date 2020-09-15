@@ -18,10 +18,27 @@
 
 namespace TNN_NS {
 
-TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type) {
+TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type), trt_batchsize(0) {
+    m_layer = CreateLayer(type);
 }
 
 TensorRTBaseLayerBuilder::~TensorRTBaseLayerBuilder() {
+}
+
+Status TensorRTBaseLayerBuilder::InferOutputShape() {
+    return TNN_OK;
+}
+
+Status TensorRTBaseLayerBuilder::Build() {
+    return TNN_OK;
+}
+
+bool TensorRTBaseLayerBuilder::IsPluginLayer() {
+    return this->is_plugin;
+}
+
+void TensorRTBaseLayerBuilder::SetBatchSize(int value) {
+    this->trt_batchsize = value;
 }
 
 std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTLayerBuilderCreatorMap() {
@@ -44,7 +61,7 @@ TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type) {
     TensorRTBaseLayerBuilder* cur_layer = nullptr;
     auto& trt_map = GetTensorRTLayerBuilderCreatorMap();
     auto& plugin_map = GetTensorRTPluginLayerBuilderCreatorMap();
-    if (trt_map.count(type) > 0 || plugin_map.count(type) > 0) {
+    if (trt_map.count(type) > 0) {
         auto base_layer = trt_map[type]->CreateLayerBuilder();
         cur_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(base_layer);
     } else if (plugin_map.count(type) > 0) {

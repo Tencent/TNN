@@ -48,8 +48,6 @@ public:
 
     virtual Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims);
 
-    virtual bool supportFormat(nvinfer1::DataType type, PluginFormat format) const;
-
     virtual void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
             nvinfer1::DataType type, PluginFormat format, int maxBatchSize);
 
@@ -59,16 +57,13 @@ public:
 
     virtual size_t getWorkspaceSize(int maxBatchSize) const;
 
-    virtual int enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream) = 0;
+    virtual int enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream);
 
     virtual size_t getSerializationSize();
 
     virtual void serialize(void* buffer);
 
 protected:
-    // @brief Build the foreign network
-    virtual Status Build() = 0;
-
     nvinfer1::DataType m_type;
     PluginFormat m_format;
 
@@ -95,11 +90,13 @@ public:
     }
 };
 
-#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                        \
-    class type_string##TRTPluginLayerBuilder : public TensorRTLayerBuilder {                                           \
+#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                 \
+    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                     \
     public:                                                                                                            \
-        type_string##TRTPluginLayerBuilder(LayerType ignore) : TensorRTPluginLayerBuilder(layer_type) {}               \
+        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}           \
         virtual ~type_string##TRTPluginLayerBuilder() {}                                                               \
+        virtual bool supportsFormat(nvinfer1::DataType type, PluginFormat format) const;                               \
+        virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                     \
     }
 
 #define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                \

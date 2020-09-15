@@ -1,5 +1,6 @@
 #include <fstream>
 #include <string>
+#include <cuda_runtime>
 
 #include "tnn/core/tnn.h"
 #include "tnn/core/macro.h"
@@ -31,10 +32,13 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    int h = 224, w = 224;
-    if (argc >= 5) {
-        h = std::atoi(argv[3]);
-        w = std::atoi(argv[4]);
+    int c = 3, h = 224, w = 224;
+    std::string output_name;
+    if (argc >= 7) {
+        c = std::atoi(argv[3]);
+        h = std::atoi(argv[4]);
+        w = std::atoi(argv[5]);
+        output_name = std::string(argv[6]);
     }
 
     std::shared_ptr<TNN_NS::TNN> net_ = nullptr;
@@ -56,7 +60,7 @@ int main(int argc, char** argv) {
     }
     net_ = net;
 
-    std::vector<int> nchw = {1, 16, h, w};
+    std::vector<int> nchw = {1, c, h, w};
     TNN_NS::InputShapesMap shapeMap;
     shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>("input", nchw));
     TNN_NS::NetworkConfig network_config;
@@ -65,10 +69,14 @@ int main(int argc, char** argv) {
     auto instance = net_->CreateInst(network_config, status, shapeMap);
     instance_ = instance;
 
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::NCHW_FLOAT, nchw);
+    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::NCHW_FLOAT, nchw);
     TNN_NS::MatConvertParam input_cvt_param;
     input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
     input_cvt_param.bias = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
+    auto input_data = input_mat->GetData();
+    for (int i = 0; i < input_mat->GetBatch() * input_mat->GetChannel() * input_mat->GetHeight() * input_mat->GetWidth(); i++) {
+        ((float*)input_data)[i] = 0.5;
+    }
     status = instance_->SetInputMat(input_mat, input_cvt_param);
     if (status != TNN_NS::TNN_OK) {
         printf("set input failed %d", (int)status);
@@ -83,7 +91,7 @@ int main(int argc, char** argv) {
 
     TNN_NS::MatConvertParam output_cvt_param;
     std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-    status = instance_->GetOutputMat(output_mat, output_cvt_param, "3", TNN_NS::DEVICE_CUDA);
+    status = instance_->GetOutputMat(output_mat, output_cvt_param, output_name, TNN_NS::DEVICE_NAIVE);
     if (status != TNN_NS::TNN_OK) {
         printf("get output failed %d\n", (int)status);
         exit(-1);

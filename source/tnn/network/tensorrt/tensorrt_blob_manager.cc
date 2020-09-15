@@ -12,6 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <fstream>
+#include <string>
+
 #include "tnn/device/cuda/cuda_device.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
 #include "tnn/memory_manager/blob_memory_pool_factory.h"
@@ -30,6 +33,16 @@ TensorRTBlobManager::~TensorRTBlobManager() {
 
 Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
                          DataType input_data_type) {
+    int output_size;
+    std::vector<std::string> names;
+    std::ifstream fp("config");
+    fp >> output_size;
+    for (int i = 0; i < output_size; i++) {
+        std::string tmp;
+        fp >> tmp;
+        names.push_back(tmp);
+    }
+
     if (net_structure->blobs.empty()) {
         LOGE("net_structure blobs is empty\n");
         return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");
@@ -77,6 +90,9 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         }
         BlobHandle handle;
         blobs_[node_name] = new ForeignBlob(desc, handle);
+        if (std::find(names.begin(), names.end(), node_name) != names.end()) {
+            output_blobs_[node_name] = blobs_[node_name];
+        }
     }
 
     // intput blobs
@@ -150,8 +166,8 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
     return status;
 }
 
-Status TensorRTBlobManager::MemAlloc(void *ptr, size_t size) {
-    Status ret = dynamic_cast<CudaDevice*>(device_)->Allocate(&ptr, size);
+Status TensorRTBlobManager::MemAlloc(void **ptr, size_t size) {
+    Status ret = dynamic_cast<CudaDevice*>(device_)->Allocate(ptr, size);
     return ret;
 }
 

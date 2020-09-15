@@ -22,6 +22,11 @@
 
 namespace TNN_NS {
 
+struct CudaTempBufUnit {
+    void* ptr = nullptr;
+    uint32_t size;
+};
+
 class CudaLayerAcc : public AbstractLayerAcc {
 public:
     /**
@@ -32,7 +37,7 @@ public:
      * @param outputs     output blobs
      */
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
-            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     // @brief virtual destrcutor
     virtual ~CudaLayerAcc();
@@ -54,9 +59,13 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
+    void CreateTempBuf(size_t size);
+
+    CudaDevice *device_      = nullptr;
     LayerParam *param_       = nullptr;
     LayerResource *resource_ = nullptr;
     CudaContext *context_    = nullptr;
+    std::vector<CudaTempBufUnit> tempbufs_;
 
 private:
     // @brief retrun device layer acc support data format
@@ -66,6 +75,8 @@ private:
 #define DECLARE_CUDA_ACC(type_string, layer_type)                                                                     \
     class Cuda##type_string##LayerAcc : public CudaLayerAcc {                                                         \
     public:                                                                                                           \
+        virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                             \
+            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                                   \
         virtual ~Cuda##type_string##LayerAcc() {};                                                                    \
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                \
         virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                \

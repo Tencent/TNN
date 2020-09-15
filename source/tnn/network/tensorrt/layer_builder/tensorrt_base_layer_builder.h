@@ -62,9 +62,22 @@ public:
     // @brief add layer to tensorRT network
     virtual ILayer* AddToNetwork(INetworkDefinition* network) = 0;
 
+    // @brief calculate the output tensor dims
+    virtual Status InferOutputShape();
+
+    // @brief check whether is a plugin layer
+    bool IsPluginLayer();
+
+    // @brief set tensorRT batchsize
+    void SetBatchSize(int value);
+
 protected:
     // @brief Build the foreign network
-    virtual Status Build() = 0;
+    virtual Status Build();
+
+    BaseLayer* m_layer;
+    bool is_plugin;
+    int trt_batchsize;
 };
 
 class TensorRTLayerBuilder;

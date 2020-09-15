@@ -12,23 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/binary_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Add, LAYER_ADD);
+DECLARE_TRT_BINARY_LAYER_BUILDER(Add);
 
-ILayer* AddTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
-    auto tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor1)->GetTensor();
-    auto tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor2)->GetTensor();
-    IElementWiseLayer* layer = network->addElementWise(*tensor1, *tensor2, ElementWiseOperation::kSUM);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-    }
-
-    return layer;
+AddTRTLayerBuilder::AddTRTLayerBuilder(LayerType ignore) : BinaryTRTLayerBuilder(ignore) {
+    m_op = ElementWiseOperation::kSUM;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Add, LAYER_ADD);

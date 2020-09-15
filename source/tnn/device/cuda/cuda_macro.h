@@ -43,6 +43,17 @@ namespace TNN_NS {
     }                                                                      \
 }
 
+#define CUDA_KERNEL_LOOP(i, n) \
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+      i < (n); \
+      i += blockDim.x * gridDim.x)
+
+#define TNN_CUDA_NUM_THREADS 512
+
+inline int TNN_CUDA_GET_BLOCKS(const int N) {
+    return (N + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
+}
+
 }  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_MACRO_H_

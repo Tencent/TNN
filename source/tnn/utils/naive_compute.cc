@@ -20,7 +20,6 @@
 #include "math.h"
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_param.h"
-#include "tnn/utils/bbox_util.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -409,22 +408,6 @@ void NaivePriorbox(PriorBoxLayerParam *param, int output_h, int output_w, float 
                     }
                 }
             }
-        }
-    }
-}
-
-inline CodeType GetCodeType(const int number) {
-    ASSERT(number > 0 && number < 4);
-
-    switch (number) {
-        case 1: {
-            return PriorBoxParameter_CodeType_CORNER;
-        }
-        case 2: {
-            return PriorBoxParameter_CodeType_CENTER_SIZE;
-        }
-        default: {
-            return PriorBoxParameter_CodeType_CORNER_SIZE;
         }
     }
 }

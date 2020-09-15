@@ -17,6 +17,7 @@
 namespace TNN_NS {
 
 TensorRTLayerBuilder::TensorRTLayerBuilder(LayerType type) : TensorRTBaseLayerBuilder(type) {
+    is_plugin = false;
 }
 
 TensorRTLayerBuilder::~TensorRTLayerBuilder() {
@@ -24,32 +25,18 @@ TensorRTLayerBuilder::~TensorRTLayerBuilder() {
 
 Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
         std::vector<Blob*>& output_blobs, AbstractDevice* device) {
-    input_blobs_  = input_blobs;
-    output_blobs_ = output_blobs;
+    auto tmp_device = GetDevice(DEVICE_NAIVE);
+    auto tmp_context = tmp_device->CreateContext(0);
+    Status ret = m_layer->Init(tmp_context, param, resource, input_blobs, output_blobs, tmp_device);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+
+    input_blobs_  = m_layer->GetInputBlobs();
+    output_blobs_ = m_layer->GetOutputBlobs();
 
     param_    = param;
     resource_ = resource;
-
-    Build();
-    auto status = InferOutputDataType();
-    if (status != TNN_OK) {
-        return status;
-    }
-
-    status = InferOutputShape();
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
-    if (status != TNN_OK) {
-        return status;
-    }
-    auto dims = output_blobs[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
-        }
-    }
 
     return TNN_OK;
 }
@@ -59,10 +46,6 @@ Status TensorRTLayerBuilder::Reshape() {
 }
 
 Status TensorRTLayerBuilder::Forward() {
-    return TNN_OK;
-}
-
-Status TensorRTLayerBuilder::Build() {
     return TNN_OK;
 }
 

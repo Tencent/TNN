@@ -25,8 +25,25 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/utils/bbox_util.h"
 
 namespace TNN_NS {
+
+inline CodeType GetCodeType(const int number) {
+    ASSERT(number > 0 && number < 4);
+
+    switch (number) {
+        case 1: {
+            return PriorBoxParameter_CodeType_CORNER;
+        }
+        case 2: {
+            return PriorBoxParameter_CodeType_CENTER_SIZE;
+        }
+        default: {
+            return PriorBoxParameter_CodeType_CORNER_SIZE;
+        }
+    }
+}
 
 int8_t float2int8(float val);
 

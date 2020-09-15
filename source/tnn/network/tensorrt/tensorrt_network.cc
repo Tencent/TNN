@@ -12,6 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <fstream>
+#include <string>
+
 #include <memory>
 
 #include "tnn/device/cuda/cuda_context.h"
@@ -45,6 +48,16 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
+    int output_size;
+    std::vector<std::string> names;
+    std::ifstream fp("config");
+    fp >> output_size;
+    for (int i = 0; i < output_size; i++) {
+        std::string tmp;
+        fp >> tmp;
+        names.push_back(tmp);
+    }
+
     NetStructure *net_structure = default_interpreter->GetNetStructure();
     NetResource *net_resource   = default_interpreter->GetNetResource();
 
@@ -73,16 +86,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    ret = InitLayers(net_structure, net_resource);
-    if (ret != TNN_OK) {
-        return ret;
-    }
-
-//    ret = blob_manager_->AllocateBlobMemory();
-//    if (ret != TNN_OK) {
-//        return ret;
-//    }
-
     this->m_max_batchsize = 1;
 
     BlobMap inputs;
@@ -98,9 +101,10 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         }
     }
 
-    // TODO(johnzlli) need generat file name with md5sum, device_id and some other params.
-    std::string file_name = GetCacheFileName();
-    ExclFile *file_lock = new ExclFile(file_name);
+    ret = InitLayers(net_structure, net_resource);
+    if (ret != TNN_OK) {
+        return ret;
+    }
 
     BlobMap outputs;
     ret = blob_manager_->GetAllOutputBlobs(outputs);
@@ -108,6 +112,15 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         LOGE("ERROR: get output blobs failed");
         return ret;
     }
+
+    ret = blob_manager_->AllocateBlobMemory();
+    if (ret != TNN_OK) {
+       return ret;
+    }
+
+    // TODO(johnzlli) need generat file name with md5sum, device_id and some other params.
+    std::string file_name = GetCacheFileName();
+    ExclFile *file_lock = new ExclFile(file_name);
 
     std::string cache_file_name = GetCacheFileName();
 
@@ -138,30 +151,22 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                 auto tensorrtTensor = std::make_shared<TensorRTTensor>();
                 tensorrtTensor->SetTensor(output_tensor);
                 foreign_blob->SetForeignTensor(tensorrtTensor);
+                // TODO Debug
+                printf("%s:%d %d %d %d\n", output->GetBlobDesc().name.c_str(), output_tensor->getDimensions().nbDims,
+                    output_tensor->getDimensions().d[0], output_tensor->getDimensions().d[1], output_tensor->getDimensions().d[2]);
             }
         }
 
         for (auto output : outputs) {
             auto foreign_tensor = dynamic_cast<ForeignBlob*>(output.second)->GetForeignTensor();
             auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+            LOGD("shape: %d %d %d\n", tensor->getDimensions().d[0], tensor->getDimensions().d[1], tensor->getDimensions().d[2]);
             this->m_trt_network->markOutput(*tensor);
         }
 
         this->m_trt_builder->setMaxBatchSize(m_max_batchsize);
+        m_trt_builder->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
         m_trt_engine = m_trt_builder->buildCudaEngine(*m_trt_network);
-        for (auto iter : outputs) {
-            int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
-            auto trt_dims = m_trt_engine->getBindingDimensions(index);
-            DimsVector blob_dims;
-            blob_dims.push_back(this->m_max_batchsize);
-            for (int i = 0; i < trt_dims.nbDims; i++)
-                blob_dims.push_back(trt_dims.d[i]);
-            iter.second->GetBlobDesc().dims = blob_dims;
-        }
-        ret = blob_manager_->AllocateBlobMemory();
-        if (ret != TNN_OK) {
-            return ret;
-        }
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
@@ -184,19 +189,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size, &m_plugin_factory);
-        for (auto iter : outputs) {
-            int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
-            auto trt_dims = m_trt_engine->getBindingDimensions(index);
-            DimsVector blob_dims;
-            blob_dims.push_back(this->m_max_batchsize);
-            for (int i = 0; i < trt_dims.nbDims; i++)
-                blob_dims.push_back(trt_dims.d[i]);
-            iter.second->GetBlobDesc().dims = blob_dims;
-        }
-        ret = blob_manager_->AllocateBlobMemory();
-        if (ret != TNN_OK) {
-            return ret;
-        }
+
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
@@ -237,7 +230,7 @@ Status TensorRTNetwork_::Forward() {
 }
 
 Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
-     bool ret = this->m_trt_context->enqueue(this->m_max_batchsize, this->m_trt_bindings,
+    bool ret = this->m_trt_context->enqueue(this->m_max_batchsize, this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
@@ -286,6 +279,10 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         }
 
         layers_.push_back(cur_layer);
+        if (cur_layer->IsPluginLayer()) {
+            m_plugin_layer_name_map[layer_info->name] = dynamic_cast<TensorRTPluginLayerBuilder*>(cur_layer);
+        }
+        cur_layer->SetBatchSize(m_max_batchsize);
     }
     return ret;
 }
@@ -293,12 +290,16 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
     size_t context_memory_size = m_trt_engine->getDeviceMemorySize();
-    Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(m_context_memory, context_memory_size);
+    if (context_memory_size == 0) {
+        return TNN_OK;
+    }
+    Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
     if (ret != TNN_OK) {
         LOGE("Error Create TensorRT execute context\n");
         return ret;
     }
     m_trt_context->setDeviceMemory(m_context_memory);
+    return TNN_OK;
 }
 
 std::string TensorRTNetwork_::GetCacheFileName() {

@@ -45,7 +45,7 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         layer->setName(layer_name_.c_str());
         layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
         layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
-        layer->setPadding(DimsHW(paramlist->pads[1], paramlist->pads[0]));
+        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
         layer->setNbGroups(paramlist->group);
     }
 

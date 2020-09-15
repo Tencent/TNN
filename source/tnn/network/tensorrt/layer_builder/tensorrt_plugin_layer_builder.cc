@@ -12,14 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <cuda_runtime.h>
+
 #include <memory>
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 
+#include "tnn/utils/dims_vector_utils.h"
+
 namespace TNN_NS {
 
 TensorRTPluginLayerBuilder::TensorRTPluginLayerBuilder(LayerType type) : TensorRTBaseLayerBuilder(type) {
+    is_plugin = true;
 }
 
 TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
@@ -27,32 +32,18 @@ TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
 
 Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
         std::vector<Blob*>& output_blobs, AbstractDevice* device) {
-    input_blobs_ = input_blobs;
-    output_blobs_ = output_blobs;
+    auto tmp_device = GetDevice(DEVICE_NAIVE);
+    auto tmp_context = tmp_device->CreateContext(0);
+    Status ret = m_layer->Init(tmp_context, param, resource, input_blobs, output_blobs, tmp_device);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+
+    input_blobs_  = m_layer->GetInputBlobs();
+    output_blobs_ = m_layer->GetOutputBlobs();
 
     param_    = param;
     resource_ = resource;
-
-    Build();
-    auto status = InferOutputDataType();
-    if (status != TNN_OK) {
-        return status;
-    }
-
-    status = InferOutputShape();
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
-    if (status != TNN_OK) {
-        return status;
-    }
-    auto dims = output_blobs[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
-        }
-    }
 
     layer_acc_ = device->CreateLayerAcc(type_);
     if (layer_acc_ != NULL) {
@@ -93,13 +84,6 @@ Dims TensorRTPluginLayerBuilder::getOutputDimensions(int index, const Dims* inpu
     return DimsCHW(shape.dims[1], shape.dims[2], shape.dims[3]);
 }
 
-bool TensorRTPluginLayerBuilder::supportFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT && format == PluginFormat::kNCHW) {
-            return true;
-    }
-    return false; 
-}
-
 void TensorRTPluginLayerBuilder::configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
             nvinfer1::DataType type, PluginFormat format, int maxBatchSize) {
     m_type = type;
@@ -117,6 +101,32 @@ size_t TensorRTPluginLayerBuilder::getWorkspaceSize(int maxBatchSize) const {
     return 0;
 }
 
+int TensorRTPluginLayerBuilder::enqueue(int batchSize, const void* const* inputs, void** outputs,
+        void* workspace, cudaStream_t stream) {
+    for (int i = 0; i < input_blobs_.size(); i++) {
+        Blob* input_blob = input_blobs_[i];
+        BlobHandle input_handle;
+        input_handle.base = const_cast<void *>(inputs[i]);
+        input_handle.bytes_offset = input_blob->GetHandle().bytes_offset;
+        input_blob->SetHandle(input_handle);
+    }
+
+    for (int i = 0; i < output_blobs_.size(); i++) {
+        Blob* output_blob = output_blobs_[i];
+        BlobHandle output_handle;
+        output_handle.base = const_cast<void *>(outputs[i]);
+        output_handle.bytes_offset = output_blob->GetHandle().bytes_offset;
+        output_blob->SetHandle(output_handle);
+    }
+
+    Status ret = BaseLayer::Forward();
+    if (ret != TNN_OK) {
+        return -1;
+    }
+
+    return 0;
+}
+
 size_t TensorRTPluginLayerBuilder::getSerializationSize() {
     return sizeof(m_type) + sizeof(m_format);
 }
@@ -125,10 +135,6 @@ void TensorRTPluginLayerBuilder::serialize(void* buffer) {
     char* d = reinterpret_cast<char*>(buffer);
     write(d, m_type);
     write(d, m_format);
-}
-
-Status TensorRTPluginLayerBuilder::Build() {
-    return TNN_OK;
 }
 
 ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {

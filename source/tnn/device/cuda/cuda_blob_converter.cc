@@ -54,7 +54,7 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
     auto nchw = dims[0] * chw;
 
     if (image.GetMatType() == NCHW_FLOAT) {
-        cudaError_t status = cudaMemcpyAsync(image.GetData(), blob_data, DimsVectorUtils::Count(dims),
+        cudaError_t status = cudaMemcpyAsync(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(float),
             cudaMemcpyDeviceToHost, stream);
         if (cudaSuccess != status) {
             return TNNERR_CUDA_MEMCPY_ERROR;
@@ -98,7 +98,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
     auto nchw = dims[0] * chw;
 
     if (image.GetMatType() == NCHW_FLOAT) {
-        cudaError_t status = cudaMemcpyAsync(blob_data, image.GetData(), DimsVectorUtils::Count(dims),
+        cudaError_t status = cudaMemcpyAsync(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float),
             cudaMemcpyHostToDevice, stream);
         if (cudaSuccess != status) {
             return TNNERR_CUDA_MEMCPY_ERROR;

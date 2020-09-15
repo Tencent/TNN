@@ -83,6 +83,7 @@ Status ConvLayer::InferOutputShape() {
         {
             height_out = static_cast<int>(std::ceil(float(height) / float(stride_h)));
             width_out  = static_cast<int>(std::ceil(float(width) / float(stride_w)));
+            printf("%d %d\n", height_out, width_out);
         } else if (pad_type == 1)  // VALID type
         {
             height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));

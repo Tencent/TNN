@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <cmath>
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
@@ -20,8 +21,7 @@ DECLARE_TENSORRT_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
 ILayer* PoolingTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
-
-    DimsHW kernalSize(paramlist->kernels[1], paramlist->kernels[0]);
+    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
 
@@ -32,16 +32,30 @@ ILayer* PoolingTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         type = PoolingType::kAVERAGE;
     }
 
-    IPoolingLayer* layer = network->addPooling(*tensor, type, kernalSize);
+    IPoolingLayer* layer = network->addPooling(*tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        layer->setPadding(DimsHW(paramlist->pads[1], paramlist->pads[0]));
+        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+        if (paramlist->pad_type == -1) {
+            if (paramlist->ceil_mode == 1) {
+                layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
+            } else {
+                layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
+            }
+        } else {
+            layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+        }
+        if (paramlist->pool_type == 1) {
+            layer->setAverageCountExcludesPadding(true);
+        }
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+        }
     }
 
     return layer;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Pooling, LAYER_POOLING);
-
 }  //  namespace TNN_NS
