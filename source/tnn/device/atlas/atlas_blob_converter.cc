@@ -190,7 +190,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     do_scale_bias_ = NeedDoScaleBias(param);
 
     if (do_scale_bias_) {
-        return Status(TNNERR_PARAM_ERR, "not support preprocess yet!");
+        LOGE("warning: mat convert param is useless in no-dynamic aipp model!\n");
     }
 
     int mat_bytesize = 0;

@@ -83,6 +83,9 @@ private:
     // @brief add blob into map
     Status AddBlobToMap(size_t index, void *data, bool is_input);
 
+    // @brief get input dims
+    Status GetInputInfo(size_t index, std::vector<int>& input_dims, aclFormat& input_format, aclDataType& input_data_type);
+
     // @brief destory dataset
     void DestroyDataset(aclmdlDataset *&data_set);
 

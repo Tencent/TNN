@@ -408,11 +408,13 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "no model description");
     }
 
+    Status ret = TNN_OK;
     std::string blob_name = "";
-    aclmdlIODims acl_dims;
+    std::vector<int> io_dims;
     aclDataType data_type;
     aclFormat data_format;
 
+    io_dims.clear();
     if (is_input) {
         // get blob name
         blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
@@ -427,35 +429,23 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
             dynamic_batch_name_.push_back(blob_name);
             return TNN_OK;
         }
-        // get dims info
-        aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
-        if (acl_ret != ACL_ERROR_NONE) {
-            LOGE("can't get input dims\n");
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input dims");
+
+        // get dims info and data format
+        ret = GetInputInfo(index, io_dims, data_format, data_type);
+        if (TNN_OK != ret) {
+            return ret;
         }
-        // get data type
-        data_type = aclmdlGetInputDataType(model_desc_, index);
-        // get data format
-        data_format = aclmdlGetInputFormat(model_desc_, index);
+
         LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
-        // in dynamic batch input, reset batch
-        if (-1 == acl_dims.dims[0]) {
-            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index);
-            int chw_size     = aclDataTypeSize(data_type);
-            for (int i = 1; i < acl_dims.dimCount; ++i) {
-                chw_size *= acl_dims.dims[i];
-            }
-            acl_dims.dims[0] = buffer_size / chw_size;
-            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
-        }
         LOGD("input shape:\n");
-        for (int i = 0; i < acl_dims.dimCount; ++i) {
-            LOGD("[%d]\n", (int)acl_dims.dims[i]);
+        for (int i = 0; i < io_dims.size(); ++i) {
+            LOGD("[%d]\n", io_dims[i]);
         }
     } else {
         // get blob name
         blob_name = aclmdlGetOutputNameByIndex(model_desc_, index);
         // get dims info
+        aclmdlIODims acl_dims;
         aclError acl_ret = aclmdlGetOutputDims(model_desc_, index, &acl_dims);
         if (acl_ret != ACL_ERROR_NONE) {
             LOGE("can't get output dims\n");
@@ -468,11 +458,11 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         LOGD("output data type: %d  output data format: %d\n", data_type, data_format);
         LOGD("output shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
+            io_dims.push_back((int)acl_dims.dims[i]);
             LOGD("[%d]\n", (int)acl_dims.dims[i]);
         }
     }
 
-    Status ret = TNN_OK;
     BlobDesc blob_desc;
     blob_desc.device_type = DEVICE_ATLAS;
     ret                   = ConvertFromAclDataTypeToTnnDataType(data_type, blob_desc.data_type);
@@ -485,10 +475,10 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         LOGE("convert from acl data format to tnn data format falied\n");
         return ret;
     }
-    for (int i = 0; i < acl_dims.dimCount; ++i) {
-        blob_desc.dims.push_back((int)acl_dims.dims[i]);
+    for (int i = 0; i < io_dims.size(); ++i) {
+        blob_desc.dims.push_back((int)io_dims[i]);
     }
-    for (int i = acl_dims.dimCount; i < 4; ++i) {
+    for (int i = io_dims.size(); i < 4; ++i) {
         blob_desc.dims.push_back(1);
     }
     blob_desc.name = blob_name;
@@ -502,6 +492,67 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         input_blob_map_[blob_name] = blob;
     } else {
         output_blob_map_[blob_name] = blob;
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int>& input_dims, aclFormat& input_format, aclDataType& input_data_type) {
+    // get data format
+    input_format = aclmdlGetInputFormat(model_desc_, index);
+
+    // get data type
+    input_data_type = aclmdlGetInputDataType(model_desc_, index);
+
+    aclAippInfo aipp_info;
+    aclError acl_ret = aclmdlGetFirstAippInfo(model_id_, index, &aipp_info);
+
+    input_dims.clear();
+    if (ACL_ERROR_NONE == acl_ret) {
+        LOGD("shapeCound: %d   srcDimNum: %d\n", aipp_info.shapeCount, aipp_info.srcDimNum);
+        if (aipp_info.shapeCount < 1) {
+            LOGE("model input is less than 1\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "model input is less than 1");
+        }
+        // get the max input dims
+        aclmdlIODims acl_dims = aipp_info.outDims[0].srcDims;
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            input_dims.push_back((int)acl_dims.dims[i]);
+        }
+
+        for (int i = 1; i < aipp_info.shapeCount; ++i) {
+            acl_dims = aipp_info.outDims[i].srcDims;
+            for (int i = 0; i < acl_dims.dimCount; ++i) {
+                input_dims[i] = std::max((int)acl_dims.dims[i], input_dims[i]);
+            }
+        }
+    } else {
+        LOGD("get aipp info failed (ret=%d), use input info directly\n", acl_ret);
+        // get dims info
+        aclmdlIODims acl_dims;
+        aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("can't get input dims\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input dims");
+        }
+        // in dynamic batch input, reset batch
+        if (-1 == acl_dims.dims[0]) {
+            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index);
+            int chw_size     = aclDataTypeSize(input_data_type);
+            for (int i = 1; i < acl_dims.dimCount; ++i) {
+                chw_size *= acl_dims.dims[i];
+            }
+            acl_dims.dims[0] = buffer_size / chw_size;
+            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
+        }
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            input_dims.push_back((int)acl_dims.dims[i]);
+        }
+    }
+
+    LOGD("input shape:\n");
+    for (int i = 0; i < input_dims.size(); ++i) {
+        LOGD("[%d]\n", input_dims[i]);
     }
 
     return TNN_OK;
