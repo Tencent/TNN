@@ -20,6 +20,7 @@
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
+#include "onnx/onnx_converter.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
@@ -32,6 +33,9 @@ int Run(int argc, char* argv[]) {
     if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_TF_LITE) {
         TFLite2Tnn tf_lite_2_tnn(model_config.model_path_);
         status = tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
+    } else if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_ONNX) {
+        Onnx2Tnn onnx_2_tnn(model_config.model_path_);
+        status = onnx_2_tnn.Conveter2Tnn(net_structure, net_resource);
     }
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("TFLite converter %s failed!\n", FLAGS_mp.c_str());

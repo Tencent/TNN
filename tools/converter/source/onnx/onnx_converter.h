@@ -12,40 +12,30 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNNCONVERTER_SRC_MODEL_CONFIG_H_
-#define TNNCONVERTER_SRC_MODEL_CONFIG_H_
-
-#include <dirent.h>
-#include <sys/stat.h>
-
-#include <fstream>
-#include <string>
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#include "tnn/core/status.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/net_resource.h"
+#include "onnx.pb.h"
 
 namespace TNN_CONVERTER {
-
-typedef enum {
-    MODEL_TYPE_CAFFE   = 0,
-    MODEL_TYPE_TF      = 1,
-    MODEL_TYPE_TF_LITE = 2,
-    MODEL_TYPE_ONNX    = 3
-} ModelType;
-
-class ModelConfig {
+class Onnx2Tnn {
 public:
-    ModelConfig(std::string model_type, std::string proto_path, std::string model_path, std::string onnx_path);
-    ModelConfig(std::string model_type, std::string model_path, std::string onnx_path);
-    ~ModelConfig();
-
-    std::string proto_path_;
-    std::string model_path_;
-    std::string output_dir_;
-    ModelType model_type_;
+    Onnx2Tnn(std::string model_path);
+    Onnx2Tnn() = delete;
+    ~Onnx2Tnn(){};
+    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure net_structure,
+                                TNN_NS::NetResource net_resource);
 
 private:
-    bool CheckPath(std::string path);
-    bool CheckDir(std::string dir);
+    bool ReadModel();
+    bool IsQuantized();
+    std::string onnx_model_path_;
+    std::unique_ptr<onnx::ModelProto> onnx_model_;
+
 };
 
 }  // namespace TNN_CONVERTER
 
-#endif  // TNNCONVERTER_SRC_MODEL_CONFIG_H_
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
