@@ -31,11 +31,7 @@ Status ArmArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     }
 }
 
-static Status ExecDimC() {
-    return TNN_OK;
-}
-
-#define ARGMAXMINCAL(input_ptr_base, output_ptr_base, mode)                                 \
+#define ARGMAXMINCAL(input_ptr_base, output_ptr_base, reduce_dim, mode)                     \
     Float4 guard_index(0);                                                                  \
     Float4 guard_value = Float4::load(input_ptr_base);                                      \
     for (int r = 1; r < reduce_dim; ++r) {                                                  \
@@ -66,7 +62,75 @@ static Status ExecDimN(const std::vector<Blob *> &inputs, const std::vector<Blob
     for (int o = 0; o < outer_dim; o += 4) {
         auto *input_ptr_o  = input_ptr + o;
         auto *output_ptr_o = output_ptr + o;
-        ARGMAXMINCAL(input_ptr_o, output_ptr_o, mode);
+        ARGMAXMINCAL(input_ptr_o, output_ptr_o, reduce_dim, mode);
+    }
+
+    return TNN_OK;
+}
+
+template<int mode>
+static void CompareC4(const Float4 &guard_value, const Float4 &guard_index, int start, int end,
+                      float &value_final, float &index_final) {
+    for (int c = start; c < end; ++c) {
+        if (mode == 0) {
+            if (guard_value[c] < value_final) {
+                value_final = guard_value[c];
+                index_final = guard_index[c] * 4 + c;
+            } else if (guard_value[c] == value_final &&
+                        guard_index[c] * 4 + c < index_final) {
+                index_final = guard_index[c] * 4 + c;
+            }
+        } else {
+            if (guard_value[c] > value_final) {
+                value_final = guard_value[c];
+                index_final = guard_index[c] * 4 + c;
+            } else if (guard_value[c] == value_final &&
+                        guard_index[c] * 4 + c < index_final) {
+                index_final = guard_index[c] * 4 + c;
+            }
+        }
+    }
+}
+
+template<typename T, int mode>
+static Status ExecDimC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input_dims   = inputs[0]->GetBlobDesc().dims;
+
+    int inner_dim     = input_dims[0];
+    int reduce_dim    = UP_DIV(input_dims[1], 4);
+    int reduce_dim_r4 = input_dims[1] % 4;
+    int reduce_dim_c4 = (reduce_dim_r4 == 0) ? reduce_dim : reduce_dim - 1;
+    int outer_dim     = input_dims[2] * input_dims[3] * 4;
+
+    auto *input_ptr   = static_cast<T *>(inputs[0]->GetHandle().base);
+    auto *output_ptr  = static_cast<T *>(outputs[0]->GetHandle().base);
+    for (int i = 0; i < inner_dim; ++i) {
+        auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
+        auto *output_ptr_i = output_ptr + i * outer_dim;
+
+        OMP_PARALLEL_FOR_
+        for (int o = 0; o < outer_dim; o += 4) {
+            auto *input_ptr_o  = input_ptr_i + o;
+            auto *output_ptr_o = output_ptr_i + o;
+            ARGMAXMINCAL(input_ptr_o, output_ptr_o, reduce_dim_c4, mode);
+
+            float value_final = guard_value[0];
+            float index_final = guard_index[0] * 4;
+            // compare 4 channels
+            if (reduce_dim_c4 != 0) {
+                CompareC4<mode>(guard_value, guard_index, 1, 4, value_final, index_final);
+            }
+            // compare remain channels
+            if (reduce_dim_r4 != 0) {
+                auto *input_ptr_r = input_ptr_o + reduce_dim_c4 * outer_dim;
+                Float4 cur_index(reduce_dim_c4);
+                Float4 cur_value = Float4::load(input_ptr_r);
+                CompareC4<mode>(cur_value, cur_index, 0, reduce_dim_r4, value_final, index_final);
+            }
+            Float4 result(0);
+            result.set_lane(index_final, 0);
+            Float4::save(output_ptr_o, result);
+        }
     }
 
     return TNN_OK;
@@ -89,7 +153,7 @@ static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob
         for (int o = 0; o < outer_dim; o += 4) {
             auto *input_ptr_o  = input_ptr_i + o;
             auto *output_ptr_o = output_ptr_i + o;
-            ARGMAXMINCAL(input_ptr_o, output_ptr_o, mode);
+            ARGMAXMINCAL(input_ptr_o, output_ptr_o, reduce_dim, mode);
         }
     }
 
@@ -110,7 +174,7 @@ static Status ExecDimW(const std::vector<Blob *> &inputs, const std::vector<Blob
     for (int i = 0; i < inner_dim; ++i) {
         auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
         auto *output_ptr_i = output_ptr + i * outer_dim;
-        ARGMAXMINCAL(input_ptr_i, output_ptr_i, mode);
+        ARGMAXMINCAL(input_ptr_i, output_ptr_i, reduce_dim, mode);
     }
 
     return TNN_OK;
@@ -128,7 +192,11 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
             return ExecDimN<T, 1>(inputs, outputs);
         }
     } else if (axis == 1) {
-        return ExecDimC();
+        if (param->mode == 0) {
+            return ExecDimC<T, 0>(inputs, outputs);
+        } else {
+            return ExecDimC<T, 1>(inputs, outputs);
+        }
     } else if (axis == 2) {
         if (param->mode == 0) {
             return ExecDimH<T, 0>(inputs, outputs);
