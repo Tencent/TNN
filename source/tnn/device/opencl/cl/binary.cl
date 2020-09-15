@@ -44,6 +44,22 @@ __kernel void BinaryChannel(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     WI_F(output, (int2)(cw, bh), out);
 }
 
+__kernel void BinaryWidth(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
+                            __read_only image2d_t param,
+                            __private const int width,
+                            __write_only image2d_t output) {
+    const int cw = get_global_id(0);
+    const int bh = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(cw, bh);
+
+    const int w_idx = cw % width;
+    FLOAT4 in0      = RI_F(input, SAMPLER, (int2)(cw, bh));
+    FLOAT in1       = RI_F(param, SAMPLER, (int2)(w_idx, 0)).x;
+    FLOAT4 out      = OPERATOR;
+    WI_F(output, (int2)(cw, bh), out);
+}
+
 __kernel void BinaryCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                         __read_only image2d_t param, __private const int height,
                         __write_only image2d_t output) {

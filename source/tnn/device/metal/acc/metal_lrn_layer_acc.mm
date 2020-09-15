@@ -41,7 +41,7 @@ Status MetalLRNLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
     return TNN_OK;
 }
 
-std::string MetalLRNLayerAcc::KernelName() {
+std::string MetalLRNLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "lrn_across_channel";
 }
 

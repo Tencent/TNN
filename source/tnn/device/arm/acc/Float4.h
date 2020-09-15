@@ -100,6 +100,40 @@ struct Float4 {
     static void get_high(Float4& v1, Float2& v2) {
         v2.value = vget_high_f32(v1.value);
     }
+    static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
+        Float4 dst;
+        if (n == 0) {
+            dst.value = v1.value;
+        } else if (n == 1) {
+            dst.value = vextq_f32(v1.value, v2.value, 1);
+        } else if (n == 2) {
+            dst.value = vextq_f32(v1.value, v2.value, 2);
+        } else if (n == 3) {
+            dst.value = vextq_f32(v1.value, v2.value, 3);
+        } else if (n == 4) {
+            dst.value = v2.value;
+        }
+        return dst;
+    }
+    static Float4 pad(const Float4& v1, const Float4& v2, const int n) {
+        static const uint32_t select  = uint32_t(-1);
+        static const uint32x4_t mask1 = {select,select,select,0};
+        static const uint32x4_t mask2 = {select,select,0,0};
+        static const uint32x4_t mask3 = {select,0,0,0};
+        Float4 dst;
+        if (n == 0) {
+            dst.value = v1.value;
+        } else if (n == 1) {
+            dst.value = vbslq_f32(mask1, v1.value, v2.value);
+        } else if (n == 2) {
+            dst.value = vbslq_f32(mask2, v1.value, v2.value);
+        } else if (n == 3) {
+            dst.value =  vbslq_f32(mask3, v1.value, v2.value);
+        } else if (n == 4) {
+            dst.value = v2.value;
+        }
+        return dst;
+    }
     static void mla(Float4& v1, const Float4& v2, const Float4& v3) {
         v1.value = vmlaq_f32(v1.value, v2.value, v3.value);
     }
@@ -506,6 +540,23 @@ struct Float4 {
     static void get_high(Float4& v1, Float2& v2) {
         v2.value[0] = v1.value[2];
         v2.value[1] = v1.value[3];
+    }
+    static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
+        Float4 dst;
+        for (int i = 0; i < 4; ++i) {
+            dst.value[i] = (n + i < 4) ? v1[n + i] : v2[n + i - 4];
+        }
+        return dst;
+    }
+    static Float4 pad(const Float4& v1, const Float4& v2, const int n) {
+        Float4 dst;
+        for (int i = 0; i < 4 - n; ++i) {
+            dst.value[i] = v1[i];
+        }
+        for (int i = 4 - n; i < 4; ++i) {
+            dst.value[i] = v2[i];
+        }
+        return dst;
     }
     static void mla(Float4& v1, const Float4& v2, const Float4& v3) {
         for (int i = 0; i < 4; ++i) {

@@ -51,7 +51,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     return TNN_OK;
 }
 
-std::string MetalReduceLayerAcc::KernelName() {
+std::string MetalReduceLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "";
 }
 
@@ -83,7 +83,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     string data_type_str = DataTypeUtils::GetDataTypeString(data_type);
 
     do {
-        auto kernel_name = KernelName();
+        auto kernel_name = KernelName(inputs, outputs);
         if (kernel_name.length() <= 0) {
             LOGE("Error: empty kernel name\n");
             status = Status(TNNERR_LAYER_ERR, "empty kernel name");

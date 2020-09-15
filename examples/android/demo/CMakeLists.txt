@@ -10,13 +10,13 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 set(TNN_ROOT ../../..)
-set(COMMON_SRC ../../samples)
+set(BASE_SRC ../../base)
 include_directories(${TNN_ROOT}/include)
 include_directories(${TNN_ROOT}/third_party/opencl/include)
 include_directories(../demo/src/main/jni/thirdparty)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/include)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
-include_directories(${COMMON_SRC}/)
+include_directories(${BASE_SRC}/)
 include_directories(../demo/src/main/jni/cc/)
 
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
@@ -26,9 +26,9 @@ set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 add_subdirectory(${TNN_ROOT}/ ../build)
 
 file(GLOB_RECURSE WRAPPER_SRCS ../demo/src/main/jni/cc/*.cc)
-file(GLOB_RECURSE COMMON_SRCS ${COMMON_SRC}/*.cc)
+file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
-add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${COMMON_SRCS} ${THIRDPARTY_SRCS})
+add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS})
 
 find_library( # Sets the name of the path variable.
               log-lib

@@ -26,7 +26,9 @@ TensorRTLayerBuilder::~TensorRTLayerBuilder() {
 Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
         std::vector<Blob*>& output_blobs, AbstractDevice* device) {
     auto tmp_device = GetDevice(DEVICE_NAIVE);
+    if (tmp_device == nullptr) printf("11111111\n");
     auto tmp_context = tmp_device->CreateContext(0);
+    if (tmp_context == nullptr) printf("2222222\n");
     Status ret = m_layer->Init(tmp_context, param, resource, input_blobs, output_blobs, tmp_device);
     if (ret != TNN_OK) {
         return ret;

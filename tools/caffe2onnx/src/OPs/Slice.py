@@ -68,7 +68,14 @@ def analyzeLayer(layer, input_shape):
 
 
 def getSliceOutShape(input_shape, start, end):
-    output_shape = [[input_shape[0][0], end - start, input_shape[0][2], input_shape[0][3]]]
+    if len(input_shape[0]) == 4:
+        output_shape = [[input_shape[0][0], end - start, input_shape[0][2], input_shape[0][3]]]
+    elif len(input_shape[0]) == 2:
+        output_shape = [[input_shape[0][0], end - start]]
+    else:
+        print("Unsupport slice shape")
+        exit(-1)
+
     return output_shape
 
 

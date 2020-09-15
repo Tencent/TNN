@@ -17,7 +17,7 @@ function clean_build() {
     mkdir $1
 }
 
-function build_atlas() {
+function build() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
@@ -43,4 +43,4 @@ while [ "$1" != "" ]; do
     esac
 done
 
-build_atlas
+build

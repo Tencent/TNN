@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -38,7 +38,7 @@ std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
         return build_options;
     }
 
-    std::string compute = "clamp(in,(FLOAT4)(" + to_string(clip_param->min) + "f),(FLOAT4)(" + to_string(clip_param->max) + "f))";
+    std::string compute = "clamp(in,(FLOAT4)(" + ToString(clip_param->min) + "f),(FLOAT4)(" + ToString(clip_param->max) + "f))";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }

@@ -1,6 +1,6 @@
 # TNN/scripts/
 TNN_DIR=$(pwd)/../
-thirdparty_dir=${TNN_DIR}/source/tnn/device/openvino/thirdparty/
+thirdparty_dir=${TNN_DIR}/source/tnn/network/openvino/thirdparty/
 
 if [ ! -d ${thirdparty_dir} ]
 then
@@ -15,6 +15,7 @@ mkdir build_openvino && cd build_openvino
 # TNN/scripts/build_openvino
 git clone https://github.com/openvinotoolkit/openvino.git
 cd openvino
+git reset --hard 9df6a8f
 
 # TNN/scripts/build_openvino/openvino
 git submodule update --init --recursive
@@ -36,6 +37,10 @@ cmake ../ \
 -DTHREADING=SEQ \
 -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
 -DENABLE_MYRIAD=OFF \
+-DNGRAPH_JSON_ENABLE=OFF \
+-DENABLE_PROFILING_ITT=OFF \
+-DENABLE_GNA=OFF \
+-DENABLE_VPU=OFF \
 
 make -j4
 make install
@@ -51,16 +56,22 @@ cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlu
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
 cp -r openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
+if [ -d openvinoInstall/deployment_tools/ngraph/lib64/ ]
+then
 cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.a ${thirdparty_dir}/openvino/lib/
+else
 cp -r openvinoInstall/deployment_tools/ngraph/lib/libngraph.a ${thirdparty_dir}/openvino/lib/
+fi
+if [ -d openvinoInstall/lib64/ ]
+then
 cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
+else
 cp openvinoInstall/lib/libpugixml.a ${thirdparty_dir}/openvino/lib/
-
-rm -rf openvinoInstall/deployment_tools/inference_engine/samples/
-rm -rf openvino
+fi
 
 cmake ../../ \
 -DTNN_OPENVINO_ENABLE=ON \
+-DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \
 -DTNN_CPU_ENABLE=ON \
 -DDEBUG=ON \

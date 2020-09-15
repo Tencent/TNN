@@ -1,6 +1,6 @@
 #include <fstream>
 #include <string>
-#include <cuda_runtime>
+#include <cuda_runtime.h>
 
 #include "tnn/core/tnn.h"
 #include "tnn/core/macro.h"
@@ -32,13 +32,14 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    int c = 3, h = 224, w = 224;
+    int n = 1, c = 3, h = 224, w = 224;
     std::string output_name;
-    if (argc >= 7) {
-        c = std::atoi(argv[3]);
-        h = std::atoi(argv[4]);
-        w = std::atoi(argv[5]);
-        output_name = std::string(argv[6]);
+    if (argc >= 8) {
+        n = std::atoi(argv[3]);
+        c = std::atoi(argv[4]);
+        h = std::atoi(argv[5]);
+        w = std::atoi(argv[6]);
+        output_name = std::string(argv[7]);
     }
 
     std::shared_ptr<TNN_NS::TNN> net_ = nullptr;
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
     }
     net_ = net;
 
-    std::vector<int> nchw = {1, c, h, w};
+    std::vector<int> nchw = {n, c, h, w};
     TNN_NS::InputShapesMap shapeMap;
     shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>("input", nchw));
     TNN_NS::NetworkConfig network_config;

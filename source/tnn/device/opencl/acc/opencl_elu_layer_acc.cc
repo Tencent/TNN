@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -37,7 +37,7 @@ std::set<std::string> OpenCLEluLayerAcc::CreateBuildOptions() {
         LOGE("elu param is nil");
         return build_options;
     }
-    std::string compute = "select(in,(FLOAT)(" + to_string(elu_param->alpha) + "f)*(exp(in)-(FLOAT)(1.0f)),in<0)";
+    std::string compute = "select(in,(FLOAT)(" + ToString(elu_param->alpha) + "f)*(exp(in)-(FLOAT)(1.0f)),in<0)";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }

@@ -36,6 +36,7 @@ Status PadLayer::InferOutputShape() {
     auto dims         = input_blob->GetBlobDesc().dims;
     dims[3] += layer_param->pads[0] + layer_param->pads[1];
     dims[2] += layer_param->pads[2] + layer_param->pads[3];
+    dims[1] += layer_param->pads[4] + layer_param->pads[5];
 
     output_blob->GetBlobDesc().dims = dims;
     return TNN_OK;

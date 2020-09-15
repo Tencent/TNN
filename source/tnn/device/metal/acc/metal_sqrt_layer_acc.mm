@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Sqrt, LAYER_SQRT);
 
-string MetalSqrtLayerAcc::KernelName() {
+string MetalSqrtLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "sqrt";
 }
 

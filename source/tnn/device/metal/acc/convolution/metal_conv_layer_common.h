@@ -53,7 +53,7 @@ public:
 
     virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 public:
-    virtual std::string KernelName();
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs,
                                      MTLSize &size);

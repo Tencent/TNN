@@ -271,7 +271,7 @@ namespace test {
             config.params.push_back(buffer);
 
             if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
-                std::ifstream model_stream(model_path);
+                std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
                     return config;
@@ -291,11 +291,15 @@ namespace test {
 
     NetworkConfig GetNetworkConfig() {
         NetworkConfig config;
-        // Precision : HIGH for float computing.
+        // Precision : AUTO for float computing.
         config.precision = ConvertPrecision(FLAGS_pr);
-        
+
         // Device Type: ARM, OPENECL, ...
-        config.device_type = ConvertDeviceType(FLAGS_dt);
+        if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
+            config.device_type = DEVICE_X86;
+        } else {
+            config.device_type = ConvertDeviceType(FLAGS_dt);
+        }
         
         // use model type instead, may change later for same model type with
         // different network type
@@ -427,7 +431,7 @@ namespace test {
                 DimsVector dims   = mat->GetDims();
                 std::string shape = "( ";
                 for (auto dim : dims) {
-                    shape += to_string(dim) + " ";
+                    shape += ToString(dim) + " ";
                 }
                 shape += ")";
                 LOGD("the output shape: %s\n", shape.c_str());

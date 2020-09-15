@@ -119,6 +119,10 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         // kernel: BinaryHW
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[2]);
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
+    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeWidth ||
+               broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
+        // kernel: BinaryWidth
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
     }
     // set output
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)outputs[0]->GetHandle().base));
@@ -138,6 +142,8 @@ std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerPara
     } else if (param.input0_broadcast_type == BroadcastTypeHeightWidth ||
                param.input1_broadcast_type == BroadcastTypeHeightWidth) {
         return "BinaryHW";
+    } else if (param.input0_broadcast_type == BroadcastTypeWidth || param.input1_broadcast_type == BroadcastTypeWidth) {
+        return "BinaryWidth";
     } else {
         return "BinaryElementWise";
     }

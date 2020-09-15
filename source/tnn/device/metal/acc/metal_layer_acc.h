@@ -43,9 +43,13 @@ public:
     
 
 public:
-    virtual std::string KernelName();
+    virtual std::string KernelName(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs);
     
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size);
+    virtual Status ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs,
                                      MTLSize &size);
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
@@ -102,7 +106,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
         virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);     \
         virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
-        virtual std::string KernelName(); \
+        virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs); \
         virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs, \
                                  const std::vector<Blob *> &outputs, \
                                  MTLSize &size); \

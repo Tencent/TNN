@@ -48,12 +48,26 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
-    // Normal precision, may run with bfp16.
+    // auto precision, each device choose default precision.
+    // ARM: prefer fp16
+    // OPENCL: prefer fp16
+    // METAL: prefer fp16
+    PRECISION_AUTO = -1,
+    // Normal precision
+    // ARM: run fp16 if device support fp16, else run fp32.
+    // OPNECL: run with mixed pricision
+    // METAL: run with fp16
     PRECISION_NORMAL = 0,
-    // High precision, run with fp32.
+    // High precision
+    // ARM: run with fp32
+    // OPENCL: run with fp32
+    // METAL: run with fp16
     PRECISION_HIGH = 1,
-    // Low precision, may run with int8, not supported now.
-    PRECISION_LOW = 2,
+    // Low precision
+    // ARM: run with bfp16
+    // OPENCL: run with fp16
+    // METAL: run with fp16
+    PRECISION_LOW = 2
 } Precision;
 
 typedef enum {
@@ -67,7 +81,7 @@ typedef enum {
 } NetworkType;
 
 typedef enum {
-    DEVICE_NAIVE    = 0x0000,
+    DEVICE_NAIVE  = 0x0000,
     DEVICE_X86    = 0x0010,
     DEVICE_ARM    = 0x0020,
     DEVICE_OPENCL = 0x1000,
@@ -122,7 +136,7 @@ struct PUBLIC NetworkConfig {
     std::vector<std::string> library_path = {};
 
     // compute precision
-    Precision precision = PRECISION_HIGH;
+    Precision precision = PRECISION_AUTO;
 };
 
 struct PUBLIC ModelConfig {

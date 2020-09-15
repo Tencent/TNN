@@ -17,6 +17,7 @@ set(TNNRoot ${CMAKE_SOURCE_DIR}/../../)
 set(TNNInclude ${TNNRoot}/include)
 set(LINK_LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} nvinfer)
 
+include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${TNNInclude})
 link_directories(${TNN_LIB_PATH})
 link_directories(${TENSORRT_ROOT}/lib)

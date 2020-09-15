@@ -39,9 +39,6 @@ SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::
     SharedMemory &share_memory                                   = s_shared_forward_memory[memory_id];
     std::vector<ISharedMemoryChangeListener *> &shared_instances = s_shared_memory_instances[memory_id];
     if (forward_memory_size > share_memory.shared_memory_size) {
-        if (share_memory.shared_memory_data != NULL) {
-            device->Free(share_memory.shared_memory_data);
-        }
         void *new_shared_memory = NULL;
         BlobMemorySizeInfo info;
         info.dims.push_back(forward_memory_size);
@@ -49,6 +46,11 @@ SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::
         if (status != TNN_OK) {
             return SharedMemory();
         }
+
+        if (share_memory.shared_memory_data != NULL) {
+            device->Free(share_memory.shared_memory_data);
+        }
+ 
         for (int i = 0; i < shared_instances.size(); ++i) {
             shared_instances[i]->OnSharedForwardMemoryChanged(new_shared_memory);
         }

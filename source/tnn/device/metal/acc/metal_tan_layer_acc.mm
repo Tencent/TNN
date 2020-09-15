@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 DECLARE_METAL_UNARY_ACC(Tan, LAYER_TAN);
 
-string MetalTanLayerAcc::KernelName() {
+string MetalTanLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "tan";
 }
 

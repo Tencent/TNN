@@ -33,6 +33,7 @@ option(TNN_QUANTIZATION_ENABLE "Enable Test" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
+option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -53,12 +54,22 @@ if(TNN_BENCHMARK_MODE)
 endif()
 
 # ignore loop-vectorize warning
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pass-failed")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pass-failed")
+if(SYSTEM.Windows)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pass-failed")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pass-failed")
+endif()
 
 # ignore deprecated warning
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")
+if(SYSTEM.Windows)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")
+endif()
 
 if(DEBUG)
     set(TNN_SYMBOL_HIDE OFF)
@@ -134,6 +145,10 @@ if(TNN_METAL_ENABLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
 endif()
 
+if(TNN_TNN2MEM_ENABLE)
+    add_subdirectory(tools/tnn2mem)
+endif()
+
 message(STATUS ">>>>>>>>>>>>>")
 message(STATUS "TNN BUILD INFO:")
 message(STATUS "\tSystem: ${CMAKE_SYSTEM_NAME}")
@@ -158,6 +173,7 @@ message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
+message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -176,8 +192,8 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc"
-                      "source/tnn/network/*.h"
-                      "source/tnn/network/*.cc")
+                      "source/tnn/network/tensorrt/*.h"
+                      "source/tnn/network/tensorrt/*.cc")
 
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
@@ -195,7 +211,7 @@ if(TNN_X86_ENABLE)
 endif()
 
 if(TNN_OPENVINO_ENABLE)
-    add_subdirectory(source/tnn/device/openvino)
+    add_subdirectory(source/tnn/network/openvino)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNOpenVINO>")
 endif()
 
@@ -216,10 +232,11 @@ endif()
 if(TNN_CUDA_ENABLE)
     add_subdirectory(source/tnn/device/cuda)
     if(TNN_TENSORRT_ENABLE)
-        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/include)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/TensorRT7.1/include)
         include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/md5)
-        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/lib/nvinfer)
-        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/tensorRT_cuda10_0/lib/nvinfer_plugin)
+        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/cub-1.7.4)
+        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/TensorRT7/lib/nvinfer)
+        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/cuda/thirdparty/TensorRT7/lib/nvinfer_plugin)
     endif()
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
@@ -294,6 +311,8 @@ elseif(SYSTEM.iOS)
     include(platforms/ios/CMakeLists.txt)
 elseif(SYSTEM.Darwin)
     include(platforms/mac/CMakeLists.txt)
+elseif(SYSTEM.Windows)
+    include(platforms/windows/CMakeLists.txt)
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
