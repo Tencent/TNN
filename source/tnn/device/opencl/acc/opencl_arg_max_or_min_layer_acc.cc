@@ -93,8 +93,7 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    for (int i = 0; i < output_dims.size(); i++)
-    {
+    for (int i = 0; i < output_dims.size(); i++) {
         if (i != axis)
             execute_units_[0].ocl_kernel.setArg(idx++, output_dims[i]);
     }
