@@ -30,8 +30,6 @@ namespace TNN_NS {
 NetworkImplFactoryRegister<NetworkImplFactory<RknpuNetwork>> g_network_impl_rknpu_factory_register(NETWORK_TYPE_RK_NPU);
 
 RknpuNetwork::RknpuNetwork() {
-    model_name_ = "";
-
     input_inf_.clear();
     output_inf_.clear();
 }
@@ -47,7 +45,6 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
 
     auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_            = default_interpreter->GetNetStructure();
-    model_name_               = RknpuUtils::GetFileHash(model_config);
 
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
 

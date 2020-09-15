@@ -257,10 +257,6 @@ if(TNN_RK_NPU_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNRKNPU>")
 endif()
 
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
-endif()
-
 if(TNN_BUILD_SHARED)
     add_library(TNN SHARED ${SRC} ${TARGET_OBJECTS})
     set_target_properties(TNN PROPERTIES VERSION ${TNN_VERSION} SOVERSION ${TNN_MAJOR_VERSION})
