@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_DEVICE_H_
-#define TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_DEVICE_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_DEVICE_H_
+#define TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_DEVICE_H_
 
 #include <cstring>
 #include <map>
@@ -55,4 +55,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_DEVICE_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_DEVICE_H_

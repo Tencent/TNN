@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_RKNPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
-#define TNN_SOURCE_TNN_DEVICE_RKNPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
+#ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
+#define TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
 #include <tnn/device/rknpu/convert/rknpu_base_layer.h>
 #include <tnn/device/rknpu/convert/rknpu_utils.h>
 #include <tnn/layer/base_layer.h>
@@ -92,4 +92,4 @@ protected:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_RKNPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
+#endif  // TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_

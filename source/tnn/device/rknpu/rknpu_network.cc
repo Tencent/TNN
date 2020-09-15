@@ -27,7 +27,7 @@
 
 namespace TNN_NS {
 
-NetworkImplFactoryRegister<NetworkImplFactory<RknpuNetwork>> g_network_impl_rknpu_factory_register(NETWORK_TYPE_RKNPU);
+NetworkImplFactoryRegister<NetworkImplFactory<RknpuNetwork>> g_network_impl_rknpu_factory_register(NETWORK_TYPE_RK_NPU);
 
 RknpuNetwork::RknpuNetwork() {
     model_name_ = "";
@@ -51,7 +51,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
 
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
 
-    if (net_config.device_type == DEVICE_RKNPU && model_config.model_type == MODEL_TYPE_TNN) {
+    if (net_config.device_type == DEVICE_RK_NPU && model_config.model_type == MODEL_TYPE_TNN) {
         // RKNPU IR Build
         Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
         if (build_ret != TNN_OK) {
@@ -85,7 +85,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         std::advance(it, i);
 
         BlobDesc desc;
-        desc.device_type = DEVICE_RKNPU;
+        desc.device_type = DEVICE_RK_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = it->first;
@@ -115,7 +115,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         auto it = net_structure_->outputs.begin();
         std::advance(it, i);
         BlobDesc desc;
-        desc.device_type = DEVICE_RKNPU;
+        desc.device_type = DEVICE_RK_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.name        = *it;

@@ -24,7 +24,7 @@ if(TNN_CUDA_ENABLE)
     target_link_libraries(TNN ${CUDNN_LIBS} ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 endif()
 
-if(TNN_RKNPU_ENABLE)
+if(TNN_RK_NPU_ENABLE)
     message(STATUS "Build TNN RKNPU")
     target_link_libraries(TNN rknpu_ddk)
 endif()

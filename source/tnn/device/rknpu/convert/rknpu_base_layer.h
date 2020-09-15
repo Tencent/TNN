@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_RKNPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_RKNPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_RK_NPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_RK_NPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_
 
 #include <tnn/layer/base_layer.h>
 
@@ -144,4 +144,4 @@ RknpuBaseLayer *CreateRknpuBaseLayer(LayerType type);
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_RKNPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_RK_NPU_CONVERT_RKNPU_BASE_LAYER_ACC_H_

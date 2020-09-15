@@ -33,7 +33,7 @@ DeviceType ConvertDeviceType(std::string device_type) {
     } else if ("HUAWEI_NPU" == device_type) {
         return DEVICE_HUAWEI_NPU;
     } else if ("RKNPU" == device_type) {
-        return DEVICE_RKNPU;
+        return DEVICE_RK_NPU;
     } else {
         return DEVICE_ARM;
     }
@@ -63,7 +63,7 @@ NetworkType ConvertNetworkType(std::string network_type) {
     } else if ("HUAWEI_NPU" == network_type) {
         return NETWORK_TYPE_HUAWEI_NPU;
     } else if ("RKNPU" == network_type) {
-        return NETWORK_TYPE_RKNPU;
+        return NETWORK_TYPE_RK_NPU;
     } else {
         return NETWORK_TYPE_DEFAULT;
     }

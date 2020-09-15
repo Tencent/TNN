@@ -40,7 +40,7 @@ namespace optimizer {
             kLayerActivationMap[LAYER_RELU6] = ActivationType_ReLU6;
             return true;
         }
-        if (device == DEVICE_RKNPU) {
+        if (device == DEVICE_RK_NPU) {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
             return true;
         }

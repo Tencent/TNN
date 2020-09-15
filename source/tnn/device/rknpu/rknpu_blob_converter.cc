@@ -11,8 +11,8 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_BLOB_CONVERTER_CC_
-#define TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_BLOB_CONVERTER_CC_
+#ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
+#define TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
 #include "tnn/core/macro.h"
 #include "tnn/device/cpu/cpu_blob_converter.h"
 #include "tnn/utils/blob_converter.h"
@@ -41,7 +41,7 @@ public:
 };
 
 DECLARE_BLOB_CONVERTER_CREATER(Rknpu);
-REGISTER_BLOB_CONVERTER(Rknpu, DEVICE_RKNPU);
+REGISTER_BLOB_CONVERTER(Rknpu, DEVICE_RK_NPU);
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_RKNPU_RKNPU_BLOB_CONVERTER_CC_
+#endif  // TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_

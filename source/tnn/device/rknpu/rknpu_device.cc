@@ -92,6 +92,6 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& RknpuDevice::GetLayerCrea
     return layer_creator_map;
 }
 
-TypeDeviceRegister<RknpuDevice> g_rknpu_device_register(DEVICE_RKNPU);
+TypeDeviceRegister<RknpuDevice> g_rknpu_device_register(DEVICE_RK_NPU);
 
 }  // namespace TNN_NS
