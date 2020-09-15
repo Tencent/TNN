@@ -1,4 +1,4 @@
-# ONNX(Pytorch) 模型转换为 TNN 模型
+#Tensorflow-lite 模型转换为 TNN 模型
 
 [English Version](../../en/user/onnx2tnn_en.md)
 
