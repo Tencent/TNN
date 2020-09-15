@@ -56,16 +56,15 @@ function build_android_bench() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
-    if [  "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "HUAWEI_NPU"  ]; then
+    if [ "$DEVICE_TYPE" = "HUAWEI_NPU"  ]; then
       echo "NPU Enable"
       # set c++ shared
       STL="c++_shared"
+      HUAWEI_NPU_ENABLE="ON"
       #start to cp
       if [ ! -d ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/ ]; then
            mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/
       fi
-      ls -l ../../
-      ls -l ${WORK_DIR}/../..
       mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/armeabi-v7a
       mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/arm64-v8a
       cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_shared.so  ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/armeabi-v7a/
@@ -82,7 +81,7 @@ function build_android_bench() {
           -DANDROID_TOOLCHAIN=clang \
           -DTNN_ARM_ENABLE:BOOL=ON \
           -DTNN_OPENCL_ENABLE:BOOL=ON \
-          -DTNN_HUAWEI_NPU_ENABLE:BOOL=ON \
+          -DTNN_HUAWEI_NPU_ENABLE:BOOL=${HUAWEI_NPU_ENABLE} \
           -DTNN_OPENMP_ENABLE:BOOL=ON \
           -DTNN_TEST_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
@@ -149,11 +148,11 @@ function bench_android() {
         done
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "HUAWEI_NPU" ];then
+    if [ "$DEVICE_TYPE" = "HUAWEI_NPU" ];then
         echo "Run Huawei Npu"
         device=HUAWEI_NPU
-	$ADB push ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/${ABI}/ $ANDROID_DIR/
-        $ADB push ${WORK_DIR}/../../third_party/huawei_npu/hiai_ddk_latest/${ABI}/ $ANDROID_DIR/
+	    $ADB push ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/${ABI}/* $ANDROID_DIR/
+        $ADB push ${WORK_DIR}/../../third_party/huawei_npu/hiai_ddk_latest/${ABI}/* $ANDROID_DIR/
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do

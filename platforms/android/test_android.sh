@@ -4,7 +4,7 @@ ANDROID_DIR=/data/local/tmp/
 
 TEST_PROTO_PATH=
 #DEVIVE: ARM/OPENCL/HUAWEI_NPU
-DEVICE="ARM"
+DEVICE="HUAWEI_NPU"
 WARM_UP_COUNT=0
 ITERATOR_COUNT=1
 NEED_REBUILD=true
@@ -16,7 +16,6 @@ ABI="armeabi-v7a"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     export HUAWEI_NPU="ON"
-    export TNN_ROOT=${WORK_DIR}/../../
 fi
 
 if $NEED_REBUILD
