@@ -13,12 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #import "TNNExamplesListController.h"
-#include <cmath>
-#include <float.h>
-#include <fstream>
-#include <sstream>
-#include <sys/time.h>
-#import <tnn/tnn.h>
+#import "TNNCameraPreviewController.h"
+#import "TNNFaceDetectorViewModel.h"
+#import "TNNBlazeFaceDetectorViewModel.h"
+#import "TNNSSDObjectDetectorViewModel.h"
+#import "TNNYoloObjectDetectorViewModel.h"
+#import "TNNFaceDetectAlignerViewModel.h"
+#import "TNNFaceDetectMeshViewModel.h"
 
 using namespace std;
 
@@ -55,9 +56,38 @@ using namespace std;
     } else if (indexPath.section == 1) {
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageClassifyController"];
     } else if (indexPath.section == 2){
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNImageColourController"];
+    } else if (indexPath.section == 3) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNBlazefaceDetectorController"];
+    } else if (indexPath.section == 4){
         vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNBlazeFaceDetectorViewModel new];
+        cameraViewController.viewModel.title = @"人脸检测 - BalzeFace";
+        cameraViewController.viewModel.preferFrontCamera = true;
+    } else if (indexPath.section == 5) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNSSDObjectDetectorViewModel new];
+        cameraViewController.viewModel.title = @"物体检测 - mbv2+SSD";
+    } else if (indexPath.section == 6) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNYoloObjectDetectorViewModel new];
+        cameraViewController.viewModel.title = @"物体检测 - yolov5";
+    }  else if (indexPath.section == 7) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNFaceDetectAlignerViewModel new];
+        cameraViewController.viewModel.title = @"人脸检测配准 - 腾讯优图";
+        cameraViewController.viewModel.preferFrontCamera = true;
+    } else if (indexPath.section == 8) {
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"TNNCameraPreviewController"];
+        auto cameraViewController = (TNNCameraPreviewController*)vc;
+        cameraViewController.viewModel = [TNNFaceDetectMeshViewModel new];
+        cameraViewController.viewModel.title = @"Facemesh";
+        cameraViewController.viewModel.preferFrontCamera = true;
     }
-
     if (!vc) {
         return;
     }

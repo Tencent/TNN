@@ -114,9 +114,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     }
 
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
 
     DataType data_type = output->GetBlobDesc().data_type;
     int data_byte_size = DataTypeUtils::GetBytesSize(data_type);

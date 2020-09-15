@@ -62,7 +62,7 @@ Analyze the running time of a model.
 
 #### 1.1 Compile
  
-Please refer to [TNN Compile Document](../user/compile_en.md):Compile for Android, to check if the environment meets the requirements.
+Please refer to [TNN Compile Document](../user/compile_en.md):Compile for Android/Armlinux, to check if the environment meets the requirements.
 
 #### 1.2 Execute
 
@@ -100,7 +100,6 @@ Parameters：
     -c    clean and recompile
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
-    -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected
     -t    add <CPU/GPU> to indicate the platform to run.
 ```
 

@@ -104,7 +104,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         GTEST_SKIP();
     } else if (mat_type == NGRAY && channel != 1) {
         GTEST_SKIP();
-    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0)) {
+    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0 || DEVICE_OPENCL == dev)) {
         GTEST_SKIP();
     }
 
@@ -191,15 +191,32 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     }
 
     Mat mat_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
-    cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
-    device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
+    Status ret;
+    ret = cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
+    if (ret != TNN_OK) {
+        LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
+        FAIL();
+    }
+    ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
+    if (ret != TNN_OK) {
+        LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
+        FAIL();
+    }
 
     MatConvertParam to_mat_param;
     to_mat_param.reverse_channel = reverse_channel;
     Mat mat_out_ref_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
-    cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
+    ret = cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
+    if (ret != TNN_OK) {
+        LOGE("cpu converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
+        FAIL();
+    }
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, mat_out_dev_nchw_data);
-    device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
+    ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
+    if (ret != TNN_OK) {
+        LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
+        FAIL();
+    }
     int cmp_result    = 0;
     float compare_eps = blob_data_type == DATA_TYPE_INT8 ? max_i8_diff + 0.01 : 0.01;
 
@@ -211,8 +228,16 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     if (mat_type != NCHW_FLOAT && dev != DEVICE_ARM) {
         to_mat_param.scale = {scale, scale, scale, scale};
         to_mat_param.bias  = {bias, bias, bias, bias};
-        cpu_converter.ConvertToMat(mat_out_ref, to_mat_param, NULL);
-        device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
+        ret = cpu_converter.ConvertToMat(mat_out_ref, to_mat_param, NULL);
+        if (ret != TNN_OK) {
+            LOGE("cpu converter convert blob to mat failed, mat type: %d\n", mat_type);
+            FAIL();
+        }
+        ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            FAIL();
+        }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
     }

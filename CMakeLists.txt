@@ -18,7 +18,7 @@ option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
 option(TNN_DSP_ENABLE "Enable DSP" OFF)
 option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
-option(TNN_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
@@ -161,7 +161,7 @@ message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
 message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
 message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
-message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
+message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -190,6 +190,10 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/optimizer/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
+
+if(TNN_SYMBOL_HIDE AND UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
 
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
@@ -241,6 +245,25 @@ if(TNN_DSP_ENABLE)
     endif()
 endif()
 
+if(TNN_HUAWEI_NPU_ENABLE)
+    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+        link_directories(
+                third_party/huawei_npu/hiai_ddk_latest/armeabi-v7a/
+        )
+    else()
+        link_directories(
+                third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/
+        )
+    endif()
+    add_subdirectory(source/tnn/device/huawei_npu)
+
+    if(TNN_CPU_ENABLE)
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
+    else()
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
+    endif()
+endif()
+
 if(TNN_ATLAS_ENABLE)
     add_subdirectory(source/tnn/device/atlas)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
@@ -273,24 +296,6 @@ if(TNN_ATLAS_ENABLE)
     link_directories(
         ${ACL_LIB_PATH}
         )
-endif()
-
-if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib
-            )
-    else()
-        link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib64
-            )
-    endif()
-endif()
-
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
 if(TNN_BUILD_SHARED)

@@ -4,4 +4,10 @@
     <string name="tnn_fd_stream_btn_name">人脸检测-视频输入</string>
     <string name="tnn_fd_image_btn_name">人脸检测-图片输入</string>
     <string name="tnn_ic_image_btn_name">图像分类-图片输入</string>
+    <string name="tnn_od_image_btn_name">物体检测-图片输入</string>
+    <string name="tnn_od_stream_btn_name">物体检测-视频输入</string>
+    <string name="tnn_odssd_image_btn_name">物体检测ssd-图片输入</string>
+    <string name="tnn_odssd_stream_btn_name">物体检测ssd-视频输入</string>
+    <string name="tnn_bf_image_btn_name">人脸检测Blazeface-图片输入</string>
+    <string name="tnn_bf_stream_btn_name">人脸检测Blazeface-视频输入</string>
 </resources>

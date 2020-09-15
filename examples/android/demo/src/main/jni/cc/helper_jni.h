@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #ifndef ANDROID_HELPER_JNI_H_
-#define ANDROID_HELPER_JNI_H
+#define ANDROID_HELPER_JNI_H_
 
 #include <string>
 #include <jni.h>
