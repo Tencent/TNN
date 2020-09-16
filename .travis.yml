@@ -54,11 +54,11 @@ matrix:
     #   script:
     #     - ./scripts/build_android.sh
 
-    # - name: "Linux | Arm64 | build"
-    #   os: linux
-    #   arch: arm64
-    #   script:
-    #     - ./scripts/build_aarch64_linux.sh
+    - name: "Linux | Arm64 | build"
+      os: linux
+      arch: arm64
+      script:
+        - ./scripts/build_aarch64_linux.sh
 
     - name: "Linux | Arm32 | build"
       os: linux
