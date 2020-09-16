@@ -16,6 +16,18 @@
 #include "tnn/device/metal/acc/metal_common.metal"
 
 using namespace metal;
+#define COMPARE_SET_FLAG(f, v1, v2, m)          \
+    do {                                        \
+        if (m == 0) {                           \
+            f = bool4(v1 <= v2);                \
+        } else {                                \
+            f = bool4(v1 >= v2);                \
+        }                                       \
+    } while(0)
+
+#define REDUCE_VEC4(vec, op)                    \
+        op(vec.x, op(vec.y, op(vec.z, vec.w)))
+
 kernel void argmax_or_min_common(const device ftype4 *src                   [[buffer(0)]],
                                  device       ftype4 *dst                   [[buffer(1)]],
                                  constant MetalArgMaxOrMinParams &params    [[buffer(2)]],
@@ -28,24 +40,17 @@ kernel void argmax_or_min_common(const device ftype4 *src                   [[bu
 
     ftype4 guard_value = src[index_in];
     int4   guard_index = int4(0);
+    auto   flag        = bool4(false);
     for(int r=1; r<params.reduce_size; ++r) {
         index_in += params.inner_size;
         ftype4 val = src[index_in];
         int4   idx = int4(r);
-        auto flag = bool4(false);
-        if (params.mode == 0) {
-            //argmin
-            flag = bool4(guard_value <= val);
-        } else {
-            //argmax
-            flag = bool4(guard_value >= val);
-        }
+        COMPARE_SET_FLAG(flag, guard_value, val, params.mode);
         guard_value = select(val, guard_value, flag);
         guard_index = select(idx, guard_index, flag);
     }
 
     dst[index_out] = ftype4(guard_index);
-
 }
 
 kernel void argmax_or_min_channel(const device ftype4 *src                  [[buffer(0)]],
@@ -66,16 +71,10 @@ kernel void argmax_or_min_channel(const device ftype4 *src                  [[bu
     auto reduce_c4 = params.input_channel / 4;
     auto reduce_r4 = params.input_channel % 4;
     int4 idx = int4(0, 1, 2, 3);
+    auto flag = bool4(false);
     for(int rc=0; rc<reduce_c4; ++rc) {
         ftype4 val = src[index_in];
-        auto flag = bool4(false);
-        if (params.mode == 0) {
-            //argmin
-            flag = bool4(guard_value <= val);
-        } else {
-            //argmax
-            flag = bool4(guard_value >= val);
-        }
+        COMPARE_SET_FLAG(flag, guard_value, val, params.mode);
         guard_value = select(val, guard_value, flag);
         guard_index = select(idx, guard_index, flag);
 
@@ -95,41 +94,15 @@ kernel void argmax_or_min_channel(const device ftype4 *src                  [[bu
                 r4_value = ftype4(r4_value.x, r4_value.y, r4_value.z, pad_val);
                 break;
         }
-        auto flag = bool4(false);
-        if (params.mode == 0) {
-            //argmin
-            flag = bool4(guard_value <= r4_value);
-        } else {
-            //argmax
-            flag = bool4(guard_value >= r4_value);
-        }
+        COMPARE_SET_FLAG(flag, guard_value, r4_value, params.mode);
         guard_value = select(r4_value, guard_value, flag);
         guard_index = select(idx, guard_index, flag);
     }
     // find the target value in ftype4
-    ftype target_idx = params.input_channel;
-    {
-        if (params.mode == 0) {
-            ftype min_val = fmin(guard_value.x, fmin(guard_value.y, fmin(guard_value.z, guard_value.w)));
-            if (min_val == guard_value.x)
-                target_idx = fmin(target_idx, guard_index.x);
-            if (min_val == guard_value.y)
-                target_idx = fmin(target_idx, guard_index.y);
-            if (min_val == guard_value.z)
-                target_idx = fmin(target_idx, guard_index.z);
-            if (min_val == guard_value.w)
-                target_idx = fmin(target_idx, guard_index.w);
-        } else {
-            ftype max_val = fmax(guard_value.x, fmax(guard_value.y, fmax(guard_value.z, guard_value.w)));
-            if (max_val == guard_value.x)
-                target_idx = fmin(target_idx, guard_index.x);
-            if (max_val == guard_value.y)
-                target_idx = fmin(target_idx, guard_index.y);
-            if (max_val == guard_value.z)
-                target_idx = fmin(target_idx, guard_index.z);
-            if (max_val == guard_value.w)
-                target_idx = fmin(target_idx, guard_index.w);
-        }
-    }
+    ftype target_val = params.mode==0? REDUCE_VEC4(guard_value, min):REDUCE_VEC4(guard_value, max);
+    auto eq  = (guard_value == target_val);
+    idx = select(int4(params.input_channel), guard_index, eq);
+    auto target_idx = REDUCE_VEC4(idx, min);
+
     dst[index_out] = ftype4(target_idx, 0, 0, 0);
 }
