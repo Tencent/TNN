@@ -12,19 +12,35 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "tnn_sdk_sample.h"
-#import "tnn_fps_counter.h"
+#include "rknpu_base_layer.h"
+#include "rknpu_utils.h"
 
+namespace TNN_NS {
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
+DECLARE_RKNPU_LAYER(Softmax, LAYER_SOFTMAX)
+
+Status RknpuSoftmaxLayer::Convert() {
+    auto param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
+
+    Status ret = TNN_OK;
+    std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
+
+    // input
+    inputs.push_back(input_ops_[0]);
+
+    // output
+    ADD_OUTPUT_OP();
+
+    rk::nn::SoftmaxAttr attr;
+    attr.axis = param->axis;
+    attr.beta = 1.0;
+
+    graph_->AddOperator(rk::nn::OperatorType::SOFTMAX, inputs, output_ops_, (void *)&attr);
+
+    return ret;
 }
 
+REGISTER_RKNPU_LAYER(Softmax, LAYER_SOFTMAX)
 
-
-- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
-  withOriginImageSize:(CGSize)size
-           withStatus:(Status)status;
-
-@end
+}  // namespace TNN_NS

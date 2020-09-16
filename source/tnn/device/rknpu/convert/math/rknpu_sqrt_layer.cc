@@ -12,19 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "tnn_sdk_sample.h"
-#import "tnn_fps_counter.h"
+#include "rknpu_unary_operator.h"
+#include "tnn/device/rknpu/convert/rknpu_base_layer.h"
+#include "tnn/device/rknpu/convert/rknpu_utils.h"
 
+namespace TNN_NS {
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
-}
+class RknpuSqrtLayer : public RknpuUnaryLayer {
+public:
+    RknpuSqrtLayer(LayerType ignore) : RknpuUnaryLayer(LAYER_SQRT) {}
+    ~RknpuSqrtLayer() {}
 
+protected:
+    Status Convert() {
+        return RknpuUnaryLayer::UnaryConvert(rk::nn::OperatorType::SQRT);
+    }
+};
 
+REGISTER_RKNPU_LAYER(Sqrt, LAYER_SQRT);
 
-- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
-  withOriginImageSize:(CGSize)size
-           withStatus:(Status)status;
-
-@end
+}  // namespace TNN_NS

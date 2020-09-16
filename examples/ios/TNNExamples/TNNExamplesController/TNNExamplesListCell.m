@@ -12,19 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "tnn_sdk_sample.h"
-#import "tnn_fps_counter.h"
+#import "TNNExamplesListCell.h"
 
+@implementation TNNExamplesListCell
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    // Initialization code
 }
 
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
 
-
-- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
-  withOriginImageSize:(CGSize)size
-           withStatus:(Status)status;
+    // Configure the view for the selected state
+}
 
 @end
