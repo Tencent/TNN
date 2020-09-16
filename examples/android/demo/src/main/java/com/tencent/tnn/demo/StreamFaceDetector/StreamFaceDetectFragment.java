@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -320,17 +321,13 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            FaceDetector.FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             Log.i(TAG, "detect from stream ret " + faceInfoList);
                             int faceCount = 0;
                             if (faceInfoList != null) {
                                 faceCount = faceInfoList.length;
                             }
                             mDrawView.addFaceRect(faceInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
-
-                            String result = "face count: " + faceCount + " " + Helper.getBenchResult();
-                            TextView result_view = (TextView)$(R.id.result);
-                            result_view.setText(result);
                         }
                         else {
                             Log.i(TAG,"No face");
