@@ -49,6 +49,7 @@
 		D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */ = {isa = PBXBuildFile; fileRef = D1330F4A244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm */; };
 		D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */; };
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
+		EC0BE110251238FC009BD69A /* hand_tracking.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE10E251238FC009BD69A /* hand_tracking.cc */; };
 		EC1B9AA824BC0B7B0003A742 /* object_detector_yolo.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC1B9AA724BC0B7B0003A742 /* object_detector_yolo.cc */; };
 		EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72B250797C800EE3899 /* image_classifier.cc */; };
 		EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */; };
@@ -155,6 +156,8 @@
 		D1330F4B244AC4FA00CEBF29 /* TNNCameraVideoDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNCameraVideoDevice.h; sourceTree = "<group>"; };
 		D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = camera_rotate_fill.png; sourceTree = "<group>"; };
+		EC0BE10E251238FC009BD69A /* hand_tracking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = hand_tracking.cc; sourceTree = "<group>"; };
+		EC0BE10F251238FC009BD69A /* hand_tracking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hand_tracking.h; sourceTree = "<group>"; };
 		EC1B9AA624BC0B4B0003A742 /* object_detector_yolo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = object_detector_yolo.h; sourceTree = "<group>"; };
 		EC1B9AA724BC0B7B0003A742 /* object_detector_yolo.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = object_detector_yolo.cc; sourceTree = "<group>"; };
 		EC2CF729250797C800EE3899 /* sample_timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sample_timer.h; sourceTree = "<group>"; };
@@ -390,6 +393,8 @@
 				ECAD84FC24D7F0AE0074EA95 /* face_mesh.h */,
 				ECD14A002505F88C00271443 /* face_detect_mesh.cc */,
 				ECD14A012505F88C00271443 /* face_detect_mesh.h */,
+				EC0BE10E251238FC009BD69A /* hand_tracking.cc */,
+				EC0BE10F251238FC009BD69A /* hand_tracking.h */,
 			);
 			name = base;
 			path = ../../base;
@@ -606,6 +611,7 @@
 				EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */,
 				9D71E79324C1980700074C1A /* tnn_fps_counter.cc in Sources */,
 				9D8493C62510B4A400869EEF /* TNNExamplesController.mm in Sources */,
+				EC0BE110251238FC009BD69A /* hand_tracking.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
