@@ -154,19 +154,23 @@ using namespace TNN_NS;
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
     NSString *model_path = nil;
     NSString *proto_path = nil;
+    NSString *mean_pts_path = nil;
     
     if(1 == phase) {
-        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy.opt.tnnmodel"
+        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p1_bf16_easy_remove_vis_addsigmoid.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase1.tnnproto"
+                                                     ofType:nil];
+        mean_pts_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_mean_pts_phase1.txt"
                                                      ofType:nil];
     } else if(2 == phase) {
-        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy.opt.tnnmodel"
+        model_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel"
                                                      ofType:nil];
-        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_facealign/p2_bf16_easy_remove_vis.opt.tnnproto"
+        proto_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_face_alignment_phase2.tnnproto"
+                                                     ofType:nil];
+        mean_pts_path = [[NSBundle mainBundle] pathForResource:@"model/youtu_face_alignment/youtu_mean_pts_phase2.txt"
                                                      ofType:nil];
     } else{
-        self.labelResult.text = @"facealign model phase is invalid";
         NSLog(@"Error: facealign model phase is invalid");
         return nullptr;
     }
@@ -214,8 +218,7 @@ using namespace TNN_NS;
         //net_scale
         option->net_scale = phase == 1? 1.2 : 1.3;
         //mean pts path
-        string mean_file_path = string([[[NSBundle mainBundle] pathForResource: phase==1? @"mean_pts_phase1.txt" : @"mean_pts_phase2.txt" ofType:nil] UTF8String]);
-        option->mean_pts_path = std::move(mean_file_path);
+       option->mean_pts_path = mean_pts_path ? string(mean_pts_path.UTF8String) : "";
     }
         
     predictor = std::make_shared<YoutuFaceAlign>();

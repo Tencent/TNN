@@ -63,7 +63,7 @@ std::shared_ptr<Mat> Facemesh::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat
         if (status == TNN_OK) {
             return target_mat;
         } else {
-            LOGE("%s\n", status.description().c_str());
+            LOGI("%s\n", status.description().c_str());
             return nullptr;
         }
     }
@@ -116,7 +116,7 @@ void Facemesh::GenerateLandmarks(std::vector<FacemeshInfo> &detects, TNN_NS::Mat
     float face_presence_score = static_cast<float*>(score_mat.GetData())[0];
     if(face_presence_score < face_presence_threshold) {
         //No faces found
-        LOGE("No faces found!\n");
+        LOGI("No faces found!\n");
         return;
     }
     // landmark decoding & normalization

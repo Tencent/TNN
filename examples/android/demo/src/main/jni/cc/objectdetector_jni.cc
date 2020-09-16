@@ -42,13 +42,12 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstr
     option->library_path="";
     option->proto_content = protoContent;
     option->model_content = modelContent;
-    LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
+    LOGI("the device type  %d device huawei_npu" ,gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
-        LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
@@ -62,9 +61,7 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(init)(JNIEnv *env, jobject thiz, jstr
         LOGE("detector init failed %d", (int)status);
         return -1;
     }
-    TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 1;
-    gDetector->SetBenchOption(bench_option);
+
     if (clsObjectInfo == NULL)
     {
         clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/ObjectInfo")));
@@ -147,18 +144,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
         return 0;
     }
 
-    LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
-    char temp[128] = "";
-    std::string device = "arm";
-    if (gComputeUnitType == 1) {
-        device = "gpu";
-    } else if (gComputeUnitType == 2) {
-        device = "huawei_npu";
-    }
-    sprintf(temp, " device: %s \ntime:", device.c_str());
-    std::string computeUnitTips(temp);
-    std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
-    setBenchResult(resultTips);
     LOGI("object info list size %d", objectInfoList.size());
     // TODO: copy object info list
     if (objectInfoList.size() > 0) {
