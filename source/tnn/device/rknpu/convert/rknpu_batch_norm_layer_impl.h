@@ -12,19 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "tnn_sdk_sample.h"
-#import "tnn_fps_counter.h"
+#include "rknpu_base_layer.h"
+#include "rknpu_utils.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_RKNPU_BATCH_NORM_LAYER_IMPL_H_
+#define TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_RKNPU_BATCH_NORM_LAYER_IMPL_H_
 
+namespace TNN_NS {
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
-}
+class RknpuBatchNormImplLayer : public RknpuBaseLayer {
+public:
+    RknpuBatchNormImplLayer(LayerType layer_type) : RknpuBaseLayer(layer_type){};
+    virtual ~RknpuBatchNormImplLayer() {}
 
+protected:
+    std::vector<float> mean_data;
+    std::vector<float> variance_data;
+    std::vector<float> share_scale_data;
+    std::vector<float> share_bias_data;
+};
 
+}  // namespace TNN_NS
 
-- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
-  withOriginImageSize:(CGSize)size
-           withStatus:(Status)status;
-
-@end
+#endif  // TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_RKNPU_BATCH_NORM_LAYER_IMPL_H_
