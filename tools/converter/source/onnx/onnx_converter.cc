@@ -20,14 +20,14 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "onnx_proxy_graph.h"
-#include "tnn/core/macro.h"
 #include "onnx_utils.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
 
 Onnx2Tnn::Onnx2Tnn(std::string model_path) {
     this->onnx_model_path_ = model_path;
-    this->onnx_model_ = std::unique_ptr<onnx::ModelProto>(new onnx::ModelProto());
+    this->onnx_model_      = std::unique_ptr<onnx::ModelProto>(new onnx::ModelProto());
 }
 
 TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetResource net_resource) {
@@ -36,27 +36,28 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
     }
     const auto& onnx_graph = onnx_model_->graph();
     std::shared_ptr<OnnxProxyGraph> onnx_proxy_graph(new OnnxProxyGraph(&onnx_graph));
-    const auto& proxy_initializers            = onnx_proxy_graph->proxy_initializers_map_;
-    const auto& proxy_inputs                  = onnx_proxy_graph->proxy_inputs_map_;
-    const auto& proxy_outputs                 = onnx_proxy_graph->proxy_outputs_map_;
-    const auto& proxy_nodes                   = onnx_proxy_graph->proxy_nodes_map_;
+    const auto& proxy_initializers      = onnx_proxy_graph->proxy_initializers_map_;
+    const auto& proxy_inputs            = onnx_proxy_graph->proxy_inputs_map_;
+    const auto& proxy_outputs           = onnx_proxy_graph->proxy_outputs_map_;
+    const auto& proxy_nodes             = onnx_proxy_graph->proxy_nodes_map_;
     const auto& constant_node_to_delete = onnx_proxy_graph->constant_node_to_delete_;
 
     bool quantized_mode = IsQuantized();
     // convert onnx graph input
     TNN_NS::InputShapesMap input_shapes_map = net_structure.inputs_shape_map;
-    for (const auto iter: proxy_inputs) {
+    for (const auto iter : proxy_inputs) {
         // input in initializers
         if (proxy_initializers.find(iter.first) != proxy_initializers.end()) {
             continue;
         }
-        auto input_name = iter.first;
-        auto input = iter.second;
-        auto input_shape_tensor = input->type().tensor_type().shape();
+        auto input_name                = iter.first;
+        auto input                     = iter.second;
+        auto input_shape_tensor        = input->type().tensor_type().shape();
         TNN_NS::DimsVector dims_vector = ConvertTensorShapeProtoToDimsVector(input_shape_tensor);
         if (dims_vector.size() != 4) {
-            LOGE("The onnx have support input shape\n");
-            return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
+            //            LOGE("The onnx have support input shape\n");
+            //            return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
+            continue;
         }
         if (input_shapes_map.find(input_name) == input_shapes_map.end()) {
             input_shapes_map[input_name] = dims_vector;
@@ -64,7 +65,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
     }
     // convert onnx graph output
     auto& outputs = net_structure.outputs;
-    for (const auto iter: proxy_outputs) {
+    for (const auto iter : proxy_outputs) {
         auto output_name = iter.first;
         if (outputs.find(output_name) == outputs.end()) {
             outputs.insert(output_name);
@@ -72,6 +73,10 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
     }
 
     // convert onnx nodes
+    const auto node_size = onnx_graph.node_size();
+    for (int i = 0; i < node_size; ++i) {
+        
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 
