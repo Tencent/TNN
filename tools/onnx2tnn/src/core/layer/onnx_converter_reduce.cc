@@ -27,7 +27,7 @@ string OnnxConverterReduce::TNNLayerParam(NodeProto &node,
         layer_param << axis << " ";
     }
 
-    if (axes.size() != 1) {
+    /*if (axes.size() != 1) {
         DLog(
             "error::ReduceMean convert failed onnx: must contain only 1 "
             "axis\n");
@@ -35,7 +35,7 @@ string OnnxConverterReduce::TNNLayerParam(NodeProto &node,
     }
     if (axes[0] != 1) {
         DLog("Warning::Reduce may not support axes != 1, depend on device\n");
-    }
+    }*/
     return layer_param.str();
 }
 
