@@ -418,19 +418,18 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat>
         return nullptr;
     }
 
-    // convert ngray mat to nchw_float
-    auto grayMatFloat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NCHW_FLOAT, grayMat->GetDims());
-    float* grayFloatData  = static_cast<float*>(grayMatFloat->GetData());
-    uint8_t* grayUintData = static_cast<uint8_t*>(grayMat->GetData());
-    for(int i=0; i<grayDims[2]*grayDims[3]; ++i) {
-        grayFloatData[i] = grayUintData[i];
-    }
-
     // copy when necessary
     std::shared_ptr<TNN_NS::Mat> outputMat = nullptr;
     if (DEVICE_ARM == bgr_image->GetDeviceType()) {
-        outputMat = grayMatFloat;
+        outputMat = grayMat;
     } else {
+        // convert ngray mat to nchw_float
+        auto grayMatFloat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NCHW_FLOAT, grayMat->GetDims());
+        float* grayFloatData  = static_cast<float*>(grayMatFloat->GetData());
+        uint8_t* grayUintData = static_cast<uint8_t*>(grayMat->GetData());
+        for(int i=0; i<grayDims[2]*grayDims[3]; ++i) {
+            grayFloatData[i] = grayUintData[i];
+        }
         // copy cpu grat mat to metal
         outputMat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::NCHW_FLOAT, grayMatFloat->GetDims());
         status = Copy(grayMatFloat, outputMat);
