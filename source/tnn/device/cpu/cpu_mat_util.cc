@@ -413,4 +413,134 @@ void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel
     }
 }
 
+#undef SATURATE_CAST_UCHAR
+
+void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12) {
+    const unsigned char* yptr  = yuv;
+    const unsigned char* vuptr = yuv + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgr;
+        unsigned char* rgb1 = bgr + w * 3;
+
+        int remain = w;
+
+        for (; remain > 0; remain -= 2) {
+            int u, v;
+            if (is_nv12) {
+                u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+                v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+            } else {
+                v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+                u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+            }
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgb0  += 6;
+            rgb1  += 6;
+        }
+
+        yptr += 2*w;
+        bgr  += 2*3*w;
+    }
+}
+
+void YUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12) {
+    const unsigned char* yptr  = yuv;
+    const unsigned char* vuptr = yuv + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgba0 = bgra;
+        unsigned char* rgba1 = bgra + w * 4;
+
+        int remain = w;
+
+        for (; remain > 0; remain -= 2) {
+            int u, v;
+            if (is_nv12) {
+                u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+                v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+            } else {
+                v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+                u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+            }
+
+            int ruv = 102 * v;
+            int guv = -52 * v + -25 * u;
+            int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+            int y00 = yptr0[0]* 74 - 1135;
+            rgba0[3] = 255;
+            rgba0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+            rgba0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+            rgba0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+            int y01 = yptr0[1]* 74 - 1135;
+            rgba0[7] = 255;
+            rgba0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+            rgba0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+            rgba0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+            int y10 = yptr1[0]* 74 - 1135;
+            rgba1[3] = 255;
+            rgba1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+            rgba1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+            rgba1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+            int y11 = yptr1[1]* 74 - 1135;
+            rgba1[7] = 255;
+            rgba1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+            rgba1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+            rgba1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+            yptr0 += 2;
+            yptr1 += 2;
+            vuptr += 2;
+            rgba0 += 8;
+            rgba1 += 8;
+        }
+
+        yptr += 2*w;
+        bgra += 2*4*w;
+    }
+}
+
 }  // namespace TNN_NS
