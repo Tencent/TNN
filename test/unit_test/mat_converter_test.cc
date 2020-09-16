@@ -137,7 +137,11 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                                       INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
                                 // CvtColor
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
-                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY)
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA)
                                                       )
                             ));
 
@@ -148,6 +152,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
     MatType mat_type                                = std::get<3>(GetParam());
     MatConverterTestParam mat_converter_test_param  = std::get<4>(GetParam());
     MatConverterType mat_converter_type             = mat_converter_test_param.mat_converter_type;
+    ColorConversionType cvt_type                    = mat_converter_test_param.cvt_type;
 
     DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
     // warp affine/resize only support N8UC4 on OpenCL for now
@@ -179,10 +184,18 @@ TEST_P(MatConverterTest, MatConverterTest) {
         if (device_type != DEVICE_ARM) {
             GTEST_SKIP();
         }
-        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
+        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
             GTEST_SKIP();
         }
-        if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
+        if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
+            GTEST_SKIP();
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
+            (mat_type != N8UC3 || input_size % 2 != 0)) {
+            GTEST_SKIP();
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
+            (mat_type != N8UC4 || input_size % 2 != 0)) {
             GTEST_SKIP();
         }
     }
