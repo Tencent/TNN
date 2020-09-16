@@ -143,9 +143,6 @@ void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >
             return;
         }
         float* data = static_cast<float*>(output->GetData());
-//        unsigned int count = dim[0]*dim[1]*dim[2]*dim[3];
-        
-//        Sigmoid(data, count);
         
         int num_potential_detecs = dim[1] * dim[2] * num_anchor_;
         for(int i=0; i<num_potential_detecs; ++i){
