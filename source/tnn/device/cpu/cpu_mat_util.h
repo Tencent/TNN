@@ -30,6 +30,8 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
 void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
 void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12);
+void YUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12);
 
 }  // namespace TNN_NS
 
