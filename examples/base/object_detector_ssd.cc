@@ -92,7 +92,6 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
         
         info.class_id = data[i*7+1];
         if(info.class_id < 0 || info.class_id >= sizeof(voc_classes)/sizeof(*voc_classes)) {
-            //LOGE("invalid object classid:%d\n", info.class_id);
             continue;
         }
         info.score = data[i*7+2];
