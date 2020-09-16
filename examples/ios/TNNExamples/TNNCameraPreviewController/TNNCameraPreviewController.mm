@@ -78,6 +78,7 @@ typedef void(^CommonCallback)(Status);
     }];
     
     //init network
+    [self.switchGPU setOn:self.viewModel.preferGPU];
     auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {

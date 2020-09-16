@@ -85,7 +85,7 @@ using namespace std;
     {
         auto data = [TNNExampleData new];
         data.title = @"人脸检测 - Blazeface";
-        data.desc = @"图像类 - 单输入（图）多输出（图）";
+        data.desc = @"图像类 - 单输入多输出";
         data.viewControllerID = @"TNNBlazefaceDetectorController";
         [examples addObject:data];
     }
@@ -94,7 +94,7 @@ using namespace std;
     {
         auto data = [TNNExampleData new];
         data.title = @"人脸检测 - Blazeface";
-        data.desc = @"摄像头 - 单输入（图）多输出（图）";
+        data.desc = @"摄像头 - 单输入多输出";
         data.viewControllerID = @"TNNCameraPreviewController";
         {
             data.viewModel = [TNNBlazeFaceDetectorViewModel new];
@@ -126,6 +126,7 @@ using namespace std;
         {
             data.viewModel = [TNNYoloObjectDetectorViewModel new];
             data.viewModel.title = data.title;
+            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }
