@@ -83,27 +83,33 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
     } else {
         // NPU IR build
-        Status ir_convert_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
-        if (ir_convert_ret != TNN_OK) {
+        Status ir_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
+        if (ir_ret != TNN_OK) {
             LOGI("[TNN/NPU] Some layers not support in NPU, switch to ARM\n");
             if (cpu_count_ != net_structure_->layers.size()) {
-                ir_convert_ret = InitSubNetwork(cpu_input_shape, net_config, model_config, interpreter);
-                if (ir_convert_ret != TNN_OK) {
-                    return ir_convert_ret;
+                ir_ret = InitSubNetwork(cpu_input_shape, net_config, model_config, interpreter);
+                if (ir_ret != TNN_OK) {
+                    return ir_ret;
                 }
             }
         }
         // update use path
         use_path_ = use_path_ && !use_subnet_;
         // set Graph
-        SetGraphInputsAndOutputs(instance_input_shapes_map, cpu_input_shape);
+        ir_ret = SetGraphInputsAndOutputs(instance_input_shapes_map, cpu_input_shape);
+        if (ir_ret != TNN_OK) {
+            return ir_ret;
+        }
         // build Graph
-        BuildGraph(ir_build, om_model_buff);
+        ir_ret = BuildGraph(ir_build, om_model_buff);
+        if (ir_ret != TNN_OK) {
+            return ir_ret;
+        }
         // if path is specified, then first write to file, load from file later
         if (use_path_) {
-            Status ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
-            if (ret != TNN_OK) {
-                return ret;
+            ir_ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
+            if (ir_ret != TNN_OK) {
+                return ir_ret;
             }
             ir_build.ReleaseModelBuff(om_model_buff);
         }
