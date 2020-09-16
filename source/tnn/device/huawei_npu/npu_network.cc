@@ -69,8 +69,8 @@ Status NpuNetwork::InitCheck() {
 }
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
-    if (net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN) {
-        return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
+    if (net_config.device_type != DEVICE_HUAWEI_NPU) {
+        return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type ");
     }
     client_         = std::make_shared<hiai::AiModelMngerClient>();
     Status init_ret = InitCheck();
