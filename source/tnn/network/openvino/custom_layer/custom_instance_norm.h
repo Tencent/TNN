@@ -12,21 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
-#define TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
+#include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "immintrin.h"
+#include "time.h"
+#include <chrono>
 
-#include <algorithm>
-#include <iostream>
-#include <string>
-#include <vector>
+namespace TNN_NS {
+    
+DECLARE_CUSTOM_OP(InstanceNorm);
+REGISTER_CUTOM_OP(InstanceNorm);
 
-#include "tnn_sdk_sample.h"
+DECLARE_CUSTOM_IMPLEMENTATION(InstanceNorm);
+REGISTER_CUSTOM_IMPLEMENTATION(InstanceNorm, CustomInstanceNorm);
 
-class ImageClassifier : public TNN_NS::TNNSDKSample {
-public:
-    ~ImageClassifier();
-    ImageClassifier();
-    int Classify(std::shared_ptr<TNN_NS::Mat> image, int input_width, int input_length, int &class_id, TNN_NS::DeviceType device = TNN_NS::DEVICE_ARM);
-};
-
-#endif // TNN_EXAMPLES_BASE_IMAGE_CLASSIFIER_H_
+}

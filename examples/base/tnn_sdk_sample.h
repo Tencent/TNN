@@ -59,6 +59,8 @@ typedef enum {
     TNNComputeUnitsGPU = 1,
     // run on npu, if failed run on cpu
     TNNComputeUnitsNPU = 2,
+    // run with openvino
+    TNNComputeUnitsOpenvino = -1,
 } TNNComputeUnits;
 
 class TNNSDKSample {

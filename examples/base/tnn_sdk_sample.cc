@@ -93,6 +93,8 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
 #else
         device_type_      = TNN_NS::DEVICE_OPENCL;
 #endif
+    } else if (units == TNNComputeUnitsOpenvino) {
+        device_type_ = TNN_NS::DEVICE_X86;
     }
     InputShapesMap shapeMap;
     if (nchw.size() == 4) {
@@ -103,6 +105,9 @@ TNN_NS::Status TNNSDKSample::Init(const std::string &proto_content, const std::s
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {library_path};
         network_config.device_type  = device_type_;
+        if (units == TNNComputeUnitsOpenvino) { // 调用 openvino network
+            network_config.network_type = NETWORK_TYPE_OPENVINO;
+        }
         auto instance               = net_->CreateInst(network_config, status, shapeMap);
         if (status != TNN_NS::TNN_OK || !instance) {
             // try device_arm

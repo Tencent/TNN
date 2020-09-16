@@ -10,8 +10,16 @@ then
     mkdir ${thirdparty_dir}/ngraph
 fi
 
-mkdir build_openvino && cd build_openvino
+# 编译 openvino 库
+if [ ! -d ${TNN_DIR}/scripts/build_openvino ]
+then
+mkdir build_openvino
+fi
 
+cd build_openvino
+
+if [ ! -d ${TNN_DIR}/scripts/build_openvino/openvinoInstall ]
+then
 # TNN/scripts/build_openvino
 git clone https://github.com/openvinotoolkit/openvino.git
 cd openvino
@@ -20,6 +28,7 @@ git reset --hard 9df6a8f
 # TNN/scripts/build_openvino/openvino
 git submodule update --init --recursive
 
+# 编译静态库
 sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
 sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
 sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
@@ -39,14 +48,12 @@ cmake ../ \
 -DENABLE_MYRIAD=OFF \
 -DNGRAPH_JSON_ENABLE=OFF \
 -DENABLE_PROFILING_ITT=OFF \
--DENABLE_GNA=OFF \
--DENABLE_VPU=OFF \
 
 make -j4
 make install
 cd ../../
 
-# TNN/scripts/build_openvino/
+# TNN/scripts/build_openvino/ 拷贝 lib 和 include 文件到 thirdparty 下
 cp -r openvinoInstall/deployment_tools/inference_engine/include/ ${thirdparty_dir}/openvino/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine.a ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy.a ${thirdparty_dir}/openvino/lib/
@@ -68,12 +75,13 @@ cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
 else
 cp openvinoInstall/lib/libpugixml.a ${thirdparty_dir}/openvino/lib/
 fi
+fi # openvinoInstall
 
+# 编译 TNN
 cmake ../../ \
 -DTNN_OPENVINO_ENABLE=ON \
 -DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \
 -DTNN_CPU_ENABLE=ON \
--DDEBUG=ON \
 
 make -j4

@@ -20,7 +20,7 @@ ImageClassifier::ImageClassifier() {}
 
 ImageClassifier::~ImageClassifier() {}
 
-int ImageClassifier::Classify(std::shared_ptr<TNN_NS::Mat> image_mat, int image_height, int image_width, int &class_id) {
+int ImageClassifier::Classify(std::shared_ptr<TNN_NS::Mat> image_mat, int image_height, int image_width, int &class_id, TNN_NS::DeviceType device) {
     if (!image_mat || !image_mat->GetData()) {
         std::cout << "image is empty ,please check!" << std::endl;
         return -1;
@@ -47,7 +47,9 @@ int ImageClassifier::Classify(std::shared_ptr<TNN_NS::Mat> image_mat, int image_
         
         // step 3. get output mat
         std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
-        status = instance_->GetOutputMat(output_mat_scores);
+        TNN_NS::MatConvertParam output_convert_param;
+        status = instance_->GetOutputMat(output_mat_scores, output_convert_param, "", device);
+
         RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
 #if TNN_SDK_ENABLE_BENCHMARK

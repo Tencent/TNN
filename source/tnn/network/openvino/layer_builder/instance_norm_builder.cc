@@ -28,6 +28,7 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/network/openvino/custom_layer/custom_instance_norm.h"
 
 namespace TNN_NS {
 
@@ -52,22 +53,30 @@ Status InstanceNormOVLayerBuilder::Build() {
     }
     auto resource = dynamic_cast<InstanceNormLayerResource*>(GetResource());
 
-    auto scaleConstNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, instNormShape, resource->scale_handle.force_to<float*>());
-    auto biasConstNode  = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, instNormShape, resource->bias_handle.force_to<float*>());
+    if (0) {
+        auto scaleConstNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::f32, instNormShape, resource->scale_handle.force_to<float*>());
+        auto biasConstNode  = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::f32, instNormShape, resource->bias_handle.force_to<float*>());
 
-    auto MVNNode = std::make_shared<ngraph::op::MVN>(input_node->output(0), false, true, 1e-05f);
-    MVNNode->validate_and_infer_types();
-    auto scaleNode = std::make_shared<ngraph::op::v1::Multiply>(MVNNode->output(0), scaleConstNode);
-    scaleNode->validate_and_infer_types();
-    auto biasNode  = std::make_shared<ngraph::op::v1::Add>(scaleNode->output(0), biasConstNode);
-    biasNode->validate_and_infer_types();
+        auto MVNNode = std::make_shared<ngraph::op::MVN>(input_node->output(0), false, true, 1e-05f);
+        MVNNode->validate_and_infer_types();
+        auto scaleNode = std::make_shared<ngraph::op::v1::Multiply>(MVNNode->output(0), scaleConstNode);
+        scaleNode->validate_and_infer_types();
+        auto biasNode  = std::make_shared<ngraph::op::v1::Add>(scaleNode->output(0), biasConstNode);
+        biasNode->validate_and_infer_types();
 
-    biasNode->set_friendly_name(param_->name);
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(biasNode);
-    SetOutputTensors(outputNodes);
+        biasNode->set_friendly_name(param_->name);
+        ngraph::NodeVector outputNodes;
+        outputNodes.push_back(biasNode);
+        SetOutputTensors(outputNodes);
+    } else {
+        auto instNormNode = std::make_shared<CustomInstanceNormOp>(input_node->outputs(), _base_layer, GetInputBlobs(), GetOutputBlobs());
+        instNormNode->set_friendly_name(param_->name);
+        ngraph::NodeVector outputNodes;
+        outputNodes.push_back(instNormNode);
+        SetOutputTensors(outputNodes);
+    }
 
 
     return TNN_OK;
