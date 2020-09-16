@@ -15,9 +15,8 @@ download_file() { #URL, path
   fi
 }
 
-#URL proto, URL model, directory
 download_ddk() {
-  directory="./$3"
+  directory="./"
   if [ ! -e ${directory} ]; then
     mkdir -p ${directory}
   fi
@@ -26,14 +25,9 @@ download_ddk() {
   ddk_path_local="${directory}/${ddk_name}"
   if [ ! -f ${ddk_path_local} ]; then
     download_file $1 $ddk_path_local
-    succ=$?
-    if [ ! $succ -eq 0 ]; then
-      rm -r ${directory}
-    fi
   fi
 
 }
-# download face-detector tnn model
 download_ddk\
 	"https://raw.githubusercontent.com/darrenyao87/tnn-models/master/ddk/hwhiai-ddk-100.320.030.010.tar"\
   "hwhiai-ddk-100.320.030.010.tar"
