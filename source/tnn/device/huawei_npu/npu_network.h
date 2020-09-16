@@ -22,6 +22,7 @@
 #include <tnn/interpreter/net_structure.h>
 #include <tnn/layer/base_layer.h>
 
+#include <hiai_ir_build.h>
 #include <tnn/core/default_network.h>
 #include <tnn/interpreter/default_model_interpreter.h>
 #include <string>
@@ -97,6 +98,12 @@ public:
 
 private:
     // add for huawei_npu
+
+    Status InitCheck();
+
+    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
+                          AbstractModelInterpreter *interpreter);
+
     Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 
     Status ConvertLayers(NetResource *net_resource);
@@ -105,10 +112,9 @@ private:
 
     Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
-    Status InitBlobs(InputShapesMap& instance_input_shapes_map, InputShapesMap& cpu_input_shape);
+    Status BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData &om_model_buff);
 
-    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
-                                      AbstractModelInterpreter *interpreter);
+    Status InitBlobs(InputShapesMap &instance_input_shapes_map, InputShapesMap &cpu_input_shape);
 
     AbstractDevice *device_ = nullptr;
 
@@ -138,6 +144,7 @@ private:
 
     // here to add sub network :
     std::shared_ptr<DefaultNetwork> sub_network_;
+    //count how many layers have been constructed
     int cpu_count_;
     std::set<std::string> visited_;
     bool use_subnet_ = false;

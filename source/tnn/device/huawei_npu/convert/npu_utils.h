@@ -38,7 +38,7 @@ public:
     static Status CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                   DimsVector dims_vector);
 
-    static Status CreateAttrValue(shared_ptr<ge::op::Const>& attr_value, ge::Shape shape, RawBuffer &raw_buffer);
+    static Status CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
@@ -63,10 +63,8 @@ public:
 
     static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
 
-    static Status InitCheck(std::shared_ptr<hiai::AiModelMngerClient>& client, int& version_num);
-
-    static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string>& visited,
-                                                   std::map<std::string, shared_ptr<OperatorInfo>>& global_operator_map);
+    static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
+                             std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
 };
 
 }  // namespace TNN_NS
