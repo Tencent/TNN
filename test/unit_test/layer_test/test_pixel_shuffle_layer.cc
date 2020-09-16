@@ -21,10 +21,10 @@ class PixelShuffleLayerTest : public LayerTest, public ::testing::WithParamInter
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PixelShuffleLayerTest,
                          ::testing::Combine(testing::Values(1, 2),
-                                            testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32),
+                                            testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32, 50),
                                             testing::Values(9, 10, 16, 19),
                                             // upscale_factor
-                                            testing::Values(1, 2, 3)));
+                                            testing::Values(1, 2, 3, 4, 5)));
 
 TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
     int batch          = std::get<0>(GetParam());
