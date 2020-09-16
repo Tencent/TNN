@@ -38,7 +38,7 @@ Status ReduceOpLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerPa
     }
 
     output_stream << layer_param->keep_dims << " ";
-    ASSERT(layer_param->axis.size() == 1);
+    //ASSERT(layer_param->axis.size() == 1);
     for(auto axis : layer_param->axis) {
         output_stream << axis << " ";
     }

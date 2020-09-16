@@ -25,13 +25,16 @@ Status CpuReduceMeanLayerAcc::CalculateReduce(float* output_data, float* input_d
                                               int inner_dim) {
     const float channels_inv = 1.0f / channels;
     for (int oc = 0; oc < outer_dim; oc++) {
-        for (int c = 0; c < channels; c++) {
-            for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] += input_data[ic] * channels_inv;
+        auto input_out = input_data + oc * channels * inner_dim;
+        auto output_out = output_data + oc * inner_dim;
+        for (int ic = 0; ic < inner_dim; ic++) {
+            auto input_in = input_out + ic;
+            auto output_in = output_out + ic;
+            *output_in = 0;
+            for (int c = 0; c < channels; c++) {
+                *output_in += input_in[c * inner_dim] * channels_inv;
             }
-            input_data += inner_dim;
         }
-        output_data += inner_dim;
     }
     return TNN_OK;
 }
