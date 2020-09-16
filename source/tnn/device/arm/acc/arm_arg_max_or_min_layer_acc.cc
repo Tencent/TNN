@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -48,7 +49,7 @@ Status ArmArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     }                                                                                       \
     Float4::save(output_ptr_base, guard_index);
 
-template<typename T, int mode>
+template <typename T, int mode>
 static Status ExecDimN(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
@@ -68,7 +69,7 @@ static Status ExecDimN(const std::vector<Blob *> &inputs, const std::vector<Blob
     return TNN_OK;
 }
 
-template<int mode>
+template <int mode>
 static void CompareC4(const Float4 &guard_value, const Float4 &guard_index, int start, int end,
                       float &value_final, float &index_final) {
     for (int c = start; c < end; ++c) {
@@ -92,7 +93,7 @@ static void CompareC4(const Float4 &guard_value, const Float4 &guard_index, int 
     }
 }
 
-template<typename T, int mode>
+template <typename T, int mode>
 static Status ExecDimC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_dims   = inputs[0]->GetBlobDesc().dims;
 
@@ -136,8 +137,8 @@ static Status ExecDimC(const std::vector<Blob *> &inputs, const std::vector<Blob
     return TNN_OK;
 }
 
-template<typename T, int mode>
-static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+template <typename T, int mode>
+static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, void *workspace) {
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
     int inner_dim    = input_dims[0] * UP_DIV(input_dims[1], 4);
@@ -146,21 +147,43 @@ static Status ExecDimH(const std::vector<Blob *> &inputs, const std::vector<Blob
 
     auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
-    OMP_PARALLEL_FOR_
+
+    int input_byte_size  = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
+    int output_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+
+    auto *workspace_ptr = static_cast<T *>(workspace);
+
     for (int i = 0; i < inner_dim; ++i) {
         auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
         auto *output_ptr_i = output_ptr + i * outer_dim;
-        for (int o = 0; o < outer_dim; o += 4) {
-            auto *input_ptr_o  = input_ptr_i + o;
-            auto *output_ptr_o = output_ptr_i + o;
-            ARGMAXMINCAL(input_ptr_o, output_ptr_o, reduce_dim, mode);
+
+        memcpy(workspace_ptr, input_ptr_i, outer_dim * input_byte_size);
+        memset(output_ptr_i, 0, outer_dim * output_byte_size);
+
+        for (int r = 1; r < reduce_dim; ++r) {
+            auto *input_ptr_r = input_ptr_i + r * outer_dim;
+            Float4 cur_index(r);
+            for (int o = 0; o < outer_dim; o += 4) {
+                Float4 guard_index = Float4::load(output_ptr_i + o);
+                Float4 guard_value = Float4::load(workspace_ptr + o);
+                Float4 cur_value = Float4::load(input_ptr_r + o);
+                if (mode == 0) {
+                    guard_index = Float4::bsl_clt(cur_value, guard_value, cur_index, guard_index);
+                    guard_value = Float4::min(cur_value, guard_value);
+                } else {
+                    guard_index = Float4::bsl_cgt(cur_value, guard_value, cur_index, guard_index);
+                    guard_value = Float4::max(cur_value, guard_value);
+                }
+                Float4::save(output_ptr_i + o, guard_index);
+                Float4::save(workspace_ptr + o, guard_value);
+            }
         }
     }
 
     return TNN_OK;
 }
 
-template<typename T, int mode>
+template <typename T, int mode>
 static Status ExecDimW(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
@@ -185,6 +208,14 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
     auto param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
     int axis   = param->axis;
 
+    auto dims_input = inputs[0]->GetBlobDesc().dims;
+    auto ic    = dims_input[1];
+    auto ic_r4 = ROUND_UP(dims_input[1], 4);
+    auto ih    = dims_input[2];
+    auto iw    = dims_input[3];
+
+    int input_byte_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
+
     if (axis == 0) {
         if (param->mode == 0) {
             return ExecDimN<T, 0>(inputs, outputs);
@@ -198,10 +229,12 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
             return ExecDimC<T, 1>(inputs, outputs);
         }
     } else if (axis == 2) {
+        auto size_in_bytes = iw * 4 * input_byte_size;
+        void *workspace = context_->GetSharedWorkSpace(size_in_bytes);
         if (param->mode == 0) {
-            return ExecDimH<T, 0>(inputs, outputs);
+            return ExecDimH<T, 0>(inputs, outputs, workspace);
         } else {
-            return ExecDimH<T, 1>(inputs, outputs);
+            return ExecDimH<T, 1>(inputs, outputs, workspace);
         }
     } else if (axis == 3) {
         if (param->mode == 0) {
