@@ -15,8 +15,9 @@
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
 #include <vector>
-#include "tnn/core/common.h"
+
 #include "onnx.pb.h"
+#include "tnn/core/common.h"
 namespace TNN_CONVERTER {
 
 TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto tensor_shape_proto);

@@ -15,7 +15,7 @@
 #include "onnx_proxy_graph.h"
 namespace TNN_CONVERTER {
 
-OnnxProxyNode::OnnxProxyNode() : op_name(), op_type(), onnx_node(nullptr){
+OnnxProxyNode::OnnxProxyNode() : op_name(), op_type(), onnx_node(nullptr) {
     // do nothing
 }
 
@@ -23,8 +23,7 @@ OnnxProxyNode::~OnnxProxyNode() {
     // do nothing
 }
 
-
-OnnxProxyGraph::OnnxProxyGraph(const onnx::GraphProto *graph_proto) {
+OnnxProxyGraph::OnnxProxyGraph(const onnx::GraphProto* graph_proto) {
     this->graph_proto_ = graph_proto;
     InitProxyGraph();
 }
@@ -36,12 +35,12 @@ OnnxProxyGraph::~OnnxProxyGraph() {
 void OnnxProxyGraph::InitProxyGraph() {
     const int node_size = this->graph_proto_->node_size();
     for (int i = 0; i < node_size; ++i) {
-       const auto& onnx_node = this->graph_proto_->node(i);
-       std::shared_ptr<OnnxProxyNode> proxy_node(new OnnxProxyNode());
-       proxy_node->op_name = onnx_node.output(0);
-       proxy_node->op_type = onnx_node.op_type();
-       proxy_node->onnx_node = &onnx_node;
-       proxy_nodes_map_.insert(std::make_pair(onnx_node.output(0), proxy_node));
+        const auto& onnx_node = this->graph_proto_->node(i);
+        std::shared_ptr<OnnxProxyNode> proxy_node(new OnnxProxyNode());
+        proxy_node->op_name   = onnx_node.output(0);
+        proxy_node->op_type   = onnx_node.op_type();
+        proxy_node->onnx_node = &onnx_node;
+        proxy_nodes_map_.insert(std::make_pair(onnx_node.output(0), proxy_node));
     }
 
     const int initializer_size = this->graph_proto_->initializer_size();
@@ -62,4 +61,4 @@ void OnnxProxyGraph::InitProxyGraph() {
         proxy_outputs_map_.insert(std::make_pair(output.name(), &output));
     }
 }
-}
+}  // namespace TNN_CONVERTER

@@ -14,26 +14,24 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
-#include "tnn/core/status.h"
-#include "tnn/interpreter/net_structure.h"
-#include "tnn/interpreter/net_resource.h"
 #include "onnx.pb.h"
+#include "tnn/core/status.h"
+#include "tnn/interpreter/net_resource.h"
+#include "tnn/interpreter/net_structure.h"
 
 namespace TNN_CONVERTER {
 class Onnx2Tnn {
 public:
     Onnx2Tnn(std::string model_path);
     Onnx2Tnn() = delete;
-    ~Onnx2Tnn(){};
-    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure net_structure,
-                                TNN_NS::NetResource net_resource);
+    ~Onnx2Tnn();
+    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure net_structure, TNN_NS::NetResource net_resource);
 
 private:
     bool ReadModel();
     bool IsQuantized();
     std::string onnx_model_path_;
     std::unique_ptr<onnx::ModelProto> onnx_model_;
-
 };
 
 }  // namespace TNN_CONVERTER

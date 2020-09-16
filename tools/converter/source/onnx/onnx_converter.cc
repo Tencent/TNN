@@ -30,6 +30,10 @@ Onnx2Tnn::Onnx2Tnn(std::string model_path) {
     this->onnx_model_      = std::unique_ptr<onnx::ModelProto>(new onnx::ModelProto());
 }
 
+Onnx2Tnn::~Onnx2Tnn() {
+    // do nothing
+}
+
 TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetResource net_resource) {
     if (!ReadModel()) {
         return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
@@ -75,7 +79,6 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
     // convert onnx nodes
     const auto node_size = onnx_graph.node_size();
     for (int i = 0; i < node_size; ++i) {
-        
     }
     return TNN_NS::TNN_CONVERT_OK;
 }
