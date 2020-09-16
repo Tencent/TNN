@@ -19,6 +19,7 @@ option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
 option(TNN_DSP_ENABLE "Enable DSP" OFF)
 option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
 option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_RK_NPU_ENABLE "Enable RKNPU" OFF)
 
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
@@ -162,6 +163,7 @@ message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
 message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
 message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
 message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
+message(STATUS "\tRKNPU:\t${TNN_RK_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -296,6 +298,20 @@ if(TNN_ATLAS_ENABLE)
     link_directories(
         ${ACL_LIB_PATH}
         )
+endif()
+
+if(TNN_RK_NPU_ENABLE)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        link_directories(
+                ./third_party/rknpu/rknpu_ddk/lib64/
+        )
+    else()
+        link_directories(
+                ./third_party/rknpu/rknpu_ddk/lib/
+        )
+    endif()
+    add_subdirectory(source/tnn/device/rknpu)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNRKNPU>")
 endif()
 
 if(TNN_BUILD_SHARED)

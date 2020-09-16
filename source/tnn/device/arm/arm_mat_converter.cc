@@ -245,6 +245,10 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
         NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
     } else if (type == COLOR_CONVERT_NV21TOBGR) {
         NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else if (type == COLOR_CONVERT_NV12TOBGRA) {
+        NV12ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+    } else if (type == COLOR_CONVERT_NV21TOBGRA) {
+        NV21ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
     } else if (type == COLOR_CONVERT_BGRTOGRAY) {
         BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
     } else if (type == COLOR_CONVERT_BGRATOGRAY) {
