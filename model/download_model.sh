@@ -75,6 +75,12 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnmodel" \
     "blazeface"
 
+# download blazeface anchor file
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface_anchors.txt" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface_anchors.txt" \
+    "blazeface"
+
 # download mobilenet_v2-ssd tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
