@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.StreamObjectDetectorSSD;
+package com.tencent.tnn.demo.StreamBlazeFaceAlign;
 
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -12,11 +12,12 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.tencent.tnn.demo.BlazeFaceDetector;
+import com.tencent.tnn.demo.FaceAlign;
+import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
-import com.tencent.tnn.demo.ObjectDetector;
-import com.tencent.tnn.demo.ObjectDetectorSSD;
-import com.tencent.tnn.demo.ObjectInfo;
 import com.tencent.tnn.demo.R;
 import com.tencent.tnn.demo.common.component.CameraSetting;
 import com.tencent.tnn.demo.common.component.DrawView;
@@ -26,9 +27,9 @@ import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 import java.io.IOException;
 
 
-public class StreamObjectDetectSSDFragment extends BaseFragment {
+public class StreamBlazeFaceAlignFragment extends BaseFragment {
 
-    private final static String TAG = StreamObjectDetectSSDFragment.class.getSimpleName();
+    private final static String TAG = StreamBlazeFaceAlignFragment.class.getSimpleName();
 
     /**********************************     Define    **********************************/
 
@@ -42,15 +43,12 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
     int mOpenedCameraId = 0;
     DemoSurfaceHolder mDemoSurfaceHolder = null;
 
-    private static final int NET_H_INPUT = 300;
-    private static final int NET_W_INPUT = 300;
-
     int mCameraFacing = -1;
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
 
-    private ObjectDetectorSSD mObjectDetector = new ObjectDetectorSSD();
-    private boolean mIsDetectingObject = false;
+    private FaceAlign mFaceAlign = new FaceAlign();
+    private boolean mIsDetectingFace = false;
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
@@ -69,7 +67,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
-        NpuEnable = mObjectDetector.checkNpu(modelPath);
+        NpuEnable = mFaceAlign.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -78,16 +76,35 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
-        String[] modelPathsDetector = {
-                "mobilenetv2_ssd.tnnmodel",
-                "mobilenetv2_ssd.tnnproto",
+        String[] detectModelPathsDetector = {
+                "blazeface.tnnmodel",
+                "blazeface.tnnproto"
         };
 
-        for (int i = 0; i < modelPathsDetector.length; i++) {
-            String modelFilePath = modelPathsDetector[i];
+        for (int i = 0; i < detectModelPathsDetector.length; i++) {
+            String modelFilePath = detectModelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "mobilenet_v2-ssd/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "blazeface/"+modelFilePath, interModelFilePath);
         }
+
+        //copy detect model to sdcard
+        String[] alignModelPathsDetector = {
+                "youtu_face_alignment_phase1.tnnmodel",
+                "youtu_face_alignment_phase1.tnnproto",
+                "youtu_face_alignment_phase2.tnnmodel",
+                "youtu_face_alignment_phase2.tnnproto"
+        };
+
+        for (int i = 0; i < alignModelPathsDetector.length; i++) {
+            String modelFilePath = alignModelPathsDetector[i];
+            String interModelFilePath = targetDir + "/" + modelFilePath ;
+            FileUtils.copyAsset(getActivity().getAssets(), "youtu_face_alignment/"+modelFilePath, interModelFilePath);
+        }
+
+        FileUtils.copyAsset(getActivity().getAssets(),"blazeface_anchors.txt", targetDir + "/blazeface_anchors.txt");
+        FileUtils.copyAsset(getActivity().getAssets(),"mean_pts_phase1.txt", targetDir + "/mean_pts_phase1.txt");
+        FileUtils.copyAsset(getActivity().getAssets(),"mean_pts_phase2.txt", targetDir + "/mean_pts_phase2.txt");
+
         return targetDir;
     }
 
@@ -240,24 +257,24 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                    clickBack();
-                    return true;
-                }
-                return false;
+            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                clickBack();
+                return true;
+            }
+            return false;
             }
         });
     }
 
-    /**********************************     Camera    **********************************/
+/**********************************     Camera    **********************************/
 
 
     public void openCamera() {
-        openCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
+        openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
     }
 
     private void openCamera(int cameraFacing) {
-        mIsDetectingObject = true;
+        mIsDetectingFace = true;
         mCameraFacing = cameraFacing;
         try {
             int numberOfCameras = Camera.getNumberOfCameras();
@@ -278,6 +295,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                 }
             }
             if (mOpenedCamera == null) {
+//                popTip("can't find camera","");
                 Log.e(TAG, "can't find camera");
             }
             else {
@@ -298,11 +316,11 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                     } else if (mUseGPU) {
                         device = 1;
                     }
-                    int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+                    int ret = mFaceAlign.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
                     if (ret == 0) {
-                        mIsDetectingObject = true;
+                        mIsDetectingFace = true;
                     } else {
-                        mIsDetectingObject = false;
+                        mIsDetectingFace = false;
                         Log.e(TAG, "Face detector init failed " + ret);
                     }
                 } else {
@@ -322,18 +340,18 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                 mOpenedCamera.setPreviewCallback(new Camera.PreviewCallback() {
                     @Override
                     public void onPreviewFrame(byte[] data, Camera camera) {
-                        if (mIsDetectingObject) {
+                        if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
-                            Log.i(TAG, "detect from stream ret " + objectInfoList);
-                            int objectCount = 0;
-                            if (objectInfoList != null) {
-                                objectCount = objectInfoList.length;
+                            FaceInfo[] faceInfoList = mFaceAlign.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            Log.i(TAG, "detect from stream ret " + faceInfoList);
+                            int faceCount = 0;
+                            if (faceInfoList != null) {
+                                faceCount = faceInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  ObjectDetectorSSD.label_list, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addFaceRect(faceInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
                         }
                         else {
-                            Log.i(TAG,"No object");
+                            Log.i(TAG,"No face");
                         }
                     }
                 });
@@ -350,7 +368,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
 
     public void closeCamera() {
         Log.i(TAG, "closeCamera");
-        mIsDetectingObject = false;
+        mIsDetectingFace = false;
         if (mOpenedCamera != null) {
             try {
                 mOpenedCamera.stopPreview();
@@ -370,7 +388,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                 mOpenedCamera = null;
             }
         }
-        mObjectDetector.deinit();
+        mFaceAlign.deinit();
     }
 
 }

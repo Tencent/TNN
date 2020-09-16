@@ -38,7 +38,7 @@ typedef void(^CommonCallback)(Status);
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.navigationItem.title = _viewModel.title;
+    self.navigationItem.title = self.viewModel.title;
     
     //colors for each class
     auto colors = [NSMutableArray array];
@@ -71,13 +71,14 @@ typedef void(^CommonCallback)(Status);
     [self setupBoundingBox:12];
     
     //set up camera
-    auto camera = _viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
+    auto camera = self.viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
     [_cameraDevice switchCamera:camera
                      withPreset:AVCaptureSessionPreset640x480
                      completion:^(BOOL) {
     }];
     
     //init network
+    [self.switchGPU setOn:self.viewModel.preferGPU];
     auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
@@ -166,7 +167,7 @@ typedef void(^CommonCallback)(Status);
                  withCamera:(TNNCameraVideoDevice *)camera
                andPosition:(AVCaptureDevicePosition)position
                 atTimestamp:(CMTime)time {
-    if (!_viewModel || !_viewModel.predictor) return;
+    if (!self.viewModel || !self.viewModel.predictor) return;
     
     const auto target_dims = self.viewModel.predictor->GetInputShape();
     // block until the next GPU buffer is available.
@@ -174,8 +175,8 @@ typedef void(^CommonCallback)(Status);
     
     //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
-    auto predictor_async_thread = _viewModel.predictor;
-    auto compute_units = _viewModel.predictor->GetComputeUnits();
+    auto predictor_async_thread = self.viewModel.predictor;
+    auto compute_units = self.viewModel.predictor->GetComputeUnits();
     
     CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
@@ -288,7 +289,7 @@ typedef void(^CommonCallback)(Status);
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
     //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
-                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor orangeColor]];
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor]];
             } else {
                 [_boundingBoxes[i] hide];
             }

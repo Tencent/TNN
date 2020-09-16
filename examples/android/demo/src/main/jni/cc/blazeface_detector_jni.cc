@@ -26,7 +26,7 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
                                                     jfloat iouThreshold, jint topk,
                                                     jint computUnitType) {
     // Reset bench description
-    LOGE("image height width %d %d \n", height, width);
+    LOGI("image height width %d %d \n", height, width);
     gDetector = std::make_shared<TNN_NS::BlazeFaceDetector>();
     std::string proto_content, model_content, lib_path = "";
     modelPathStr = jstring2string(env, modelPath);
@@ -45,7 +45,7 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
-        LOGE("the device type  %d device huawei_npu", gComputeUnitType);
+        LOGI("the device type  %d device huawei_npu", gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
@@ -61,7 +61,7 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
     }
     if (clsFaceInfo == NULL) {
         clsFaceInfo = static_cast<jclass>(env->NewGlobalRef(
-                env->FindClass("com/tencent/tnn/demo/BlazeFaceDetector$BlazeFaceInfo")));
+                env->FindClass("com/tencent/tnn/demo/FaceInfo")));
         midconstructorFaceInfo = env->GetMethodID(clsFaceInfo, "<init>", "()V");
         fidx1 = env->GetFieldID(clsFaceInfo, "x1", "F");
         fidy1 = env->GetFieldID(clsFaceInfo, "y1", "F");
@@ -69,9 +69,6 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
         fidy2 = env->GetFieldID(clsFaceInfo, "y2", "F");
         fidkeypoints = env->GetFieldID(clsFaceInfo, "keypoints", "[[F");
     }
-    TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 20;
-    gDetector->SetBenchOption(bench_option);
     return 0;
 }
 
@@ -87,7 +84,6 @@ void makeBlazefaceDetectOption(std::shared_ptr<TNN_NS::BlazeFaceDetectorOption> 
 //    option->min_score_threshold = 0.75;
     option->min_suppression_threshold = 0.3;
     option->anchor_path = modelPathStr + "/blazeface_anchors.txt";
-    LOGE("%s", option->anchor_path.c_str());
 }
 
 JNIEXPORT JNICALL jboolean
@@ -136,6 +132,11 @@ TNN_BLAZEFACE_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject image
     if (AndroidBitmap_lockPixels(env, imageSource, &sourcePixelscolor) < 0) {
         return 0;
     }
+
+    TNN_NS::BenchOption bench_option;
+    bench_option.forward_count = 20;
+    gDetector->SetBenchOption(bench_option);
+
     //orgin dims
     std::vector<int> origin_dims = {1, 4, orig_height, orig_width};
     std::vector<int> resize_dims = {1, 4, target_height, target_width};
@@ -187,7 +188,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject image
             jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
             int keypointsNum = face_info[i].key_points.size();
             auto face_orig = face_info[i].AdjustToViewSize(orig_height, orig_width, 2);
-            LOGE("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
+            LOGI("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
                  face_orig.x2, face_orig.y2, face_orig.score, keypointsNum);
             env->SetFloatField(objFaceInfo, fidx1, face_orig.x1);
             env->SetFloatField(objFaceInfo, fidy1, face_orig.y1);
@@ -244,7 +245,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
 
     asyncRefDetector->ProcessSDKOutput(output);
     std::vector<TNN_NS::BlazeFaceInfo> face_info = dynamic_cast<TNN_NS::BlazeFaceDetectorOutput *>(output.get())->face_list;
-    LOGE("theithilehtisize %d \n", face_info.size());
+    LOGI("theithilehtisize %d \n", face_info.size());
     delete[] yuvData;
     delete[] rgbaData;
     if (status != TNN_NS::TNN_OK) {
@@ -252,19 +253,6 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
         return 0;
     }
 
-    LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
-    char temp[128] = "";
-    std::string device = "arm";
-    if (gComputeUnitType == 1) {
-        device = "gpu";
-    } else if (gComputeUnitType == 2) {
-        device = "huawei_npu";
-    }
-    sprintf(temp, " device: %s \ntime:", device.c_str());
-    std::string computeUnitTips(temp);
-    std::string resultTips = std::string(
-            computeUnitTips + asyncRefDetector->GetBenchResult().Description());
-    setBenchResult(resultTips);
     faceInfoArray = env->NewObjectArray(face_info.size(), clsFaceInfo, NULL);
 
     if (face_info.size() > 0) {
@@ -272,25 +260,25 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
             jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
             int keypointsNum = face_info[i].key_points.size();
             auto face_orig = face_info[i].AdjustToViewSize(width, height, 2);
-            LOGE("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
+            LOGI("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
                  face_orig.x2, face_orig.y2, face_orig.score, keypointsNum);
             env->SetFloatField(objFaceInfo, fidx1, face_orig.x1);
             env->SetFloatField(objFaceInfo, fidy1, face_orig.y1);
             env->SetFloatField(objFaceInfo, fidx2, face_orig.x2);
             env->SetFloatField(objFaceInfo, fidy2, face_orig.y2);
 
-//            //from here start to create point
-//            jclass cls1dArr = env->FindClass("[F");
-//            // Create the returnable jobjectArray with an initial value
-//            jobjectArray outer = env->NewObjectArray(keypointsNum, cls1dArr, NULL);
-//            for (int j = 0; j < keypointsNum; j++) {
-//                jfloatArray inner = env->NewFloatArray(2);
-//                float temp[] = {face_orig.key_points[j].first, face_orig.key_points[j].second};
-//                env->SetFloatArrayRegion(inner, 0, 2, temp);
-//                env->SetObjectArrayElement(outer, j, inner);
-//                env->DeleteLocalRef(inner);
-//            }
-//            env->SetObjectField(objFaceInfo, fidkeypoints, outer);
+            //from here start to create point
+            jclass cls1dArr = env->FindClass("[F");
+            // Create the returnable jobjectArray with an initial value
+            jobjectArray outer = env->NewObjectArray(keypointsNum, cls1dArr, NULL);
+            for (int j = 0; j < keypointsNum; j++) {
+                jfloatArray inner = env->NewFloatArray(2);
+                float temp[] = {face_orig.key_points[j].first, face_orig.key_points[j].second};
+                env->SetFloatArrayRegion(inner, 0, 2, temp);
+                env->SetObjectArrayElement(outer, j, inner);
+                env->DeleteLocalRef(inner);
+            }
+            env->SetObjectField(objFaceInfo, fidkeypoints, outer);
             env->SetObjectArrayElement(faceInfoArray, i, objFaceInfo);
             env->DeleteLocalRef(objFaceInfo);
         }

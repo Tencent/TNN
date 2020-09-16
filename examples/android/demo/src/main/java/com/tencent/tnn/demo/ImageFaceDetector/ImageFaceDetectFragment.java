@@ -16,6 +16,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -188,7 +189,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
         int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            FaceDetector.FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
+            FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
             Log.d(TAG, "detect from image result " + faceInfoList);
             int faceCount = 0;
             if (faceInfoList != null) {

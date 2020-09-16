@@ -59,7 +59,6 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
         status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
-        LOGE("the device type  %d device huawei_npu" ,gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
@@ -73,12 +72,10 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
         LOGE("detector init failed %d", (int)status);
         return -1;
     }
-    TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 1;
-    gDetector->SetBenchOption(bench_option);
+
     if (clsFaceInfo == NULL)
     {
-        clsFaceInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/FaceDetector$FaceInfo")));
+        clsFaceInfo = static_cast<jclass>(env->NewGlobalRef(env->FindClass("com/tencent/tnn/demo/FaceInfo")));
         midconstructorFaceInfo = env->GetMethodID(clsFaceInfo, "<init>", "()V");
         fidx1 = env->GetFieldID(clsFaceInfo, "x1" , "F");
         fidy1 = env->GetFieldID(clsFaceInfo, "y1" , "F");
@@ -150,18 +147,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
         return 0;
     }
 
-    LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
-    char temp[128] = "";
-    std::string device = "arm";
-    if (gComputeUnitType == 1) {
-        device = "gpu";
-    } else if (gComputeUnitType == 2) {
-        device = "huawei_npu";
-    }
-    sprintf(temp, " device: %s \ntime:", device.c_str());
-    std::string computeUnitTips(temp);
-    std::string resultTips = std::string(computeUnitTips + asyncRefDetector->GetBenchResult().Description());
-    setBenchResult(resultTips);
     LOGI("face info list size %d", faceInfoList.size());
     // TODO: copy face info list
     if (faceInfoList.size() > 0) {
@@ -175,9 +160,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
             env->SetFloatField(objFaceInfo, fidx2, faceInfoList[i].x2);
             env->SetFloatField(objFaceInfo, fidy2, faceInfoList[i].y2);
             env->SetFloatField(objFaceInfo, fidscore, faceInfoList[i].score);
-//            jfloatArray jarrayLandmarks = env->NewFloatArray(landmarkNum);
-//            env->SetFloatArrayRegion(jarrayLandmarks, 0, landmarkNum , faceInfoList[i].landmarks);
-//            env->SetObjectField(objFaceInfo, fidlandmarks, jarrayLandmarks);
             env->SetObjectArrayElement(faceInfoArray, i, objFaceInfo);
             env->DeleteLocalRef(objFaceInfo);
         }

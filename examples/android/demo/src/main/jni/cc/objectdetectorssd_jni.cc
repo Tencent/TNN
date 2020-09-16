@@ -71,9 +71,7 @@ TNN_OBJECT_DETECTORSSD(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint 
         LOGE("detector init failed %d", (int) status);
         return -1;
     }
-    TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 1;
-    gDetector->SetBenchOption(bench_option);
+
     if (clsObjectInfo == NULL) {
         clsObjectInfo = static_cast<jclass>(env->NewGlobalRef(
                 env->FindClass("com/tencent/tnn/demo/ObjectInfo")));
@@ -155,19 +153,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromStream)(JNIEnv *
         return 0;
     }
 
-    LOGI("bench result: %s", asyncRefDetector->GetBenchResult().Description().c_str());
-    char temp[128] = "";
-    std::string device = "arm";
-    if (gComputeUnitType == 1) {
-        device = "gpu";
-    } else if (gComputeUnitType == 2) {
-        device = "huawei_npu";
-    }
-    sprintf(temp, " device: %s \ntime:", device.c_str());
-    std::string computeUnitTips(temp);
-    std::string resultTips = std::string(
-            computeUnitTips + asyncRefDetector->GetBenchResult().Description());
-    setBenchResult(resultTips);
     LOGI("object info list size %d", objectInfoList.size());
     // TODO: copy object info list
     if (objectInfoList.size() > 0) {
