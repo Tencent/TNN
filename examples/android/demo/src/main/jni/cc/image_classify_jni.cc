@@ -56,9 +56,7 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
         LOGE("detector init failed %d", (int)status);
         return -1;
     }
-    TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 20;
-    gDetector->SetBenchOption(bench_option);
+
     return 0;
 }
 
@@ -106,6 +104,11 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
     if ( AndroidBitmap_lockPixels(env, imageSource, &sourcePixelscolor) < 0) {
         return 0;
     }
+
+    TNN_NS::BenchOption bench_option;
+    bench_option.forward_count = 20;
+    gDetector->SetBenchOption(bench_option);
+
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
     TNN_NS::DimsVector target_dims = {1, 3, height, width};
     std::shared_ptr<TNN_NS::Mat> input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims, sourcePixelscolor);
@@ -133,7 +136,7 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
     std::string computeUnitTips(temp);
     std::string resultTips = std::string(computeUnitTips + gDetector->GetBenchResult().Description());
     setBenchResult(resultTips);
-    LOGE("classify id %d", resultList[0]);
+    LOGI("classify id %d", resultList[0]);
     resultArray = env->NewIntArray(1);
     resultList[0] =  dynamic_cast<TNN_NS::ImageClassifierOutput*>(output.get())->class_id;
     env->SetIntArrayRegion(resultArray, 0, 1, resultList);
