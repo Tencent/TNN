@@ -451,6 +451,15 @@ struct MetalReshapeParams {
     int batch;
 };
 
+/** ArgMaxOrMin Param Struct **/
+struct MetalArgMaxOrMinParams {
+    int input_channel;
+    int outer_size;
+    int inner_size;
+    int reduce_size;
+    int mode;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \
