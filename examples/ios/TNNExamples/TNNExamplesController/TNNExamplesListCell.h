@@ -12,19 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
-#import "tnn_sdk_sample.h"
-#import "tnn_fps_counter.h"
+#import <UIKit/UIKit.h>
 
+NS_ASSUME_NONNULL_BEGIN
 
-@interface TNNCameraPreviewController : TNNExamplesController {
-    std::shared_ptr<TNNFPSCounter> _fps_counter;
-}
-
-
-
-- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
-  withOriginImageSize:(CGSize)size
-           withStatus:(Status)status;
-
+@interface TNNExamplesListCell : UITableViewCell
+@property (weak, nonatomic) IBOutlet UILabel *labelTitle;
+@property (weak, nonatomic) IBOutlet UILabel *labelDesc;
 @end
+
+NS_ASSUME_NONNULL_END
