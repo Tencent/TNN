@@ -18,6 +18,7 @@ from utils import args_parser
 from onnx_converter import onnx2tnn
 from caffe_converter import caffe2tnn
 from tf_converter import tf2tnn
+from tflite_converter import tflite2tnn
 from utils import parse_path
 
 logging.basicConfig(level=logging.INFO, format="")
@@ -28,7 +29,6 @@ def main():
     args = parser.parse_args()
 
     logging.info("\n{}  convert model, please wait a moment {}\n".format("-" * 10, "-" * 10))
-
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
@@ -86,6 +86,20 @@ def main():
                         input_file, ref_file)
         except Exception as err:
             logging.error("\nConversion to  tnn failed :(\n")
+    elif args.sub_command == 'tflite2tnn':
+        tf_path = parse_path.parse_path(args.tf_path)
+        output_dir = parse_path.parse_path(args.output_dir)
+        version = args.version
+        align = args.align
+        input_file = args.input_file_path
+        ref_file = args.refer_file_path
+        input_file = parse_path.parse_path(input_file)
+        ref_file = parse_path.parse_path(ref_file)
+        try:
+            tflite2tnn.convert(tf_path,  output_dir, version, align,
+                       input_file, ref_file)
+        except Exception as err:
+           logging.error("\n Conversion to  tnn failed :(\n")
     elif args.sub_command is None:
         parser.print_help()
     else:
