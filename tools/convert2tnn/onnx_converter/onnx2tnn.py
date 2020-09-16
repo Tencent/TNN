@@ -15,7 +15,7 @@
 from utils import cmd
 from utils import checker
 from utils import return_code
-from . import align_model
+from utils import align_model
 
 from converter import logging
 
