@@ -142,6 +142,13 @@ protected:
                           std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
                           std::set<std::string>& blob_names);
 
+    int RemoveSqueeze(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                      std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
+                      std::set<std::string>& blob_names);
+
+    int RemoveDropout(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                      std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
+                      std::set<std::string>& blob_names);
 protected:
     //fuse
     int FuseLogSigmoid(onnx::GraphProto* mutable_graph,

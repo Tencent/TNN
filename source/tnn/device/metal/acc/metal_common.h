@@ -435,6 +435,88 @@ struct MetalSignedMulParams {
     float gamma_inv;
 };
 
+struct MetalResizeParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    float scale_w;
+    float scale_h;
+    
+    int resized_width;
+    int resized_height;
+    int type;
+};
+
+struct MetalCropParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    int crop_width;
+    int crop_height;
+    int top_left_x;
+    int top_left_y;
+};
+
+struct MetalWarpAffineParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+    
+    int resized_width;
+    int resized_height;
+    // double is not supported in Metal
+    float transform_inv[2][3];
+    int interp_type;
+    int border_type;
+    float border_val;
+};
+
+struct MetalCopyParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+};
+
+
+struct MetalBGR2GrayParams {
+    int width;
+    int height;
+    int size;
+    int channel;
+    int slice;
+    int batch;
+};
+
+/** Reshape Param Struct **/
+struct MetalReshapeParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
+    int batch;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \

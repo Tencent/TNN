@@ -193,6 +193,7 @@ namespace test {
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
+        printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
     }
 
     void SetCpuAffinity() {
@@ -306,6 +307,9 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
+        //add for cache; When using Huawei NPU, 
+	//it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
+        config.cache_path = "";
         return config;
     }
 

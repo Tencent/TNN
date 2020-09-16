@@ -260,8 +260,13 @@ void OpenCLRuntime::SetPrecision(Precision precision) {
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                                   const std::set<std::string> &build_options) {
     std::string build_options_str;
+    bool force_fp32 = false;
+    auto it         = build_options.find("-DFORCE_FP32");
+    if (it != build_options.end()) {
+        force_fp32 = true;
+    }
     //set default macro
-    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_)) {
+    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_) && !force_fp32) {
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
         LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =

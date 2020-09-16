@@ -72,7 +72,8 @@ Status ArmBatchNormLayerAcc::allocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+template <typename T>
+Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input       = inputs[0];
     auto output      = outputs[0];
     auto dims_input  = input->GetBlobDesc().dims;
@@ -85,8 +86,8 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 
     auto batch = dims_output[0];
 
-    float *input_orign  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
-    float *output_orign = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+    T *input_orign  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
+    T *output_orign = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
 
     float *k_data = buffer_scale_.force_to<float *>();
     float *b_data = buffer_bias_.force_to<float *>();
@@ -102,8 +103,8 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
                     Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
-                                    Float4::load(b_data + dz * 4));
+                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
+                                     Float4::load(b_data + dz * 4));
                 }
             }
         } else {
@@ -117,6 +118,17 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     }
 
     return TNN_OK;
+}
+
+Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (in_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (in_data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    } else {
+        return TNNERR_LAYER_ERR;
+    }
 }
 
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)

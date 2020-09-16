@@ -19,15 +19,17 @@
 
 namespace TNN_NS {
 
-class PermuteLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
+class PermuteLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, PermuteLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE));
+INSTANTIATE_TEST_SUITE_P(LayerTest, PermuteLayerTest,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1, 2, 3)));
 
 TEST_P(PermuteLayerTest, PermuteLayer) {
     // get param
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
+    int order_type = std::get<3>(GetParam());
 
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
@@ -35,7 +37,14 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
 
     // param
     PermuteLayerParam param;
-    param.orders = {0, 2, 3, 1};
+    param.orders = {0, 1, 2, 3};
+    if (1 == order_type) {
+        param.orders = {0, 2, 3, 1};
+    } else if (2 == order_type) {
+        param.orders = {0, 3, 1, 2};
+    } else if (3 == order_type) {
+        param.orders = {1, 2, 3, 0};
+    }
 
     Run(LAYER_PERMUTE, &param, nullptr, inputs_desc, outputs_desc);
 }

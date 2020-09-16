@@ -14,7 +14,8 @@
 
 #ifndef TNN_INCLUDE_TNN_CORE_MACRO_H_
 #define TNN_INCLUDE_TNN_CORE_MACRO_H_
-
+#include <stdio.h>
+#include <stdlib.h>
 // TNN namespcae
 #define TNN_NS__(x) tnn##x
 #define TNN_NS_(x) TNN_NS__(x)
@@ -104,7 +105,7 @@
     {                                                                                                                  \
         int res = (x);                                                                                                 \
         if (!res) {                                                                                                    \
-            LOGE("Error: assert failed");                                                                              \
+            LOGE("Error: assert failed\n");                                                                              \
             assert(res);                                                                                               \
         }                                                                                                              \
     }
@@ -161,19 +162,27 @@
 #define TNN_USE_NEON
 #endif
 
-#define RETURN_ON_NEQ(status, expected)                                                                                \
-    do {                                                                                                               \
-        auto _status = status;                                                                                         \
-        if (_status != expected) {                                                                                     \
-            return _status;                                                                                            \
-        }                                                                                                              \
+#define RETURN_VALUE_ON_NEQ(status, expected, value)                  \
+    do {                                                                                                         \
+        auto _status = (status);                                                                         \
+        if (_status != (expected)) {                                                                     \
+            return (value);                                                                                 \
+        }                                                                                                          \
     } while (0)
 
-#define CHECK_PARAM_NULL(param)                                                                                        \
-    do {                                                                                                               \
-        if (!param) {                                                                                                  \
+#define RETURN_ON_NEQ(status, expected)                                         \
+    do {                                                                                                        \
+        auto _status = (status);                                                                        \
+        if (_status != (expected)) {                                                                    \
+            return _status;                                                                               \
+        }                                                                                                         \
+    } while (0)
+
+#define CHECK_PARAM_NULL(param)                                                   \
+    do {                                                                                                         \
+        if (!param) {                                                                                        \
             return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
-        }                                                                                                              \
+        }                                                                                                          \
     } while (0)
 
 

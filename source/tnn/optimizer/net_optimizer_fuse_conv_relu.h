@@ -33,6 +33,8 @@ namespace optimizer {
         virtual std::string Strategy();
         virtual bool SupportDevice(DeviceType device);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
+    private:
+        std::map<LayerType, ActivationType> kLayerActivationMap;
     };
 
 }  // namespace optimizer
