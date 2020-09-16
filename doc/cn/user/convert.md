@@ -188,6 +188,15 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
     -align  \
     -input_file /workspace/in.txt \
     -ref_file /workspace/ref.txt
+    
+# convert tflite
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py tflite2tnn \
+    /workspace/mobilenet_v1_1.0_224.tflite \
+    -v v1.0 \
+    -align  \
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
+
 
 ```
 
