@@ -17,14 +17,14 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Conv);
 
-std::string OnnxConvConverter::TNNOpType(const onnx::TensorProto *node, bool quantized_model) {
+std::string OnnxConvConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
     return "Convolution";
 }
-TNN_NS::ActivationType OnnxConvConverter::ActivationType(const onnx::TensorProto *node) {
+TNN_NS::ActivationType OnnxConvConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 TNN_NS::Status OnnxConvConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                       onnx::NodeProto *node,
+                                       const onnx::NodeProto &node,
                                        std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
                                        bool &quantized_model) {

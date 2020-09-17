@@ -27,12 +27,12 @@ public:
     virtual ~OnnxBaseConverter() = default;
 
     virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
-                                onnx::NodeProto* node,
+                                const onnx::NodeProto& node,
                                 std::map<std::string, const onnx::TensorProto*> proxy_initializers_map,
                                 std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
-                                bool& quantized_model)                                 = 0;
-    virtual std::string TNNOpType(const onnx::TensorProto* node, bool quantized_model) = 0;
-    virtual TNN_NS::ActivationType ActivationType(const onnx::TensorProto* node)       = 0;
+                                bool& quantized_model)                               = 0;
+    virtual std::string TNNOpType(const onnx::NodeProto* node, bool quantized_model) = 0;
+    virtual TNN_NS::ActivationType ActivationType(const onnx::NodeProto& node)       = 0;
     TNN_NS::Status SeparateActivation(TNN_NS::NetStructure, TNN_NS::ActivationType activation_type);
 };
 
@@ -47,6 +47,7 @@ public:
 private:
     static OnnxConverterManager* onnx_converter_manager_;
     std::map<const std::string, OnnxBaseConverter*> onnx_converter_map_;
+    std::vector<const std::string> operator_black_list_;
 };
 template <class T>
 class OnnxConverterRegister {
@@ -65,12 +66,12 @@ public:
         Onnx##op_converter_name##Converter(){};                                                                        \
         virtual ~Onnx##op_converter_name##Converter(){};                                                               \
         virtual TNN_NS::Status exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,            \
-                                    onnx::NodeProto* node,                                                             \
+                                    const onnx::NodeProto& node,                                                       \
                                     std::map<std::string, const onnx::TensorProto*> proxy_initializers_map,            \
                                     std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,                 \
                                     bool& quantized_model);                                                            \
-        virtual std::string TNNOpType(const onnx::TensorProto* node, bool quantized_model);                            \
-        virtual TNN_NS::ActivationType ActivationType(const onnx::TensorProto* node);                                  \
+        virtual std::string TNNOpType(const onnx::NodeProto& node, , bool quantized_model);                            \
+        virtual TNN_NS::ActivationType ActivationType(const onnx::NodeProto& node);                                    \
     }
 
 #define REGISTER_CONVERTER(op_converter_name, onnx_op_type)                                                            \
