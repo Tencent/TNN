@@ -102,7 +102,7 @@ Parameters：
     -f    print out the time for every layer in network, otherwise the average time of all layers
     -t    add <CPU/GPU> to indicate the platform to run.
 ```
-
+P.S. If -t is not set, the programme would run on CPU and GPU by default, "-t HUAWEI_NPU" needs to be specified to obtain Huawei NPU benchmark. 
 #### 4.1 Overall Network Performance Analysis：
 
 Analyze the overall network time-consuming and execute multiple times to obtain average performance.
@@ -123,6 +123,7 @@ Execute script:
 ```
 ./benchmark_models.sh -c -f
 ```
+P.S. Huawei NPU does not support layer by layer analysis.
 The result is shown in the figure and saved to `benchmark_models_result.txt`：
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg"/>
 

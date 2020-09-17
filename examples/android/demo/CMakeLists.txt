@@ -59,13 +59,6 @@ if(TNN_HUAWEI_NPU_ENABLE)
             IMPORTED_LOCATION
             ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir_build.so)
 
-    add_library(hcl
-            SHARED
-            IMPORTED)
-    set_target_properties(hcl
-            PROPERTIES
-            IMPORTED_LOCATION
-            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhcl.so)
 endif()
 
 
@@ -90,5 +83,5 @@ target_link_libraries( # Specifies the target library.
 
 if(TNN_HUAWEI_NPU_ENABLE)
     target_link_libraries( # Specifies the target library.
-            tnn_wrapper hiai hiai_ir hiai_ir_build hcl)
+            tnn_wrapper hiai hiai_ir hiai_ir_build)
 endif()
