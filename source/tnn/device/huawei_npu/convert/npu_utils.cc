@@ -13,10 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_utils.h"
-#include <tnn/interpreter/layer_resource.h>
-#include <tnn/utils/dims_vector_utils.h>
 #include <sstream>
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 

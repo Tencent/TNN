@@ -15,21 +15,17 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_UTILS_H_
 #define TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_UTILS_H_
 
-#include <HiAiModelManagerService.h>
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/net_structure.h>
 #include <tnn/interpreter/raw_buffer.h>
 
 #include "graph/compatible/all_ops.h"
-#include "graph/op/array_defs.h"
-#include "graph/op/const_defs.h"
 #include "graph/operator.h"
 #include "hiai_ir_build.h"
 #include "npu_base_layer_convert.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
-#include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
 
@@ -38,7 +34,7 @@ public:
     static Status CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                   DimsVector dims_vector);
 
-    static Status CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer);
+    static Status CreateAttrValue(std::shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
@@ -51,11 +47,11 @@ public:
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
-    static Status CalculateBroadcastSize(vector<int> &weight_shape, EltwiseLayerResource *layer_res,
-                                         vector<int> &input_shape);
+    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
+                                         std::vector<int> &input_shape);
     static std::string GetFileHash(ModelConfig &model_config);
 
-    static bool FileExits(string model_path);
+    static bool FileExits(std::string model_path);
 
     static Status GetPadMode(int &pad_mode, int pad_type);
 
