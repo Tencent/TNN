@@ -2,10 +2,10 @@ name: android-arm-cpu
 on:
   push:
     branches:
-      - master
+      - enhance-ci
   pull_request:
     branches:
-      - master
+      - enhance-ci
 jobs:
   android:
     runs-on: ubuntu-latest
