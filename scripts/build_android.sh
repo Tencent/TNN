@@ -10,7 +10,7 @@ ARM="ON"
 OPENMP="ON"
 OPENCL="ON"
 if [ -z "$HUAWEI_NPU" ]; then
-    $HUAWEI_NPU="OFF"
+    HUAWEI_NPU="OFF"
 fi
 BENMARK_MODE="OFF"
 DEBUG="OFF"

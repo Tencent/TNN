@@ -18,7 +18,7 @@
 #include <sstream>
 #include "tnn/core/macro.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const>& attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
@@ -150,4 +150,4 @@ std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputSh
     }
     return model_suffix_stream.str();
 }
-}  // namespace tnn
+}  // namespace TNN_NS 
