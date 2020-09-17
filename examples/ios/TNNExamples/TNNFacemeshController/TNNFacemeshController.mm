@@ -105,9 +105,11 @@ using namespace TNN_NS;
                                                           ofType:nil];
     auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/blazeface/blazeface.tnnproto"
                                                           ofType:nil];
-    if (proto_path.length <= 0 || model_path.length <= 0) {
-        self.labelResult.text = @"proto or model path is invalid";
-        NSLog(@"Error: proto or model path is invalid");
+    auto anchor_path = [[NSBundle mainBundle] pathForResource:@"model/blazeface/blazeface_anchors.txt"
+                                                          ofType:nil];
+    if (proto_path.length <= 0 || model_path.length <= 0 || anchor_path.length <= 0) {
+        self.labelResult.text = @"proto or model or anchor path is invalid";
+        NSLog(@"Error: proto or model or anchor path is invalid");
         return predictor;
     }
 
@@ -140,7 +142,7 @@ using namespace TNN_NS;
         //min_suppression_thresh
         option->min_suppression_threshold = 0.3;
         //predefined anchor file path
-        option->anchor_path = string([[[NSBundle mainBundle] pathForResource:@"blazeface_anchors.txt" ofType:nil] UTF8String]);
+        option->anchor_path = string(anchor_path.UTF8String);
     }
         
     predictor = std::make_shared<BlazeFaceDetector>();

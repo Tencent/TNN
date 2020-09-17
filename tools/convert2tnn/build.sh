@@ -13,9 +13,11 @@ function build_model_check() {
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTNN_CPU_ENABLE:BOOL="ON" \
 		-DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
+    -DTNN_CONVERTER_ENABLE:BOOL="ON" \
 		-DTNN_BUILD_SHARED="OFF"
 
 	make -j4
+        cp tools/converter/TnnConverter ../bin/
 
 	if [ -f "model_check" ]; then
 		mv model_check ../$1

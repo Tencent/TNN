@@ -57,7 +57,6 @@
 		EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */; };
 		EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */; };
 		EC4E1B5424C97A5E00B88179 /* blazeface_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B5224C97A5E00B88179 /* blazeface_detector.cc */; };
-		EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */; };
 		ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */; };
 		ECAD84FD24D7F0AE0074EA95 /* face_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
@@ -170,7 +169,6 @@
 		EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazefaceDetectorController.mm; sourceTree = "<group>"; };
 		EC4E1B5224C97A5E00B88179 /* blazeface_detector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = blazeface_detector.cc; sourceTree = "<group>"; };
 		EC4E1B5324C97A5E00B88179 /* blazeface_detector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blazeface_detector.h; sourceTree = "<group>"; };
-		EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = blazeface_anchors.txt; sourceTree = "<group>"; };
 		ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFacemeshController.mm; sourceTree = "<group>"; };
 		ECAD84FA24D7F0400074EA95 /* TNNFacemeshController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFacemeshController.h; sourceTree = "<group>"; };
 		ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_mesh.cc; sourceTree = "<group>"; };
@@ -421,7 +419,6 @@
 		EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */ = {
 			isa = PBXGroup;
 			children = (
-				EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */,
 				EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */,
 				EC4E1B4E24C97A0500B88179 /* TNNBlazefaceDetectorController.h */,
 				EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */,
@@ -535,7 +532,6 @@
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
-				EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */,
 				9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
