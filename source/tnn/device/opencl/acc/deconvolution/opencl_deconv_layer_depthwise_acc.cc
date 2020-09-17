@@ -46,7 +46,8 @@ Status OpenCLDeconvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, 
     std::string kernel_name = "DepthwiseDeconv2D";
     if (run_3d_ndrange_)
     {
-        kernel_name = "DepthwiseDeconv2DGS3D";
+        LOGE("3d ndrange is not supported for deconv!\n");
+        return Status(TNNERR_PARAM_ERR, "3d ndrange is not supported for deconv!");
     }
 
     ret                     = CreateExecuteUnit(execute_units_[0], "deconvolution", kernel_name, build_options);

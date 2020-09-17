@@ -132,12 +132,8 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
 
         execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
     } else {
-        //output_channel/4, output_width, batch * output_height
-        execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                              static_cast<uint32_t>(output_dims[3]),
-                                              static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-
-        execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
+        LOGE("3d ndrange is not supported for deconv!\n");
+        return Status(TNNERR_PARAM_ERR, "3d ndrange is not supported for deconv!");
     }
 
     uint32_t idx = 0;

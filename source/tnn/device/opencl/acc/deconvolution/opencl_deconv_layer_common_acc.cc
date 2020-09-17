@@ -47,7 +47,8 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
     }
     std::string kernel_name = "Deconv2D";
     if (run_3d_ndrange_) {
-        kernel_name = "Deconv2DGS3D";
+        LOGE("3d ndrange is not supported for deconv!\n");
+        return Status(TNNERR_PARAM_ERR, "3d ndrange is not supported for deconv!");
     } else if (deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
                deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
                deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
