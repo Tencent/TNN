@@ -15,7 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_CPU_CPU_MAT_UTIL_H_
 #define TNN_SOURCE_TNN_DEVICE_CPU_CPU_MAT_UTIL_H_
 #include <string.h>
-#include <sys/time.h>
+#include <time.h>
 #include <cstdlib>
 
 #include "tnn/core/blob.h"

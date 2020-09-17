@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-#include "UltraFaceDetector.h"
-#include "TNNSDKSample.h"
+#include "ultra_face_detector.h"
+#include "tnn_sdk_sample.h"
 #include "utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION

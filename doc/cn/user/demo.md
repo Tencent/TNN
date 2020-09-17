@@ -193,6 +193,45 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 * 人脸标记  
    TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
 
+## 四、X86 CPU Demo 介绍
+
+### 功能
+* 展示TNN基础接口的调用方法，快速在x86架构的机器(Linux, Windows)下运行模型。
+
+### 编译
+* Linux:  执行 build_linux.sh<br>
+  Windows:执行 build_msvc.bat<br>
+  如编译失败请参考[常见问题](openvino.md#常见问题)
+* 1.执行图像分类demo:
+   Linux: ./demo_x86_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   Windows: 
+  2.执行人脸检测demo
+   Linux: ./demo_x86_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   Windows: 
+
+### 函数流程
+#### 图像分类函数流程
+* 创建predictor  
+   auto predictor = std::make_shared<ImageClassifier>();
+* 初始化predictor  
+   CHECK_TNN_STATUS(predictor->Init(option));
+   其中 option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+* 创建输入mat  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+* 执行predictor  
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+#### 人脸检测函数流程
+* 创建predictor  
+   auto predictor = std::make_shared<UltraFaceDetector>();
+* 初始化predictor  
+   CHECK_TNN_STATUS(predictor->Init(option));
+   其中 option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+* 创建输入mat  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+* 执行predictor  
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+* 人脸标记  
+   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
 
 ## 四、NCNN 模型使用及接口介绍
 

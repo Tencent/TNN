@@ -94,6 +94,8 @@ typedef enum {
     TNNComputeUnitsGPU = 1,
     // run on huawei_npu, if failed run on cpu
     TNNComputeUnitsHuaweiNPU = 2,
+    // run on openvino
+    TNNComputeUnitsOpenvino = 3,
 } TNNComputeUnits;
 
 typedef  struct{

@@ -16,7 +16,10 @@
 #define TNN_EXAMPLES_BASE_YOUTU_FACE_ALIGN_H_
 
 #include "tnn_sdk_sample.h"
+
+#include "stdlib.h"
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <iostream>
 #include <string>
@@ -24,6 +27,7 @@
 #include <array>
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "sample_timer.h"
 
 namespace TNN_NS{
 

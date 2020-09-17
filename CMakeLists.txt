@@ -23,6 +23,7 @@ option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
 option(TNN_OPENMP_ENABLE "Enable OpenMP" OFF)
 option(TNN_BUILD_SHARED "Build Shared Library" ON)
+option(TNN_OPENVINO_BUILD_SHARED "Build Shared Openvino Library" OFF)
 option(TNN_TEST_ENABLE "Enable Test" OFF)
 option(TNN_UNIT_TEST_ENABLE "Enable Test" OFF)
 option(TNN_PROFILER_ENABLE "Enable Test" OFF)

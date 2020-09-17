@@ -22,7 +22,7 @@ include_directories(${CMAKE_SOURCE_DIR}/../base)
 link_directories(${TNN_LIB_PATH})
 
 link_libraries(-Wl,--whole-archive TNN -Wl,--no-whole-archive)
-file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../samples/*.cc")
+file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
 add_executable(demo_arm_linux_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${SRC})
 add_executable(demo_arm_linux_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${SRC})

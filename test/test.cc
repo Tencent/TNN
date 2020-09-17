@@ -295,15 +295,15 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         // Device Type: ARM, OPENECL, ...
-        if (ConvertNetworkType(FLAGS_nt) == NETWORK_TYPE_OPENVINO) {
-            config.device_type = DEVICE_X86;
-        } else {
-            config.device_type = ConvertDeviceType(FLAGS_dt);
-        }
+        config.device_type = ConvertDeviceType(FLAGS_dt);
         
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_nt);
+        if (config.device_type == DEVICE_X86)
+            config.network_type = NETWORK_TYPE_OPENVINO;
+        else
+            config.network_type = ConvertNetworkType(FLAGS_nt);
+
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }

@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <string>
 #include <unordered_set>
-#include <sys/time.h>
 
 
 namespace TNN_NS {

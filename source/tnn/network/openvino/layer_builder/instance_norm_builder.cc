@@ -53,7 +53,7 @@ Status InstanceNormOVLayerBuilder::Build() {
     }
     auto resource = dynamic_cast<InstanceNormLayerResource*>(GetResource());
 
-    if (0) {
+    if (1) {
         auto scaleConstNode = std::make_shared<ngraph::op::Constant>(
             ngraph::element::Type_t::f32, instNormShape, resource->scale_handle.force_to<float*>());
         auto biasConstNode  = std::make_shared<ngraph::op::Constant>(
@@ -71,7 +71,7 @@ Status InstanceNormOVLayerBuilder::Build() {
         outputNodes.push_back(biasNode);
         SetOutputTensors(outputNodes);
     } else {
-        auto instNormNode = std::make_shared<CustomInstanceNormOp>(input_node->outputs(), _base_layer, GetInputBlobs(), GetOutputBlobs());
+        auto instNormNode = std::make_shared<CustomInstanceNormOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
         instNormNode->set_friendly_name(param_->name);
         ngraph::NodeVector outputNodes;
         outputNodes.push_back(instNormNode);
