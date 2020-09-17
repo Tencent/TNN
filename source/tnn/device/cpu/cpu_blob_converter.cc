@@ -24,8 +24,6 @@
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
-#include <iostream>
-
 namespace TNN_NS {
 
 CpuBlobConverterAcc::CpuBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}

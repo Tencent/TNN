@@ -30,7 +30,16 @@ CpuMatConverterAcc::CpuMatConverterAcc() : MatConverterAcc() {}
 CpuMatConverterAcc::~CpuMatConverterAcc() {}
 Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret            = TNN_OK;
-    //memcpy(dst.GetData(),src.GetData());
+    if (src.GetData() == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input mat is null");
+    }
+
+    // src device and dst device can be both arm or between arm and cpu
+
+    if (dst.GetData() == nullptr) {
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    }
+
     MatType mat_type   = src.GetMatType();
     int data_type_size = 1;
     DimsVector dims    = src.GetDims();
