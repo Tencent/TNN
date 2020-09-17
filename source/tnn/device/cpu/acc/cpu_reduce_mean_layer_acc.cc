@@ -30,7 +30,6 @@ Status CpuReduceMeanLayerAcc::CalculateReduce(float* output_data, float* input_d
         for (int ic = 0; ic < inner_dim; ic++) {
             auto input_in = input_out + ic;
             auto output_in = output_out + ic;
-            *output_in = 0;
             for (int c = 0; c < channels; c++) {
                 *output_in += input_in[c * inner_dim] * channels_inv;
             }

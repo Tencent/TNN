@@ -23,13 +23,15 @@ DECLARE_CPU_REDUCE_ACC(ReduceL1, LAYER_REDUCE_L1);
 Status CpuReduceL1LayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                             int inner_dim) {
     for (int oc = 0; oc < outer_dim; oc++) {
-        for (int c = 0; c < channels; c++) {
-            for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] += std::abs(input_data[ic]);
+        auto input_out = input_data + oc * channels * inner_dim;
+        auto output_out = output_data + oc * inner_dim;
+        for (int ic = 0; ic < inner_dim; ic++) {
+            auto input_in = input_out + ic;
+            auto output_in = output_out + ic;
+            for (int c = 0; c < channels; c++) {
+                *output_in += std::abs(input_in[c * inner_dim]);
             }
-            input_data += inner_dim;
         }
-        output_data += inner_dim;
     }
     return TNN_OK;
 }
