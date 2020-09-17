@@ -2,10 +2,10 @@ name: linux-x86-cpu-gcc
 on:
   push:
     branches:
-      - enhance-ci
+      - master
   pull_request:
     branches:
-      - enhance-ci
+      - master
 jobs:
   linux-gcc:
     runs-on: ubuntu-latest

@@ -2,10 +2,10 @@ name: ios-cpu
 on:
   push:
     branches:
-      - enhance-ci
+      - master
   pull_request:
     branches:
-      - enhance-ci
+      - master
 jobs:
   ios-iphone-os:
     runs-on: macos-latest
