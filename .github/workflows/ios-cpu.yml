@@ -1,5 +1,11 @@
 name: ios-cpu
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - add-github-action
+  pull_request:
+    branches:
+      - add-github-action
 jobs:
   ios-iphone-os:
     runs-on: macos-latest

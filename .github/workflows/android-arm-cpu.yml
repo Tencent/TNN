@@ -1,5 +1,11 @@
 name: android-arm-cpu
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - add-github-action
+  pull_request:
+    branches:
+      - add-github-action
 jobs:
   android:
     runs-on: ubuntu-latest
