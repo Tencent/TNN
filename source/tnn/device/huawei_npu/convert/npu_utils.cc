@@ -18,7 +18,7 @@
 #include <sstream>
 #include "tnn/core/macro.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
@@ -173,4 +173,4 @@ void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, st
     net_structure->inputs_shape_map = sub_input_shapes_map;
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS
