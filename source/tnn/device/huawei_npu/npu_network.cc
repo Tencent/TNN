@@ -127,7 +127,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     }
 
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
-        model_name_ + ".om", hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
+        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
         hiai::HIAI_MODELTYPE_ONLINE, hiai::AiModelDescription_DeviceType_NPU);
 
     desc->SetModelBuffer(model_mem_buffer->GetMemBufferData(), model_mem_buffer->GetMemBufferSize());
@@ -383,7 +383,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
     output_tensor_.clear();
     std::vector<hiai::TensorDimension> input_dims;
     std::vector<hiai::TensorDimension> output_dims;
-    hiai::AIStatus ret = client_->GetModelIOTensorDim(model_name_ + ".om", input_dims, output_dims);
+    hiai::AIStatus ret = client_->GetModelIOTensorDim(model_name_, input_dims, output_dims);
     if (ret != hiai::AI_SUCCESS) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: function GetModelIOTensorDim() failed");
     }
@@ -568,7 +568,7 @@ Status NpuNetwork::GetCommandQueue(void **command_queue) {
 Status NpuNetwork::Forward() {
     hiai::AiContext context;
     std::string key   = "model_name";
-    std::string value = model_name_ + ".om";
+    std::string value = model_name_;
     context.AddPara(key, value);
     int istamp;
     hiai::AIStatus ret = client_->Process(context, input_tensor_, output_tensor_, 1000, istamp);
