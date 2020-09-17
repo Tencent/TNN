@@ -118,23 +118,18 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
         deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
         deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && output_dims[3] % 4 == 0);
 
-    if (!run_3d_ndrange_) {
-        // output_width * output_channel/4, batch * output_height
-        execute_units_[0].global_work_size = {
-                static_cast<uint32_t>(output_dims[3] * UP_DIV(output_dims[1], 4)),
-                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+    // output_width * output_channel/4, batch * output_height
+    execute_units_[0].global_work_size = {
+            static_cast<uint32_t>(output_dims[3] * UP_DIV(output_dims[1], 4)),
+            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
 
-        if (is_deconv_4x4_s2_p1_wb4) {
-            // output_width/4 * output_channel/4, batch * output_height
-            execute_units_[0].global_work_size[0] =
-                static_cast<uint32_t>(UP_DIV(output_dims[3], 4) * UP_DIV(output_dims[1], 4));
-        }
-
-        execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
-    } else {
-        LOGE("3d ndrange is not supported for deconv!\n");
-        return Status(TNNERR_PARAM_ERR, "3d ndrange is not supported for deconv!");
+    if (is_deconv_4x4_s2_p1_wb4) {
+        // output_width/4 * output_channel/4, batch * output_height
+        execute_units_[0].global_work_size[0] =
+            static_cast<uint32_t>(UP_DIV(output_dims[3], 4) * UP_DIV(output_dims[1], 4));
     }
+
+    execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
 
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
@@ -148,10 +143,9 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
 
-    if (!run_3d_ndrange_ && is_deconv_4x4_s2_p1_wb4) {
+    if (is_deconv_4x4_s2_p1_wb4) {
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(UP_DIV(output_dims[3], 4)));
-    }
-    else {
+    } else {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
