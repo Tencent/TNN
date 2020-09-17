@@ -100,6 +100,21 @@ AtlasMatConverterAcc::~AtlasMatConverterAcc() {
     }
 }
 
+Status AtlasMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support Copy");
+}
+
 Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     if (!init_success_) {
         LOGE("init mat converter failed!\n");
@@ -359,7 +374,22 @@ Status AtlasMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
-    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat resize not support multi batch");
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support WarpAffine");
+}
+
+Status AtlasMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support CvtColor");
 }
 
 Status AtlasMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {

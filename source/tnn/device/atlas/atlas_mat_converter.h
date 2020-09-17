@@ -18,7 +18,7 @@
 #include "acl/acl.h"
 #include "acl/ops/acl_dvpp.h"
 #include "tnn/core/macro.h"
-#include "tnn/utils/mat_converter_internal.h"
+#include "tnn/utils/mat_converter_acc.h"
 #include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
@@ -27,12 +27,14 @@ class AtlasMatConverterAcc : public MatConverterAcc {
 public:
     AtlasMatConverterAcc();
     virtual ~AtlasMatConverterAcc();
+    virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL) override;
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL) override;
     virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param,
                                   void* command_queue = NULL) override;
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) override;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
-    virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL);
+    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) override;
+    virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL) override;
 
 private:
     Status PrepareInput(Mat& mat);
