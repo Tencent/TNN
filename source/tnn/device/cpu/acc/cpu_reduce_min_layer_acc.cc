@@ -23,19 +23,17 @@ DECLARE_CPU_REDUCE_ACC(ReduceMin, LAYER_REDUCE_MIN);
 
 Status CpuReduceMinLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                              int inner_dim) {
-    int output_size = outer_dim * inner_dim;
-    for (int i = 0; i < output_size; ++i) {
-        output_data[i] = FLT_MAX;
-    }
-
     for (int oc = 0; oc < outer_dim; oc++) {
-        for (int c = 0; c < channels; c++) {
-            for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] = std::min(input_data[ic], output_data[ic]);
+        auto input_out = input_data + oc * channels * inner_dim;
+        auto output_out = output_data + oc * inner_dim;
+        for (int ic = 0; ic < inner_dim; ic++) {
+            auto input_in = input_out + ic;
+            auto output_in = output_out + ic;
+            *output_in = FLT_MAX;
+            for (int c = 0; c < channels; c++) {
+                *output_in = std::min(*output_in, input_in[c * inner_dim]);
             }
-            input_data += inner_dim;
         }
-        output_data += inner_dim;
     }
     return TNN_OK;
 }

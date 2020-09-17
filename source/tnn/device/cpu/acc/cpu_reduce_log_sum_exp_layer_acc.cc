@@ -26,13 +26,15 @@ Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* in
     float* origin_output_data = output_data;
     int output_size           = outer_dim * inner_dim;
     for (int oc = 0; oc < outer_dim; oc++) {
-        for (int c = 0; c < channels; c++) {
-            for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] += std::exp(input_data[ic]);
+        auto input_out = input_data + oc * channels * inner_dim;
+        auto output_out = output_data + oc * inner_dim;
+        for (int ic = 0; ic < inner_dim; ic++) {
+            auto input_in = input_out + ic;
+            auto output_in = output_out + ic;
+            for (int c = 0; c < channels; c++) {
+                *output_in += std::exp(input_in[c * inner_dim]);
             }
-            input_data += inner_dim;
         }
-        output_data += inner_dim;
     }
 
     for (int i = 0; i < output_size; ++i) {
