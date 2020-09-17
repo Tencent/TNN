@@ -24,6 +24,8 @@
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
+#include <iostream>
+
 namespace TNN_NS {
 
 CpuBlobConverterAcc::CpuBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}
@@ -238,6 +240,11 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
             CPU_DEQUANT(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, dims[1], real_blob_data, dims);
             blob_data = real_blob_data;
         }
+    } else if (desc.data_type == DATA_TYPE_BFP16) {
+        if (image.GetMatType() == RESERVED_BFP16_TEST) {
+            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * 2);
+            return TNN_OK;
+        }
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {
@@ -281,6 +288,12 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims));
+            return TNN_OK;
+        } else
+            blob_data = new float[dims[0] * dims[1] * hw];
+    } else if (desc.data_type == DATA_TYPE_BFP16) {
+        if (image.GetMatType() == RESERVED_BFP16_TEST) {
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
