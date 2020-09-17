@@ -102,5 +102,6 @@ protected:
 };
 
 REGISTER_RKNPU_LAYER(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_RKNPU_LAYER(BatchNorm, LAYER_BATCH_NORM_EX)
 
 }  // namespace TNN_NS

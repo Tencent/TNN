@@ -142,5 +142,6 @@ Status MetalScaleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
 
 REGISTER_METAL_ACC(Scale, LAYER_SCALE);
 REGISTER_METAL_ACC(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_METAL_ACC(BatchNorm, LAYER_BATCH_NORM_EX);
 
 } // namespace TNN_NS

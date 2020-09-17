@@ -132,5 +132,6 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM_EX)
 
 }  // namespace TNN_NS
