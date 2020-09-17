@@ -20,23 +20,23 @@
 namespace TNN_NS {
 
 class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
+                          public ::testing::WithParamInterface<std::tuple<int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32),
                                             testing::Values(9, 10, 16, 19),
                                             // axis
-                                            testing::Values(1),
+                                            testing::Values(std::vector<int>{1}),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    DataType data_type = std::get<4>(GetParam());
+    int batch                       = std::get<0>(GetParam());
+    int channel                     = std::get<1>(GetParam());
+    int input_size                  = std::get<2>(GetParam());
+    std::vector<int> axis           = std::get<3>(GetParam());
+    DataType data_type              = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     // blob desc
@@ -46,7 +46,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // param
     ReduceMaxLayerParam param;
     param.name = "ReduceOp";
-    param.axis = {axis};
+    param.axis = axis;
 
     // all reduce different op layer run
     Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
