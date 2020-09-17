@@ -11,49 +11,6 @@ addons:
 
 matrix:
   include:
-    - name: "Linux | build"
-      os: linux
-      language: cpp
-      compiler: gcc
-      script: ./scripts/build_linux.sh
-
-    - name: "MacOS | build"
-      os: osx
-      language: cpp
-      osx_image: xcode11.2
-      compiler: clang
-      script: ./scripts/build_macos.sh
-
-    - name: "IOS | build"
-      os: osx
-      language: cpp
-      osx_image: xcode11.2
-      compiler: clang
-      script: ./scripts/build_ios.sh
-      
-    - name: "Linux | Android | build"
-      os: linux
-      language: android
-      compiler: clang
-      android:
-        components:
-          - tools
-          - build-tools
-          - platform-tools
-          - android-21
-        licenses:
-          - 'android-sdk-preview-license-.+'
-          - 'android-sdk-license-.+'
-          - 'google-gdk-license-.+'
-      before_script:
-        - sudo apt-get remove cmake
-        - echo yes | sdkmanager "ndk-bundle"
-        - echo yes | sdkmanager "cmake;3.10.2.4988404"
-        - export ANDROID_NDK=$ANDROID_HOME/ndk-bundle
-        - export PATH=/usr/local/android-sdk/cmake/3.10.2.4988404/bin/:$PATH
-      script:
-        - ./scripts/build_android.sh
-
     - name: "Linux | Arm64 | build"
       os: linux
       arch: arm64
