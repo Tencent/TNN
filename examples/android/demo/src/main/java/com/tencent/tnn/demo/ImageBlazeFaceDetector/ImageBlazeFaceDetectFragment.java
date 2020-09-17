@@ -16,6 +16,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.BlazeFaceDetector;
+import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -183,7 +184,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         }
         int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         Log.d(TAG, "detect from image");
-        BlazeFaceDetector.BlazeFaceInfo[] faceInfoList = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
+        FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
         int faceCount = 0;
         if (faceInfoList != null) {
             faceCount = faceInfoList.length;
@@ -194,7 +195,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         ArrayList<Rect> rects = new ArrayList<Rect>();
 
         for (int i = 0; i < faceInfoList.length; i++) {
-            BlazeFaceDetector.BlazeFaceInfo tmpFaceInfo = faceInfoList[i];
+            FaceInfo tmpFaceInfo = faceInfoList[i];
             rects.add(new Rect((int) (tmpFaceInfo.x1), (int) (tmpFaceInfo.y1), (int) (tmpFaceInfo.x2), (int) (tmpFaceInfo.y2)));
             for (int j = 0; j < tmpFaceInfo.keypoints.length; j++) {
                 mPaint.setARGB(255, 0, 255, 0);
