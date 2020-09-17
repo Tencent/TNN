@@ -2,10 +2,10 @@ name: ios-cpu
 on:
   push:
     branches:
-      - add-github-action
+      - master
   pull_request:
     branches:
-      - add-github-action
+      - master
 jobs:
   ios-iphone-os:
     runs-on: macos-latest
