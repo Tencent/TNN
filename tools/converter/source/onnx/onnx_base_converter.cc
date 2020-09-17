@@ -81,4 +81,12 @@ TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure net_struc
     return TNN_NS::TNN_CONVERT_OK;
 }
 
+const onnx::NodeProto* OnnxBaseConverter::FindNodeProto(
+    const std::string& name, std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes) {
+    if (proxy_nodes.find(name) != proxy_nodes.end()) {
+        return proxy_nodes.find(name)->second.get()->onnx_node;
+    }
+    return nullptr;
+}
+
 }  // namespace TNN_CONVERTER

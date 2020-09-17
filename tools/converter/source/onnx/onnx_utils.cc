@@ -28,4 +28,64 @@ TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto te
     return dims_vector;
 }
 
+onnx::AttributeProto_AttributeType GetAttributeType(const char *type_name) {
+    if (type_name == typeid(int64_t).name()) {
+        return onnx::AttributeProto_AttributeType_INT;
+    } else if (type_name == typeid(int64_t[]).name()) {
+        return onnx::AttributeProto_AttributeType_INTS;
+    } else if (type_name == typeid(float).name()) {
+        return onnx::AttributeProto_AttributeType_FLOAT;
+    } else if (type_name == typeid(float[]).name()) {
+        return onnx::AttributeProto_AttributeType_FLOATS;
+    } else if (type_name == typeid(std::string).name()) {
+        return onnx::AttributeProto_AttributeType_STRING;
+    } else if (type_name == typeid(std::string[]).name()) {
+        return onnx::AttributeProto_AttributeType_STRINGS;
+    } else if (type_name == typeid(onnx::TensorProto).name()) {
+        return onnx::AttributeProto_AttributeType_TENSOR;
+    } else if (type_name == typeid(onnx::TensorProto[]).name()) {
+        return onnx::AttributeProto_AttributeType_TENSORS;
+    } else if (type_name == typeid(onnx::GraphProto).name()) {
+        return onnx::AttributeProto_AttributeType_GRAPH;
+    } else if (type_name == typeid(onnx::GraphProto[]).name()) {
+        return onnx::AttributeProto_AttributeType_GRAPHS;
+    } else {
+        return onnx::AttributeProto_AttributeType_UNDEFINED;
+    }
+}
+int GetAttributeInt(const onnx::NodeProto &node, const std::string &name, int64_t default_value) {
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_INT);
+        return iter.i();
+    }
+    return default_value;
+}
+
+std::vector<int64_t> GetAttributeIntVector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<int64_t> attributes;
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_INTS);
+        for (const auto &value : iter.ints()) {
+            attributes.push_back(value);
+        }
+    }
+    return attributes;
+}
+
+float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, float default_value) {
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_INT);
+        return iter.f();
+    }
+    return default_value;
+}
 }  // namespace TNN_CONVERTER

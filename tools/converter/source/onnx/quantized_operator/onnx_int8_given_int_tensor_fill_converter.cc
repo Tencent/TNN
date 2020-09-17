@@ -18,6 +18,6 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Int8GivenIntTensorFill);
 
 
-REGISTER_CONVERTER(Int8GivenIntTensorFill,Int8GivenTensorFill);
+REGISTER_CONVERTER(Int8GivenIntTensorFill,Int8GivenIntTensorFill);
 
 }

@@ -14,6 +14,7 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
+#include <cassert>
 #include <vector>
 
 #include "onnx.pb.h"
@@ -21,6 +22,15 @@
 namespace TNN_CONVERTER {
 
 TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto tensor_shape_proto);
-}
+
+onnx::AttributeProto_AttributeType GetAttributeType(const char* basic_type_name);
+
+int GetAttributeInt(const onnx::NodeProto& node, const std::string& name, int64_t default_value);
+
+std::vector<int64_t> GetAttributeIntVector(const onnx::NodeProto& node, const std::string& name);
+
+float GetAttributeFloat(const onnx::NodeProto& node, const std::string& name, float default_value);
+
+}  // namespace TNN_CONVERTER
 
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
