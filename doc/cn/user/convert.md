@@ -4,7 +4,7 @@
 
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
 
-目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
+目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow、TesorFlow-Lite 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
 
 | 原始模型   | 转换工具        | 目标模型 |
 |------------|-----------------|----------|
@@ -12,7 +12,7 @@
 | TensorFlow | tensorflow-onnx | ONNX     |
 | Caffe      | caffe2onnx      | ONNX     |
 | ONNX       | onnx2tnn        | TNN      |
-
+| TensorFlow-Lite     | tflite2tnn      | TNN      |
 目前 TNN 目前仅支持 CNN 等常用网络结构，RNN、GAN等网络结构正在逐步开发中。
 
 # TNN 模型转换工具
@@ -91,6 +91,7 @@ positional arguments:
     onnx2tnn            convert onnx model to tnn model
     caffe2tnn           convert caffe model to tnn model
     tf2tnn              convert tensorflow model to tnn model
+    tflite2tnn          convert tensorflow-lite model to tnn model
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -187,6 +188,15 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
     -align  \
     -input_file /workspace/in.txt \
     -ref_file /workspace/ref.txt
+    
+# convert tflite
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py tflite2tnn \
+    /workspace/mobilenet_v1_1.0_224.tflite \
+    -v v1.0 \
+    -align  \
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
+
 
 ```
 
@@ -446,14 +456,34 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
 ```
+- tensorflow-lite2tnn
+
+当前 tensorflow-lite2tnn 的转换支持tflite格式文件，从而方便移动端部署。
+
+``` shell script
+python3 converter.py tflite2tnn -h
+```
+usage 信息如下：
+```
+usage: convert tflite2tnn [-h] TF_PATH [-o OUTPUT_DIR] [-v v1.0] [-align]
+
+optional arguments:
+  -h, --help            show this help message and exit
+   TF_PATH           the path for tensorflow-lite graphdef file
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
+```
 示例：
 ```shell script
-python3 converter.py tf2tnn \
-    -tp ~/tf-model/test.pb \
-    -in "input0[1,32,32,3];input1[1,32,32,3]" \
-    -on output0 \
-    -v v2.0 \
-    -optimize \
+python3 converter.py tflite2tnn \
+    ~/tf-model/test.tflite \
     -o ~/tf-model/ \
     -align \
     -input_file in.txt \
@@ -556,4 +586,5 @@ convert2tnn 只是对多种模型转换的工具的封装，根据第一部分 �
 - [pytorch2tnn](onnx2tnn.md)
 - [tf2tnn](tf2tnn.md)
 - [caffe2tnn](caffe2tnn.md)
+- [tflite2tnn](tflite2tnn.md)
 
