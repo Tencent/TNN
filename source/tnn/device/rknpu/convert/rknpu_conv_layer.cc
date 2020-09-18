@@ -81,6 +81,15 @@ protected:
         // output
         ADD_OUTPUT_OP();
 
+        int32_t multiplier = 0;
+        if (group == 1) {
+            multiplier = 0;
+        } else if (in_group == 1) {
+            multiplier = output_channel / group;
+        } else {
+            multiplier = 0;
+        }
+
         rk::nn::Conv2DAttr attr;
         attr.ksize[0]    = kernel_w;
         attr.ksize[1]    = kernel_h;
@@ -95,7 +104,7 @@ protected:
         attr.dilation[0] = 1;
         attr.dilation[1] = 1;
         attr.pad_type    = rk_pad_type;
-        attr.multiplier  = 0;  // TODO
+        attr.multiplier  = multiplier;  // TODO
         attr.has_relu    = (activation_type == ActivationType_ReLU) ? true : false;
 
         graph_->AddOperator(rk::nn::OperatorType::CONV2D, inputs, output_ops_, (void *)&attr);

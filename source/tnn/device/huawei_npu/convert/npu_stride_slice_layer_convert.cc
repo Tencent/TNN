@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "graph/attr_value.h"
-#include "graph/op/all_ops.h"
 #include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
@@ -23,7 +22,7 @@ namespace TNN_NS {
 DECLARE_NPU_LAYER_WEIGHT(StridedSlice, LAYER_STRIDED_SLICE);
 
 Status NpuStridedSliceLayer::Convert() {
-    auto param    = dynamic_cast<StrideSliceLayerParam *>(param_);
+    auto param = dynamic_cast<StrideSliceLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
     std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
