@@ -6,6 +6,11 @@
 TNN is a high-performance and lightweight inference framework for mobile devices. It provides lots of advanced features such as cross-platform, model-compression, and code-pruning. TNN, inspired by mainstream open-source industry frameworks, integrates and leverages Youtu Lab's Rapidnet, ncnn framework. It also combines the efforts of the deep-learning framework Oteam from all departments(PCG, TEG, IEG) to create an enterprise-level mobile inference engine.
 At present, TNN has been launched to support various products in Youtu Lab and Guangying Studio.
 
+## Effect Example
+|    Face Detection(blazeface)     |   Object Detection(yolov5s)       |   Face Alignment<br>(from Tencent Youtu Lab)      |
+|:---------|:-----------|:---------|
+|[![blazeface](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br>iOS ✅  Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface)|[![yolov5s](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5)   |[![youtu_facealign](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment)|
+
 ## Quick Start
 
 It is very simple to use TNN. If you have a trained model, the model can be deployed on the target platform through three steps.
