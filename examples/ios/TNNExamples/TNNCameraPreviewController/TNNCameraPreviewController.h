@@ -15,13 +15,13 @@
 #import "TNNExamplesController.h"
 #import "tnn_sdk_sample.h"
 #import "tnn_fps_counter.h"
-#import "TNNViewModel.h"
+
 
 @interface TNNCameraPreviewController : TNNExamplesController {
     std::shared_ptr<TNNFPSCounter> _fps_counter;
 }
 
-@property (nonatomic, strong) TNNViewModel *viewModel;
+
 
 - (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
   withOriginImageSize:(CGSize)size

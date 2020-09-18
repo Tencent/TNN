@@ -33,6 +33,7 @@ COPY . $TNN_ROOT/
 #RUN cd $TOOLS_ROOT/onnx2tnn/onnx-converter && ./build.sh
 RUN cd $TOOLS_ROOT/convert2tnn && bash ./build.sh
 
+
 RUN python3 $TOOLS_ROOT/convert2tnn/converter.py -h
 
 WORKDIR $TOOLS_ROOT/convert2tnn/

@@ -17,7 +17,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='convert',
-                                     description='convert ONNX/Tensorflow/Caffe model to TNN model')
+                                     description='convert ONNX/Tensorflow/Tensorflowlite/Caffe model to TNN model')
 
     subparsers = parser.add_subparsers(dest="sub_command")
 
@@ -212,5 +212,52 @@ def parse_args():
                                 action='store_true',
                                 required=False,
                                 help=argparse.SUPPRESS)
+    #tflie parser
+    tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
+                                          help="convert tensorflow-lite model to tnn model")
+    tflite2tnn_parser.add_argument( dest="tf_path",
+                           action='store',
+                           help="the path for tensorflow-lite graphdef file")
 
+    tflite2tnn_parser.add_argument('-o',
+                           dest='output_dir',
+                           action='store',
+                           required=False,
+                           help="the output tnn directory")
+
+    tflite2tnn_parser.add_argument('-v',
+                           metavar="v1.0",
+                           dest='version',
+                           default="v1.0.0",
+                           action='store',
+                           required=False,
+                           help="the version for model")
+
+
+    tflite2tnn_parser.add_argument('-align',
+                           dest='align',
+                           default=False,
+                           action='store_true',
+                           required=False,
+                           help='align the tf-lite model with tnn model')
+
+
+    tflite2tnn_parser.add_argument('-input_file',
+                           dest='input_file_path',
+                           action='store',
+                           required=False,
+                           help="the input file path which contains the input data for the inference model.")
+
+    tflite2tnn_parser.add_argument('-ref_file',
+                           dest='refer_file_path',
+                           action='store',
+                           required=False,
+                           help="the reference file path which contains the reference data to compare the results.")
+
+    tflite2tnn_parser.add_argument('-debug',
+                           dest='debug',
+                           default=False,
+                           action='store_true',
+                           required=False,
+                           help=argparse.SUPPRESS)
     return parser

@@ -26,14 +26,15 @@
 		9D71E7C624C5BE7000074C1A /* TNNFaceDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D71E7C524C5BE7000074C1A /* TNNFaceDetectorViewModel.mm */; };
 		9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D71E7C724C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm */; };
 		9D71E7CC24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D71E7CB24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm */; };
+		9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D8493C22510B4A400869EEF /* TNNExamplesListController.mm */; };
+		9D8493C62510B4A400869EEF /* TNNExamplesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D8493C32510B4A400869EEF /* TNNExamplesController.mm */; };
+		9D8493C92510B52C00869EEF /* TNNExamplesListCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D8493C82510B52C00869EEF /* TNNExamplesListCell.m */; };
 		9D9187E3242C30D600DF2B79 /* test.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9D9187DE242C30D500DF2B79 /* test.jpg */; };
 		9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */; };
-		9D961FEA241163EE009B3FB1 /* TNNExamplesListController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */; };
 		9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FEB24116548009B3FB1 /* RootNavController.mm */; };
 		9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */; };
 		9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579EE23B5A20500A96E63 /* AppDelegate.mm */; };
 		9DD579F223B5A20500A96E63 /* SceneDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579F123B5A20500A96E63 /* SceneDelegate.mm */; };
-		9DD579F523B5A20500A96E63 /* TNNExamplesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579F423B5A20500A96E63 /* TNNExamplesController.mm */; };
 		9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9DD579F623B5A20500A96E63 /* Main.storyboard */; };
 		9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9DD579F923B5A20E00A96E63 /* Assets.xcassets */; };
 		9DD579FD23B5A20E00A96E63 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9DD579FB23B5A20E00A96E63 /* LaunchScreen.storyboard */; };
@@ -56,7 +57,6 @@
 		EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */; };
 		EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */; };
 		EC4E1B5424C97A5E00B88179 /* blazeface_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC4E1B5224C97A5E00B88179 /* blazeface_detector.cc */; };
-		EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */ = {isa = PBXBuildFile; fileRef = EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */; };
 		ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */; };
 		ECAD84FD24D7F0AE0074EA95 /* face_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
@@ -64,8 +64,6 @@
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
 		ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
-		ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */; };
-		ECEC65AB24FFD5830044DDF1 /* mean_pts_phase1.txt in Resources */ = {isa = PBXBuildFile; fileRef = ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */; };
 		ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */; };
 /* End PBXBuildFile section */
 
@@ -120,11 +118,15 @@
 		9D71E7C824C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNSSDObjectDetectorViewModel.h; sourceTree = "<group>"; };
 		9D71E7CA24C8404100074C1A /* TNNYoloObjectDetectorViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoloObjectDetectorViewModel.h; sourceTree = "<group>"; };
 		9D71E7CB24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoloObjectDetectorViewModel.mm; sourceTree = "<group>"; };
+		9D8493C12510B4A400869EEF /* TNNExamplesListController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNExamplesListController.h; sourceTree = "<group>"; };
+		9D8493C22510B4A400869EEF /* TNNExamplesListController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNExamplesListController.mm; sourceTree = "<group>"; };
+		9D8493C32510B4A400869EEF /* TNNExamplesController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNExamplesController.mm; sourceTree = "<group>"; };
+		9D8493C42510B4A400869EEF /* TNNExamplesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNExamplesController.h; sourceTree = "<group>"; };
+		9D8493C72510B52C00869EEF /* TNNExamplesListCell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNExamplesListCell.h; sourceTree = "<group>"; };
+		9D8493C82510B52C00869EEF /* TNNExamplesListCell.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TNNExamplesListCell.m; sourceTree = "<group>"; };
 		9D9187DD242C30D500DF2B79 /* TNNFaceDetectorController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNFaceDetectorController.h; sourceTree = "<group>"; };
 		9D9187DE242C30D500DF2B79 /* test.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test.jpg; sourceTree = "<group>"; };
 		9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectorController.mm; sourceTree = "<group>"; };
-		9D961FE8241163EE009B3FB1 /* TNNExamplesListController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNExamplesListController.h; sourceTree = "<group>"; };
-		9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNExamplesListController.mm; sourceTree = "<group>"; };
 		9D961FEB24116548009B3FB1 /* RootNavController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RootNavController.mm; sourceTree = "<group>"; };
 		9D961FEC24116548009B3FB1 /* RootNavController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RootNavController.h; sourceTree = "<group>"; };
 		9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazeFaceDetectorViewModel.mm; sourceTree = "<group>"; };
@@ -134,8 +136,6 @@
 		9DD579EE23B5A20500A96E63 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
 		9DD579F023B5A20500A96E63 /* SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
 		9DD579F123B5A20500A96E63 /* SceneDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SceneDelegate.mm; sourceTree = "<group>"; };
-		9DD579F323B5A20500A96E63 /* TNNExamplesController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNExamplesController.h; sourceTree = "<group>"; };
-		9DD579F423B5A20500A96E63 /* TNNExamplesController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNExamplesController.mm; sourceTree = "<group>"; };
 		9DD579F723B5A20500A96E63 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9DD579F923B5A20E00A96E63 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9DD579FC23B5A20E00A96E63 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -169,7 +169,6 @@
 		EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazefaceDetectorController.mm; sourceTree = "<group>"; };
 		EC4E1B5224C97A5E00B88179 /* blazeface_detector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = blazeface_detector.cc; sourceTree = "<group>"; };
 		EC4E1B5324C97A5E00B88179 /* blazeface_detector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blazeface_detector.h; sourceTree = "<group>"; };
-		EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = blazeface_anchors.txt; sourceTree = "<group>"; };
 		ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFacemeshController.mm; sourceTree = "<group>"; };
 		ECAD84FA24D7F0400074EA95 /* TNNFacemeshController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFacemeshController.h; sourceTree = "<group>"; };
 		ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_mesh.cc; sourceTree = "<group>"; };
@@ -183,8 +182,6 @@
 		ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = youtu_face_align.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
 		ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuFaceAlignController.h; sourceTree = "<group>"; };
-		ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mean_pts_phase2.txt; sourceTree = "<group>"; };
-		ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mean_pts_phase1.txt; sourceTree = "<group>"; };
 		ECEF96D924AED3980094CB8B /* object_detector_ssd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = object_detector_ssd.h; sourceTree = "<group>"; };
 		ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = object_detector_ssd.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -268,6 +265,19 @@
 			path = TNNViewModel;
 			sourceTree = "<group>";
 		};
+		9D8493C02510B4A400869EEF /* TNNExamplesController */ = {
+			isa = PBXGroup;
+			children = (
+				9D8493C12510B4A400869EEF /* TNNExamplesListController.h */,
+				9D8493C22510B4A400869EEF /* TNNExamplesListController.mm */,
+				9D8493C32510B4A400869EEF /* TNNExamplesController.mm */,
+				9D8493C42510B4A400869EEF /* TNNExamplesController.h */,
+				9D8493C82510B52C00869EEF /* TNNExamplesListCell.m */,
+				9D8493C72510B52C00869EEF /* TNNExamplesListCell.h */,
+			);
+			path = TNNExamplesController;
+			sourceTree = "<group>";
+		};
 		9D9187DC242C30D500DF2B79 /* TNNFaceDetectorController */ = {
 			isa = PBXGroup;
 			children = (
@@ -308,10 +318,7 @@
 				9DD579F123B5A20500A96E63 /* SceneDelegate.mm */,
 				9D961FEC24116548009B3FB1 /* RootNavController.h */,
 				9D961FEB24116548009B3FB1 /* RootNavController.mm */,
-				9DD579F323B5A20500A96E63 /* TNNExamplesController.h */,
-				9DD579F423B5A20500A96E63 /* TNNExamplesController.mm */,
-				9D961FE8241163EE009B3FB1 /* TNNExamplesListController.h */,
-				9D961FE9241163EE009B3FB1 /* TNNExamplesListController.mm */,
+				9D8493C02510B4A400869EEF /* TNNExamplesController */,
 				ECAD84F724D7EFCC0074EA95 /* TNNFacemeshController */,
 				EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */,
 				9D71E7B724C5685F00074C1A /* TNNYoloObjectDetectorController */,
@@ -412,7 +419,6 @@
 		EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */ = {
 			isa = PBXGroup;
 			children = (
-				EC4E1B5524C994B400B88179 /* blazeface_anchors.txt */,
 				EC4E1B4D24C97A0500B88179 /* test_blazeface.jpg */,
 				EC4E1B4E24C97A0500B88179 /* TNNBlazefaceDetectorController.h */,
 				EC4E1B4F24C97A0500B88179 /* TNNBlazefaceDetectorController.mm */,
@@ -435,8 +441,6 @@
 			children = (
 				ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */,
 				ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */,
-				ECEC61B324FFD5820044DDF1 /* mean_pts_phase2.txt */,
-				ECEC61B424FFD5820044DDF1 /* mean_pts_phase1.txt */,
 			);
 			path = TNNYoutuFaceAlignController;
 			sourceTree = "<group>";
@@ -523,14 +527,11 @@
 				9D71E7B024C560C900074C1A /* 004545.jpg in Resources */,
 				D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */,
 				9DDED30A2429A0BE000C09EA /* model in Resources */,
-				ECEC65AA24FFD5830044DDF1 /* mean_pts_phase2.txt in Resources */,
 				ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */,
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
-				ECEC65AB24FFD5830044DDF1 /* mean_pts_phase1.txt in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
-				EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */,
 				9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -565,12 +566,12 @@
 				9D71E79D24C4E92A00074C1A /* TNNImageClassifyController.mm in Sources */,
 				9D71E7CC24C8404100074C1A /* TNNYoloObjectDetectorViewModel.mm in Sources */,
 				9D71E7C324C5BE1200074C1A /* TNNViewModel.mm in Sources */,
-				9DD579F523B5A20500A96E63 /* TNNExamplesController.mm in Sources */,
 				9D71E7BB24C5685F00074C1A /* TNNYoloObjectDetectorController.mm in Sources */,
 				ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */,
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
+				9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */,
 				ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
@@ -582,7 +583,6 @@
 				9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */,
 				ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
-				9D961FEA241163EE009B3FB1 /* TNNExamplesListController.mm in Sources */,
 				ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
@@ -591,6 +591,7 @@
 				9D71E7A424C4F35A00074C1A /* TNNImageColourController.mm in Sources */,
 				ECAD84FD24D7F0AE0074EA95 /* face_mesh.cc in Sources */,
 				D1330F4C244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm in Sources */,
+				9D8493C92510B52C00869EEF /* TNNExamplesListCell.m in Sources */,
 				9D71E78B24C0AF4200074C1A /* TNNBoundingBox.mm in Sources */,
 				9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */,
 				EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */,
@@ -600,6 +601,7 @@
 				EC1B9AA824BC0B7B0003A742 /* object_detector_yolo.cc in Sources */,
 				EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */,
 				9D71E79324C1980700074C1A /* tnn_fps_counter.cc in Sources */,
+				9D8493C62510B4A400869EEF /* TNNExamplesController.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
