@@ -12,9 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
-#include "npu_utils.h"
 #include "tnn/core/layer_type.h"
 
 #ifndef TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_CONVERT_NPU_ACTIVATION_LAYER_CONVERT_H_
