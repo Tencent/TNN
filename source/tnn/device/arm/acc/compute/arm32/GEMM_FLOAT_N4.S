@@ -179,6 +179,7 @@ L4:
 cmp width, #3
 ble L1
 
+vmov.i32 d15[0], weight
 mov r12, src
 vld1.32 {q4, q5}, [weight]!
 vld1.32 {q8}, [bias]
@@ -187,7 +188,6 @@ vmov q9, q8
 vmov q10, q8
 vmov q11, q8
 
-vmov.i32 d15[0], weight
 L4Loop:
     pld [src, #256]
     COMPUTE_UNIT_0 q8, q9, q10, q11, q4
