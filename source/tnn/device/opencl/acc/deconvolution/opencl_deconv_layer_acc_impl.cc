@@ -234,7 +234,7 @@ void OpenCLDeconvLayerAccImpl::SetExtraKernelParameters(uint32_t idx, const std:
 
 #if TNN_PROFILE
 double OpenCLDeconvLayerAccImpl::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(input_dims_) * input_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
+    return 2.0 * DimsVectorUtils::Count(input_dims_) * output_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
            deconv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif
