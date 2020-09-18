@@ -36,7 +36,7 @@ Status NpuPadLayer::Convert() {
 
     if (param->type == 0) {
         // values
-        std::vector<float> const_val                     = {param->value};
+        std::vector<float> const_val                   = {param->value};
         std::shared_ptr<ge::op::Const> const_val_const = std::make_shared<ge::op::Const>(layer_name_ + "_values");
         ge::TensorDesc const_desc(hiai::Shape({1}), hiai::FORMAT_NCHW, hiai::DT_FLOAT);
         NpuUtils::CreateAttrArray(const_val_const, const_val, const_desc, 1);

@@ -13,10 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "graph/attr_value.h"
-#include "graph/op/all_ops.h"
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
-#include "npu_utils.h"
 
 namespace TNN_NS {
 
