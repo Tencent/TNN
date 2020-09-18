@@ -13,8 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "graph/attr_value.h"
-#include "graph/op/all_ops.h"
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_conv_layer_convert_impl.h"
 #include "npu_utils.h"
@@ -30,8 +28,8 @@ protected:
     virtual Status Convert() {
         Status ret    = ObtainParam();
         auto resource = dynamic_cast<ConvLayerResource *>(resource_);
-        if (ret != TNN_OK){
-           return ret;
+        if (ret != TNN_OK) {
+            return ret;
         }
         if (!resource) {
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerResource is empty");
