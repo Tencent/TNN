@@ -12,8 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import <UIKit/UIKit.h>
+#include "tnn/device/rknpu/rknpu_context.h"
 
-@interface TNNExamplesController : UIViewController
+namespace TNN_NS {
 
-@end
+Status RknpuContext::LoadLibrary(std::vector<std::string> path) {
+    return TNN_OK;
+}
+
+Status RknpuContext::GetCommandQueue(void** command_queue) {
+    return TNN_OK;
+}
+
+Status RknpuContext::OnInstanceForwardBegin() {
+    return TNN_OK;
+}
+
+Status RknpuContext::OnInstanceForwardEnd() {
+    return TNN_OK;
+}
+
+Status RknpuContext::Synchronize() {
+    return TNN_OK;
+}
+
+}  // namespace TNN_NS

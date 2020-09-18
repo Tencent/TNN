@@ -31,7 +31,7 @@ Status NpuMulLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: the Multiply layer input number is not correct");
     }
 
-    auto output   = std::make_shared<ge::op::Mul>(outputs_name_[0]);
+    auto output = std::make_shared<ge::op::Mul>(outputs_name_[0]);
 
     if (input_size == 2) {
         output->set_input_x(*input_ops_[0]->GetOperator());
