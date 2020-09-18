@@ -16,11 +16,11 @@
 //#include "npu_base_layer_convert.h"
 //#include "npu_utils.h"
 //
-//namespace TNN_NS {
+// namespace TNN_NS {
 //
-//DECLARE_NPU_LAYER_WEIGHT(Clip, LAYER_CLIP)
+// DECLARE_NPU_LAYER_WEIGHT(Clip, LAYER_CLIP)
 //
-//Status NpuClipLayer::Convert() {
+// Status NpuClipLayer::Convert() {
 //    auto param     = dynamic_cast<ClipLayerParam *>(param_);
 //    CHECK_PARAM_NULL(param);
 //    ge::Shape shape({0});
@@ -44,6 +44,6 @@
 //    ADD_OUTPUT_OP(output)
 //}
 //
-//REGISTER_NPU_LAYER(Clip, LAYER_CLIP)
+// REGISTER_NPU_LAYER(Clip, LAYER_CLIP)
 //
 //}  // namespace TNN_NS
