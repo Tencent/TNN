@@ -111,6 +111,15 @@ Status MetalLayerAcc::SetKernelEncoderParam(
     return TNN_OK;
 }
 
+NSString * MetalLayerAcc::GetKernelLabel() {
+    if (kernel_label_.length > 0) {
+        return kernel_label_;
+    } else if ((!kernel_label_ || kernel_label_.length <= 0) && param_) {
+        kernel_label_ = [NSString stringWithUTF8String:param_->name.c_str()];
+    }
+    return kernel_label_;
+}
+
 Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     auto data_type_str = DataTypeUtils::GetDataTypeString(data_type);
@@ -122,9 +131,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     //
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
     
     MTLSize threads;
     auto status = ComputeThreadSize(inputs, outputs, threads);

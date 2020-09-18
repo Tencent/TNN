@@ -16,3 +16,4 @@ from utils import args_parser
 from utils import checker
 from utils import cmd
 from utils import parse_path
+from utils import align_model

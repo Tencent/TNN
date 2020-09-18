@@ -23,14 +23,14 @@ def get_interp_attri(layer, input_shape):
     height = layer.interp_param.height
     width = layer.interp_param.width
     zoom_factor = layer.interp_param.zoom_factor
-    shrink_factor = layer.inter_param.shrink_factor
+    shrink_factor = layer.interp_param.shrink_factor
     pad_beg = layer.interp_param.pad_beg
     pad_end = layer.interp_param.pad_end
     H, W = input_shape[0][2], input_shape[0][3]
 
     sacles = [1.0, 1.0, 1.0, 1.0]
-    if height > H and width > width:
-        if height / H == width / H:
+    if height > H and width > W:
+        if height / H == width / W:
             scale = float(height / H)
             scales = [1.0, 1.0, scale, scale]
             attributes = {"mode": "linear",
@@ -42,8 +42,9 @@ def get_interp_attri(layer, input_shape):
             width_in_eff = width + pad_beg + pad_end
             height_out = height_in_eff + (height_in_eff - 1) * (zoom_factor -1)
             width_out = width_in_eff + (width_in_eff - 1) * (zoom_factor -1)
-            scale = float(height_out /height)
-            scales = [1.0, 1.0, scale, scale]
+            scale_height = float(height_out /height_in_eff)
+            scale_width = float(width_out /width_in_eff)
+            scales = [1.0, 1.0, scale_height, scale_width]
             attributes = {"mode": "linear",
                           'scales': scales}
             return attributes

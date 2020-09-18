@@ -64,6 +64,9 @@ protected:
     MetalContext *context_ = nullptr;
 
     id<MTLBuffer> buffer_param_ = nil;
+    
+    NSString *kernel_label_ = nil;
+    NSString * GetKernelLabel();
 
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);

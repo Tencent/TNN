@@ -16,7 +16,7 @@ from utils import cmd
 from utils import checker
 from utils import return_code
 from onnx_converter import onnx2tnn
-from onnx_converter import align_model
+from utils import align_model
 
 from converter import logging
 

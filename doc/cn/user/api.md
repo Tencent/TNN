@@ -49,7 +49,6 @@ TNN_NS::ModelConfig model_config;
 model_config.params.push_back(proto_buffer);
 //model文件内容存入model_buffer
 model_config.params.push_back(model_buffer);
-tnn.Init(model_config);
 ```
 
 TNN模型解析需配置ModelConfig params参数，传入proto和model文件内容，并调用TNN Init接口即可完成模型解析。
@@ -64,7 +63,14 @@ auto net_instance = tnn.CreateInst(config, error);
 ```
 
 TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， METAL等多种加速方式，通过CreateInst接口完成网络的构建。
+华为NPU需要特殊指定network类型以及一个可选的cache路径。cache路径为存om文件的path,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用IR翻译并从内存读入模型。
 
+```cpp
+config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
+//Huawei_NPU可选：存om的Cache路径
+//add for cache; When using NPU, it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
+config.cache_path = "";
+```
 
 ### 步骤3. 输入设定
 
@@ -188,6 +194,7 @@ ModelConfig参数说明：
 - `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`两种模型格式。  
 - `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径。  
 
+
 ### 3. core/status.h
 `Status`定义于status.h头文件中。
 
@@ -268,7 +275,9 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
-- `METAL`: GPU显存（metal)， NC4HW4.  
+- `METAL`: GPU显存（metal)， NC4HW4.
+- `HUAWEI_NPU: CPU内存, NCHW.
+
 其中最后4代表pack 4, C4代表最后1位4由4个C进行pack。  
 
 ### 5. core/instance.h

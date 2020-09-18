@@ -22,52 +22,56 @@
 
 #include "tnn_sdk_sample.h"
 
-#define num_featuremap 4
-#define hard_nms 1
-#define blending_nms 2 /* mix nms was been proposaled in paper blaze face, aims to minimize the temporal jitter*/
+namespace TNN_NS {
 
-typedef struct FaceInfo {
-    float x1;
-    float y1;
-    float x2;
-    float y2;
-    float score;
+struct FaceInfo : ObjectInfo {
+} ;
 
-    float *landmarks = nullptr;
-} FaceInfo;
-
-std::vector<FaceInfo> AdjustFaceInfoToOriginalSize(std::vector<FaceInfo> face_info,
-                                                   int detect_image_height, int detect_image_width,
-                                                   int orig_image_height, int orig_image_width);
-
-class UltraFaceDetector : public TNN_NS::TNNSDKSample {
+class UltraFaceDetectorInput : public TNNSDKInput {
 public:
-    ~UltraFaceDetector();
-    UltraFaceDetector(int input_width, int input_length, int num_thread_ = 4, float score_threshold_ = 0.7, 
-                    float iou_threshold_ = 0.3, int topk_ = -1);
+    UltraFaceDetectorInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
+    virtual ~UltraFaceDetectorInput();
+};
+
+class UltraFaceDetectorOutput : public TNNSDKOutput {
+public:
+    UltraFaceDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~UltraFaceDetectorOutput();
+    std::vector<FaceInfo> face_list;
+};
+
+class UltraFaceDetectorOption : public TNNSDKOption {
+public:
+    UltraFaceDetectorOption();
+    virtual ~UltraFaceDetectorOption();
+    int input_width;
+    int input_height;
+    int num_thread = 1;
+    float score_threshold = 0.7;
+    float iou_threshold = 0.3;
+    int topk = -1;
+};
+
+class UltraFaceDetector : public TNNSDKSample {
+public:
+    virtual ~UltraFaceDetector();
     
-    int Detect(std::shared_ptr<TNN_NS::Mat> image, int image_height, int image_width, std::vector<FaceInfo> &face_list);
+    virtual Status Init(std::shared_ptr<TNNSDKOption> option);
+    virtual MatConvertParam GetConvertParamForInput(std::string name = "");
+    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
+                                                            std::string name = kTNNSDKDefaultName);
     
 private:
-    void GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes, 
-                    float score_threshold, int num_anchors);
+    void GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
+                      int image_w, int image_h,
+                      float score_threshold, int num_anchors);
 
-    void NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, int type = blending_nms);
+    void NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, float iou_threshold, int type = 2);
     
 private:
-
-    int num_thread;
-    int image_w;
-    int image_h;
-
-    int in_w;
-    int in_h;
     int num_anchors;
-
-    int topk;
-    float score_threshold;
-    float iou_threshold;
-
 
     const float mean_vals[3] = {127, 127, 127};
     const float norm_vals[3] = {1.0 / 128, 1.0 / 128, 1.0 / 128};
@@ -82,9 +86,10 @@ private:
     const std::vector<float> strides = {8.0, 16.0, 32.0, 64.0};
     std::vector<std::vector<float>> featuremap_size;
     std::vector<std::vector<float>> shrinkage_size;
-    std::vector<int> w_h_list;
 
     std::vector<std::vector<float>> priors = {};
 };
+
+}
 
 #endif // TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_
