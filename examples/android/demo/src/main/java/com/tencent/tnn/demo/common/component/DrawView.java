@@ -40,24 +40,21 @@ public class DrawView extends SurfaceView
         setWillNotDraw(false);
     }
 
-    public void addFaceRect(FaceInfo[] facestatus, int w, int h)
+    public void addFaceRect(FaceInfo[] facestatus)
     {
         rects.clear();
         points_list.clear();
-        Log.d(TAG, "canvas " + getWidth() + "x" + getHeight() + " wh " + w + "x" +h);
-        float scalew = getWidth() / (float)w;
-        float scaleh = getHeight() / (float)h;
         if (facestatus != null && facestatus.length!=0)
         {
             for (int i=0; i<facestatus.length; i++)
             {
-                rects.add(new Rect((int)(facestatus[i].x1 * scalew), (int)(facestatus[i].y1 * scaleh), (int)(facestatus[i].x2 * scalew), (int)(facestatus[i].y2 * scaleh)));
+                rects.add(new Rect((int)facestatus[i].x1, (int)facestatus[i].y1, (int)facestatus[i].x2, (int)facestatus[i].y2));
                 float[][] keypoints = facestatus[i].keypoints;
                 if(keypoints != null) {
                     float[] points = new float[facestatus[i].keypoints.length * 2];
                     for(int j = 0; j < keypoints.length; ++j) {
-                        points[j * 2] = facestatus[i].keypoints[j][0] * scalew;
-                        points[j * 2 + 1] = facestatus[i].keypoints[j][1] * scaleh;
+                        points[j * 2] = facestatus[i].keypoints[j][0];
+                        points[j * 2 + 1] = facestatus[i].keypoints[j][1];
                     }
                     points_list.add(points);
                 }
@@ -67,18 +64,15 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list, int w, int h)
+    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list)
     {
         rects.clear();
         labels.clear();
-        Log.d(TAG, "canvas " + getWidth() + "x" + getHeight() + " wh " + w + "x" +h);
-        float scalew = getWidth() / (float)w;
-        float scaleh = getHeight() / (float)h;
         if (objectstatus != null && objectstatus.length!=0)
         {
             for (int i=0; i<objectstatus.length; i++)
             {
-                rects.add(new Rect((int)(objectstatus[i].x1 * scalew), (int)(objectstatus[i].y1 * scaleh), (int)(objectstatus[i].x2 * scalew), (int)(objectstatus[i].y2 * scaleh)));
+                rects.add(new Rect((int)objectstatus[i].x1, (int)objectstatus[i].y1, (int)objectstatus[i].x2, (int)objectstatus[i].y2));
                 labels.add(String.format("%s : %f", label_list[objectstatus[i].class_id], objectstatus[i].score));
             }
         }
