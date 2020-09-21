@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_EXAMPLES_BASE_HAND_TRACKING_H_
-#define TNN_EXAMPLES_BASE_HAND_TRACKING_H_
+#ifndef TNN_EXAMPLES_BASE_HAIR_SEGMENTATION_H_
+#define TNN_EXAMPLES_BASE_HAIR_SEGMENTATION_H_
 
 #include <algorithm>
 #include <memory>
@@ -28,50 +28,49 @@
 
 namespace TNN_NS {
 
-class HandTrackingInput : public TNNSDKInput {
+class HairSegmentationInput : public TNNSDKInput {
 public:
-    HandTrackingInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
-    virtual ~HandTrackingInput() {}
+    HairSegmentationInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
+    virtual ~HairSegmentationInput() {}
 };
 
-class HandTrackingOutput : public TNNSDKOutput {
+class HairSegmentationOutput : public TNNSDKOutput {
 public:
-    HandTrackingOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
-    virtual ~HandTrackingOutput() {};
-    std::vector<ObjectInfo> hand_list;
+    HairSegmentationOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~HairSegmentationOutput() {};
+    // use TNN_NS::Mat to store mask
+    std::shared_ptr<Mat> merged_image;
+    std::shared_ptr<Mat> hair_mask;
 };
 
-class HandTrackingOption : public TNNSDKOption {
+class HairSegmentationOption : public TNNSDKOption {
 public:
-    HandTrackingOption() {}
-    virtual ~HandTrackingOption() {}
+    HairSegmentationOption() {}
+    virtual ~HairSegmentationOption() {}
     int input_width;
     int input_height;
     int num_thread = 1;
-
-    float hand_presence_threshold = 0.5;
+    // the processing mode of output mask
+    int mode;
 };
 
-class HandTracking : public TNN_NS::TNNSDKSample {
+class HairSegmentation : public TNN_NS::TNNSDKSample {
 public:
-    virtual ~HandTracking() {}
+    virtual ~HairSegmentation() {}
     virtual Status Init(std::shared_ptr<TNNSDKOption> option);
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
-   // virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
 private:
-    void SetHandRegion(int x1, int y1, int x2, int y2);
-    // hand region set by the detection model or in previous frame
-    float x1_;
-    float y1_;
-    float x2_;
-    float y2_;
-    // whether valid hand in this frame
-    bool valid_hand_in_prev_frame_ = false;
+    std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
+    std::shared_ptr<Mat> MergeImage(std::shared_ptr<Mat> alpha);
+    std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
+
+    // the input image before resize
+    std::shared_ptr<Mat> image_origin;
 };
 
 }
 
-#endif // TNN_EXAMPLES_BASE_HAND_TRACKING_H_
+#endif // TNN_EXAMPLES_BASE_HAIR_SEGMENTATION_H_
