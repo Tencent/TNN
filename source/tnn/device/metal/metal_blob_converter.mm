@@ -70,9 +70,11 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
          metal_param.width, metal_param.size);
 
     float scale_texture_buffer = 1.0f;
+    float bias_texture_buffer  = 1.0f;
     if (mat->GetDeviceType() == DEVICE_METAL) {
         if (mat->GetMatType() == N8UC4) {
             scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
+            bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
         }
     }
 
@@ -105,10 +107,10 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
             metal_param.scale_w = 1.0f;
         }
         if (param.bias.size() >= 4) {
-            metal_param.bias_x = param.bias[0];
-            metal_param.bias_y = param.bias[1];
-            metal_param.bias_z = param.bias[2];
-            metal_param.bias_w = param.bias[3];
+            metal_param.bias_x = bias_texture_buffer * param.bias[0];
+            metal_param.bias_y = bias_texture_buffer * param.bias[1];
+            metal_param.bias_z = bias_texture_buffer * param.bias[2];
+            metal_param.bias_w = bias_texture_buffer * param.bias[3];
         } else {
             metal_param.bias_x = 0.0f;
             metal_param.bias_y = 0.0f;
