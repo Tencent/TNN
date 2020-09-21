@@ -95,7 +95,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev) {
+    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type)) {
         GTEST_SKIP();
     }
 
