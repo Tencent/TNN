@@ -21,6 +21,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "utils/network_helpers.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 
@@ -95,8 +96,12 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type)) {
+    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
         GTEST_SKIP();
+    }
+    bool need_tmp_buffer_metal = false;
+    if (DEVICE_METAL == dev && N8UC4 == mat_type) {
+        need_tmp_buffer_metal = true;
     }
 
     if (mat_type == N8UC3 && channel != 3) {
@@ -207,7 +212,17 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
         FAIL();
     }
-    ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
+    if (need_tmp_buffer_metal) {
+        Mat metal_tmp_buffer(DEVICE_METAL, mat_type, dims);
+        ret = MatUtils::Copy(mat_in, metal_tmp_buffer, device_command_queue);
+        if (ret != TNN_OK) {
+           LOGE("copy cpu mat to metal failed, mat type: %d\n", mat_type);
+           FAIL();
+        }
+        ret = device_converter.ConvertFromMat(metal_tmp_buffer, from_mat_param, device_command_queue);
+    } else {
+        ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
+    }
     if (ret != TNN_OK) {
         LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
         FAIL();
@@ -224,12 +239,13 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         LOGE("cpu converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
         FAIL();
     }
-    Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, mat_out_dev_nchw_data);
+    Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_dev_nchw_data);
     ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
     if (ret != TNN_OK) {
         LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
         FAIL();
     }
+
     int cmp_result    = 0;
     float compare_eps = blob_data_type == DATA_TYPE_INT8 ? max_i8_diff + 0.01 : 0.01;
 
@@ -238,6 +254,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     Mat mat_out_ref(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data);
     Mat mat_out_dev(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data);
+
     if (mat_type != NCHW_FLOAT && dev != DEVICE_ARM) {
         to_mat_param.scale = scale_data;
         to_mat_param.bias  = bias_data;
@@ -248,10 +265,25 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             LOGE("cpu converter convert blob to mat failed, mat type: %d\n", mat_type);
             FAIL();
         }
-        ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
-        if (ret != TNN_OK) {
-            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-            FAIL();
+
+        if (need_tmp_buffer_metal) {
+            Mat metal_tmp_buffer(DEVICE_METAL, N8UC4, dims);
+            ret = device_converter.ConvertToMat(metal_tmp_buffer, to_mat_param, device_command_queue);
+            if (ret != TNN_OK) {
+                LOGE("metal converter convert blob to mat failed, mat type: %d\n", mat_type);
+                FAIL();
+            }
+            ret = MatUtils::Copy(metal_tmp_buffer, mat_out_dev, device_command_queue);
+            if (ret != TNN_OK) {
+                LOGE("copy metal mat to cpu failed, mat type: %d\n", mat_type);
+                FAIL();
+            }
+        } else {
+            ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
+            if (ret != TNN_OK) {
+                LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+                FAIL();
+            }
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
