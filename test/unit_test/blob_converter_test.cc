@@ -65,7 +65,7 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             // batch
                             testing::Values(1, 2),
                             // channel
-                            testing::Values(1, 3, 4),
+                            testing::Values(1, 3, 4, 16),
                             // inputsize
                             testing::Values(1, 15, 16),
                             // scale
@@ -73,11 +73,12 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             // bias
                             testing::Values(0.0, 1.0),
                             // reverse_channel
-                            testing::Values(false),
+                            testing::Values(false, true),
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21,
                                             NCHW_FLOAT),  // datatype
-                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
+                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)
+                            ));
 
 TEST_P(BlobConverterTest, BlobConverterTest) {
     int batch               = std::get<0>(GetParam());
@@ -105,6 +106,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     } else if (mat_type == NGRAY && channel != 1) {
         GTEST_SKIP();
     } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0 || DEVICE_ARM != dev)) {
+        GTEST_SKIP();
+    } else if ((mat_type == NGRAY || mat_type == NNV12 || mat_type == NNV21 || mat_type == NCHW_FLOAT) && reverse_channel) {
         GTEST_SKIP();
     }
 
@@ -184,11 +187,18 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     MatConvertParam from_mat_param;
     from_mat_param.reverse_channel = reverse_channel;
-
+    std::vector<float> scale_data, bias_data;
     if (mat_type != NCHW_FLOAT) {
-        from_mat_param.scale = {scale * 1, scale * 2, scale * 3, scale * 4};
-        from_mat_param.bias  = {bias, bias * 2, bias * 3, bias * 4};
+        scale_data = {scale, scale * 2, scale * 3, scale * 4};
+        bias_data = {bias, bias * 2, bias * 3, bias * 4};
+    } else {
+        for (int i = 0; i < channel; i++) {
+            scale_data.push_back(scale * (i + 1));
+            bias_data.push_back(bias * (i + 1));
+        }
     }
+    from_mat_param.scale = scale_data;
+    from_mat_param.bias  = bias_data;
 
     Mat mat_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
     Status ret;
@@ -204,7 +214,10 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     }
 
     MatConvertParam to_mat_param;
-    to_mat_param.reverse_channel = reverse_channel;
+    // nchw float not support reverse channel
+    to_mat_param.reverse_channel = false;
+    to_mat_param.scale = scale_data;
+    to_mat_param.bias  = bias_data;
     Mat mat_out_ref_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
     ret = cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
     if (ret != TNN_OK) {
@@ -226,8 +239,10 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     Mat mat_out_ref(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data);
     Mat mat_out_dev(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data);
     if (mat_type != NCHW_FLOAT && dev != DEVICE_ARM) {
-        to_mat_param.scale = {scale, scale, scale, scale};
-        to_mat_param.bias  = {bias, bias, bias, bias};
+        to_mat_param.scale = scale_data;
+        to_mat_param.bias  = bias_data;
+        to_mat_param.reverse_channel = reverse_channel;
+
         ret = cpu_converter.ConvertToMat(mat_out_ref, to_mat_param, NULL);
         if (ret != TNN_OK) {
             LOGE("cpu converter convert blob to mat failed, mat type: %d\n", mat_type);
