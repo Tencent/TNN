@@ -414,12 +414,12 @@ static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *
     }
 #endif
     for (; i < hw; ++i) {
-        dst[4 * i + 0] = float2int8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
-                                                      (scale[0] * src[4 * i + 0] + bias[0]));
-        dst[4 * i + 1] = float2int8(scale[1] * src[4 * i + 1] + bias[1]);
-        dst[4 * i + 2] = float2int8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
-                                                      (scale[2] * src[4 * i + 2] + bias[2]));
-        dst[4 * i + 3] = float2int8(scale[3] * src[4 * i + 3] + bias[3]);
+        dst[4 * i + 0] = float2uint8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
+                                                       (scale[0] * src[4 * i + 0] + bias[0]));
+        dst[4 * i + 1] = float2uint8(scale[1] * src[4 * i + 1] + bias[1]);
+        dst[4 * i + 2] = float2uint8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
+                                                       (scale[2] * src[4 * i + 2] + bias[2]));
+        dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
     }
 }
 
@@ -475,12 +475,12 @@ static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float 
     }
 #endif
     for (; i < hw; ++i) {
-        dst[4 * i + 0] = float2int8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
-                                                      (scale[0] * src[4 * i + 0] + bias[0]));
-        dst[4 * i + 1] = float2int8(scale[1] * src[4 * i + 1] + bias[1]);
-        dst[4 * i + 2] = float2int8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
-                                                      (scale[2] * src[4 * i + 2] + bias[2]));
-        dst[4 * i + 3] = float2int8(scale[3] * src[4 * i + 3] + bias[3]);
+        dst[4 * i + 0] = float2uint8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
+                                                       (scale[0] * src[4 * i + 0] + bias[0]));
+        dst[4 * i + 1] = float2uint8(scale[1] * src[4 * i + 1] + bias[1]);
+        dst[4 * i + 2] = float2uint8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
+                                                       (scale[2] * src[4 * i + 2] + bias[2]));
+        dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
     }
 }
 
@@ -565,7 +565,10 @@ void RGBAChannelReverse(uint8_t *src, uint8_t *dst, int channel, int hw) {
 }
 
 template <typename T>
-void ScaleBias(T *data, int channel, int hw, float *scale, float *bias) {
+void ScaleBias(T *src, int channel, int hw, float *scale, float *bias, T *dst = nullptr) {
+    if (dst == nullptr) {
+        dst = src;
+    }
     RawBuffer scale_buffer(ROUND_UP(channel, 4) * sizeof(float));
     RawBuffer bias_buffer(ROUND_UP(channel, 4) * sizeof(float));
     memcpy(scale_buffer.force_to<void *>(), scale, sizeof(float) * channel);
@@ -574,11 +577,12 @@ void ScaleBias(T *data, int channel, int hw, float *scale, float *bias) {
     auto local_bias  = bias_buffer.force_to<float *>();
 
     for (int z = 0; z < UP_DIV(channel, 4); ++z) {
-        auto dst_z   = data + z * hw * 4;
+        auto src_z   = src + z * hw * 4;
+        auto dst_z   = dst + z * hw * 4;
         auto v_scale = Float4::load(local_scale + z * 4);
         auto v_bias  = Float4::load(local_bias + z * 4);
         for (int s = 0; s < hw; ++s) {
-            Float4::save(dst_z + s * 4, Float4::load(dst_z + s * 4) * v_scale + v_bias);
+            Float4::save(dst_z + s * 4, Float4::load(src_z + s * 4) * v_scale + v_bias);
         }
     }
 }
@@ -612,14 +616,16 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
             if (blob_->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+                RawBuffer scale_biased(c_r4 * hw * sizeof(float));
                 ScaleBias(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
-                          param.bias.data());
-                FloatBlobToNCHW(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw,
+                          param.bias.data(), scale_biased.force_to<float *>());
+                FloatBlobToNCHW(scale_biased.force_to<float *>(),
                                 reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
             } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+                RawBuffer scale_biased(c_r4 * hw * sizeof(bfp16_t));
                 ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
-                          param.bias.data());
-                FloatBlobToNCHW(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw,
+                          param.bias.data(), scale_biased.force_to<bfp16_t *>());
+                FloatBlobToNCHW(scale_biased.force_to<bfp16_t *>(),
                                 reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
             } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT8) {
                 auto blob_int8 = reinterpret_cast<BlobInt8 *>(blob_);
@@ -632,9 +638,10 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
         for (int n = 0; n < dims[0]; n++) {
+            RawBuffer scale_biased(c_r4 * hw * sizeof(bfp16_t));
             ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
-                      param.bias.data());
-            FloatBlobToNCHW(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw,
+                      param.bias.data(), scale_biased.force_to<bfp16_t *>());
+            FloatBlobToNCHW(scale_biased.force_to<bfp16_t *>(),
                             reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
         }
     } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
