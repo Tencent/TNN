@@ -29,7 +29,7 @@ tflite::ActivationFunctionType TFLiteTransposeConvConverter::ActivationType(
 }
 
 TNN_NS::Status TFLiteTransposeConvConverter::exec(
-    tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+    TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,

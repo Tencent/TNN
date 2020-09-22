@@ -43,7 +43,7 @@ void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TF
     tf_lite_op_converter_map_.insert(std::make_pair(op_index, t));
 }
 
-TNN_NS::Status TFLiteOpConverter::SeparateActivation(tnn::NetStructure& net_structure,
+TNN_NS::Status TFLiteOpConverter::SeparateActivation(TNN_NS::NetStructure& net_structure,
                                                      tflite::ActivationFunctionType activation_function_type) {
     if (activation_function_type == tflite::ActivationFunctionType_NONE) {
         return TNN_NS::TNN_CONVERT_OK;
