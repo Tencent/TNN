@@ -62,7 +62,7 @@ Analyze the running time of a model.
 
 #### 1.1 Compile
  
-Please refer to [TNN Compile Document](../user/compile_en.md):Compile for Android, to check if the environment meets the requirements.
+Please refer to [TNN Compile Document](../user/compile_en.md):Compile for Android/Armlinux, to check if the environment meets the requirements.
 
 #### 1.2 Execute
 
@@ -100,10 +100,9 @@ Parameters：
     -c    clean and recompile
     -b    only build, no execute
     -f    print out the time for every layer in network, otherwise the average time of all layers
-    -d    add <device-id> to indicate the programme runs on which deivce when multiple devices connected
     -t    add <CPU/GPU> to indicate the platform to run.
 ```
-
+P.S. If -t is not set, the programme would run on CPU and GPU by default, "-t HUAWEI_NPU" needs to be specified to obtain Huawei NPU benchmark. 
 #### 4.1 Overall Network Performance Analysis：
 
 Analyze the overall network time-consuming and execute multiple times to obtain average performance.
@@ -124,6 +123,7 @@ Execute script:
 ```
 ./benchmark_models.sh -c -f
 ```
+P.S. Huawei NPU does not support layer by layer analysis.
 The result is shown in the figure and saved to `benchmark_models_result.txt`：
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg"/>
 

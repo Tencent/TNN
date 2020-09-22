@@ -58,7 +58,7 @@
 ## 二、Android/ArmLinux平台耗时测试
 ### 1. 环境搭建  
 #### 1.1 编译环境  
-参考[TNN编译文档](../user/compile.md) 中Android库编译，检查环境是否满足要求。  
+参考[TNN编译文档](../user/compile.md) 中Android/Armlinux库编译，检查环境是否满足要求。  
 
 #### 1.2 执行环境  
 * adb命令配置  
@@ -93,9 +93,9 @@ cp mobilenet_v1.tnnproto .
     -c    删除之前的编译文件，重新编译
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
-    -d    如果连接了多个Android设备，则可以通过这个参数指定设备。需要加上<device-id>
-    -t    指定执行的平台。需要加上<CPU/GPU>
+    -t    指定执行的平台。需要加上<CPU/GPU/HUAWEI_NPU>
 ```
+P.S. 不指定 -t, 默认跑CPU和GPU, 华为npu benchmark需通过-t HUAWEI_NPU特殊制定.
 #### 4.1 全网络性能分析：
 分析整体网络耗时，执行多次，获取平均性能。  
 执行脚本：
@@ -118,7 +118,7 @@ cp mobilenet_v1.tnnproto .
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg" width = "75%" height = "75%"/>
 
 执行结果会保存在`benchmark_models_result.txt`中。  
-
+P.S. 华为npu不支持每层分析。
 
 ### 5. 特殊说明
 * 对于OpenCL平台，逐层性能分析的目的是分析kernel的耗时分布，其中为了打印每层耗时，有额外开销，只有kernel时间具有参考意义。如果要看整体实际性能，需要参考全网络性能分析。

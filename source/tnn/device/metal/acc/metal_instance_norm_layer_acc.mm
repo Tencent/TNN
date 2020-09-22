@@ -120,9 +120,7 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
             return Status(TNNERR_CONTEXT_ERR, "instance_norm_var_bias encoder is nil");
         }
 
-        if (param_) {
-            encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-        }
+        encoder.label = GetKernelLabel();
 
         do {
             status = [context_impl load:@"instance_norm" encoder:encoder bandwidth:bandwidth];

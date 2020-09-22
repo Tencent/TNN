@@ -35,6 +35,12 @@ struct Float4 {
     Float4(const float v) {
         value = vdupq_n_f32(v);
     }
+    Float4(const float32x4_t& v) {
+        value = v;
+    }
+    Float4(const float32x4_t&& v) {
+        value = std::move(v);
+    }
     Float4(const Float4& lr) {
         value = lr.value;
     }
@@ -217,7 +223,8 @@ struct Float4 {
     }
     static Float4 sqrt(const Float4& v) {
         Float4 dst;
-        dst.value = sqrt_ps(v.value);
+        static float32x4_t zero = vdupq_n_f32(0.0f);
+        dst.value = vbslq_f32(vceqq_f32(v.value, zero), zero, sqrt_ps(v.value));
         return dst;
     }
     static Float4 tanh(const Float4& v) {
