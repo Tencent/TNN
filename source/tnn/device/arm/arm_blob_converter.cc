@@ -150,7 +150,7 @@ static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float 
         int16x4_t s16_l2 = vqmovn_s32(VCVTAQ_S32_F32(f32_2));
         int16x8_t s16_2  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_6));
         int16x4_t s16_l3 = vqmovn_s32(VCVTAQ_S32_F32(f32_3));
-        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_7));
+        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l3, VCVTAQ_S32_F32(f32_7));
 
         vi8x4.val[0] = vqmovn_s16(s16_0);
         vi8x4.val[1] = vqmovn_s16(s16_1);
@@ -380,37 +380,35 @@ static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *
     float32x4_t bias_neon_g = vdupq_n_f32(bias[1]);
     float32x4_t bias_neon_r = vdupq_n_f32(bias[2]);
     float32x4_t bias_neon_a = vdupq_n_f32(bias[3]);
-    float32x4x4_t vf32;
+    uint8x8x4_t vi8x4;
     for (; i < hw - 7; i += 8) {
-        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
-        int16x8_t b_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[0]));
-        int16x8_t g_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[1]));
-        int16x8_t r_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[2]));
-        int16x8_t a_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[3]));
+        float32x4x4_t vf32_0 = vld4q_f32(src + i * 4);
+        float32x4x4_t vf32_1 = vld4q_f32(src + i * 4 + 16);
 
-        vf32.val[0] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? r_s16 : b_s16)));
-        vf32.val[1] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(g_s16)));
-        vf32.val[2] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? b_s16 : r_s16)));
-        vf32.val[3] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(a_s16)));
+        vf32_0.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32_0.val[0], scale[0]));
+        vf32_0.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32_0.val[1], scale[1]));
+        vf32_0.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32_0.val[2], scale[2]));
+        vf32_0.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32_0.val[3], scale[3]));
+        vf32_1.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32_1.val[0], scale[0]));
+        vf32_1.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32_1.val[1], scale[1]));
+        vf32_1.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32_1.val[2], scale[2]));
+        vf32_1.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32_1.val[3], scale[3]));
 
-        vf32.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32.val[0], scale[0]));
-        vf32.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32.val[1], scale[1]));
-        vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
-        vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
+        int16x4_t s16_l0 = vqmovn_s32(VCVTAQ_S32_F32(vf32_0.val[reverse_channel ? 2 : 0]));
+        int16x8_t s16_0  = VQMOVN_HIGH_S32_T(s16_l0, VCVTAQ_S32_F32(vf32_1.val[reverse_channel ? 2 : 0]));
+        int16x4_t s16_l1 = vqmovn_s32(VCVTAQ_S32_F32(vf32_0.val[1]));
+        int16x8_t s16_1  = VQMOVN_HIGH_S32_T(s16_l1, VCVTAQ_S32_F32(vf32_1.val[1]));
+        int16x4_t s16_l2 = vqmovn_s32(VCVTAQ_S32_F32(vf32_0.val[reverse_channel ? 0 : 2]));
+        int16x8_t s16_2  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(vf32_1.val[reverse_channel ? 0 : 2]));
+        int16x4_t s16_l3 = vqmovn_s32(VCVTAQ_S32_F32(vf32_0.val[3]));
+        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l3, VCVTAQ_S32_F32(vf32_1.val[3]));
 
-        vst4q_f32(dst + i * 4, vf32);
+        vi8x4.val[0] = vqmovun_s16(s16_0);
+        vi8x4.val[1] = vqmovun_s16(s16_1);
+        vi8x4.val[2] = vqmovun_s16(s16_2);
+        vi8x4.val[3] = vqmovun_s16(s16_3);
 
-        vf32.val[0] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? r_s16 : b_s16)));
-        vf32.val[1] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(g_s16)));
-        vf32.val[2] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? b_s16 : r_s16)));
-        vf32.val[3] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(a_s16)));
-
-        vf32.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32.val[0], scale[0]));
-        vf32.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32.val[1], scale[1]));
-        vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
-        vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
-
-        vst4q_f32(dst + i * 4 + 16, vf32);
+        vst4_u8(dst + i * 4, vi8x4);
     }
 #endif
     for (; i < hw; ++i) {
@@ -431,21 +429,21 @@ static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float 
     float32x4_t bias_neon_g = vdupq_n_f32(bias[1]);
     float32x4_t bias_neon_r = vdupq_n_f32(bias[2]);
     float32x4_t bias_neon_a = vdupq_n_f32(bias[3]);
-    int8x8x4_t vi8x4;
+    uint8x8x4_t vi8x4;
     for (; i < hw - 7; i += 8) {
-        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
-        int16x8_t b_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[0]));
-        int16x8_t g_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[1]));
-        int16x8_t r_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[2]));
-        int16x8_t a_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[3]));
+        int8x8x4_t v_s8  = vld4_s8(src + i * 4);
+        int16x8_t b_s16  = vmovl_s8(v_s8.val[0]);
+        int16x8_t g_s16  = vmovl_s8(v_s8.val[1]);
+        int16x8_t r_s16  = vmovl_s8(v_s8.val[2]);
+        int16x8_t a_s16  = vmovl_s8(v_s8.val[3]);
 
-        float32x4_t f32_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? r_s16 : b_s16)));
+        float32x4_t f32_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(b_s16)));
         float32x4_t f32_1 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(g_s16)));
-        float32x4_t f32_2 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? b_s16 : r_s16)));
+        float32x4_t f32_2 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(r_s16)));
         float32x4_t f32_3 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(a_s16)));
-        float32x4_t f32_4 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? r_s16 : b_s16)));
+        float32x4_t f32_4 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(b_s16)));
         float32x4_t f32_5 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(g_s16)));
-        float32x4_t f32_6 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? b_s16 : r_s16)));
+        float32x4_t f32_6 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(r_s16)));
         float32x4_t f32_7 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(a_s16)));
 
         f32_0 = vaddq_f32(bias_neon_b, vmulq_n_f32(f32_0, scale[0]));
@@ -457,21 +455,21 @@ static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float 
         f32_6 = vaddq_f32(bias_neon_r, vmulq_n_f32(f32_6, scale[2]));
         f32_7 = vaddq_f32(bias_neon_a, vmulq_n_f32(f32_7, scale[3]));
 
-        int16x4_t s16_l0 = vqmovn_s32(VCVTAQ_S32_F32(f32_0));
-        int16x8_t s16_0  = VQMOVN_HIGH_S32_T(s16_l0, VCVTAQ_S32_F32(f32_4));
+        int16x4_t s16_l0 = vqmovn_s32(VCVTAQ_S32_F32(reverse_channel ? f32_2 : f32_0));
+        int16x8_t s16_0  = VQMOVN_HIGH_S32_T(s16_l0, VCVTAQ_S32_F32(reverse_channel ? f32_6 : f32_4));
         int16x4_t s16_l1 = vqmovn_s32(VCVTAQ_S32_F32(f32_1));
         int16x8_t s16_1  = VQMOVN_HIGH_S32_T(s16_l1, VCVTAQ_S32_F32(f32_5));
-        int16x4_t s16_l2 = vqmovn_s32(VCVTAQ_S32_F32(f32_2));
-        int16x8_t s16_2  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_6));
+        int16x4_t s16_l2 = vqmovn_s32(VCVTAQ_S32_F32(reverse_channel ? f32_0 : f32_2));
+        int16x8_t s16_2  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(reverse_channel ? f32_4 : f32_6));
         int16x4_t s16_l3 = vqmovn_s32(VCVTAQ_S32_F32(f32_3));
-        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_7));
+        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l3, VCVTAQ_S32_F32(f32_7));
 
-        vi8x4.val[0] = vqmovn_s16(s16_0);
-        vi8x4.val[1] = vqmovn_s16(s16_1);
-        vi8x4.val[2] = vqmovn_s16(s16_2);
-        vi8x4.val[3] = vqmovn_s16(s16_3);
+        vi8x4.val[0] = vqmovun_s16(s16_0);
+        vi8x4.val[1] = vqmovun_s16(s16_1);
+        vi8x4.val[2] = vqmovun_s16(s16_2);
+        vi8x4.val[3] = vqmovun_s16(s16_3);
 
-        vst4_s8(dst + i * 4, vi8x4);
+        vst4_u8(dst + i * 4, vi8x4);
     }
 #endif
     for (; i < hw; ++i) {
