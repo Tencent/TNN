@@ -252,10 +252,13 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     cmp_result |= CompareData(static_cast<float*>(mat_out_ref_nchw_data), static_cast<float*>(mat_out_dev_nchw_data),
                               out_nchw_size, compare_eps);
 
+    EXPECT_EQ(0, cmp_result);
+
     Mat mat_out_ref(DEVICE_NAIVE, mat_type, dims, mat_out_ref_data);
     Mat mat_out_dev(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data);
 
-    if (mat_type != NCHW_FLOAT && dev != DEVICE_ARM) {
+    if (mat_type != NCHW_FLOAT &&
+        (dev != DEVICE_ARM || (dev == DEVICE_ARM && mat_type == N8UC4))) {
         to_mat_param.scale = scale_data;
         to_mat_param.bias  = bias_data;
         to_mat_param.reverse_channel = reverse_channel;
