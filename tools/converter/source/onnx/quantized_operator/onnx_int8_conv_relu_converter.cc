@@ -137,10 +137,10 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
 
     // create output blob_scale
     const auto &output_name    = node.output(0);
-    auto output_scale          = GetAttributeFloat(node, "Y_scale", 1.0);
-    auto output_zero_point     = GetAttributeInt(node, "Y_zero_point", 0);
     auto output_blob_cale_name = output_name + BLOB_SCALE_SUFFIX;
     if (net_resource.resource_map.find(output_blob_cale_name) == net_resource.resource_map.end()) {
+        auto output_scale                     = GetAttributeFloat(node, "Y_scale", 1.0);
+        auto output_zero_point                = GetAttributeInt(node, "Y_zero_point", 0);
         auto output_blob_scale                = new TNN_NS::IntScaleResource;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
