@@ -39,7 +39,6 @@ public:
     HairSegmentationOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
     virtual ~HairSegmentationOutput() {};
     // use TNN_NS::Mat to store mask
-    std::shared_ptr<Mat> merged_image;
     std::shared_ptr<Mat> hair_mask;
 };
 
@@ -64,11 +63,13 @@ public:
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
 private:
     std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
-    std::shared_ptr<Mat> MergeImage(std::shared_ptr<Mat> alpha);
+    //std::shared_ptr<Mat> MergeImage(std::shared_ptr<Mat> alpha);
     std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
-
-    // the input image before resize
-    std::shared_ptr<Mat> image_origin;
+    Status ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat> output_mat, TNNInterpType type = TNNInterpLinear);
+    template <typename SrcType, typename DstType>
+    void CopyMatData(SrcType* src, DstType*dst, unsigned int count);
+    // the original input image shape
+    DimsVector orig_dims;
 };
 
 }
