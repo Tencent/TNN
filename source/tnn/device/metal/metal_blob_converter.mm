@@ -94,6 +94,12 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
                                                  length:sizeof(float)*dims[1]
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         }
+        if (buffer_scale_ == nil) {
+            return Status(TNNERR_INVALID_INPUT, "buffer scale is nil");
+        }
+        if (buffer_bias_ == nil) {
+            return Status(TNNERR_INVALID_INPUT, "buffer bias is nil");
+        }
     } else {
         if (param.scale.size() >= 4) {
             metal_param.scale_x = scale_texture_buffer * param.scale[0];
