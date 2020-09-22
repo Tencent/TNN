@@ -40,8 +40,8 @@
 using namespace TNN_NS;
 TNN net_;
 
-#define MID_WIDTH 608
-#define MID_HEIGHT 352
+#define OUTPUT_WIDTH  300 
+#define OUTPUT_HEIGHT 300
 
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
@@ -96,8 +96,7 @@ int main(int argc, char* argv[]) {
 
     printf("input dims: c: %d  h: %d  w: %d\n", channel, height, width);
     std::vector<int> input_dims = {1, channel, height, width};
-    std::vector<int> mid_dims   = {1, 3, MID_HEIGHT, MID_WIDTH};
-    std::vector<int> dump_dims  = mid_dims;
+    std::vector<int> output_dims = {1, 3, OUTPUT_HEIGHT, OUTPUT_WIDTH};
 
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
@@ -105,58 +104,56 @@ int main(int argc, char* argv[]) {
     Status tnn_ret;
     // copy input data into atlas
     Mat input_mat_org(DEVICE_NAIVE, N8UC3, input_dims, input_data_ptr);
-    Mat input_mat(DEVICE_ATLAS, NNV12, mid_dims, nullptr);
-    Mat dump_mat(DEVICE_ARM, NNV12, dump_dims, nullptr);
+    Mat input_mat_org_device(DEVICE_ATLAS, N8UC3, input_dims);
+    Mat output_mat(DEVICE_ATLAS, NNV12, output_dims, nullptr);
+
+    // copy from host to device
+    tnn_ret = MatUtils::Copy(input_mat_org, input_mat_org_device, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("Mat Copy falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
+    }
 
     // resize
-    printf("resize1 from (width x height) %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
-           input_mat.GetWidth(), input_mat.GetHeight());
+    printf("resize from (width x height) %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(), input_mat_org_device.GetHeight(),
+           output_mat.GetWidth(), output_mat.GetHeight());
     ResizeParam param_resize;
-    float scale_w = (float)MID_WIDTH / (float)width;
-    float scale_h = (float)MID_HEIGHT / (float)height;
+    float scale_w = (float)OUTPUT_WIDTH / (float)width;
+    float scale_h = (float)OUTPUT_HEIGHT / (float)height;
     float scale   = scale_w > scale_h ? scale_h : scale_w;
     param_resize.scale_w = scale;
     param_resize.scale_h = scale;
     PasteParam paste_param;
     paste_param.type      = PASTE_TYPE_CENTER_ALIGN;
     paste_param.pad_value = 128;
-    tnn_ret               = MatUtils::ResizeAndPaste(input_mat_org, input_mat, param_resize, paste_param, command_queue);
+    tnn_ret               = MatUtils::ResizeAndPaste(input_mat_org_device, output_mat, param_resize, paste_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
     // crop
-    // printf("crop from %d x %d --->  %d x %d\n", input_mat_org.GetWidth(), input_mat_org.GetHeight(),
-    // input_mat.GetWidth(), input_mat.GetHeight()); CropParam param_crop; param_crop.top_left_x = 0;
-    // param_crop.top_left_x = 0;
-    // param_crop.top_left_y = 0;
-    // param_crop.width = mid_dims[2];
-    // param_crop.height = mid_dims[1];
-    // tnn_ret = MatUtils::Crop(input_mat_org, input_mat, param_crop, command_queue);
-    // if (tnn_ret != TNN_OK) {
-    //    printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
-    //    return -1;
+    //printf("crop from %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(), input_mat_org_device.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
+    //CropParam param_crop;
+    //param_crop.top_left_x = 0;
+    //param_crop.top_left_y = 0;
+    //param_crop.width = output_mat.GetWidth();
+    //param_crop.height = output_mat.GetHeight();
+    //tnn_ret = MatUtils::Crop(input_mat_org_device, output_mat, param_crop, command_queue);
+    //if (tnn_ret != TNN_OK) {
+    //   printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
+    //   return -1;
     //}
 
-    printf("actual output: (width x height)  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight());
+    printf("actual output: (width x height)  %d x %d\n", output_mat.GetWidth(), output_mat.GetHeight());
 
-    // resize to dump data to cpu
-    printf("resize2 form (width x height) %d x %d --->  %d x %d\n", input_mat.GetWidth(), input_mat.GetHeight(), dump_mat.GetWidth(),
-           dump_mat.GetHeight());
-    ResizeParam param_resize2;
-    param_resize2.scale_w = 1.0;
-    param_resize2.scale_h = 1.0;
-    PasteParam paste_param2;
-    paste_param2.type      = PASTE_TYPE_CENTER_ALIGN;
-    paste_param2.pad_value = 128;
-    tnn_ret                = MatUtils::ResizeAndPaste(input_mat, dump_mat, param_resize2, paste_param2, command_queue);
+    // copy from device to cpu
+    Mat dump_mat(DEVICE_ARM, NNV12, output_mat.GetDims());
+    tnn_ret = MatUtils::Copy(output_mat, dump_mat, command_queue);
     if (tnn_ret != TNN_OK) {
-        printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
+        printf("Mat Copy falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
-
-    printf("actual output: (width x height)  %d x %d\n", dump_mat.GetWidth(), dump_mat.GetHeight());
 
     DumpDataToBin((char*)dump_mat.GetData(), {1, 1, 1, dump_mat.GetWidth() * dump_mat.GetHeight() * 3 / 2},
                   "output.bin");

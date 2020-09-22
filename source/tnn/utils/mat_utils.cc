@@ -49,8 +49,14 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
     if(param.scale_h == 0) {
          param.scale_h = (double)dst.GetHeight() / src.GetHeight();
     }
-    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
-        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    if (DEVICE_ATLAS == src.GetDeviceType()) {
+        if(src.GetDeviceType() != dst.GetDeviceType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType not equal");
+        }
+    } else {
+        if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+        }
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
     return converter->Resize(src, dst, param, command_queue);
@@ -63,8 +69,14 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
     if(param.height == 0) {
          param.height = dst.GetHeight();
     }
-    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
-        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    if (DEVICE_ATLAS == src.GetDeviceType()) {
+        if(src.GetDeviceType() != dst.GetDeviceType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType not equal");
+        }
+    } else {
+        if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+        }
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
     return converter->Crop(src, dst, param, command_queue);
@@ -87,8 +99,14 @@ Status MatUtils::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* co
 }
 
 Status MatUtils::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
-    if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
-        return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+    if (DEVICE_ATLAS == src.GetDeviceType()) {
+        if(src.GetDeviceType() != dst.GetDeviceType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType not equal");
+        }
+    } else {
+        if(src.GetDeviceType() != dst.GetDeviceType() || src.GetMatType() != dst.GetMatType()) {
+            return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
+        }
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
     return converter->ResizeAndPaste(src, dst, param, paste_param, command_queue);
