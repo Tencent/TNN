@@ -19,10 +19,10 @@
 
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
+#include "onnx_base_converter.h"
 #include "onnx_proxy_graph.h"
 #include "onnx_utils.h"
 #include "tnn/core/macro.h"
-#include "onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
 
@@ -80,7 +80,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
     // convert onnx nodes
     const auto node_size = onnx_graph.node_size();
     for (int i = 0; i < node_size; ++i) {
-        const auto& node = onnx_graph.node(i);
+        const auto& node                = onnx_graph.node(i);
         const std::string& node_op_type = node.op_type();
         if (node_op_type == "Int8Quantize") {
             // TODO
@@ -90,7 +90,8 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
             // TODO
             quantized_mode = false;
             continue;
-        } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill") {
+        } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill" ||
+                   node_op_type == "Int8Transpose") {
             continue;
         }
         auto converter = OnnxConverterManager::get()->search(node_op_type);
@@ -99,19 +100,20 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
             LOGE("The unsupported operator type is:%s\n", node.name().c_str());
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        auto cur_layer = std::make_shared<TNN_NS::LayerInfo>();
-        auto type_name = converter->TNNOpType(&node, quantized_mode);
-        auto layer_type = TNN_NS::GlobalConvertLayerType(type_name);
-        cur_layer->type = layer_type;
+        auto cur_layer      = std::make_shared<TNN_NS::LayerInfo>();
+        auto type_name      = converter->TNNOpType(node, quantized_mode);
+        auto layer_type     = TNN_NS::GlobalConvertLayerType(type_name);
+        cur_layer->type     = layer_type;
         cur_layer->type_str = type_name;
-        for (const auto& input: node.input()) {
+        for (const auto& input : node.input()) {
             cur_layer->inputs.push_back(input);
         }
-        for (const auto& output: node.output()) {
+        for (const auto& output : node.output()) {
             cur_layer->outputs.push_back(output);
         }
         net_structure.layers.push_back(cur_layer);
-        auto status = converter->exec(net_structure, net_resource, node, proxy_initializers, proxy_nodes, quantized_mode);
+        auto status =
+            converter->exec(net_structure, net_resource, node, proxy_initializers, proxy_nodes, quantized_mode);
         if (status != TNN_NS::TNN_CONVERT_OK) {
             LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
             return status;

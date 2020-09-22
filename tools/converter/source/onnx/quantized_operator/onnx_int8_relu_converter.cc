@@ -17,7 +17,22 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Int8Relu);
 
-
-REGISTER_CONVERTER(Int8Relu,Int8Relu);
-
+std::string OnnxInt8ReluConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return "";
 }
+
+TNN_NS::ActivationType OnnxInt8ReluConverter::ActivationType(const onnx::NodeProto &node) {
+    return TNN_NS::ActivationType_None;
+}
+
+TNN_NS::Status OnnxInt8ReluConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+                                           const onnx::NodeProto &node,
+                                           std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
+                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                           bool &quantized_model) {
+    return TNN_NS::TNN_CONVERT_OK;
+}
+
+REGISTER_CONVERTER(Int8Relu, Int8Relu);
+
+}  // namespace TNN_CONVERTER

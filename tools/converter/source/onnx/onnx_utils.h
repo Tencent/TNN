@@ -31,6 +31,12 @@ std::vector<int64_t> GetAttributeIntVector(const onnx::NodeProto& node, const st
 
 float GetAttributeFloat(const onnx::NodeProto& node, const std::string& name, float default_value);
 
+std::string GetAttributeString(const onnx::NodeProto& node, const std::string& name, std::string default_value);
+
+std::vector<std::string> GetAttributeStringVector(const onnx::NodeProto& node, const std::string& name);
+
+std::vector<std::string> SplitString(std::string& s, const std::string& c);
+
 }  // namespace TNN_CONVERTER
 
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_

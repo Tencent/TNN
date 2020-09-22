@@ -83,9 +83,51 @@ float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, fl
         if (iter.name() != name) {
             continue;
         }
-        assert(iter.type() == onnx::AttributeProto_AttributeType_INT);
+        assert(iter.type() == onnx::AttributeProto_AttributeType_FLOAT);
         return iter.f();
     }
     return default_value;
 }
+
+std::string GetAttributeString(const onnx::NodeProto &node, const std::string &name, std::string def) {
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() == name) {
+            assert(iter.type() == onnx::AttributeProto_AttributeType_STRING);
+            return iter.s();
+        }
+    }
+    return def;
+}
+
+std::vector<std::string> GetAttributeStringVector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<std::string> attributes;
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_STRINGS);
+        for (const auto &value : iter.strings()) {
+            attributes.push_back(value);
+        }
+    }
+    return attributes;
+}
+
+std::vector<std::string> SplitString(std::string &s, const std::string &c) {
+    std::vector<std::string> res;
+    std::string::size_type pos1, pos2;
+    pos2 = s.find(c);
+    pos1 = 0;
+    while (std::string::npos != pos2) {
+        res.push_back(s.substr(pos1, pos2 - pos1));
+
+        pos1 = pos2 + c.size();
+        pos2 = s.find(c, pos1);
+    }
+    if (pos1 != s.length()) {
+        res.push_back(s.substr(pos1));
+    }
+    return res;
+}
+
 }  // namespace TNN_CONVERTER
