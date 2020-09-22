@@ -49,8 +49,8 @@ template void FloatBlobToNCHW(const bfp16_t *src, bfp16_t *dst, int channel, int
 /*
 convert data type from int8 to float, data format from nhwc 2 nchw
 */
-static void Int8BlobToNCHW(const int8_t *src, float *dst, int channel, int hw, float *scale) {
-    UnpackAndDequant(dst, src, hw, channel, scale);
+static void Int8BlobToNCHW(const int8_t *src, float *dst, int channel, int hw, float *scale, float *bias) {
+    UnpackAndDequant(dst, src, hw, channel, scale, bias);
     return;
 }
 
@@ -372,6 +372,128 @@ void NCHWToBlob(const float *src, int8_t *dst, int channel, int hw, float *scale
     PackCAndQuant(dst, src, hw, channel, scale);
 }
 
+template <bool reverse_channel>
+static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *bias, int hw) {
+    int i = 0;
+#ifdef TNN_USE_NEON
+    float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
+    float32x4_t bias_neon_g = vdupq_n_f32(bias[1]);
+    float32x4_t bias_neon_r = vdupq_n_f32(bias[2]);
+    float32x4_t bias_neon_a = vdupq_n_f32(bias[3]);
+    float32x4x4_t vf32;
+    for (; i < hw - 7; i += 8) {
+        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
+        int16x8_t b_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[0]));
+        int16x8_t g_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[1]));
+        int16x8_t r_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[2]));
+        int16x8_t a_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[3]));
+
+        vf32.val[0] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? r_s16 : b_s16)));
+        vf32.val[1] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(g_s16)));
+        vf32.val[2] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? b_s16 : r_s16)));
+        vf32.val[3] = vcvtq_f32_s32(vmovl_s16(vget_low_s16(a_s16)));
+
+        vf32.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32.val[0], scale[0]));
+        vf32.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32.val[1], scale[1]));
+        vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
+        vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
+
+        vst4q_f32(dst + i * 4, vf32);
+
+        vf32.val[0] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? r_s16 : b_s16)));
+        vf32.val[1] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(g_s16)));
+        vf32.val[2] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? b_s16 : r_s16)));
+        vf32.val[3] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(a_s16)));
+
+        vf32.val[0] = vaddq_f32(bias_neon_b, vmulq_n_f32(vf32.val[0], scale[0]));
+        vf32.val[1] = vaddq_f32(bias_neon_g, vmulq_n_f32(vf32.val[1], scale[1]));
+        vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
+        vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
+
+        vst4q_f32(dst + i * 4 + 16, vf32);
+    }
+#endif
+    for (; i < hw; ++i) {
+        dst[4 * i + 0] = float2int8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
+                                                      (scale[0] * src[4 * i + 0] + bias[0]));
+        dst[4 * i + 1] = float2int8(scale[1] * src[4 * i + 1] + bias[1]);
+        dst[4 * i + 2] = float2int8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
+                                                      (scale[2] * src[4 * i + 2] + bias[2]));
+        dst[4 * i + 3] = float2int8(scale[3] * src[4 * i + 3] + bias[3]);
+    }
+}
+
+template <bool reverse_channel>
+static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float *bias, int hw) {
+    int i = 0;
+#ifdef TNN_USE_NEON
+    float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
+    float32x4_t bias_neon_g = vdupq_n_f32(bias[1]);
+    float32x4_t bias_neon_r = vdupq_n_f32(bias[2]);
+    float32x4_t bias_neon_a = vdupq_n_f32(bias[3]);
+    int8x8x4_t vi8x4;
+    for (; i < hw - 7; i += 8) {
+        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
+        int16x8_t b_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[0]));
+        int16x8_t g_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[1]));
+        int16x8_t r_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[2]));
+        int16x8_t a_s16  = vreinterpretq_s16_u16(vmovl_u8(v_u8.val[3]));
+
+        float32x4_t f32_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? r_s16 : b_s16)));
+        float32x4_t f32_1 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(g_s16)));
+        float32x4_t f32_2 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(reverse_channel ? b_s16 : r_s16)));
+        float32x4_t f32_3 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(a_s16)));
+        float32x4_t f32_4 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? r_s16 : b_s16)));
+        float32x4_t f32_5 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(g_s16)));
+        float32x4_t f32_6 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? b_s16 : r_s16)));
+        float32x4_t f32_7 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(a_s16)));
+
+        f32_0 = vaddq_f32(bias_neon_b, vmulq_n_f32(f32_0, scale[0]));
+        f32_1 = vaddq_f32(bias_neon_g, vmulq_n_f32(f32_1, scale[1]));
+        f32_2 = vaddq_f32(bias_neon_r, vmulq_n_f32(f32_2, scale[2]));
+        f32_3 = vaddq_f32(bias_neon_a, vmulq_n_f32(f32_3, scale[3]));
+        f32_4 = vaddq_f32(bias_neon_b, vmulq_n_f32(f32_4, scale[0]));
+        f32_5 = vaddq_f32(bias_neon_g, vmulq_n_f32(f32_5, scale[1]));
+        f32_6 = vaddq_f32(bias_neon_r, vmulq_n_f32(f32_6, scale[2]));
+        f32_7 = vaddq_f32(bias_neon_a, vmulq_n_f32(f32_7, scale[3]));
+
+        int16x4_t s16_l0 = vqmovn_s32(VCVTAQ_S32_F32(f32_0));
+        int16x8_t s16_0  = VQMOVN_HIGH_S32_T(s16_l0, VCVTAQ_S32_F32(f32_4));
+        int16x4_t s16_l1 = vqmovn_s32(VCVTAQ_S32_F32(f32_1));
+        int16x8_t s16_1  = VQMOVN_HIGH_S32_T(s16_l1, VCVTAQ_S32_F32(f32_5));
+        int16x4_t s16_l2 = vqmovn_s32(VCVTAQ_S32_F32(f32_2));
+        int16x8_t s16_2  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_6));
+        int16x4_t s16_l3 = vqmovn_s32(VCVTAQ_S32_F32(f32_3));
+        int16x8_t s16_3  = VQMOVN_HIGH_S32_T(s16_l2, VCVTAQ_S32_F32(f32_7));
+
+        vi8x4.val[0] = vqmovn_s16(s16_0);
+        vi8x4.val[1] = vqmovn_s16(s16_1);
+        vi8x4.val[2] = vqmovn_s16(s16_2);
+        vi8x4.val[3] = vqmovn_s16(s16_3);
+
+        vst4_s8(dst + i * 4, vi8x4);
+    }
+#endif
+    for (; i < hw; ++i) {
+        dst[4 * i + 0] = float2int8(reverse_channel ? (scale[2] * src[4 * i + 2] + bias[2]) :
+                                                      (scale[0] * src[4 * i + 0] + bias[0]));
+        dst[4 * i + 1] = float2int8(scale[1] * src[4 * i + 1] + bias[1]);
+        dst[4 * i + 2] = float2int8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
+                                                      (scale[2] * src[4 * i + 2] + bias[2]));
+        dst[4 * i + 3] = float2int8(scale[3] * src[4 * i + 3] + bias[3]);
+    }
+}
+
+template<typename T>
+static void BlobToBGRA(const T *src, uint8_t *dst, float *scale, float *bias, int hw,
+                       bool reverse_channel) {
+    if (reverse_channel) {
+        BlobToBGRAImpl<true>(src, dst, scale, bias, hw);
+    } else {
+        BlobToBGRAImpl<false>(src, dst, scale, bias, hw);
+    }
+}
+
 /*
 reverse channel in format nchw
 */
@@ -473,17 +595,20 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     if (desc.data_type == DATA_TYPE_INT8) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
+            fused_int8_bias.resize(c_r4);
         }
-
-        auto scale_handle = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle;
-        auto scale_data   = scale_handle.force_to<float *>();
-        auto scale_count  = scale_handle.GetDataCount();
-
+        auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
         for (int i = 0; i < dims[1]; i++) {
-            auto scale_idx      = scale_count == 1 ? 0 : i;
-            fused_int8_scale[i] = scale_data[scale_idx];
+            if (blob_scale[i] != 0) {
+                fused_int8_scale[i] = param.scale[i] / blob_scale[i];
+                fused_int8_bias[i]  = param.bias[i] / blob_scale[i];
+            } else {
+                fused_int8_scale[i] = 0;
+                fused_int8_bias[i]  = 0;
+            }
         }
     }
+
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
             if (blob_->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
@@ -500,13 +625,15 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
                 auto blob_int8 = reinterpret_cast<BlobInt8 *>(blob_);
                 Int8BlobToNCHW(reinterpret_cast<int8_t *>(handle_ptr) + n * c_r4 * hw,
                                reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw,
-                               fused_int8_scale.data());
+                               fused_int8_scale.data(), fused_int8_bias.data());
             } else {
                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
             }
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
         for (int n = 0; n < dims[0]; n++) {
+            ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
+                      param.bias.data());
             FloatBlobToNCHW(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw,
                             reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
         }
@@ -514,6 +641,18 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(reinterpret_cast<int8_t *>(handle_ptr),
                                                         reinterpret_cast<int8_t *>(image.GetData()), dims[0], dims[1],
                                                         dims[2], dims[3]);
+    } else if (image.GetMatType() == N8UC4) {
+        for (int n = 0; n < dims[0]; n++) {
+            if (desc.data_type == DATA_TYPE_INT8) {
+                BlobToBGRA(reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw,
+                           reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, fused_int8_scale.data(),
+                           fused_int8_bias.data(), hw, param.reverse_channel);
+            } else {
+                BlobToBGRA(reinterpret_cast<float *>(handle_ptr) + n * 4 * hw,
+                           reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, param.scale.data(), param.bias.data(),
+                           hw, param.reverse_channel);
+            }
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -641,6 +780,8 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         for (int n = 0; n < dims[0]; n++) {
             NCHWToBlob(reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw,
                        reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+            ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
+                      param.bias.data());
         }
     } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
         DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
