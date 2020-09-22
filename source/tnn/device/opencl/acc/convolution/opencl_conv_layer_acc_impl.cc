@@ -157,7 +157,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         // create weights use clBuffer
         DimsVector filter_buffershape;
         filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
-                            conv_params_.kernel_y, conv_params_.kernel_x};
+                              conv_params_.kernel_y, conv_params_.kernel_x};
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_BUFFER));
         size_t type_size = sizeof(float);
         if (opencl_runtime->GetFp16Enable())
@@ -182,7 +182,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         DimsVector filter_imageshape;
         if (CT_CONV_DEPTHWISE == conv_type_) {
             filter_imageshape = {conv_params_.kernel_x * conv_params_.kernel_y,
-                                (int)(UP_DIV(conv_params_.output_channel, 4))};  // {w,h}
+                                 (int)(UP_DIV(conv_params_.output_channel, 4))};  // {w,h}
         } else {
             filter_imageshape = {conv_params_.input_channel, (int)(UP_DIV(conv_params_.output_channel, 4) *
                                                                    conv_params_.kernel_x * conv_params_.kernel_y)};
@@ -216,7 +216,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
 
 #if TNN_PROFILE
 double OpenCLConvLayerAccImpl::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(output_dims_) * output_dims_[1] / conv_params_.group * conv_params_.kernel_x *
+    return 2.0 * DimsVectorUtils::Count(output_dims_) * input_dims_[1] / conv_params_.group * conv_params_.kernel_x *
            conv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif

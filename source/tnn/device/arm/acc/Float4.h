@@ -223,7 +223,8 @@ struct Float4 {
     }
     static Float4 sqrt(const Float4& v) {
         Float4 dst;
-        dst.value = sqrt_ps(v.value);
+        static float32x4_t zero = vdupq_n_f32(0.0f);
+        dst.value = vbslq_f32(vceqq_f32(v.value, zero), zero, sqrt_ps(v.value));
         return dst;
     }
     static Float4 tanh(const Float4& v) {
