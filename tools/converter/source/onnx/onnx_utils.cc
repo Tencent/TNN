@@ -64,8 +64,8 @@ int GetAttributeInt(const onnx::NodeProto &node, const std::string &name, int64_
     return default_value;
 }
 
-std::vector<int64_t> GetAttributeIntVector(const onnx::NodeProto &node, const std::string &name) {
-    std::vector<int64_t> attributes;
+std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<int32_t> attributes;
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
             continue;
@@ -130,4 +130,26 @@ std::vector<std::string> SplitString(std::string &s, const std::string &c) {
     return res;
 }
 
+std::vector<uint8_t> GetAttributeUInt8Vector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<uint8_t> attribute;
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() == name) {
+            assert(iter.type() == onnx::AttributeProto_AttributeType_STRING);
+            const auto &raw_data = iter.s();
+            int size             = raw_data.size();
+            for (int i = 0; i < size; ++i) {
+                attribute.push_back(*((uint8_t *)raw_data.data() + i));
+            }
+        }
+    }
+    return attribute;
+}
+
+std::vector<int8_t> Asymmetric2Symmetric(std::vector<uint8_t> &raw_value, uint8_t zero_point) {
+    std::vector<int8_t> res;
+    for (const auto &value : raw_value) {
+        res.push_back(value - zero_point);
+    }
+    return res;
+}
 }  // namespace TNN_CONVERTER

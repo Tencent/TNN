@@ -101,6 +101,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         auto cur_layer      = std::make_shared<TNN_NS::LayerInfo>();
+        cur_layer->name     = node.output(0);
         auto type_name      = converter->TNNOpType(node, quantized_mode);
         auto layer_type     = TNN_NS::GlobalConvertLayerType(type_name);
         cur_layer->type     = layer_type;

@@ -18,6 +18,9 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Int8Binary);
 
 std::string OnnxInt8BinaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    if (node.op_type() == "Int8Add") {
+        return "QuantizedAdd";
+    }
     return "";
 }
 
@@ -30,6 +33,13 @@ TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, t
                                              std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                              std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
                                              bool &quantized_model) {
+    auto param       = new TNN_NS::MultidirBroadcastLayerParam;
+    auto cur_layer   = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->type      = cur_layer->type_str;
+    param->name      = cur_layer->name;
+    param->quantized = true;
+    param->weight_input_index = -1;
     return TNN_NS::TNN_CONVERT_OK;
 }
 

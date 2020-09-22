@@ -14,6 +14,7 @@
 
 #include "onnx/onnx_base_converter.h"
 #include "onnx/onnx_utils.h"
+#include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_CONVERTER {
@@ -25,7 +26,10 @@ std::string OnnxInt8ConvReluConverter::TNNOpType(const onnx::NodeProto &node, bo
 }
 
 TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::NodeProto &node) {
-    return TNN_NS::ActivationType_ReLU;
+    if (node.op_type() == "Int8ConvRelu") {
+        return TNN_NS::ActivationType_ReLU;
+    }
+    return TNN_NS::ActivationType_None;
 }
 
 TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
@@ -41,28 +45,17 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     param->quantized              = true;
     const int input_size          = node.input_size();
     ASSERT(input_size == 2 || input_size == 3);
-    // Get weight
-    const auto &weight_name = node.input(1);
-    const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
-    auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
-    assert(weight_shape.size() == 4);
-    const int64_t co             = weight_shape[0];
-    const int64_t kh             = weight_shape[1];
-    const int64_t kw             = weight_shape[2];
-    const int64_t ci             = weight_shape[3];
-    const int64_t weight_count   = co * kw * kw * ci;
-    auto raw_wight_value_strings = GetAttributeString(*weight_node, "values", "");
-    //    auto weight_value_strings = SplitString(raw_wight_value_strings, ",");
-    //    std::vector<int64_t> weight_value;
-    //    for (const auto& iter : weight_value_strings) {
-    //        weight_value.push_back(std::stoll(iter));
-    //    }
-    //    assert(weight_value.size() == weight_count );
-    auto weight_scale      = GetAttributeFloat(*weight_node, "Y_scale", 1.0);
-    auto weight_zero_point = GetAttributeInt(*weight_node, "Y_zero_point", 0);
-
-    param->input_channel  = ci;
-    param->output_channel = co;
+    // get convolution param
+    const auto &weight_name    = node.input(1);
+    const auto &weight_node    = FindNodeProto(weight_name, proxy_nodes);
+    auto weight_shape          = GetAttributeIntVector(*weight_node, "shape");
+    const int64_t co           = weight_shape[0];
+    const int64_t kh           = weight_shape[1];
+    const int64_t kw           = weight_shape[2];
+    const int64_t ci           = weight_shape[3];
+    const int64_t weight_count = co * kw * kw * ci;
+    param->input_channel       = ci;
+    param->output_channel      = co;
     param->kernels.push_back(kw);
     param->kernels.push_back(kh);
     // onnx order: stride_h, stride_w
@@ -80,20 +73,81 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     param->pads       = {(int)pads[0], (int)pads[1], (int)pads[2], (int)pads[3]};
     ASSERT(pads.size() == 4);
     param->activation_type = TNN_NS::ActivationType_ReLU;
-    // weight
+
+    const auto &input_name     = node.input(0);
+    const auto &input_node     = FindNodeProto(input_name, proxy_nodes);
+    auto input_scale           = GetAttributeFloat(*input_node, "Y_scale", 1.0f);
+    auto input_zero_point      = GetAttributeInt(*input_node, "Y_zero_point", 0);
+    auto input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
+    if (net_resource.resource_map.find(input_blob_scale_name) == net_resource.resource_map.end()) {
+        // create input blob scale
+        // assert(input_zero_point == 0);
+        auto input_blob_scale                = new TNN_NS::IntScaleResource;
+        TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&input_scale);
+        input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        input_blob_scale->scale_handle      = input_scale_handle;
+        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&input_zero_point);
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        input_blob_scale->bias_handle                    = zero_point_handle;
+        net_resource.resource_map[input_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
+    }
+
+    // quantized weight value
+    auto weight_scale      = GetAttributeFloat(*weight_node, "Y_scale", 1.0);
+    auto weight_zero_point = GetAttributeInt(*weight_node, "Y_zero_point", 0);
+    assert(weight_shape.size() == 4);
+    auto asymmetric_weight_value = GetAttributeUInt8Vector(*weight_node, "values");
+    auto weight_value            = Asymmetric2Symmetric(asymmetric_weight_value, weight_zero_point);
+    assert(weight_value.size() == weight_count);
     auto layer_resource             = new TNN_NS::ConvLayerResource;
     layer_resource->name            = cur_layer->name;
-    TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(int32_t));
+    TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(uint8_t));
+    filter_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    OHWI2OIHW(reinterpret_cast<uint8_t *>(weight_value.data()), filter_handle.force_to<uint8_t *>(), co, kh, kw, ci);
+    layer_resource->filter_handle = filter_handle;
+    // quantized weight scale
+    auto cal_weight_scale          = input_scale * weight_scale;
+    TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&cal_weight_scale);
+    scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    layer_resource->scale_handle = scale_handle;
 
     if (input_size > 2) {
         // Get Bias
+        param->bias           = 1;
         const auto &bias_name = node.input(2);
         const auto &bias_node = FindNodeProto(bias_name, proxy_nodes);
+        auto bias_scale       = GetAttributeFloat(*bias_node, "Y_scale", 1.0);
+        auto bias_zero_point  = GetAttributeInt(*bias_node, "Y_zero_point", 0);
         auto bias_shape       = GetAttributeIntVector(*bias_node, "shape");
+        auto bias_value       = GetAttributeIntVector(*bias_node, "values");
+        // calculate bias
+        std::vector<int32_t> cal_bias_value;
+        for (const auto value : bias_value) {
+            cal_bias_value.push_back(value * (int32_t)(bias_scale / cal_weight_scale));
+        }
         assert(bias_shape.size() == 1);
-        auto bias_value      = GetAttributeIntVector(*bias_node, "values");
-        auto bias_scale      = GetAttributeFloat(*bias_node, "Y_scale", 1.0);
-        auto bias_zero_point = GetAttributeInt(*bias_node, "Y_zero_point", 0);
+        assert(bias_zero_point == 0);
+        TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(cal_bias_value.size() * sizeof(int32_t));
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        ::memcpy(bias_handle.force_to<int32_t *>(), cal_bias_value.data(), bias_value.size() * sizeof(int32_t));
+        layer_resource->bias_handle = bias_handle;
+    }
+    // update net_resource resource_map
+    net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+
+    // create output blob_scale
+    const auto &output_name    = node.output(0);
+    auto output_scale          = GetAttributeFloat(node, "Y_scale", 1.0);
+    auto output_zero_point     = GetAttributeInt(node, "Y_zero_point", 0);
+    auto output_blob_cale_name = output_name + BLOB_SCALE_SUFFIX;
+    if (net_resource.resource_map.find(output_blob_cale_name) == net_resource.resource_map.end()) {
+        auto output_blob_scale                = new TNN_NS::IntScaleResource;
+        TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
+        output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        output_blob_scale->bias_handle                   = zero_point_handle;
+        net_resource.resource_map[output_blob_cale_name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
     cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
@@ -102,6 +156,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     return TNN_NS::TNN_CONVERT_OK;
 }
 
+REGISTER_CONVERTER(Int8ConvRelu, Int8Conv);
 REGISTER_CONVERTER(Int8ConvRelu, Int8ConvRelu);
 
 }  // namespace TNN_CONVERTER
