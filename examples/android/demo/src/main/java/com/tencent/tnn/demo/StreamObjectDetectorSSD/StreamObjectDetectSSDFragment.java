@@ -324,13 +324,13 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingObject) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             Log.i(TAG, "detect from stream ret " + objectInfoList);
                             int objectCount = 0;
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  ObjectDetectorSSD.label_list, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addObjectRect(objectInfoList,  ObjectDetectorSSD.label_list);
                         }
                         else {
                             Log.i(TAG,"No object");
