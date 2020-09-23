@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ci_support_converter
   pull_request:
     branches:
       - master
