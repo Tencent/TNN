@@ -238,7 +238,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::Resize:
         {
-            tnn::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
+            TNN_NS::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
             if (status != TNN_OK) {
                 FAIL();
             }
@@ -260,7 +260,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::Crop:
         {
-            tnn::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
+            TNN_NS::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
             if (status != TNN_OK) {
                 FAIL();
             }
@@ -282,7 +282,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::WarpAffine:
         {
-            tnn::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
+            TNN_NS::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
             if (status != TNN_OK) {
@@ -306,7 +306,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::CvtColor:
         {
-            tnn::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
+            TNN_NS::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
             if (status != TNN_OK) {
                 FAIL();
             }
