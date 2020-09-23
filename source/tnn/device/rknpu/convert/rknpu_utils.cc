@@ -22,7 +22,7 @@
 
 #include "tnn/core/macro.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 std::shared_ptr<rk::nn::Tensor> RknpuUtils::CreateRknnTensor(rk::nn::Graph *graph, const std::string &name,
                                                              const std::vector<int> &dims, const void *data,
@@ -136,4 +136,4 @@ uint32_t RknpuUtils::CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> 
     return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<uint32_t>()) * type_size;
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS
