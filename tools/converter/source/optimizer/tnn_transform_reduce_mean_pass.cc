@@ -21,8 +21,8 @@ std::string TnnOptimizeTransformReduceMeanPass::PassName() {
     return "TransformReduceMean";
 }
 
-TNN_NS::Status TnnOptimizeTransformReduceMeanPass::exec(tnn::NetStructure& net_structure,
-                                                        tnn::NetResource& net_resource) {
+TNN_NS::Status TnnOptimizeTransformReduceMeanPass::exec(TNN_NS::NetStructure& net_structure,
+                                                        TNN_NS::NetResource& net_resource) {
     auto& layers = net_structure.layers;
     for (auto iter = layers.begin(); iter != layers.end(); iter++) {
         auto& layer = *iter;
