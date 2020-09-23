@@ -36,7 +36,7 @@ public:
     int input_width;
     int input_height;
     int num_thread = 1;
-    
+
     float conf_threshold = 0.3;
     float nms_threshold  = 0.01;
 };
@@ -45,14 +45,13 @@ public:
 class HandDetector : public TNN_NS::TNNSDKSample {
 public:
     ~HandDetector() {}
-    
+
     virtual Status Init(std::shared_ptr<TNNSDKOption> option);
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
                                                             std::string name = kTNNSDKDefaultName);
-    
 private:
     float GetGridX(int h, int w) {
         return w % this->grid_size;
@@ -67,10 +66,9 @@ private:
     int grid_size = 26.0;
     std::vector<float> anchor_w = {33.0/16.0, 62.0/16.0, 116.0/16.0};
     std::vector<float> anchor_h = {23.0/16.0, 45.0/16.0, 90.0/16.0};
-    
+
     float conf_thresh;
     float nms_thresh;
-    
 };
 
 }

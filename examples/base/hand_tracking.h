@@ -62,7 +62,12 @@ public:
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
    // virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
 private:
-    void SetHandRegion(int x1, int y1, int x2, int y2);
+    void SetHandRegion(int x1, int y1, int x2, int y2) {
+        x1_ = x1;
+        y1_ = y1;
+        x2_ = x2;
+        y2_ = y2;
+    }
     // hand region set by the detection model or in previous frame
     float x1_;
     float y1_;

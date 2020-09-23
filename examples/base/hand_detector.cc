@@ -36,17 +36,17 @@ Status HandDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     Status status = TNN_OK;
     auto option = dynamic_cast<HandDetectorOption *>(option_i.get());
     RETURN_VALUE_ON_NEQ(!option, false, Status(TNNERR_PARAM_ERR, "TNNSDKOption is invalid"));
-    
+
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
-    
+
     auto input_dims = GetInputShape();
     option->input_height = input_dims[2];
     option->input_width  = input_dims[3];
-    
+
     this->conf_thresh = option->conf_threshold;
     this->nms_thresh  = option->nms_threshold;
-    
+
     return status;
 }
 
@@ -76,26 +76,26 @@ std::shared_ptr<TNNSDKOutput> HandDetector::CreateSDKOutput() {
 
 Status HandDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     Status status = TNN_OK;
-    
+
     auto option = dynamic_cast<HandDetectorOption *>(option_.get());
     RETURN_VALUE_ON_NEQ(!option, false, Status(TNNERR_PARAM_ERR, "TNNOption is invalid"));
-    
+
     auto output = dynamic_cast<HandDetectorOutput *>(output_.get());
     RETURN_VALUE_ON_NEQ(!output, false, Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
-    
+
     auto x = output->GetMat("x");
     auto y = output->GetMat("y");
     auto w = output->GetMat("w");
     auto h = output->GetMat("h");
     auto conf = output->GetMat("conf");
     auto cls  = output->GetMat("cls");
-    
+
     std::vector<ObjectInfo> bboxes, outputs;
     GenerateBBox(x.get(), y.get(), h.get(), w.get(), conf.get(), bboxes);
     BlendingNMS(bboxes, outputs);
-    
+
     output->hands = outputs;
-    
+
     return status;
 }
 
@@ -106,7 +106,7 @@ void HandDetector::GenerateBBox(Mat *bbox_x, Mat *bbox_y, Mat *bbox_h, Mat *bbox
     float *bbox_y_ptr = static_cast<float *>(bbox_y->GetData());
     float *bbox_h_ptr = static_cast<float *>(bbox_h->GetData());
     float *bbox_w_ptr = static_cast<float *>(bbox_w->GetData());
-    
+
     int offset = 0;
     for(int c=0; c<dims[1]; ++c){
         for(int h=0; h<dims[2]; ++h) {
