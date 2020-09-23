@@ -19,61 +19,39 @@
 
 namespace TNN_CONVERTER {
 
-DECLARE_OP_CONVERTER(Int8ConvRelu);
+DECLARE_OP_CONVERTER(Int8InnerProduct);
 
-std::string OnnxInt8ConvReluConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "QuantizedConvolution";
+std::string OnnxInt8InnerProductConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return "QuantizedInnerProduct";
 }
 
-TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::NodeProto &node) {
-    if (node.op_type() == "Int8ConvRelu") {
-        return TNN_NS::ActivationType_ReLU;
-    }
+TNN_NS::ActivationType OnnxInt8InnerProductConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                               const onnx::NodeProto &node,
-                                               std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
-                                               bool &quantized_model) {
-    TNN_NS::ConvLayerParam *param = new TNN_NS::ConvLayerParam;
-    auto cur_layer                = net_structure.layers.back();
-    cur_layer->param              = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name                   = cur_layer->name;
-    param->type                   = cur_layer->type_str;
-    param->quantized              = true;
-    const int input_size          = node.input_size();
-    ASSERT(input_size == 2 || input_size == 3);
+TNN_NS::Status OnnxInt8InnerProductConverter::exec(
+    tnn::NetStructure &net_structure, tnn::NetResource &net_resource, const onnx::NodeProto &node,
+    std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
+    std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes, bool &quantized_model) {
+    const int input_size = node.input_size();
+    assert(input_size == 2 || input_size == 3);
+    auto *param      = new TNN_NS::InnerProductLayerParam;
+    auto cur_layer   = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name      = cur_layer->name;
+    param->type      = cur_layer->type_str;
+    param->quantized = true;
+    param->axis      = 1;
+    param->transpose = 1;
     // get convolution param
-    const auto &weight_name    = node.input(1);
-    const auto &weight_node    = FindNodeProto(weight_name, proxy_nodes);
-    auto weight_shape          = GetAttributeIntVector(*weight_node, "shape");
-    const int64_t co           = weight_shape[0];
-    const int64_t kh           = weight_shape[1];
-    const int64_t kw           = weight_shape[2];
-    const int64_t ci           = weight_shape[3];
-    const int64_t weight_count = co * kw * kw * ci;
-    param->input_channel       = ci;
-    param->output_channel      = co;
-    param->kernels.push_back(kw);
-    param->kernels.push_back(kh);
-    // onnx order: stride_h, stride_w
-    // tnn  order: stride_w, stride_h
-    auto strides = GetAttributeIntVector(node, "strides");
-    ASSERT(strides.size() == 2);
-    param->strides = {(int)strides[1], (int)strides[0]};
-    // dilation
-    auto dilations = GetAttributeIntVector(node, "dilations");
-    ASSERT(dilations.size() == 2);
-    param->dialations = {(int)dilations[1], (int)dilations[0]};
-    param->group      = 1;
-    param->pad_type   = 0;
-    auto pads         = GetAttributeIntVector(node, "pads");
-    param->pads       = {(int)pads[0], (int)pads[1], (int)pads[2], (int)pads[3]};
-    ASSERT(pads.size() == 4);
-    param->activation_type = TNN_NS::ActivationType_ReLU;
+    const auto &weight_name = node.input(1);
+    const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
+    auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
+    assert(weight_shape.size() == 2);
+    auto co           = weight_shape[1];
+    param->num_output = co;
 
+    // create input blob scale
     const auto &input_name     = node.input(0);
     const auto &input_node     = FindNodeProto(input_name, proxy_nodes);
     auto input_scale           = GetAttributeFloat(*input_node, "Y_scale", 1.0f);
@@ -95,16 +73,15 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     // quantized weight value
     auto weight_scale      = GetAttributeFloat(*weight_node, "Y_scale", 1.0);
     auto weight_zero_point = GetAttributeInt(*weight_node, "Y_zero_point", 0);
-    assert(weight_shape.size() == 4);
-    auto asymmetric_weight_value = GetAttributeUInt8Vector(*weight_node, "values");
-    auto weight_value            = Asymmetric2Symmetric(asymmetric_weight_value, weight_zero_point);
-    assert(weight_value.size() == weight_count);
-    auto layer_resource             = new TNN_NS::ConvLayerResource;
+    auto weight_value      = GetAttributeUInt8Vector(*weight_node, "values");
+    auto weight_count      = weight_shape[0] * weight_shape[1];
+    assert(weight_count == weight_value.size());
+    auto layer_resource             = new TNN_NS::InnerProductLayerResource;
     layer_resource->name            = cur_layer->name;
-    TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(uint8_t));
-    filter_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
-    OHWI2OIHW(reinterpret_cast<uint8_t *>(weight_value.data()), filter_handle.force_to<uint8_t *>(), co, kh, kw, ci);
-    layer_resource->filter_handle = filter_handle;
+    TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_count * sizeof(uint8_t));
+    weight_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    ::memcpy(weight_handle.force_to<uint8_t *>(), weight_value.data(), weight_count * sizeof(uint8_t));
+    layer_resource->weight_handle = weight_handle;
     // quantized weight scale
     auto cal_weight_scale          = input_scale * weight_scale;
     TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&cal_weight_scale);
@@ -113,7 +90,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
 
     if (input_size > 2) {
         // Get Bias
-        param->bias           = 1;
+        param->has_bias       = 1;
         const auto &bias_name = node.input(2);
         const auto &bias_node = FindNodeProto(bias_name, proxy_nodes);
         auto bias_scale       = GetAttributeFloat(*bias_node, "Y_scale", 1.0);
@@ -156,7 +133,6 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Int8ConvRelu, Int8Conv);
-REGISTER_CONVERTER(Int8ConvRelu, Int8ConvRelu);
+REGISTER_CONVERTER(Int8InnerProduct, Int8FC);
 
 }  // namespace TNN_CONVERTER
