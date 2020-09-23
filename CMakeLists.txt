@@ -301,13 +301,12 @@ if(TNN_TEST_ENABLE)
     add_subdirectory(test)
 endif()
 
-if(TNN_COVERAGE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -coverage -fprofile-arcs -ftest-coverage")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -coverage -lgcov")
-endif()
-
 if(TNN_CONVERTER_ENABLE)
     add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
 endif()
 
+if(TNN_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -coverage -lgcov")
+endif()
