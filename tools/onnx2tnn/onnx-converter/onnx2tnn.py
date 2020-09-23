@@ -123,6 +123,8 @@ def main():
         status = -1
         traceback.print_exc()
 
+    if status != 0:
+        exit(status)
 
     print("3.----onnx2tnn status: " + str(status))
 
