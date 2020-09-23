@@ -67,13 +67,13 @@ void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event
     cl_int error = CL_SUCCESS;
     error        = event->wait();
     CHECK_CL_SUCCESS(error);
-    int queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
+    unsigned long long queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
     CHECK_CL_SUCCESS(error);
-    int submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
+    unsigned long long submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
     CHECK_CL_SUCCESS(error);
-    int start_t = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
     CHECK_CL_SUCCESS(error);
-    int end_t = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
     CHECK_CL_SUCCESS(error);
     kernel_time  = (end_t - start_t) / 1000000.0;
     event_queued = (double)queued_t;
