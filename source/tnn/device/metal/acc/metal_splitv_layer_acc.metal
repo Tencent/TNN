@@ -65,3 +65,39 @@ kernel void splitv_axis_1_common(const device ftype4 *src                       
 //        dst[index_out] = temp;
 //    }
 }
+
+kernel void splitv_axis_h(const device ftype4 *src                 [[buffer(0)]],
+                                device ftype4 *dst                 [[buffer(1)]],
+                          constant MetalParams &params             [[buffer(2)]],
+                          constant int &h_offset                   [[buffer(3)]],
+                          constant int &output_slice               [[buffer(4)]],
+                          uint3 gid                                [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_width, params.output_height, params.batch*params.output_slice)))
+        return;
+
+    int index_out = (int)gid.z*params.output_size + (int)gid.y*params.output_width + (int)gid.x;
+
+    int input_h = h_offset + int(gid.y);
+    int input_w = int(gid.x);
+    int index_in = (int)gid.z * params.input_size + input_h * params.input_width + input_w;
+
+    dst[index_out] = src[index_in];
+}
+
+kernel void splitv_axis_w(const device ftype4 *src                 [[buffer(0)]],
+                                device ftype4 *dst                 [[buffer(1)]],
+                          constant MetalParams &params             [[buffer(2)]],
+                          constant int &w_offset                   [[buffer(3)]],
+                          constant int &output_slice               [[buffer(4)]],
+                          uint3 gid                                [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_width, params.output_height, params.batch*params.output_slice)))
+        return;
+
+    int index_out = (int)gid.z*params.output_size + (int)gid.y*params.output_width + (int)gid.x;
+
+    int input_w = w_offset + int(gid.x);
+    int input_h = int(gid.y);
+    int index_in = (int)gid.z * params.input_size + input_h * params.input_width + input_w;
+
+    dst[index_out] = src[index_in];
+}
