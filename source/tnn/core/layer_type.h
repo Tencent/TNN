@@ -183,6 +183,7 @@ enum LayerType {
     LAYER_SIGNED_MUL                                        = 196,
     LAYER_DETECTION_POST_PROCESS                            = 197,
     LAYER_SQUARED_DIFFERENCE                                = 198,
+    LAYER_ARG_MAX_OR_MIN                                    = 199,
 
     LAYER_CONVOLUTION_3D                                    = 201,
     LAYER_POOLING_3D                                        = 202,
@@ -194,8 +195,6 @@ enum LayerType {
 
     LAYER_INT8_RANGE                                        = 700,
     LAYER_TRT_ENGINE                                        = 701,
-
-
 
 };
 
