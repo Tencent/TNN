@@ -74,16 +74,9 @@ convert float data to s16, vqmovn_high_s32 can only used int armv8
 */
 inline int8x8_t Float4x2ScaleTos8(const float32x4_t v0, const float32x4_t v1, const float32x4_t s0,
                                   const float32x4_t s1) {
-#ifdef __aarch64__
     float32x4_t mul0 = vmulq_f32(v0, s0);
     float32x4_t mul1 = vmulq_f32(v1, s1);
-    int16x8_t s16    = VQMOVN_HIGH_S32_T(vqmovn_s32(vcvtaq_s32_f32(mul0)), vcvtaq_s32_f32(mul1));
-#else
-    const float32x4_t vdot5 = vdupq_n_f32(0.5f);
-    float32x4_t mul0        = vmlaq_f32(vdot5, v0, s0);
-    float32x4_t mul1        = vmlaq_f32(vdot5, v1, s1);
-    int16x8_t s16           = VQMOVN_HIGH_S32_T(vqmovn_s32(vcvtq_s32_f32(mul0)), vcvtq_s32_f32(mul1));
-#endif
+    int16x8_t s16    = VQMOVN_HIGH_S32_T(vqmovn_s32(VCVTAQ_S32_F32(mul0)), VCVTAQ_S32_F32(mul1));
     return vqmovn_s16(s16);
 }
 /*
@@ -91,14 +84,8 @@ convert float data to s8, pack four int8 values to one int32 value
 (int32)(v * scale) -> int16 -> int8, pack four int8 to one int32 value
 */
 inline int32_t Float4ScaleTos8(const float32x4_t v, const float32x4_t s) {
-#ifdef __aarch64__
     float32x4_t mul = vmulq_f32(v, s);
-    int8x8_t s8     = vqmovn_s16(vcombine_s16(vqmovn_s32(vcvtaq_s32_f32(mul)), vdup_n_s16(0)));
-#else
-    const float32x4_t vdot5 = vdupq_n_f32(0.5f);
-    float32x4_t mul         = vmlaq_f32(vdot5, v, s);
-    int8x8_t s8             = vqmovn_s16(vcombine_s16(vqmovn_s32(vcvtq_s32_f32(mul)), vdup_n_s16(0)));
-#endif
+    int8x8_t s8     = vqmovn_s16(vcombine_s16(vqmovn_s32(VCVTAQ_S32_F32(mul)), vdup_n_s16(0)));
     return vreinterpret_s32_s8(s8)[0];
 }
 
@@ -131,7 +118,7 @@ void FloatToInt8C4(int8_t* dst, const float* src, const float* scale, long batch
 }
 
 /*
-pack line used in gemm int8 
+pack line used in gemm int8
 */
 void PackLineV7(long cin, const int32_t* src, int32_t* dst) {
     cin = cin / 4;
@@ -597,7 +584,7 @@ void DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, co
 convdw 3x3 int8 func
 */
 void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
-                    long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z) {
+                   long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z) {
     long dx = 0;
     // todo:3x8 for arm v7 16regs
     // stride == 1, fully use arm registers
