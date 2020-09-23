@@ -80,5 +80,5 @@ TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, t
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Int8Binary, Int8Binary);
+REGISTER_CONVERTER(Int8Binary, Int8Add);
 }  // namespace TNN_CONVERTER

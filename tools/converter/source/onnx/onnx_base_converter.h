@@ -33,7 +33,7 @@ public:
                                 bool& quantized_model)                               = 0;
     virtual std::string TNNOpType(const onnx::NodeProto& node, bool quantized_model) = 0;
     virtual TNN_NS::ActivationType ActivationType(const onnx::NodeProto& node)       = 0;
-    TNN_NS::Status SeparateActivation(TNN_NS::NetStructure, TNN_NS::ActivationType activation_type);
+    TNN_NS::Status SeparateActivation(TNN_NS::NetStructure& net_structure, TNN_NS::ActivationType activation_type);
 
 protected:
     const onnx::NodeProto* FindNodeProto(const std::string& name,

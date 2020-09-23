@@ -15,17 +15,22 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Int8Transpose);
+DECLARE_OP_CONVERTER(QuantizedAndDequantized);
 
-std::string OnnxInt8TransposeConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "QuantizedPermute";
+std::string OnnxQuantizedAndDequantizedConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    if (node.op_type() == "Int8Quantize") {
+        return "Int8Quantized";
+    } else if (node.op_type() == "Int8Dequantize") {
+        return "Int8Dequantized";
+    }
+    return "";
 }
 
-TNN_NS::ActivationType OnnxInt8TransposeConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxQuantizedAndDequantizedConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8TransposeConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxQuantizedAndDequantizedConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                                 const onnx::NodeProto &node,
                                                 std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                                 std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
@@ -33,6 +38,8 @@ TNN_NS::Status OnnxInt8TransposeConverter::exec(tnn::NetStructure &net_structure
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Int8Transpose, Int8Transpose);
+REGISTER_CONVERTER(QuantizedAndDequantized, Int8Quantize);
+REGISTER_CONVERTER(QuantizedAndDequantized, Int8Dequantize);
+
 
 }  // namespace TNN_CONVERTER

@@ -25,7 +25,7 @@ public:
     Onnx2Tnn(std::string model_path);
     Onnx2Tnn() = delete;
     ~Onnx2Tnn();
-    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure net_structure, TNN_NS::NetResource net_resource);
+    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 
 private:
     bool ReadModel();

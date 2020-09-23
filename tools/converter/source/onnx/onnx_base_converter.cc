@@ -44,7 +44,7 @@ void OnnxConverterManager::insert(const std::string onnx_op_type, OnnxBaseConver
     onnx_converter_map_.insert(std::make_pair(onnx_op_type, t));
 }
 
-TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure net_structure,
+TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure& net_structure,
                                                      TNN_NS::ActivationType activation_function_type) {
     if (activation_function_type == TNN_NS::ActivationType_None) {
         return TNN_NS::TNN_CONVERT_OK;
@@ -71,6 +71,10 @@ TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure net_struc
         activation_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(activation_param);
         activation_param->type      = activation_layer->type_str;
         activation_param->name      = layer->name + activation_suffix;
+        if (layer->param->quantized) {
+            activation_param->name = "Quantized" + activation_param->name;
+            activation_param->quantized = true;
+        }
         activation_param->quantized = false;
         // insert activation layer
         layers.push_back(std::shared_ptr<TNN_NS::LayerInfo>(activation_layer));

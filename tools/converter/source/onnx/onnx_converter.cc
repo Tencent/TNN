@@ -35,7 +35,7 @@ Onnx2Tnn::~Onnx2Tnn() {
     // do nothing
 }
 
-TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetResource net_resource) {
+TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure& net_structure, tnn::NetResource& net_resource) {
     if (!ReadModel()) {
         return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
     }
@@ -49,7 +49,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
 
     bool quantized_mode = IsQuantized();
     // convert onnx graph input
-    TNN_NS::InputShapesMap input_shapes_map = net_structure.inputs_shape_map;
+    TNN_NS::InputShapesMap& input_shapes_map = net_structure.inputs_shape_map;
     for (const auto iter : proxy_inputs) {
         // input in initializers
         if (proxy_initializers.find(iter.first) != proxy_initializers.end()) {
@@ -69,7 +69,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
         }
     }
     // convert onnx graph output
-    auto& outputs = net_structure.outputs;
+    std::set<std::string>& outputs = net_structure.outputs;
     for (const auto iter : proxy_outputs) {
         auto output_name = iter.first;
         if (outputs.find(output_name) == outputs.end()) {
@@ -85,19 +85,22 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure net_structure, tnn::NetR
         if (node_op_type == "Int8Quantize") {
             // TODO
             quantized_mode = true;
-            continue;
         } else if (node_op_type == "Int8Dequantize") {
             // TODO
             quantized_mode = false;
-            continue;
-        } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill" ||
-                   node_op_type == "Int8Transpose") {
+        } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill") {
             continue;
         }
+        if (node_op_type == "Shape" || node_op_type == "Gather" || node_op_type == "Unsqueeze" ||
+            node_op_type == "Concat" || node_op_type == "Reshape" || node_op_type == "Constant") {
+            continue;
+        }
+
         auto converter = OnnxConverterManager::get()->search(node_op_type);
         if (converter == nullptr) {
-            LOGE("The ONnxConverter do not support layer:%s\n", node_op_type.c_str());
-            LOGE("The unsupported operator type is:%s\n", node.name().c_str());
+            LOGE("The OnnxConverter do not support layer:%s output: %s \n", node.name().c_str(),
+                 node.output(0).c_str());
+            LOGE("The unsupported operator type is:%s\n", node_op_type.c_str());
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         auto cur_layer      = std::make_shared<TNN_NS::LayerInfo>();
