@@ -16,25 +16,33 @@
 
 namespace TNN_NS {
 
-template <>
-void HairSegmentation::CopyMatData<float, uint8_t>(float* src, uint8_t*dst, unsigned int count) {
-    for(int i=0; i<count; ++i) {
-        dst[i] = static_cast<uint8_t>(src[i] * 255.0);
+Status HairSegmentation::ConvertMat(std::shared_ptr<Mat> src, std::shared_ptr<Mat> dst) {
+    if (DimsVectorUtils::Count(src->GetDims()) != DimsVectorUtils::Count(dst->GetDims()))
+        return Status(TNNERR_PARAM_ERR, "src and dst mat have different dims!");
+    if (src->GetMatType() == dst->GetMatType()) {
+        // copy
+        ;
+    } else {
+        auto src_mat_type = src->GetMatType();
+        auto dst_mat_type = dst->GetMatType();
+        auto count = DimsVectorUtils::Count(src->GetDims());
+        if (src_mat_type == NCHW_FLOAT && dst_mat_type == NGRAY) {
+            auto src_ptr = static_cast<float *>(src->GetData());
+            auto dst_ptr = static_cast<uint8_t *>(dst->GetData());
+            for(int i=0; i<count; ++i) {
+                dst_ptr[i] = static_cast<uint8_t>(src_ptr[i] * 255.0f);
+            }
+        } else if (src_mat_type == NGRAY && dst_mat_type == NCHW_FLOAT) {
+            auto src_ptr = static_cast<uint8_t *>(src->GetData());
+            auto dst_ptr = static_cast<float *>(dst->GetData());
+            for(int i=0; i<count; ++i) {
+                dst_ptr[i] = static_cast<float>(src_ptr[i] / 255.0f);
+            }
+        } else {
+            return Status(TNNERR_INST_ERR, "unsupported mat type pair!");
+        }
     }
-}
-
-template <>
-void HairSegmentation::CopyMatData<uint8_t, float>(uint8_t* src, float*dst, unsigned int count) {
-    for(int i=0; i<count; ++i) {
-        dst[i] = static_cast<float>(src[i]*1.0 / 255.0);
-    }
-}
-
-template <typename SrcType, typename DstType>
-void HairSegmentation::CopyMatData(SrcType* src, DstType*dst, unsigned int count) {
-    for(int i=0; i<count; ++i) {
-        dst[i] = static_cast<DstType>(src[i]);
-    }
+    return TNN_OK;
 }
 
 Status HairSegmentation::Init(std::shared_ptr<TNNSDKOption> option_i) {
@@ -160,32 +168,7 @@ std::shared_ptr<Mat> HairSegmentation::ProcessAlpha(std::shared_ptr<Mat> alpha, 
     }
     return rtn;
 }
-/*
-std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha) {
-    auto out_dims = orig_dims;
-    out_dims[1] = 4;
 
-    auto merged_image = std::make_shared<Mat>(DEVICE_ARM, N8UC4, out_dims);
-    auto count = DimsVectorUtils::Count(out_dims);
-
-    auto alpha_data = static_cast<float *>(alpha->GetData());
-    auto image_data = static_cast<uint8_t *>(image_origin->GetData());
-    auto merged_image_data = static_cast<uint8_t *>(merged_image->GetData());
-    
-    auto hw = orig_dims[2] * orig_dims[3];
-    auto channel = orig_dims[1];
-    for(int s=0; s<hw; ++s) {
-        auto alpha_val = alpha_data[s];
-        for(int c=0; c<channel; ++c) {
-            auto fg = alpha_val * static_cast<float>(image_data[s*channel + c]);
-            auto bg = c==1? 255*(1-alpha_val) : 0;
-            auto rst = fg * 1.0 + bg * 1.0;
-            merged_image_data[s*4 + c] = static_cast<unsigned char>(std::min(255.0, std::max(0.0, rst)));
-        }
-    }
-    return merged_image;
-}
-*/
 std::shared_ptr<Mat> HairSegmentation::GenerateAlphaImage(std::shared_ptr<Mat> alpha) {
     RETURN_VALUE_ON_NEQ(alpha->GetChannel(), 1, nullptr);
     auto alpha_image_dims = alpha->GetDims();
@@ -213,6 +196,7 @@ std::shared_ptr<Mat> HairSegmentation::GenerateAlphaImage(std::shared_ptr<Mat> a
 Status HairSegmentation::ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat> output_mat, TNNInterpType type) {
     Status status = TNN_OK;
     RETURN_VALUE_ON_NEQ(input_mat->GetMatType(), NCHW_FLOAT, Status(TNNERR_PARAM_ERR, "invalid input mat, only NCHW_FLAOT supported!"));
+
     auto input_dims = input_mat->GetDims();
     auto buffer_mat_type = INVALID;
     if (input_dims[1] == 4)
@@ -221,16 +205,22 @@ Status HairSegmentation::ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::sha
         buffer_mat_type = N8UC3;
     else if (input_dims[1] == 1)
         buffer_mat_type = NGRAY;
+
     // allocate temp buffer mat
     auto input_image_mat = std::make_shared<Mat>(input_mat->GetDeviceType(), buffer_mat_type, input_mat->GetDims());
     auto output_image_mat = std::make_shared<Mat>(output_mat->GetDeviceType(), buffer_mat_type, output_mat->GetDims());
+
     // copy input mat
-    CopyMatData(static_cast<float *>(input_mat->GetData()), static_cast<uint8_t *>(input_image_mat->GetData()), DimsVectorUtils::Count(input_mat->GetDims()));
+    status = ConvertMat(input_mat, input_image_mat);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     // resize
     status = Resize(input_image_mat, output_image_mat, type);
     RETURN_ON_NEQ(status, TNN_OK);
+
     // copy back
-    CopyMatData(static_cast<uint8_t *>(output_image_mat->GetData()), static_cast<float *>(output_mat->GetData()), DimsVectorUtils::Count(output_mat->GetDims()));
+    status = ConvertMat(output_image_mat, output_mat);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     return status;
 }

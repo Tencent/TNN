@@ -63,13 +63,11 @@ public:
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
 private:
     std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
-    //std::shared_ptr<Mat> MergeImage(std::shared_ptr<Mat> alpha);
     std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
     Status ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat> output_mat, TNNInterpType type = TNNInterpLinear);
-    template <typename SrcType, typename DstType>
-    void CopyMatData(SrcType* src, DstType*dst, unsigned int count);
+    Status ConvertMat(std::shared_ptr<Mat>src, std::shared_ptr<Mat>dst);
     // the original input image shape
-    DimsVector orig_dims;
+    DimsVector git ;
 };
 
 }
