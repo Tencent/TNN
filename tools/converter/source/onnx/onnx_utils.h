@@ -25,7 +25,7 @@ TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto te
 
 onnx::AttributeProto_AttributeType GetAttributeType(const char* basic_type_name);
 
-int GetAttributeInt(const onnx::NodeProto& node, const std::string& name, int64_t default_value);
+int GetAttributeInt(const onnx::NodeProto& node, const std::string& name, int default_value);
 
 std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto& node, const std::string& name);
 

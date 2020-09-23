@@ -53,7 +53,7 @@ onnx::AttributeProto_AttributeType GetAttributeType(const char *type_name) {
         return onnx::AttributeProto_AttributeType_UNDEFINED;
     }
 }
-int GetAttributeInt(const onnx::NodeProto &node, const std::string &name, int64_t default_value) {
+int GetAttributeInt(const onnx::NodeProto &node, const std::string &name, int default_value) {
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
             continue;
