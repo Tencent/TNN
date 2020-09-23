@@ -12,22 +12,24 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn_optimizer.h"
+#include "onnx_op_converter.h"
+#include "onnx_utility.h"
 
-#include "tnn_optimize_pass.h"
+DECLARE_OP_CONVERTER(PixelShuffle);
 
-namespace TNN_CONVERTER {
-
-TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
-    std::vector<std::string> optimize_pass = {"EliminateSqueeze", "TransformReduceMean"};
-    for (auto pass_name : optimize_pass) {
-        auto pass = TnnOptimizePassManager::get()->search(pass_name);
-        if (pass == nullptr) {
-            LOGE("Unsupport optimize pass %s\n", pass_name.c_str());
-            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
-        }
-        pass->exec(net_structure, net_resource);
-    }
-    return TNN_NS::TNN_CONVERT_OK;
+string OnnxOpConverterPixelShuffle::TNNOpType(NodeProto &, OnnxNetInfo &net_info) {
+    return "PixelShuffle";
 }
-}  // namespace TNN_CONVERTER
+
+string OnnxOpConverterPixelShuffle::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+    int upscale_factor = get_node_attr_i(node, "upscale_factor");
+    ostringstream layer_param;
+    layer_param << upscale_factor << " ";
+    return layer_param.str();
+}
+
+int OnnxOpConverterPixelShuffle::WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &) {
+    return 0;
+}
+
+REGISTER_OP_CONVERTER(PixelShuffle, PixelShuffle);
