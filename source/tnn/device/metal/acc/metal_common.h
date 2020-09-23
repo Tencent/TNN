@@ -518,6 +518,15 @@ struct MetalReshapeParams {
     int batch;
 };
 
+/** ArgMaxOrMin Param Struct **/
+struct MetalArgMaxOrMinParams {
+    int input_channel;
+    int outer_size;
+    int inner_size;
+    int reduce_size;
+    int mode;
+};
+
 /** PixelShuffle Param Struct **/
 struct MetalPixelShuffleParams {
     int input_width;
