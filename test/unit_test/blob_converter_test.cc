@@ -258,7 +258,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     Mat mat_out_dev(DEVICE_NAIVE, mat_type, dims, mat_out_dev_data);
 
     if (mat_type != NCHW_FLOAT &&
-        (dev != DEVICE_ARM || (dev == DEVICE_ARM && mat_type == N8UC4))) {
+        (dev != DEVICE_ARM || (dev == DEVICE_ARM &&
+        (mat_type == N8UC4 || mat_type == N8UC3)))) {
         to_mat_param.scale = scale_data;
         to_mat_param.bias  = bias_data;
         to_mat_param.reverse_channel = reverse_channel;
