@@ -71,11 +71,12 @@ TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure& net_stru
         activation_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(activation_param);
         activation_param->type      = activation_layer->type_str;
         activation_param->name      = layer->name + activation_suffix;
+        activation_param->quantized = false;
         if (layer->param->quantized) {
+            activation_param->type = "Quantized" + activation_param->type;
             activation_param->name = "Quantized" + activation_param->name;
             activation_param->quantized = true;
         }
-        activation_param->quantized = false;
         // insert activation layer
         layers.push_back(std::shared_ptr<TNN_NS::LayerInfo>(activation_layer));
     } else {
