@@ -24,12 +24,13 @@ kernel void reshape_common_nchw(const device ftype4 *src                  [[buff
     if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
         return;
     
-    int index_out = (int)gid.y*params.output_size + (int)gid.x;
+    int index_out = (int)gid.z*params.output_slice*params.output_size + (int)gid.y*params.output_size + (int)gid.x;
+
     int4 index_nchw = ((int)gid.y*4 + int4(0, 1, 2, 3))*params.output_size + (int)gid.x;
-    
-    index_out += (int)gid.z*params.output_slice*params.output_size;
-    
-    int4 input_batch = int4(gid.z);
+    index_nchw += (int)gid.z*params.output_channel*params.output_size;
+
+    int4 input_batch = index_nchw / (params.input_channel*params.input_size);
+    index_nchw = index_nchw - input_batch * (params.input_channel*params.input_size);
     int4 input_channel = index_nchw / params.input_size;
     int4 input_x = index_nchw - input_channel * params.input_size;
     int4 input_slice = input_channel / 4;
@@ -52,12 +53,13 @@ kernel void reshape_common_nhwc(const device ftype4 *src                  [[buff
     if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
         return;
 
-    int index_out = (int)gid.y*params.output_size + (int)gid.x;
+    int index_out = (int)gid.z*params.output_slice*params.output_size + (int)gid.y*params.output_size + (int)gid.x;
+
     int4 index_nhwc = (int)gid.y*4 + int4(0, 1, 2, 3) + (int)gid.x*params.output_channel;
+    index_nhwc += (int)gid.z*params.output_channel*params.output_size;
 
-    index_out += (int)gid.z*params.output_slice*params.output_size;
-
-    int4 input_batch = int4(gid.z);
+    int4 input_batch = index_nhwc / (params.input_channel*params.input_size);
+    index_nhwc = index_nhwc - input_batch * (params.input_channel*params.input_size);
     int4 input_x = index_nhwc / (params.input_channel);
     int4 input_channel = index_nhwc - input_x * params.input_channel;
     int4 input_slice = input_channel / 4;
