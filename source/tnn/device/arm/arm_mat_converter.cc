@@ -21,18 +21,26 @@
 
 namespace TNN_NS {
 
-Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
-    Status ret = TNN_OK;
-
+static Status CheckMatConverterParams(Mat& src, Mat& dst, bool check_same_device) {
     if (src.GetData() == nullptr) {
         return Status(TNNERR_NULL_PARAM, "input mat is null");
     }
 
-    // src device and dst device can be both arm or between arm and cpu
+    if (check_same_device && (src.GetDeviceType() != dst.GetDeviceType())) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
 
     if (dst.GetData() == nullptr) {
         dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
     }
+
+    return TNN_OK;
+}
+
+Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    Status ret = TNN_OK;
+
+    CheckMatConverterParams(src, dst, false);
 
     auto elem_num = DimsVectorUtils::Count(src.GetDims());
 
@@ -50,17 +58,7 @@ Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    CheckMatConverterParams(src, dst, true);
 
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
@@ -112,17 +110,7 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    CheckMatConverterParams(src, dst, true);
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
@@ -175,17 +163,7 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    CheckMatConverterParams(src, dst, true);
 
     if (src.GetMatType() == NGRAY) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
@@ -229,17 +207,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    CheckMatConverterParams(src, dst, true);
 
     if (type == COLOR_CONVERT_NV12TOBGR) {
         NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());

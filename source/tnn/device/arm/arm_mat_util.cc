@@ -59,29 +59,29 @@ void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, in
 
 }
 
+static float CalculatePosition(int* position, int i, double scale, int border, int channel) {
+    float pos_f = (float)((i + 0.5) * scale - 0.5);
+    int pos_i = static_cast<int>(floor(pos_f));
+    float rat_f = pos_f - pos_i;
+    if (pos_i < 0) {
+        pos_i = 0;
+        rat_f = 0.f;
+    }
+    if (pos_i >= border - 1) {
+        pos_i = border - 2;
+        rat_f = 1.f;
+    }
+    position[i] = pos_i * channel;
+
+    return rat_f;
+}
+
 static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
                                       int* position, short* ratio) {
     const int INTER_RESIZE_COEF_BITS  = 11;
     const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-    float pos_f;
-    float rat_f;
-    int pos_i;
     for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
-
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
-
-        position[i] = pos_i * channel;
-
+        float rat_f = CalculatePosition(position, i, scale, border, channel);
         float a0 = (1.f - rat_f) * INTER_RESIZE_COEF_SCALE;
         float a1 = rat_f * INTER_RESIZE_COEF_SCALE;
 
@@ -89,6 +89,15 @@ static void CalculatePositionAndRatio(int length, double scale, int border, int 
         ratio[i * 2 + 1] = SATURATE_CAST_SHORT(a1);
     }
 }
+
+#define  GetResizeBufPreparation(type)                                    \
+    double scale_x = (double)src_w / w;                                   \
+    double scale_y = (double)src_h / h;                                   \
+    *buf = new int[w + h + w + h];                                        \
+    int* xofs = *buf;                                                     \
+    int* yofs = *buf + w;                                                 \
+    type* ialpha = (type*)(*buf + w + h);                                 \
+    type* ibeta  = (type*)(*buf + w + h + w);
 
 // Meanings of xofs, yofs, ialpha, ibeta in src image:
 //                               |  ialpha[2*x]  |  ialpha[2*x+1]  |
@@ -98,16 +107,7 @@ static void CalculatePositionAndRatio(int length, double scale, int border, int 
 // ibeta[2*y+1]
 //     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
 static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
-
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    short* ialpha = (short*)(*buf + w + h);
-    short* ibeta  = (short*)(*buf + w + h + w);
+    GetResizeBufPreparation(short);
 
     CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
     CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
@@ -399,17 +399,19 @@ void ResizeBilinearOneRow(ResizeBilinearKernelParm& param, int thread_id, short*
     ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, param.schannel, Dp);
 }
 
+#define ResizeBilinearPreparation(channel)                               \
+    int schannel  = channel;                                             \
+    int* buf      = nullptr;                                             \
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);                    \
+    int* xofs     = buf;                                                 \
+    int* yofs     = buf + w;                                             \
+    short* ialpha = (short*)(buf + w + h);                               \
+    short* ibeta  = (short*)(buf + w + h + w);                           \
+    int src_plane = src_h * src_stride;
+
 void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 1;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(1);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -442,15 +444,7 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 2;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(2);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -483,15 +477,7 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 3;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(3);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -524,15 +510,7 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 4;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(4);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -601,26 +579,8 @@ void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8
 
 static void CalculatePositionAndMask(int length, double scale, int border, int channel,
                                      int* position, uint8_t* mask) {
-    float pos_f;
-    float rat_f;
-    int pos_i;
     for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        // pos_f = i * scale;
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
-
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
-
-        position[i] = pos_i * channel;
-
+        float rat_f = CalculatePosition(position, i, scale, border, channel);
         mask[i] = (rat_f <= 0.5) ? -1 : 0;
     }
 }
@@ -633,30 +593,24 @@ static void CalculatePositionAndMask(int length, double scale, int border, int c
 //  0: bottom)
 //     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
 static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
-
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    uint8_t* ialpha = (uint8_t*)(*buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
+    GetResizeBufPreparation(uint8_t);
 
     CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
     CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
+#define ResizeNearestPreparation(channel)                               \
+    int schannel  = channel;                                            \
+    int* buf      = nullptr;                                            \
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);            \
+    int* xofs     = buf;                                                \
+    int* yofs     = buf + w;                                            \
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);                          \
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
 void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 1;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(1);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
@@ -724,13 +678,7 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 2;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(2);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
@@ -802,13 +750,7 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 3;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(3);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
@@ -882,13 +824,7 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 4;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(4);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
