@@ -48,7 +48,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
     const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
     auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
     assert(weight_shape.size() == 2);
-    auto co           = weight_shape[1];
+    auto co           = weight_shape[0];
     param->num_output = co;
 
     // create input blob scale
