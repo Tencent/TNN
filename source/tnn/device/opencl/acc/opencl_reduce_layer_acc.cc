@@ -103,6 +103,7 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     if (run_local_work_) {
         workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * sizeof(float))),
                                   unit.workgroupsize_max);
+        workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
         unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(hb)};
         unit.local_work_size  = {workgroup_size, 1};
     } else {
