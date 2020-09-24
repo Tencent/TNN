@@ -34,6 +34,23 @@ public:
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
 
 private:
+    Status ReverseImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
+    void ConvertImageToBlob(Mat& image, char *handle_ptr,
+                            const BlobDesc& desc, const DimsVector& dims, const int hw,
+                            MatConvertParam& param,
+                            std::vector<float>& fused_int8_scale,
+                            std::vector<float>& fused_int8_bias);
+    void ConvertYuvImageToBlob(Mat& image, char *handle_ptr,
+                               const BlobDesc& desc, const DimsVector& dims, const int hw,
+                               MatConvertParam& param,
+                               std::vector<float>& fused_int8_scale,
+                               std::vector<float>& fused_int8_bias);
+    Status ConvertFloatMatToBlob(Mat& image, char *handle_ptr,
+                                 const BlobDesc& desc, const DimsVector& dims, const int hw,
+                                 const int c_r4,
+                                 MatConvertParam& param,
+                                 std::vector<float>& fused_int8_scale,
+                                 std::vector<float>& fused_int8_bias);
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;
 };

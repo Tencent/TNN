@@ -132,7 +132,10 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
         if (device_type != DEVICE_ARM) {
             return true;
         }
-        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && (mat_type != N8UC3 || mat_type != N8UC4)) {
+        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
             return true;
         }
         if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
