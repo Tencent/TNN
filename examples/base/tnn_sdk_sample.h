@@ -181,6 +181,7 @@ protected:
 
     std::vector<std::string> GetInputNames();
     std::vector<std::string> GetOutputNames();
+    std::shared_ptr<Mat> ResizeToInputShape(std::shared_ptr<Mat> input_mat, std::string name);
     
 protected:
     std::shared_ptr<TNN> net_             = nullptr;

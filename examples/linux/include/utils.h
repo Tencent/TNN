@@ -31,3 +31,22 @@
             return status;                                                     \
         }                                                                      \
     } while (0)
+
+// Helper functions
+std::string fdLoadFile(std::string path) {
+    std::ifstream file(path, std::ios::in);
+    if (file.is_open()) {
+        file.seekg(0, file.end);
+        int size      = file.tellg();
+        char* content = new char[size];
+        file.seekg(0, file.beg);
+        file.read(content, size);
+        std::string fileContent;
+        fileContent.assign(content, size);
+        delete[] content;
+        file.close();
+        return fileContent;
+    } else {
+        return "";
+    }
+}
