@@ -92,7 +92,7 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure& net_structure, tnn::Net
             continue;
         }
         if (node_op_type == "Shape" || node_op_type == "Gather" || node_op_type == "Unsqueeze" ||
-            node_op_type == "Concat" || node_op_type == "Reshape" || node_op_type == "Constant") {
+            node_op_type == "Concat" || node_op_type == "Constant") {
             continue;
         }
 
@@ -122,12 +122,12 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(tnn::NetStructure& net_structure, tnn::Net
             LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
             return status;
         }
-        TNN_NS::ActivationType activation_function_tuype = converter->ActivationType(node);
-        status = converter->SeparateActivation(net_structure, activation_function_tuype);
-        if (status != TNN_NS::TNN_CONVERT_OK) {
-            LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
-            return status;
-        }
+//        TNN_NS::ActivationType activation_function_tuype = converter->ActivationType(node);
+//        status = converter->SeparateActivation(net_structure, activation_function_tuype);
+//        if (status != TNN_NS::TNN_CONVERT_OK) {
+//            LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
+//            return status;
+//        }
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

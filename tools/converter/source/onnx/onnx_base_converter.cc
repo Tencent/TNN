@@ -50,7 +50,7 @@ TNN_NS::Status OnnxBaseConverter::SeparateActivation(tnn::NetStructure& net_stru
         return TNN_NS::TNN_CONVERT_OK;
     }
     auto& layers                         = net_structure.layers;
-    const std::string conv_output_suffix = "_output";
+    const std::string conv_output_suffix = "_midline_output";
     const std::string activation_suffix  = "_activation";
     auto& layer                          = layers.back();
     if (activation_function_type == TNN_NS::ActivationType_ReLU ||

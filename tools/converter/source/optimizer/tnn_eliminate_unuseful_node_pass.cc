@@ -14,7 +14,9 @@
 
 #include <algorithm>
 
+#include "tnn/interpreter/tnn/objseri.h"
 #include "tnn_optimize_pass.h"
+
 namespace TNN_CONVERTER {
 
 DECLARE_OPTIMIZE_PASS(EliminateUnusefulNode);
@@ -39,7 +41,7 @@ TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& 
             continue;
         }
 
-        auto input  = layer->inputs[0];
+        auto input        = layer->inputs[0];
         auto output_names = layer->outputs;
         for (auto sub_iter = layers.begin(); sub_iter != layers.end(); sub_iter++) {
             auto& sub_layer = *sub_iter;
@@ -57,6 +59,25 @@ TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& 
                 break;
             }
         }
+        // erase blob scale
+        auto& resource_map = net_resource.resource_map;
+        if (layer->type_str == "QuantizedPermute" || layer->type_str == "Int8Quantized" ){
+            for (const auto& output_name : output_names) {
+                auto output_blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
+                if (resource_map.find(output_blob_scale_name) != resource_map.end()) {
+                    resource_map.erase(output_blob_scale_name);
+                }
+            }
+        }
+//        else if (layer->type_str == "Int8Quantized") {
+//            if (net_structure.inputs_shape_map.find(input) == net_structure.inputs_shape_map.end()) {
+//               auto input_blob_scale_name = input + BLOB_SCALE_SUFFIX;
+//               if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
+//                   resource_map.erase(input_blob_scale_name);
+//               }
+//            }
+//        }
+
         iter = layers.erase(iter);
     }
     return TNN_NS::TNN_CONVERT_OK;

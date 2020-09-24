@@ -51,6 +51,7 @@ TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, t
             auto scale                           = GetAttributeFloat(*node, "Y_scale", 1.0);
             auto zero_point                      = GetAttributeInt(*node, "Y_zero_point", 0);
             auto input_blob_scale                = new TNN_NS::IntScaleResource;
+            input_blob_scale->name               = input_blob_scale_name;
             TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
             input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
             input_blob_scale->scale_handle      = input_scale_handle;
@@ -68,6 +69,7 @@ TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, t
         auto scale                           = GetAttributeFloat(*node, "Y_scale", 1.0);
         auto zero_point                      = GetAttributeInt(*node, "Y_zero_point", 0);
         auto output_blob_scale               = new TNN_NS::IntScaleResource;
+        output_blob_scale->name              = output_blob_scale_name;
         TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
         scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         output_blob_scale->scale_handle      = scale_handle;

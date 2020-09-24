@@ -72,7 +72,13 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     auto pads         = GetAttributeIntVector(node, "pads");
     param->pads       = {(int)pads[0], (int)pads[1], (int)pads[2], (int)pads[3]};
     ASSERT(pads.size() == 4);
-    param->activation_type = TNN_NS::ActivationType_ReLU;
+    if (node.op_type() == "Int8ConvRelu") {
+        param->activation_type = TNN_NS::ActivationType_ReLU;
+    } else if (node.op_type() == "Int8ConvRelu6") {
+        param->activation_type = TNN_NS::ActivationType_ReLU6;
+    } else {
+        param->activation_type = TNN_NS::ActivationType_None;
+    }
 
     const auto &input_name     = node.input(0);
     const auto &input_node     = FindNodeProto(input_name, proxy_nodes);
@@ -83,6 +89,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
         // create input blob scale
         // assert(input_zero_point == 0);
         auto input_blob_scale                = new TNN_NS::IntScaleResource;
+        input_blob_scale->name               = input_blob_scale_name;
         TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&input_scale);
         input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         input_blob_scale->scale_handle      = input_scale_handle;
@@ -142,6 +149,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
         auto output_scale                     = GetAttributeFloat(node, "Y_scale", 1.0);
         auto output_zero_point                = GetAttributeInt(node, "Y_zero_point", 0);
         auto output_blob_scale                = new TNN_NS::IntScaleResource;
+        output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);

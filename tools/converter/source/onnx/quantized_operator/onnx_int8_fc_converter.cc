@@ -61,6 +61,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         // create input blob scale
         // assert(input_zero_point == 0);
         auto input_blob_scale                = new TNN_NS::IntScaleResource;
+        input_blob_scale->name               = input_blob_scale_name;
         TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&input_scale);
         input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         input_blob_scale->scale_handle      = input_scale_handle;
@@ -119,6 +120,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         auto output_scale                     = GetAttributeFloat(node, "Y_scale", 1.0);
         auto output_zero_point                = GetAttributeInt(node, "Y_zero_point", 0);
         auto output_blob_scale                = new TNN_NS::IntScaleResource;
+        output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
