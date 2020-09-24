@@ -310,18 +310,19 @@ int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_
     return 0;
 }
 
+#define ConvertWeightsPreparation                                        \
+    const int goc       = output_channel / group;                        \
+    const int gic       = input_channel / group;                         \
+    const int goc_4     = (goc + 3) / 4;                                 \
+    const int gic_4     = (gic + 3) / 4;                                 \
+    const int src_count = group * goc * gic * height * width;            \
+    int src_index = 0;
 // to   [g][o/4][i/4][h][w][16]
 // from [g][o][i][h][w]
 template <typename T>
 int ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int input_channel, int output_channel, int height,
                                      int width) {
-    const int goc       = output_channel / group;
-    const int gic       = input_channel / group;
-    const int goc_4     = (goc + 3) / 4;
-    const int gic_4     = (gic + 3) / 4;
-    const int src_count = group * goc * gic * height * width;
-
-    int src_index = 0;
+    ConvertWeightsPreparation;
 
     for (int g = 0; g < group; g++) {
         auto g_dst = dst + g * goc_4 * gic_4 * height * width * 16;  // g
@@ -357,13 +358,7 @@ template int ConvertWeightsFromGOIHWToGOIHW16(float *src, float *dst, int group,
 template <typename T>
 int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channel, int output_channel, int height,
                                      int width) {
-    const int goc       = output_channel / group;
-    const int gic       = input_channel / group;
-    const int goc_4     = (goc + 3) / 4;
-    const int gic_4     = (gic + 3) / 4;
-    const int src_count = group * goc * gic * height * width;
-
-    int src_index = 0;
+    ConvertWeightsPreparation;
 
     for (int g = 0; g < group; g++) {
         auto g_dst = dst + g * goc_4 * gic_4 * height * width * 16;  // g

@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/unit_test_common.h"
+#include "test/flags.h"
+#include "test/test_utils.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
 
@@ -76,6 +78,33 @@ IntScaleResource* CreateIntScale(int channel) {
     InitRandom(b_data, channel, 32);
     int8scale->bias_handle = bias;
     return int8scale;
+}
+
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
+                       Context** cpu_context, Context** device_context) {
+    NetworkConfig config;
+    config.device_type = ConvertDeviceType(FLAGS_dt);
+    if (FLAGS_lp.length() > 0) {
+        config.library_path = {FLAGS_lp};
+    }
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
+
+    // cpu
+    *cpu = GetDevice(DEVICE_NAIVE);
+    ASSERT(*cpu != NULL);
+
+    *cpu_context = (*cpu)->CreateContext(0);
+    ASSERT(*cpu_context != NULL);
+
+    // device
+    *device = GetDevice(config.device_type);
+    ASSERT(*device != NULL);
+
+    *device_context = (*device)->CreateContext(config.device_id);
+    ASSERT(*device_context != NULL);
+
+    ret = (*device_context)->LoadLibrary(config.library_path);
+    ASSERT(ret == TNN_OK);
 }
 
 }  // namespace TNN_NS
