@@ -35,6 +35,8 @@ public:
 
 protected:
     int Compare(Blob* cpu_blob, Blob* device_blob);
+    bool TestFilterCheck(const DataType& blob_data_type, const DeviceType& dev,
+                         const MatType& mat_type, const int channel, const int input_size);
     static AbstractDevice* cpu_;
     static AbstractDevice* device_;
     static Context* cpu_context_;

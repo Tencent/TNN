@@ -268,6 +268,74 @@ void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t*
     return ResizeNearestImpl(src, batch, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
 }
 
+void CalculateOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
+                     int* adelta, int* bdelta, int src_h, int src_w, int channel,
+                     int x, int y, int dst_loc_base, float* _tab) {
+    int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
+    int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
+    int new_x_loc   = new_x >> 10;
+    int new_y_loc   = new_y >> 10;
+
+    short coeffs_x  = (new_x >> 5) & 31;
+    short coeffs_y  = (new_y >> 5) & 31;
+
+    int src_loc     = (new_x_loc + new_y_loc * src_w) * channel;
+
+    short bilinearWeight[KSIZE * KSIZE];
+    // set weight for bilinear
+    for (int yy = 0; yy < KSIZE; yy++)
+    {
+        float vy    = _tab[coeffs_y * KSIZE + yy];
+        for (int xx = 0; xx < KSIZE; xx++)
+        {
+            float v = vy * _tab[coeffs_x * KSIZE + xx];
+            bilinearWeight[yy * KSIZE + xx] = SATURATE_CAST_SHORT(v * INTER_REMAP_COEF_SCALE);
+        }
+    }
+
+    if (new_x_loc >= 0 && new_x_loc < (src_w - 1) && new_y_loc >= 0 && new_y_loc < (src_h - 1)) {
+        for (int c = 0; c < channel; c++)
+        {
+            int dst_loc = dst_loc_base + x * channel;
+            int point00 = src[src_loc + c];
+            int point01 = src[src_loc + channel + c];
+            int point10 = src2[src_loc + c];
+            int point11 = src2[src_loc + channel + c];
+
+            int val_xy  = bilinearWeight[0] * point00 + bilinearWeight[1] * point01 + bilinearWeight[2] * point10 +
+                            bilinearWeight[3] * point11;
+
+            dst[dst_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
+        }
+    }
+    else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
+                new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+        int dsc_loc = dst_loc_base + x * channel;
+
+        int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
+        int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
+        int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
+        int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
+
+        for (int c = 0; c < channel; ++c) {
+            int val_xy = 0;
+            if (mask0) {
+                val_xy += bilinearWeight[0] * src[src_loc + c];
+            }
+            if (mask1) {
+                val_xy += bilinearWeight[1] * src[src_loc + channel + c];
+            }
+            if (mask2) {
+                val_xy += bilinearWeight[2] * src2[src_loc + c];
+            }
+            if (mask3) {
+                val_xy += bilinearWeight[3] * src2[src_loc + channel + c];
+            }
+            dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
+        }
+    }
+}
+
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
                          const float (*transform)[3], const float border_val)
 {
@@ -320,75 +388,14 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
     int* buf_loc   = new int[dst_w];
     short* tab_loc = new short[dst_w];
 
-    const unsigned char* src2 = src + src_w * channel;
+    const uint8_t* src2 = src + src_w * channel;
 
     for (int y = 0; y < dst_h; ++y) {
         int dst_loc_base    = y * dst_w * channel;
 
         for (int x = 0; x < dst_w; ++x) {
-            int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
-            int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
-            int new_x_loc   = new_x >> 10;
-            int new_y_loc   = new_y >> 10;
-
-            short coeffs_x  = (new_x >> 5) & 31;
-            short coeffs_y  = (new_y >> 5) & 31;
-
-            int src_loc     = (new_x_loc + new_y_loc * src_w) * channel;
-
-            short bilinearWeight[KSIZE * KSIZE];
-            // set weight for bilinear
-            for (int yy = 0; yy < KSIZE; yy++)
-            {
-                float vy    = _tab[coeffs_y * KSIZE + yy];
-                for (int xx = 0; xx < KSIZE; xx++)
-                {
-                    float v = vy * _tab[coeffs_x * KSIZE + xx];
-                    bilinearWeight[yy * KSIZE + xx] = SATURATE_CAST_SHORT(v * INTER_REMAP_COEF_SCALE);
-                }
-            }
-
-            if (new_x_loc >= 0 && new_x_loc < (src_w - 1) && new_y_loc >= 0 && new_y_loc < (src_h - 1)) {
-                for (int c = 0; c < channel; c++)
-                {
-                    int dst_loc = dst_loc_base + x * channel;
-                    int point00 = src[src_loc + c];
-                    int point01 = src[src_loc + channel + c];
-                    int point10 = src2[src_loc + c];
-                    int point11 = src2[src_loc + channel + c];
-
-                    int val_xy  = bilinearWeight[0] * point00 + bilinearWeight[1] * point01 + bilinearWeight[2] * point10 +
-                                  bilinearWeight[3] * point11;
-
-                    dst[dst_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
-                }
-            }
-            else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
-                     new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
-                int dsc_loc = dst_loc_base + x * channel;
-
-                int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
-                int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
-                int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
-                int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
-
-                for (int c = 0; c < channel; ++c) {
-                    int val_xy = 0;
-                    if (mask0) {
-                        val_xy += bilinearWeight[0] * src[src_loc + c];
-                    }
-                    if (mask1) {
-                        val_xy += bilinearWeight[1] * src[src_loc + channel + c];
-                    }
-                    if (mask2) {
-                        val_xy += bilinearWeight[2] * src2[src_loc + c];
-                    }
-                    if (mask3) {
-                        val_xy += bilinearWeight[3] * src2[src_loc + channel + c];
-                    }
-                    dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
-                }
-            }
+            CalculateOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
+                            dst_loc_base, _tab);
         }
     }
 

@@ -38,6 +38,30 @@ void BlobConverterTest::TearDownTestCase() {
     delete device_context_;
 }
 
+bool BlobConverterTest::TestFilterCheck(
+        const DataType& blob_data_type, const DeviceType& dev,
+        const MatType& mat_type, const int channel, const int input_size) {
+    if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        return true;
+    }
+
+    if (DEVICE_METAL == dev) {
+        return true;
+    }
+
+    if (mat_type == N8UC3 && channel != 3) {
+        return true;
+    } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
+        return true;
+    } else if (mat_type == NGRAY && channel != 1) {
+        return true;
+    } else if ((mat_type == NNV12 || mat_type == NNV21) &&
+               (channel != 3 || input_size % 2 != 0 || DEVICE_ARM != dev)) {
+        return true;
+    }
+    return false;
+}
+
 INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                          ::testing::Combine(
                             // batch
@@ -68,21 +92,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     DataType blob_data_type = std::get<7>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
 
-    if (DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
-
-    if (mat_type == N8UC3 && channel != 3) {
-        GTEST_SKIP();
-    } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
-        GTEST_SKIP();
-    } else if (mat_type == NGRAY && channel != 1) {
-        GTEST_SKIP();
-    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0 || DEVICE_ARM != dev)) {
+    if (TestFilterCheck(blob_data_type, dev, mat_type, channel, input_size)) {
         GTEST_SKIP();
     }
 
