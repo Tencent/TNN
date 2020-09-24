@@ -32,6 +32,9 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
+    if (param->use_regular_nms) {
+        return TNNERR_UNSUPPORT_NET;
+    }
     Blob* nhwc_input0 = new Blob(inputs[0]->GetBlobDesc(), true);
     DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], nhwc_input0);
     nhwc_input0->GetBlobDesc().dims = DimsVectorUtils::NCHW2NHWC(nhwc_input0->GetBlobDesc().dims);
@@ -48,12 +51,9 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     Blob decode_boxes_blob = Blob(decode_boxes_desc, true);
     DecodeBoxes(param, resource, nhwc_input0, scale_values, &decode_boxes_blob);
 
-    if (param->use_regular_nms) {
-        return TNNERR_UNSUPPORT_NET;
-    } else {
-        NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, nhwc_input1, outputs[0], outputs[1],
-                                            outputs[2], outputs[3]);
-    }
+    NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, nhwc_input1, outputs[0], outputs[1],
+                                        outputs[2], outputs[3]);
+
     delete nhwc_input0;
     delete nhwc_input1;
     return TNN_OK;

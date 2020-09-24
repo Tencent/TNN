@@ -289,12 +289,6 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
-    } else if (desc.data_type == DATA_TYPE_BFP16) {
-        if (image.GetMatType() == RESERVED_BFP16_TEST) {
-            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * 2);
-            return TNN_OK;
-        } else
-            blob_data = new float[dims[0] * dims[1] * hw];
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {
