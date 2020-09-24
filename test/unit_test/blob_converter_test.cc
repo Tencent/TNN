@@ -30,29 +30,7 @@ Context* BlobConverterTest::cpu_context_;
 Context* BlobConverterTest::device_context_;
 
 void BlobConverterTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // cpu
-    cpu_ = GetDevice(DEVICE_NAIVE);
-    ASSERT(cpu_ != NULL);
-
-    cpu_context_ = cpu_->CreateContext(0);
-    ASSERT(cpu_context_ != NULL);
-
-    // device
-    device_ = GetDevice(config.device_type);
-    ASSERT(device_ != NULL);
-
-    device_context_ = device_->CreateContext(config.device_id);
-    ASSERT(device_context_ != NULL);
-
-    ret = device_context_->LoadLibrary(config.library_path);
-    ASSERT(ret == TNN_OK);
+    SetUpEnvironment(&cpu_, &device_, &cpu_context_, &device_context_);
 }
 
 void BlobConverterTest::TearDownTestCase() {
