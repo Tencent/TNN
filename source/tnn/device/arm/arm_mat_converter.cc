@@ -40,7 +40,9 @@ static Status CheckMatConverterParams(Mat& src, Mat& dst, bool check_same_device
 Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;
 
-    CheckMatConverterParams(src, dst, false);
+    ret = CheckMatConverterParams(src, dst, false);
+    if (ret != TNN_OK)
+        return ret;
 
     auto elem_num = DimsVectorUtils::Count(src.GetDims());
 
@@ -58,7 +60,9 @@ Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    CheckMatConverterParams(src, dst, true);
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
@@ -110,7 +114,9 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    CheckMatConverterParams(src, dst, true);
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
@@ -163,7 +169,9 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    CheckMatConverterParams(src, dst, true);
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (src.GetMatType() == NGRAY) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
@@ -207,7 +215,9 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     Status ret = TNN_OK;
 
-    CheckMatConverterParams(src, dst, true);
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (type == COLOR_CONVERT_NV12TOBGR) {
         NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());

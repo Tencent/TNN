@@ -208,6 +208,13 @@ protected:
     
 };
 
+typedef enum {
+    TNNHardNMS      = 0,
+    TNNBlendingNMS  = 1,
+} TNNNMSType;
+
+void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);
+
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
 

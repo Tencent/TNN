@@ -559,25 +559,16 @@ void ArmBlobConverterAcc::ConvertYuvImageToBlob(
         MatConvertParam& param,
         std::vector<float>& fused_int8_scale,
         std::vector<float>& fused_int8_bias) {
-    if (image.GetMatType() == NNV12) {
+    typedef std::function<void(const uint8_t*, uint8_t*, int, int)> YuVToBGRFunc;
+    YuVToBGRFunc func = nullptr;
+    if (image.GetMatType() == NNV12)
+        func = NV12ToBGR;
+    else if (image.GetMatType() == NNV21)
+        func = NV21ToBGR;
+    if (func != nullptr) {
         Mat bgr(DEVICE_ARM, N8UC3, image.GetDims());
         for (int n = 0; n < dims[0]; n++) {
-            NV12ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
-                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
-            if (desc.data_type == DATA_TYPE_INT8) {
-                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
-                          reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
-                          fused_int8_bias.data(), hw);
-            } else {
-                BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
-                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
-                          hw);
-            }
-        }
-    } else if (image.GetMatType() == NNV21) {
-        Mat bgr(DEVICE_ARM, N8UC3, image.GetDims());
-        for (int n = 0; n < dims[0]; n++) {
-            NV21ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
+            func(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
                       reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
             if (desc.data_type == DATA_TYPE_INT8) {
                 BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw,
