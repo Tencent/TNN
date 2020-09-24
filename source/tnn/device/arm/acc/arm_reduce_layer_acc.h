@@ -60,6 +60,8 @@ public:
 
 protected:
     std::shared_ptr<ARM_REDUCE_OP> op_;
+    void ReduceChannel(float* input_data, float* output_data, DimsVector& dims_in,
+        const int c4n, const int c4r, const Float4 axis_n, const int hw_r, const int hw_c, const int hw);
 };
 
 #define DECLARE_ARM_REDUCE_ACC(type_string, op_type)                                                                   \

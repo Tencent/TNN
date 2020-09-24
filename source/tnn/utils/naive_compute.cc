@@ -429,6 +429,77 @@ inline CodeType GetCodeType(const int number) {
     }
 }
 
+void DealOutput(Blob* output_blob, const int num_kept,
+                const int num, std::vector<std::map<int, std::vector<float>>>& all_conf_scores,
+                std::vector<LabelBBox>& all_decode_bboxes,
+                std::vector<std::map<int, std::vector<int>>>& all_indices,
+                DetectionOutputLayerParam *param) {
+    std::vector<int> top_shape(2, 1);
+    top_shape.push_back(num_kept);
+    top_shape.push_back(7);
+    // get all dims
+    int num_dims = 1;
+    for (int dim : output_blob->GetBlobDesc().dims) {
+        num_dims *= dim;
+    }
+    float *top_data = static_cast<float *>(output_blob->GetHandle().base);
+    // update the output shape
+    if (num_kept == 0) {
+        LOGD("%s:Couldn't find any detections.", __FUNCTION__);
+        top_shape[2] = num;
+        // top[0]->Reshape(top_shape);
+        output_blob->GetBlobDesc().dims[2] = num;
+        priorbox_set_value(num_dims, -1, top_data);
+
+        // Generate fake results per image.
+        for (int i = 0; i < num; ++i) {
+            top_data[0] = static_cast<float>(i);
+            top_data += 7;
+        }
+    } else {
+        // top[0]->Reshape(top_shape);
+        output_blob->GetBlobDesc().dims[2] = num_kept;
+    }
+
+    int count = 0;
+    for (int i = 0; i < num; ++i) {
+        const std::map<int, std::vector<float>> &conf_scores = all_conf_scores[i];
+        const LabelBBox &decode_bboxes                       = all_decode_bboxes[i];
+        for (std::map<int, std::vector<int>>::iterator it = all_indices[i].begin(); it != all_indices[i].end(); ++it) {
+            int label = it->first;
+            if (conf_scores.find(label) == conf_scores.end()) {
+                // Something bad happened if there are no predictions for
+                // current label.
+                LOGE("Could not find confidence predictions for ");
+                continue;
+            }
+            const std::vector<float> &scores = conf_scores.find(label)->second;
+            int loc_label                    = param->share_location ? -1 : label;
+            if (decode_bboxes.find(loc_label) == decode_bboxes.end()) {
+                // Something bad happened if there are no predictions for
+                // current label.
+                LOGE("Could not find location predictions for ");
+                continue;
+            }
+            const std::vector<NormalizedBBox> &bboxes = decode_bboxes.find(loc_label)->second;
+            std::vector<int> &indices                 = it->second;
+
+            for (size_t j = 0; j < indices.size(); ++j) {
+                int idx                    = indices[j];
+                top_data[count * 7]        = static_cast<float>(i);
+                top_data[count * 7 + 1]    = static_cast<float>(label);
+                top_data[count * 7 + 2]    = scores[idx];
+                const NormalizedBBox &bbox = bboxes[idx];
+                top_data[count * 7 + 3]    = bbox.xmin();
+                top_data[count * 7 + 4]    = bbox.ymin();
+                top_data[count * 7 + 5]    = bbox.xmax();
+                top_data[count * 7 + 6]    = bbox.ymax();
+                ++count;
+            }
+        }
+    }
+}
+
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param) {
     ASSERT(inputs.size() >= 3);
@@ -569,70 +640,7 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
         }
     }
 
-    std::vector<int> top_shape(2, 1);
-    top_shape.push_back(num_kept);
-    top_shape.push_back(7);
-    // get all dims
-    int num_dims = 1;
-    for (int dim : output_blob->GetBlobDesc().dims) {
-        num_dims *= dim;
-    }
-    float *top_data = static_cast<float *>(output_blob->GetHandle().base);
-    // update the output shape
-    if (num_kept == 0) {
-        LOGD("%s:Couldn't find any detections.", __FUNCTION__);
-        top_shape[2] = num;
-        // top[0]->Reshape(top_shape);
-        output_blob->GetBlobDesc().dims[2] = num;
-        priorbox_set_value(num_dims, -1, top_data);
-
-        // Generate fake results per image.
-        for (int i = 0; i < num; ++i) {
-            top_data[0] = static_cast<float>(i);
-            top_data += 7;
-        }
-    } else {
-        // top[0]->Reshape(top_shape);
-        output_blob->GetBlobDesc().dims[2] = num_kept;
-    }
-
-    int count = 0;
-    for (int i = 0; i < num; ++i) {
-        const std::map<int, std::vector<float>> &conf_scores = all_conf_scores[i];
-        const LabelBBox &decode_bboxes                       = all_decode_bboxes[i];
-        for (std::map<int, std::vector<int>>::iterator it = all_indices[i].begin(); it != all_indices[i].end(); ++it) {
-            int label = it->first;
-            if (conf_scores.find(label) == conf_scores.end()) {
-                // Something bad happened if there are no predictions for
-                // current label.
-                LOGE("Could not find confidence predictions for ");
-                continue;
-            }
-            const std::vector<float> &scores = conf_scores.find(label)->second;
-            int loc_label                    = param->share_location ? -1 : label;
-            if (decode_bboxes.find(loc_label) == decode_bboxes.end()) {
-                // Something bad happened if there are no predictions for
-                // current label.
-                LOGE("Could not find location predictions for ");
-                continue;
-            }
-            const std::vector<NormalizedBBox> &bboxes = decode_bboxes.find(loc_label)->second;
-            std::vector<int> &indices                 = it->second;
-
-            for (size_t j = 0; j < indices.size(); ++j) {
-                int idx                    = indices[j];
-                top_data[count * 7]        = static_cast<float>(i);
-                top_data[count * 7 + 1]    = static_cast<float>(label);
-                top_data[count * 7 + 2]    = scores[idx];
-                const NormalizedBBox &bbox = bboxes[idx];
-                top_data[count * 7 + 3]    = bbox.xmin();
-                top_data[count * 7 + 4]    = bbox.ymin();
-                top_data[count * 7 + 5]    = bbox.xmax();
-                top_data[count * 7 + 6]    = bbox.ymax();
-                ++count;
-            }
-        }
-    }
+    DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
 }
 
 }  // namespace TNN_NS
