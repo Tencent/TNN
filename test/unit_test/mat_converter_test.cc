@@ -89,13 +89,62 @@ int MatConverterTest::CreateTestData(int batch, int channel, int input_size, Mat
     return 0;
 }
 
-int MatConverterTest::DestroyTestData()
-{
+int MatConverterTest::DestroyTestData() {
     free(mat_in_data_);
     free(mat_out_ref_data_);
     free(mat_out_dev_data_);
 
     return 0;
+}
+
+bool MatConverterTest::OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type) {
+    return device_type == DEVICE_OPENCL && mat_type != N8UC4;
+}
+
+bool MatConverterTest::MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
+                                       const MatConverterType& mat_converter_type, const int batch) {
+    // Metal device only supports NCHW_FLOAT and N8UC4 mat
+    if (device_type == DEVICE_METAL && !(mat_type == N8UC4 || mat_type == NCHW_FLOAT)) {
+        return true;
+    }
+    // Only Copy supports NCHW_FLOAT
+    if (device_type == DEVICE_METAL && mat_type == NCHW_FLOAT && mat_converter_type != MatConverterType::Copy) {
+        return true;
+    }
+    // Metal device only supports N8UC4 mat with batchsize = 1
+    if (device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
+        return true;
+    }
+    return false;
+}
+
+bool MatConverterTest::MatChannelCheck(const MatType& mat_type, const int channel) {
+    return (mat_type == NGRAY && channel != 1) ||
+           (mat_type == N8UC3 && channel != 3) ||
+           (mat_type == N8UC4 && channel != 4);
+}
+
+bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
+                                     const MatConverterType& mat_converter_type,
+                                     const ColorConversionType& cvt_type,
+                                     const int input_size) {
+    if (mat_converter_type == MatConverterType::CvtColor) {
+        if (device_type != DEVICE_ARM) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && (mat_type != N8UC3 || mat_type != N8UC4)) {
+            return true;
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
+            (mat_type != N8UC3 || input_size % 2 != 0)) {
+            return true;
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
+            (mat_type != N8UC4 || input_size % 2 != 0)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
@@ -156,48 +205,13 @@ TEST_P(MatConverterTest, MatConverterTest) {
 
     DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
     // warp affine/resize only support N8UC4 on OpenCL for now
-    if(device_type == DEVICE_OPENCL && mat_type != N8UC4)
-    {
+    if (OpenCLTestFilter(device_type, mat_type) ||
+        MetalTestFilter(device_type, mat_type, mat_converter_type, batch)) {
         GTEST_SKIP();
     }
-    if ((mat_type == NGRAY && channel != 1) || (mat_type == N8UC3 && channel != 3) || (mat_type == N8UC4 && channel != 4))
-    {
+    if (MatChannelCheck(mat_type, channel) ||
+        CvtColorCheck(device_type, mat_type, mat_converter_type, cvt_type, input_size)) {
         GTEST_SKIP();
-    }
-    {
-        // Metal device only supports NCHW_FLOAT and N8UC4 mat
-        if(device_type == DEVICE_METAL && !(mat_type == N8UC4 || mat_type == NCHW_FLOAT)) {
-            GTEST_SKIP();
-        }
-        // Only Copy supports NCHW_FLOAT
-        if(device_type == DEVICE_METAL && mat_type == NCHW_FLOAT && mat_converter_type != MatConverterType::Copy) {
-            GTEST_SKIP();
-        }
-        // Metal device only supports N8UC4 mat with batchsize = 1
-        if(device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
-            GTEST_SKIP();
-        }
-
-    }
-
-    if (mat_converter_type == MatConverterType::CvtColor) {
-        if (device_type != DEVICE_ARM) {
-            GTEST_SKIP();
-        }
-        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
-            GTEST_SKIP();
-        }
-        if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
-            GTEST_SKIP();
-        }
-        if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
-            (mat_type != N8UC3 || input_size % 2 != 0)) {
-            GTEST_SKIP();
-        }
-        if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
-            (mat_type != N8UC4 || input_size % 2 != 0)) {
-            GTEST_SKIP();
-        }
     }
 
     int output_size;
