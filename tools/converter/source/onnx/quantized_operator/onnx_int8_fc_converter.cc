@@ -123,6 +123,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        output_blob_scale->scale_handle = output_scale_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
         output_blob_scale->bias_handle                   = zero_point_handle;

@@ -161,6 +161,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                     net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
                 }
 #endif
+                if (net_resource->resource_map.find(blob_scale_name) == net_resource->resource_map.end()) {
+                    LOGE("Error Init layer, can not get output blob scale %s \n", blob_scale_name.c_str());
+                    return ret;
+                }
                 new_blob->SetIntResource(
                     reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
                 blob_manager_->ReplaceBlob(name, new_blob);
@@ -212,6 +216,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                     net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
                 }
 #endif
+                if (net_resource->resource_map.find(blob_scale_name) == net_resource->resource_map.end()) {
+                    LOGE("Error Init layer, can not get output blob scale %s \n", blob_scale_name.c_str());
+                    return ret;
+                }
                 new_blob->SetIntResource(
                     reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
                 blob_manager_->ReplaceBlob(name, new_blob);

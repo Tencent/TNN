@@ -36,7 +36,7 @@ TNN_NS::Status OnnxReshapeConverter::exec(tnn::NetStructure &net_structure, tnn:
     param->name                = cur_layer->name;
     param->quantized           = false;
 
-    param->axis         = 4;
+    param->axis         = 0;
     param->num_axes     = 4;
     param->shape        = {0, -1, 1, 1};
     param->reshape_type = 0;
