@@ -12,34 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_UTILS_H_
-#define TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_UTILS_H_
+#ifndef TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_
+#define TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_
 
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/raw_buffer.h>
 
-#include "rknpu/rknpu_pub.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
 
-class RknpuUtils {
+class NpuCommonUtils {
 public:
-    static std::shared_ptr<rk::nn::Tensor> CreateRknnTensor(
-        rk::nn::Graph *graph, const std::string &name, const std::vector<int> &dims, const void *data = NULL,
-        const rk::nn::TensorRole role = rk::nn::TensorRole::VAR, const DataType type = DATA_TYPE_FLOAT,
-        const rk::nn::DataLayoutType layout    = rk::nn::DataLayoutType::NCHW,
-        const rk::nn::QuantizationType qntType = rk::nn::QuantizationType::NONE, const uint8_t bits = 8,
-        const float scale = 1.0, const uint32_t zero_point = 0, const int8_t fl = 0);
-
-    static Status GetPadType(rk::nn::PadType &rk_pad_type, int pad_type);
-
-    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> dims);
+    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
+                                         std::vector<int> &input_shape);
+    static std::string GetFileHash(ModelConfig &model_config);
+    
+    static bool FileExits(std::string model_path);
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_UTILS_H_
+#endif  // TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_
