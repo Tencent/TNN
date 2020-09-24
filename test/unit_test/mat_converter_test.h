@@ -109,6 +109,15 @@ protected:
     int CreateTestData(int batch, int channel, int input_size, MatType mat_type, int output_size);
     int DestroyTestData();
 
+    bool OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type);
+    bool MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
+                         const MatConverterType& mat_converter_type, const int batch);
+    bool MatChannelCheck(const MatType& mat_type, const int channel);
+    bool CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
+                       const MatConverterType& mat_converter_type,
+                       const ColorConversionType& cvt_type,
+                       const int input_size);
+
     void* mat_in_data_;
     void* mat_out_ref_data_;
     void* mat_out_dev_data_;
