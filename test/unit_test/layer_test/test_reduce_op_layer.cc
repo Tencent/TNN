@@ -23,9 +23,9 @@ class ReduceOpLayerTest : public LayerTest,
                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 256),
-                                            testing::Values(9, 10, 16, 19, 256),
-                                            testing::Values(9, 10, 16, 19, 256),
+                         ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
+                                            testing::Values(9, 10, 16, 19, 512),
+                                            testing::Values(9, 10, 16, 19, 512),
                                             // axis
                                             testing::Values(0, 1, 2, 3),
                                             // dtype
@@ -41,9 +41,9 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if ((channel == 256 && input_height == 256) ||
-        (input_width == 256 && input_height == 256) ||
-        (channel == 256 && input_width == 256)) {
+    if ((channel == 512 && input_height == 512) ||
+        (input_width == 512 && input_height == 512) ||
+        (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
 
