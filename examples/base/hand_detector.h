@@ -22,6 +22,12 @@
 
 namespace TNN_NS {
 
+class HandDetectorInput : public TNNSDKInput {
+public:
+    HandDetectorInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
+    virtual ~HandDetectorInput(){}
+};
+
 class HandDetectorOutput : public TNNSDKOutput {
 public:
     HandDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};

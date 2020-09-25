@@ -67,7 +67,7 @@ private:
     Status ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat> output_mat, TNNInterpType type = TNNInterpLinear);
     Status ConvertMat(std::shared_ptr<Mat>src, std::shared_ptr<Mat>dst);
     // the original input image shape
-    DimsVector git ;
+    DimsVector orig_dims;
 };
 
 }
