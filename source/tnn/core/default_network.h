@@ -97,7 +97,8 @@ public:
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
-    bool CheckIsInt8Blob(std::shared_ptr<LayerInfo>& layer_info, const LayerType type);
+    void GenerateInt8Blob(std::shared_ptr<LayerInfo>& layer_info, const LayerType type,
+                          const std::string& name, NetResource *net_resource, Blob* blob);
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;

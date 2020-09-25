@@ -39,12 +39,12 @@ Status MetalPermuteLayerAcc::SetKernelEncoderParam(
 
 std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (layer_param->orders[0] == 0 && layer_param->orders[1] == 2 &&
-        layer_param->orders[2] == 3 && layer_param->orders[3] == 1) {
-        return "permute_to_nhwc";
-    } else if (layer_param->orders[0] == 0 && layer_param->orders[1] == 2 &&
-               layer_param->orders[2] == 1 &&  layer_param->orders[3] == 3) {
-        return "permute_to_nhcw";
+    if (layer_param->orders[0] == 0 && layer_param->orders[1] == 2) {
+        if (layer_param->orders[2] == 3 && layer_param->orders[3] == 1) {
+            return "permute_to_nhwc";
+        } else if (layer_param->orders[2] == 1 &&  layer_param->orders[3] == 3) {
+            return "permute_to_nhcw";
+        }
     } else if (layer_param->orders[0] == 0 && layer_param->orders[1] == 3 &&
                layer_param->orders[2] == 1 &&  layer_param->orders[3] == 2) {
         return "permute_to_nwch";

@@ -196,24 +196,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
             // Check for int8
-            bool is_int8_blob = CheckIsInt8Blob(layer_info, type);
+            GenerateInt8Blob(layer_info, type, name, net_resource, blob);
 
-            if (is_int8_blob) {
-                auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
-                std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
-                if (net_resource->resource_map.count(blob_scale_name) == 0) {
-                    LayerResource *layer_res  = nullptr;
-                    std::vector<Blob *> blobs = {blob};
-                    GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-                    net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-                }
-#endif
-                new_blob->SetIntResource(
-                    reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
-                blob_manager_->ReplaceBlob(name, new_blob);
-                blob = new_blob;
-            }
             // Check for bfp16
             if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
@@ -237,10 +221,26 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
     return ret;
 }
 
-bool DefaultNetwork::CheckIsInt8Blob(std::shared_ptr<LayerInfo>& layer_info, const LayerType type) {
-    return layer_info->param->quantized ||
-           (type == LAYER_REFORMAT &&
-            reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
+void DefaultNetwork::GenerateInt8Blob(std::shared_ptr<LayerInfo>& layer_info, const LayerType type,
+                                      const std::string& name, NetResource *net_resource, Blob* blob) {
+    if (layer_info->param->quantized ||
+        (type == LAYER_REFORMAT &&
+         reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8)) {
+        auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
+        std::string blob_scale_name = name + "_scale_data_";
+#ifdef BENCHMARK
+        if (net_resource->resource_map.count(blob_scale_name) == 0) {
+            LayerResource *layer_res  = nullptr;
+            std::vector<Blob *> blobs = {blob};
+            GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
+            net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
+        }
+#endif
+        new_blob->SetIntResource(
+            reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
+        blob_manager_->ReplaceBlob(name, new_blob);
+        blob = new_blob;
+    }
 }
 
 Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {

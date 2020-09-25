@@ -158,6 +158,19 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
     }
 }
 
+template <typename Tacc>
+void FloatActivate(Tacc& result, const int activation_type) {
+    if (activation_type == ActivationType_ReLU) {
+        result = static_cast<Tacc>(result > 0.0f ? result : 0.0f);
+    } else if (activation_type == ActivationType_ReLU6) {
+        if (result > 6.0f) {
+            result = static_cast<Tacc>(6.0f);
+        } else if (result < 0.0f) {
+            result = static_cast<Tacc>(0.0f);
+        }
+    }
+}
+
 /*
  * convolution funtion
  * input & output data_format is NCHW
@@ -224,15 +237,7 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
                             result += bias_data[output_c];
                         }
                         if (sizeof(Tin) > 1) {  // float
-                            if (activation_type == ActivationType_ReLU) {
-                                result = static_cast<Tacc>(result > 0.0f ? result : 0.0f);
-                            } else if (activation_type == ActivationType_ReLU6) {
-                                if (result > 6.0f) {
-                                    result = static_cast<Tacc>(6.0f);
-                                } else if (result < 0.0f) {
-                                    result = static_cast<Tacc>(0.0f);
-                                }
-                            }
+                            FloatActivate(result, activation_type);
                             output_data[output_position] = result;
                         } else {
                             int scaleidx = scale_len == 1 ? 0 : output_c;
