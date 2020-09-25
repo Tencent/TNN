@@ -64,6 +64,10 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
     if (ret != TNN_OK)
         return ret;
 
+    if (dst.GetWidth() == 0 || dst.GetHeight() == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
+    }
+
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),

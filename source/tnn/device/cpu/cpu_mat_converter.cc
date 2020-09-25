@@ -60,6 +60,10 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
         return Status(TNNERR_NULL_PARAM, "input mat is null");
     }
 
+    if (dst.GetWidth() == 0 || dst.GetHeight() == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
+    }
+
     if (src.GetDeviceType() != dst.GetDeviceType()) {
         return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
