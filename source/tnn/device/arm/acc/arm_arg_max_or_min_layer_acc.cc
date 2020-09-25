@@ -274,6 +274,7 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
     void *workspace     = nullptr;
 
     auto param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
     int axis   = dynamic_cast<ArgMaxOrMinLayerParam *>(param_)->axis;
 
     if (axis == 0) {
