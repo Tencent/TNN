@@ -196,10 +196,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
             // Check for int8
-            bool is_int8_blob =
-                layer_info->param->quantized ||
-                (type == LAYER_REFORMAT &&
-                 reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
+            bool is_int8_blob = CheckIsInt8Blob(layer_info, type);
 
             if (is_int8_blob) {
                 auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
@@ -238,6 +235,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         layers_.push_back(cur_layer);
     }
     return ret;
+}
+
+bool DefaultNetwork::CheckIsInt8Blob(std::shared_ptr<LayerInfo>& layer_info, const LayerType type) {
+    return layer_info->param->quantized ||
+           (type == LAYER_REFORMAT &&
+            reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
 }
 
 Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {
