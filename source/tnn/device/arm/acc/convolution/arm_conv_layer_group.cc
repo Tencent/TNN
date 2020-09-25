@@ -175,6 +175,7 @@ Status ArmConvLayerGroup::SetGroupParam(std::shared_ptr<LayerParam> &group_param
     CHECK_PARAM_NULL(conv_param);
 
     *conv_param                = *(dynamic_cast<ConvLayerParam *>(param_));
+    CHECK_PARAM_NULL(conv_param);
     conv_param->output_channel = conv_param->output_channel / conv_param->group;
     conv_param->group          = 1;
 
@@ -400,6 +401,9 @@ Status ArmConvLayerGroup::CopyOutputSplitBlob(Blob *output) {
 Status ArmConvLayerGroup::SplitResource(std::vector<std::shared_ptr<LayerResource>> &resources) {
     auto conv_param = dynamic_cast<ConvLayerParam *>(param_);
     auto conv_res   = dynamic_cast<ConvLayerResource *>(resource_);
+
+    CHECK_PARAM_NULL(conv_param);
+    CHECK_PARAM_NULL(conv_res);
 
     auto group_filter_bytes_size = conv_res->filter_handle.GetBytesSize() / group_;
     auto origin_filter_ptr       = conv_res->filter_handle.force_to<char *>();
