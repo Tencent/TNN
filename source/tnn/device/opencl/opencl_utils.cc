@@ -377,6 +377,66 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
     return TNN_OK;
 }
 
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    auto output_buffer_ptr =
+        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+    }
+    memcpy(mat.GetData(), output_buffer_ptr, size_in_bytes);
+    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+    }
+
+    return TNN_OK;
+}
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    auto output_buffer_ptr =
+        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+    }
+    memcpy(output_buffer_ptr, mat.GetData(), size_in_bytes);
+    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+    }
+
+    return TNN_OK;
+}
+
 uint32_t gcd(uint32_t number1, uint32_t number2) {
     return number2 == 0 ? number1 : gcd(number2, number1 % number2);
 }
