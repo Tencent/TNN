@@ -4,7 +4,9 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
                               __global const float *input_ptr,
                               __private const int height,
                               __private const int width,
-                              __private const int channels) {
+                              __private const int channels,
+                              __constant float* scale,
+                              __constant float* bias) {
     int image_width_idx  = get_global_id(0);
     int image_height_idx = get_global_id(1);
 
@@ -31,6 +33,11 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
         output_values.z = *(input_ptr + offset);
         offset += height_width_size;
         output_values.w = *(input_ptr + offset);
+#ifdef ENABLE_SCALE_BIAS
+        float4 scale_data   = vload4(0, scale + channel_4_idx);
+        float4 bias_data    = vload4(0, bias + channel_4_idx);
+        output_values = output_values * scale_data + bias_data;
+#endif
     } else if (remain_channel == 3) {
         int offset      = buffer_offset;
         output_values.x = *(input_ptr + offset);
@@ -38,14 +45,27 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
         output_values.y = *(input_ptr + offset);
         offset += height_width_size;
         output_values.z = *(input_ptr + offset);
+#ifdef ENABLE_SCALE_BIAS
+        float3 scale_data   = vload3(0, scale + channel_4_idx);
+        float3 bias_data    = vload3(0, bias + channel_4_idx);
+        output_values.xyz = output_values.xyz * scale_data + bias_data;
+#endif
     } else if (remain_channel == 2) {
         int offset      = buffer_offset;
         output_values.x = *(input_ptr + offset);
         offset += height_width_size;
         output_values.y = *(input_ptr + offset);
+#ifdef ENABLE_SCALE_BIAS
+        float2 scale_data   = vload2(0, scale + channel_4_idx);
+        float2 bias_data    = vload2(0, bias + channel_4_idx);
+        output_values.xy = output_values.xy * scale_data + bias_data;
+#endif
     } else if (remain_channel == 1) {
         int offset      = buffer_offset;
         output_values.x = *(input_ptr + offset);
+#ifdef ENABLE_SCALE_BIAS
+        output_values.x = output_values.x * scale[channel_4_idx] + bias[channel_4_idx];
+#endif
     }
 
     write_imagef(output, (int2)(image_width_idx, image_height_idx),
@@ -70,14 +90,15 @@ __kernel void ConvertFromN8UC4(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
         ((batch_idx * height + height_idx) * width + image_width_idx) * 4;
 
     float4 values = convert_float4(vload4(0, input_ptr + buffer_offset));
-#ifdef ENABLE_SCALE_BIAS
-    values = values * scale + bias;
-#endif
 
 #ifdef SWAP_RB
     float temp = values.x;
     values.x   = values.z;
     values.z   = temp;
+#endif
+
+#ifdef ENABLE_SCALE_BIAS
+    values = values * scale + bias;
 #endif
 
     int2 coord = (int2)(image_width_idx, image_height_idx);
