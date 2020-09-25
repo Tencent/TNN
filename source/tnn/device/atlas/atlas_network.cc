@@ -80,7 +80,12 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     model_info.model_desc    = model_desc_;
     model_info.model_id      = model_id_;
     model_info.input_dataset = input_;
+    model_info.has_aipp      = has_aipp_;
     for (auto item : input_blob_map_) {
+        if (aipp_input_format_map_.find(item.first) != aipp_input_format_map_.end())
+            model_info.aipp_input_format = aipp_input_format_map_[item.first];
+        else
+            model_info.aipp_input_format = ACL_AIPP_RESERVED;
         AtlasRuntime::GetInstance()->AddModelInfo(item.second, model_info);
     }
 
@@ -495,18 +500,23 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
 }
 
 Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int>& input_dims, aclFormat& input_format, aclDataType& input_data_type) {
-    // get data format
-    input_format = aclmdlGetInputFormat(model_desc_, index);
-
-    // get data type
-    input_data_type = aclmdlGetInputDataType(model_desc_, index);
-
+    std::string blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
     aclAippInfo aipp_info;
     aclError acl_ret = aclmdlGetFirstAippInfo(model_id_, index, &aipp_info);
 
     input_dims.clear();
     if (ACL_ERROR_NONE == acl_ret) {
-        LOGD("shapeCound: %d   srcDimNum: %d\n", aipp_info.shapeCount, aipp_info.srcDimNum);
+        has_aipp_ = true;
+        LOGD("shapeCount: %d   srcDimNum: %d\n", aipp_info.shapeCount, aipp_info.srcDimNum);
+        // get aipp input format
+        aipp_input_format_map_[blob_name] = aipp_info.inputFormat;
+
+        // get data format
+        input_format = aipp_info.srcFormat;
+
+        // get data type
+        input_data_type = aipp_info.srcDatatype;
+
         if (aipp_info.shapeCount < 1) {
             LOGE("model input is less than 1\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "model input is less than 1");
@@ -525,6 +535,15 @@ Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int>& input_dims, ac
         }
     } else {
         LOGE("get aipp info failed (ret=%d), use input info directly\n", acl_ret);
+        // get aipp input format
+        aipp_input_format_map_[blob_name] = ACL_AIPP_RESERVED;
+
+        // get data format
+        input_format = aclmdlGetInputFormat(model_desc_, index);
+
+        // get data type
+        input_data_type = aclmdlGetInputDataType(model_desc_, index);
+
         // get dims info
         aclmdlIODims acl_dims;
         aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);

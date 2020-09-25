@@ -33,12 +33,16 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
     auto model_info_map = AtlasRuntime::GetInstance()->GetModleInfoMap();
     if (model_info_map.find(blob) != model_info_map.end()) {
         model_info_      = model_info_map[blob];
-        aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &input_index_);
-        LOGD("acl ret: %d  input_index: %d\n", acl_ret, input_index_);
+        aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &dynamic_aipp_index_);
+        LOGD("acl ret: %d  input_index: %d\n", acl_ret, dynamic_aipp_index_);
         if (ACL_ERROR_NONE == acl_ret) {
-            use_dynamic_aipp_ = true;
+            aipp_type_ = AIPP_DYNAMIC;
         } else {
-            use_dynamic_aipp_ = false;
+            if (model_info_.has_aipp) {
+                aipp_type_ = AIPP_STATIC;
+            } else {
+                aipp_type_ = AIPP_NONE;
+            }
         }
     }
 }
@@ -139,11 +143,14 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
     }
 
-    if (use_dynamic_aipp_) {
+    if (AIPP_DYNAMIC == aipp_type_) {
         LOGD("run with dynamic aipp\n");
-        tnn_ret = ConvertFromMatAsyncWithAipp(mat, param, atlas_cmd_queue);
+        tnn_ret = ConvertFromMatAsyncWithDynamicAipp(mat, param, atlas_cmd_queue);
+    } else if (AIPP_STATIC == aipp_type_) {
+        LOGD("run with static aipp\n");
+        tnn_ret = ConvertFromMatAsyncWithStaticAipp(mat, param, atlas_cmd_queue);
     } else {
-        LOGD("run without dynamic aipp\n");
+        LOGD("run without aipp\n");
         tnn_ret = ConvertFromMatAsyncWithoutAipp(mat, param, atlas_cmd_queue);
     }
 
@@ -231,24 +238,6 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         } else {
             return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
         }
-    } else if (N8UC3 == mat.GetMatType()) {
-        if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
-            if (tnn_ret != TNN_OK)
-                return tnn_ret;
-        } else {
-            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
-        }
-    } else if (NNV12 == mat.GetMatType()) {
-        if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_INT8 == blob_datatype) {
-            tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
-            if (tnn_ret != TNN_OK)
-                return tnn_ret;
-        } else {
-            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
-        }
     } else {
         return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
     }
@@ -256,7 +245,43 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     return TNN_OK;
 }
 
-Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithAipp(Mat &mat, MatConvertParam param,
+Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatConvertParam param,
+                                                          AtlasCommandQueue *atlas_cmd_queue) {
+    Status tnn_ret   = TNN_OK;
+    aclError acl_ret = ACL_ERROR_NONE;
+
+    do_scale_bias_ = NeedDoScaleBias(param);
+
+    if (do_scale_bias_) {
+        LOGE("warning: mat convert param is useless in no-dynamic aipp model!\n");
+    }
+
+    int mat_bytesize = 0;
+    tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
+    if (TNN_OK != tnn_ret) {
+        LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
+        return tnn_ret;
+    }
+
+    LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
+    if (N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == model_info_.aipp_input_format) {
+        tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
+                                       atlas_cmd_queue->stream, true);
+        if (tnn_ret != TNN_OK)
+            return tnn_ret;
+    } else if (NNV12 == mat.GetMatType() && ACL_YUV420SP_U8 == model_info_.aipp_input_format) {
+        tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
+                                       atlas_cmd_queue->stream, true);
+        if (tnn_ret != TNN_OK)
+            return tnn_ret;
+    } else {
+        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithDynamicAipp(Mat &mat, MatConvertParam param,
                                                           AtlasCommandQueue *atlas_cmd_queue) {
     Status tnn_ret = SetDynamicAipp(mat, param);
     if (TNN_OK != tnn_ret) {
@@ -440,7 +465,7 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     }
 
     // set input aipp
-    acl_ret = aclmdlSetInputAIPP(model_info_.model_id, model_info_.input_dataset, input_index_, aipp_dynamic_set_);
+    acl_ret = aclmdlSetInputAIPP(model_info_.model_id, model_info_.input_dataset, dynamic_aipp_index_, aipp_dynamic_set_);
     if (ACL_ERROR_NONE != acl_ret) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set input failed!\n");
     }

@@ -35,7 +35,7 @@ using namespace TNN_NS;
 static std::mutex g_mtx;
 void* g_input_data_ptr = nullptr;
 
-Mat GetInputMat(Blob* input_blob, std::string input_file) {
+int GetInputMat(Blob* input_blob, std::string input_file, Mat& output_mat) {
     int ret;
 #ifdef INPUT_8UC3_ENABLE
     unsigned char* input_data_ptr = nullptr;
@@ -43,9 +43,18 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
     float* input_data_ptr = nullptr;
 #endif
 
-    auto input_dims           = input_blob->GetBlobDesc().dims;
-    //std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
-    std::vector<int> mat_dims = input_dims;
+    auto input_data_format = input_blob->GetBlobDesc().data_format;
+    printf("input data format: %d\n", input_data_format);
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    std::vector<int> mat_dims;
+    if (input_data_format == DATA_FORMAT_NCHW) {
+        mat_dims = input_dims;
+    } else if (input_data_format == DATA_FORMAT_NHWC) {
+        mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
+    } else {
+        printf("invalid input data format: %d\n", input_data_format);
+        return -1;
+    }
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 
 #ifdef INPUT_8UC3_ENABLE
@@ -58,25 +67,34 @@ Mat GetInputMat(Blob* input_blob, std::string input_file) {
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
 #ifdef INPUT_8UC3_ENABLE
-    Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+    output_mat = Mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
 #else
-    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
+    output_mat = Mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
 #endif
 
     g_input_data_ptr = input_data_ptr;
-    return input_mat;
+    return 0;
 }
 
-Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_queue) {
+int GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_queue, Mat& output_mat) {
     int ret;
     Status tnn_ret                = TNN_OK;
     unsigned char* input_data_ptr = nullptr;
 
+    auto input_data_format = input_blob->GetBlobDesc().data_format;
+    printf("input data format: %d\n", input_data_format);
     auto input_dims           = input_blob->GetBlobDesc().dims;
     int batch                 = input_dims[0];
     input_dims[0]             = 1;
-    //std::vector<int> mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
-    std::vector<int> mat_dims = input_dims;
+    std::vector<int> mat_dims;
+    if (input_data_format == DATA_FORMAT_NCHW) {
+        mat_dims = input_dims;
+    } else if (input_data_format == DATA_FORMAT_NHWC) {
+        mat_dims = {input_dims[0], input_dims[3], input_dims[1], input_dims[2]};
+    } else {
+        printf("invalid input data format: %d\n", input_data_format);
+        return -1;
+    }
     printf("Mat dims [N C H W]: [%d %d %d %d]\n", mat_dims[0], mat_dims[1], mat_dims[2], mat_dims[3]);
 
     ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
@@ -86,14 +104,24 @@ Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
     Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+
+    // copy from host to device
+    Mat input_mat_device(DEVICE_ATLAS, N8UC3, mat_dims);
+    tnn_ret = MatUtils::Copy(input_mat, input_mat_device, command_queue);
+    if (tnn_ret != TNN_OK) {
+        printf("Mat Copy falied (%s)\n", tnn_ret.description().c_str());
+        return -1;
+    }
+
     Mat mat_resized(DEVICE_ATLAS, NNV12, mat_dims, nullptr);
     ResizeParam resize_param;
     resize_param.scale_w = 1.0f;
     resize_param.scale_h = 1.0f;
     PasteParam paste_param;
-    tnn_ret = MatUtils::ResizeAndPaste(input_mat, mat_resized, resize_param, paste_param, command_queue);
+    tnn_ret = MatUtils::ResizeAndPaste(input_mat_device, mat_resized, resize_param, paste_param, command_queue);
     if (TNN_OK != tnn_ret) {
         printf("resize mat failed\n");
+        return -1;
     }
 
     std::vector<Mat> input_mat_vec;
@@ -101,17 +129,18 @@ Mat GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
         input_mat_vec.push_back(mat_resized);
     }
 
-    Mat output_mat(DEVICE_ATLAS, NNV12, {0, 0, 0, 0}, nullptr);
+    output_mat = Mat(DEVICE_ATLAS, NNV12, {0, 0, 0, 0}, nullptr);
     tnn_ret = MatUtils::ConcatMatWithBatch(input_mat_vec, output_mat, command_queue);
     if (TNN_OK != tnn_ret) {
         printf("Concat mat failed\n");
+        return -1;
     }
 
     g_input_data_ptr = input_data_ptr;
     printf("output_mat dims: [%d %d %d %d]\n", output_mat.GetBatch(), output_mat.GetChannel(), output_mat.GetHeight(),
            output_mat.GetWidth());
 
-    return output_mat;
+    return 0;
 }
 
 void* RunTNN(void* param) {
@@ -162,14 +191,16 @@ void* RunTNN(void* param) {
     instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
     for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
-        printf("input(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
-               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
+        printf("input(%s) data_format: %s  data shape [ %d %d %d %d ]\n", it->first.c_str(), 
+               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW", 
+               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
     }
     instance_->GetAllOutputBlobs(output_blobs);
 
     for (auto it = output_blobs.begin(); it != output_blobs.end(); ++it) {
-        printf("output(%s) data shape [ %d %d %d %d ]\n", it->first.c_str(), it->second->GetBlobDesc().dims[0],
-               it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
+        printf("output(%s) data_format: %s  data shape [ %d %d %d %d ]\n", it->first.c_str(),
+               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW", 
+               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
     }
 
     // get input mat
@@ -177,8 +208,13 @@ void* RunTNN(void* param) {
     input_param.scale[0] = 0.00392156862745;
     input_param.scale[1] = 0.00392156862745;
     input_param.scale[2] = 0.00392156862745;
-    Mat input_mat        = GetInputMat(input, tnn_param->input_file);
-    // Mat input_mat = GetInputMatWithDvpp(input, tnn_param->input_file, command_queue);
+    // input_param.reverse_channel = true;
+    Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, {0, 0, 0, 0}, nullptr);  // useless mat
+    if (GetInputMat(input, tnn_param->input_file, input_mat) != 0) {
+    // if (GetInputMatWithDvpp(input, tnn_param->input_file, command_queue, input_mat) != 0) {
+        printf("get input falied\n");
+        return nullptr;
+    }
 
     // BlobConvert
     std::shared_ptr<BlobConverter> input_cvt;
@@ -218,7 +254,12 @@ void* RunTNN(void* param) {
     // copy data from atlas buffer
     // then dump to files
     for (auto output : output_blobs) {
-        Mat output_mat(DEVICE_NAIVE, NCHW_FLOAT, output.second->GetBlobDesc().dims);
+        auto output_dims = output.second->GetBlobDesc().dims;
+        std::vector<int> output_mat_dims = output_dims;
+        if (DATA_FORMAT_NHWC == output.second->GetBlobDesc().data_format) {
+            output_mat_dims = {output_dims[0], output_dims[3], output_dims[1], output_dims[2]};
+        }
+        Mat output_mat(DEVICE_NAIVE, NCHW_FLOAT, output_mat_dims);
         MatConvertParam output_param;
         tnn_ret = output_cvt_map[output.first]->ConvertToMat(output_mat, output_param, command_queue);
         if (tnn_ret != TNN_OK) {

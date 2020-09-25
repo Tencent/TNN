@@ -109,6 +109,8 @@ private:
     aclmdlDataset *input_                             = nullptr;
     aclmdlDataset *output_                            = nullptr;
     std::vector<std::string> dynamic_batch_name_;
+    bool has_aipp_ = false;
+    std::map<std::string, aclAippInputFormat> aipp_input_format_map_;
 };
 
 }  // namespace TNN_NS
