@@ -18,6 +18,7 @@ fi
 
 TNN_DIR=$(pwd)/../
 thirdparty_dir=${TNN_DIR}/source/tnn/network/openvino/thirdparty/
+export GIT_LFS_SKIP_SMUDGE=1
 
 if [ ! -d ${thirdparty_dir} ]
 then

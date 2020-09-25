@@ -19,6 +19,7 @@ set ROOT_DIR="%~dp0"
 set VS_FLAG=
 set VS_VERSION=
 set VSWHERE=
+set GIT_LFS_SKIP_SMUDGE=1
 
 if not "%1" == "" (
     if "%1"=="VS2015" (
