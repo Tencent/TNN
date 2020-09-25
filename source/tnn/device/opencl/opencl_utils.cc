@@ -158,6 +158,12 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
     return TNN_OK;
 }
 
+bool AdrenoLocalSizeValid(const std::vector<uint32_t> &gws, std::vector<uint32_t>& lws,
+                          const uint32_t subgroup_size) {
+    return 0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
+           ((lws[0] < lws[1]) == (gws[0] < gws[1]));
+}
+
 // adreno local size calculate
 std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const GpuInfo gpu_info,
                                         const uint32_t compute_units, const uint32_t max_workgroup_size,
@@ -182,8 +188,7 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
             int min_val            = std::max<uint32_t>(min_workgroup_size / lws[1], 1);
             lws[0]                 = std::min<uint32_t>(gws[0], max_val);
             for (; lws[0] >= min_val; lws[0]--) {
-                if (0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
-                    ((lws[0] < lws[1]) == (gws[0] < gws[1]))) {
+                if (AdrenoLocalSizeValid(gws, lws, subgroup_size)) {
                     return lws;
                 }
             }

@@ -184,6 +184,40 @@ bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
     return false;
 }
 
+Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name) {
+    if (N8UC3 == mat.GetMatType()) {
+        kernel_name = "ConvertToN8UC3";
+    } else if (N8UC4 == mat.GetMatType()) {
+        kernel_name = "ConvertToN8UC4";
+    } else if (NGRAY == mat.GetMatType()) {
+        kernel_name = "ConvertToNGray";
+    } else if (NCHW_FLOAT == mat.GetMatType()) {
+        kernel_name = "ConvertToNCHW";
+    } else {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+
+    return TNN_OK;
+}
+
+Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name) {
+    if (N8UC3 == mat.GetMatType()) {
+        kernel_name = "ConvertFromN8UC3";
+    } else if (N8UC4 == mat.GetMatType()) {
+        kernel_name = "ConvertFromN8UC4";
+    } else if (NGRAY == mat.GetMatType()) {
+        kernel_name = "ConvertFromNGray";
+    } else if (NNV21 == mat.GetMatType()) {
+        kernel_name = "ConvertFromNNV21";
+    } else if (NCHW_FLOAT == mat.GetMatType()) {
+        kernel_name = "ConvertFromNCHW";
+    } else {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+
+    return TNN_OK;
+}
+
 //CreateConvertUnit select kernel name and create execute unit
 Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &mat, MatConvertParam param,
                                                  bool convert_to_mat) {
@@ -194,16 +228,9 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
         program_name = "convert_to_mat";
         //DEVICE_NAIVE AND DEVICE_ARM is same for memory type.
         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-            if (N8UC3 == mat.GetMatType()) {
-                kernel_name = "ConvertToN8UC3";
-            } else if (N8UC4 == mat.GetMatType()) {
-                kernel_name = "ConvertToN8UC4";
-            } else if (NGRAY == mat.GetMatType()) {
-                kernel_name = "ConvertToNGray";
-            } else if (NCHW_FLOAT == mat.GetMatType()) {
-                kernel_name = "ConvertToNCHW";
-            } else {
-                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            Status ret = GetConvertToMatKernelName(mat, kernel_name);
+            if (ret != TNN_OK) {
+                return ret;
             }
         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
             if (N8UC4 == mat.GetMatType()) {
@@ -217,18 +244,9 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
     } else {
         program_name = "convert_from_mat";
         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-            if (N8UC3 == mat.GetMatType()) {
-                kernel_name = "ConvertFromN8UC3";
-            } else if (N8UC4 == mat.GetMatType()) {
-                kernel_name = "ConvertFromN8UC4";
-            } else if (NGRAY == mat.GetMatType()) {
-                kernel_name = "ConvertFromNGray";
-            } else if (NNV21 == mat.GetMatType()) {
-                kernel_name = "ConvertFromNNV21";
-            } else if (NCHW_FLOAT == mat.GetMatType()) {
-                kernel_name = "ConvertFromNCHW";
-            } else {
-                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            Status ret = GetConvertFromMatKernelName(mat, kernel_name);
+            if (ret != TNN_OK) {
+                return ret;
             }
         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
             if (N8UC4 == mat.GetMatType()) {

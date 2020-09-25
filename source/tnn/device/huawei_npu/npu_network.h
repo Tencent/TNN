@@ -101,6 +101,8 @@ private:
 
     Status InitCheck();
 
+    bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
+
     Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
                           AbstractModelInterpreter *interpreter);
 

@@ -139,6 +139,11 @@ void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t*
     return ResizeNearestImpl(src, batch, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
 }
 
+bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+    return new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
+           new_y_loc >= -1 && new_y_loc <= (src_h - 1);
+}
+
 void CalculateOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
                      int* adelta, int* bdelta, int src_h, int src_w, int channel,
                      int x, int y, int dst_loc_base, float* _tab) {
@@ -179,8 +184,7 @@ void CalculateOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
             dst[dst_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
         }
     }
-    else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
-                new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
         int dsc_loc = dst_loc_base + x * channel;
 
         int mask0 = new_x_loc >= 0 && new_y_loc >= 0;

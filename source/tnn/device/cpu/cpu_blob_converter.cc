@@ -168,27 +168,8 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     return ret;
 }
 
-Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
-    if (blob_ == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input/output blob_ is null");
-    }
-    auto desc      = blob_->GetBlobDesc();
-    auto dims      = desc.dims;
-    auto hw        = dims[2] * dims[3];
-    auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
-    if (desc.data_type == DATA_TYPE_INT8) {
-        if (image.GetMatType() == RESERVED_INT8_TEST) {
-            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims));
-            return TNN_OK;
-        } else
-            blob_data = new float[dims[0] * dims[1] * hw];
-    } else if (desc.data_type == DATA_TYPE_BFP16) {
-        if (image.GetMatType() == RESERVED_BFP16_TEST) {
-            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * 2);
-            return TNN_OK;
-        }
-    }
-
+Status CpuBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
+        MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
     if (image.GetMatType() == NCHW_FLOAT) {
         memcpy(blob_data, reinterpret_cast<float *>(image.GetData()), DimsVectorUtils::Count(dims) * sizeof(float));
     } else if (image.GetMatType() == N8UC4) {
@@ -224,6 +205,35 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             delete[] blob_data;
         }
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+
+    return TNN_OK;
+}
+
+Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue) {
+    if (blob_ == nullptr) {
+        return Status(TNNERR_NULL_PARAM, "input/output blob_ is null");
+    }
+    auto desc      = blob_->GetBlobDesc();
+    auto dims      = desc.dims;
+    auto hw        = dims[2] * dims[3];
+    auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
+    if (desc.data_type == DATA_TYPE_INT8) {
+        if (image.GetMatType() == RESERVED_INT8_TEST) {
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims));
+            return TNN_OK;
+        } else
+            blob_data = new float[dims[0] * dims[1] * hw];
+    } else if (desc.data_type == DATA_TYPE_BFP16) {
+        if (image.GetMatType() == RESERVED_BFP16_TEST) {
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * 2);
+            return TNN_OK;
+        }
+    }
+
+    Status ret = ConvertFromMatFunc(image, blob_data, param, desc, dims, hw);
+    if (ret != TNN_OK) {
+        return ret;
     }
 
     if (desc.data_type == DATA_TYPE_INT8) {

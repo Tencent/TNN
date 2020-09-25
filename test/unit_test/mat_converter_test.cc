@@ -128,6 +128,20 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
     return false;
 }
 
+void MatConverterTest::GetOutputSize(const MatConverterTestParam& mat_converter_test_param,
+                                     const MatConverterType& mat_converter_type,
+                                     const int input_size,
+                                     int& output_size) {
+    if (mat_converter_type == MatConverterType::Resize){
+        // TODO: strange code, just copy from origin test
+        output_size = 380;
+    } else if(mat_converter_type == MatConverterType::Crop) {
+        output_size = mat_converter_test_param.crop_param.width;
+    } else {
+        output_size = input_size;
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                          ::testing::Combine(
                             // batch
@@ -196,13 +210,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
     }
 
     int output_size;
-    if (mat_converter_type == MatConverterType::Resize){
-        output_size = 380;
-    } else if(mat_converter_type == MatConverterType::Crop) {
-        output_size = mat_converter_test_param.crop_param.width;
-    } else {
-        output_size = input_size;
-    }
+    GetOutputSize(mat_converter_test_param, mat_converter_type, input_size, output_size);
 
     DimsVector dims         = {batch, channel, input_size, input_size};
     DimsVector dims_out     = {batch, channel, output_size, output_size};;

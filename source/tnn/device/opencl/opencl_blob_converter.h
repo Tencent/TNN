@@ -43,6 +43,9 @@ private:
     Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
     Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
 
+    Status GetConvertToMatKernelName(Mat &mat, std::string& kernel_name);
+    Status GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name);
+
     std::map<std::string, OpenCLExecuteUnit> convert_to_mat_map_ = {};
     std::map<std::string, OpenCLExecuteUnit> convert_from_mat_map_ = {};
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;

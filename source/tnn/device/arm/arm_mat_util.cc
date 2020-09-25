@@ -953,6 +953,11 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
     }
 }
 
+static bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+    return new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
+           new_y_loc >= -1 && new_y_loc <= (src_h - 1);
+}
+
 static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
                                     const uint8_t* src, int src_w, int src_h, uint8_t* dst, int dst_w,
                                     int y, int src_offset, int& x_count, int& end_x, float border_val = 0) {
@@ -1028,8 +1033,7 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
             tab_loc[x] = new_xy_float;
             x_count++;
             end_x = x;
-        } else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
-                   new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+        } else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
             short* wtab = BilinearTab_i[new_xy_float][0];
             int dsc_loc = x * channel;
 

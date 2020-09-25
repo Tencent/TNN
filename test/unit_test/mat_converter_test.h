@@ -117,6 +117,10 @@ protected:
                        const MatConverterType& mat_converter_type,
                        const ColorConversionType& cvt_type,
                        const int input_size);
+    void GetOutputSize(const MatConverterTestParam& mat_converter_test_param,
+                       const MatConverterType& mat_converter_type,
+                       const int input_size,
+                       int& output_size);
 
     void* mat_in_data_;
     void* mat_out_ref_data_;

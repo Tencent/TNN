@@ -69,6 +69,8 @@ protected:
     Status CopyInputCheck(Mat& src, Mat& dst,
                           const DeviceType& src_device_type, const DeviceType& dst_device_type,
                           const MatType& src_mat_type, const MatType& dst_mat_type);
+    bool DeviceTypeCheck(const DeviceType& src_device_type,
+                         const DeviceType& dst_device_type);
     Status SetDevice(Mat& src, Mat& dst,
                      const DeviceType& src_device_type, const DeviceType& dst_device_type,
                      const MatType& src_mat_type, const MatType& dst_mat_type);
@@ -514,13 +516,18 @@ Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst,
     return TNN_OK;
 }
 
+bool MetalMatConverterAcc::DeviceTypeCheck(const DeviceType& src_device_type,
+                                           const DeviceType& dst_device_type) {
+    return dst_device_type != DEVICE_METAL && src_device_type != DEVICE_METAL;
+}
+
 Status MetalMatConverterAcc::CopyInputCheck(Mat& src,
                                             Mat& dst,
                                             const DeviceType& src_device_type,
                                             const DeviceType& dst_device_type,
                                             const MatType& src_mat_type,
                                             const MatType& dst_mat_type) {
-    if (dst_device_type != DEVICE_METAL && src_device_type!=DEVICE_METAL) {
+    if (DeviceTypeCheck(src_device_type, dst_device_type)) {
         return Status(TNNERR_INVALID_INPUT, "neither src nor dst is not Metal Mat");
     }
 
