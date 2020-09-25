@@ -24,6 +24,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/mat_converter_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -57,60 +58,6 @@ void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, in
         dst_ptr += dst_stride;
     }
 
-}
-
-static float CalculatePosition(int* position, int i, double scale, int border, int channel) {
-    float pos_f = (float)((i + 0.5) * scale - 0.5);
-    int pos_i = static_cast<int>(floor(pos_f));
-    float rat_f = pos_f - pos_i;
-    if (pos_i < 0) {
-        pos_i = 0;
-        rat_f = 0.f;
-    }
-    if (pos_i >= border - 1) {
-        pos_i = border - 2;
-        rat_f = 1.f;
-    }
-    position[i] = pos_i * channel;
-
-    return rat_f;
-}
-
-static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
-                                      int* position, short* ratio) {
-    const int INTER_RESIZE_COEF_BITS  = 11;
-    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-    for (int i = 0; i < length; i++) {
-        float rat_f = CalculatePosition(position, i, scale, border, channel);
-        float a0 = (1.f - rat_f) * INTER_RESIZE_COEF_SCALE;
-        float a1 = rat_f * INTER_RESIZE_COEF_SCALE;
-
-        ratio[i * 2]     = SATURATE_CAST_SHORT(a0);
-        ratio[i * 2 + 1] = SATURATE_CAST_SHORT(a1);
-    }
-}
-
-#define  GetResizeBufPreparation(type)                                    \
-    double scale_x = (double)src_w / w;                                   \
-    double scale_y = (double)src_h / h;                                   \
-    *buf = new int[w + h + w + h];                                        \
-    int* xofs = *buf;                                                     \
-    int* yofs = *buf + w;                                                 \
-    type* ialpha = (type*)(*buf + w + h);                                 \
-    type* ibeta  = (type*)(*buf + w + h + w);
-
-// Meanings of xofs, yofs, ialpha, ibeta in src image:
-//                               |  ialpha[2*x]  |  ialpha[2*x+1]  |
-//     --       (xofs[x], yofs[y])                                 (xofs[x]+1, yofs[y])
-// ibeta[2*y]
-//     --                              (x*scale_x, y*scale_y)
-// ibeta[2*y+1]
-//     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
-    GetResizeBufPreparation(short);
-
-    CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
 static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
@@ -577,28 +524,6 @@ void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8
     return ResizeBilinearC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-static void CalculatePositionAndMask(int length, double scale, int border, int channel,
-                                     int* position, uint8_t* mask) {
-    for (int i = 0; i < length; i++) {
-        float rat_f = CalculatePosition(position, i, scale, border, channel);
-        mask[i] = (rat_f <= 0.5) ? -1 : 0;
-    }
-}
-
-// Meanings of xofs, yofs, ialpha, ibeta in src image:
-//                               |  ialpha[x] (1: left, 0: right)  |
-//     --       (xofs[x], yofs[y])                                 (xofs[x]+1, yofs[y])
-// ibeta[y]
-// (1: top,                            (x*scale_x, y*scale_y)
-//  0: bottom)
-//     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
-    GetResizeBufPreparation(uint8_t);
-
-    CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
-}
-
 #define ResizeNearestPreparation(channel)                               \
     int schannel  = channel;                                            \
     int* buf      = nullptr;                                            \
@@ -941,17 +866,6 @@ void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, 
 #define KSIZE 2
 static short BilinearTab_i[INTER_TAB_SIZE*INTER_TAB_SIZE][KSIZE][KSIZE];
 
-static inline void InterpolateLinear(float x, float* coeffs) {
-    coeffs[0] = 1.f - x;
-    coeffs[1] = x;
-}
-
-static void InitInterTab1D(float* tab, int tabsz) {
-    float scale = 1.f / tabsz;
-    for (int i = 0; i < tabsz; i++, tab += 2)
-        InterpolateLinear(i * scale, tab);
-}
-
 // Interpolation table of size 32 x 32 x 4:
 // (1*1,     0*1,     1*0,     0*0)    , ... , (1/32*1,     31/32*1,     1/32*0,     31/32*0)
 // (1*31/32, 0*31/32, 1*1/32,  0*1/32) , ... , (1/32*31/32, 31/32*31/32, 1/32*1/32,  31/32*1/32)
@@ -1021,26 +935,7 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
     InitInterTab2D();
 
     double m[6];
-    double M[6];
-    M[0] = transform[0][0];
-    M[1] = transform[0][1];
-    M[2] = transform[0][2];
-    M[3] = transform[1][0];
-    M[4] = transform[1][1];
-    M[5] = transform[1][2];
-
-    // Inverse transform matrix
-    double D   = M[0] * M[4] - M[1] * M[3];
-    D          = D != 0 ? 1. / D : 0;
-    double A11 = M[4] * D, A22 = M[0] * D;
-    m[0]      = A11;
-    m[1]      = M[1] * (-D);
-    m[3]      = M[3] * (-D);
-    m[4]      = A22;
-    double b1 = -A11 * M[2] - m[1] * M[5];
-    double b2 = -m[3] * M[2] - A22 * M[5];
-    m[2]      = b1;
-    m[5]      = b2;
+    WarpAffineMatrixInverse(transform, m);
 
     *buffer = reinterpret_cast<int*>(armMalloc((dst_w + dst_h) * 2 * sizeof(int)));
 

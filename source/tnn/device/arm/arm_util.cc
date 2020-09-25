@@ -491,6 +491,9 @@ template int ConvertWeightsFromOI3HWToOHW12(float *src, float *dst, int input_ch
 //     g = (74 *y - 1135 - 52 * vv - 25 * uu ) >> 6
 //     b = (74 *y - 1135 + 129 * uu ) >> 6
 void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv12, bgr, 3, h, w, true);
+#else
     const unsigned char* yptr  = nv12;
     const unsigned char* vuptr = nv12 + w * h;
 
@@ -499,8 +502,6 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgr;
         unsigned char* rgb1 = bgr + w * 3;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -669,10 +670,6 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
         for (; remain > 0; remain -= 2) {
             int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
             int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
@@ -715,9 +712,13 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         yptr += 2*w;
         bgr  += 2*3*w;
     }
+#endif
 }
 
 void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv21, bgr, 3, h, w, false);
+#else
     const unsigned char* yptr  = nv21;
     const unsigned char* vuptr = nv21 + w * h;
 
@@ -726,8 +727,6 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgr;
         unsigned char* rgb1 = bgr + w * 3;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -896,10 +895,6 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
         for (; remain > 0; remain -= 2) {
             int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
             int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
@@ -942,9 +937,13 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         yptr += 2*w;
         bgr  += 2*3*w;
     }
+#endif // TNN_USE_NEON
 }
 
 void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv12, bgra, 4, h, w, true);
+#else
     const unsigned char* yptr  = nv12;
     const unsigned char* vuptr = nv12 + w * h;
 
@@ -954,7 +953,6 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         unsigned char* rgb0 = bgra;
         unsigned char* rgb1 = bgra + w * 4;
 
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -1129,9 +1127,6 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
 
         for (; remain > 0; remain -= 2) {
             int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
@@ -1179,9 +1174,13 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         yptr += 2*w;
         bgra += 2*4*w;
     }
+#endif // TNN_USE_NEON
 }
 
 void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv21, bgra, 4, h, w, false);
+#else
     const unsigned char* yptr  = nv21;
     const unsigned char* vuptr = nv21 + w * h;
 
@@ -1191,7 +1190,6 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         unsigned char* rgb0 = bgra;
         unsigned char* rgb1 = bgra + w * 4;
 
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -1366,9 +1364,6 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
 
         for (; remain > 0; remain -= 2) {
             int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
@@ -1416,13 +1411,16 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         yptr += 2*w;
         bgra += 2*4*w;
     }
+#endif // TNN_USE_NEON
 }
 
 void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+#ifndef TNN_USE_NEON
+    NaiveBGROrBGRAToGray(bgr, gray, h, w, 3);
+#else
     int offset = 0;
     int plane  = h * w;
 
-#ifdef TNN_USE_NEON
     const unsigned char* Sp = bgr;
     unsigned char* Dp       = gray;
     uint8x8x3_t _S;
@@ -1462,7 +1460,6 @@ void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
     if (plane % 8) {
         offset -= 8;
     }
-#endif
 
     for (; offset < plane; ++offset) {
         unsigned b = bgr[offset * 3 + 0];
@@ -1471,13 +1468,16 @@ void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
         float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
         gray[offset] = gray_color;
     }
+#endif // TNN_USE_NEON
 }
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
+#ifndef TNN_USE_NEON
+    NaiveBGROrBGRAToGray(bgra, gray, h, w, 4);
+#else
     int offset = 0;
     int plane  = h * w;
 
-#ifdef TNN_USE_NEON
     const unsigned char* Sp = bgra;
     unsigned char* Dp       = gray;
     uint8x8x4_t _S;
@@ -1517,7 +1517,6 @@ void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
     if (plane % 8) {
         offset -= 8;
     }
-#endif
 
     for (; offset < plane; ++offset) {
         unsigned b = bgra[offset * 4 + 0];
@@ -1526,6 +1525,7 @@ void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
         float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
         gray[offset] = gray_color;
     }
+#endif // TNN_USE_NEON
 }
 
 }  // namespace TNN_NS

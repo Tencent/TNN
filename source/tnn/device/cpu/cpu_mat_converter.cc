@@ -32,7 +32,7 @@ CpuMatConverterAcc::~CpuMatConverterAcc() {}
 
 Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret            = TNN_OK;
-    
+
     ret = CheckMatConverterParams(src, dst, false);
     if (ret != TNN_OK)
         return ret;
@@ -53,7 +53,7 @@ Status CpuMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 
 Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret            = TNN_OK;
-    
+
     ret = CheckMatConverterParams(src, dst, true);
     if (ret != TNN_OK)
         return ret;
@@ -92,7 +92,7 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 
 Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret            = TNN_OK;
-    
+
     ret = CheckMatConverterParams(src, dst, true);
     if (ret != TNN_OK)
         return ret;
@@ -129,7 +129,7 @@ Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     //LOGE("cpu mat converter warp affine start, mat type: %d, interp type: %d\n", src.GetMatType(), param.interp_type);
     Status ret            = TNN_OK;
-    
+
     ret = CheckMatConverterParams(src, dst, true);
     if (ret != TNN_OK)
         return ret;

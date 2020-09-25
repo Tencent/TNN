@@ -165,10 +165,17 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     if (ret != TNN_OK)
         return ret;
 
+    int dst_width  = dst.GetWidth();
+    int dst_height = dst.GetHeight();
+
+    if (dst_width == 0 || dst_height == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
+    }
+
     if (src.GetMatType() == NGRAY) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -176,7 +183,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == N8UC3) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -184,7 +191,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == N8UC4) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -192,7 +199,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                       (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                       (uint8_t*)dst.GetData(), dst_width, dst_height,
                                        param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
