@@ -108,7 +108,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     assert(weight_value.size() == weight_count);
     auto layer_resource             = new TNN_NS::ConvLayerResource;
     layer_resource->name            = cur_layer->name;
-    TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(uint8_t));
+    TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(int8_t));
     filter_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
     OHWI2OIHW(reinterpret_cast<uint8_t *>(weight_value.data()), filter_handle.force_to<uint8_t *>(), co, kh, kw, ci);
     layer_resource->filter_handle = filter_handle;

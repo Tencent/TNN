@@ -793,11 +793,14 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
         }
-        auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
+        auto scale_handle = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle;
+        auto scale_data   = scale_handle.force_to<float *>();
+        auto scale_count  = scale_handle.GetDataCount();
         for (int i = 0; i < dims[1]; i++) {
-            if (blob_scale[i] != 0) {
-                fused_int8_scale[i] = param.scale[i] / blob_scale[i];
-                fused_int8_bias[i]  = param.bias[i] / blob_scale[i];
+            auto scale_idx = scale_count == 1 ? 0 : i;
+            if (scale_data[scale_idx] != 0) {
+                fused_int8_scale[i] = param.scale[i] / scale_data[scale_idx];
+                fused_int8_bias[i]  = param.bias[i] / scale_data[scale_idx];
             } else {
                 fused_int8_scale[i] = 0;
                 fused_int8_bias[i]  = 0;
