@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/mat_converter_utils.h"
+#include <climits>
 
 namespace TNN_NS {
 
