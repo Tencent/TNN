@@ -1,0 +1,15 @@
+name: ios-cpu
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  ios-iphone-os:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: ./scripts/build_ios.sh

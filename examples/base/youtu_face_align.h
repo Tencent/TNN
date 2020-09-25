@@ -16,7 +16,10 @@
 #define TNN_EXAMPLES_BASE_YOUTU_FACE_ALIGN_H_
 
 #include "tnn_sdk_sample.h"
+
+#include "stdlib.h"
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <iostream>
 #include <string>
@@ -145,7 +148,7 @@ private:
     float net_scale;
     std::vector<float> mean;
     // current pts data
-    std::shared_ptr<tnn::Mat> pre_pts;
+    std::shared_ptr<TNN_NS::Mat> pre_pts;
     // warpAffine trans matrix
     std::vector<float> M;
 };

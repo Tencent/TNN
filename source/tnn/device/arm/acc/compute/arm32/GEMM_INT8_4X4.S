@@ -119,9 +119,7 @@ C8Start:
 LoopEnd: 
     //bias q14, scale q15
     vld1.8 {q14}, [bias]
-    vmov.s32 q12, 0x3f000000
     vld1.8 {q15}, [scale]
-    vmov.s32 q13, 0x3f000000
     //q4 ~ q11  --> q4, q5 
     //c00, c11; c20, c31;  d8 -d11
     //c02, c13; c22, c33;  d12-d15
@@ -147,8 +145,6 @@ LoopEnd:
     vqadd.s32 q1, q14 
     vqadd.s32 q2, q14 
     vqadd.s32 q3, q14 
-    vmov.s32 q4, 0x3f000000
-    vmov.s32 q5, 0x3f000000
 
     //(q2, q3 + bias) * scale --> q0, q1
     vcvt.f32.s32 q0, q0 
@@ -156,16 +152,24 @@ LoopEnd:
     vcvt.f32.s32 q2, q2 
     vcvt.f32.s32 q3, q3 
 
-    vmla.f32 q12, q0, q15
-    vmla.f32 q13, q1, q15
-    vmla.f32 q4,  q2, q15
-    vmla.f32 q5,  q3, q15
+    vmul.f32 q12, q0, q15
+    vmul.f32 q13, q1, q15
+    vmul.f32 q4,  q2, q15
+    vmul.f32 q5,  q3, q15
 
     //f32 --> s8
-    vcvt.s32.f32 q12, q12
-    vcvt.s32.f32 q13, q13
-    vcvt.s32.f32 q4, q4
-    vcvt.s32.f32 q5, q5
+    // trick: magic num 12582912.0f
+    ldr r0, .L4
+    vdup.32 q7, r0
+    vadd.f32 q12, q12, q7
+    vadd.f32 q13, q13, q7
+    vadd.f32 q4,  q4,  q7
+    vadd.f32 q5,  q5,  q7
+
+    vsub.s32 q12, q12, q7
+    vsub.s32 q13, q13, q7
+    vsub.s32 q4,  q4,  q7
+    vsub.s32 q5,  q5,  q7
 
     vqmovn.s32 d0,q12
     vqmovn.s32 d1,q13
@@ -181,6 +185,9 @@ LoopEnd:
     
 vpop {q4-q7}
 pop {r4, r5, r6, r7, r8, pc}
+
+.L4:
+    .word 0x4B400000
 
 #endif
 #endif
