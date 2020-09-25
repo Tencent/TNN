@@ -23,16 +23,19 @@ Status CpuPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vec
     return TNN_OK;
 }
 
+#define GetPadCommonParams                                              \
+    int pad_l = layer_param->pads[0];                                   \
+    int pad_r = layer_param->pads[1];                                   \
+    int pad_t = layer_param->pads[2];                                   \
+    int pad_b = layer_param->pads[3];                                   \
+    int pad_c_b = layer_param->pads[4];                                 \
+    int pad_c_e = layer_param->pads[5];
+
 void ConstPad(float* input_data, float* output_data, const int batch,
               const int input_channel, const int input_height, const int input_width,
               const int output_channel, const int output_height, const int output_width,
               PadLayerParam* layer_param) {
-    int pad_l = layer_param->pads[0];
-    int pad_r = layer_param->pads[1];
-    int pad_t = layer_param->pads[2];
-    int pad_b = layer_param->pads[3];
-    int pad_c_b = layer_param->pads[4];
-    int pad_c_e = layer_param->pads[5];
+    GetPadCommonParams;
     float value = layer_param->value;
 
     int cb_border = pad_c_b;
@@ -67,12 +70,7 @@ void ReflectPad(float* input_data, float* output_data, const int batch,
                 const int output_channel, const int output_height, const int output_width,
                 const int channels, const int input_width_bytes, const int data_byte_size,
                 PadLayerParam* layer_param) {
-    int pad_l = layer_param->pads[0];
-    int pad_r = layer_param->pads[1];
-    int pad_t = layer_param->pads[2];
-    int pad_b = layer_param->pads[3];
-    int pad_c_b = layer_param->pads[4];
-    int pad_c_e = layer_param->pads[5];
+    GetPadCommonParams;
 
     for (int c = 0; c < channels; c++) {
         auto input_data_ptr  = input_data + c * input_height * input_width;
@@ -112,12 +110,7 @@ Status EdgePad(float* input_data, float* output_data, const int batch,
                const int output_channel, const int output_height, const int output_width,
                const int channels, const int input_width_bytes, const int data_byte_size,
                PadLayerParam* layer_param) {
-    int pad_l = layer_param->pads[0];
-    int pad_r = layer_param->pads[1];
-    int pad_t = layer_param->pads[2];
-    int pad_b = layer_param->pads[3];
-    int pad_c_b = layer_param->pads[4];
-    int pad_c_e = layer_param->pads[5];
+    GetPadCommonParams;
 
     for (int c = 0; c < channels; c++) {
         auto input_data_ptr  = input_data + c * input_height * input_width;

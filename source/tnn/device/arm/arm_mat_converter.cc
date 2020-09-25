@@ -18,24 +18,9 @@
 #include "tnn/device/arm/arm_util.h"
 
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
-
-static Status CheckMatConverterParams(Mat& src, Mat& dst, bool check_same_device) {
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (check_same_device && (src.GetDeviceType() != dst.GetDeviceType())) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
-
-    return TNN_OK;
-}
 
 Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;
