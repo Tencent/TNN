@@ -17,6 +17,7 @@
 #include <type_traits>
 #include "tnn/core/macro.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
 
@@ -62,109 +63,6 @@ static void ResizeCalculateOneRow(short* rows0p, short* rows1p, const int b0, co
         *Dp++ = (uint8_t)(
             ((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
     }
-}
-
-static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
-                                         int* position, short* ratio) {
-    const int INTER_RESIZE_COEF_BITS  = 11;
-    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-    float pos_f;
-    float rat_f;
-    int pos_i;
-    for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
-
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
-
-        position[i] = pos_i * channel;
-
-        float a0 = (1.f - rat_f) * INTER_RESIZE_COEF_SCALE;
-        float a1 = rat_f * INTER_RESIZE_COEF_SCALE;
-
-        ratio[i * 2]     = SATURATE_CAST_SHORT(a0);
-        ratio[i * 2 + 1] = SATURATE_CAST_SHORT(a1);
-    }
-}
-
-static inline void interpolateLinear(float x, float* coeffs) {
-    coeffs[0] = 1.f - x;
-    coeffs[1] = x;
-}
-
-static void initInterTab1D(float* tab, int tabsz) {
-    float scale = 1.f / tabsz;
-    for (int i = 0; i < tabsz; i++, tab += 2)
-        interpolateLinear(i * scale, tab);
-}
-
-static void CalculatePositionAndMask(int length, double scale, int border, int channel,
-                                     int* position, uint8_t* mask) {
-    float pos_f;
-    float rat_f;
-    int pos_i;
-    for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        // pos_f = i * scale;
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
-
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
-
-        position[i] = pos_i * channel;
-
-        mask[i] = (rat_f <= 0.5) ? -1 : 0;
-    }
-}
-
-static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
-    const int INTER_RESIZE_COEF_BITS  = 11;
-    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
-
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    short* ialpha = (short*)(*buf + w + h);
-    short* ibeta  = (short*)(*buf + w + h + w);
-
-    CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
-}
-
-static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
-
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    uint8_t* ialpha = (uint8_t*)(*buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
-
-    CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
 }
 
 void ResizeBilinearImpl(const uint8_t* src, int src_w, int src_h, int src_stride,
@@ -319,29 +217,10 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
     }
 
     float* _tab = new float[2 * INTER_TAB_SIZE];
-    initInterTab1D(_tab, INTER_TAB_SIZE);
+    InitInterTab1D(_tab, INTER_TAB_SIZE);
 
     double m[6];
-    double M[6];
-    M[0] = transform[0][0];
-    M[1] = transform[0][1];
-    M[2] = transform[0][2];
-    M[3] = transform[1][0];
-    M[4] = transform[1][1];
-    M[5] = transform[1][2];
-
-    // Inverse transform matrix
-    double D   = M[0] * M[4] - M[1] * M[3];
-    D          = D != 0 ? 1. / D : 0;
-    double A11 = M[4] * D, A22 = M[0] * D;
-    m[0]      = A11;
-    m[1]      = M[1] * (-D);
-    m[3]      = M[3] * (-D);
-    m[4]      = A22;
-    double b1 = -A11 * M[2] - m[1] * M[5];
-    double b2 = -m[3] * M[2] - A22 * M[5];
-    m[2]      = b1;
-    m[5]      = b2;
+    WarpAffineMatrixInverse(transform, m);
 
     int* buffer = (int *)malloc((dst_w + dst_h) * 2 * sizeof(int));
 
@@ -380,147 +259,17 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
 }
 
 void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
-    int offset = 0;
-    for(int y = 0; y < h; ++y) {
-        for(int x = 0; x < w; ++x) {
-            unsigned b = src[offset * channel + 0];
-            unsigned g = src[offset * channel + 1];
-            unsigned r = src[offset * channel + 2];
-            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
-            dst[offset] = gray_color;
-            offset += 1;
-        }
-    }
+    NaiveBGROrBGRAToGray(src, dst, h, w, channel);
 }
 
 #undef SATURATE_CAST_UCHAR
 
 void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12) {
-    const unsigned char* yptr  = yuv;
-    const unsigned char* vuptr = yuv + w * h;
-
-    for (int y = 0; y < h; y += 2) {
-        const unsigned char* yptr0 = yptr;
-        const unsigned char* yptr1 = yptr + w;
-        unsigned char* rgb0 = bgr;
-        unsigned char* rgb1 = bgr + w * 3;
-
-        int remain = w;
-
-        for (; remain > 0; remain -= 2) {
-            int u, v;
-            if (is_nv12) {
-                u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            } else {
-                v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            }
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 6;
-            rgb1  += 6;
-        }
-
-        yptr += 2*w;
-        bgr  += 2*3*w;
-    }
+    NaiveYUVToBGROrBGRA(yuv, bgr, 3, h, w, is_nv12);
 }
 
 void YUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12) {
-    const unsigned char* yptr  = yuv;
-    const unsigned char* vuptr = yuv + w * h;
-
-    for (int y = 0; y < h; y += 2) {
-        const unsigned char* yptr0 = yptr;
-        const unsigned char* yptr1 = yptr + w;
-        unsigned char* rgba0 = bgra;
-        unsigned char* rgba1 = bgra + w * 4;
-
-        int remain = w;
-
-        for (; remain > 0; remain -= 2) {
-            int u, v;
-            if (is_nv12) {
-                u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            } else {
-                v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            }
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgba0[3] = 255;
-            rgba0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgba0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgba0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgba0[7] = 255;
-            rgba0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgba0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgba0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgba1[3] = 255;
-            rgba1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgba1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgba1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgba1[7] = 255;
-            rgba1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgba1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgba1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgba0 += 8;
-            rgba1 += 8;
-        }
-
-        yptr += 2*w;
-        bgra += 2*4*w;
-    }
+    NaiveYUVToBGROrBGRA(yuv, bgra, 4, h, w, is_nv12);
 }
 
 }  // namespace TNN_NS
