@@ -64,47 +64,50 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
     if (ret != TNN_OK)
         return ret;
 
-    if (dst.GetWidth() == 0 || dst.GetHeight() == 0) {
+    int dst_width  = dst.GetWidth();
+    int dst_height = dst.GetHeight();
+
+    if (dst_width == 0 || dst_height == 0) {
         return Status(TNNERR_INVALID_INPUT, "dst size is zero");
     }
 
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC3) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC4) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                                   (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                  (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                                  (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }

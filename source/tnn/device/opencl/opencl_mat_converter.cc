@@ -292,11 +292,13 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
 
     auto dims        = dst.GetDims();
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    if (dst.GetWidth() == 0 || dst.GetHeight() == 0) {
+    int dst_width    = dst.GetWidth();
+    int dst_height   = dst.GetHeight();
+    if (dst_width == 0 || dst_height == 0) {
         return Status(TNNERR_INVALID_INPUT, "dst size is zero");
     }
-    float w_scale =  ((float)src.GetWidth() / (float)dst.GetWidth());
-    float h_scale =  ((float)src.GetHeight() / (float)dst.GetHeight());
+    float w_scale =  ((float)src.GetWidth() / (float)dst_width);
+    float h_scale =  ((float)src.GetHeight() / (float)dst_height);
     cl_int cl_ret;
     cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
     cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
