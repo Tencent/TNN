@@ -114,7 +114,7 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     if(is_pixel){
         typedef void (*enableOpenCL_t)();
         enableOpenCL_t enableOpenCL = reinterpret_cast<enableOpenCL_t>(dlsym(handle_, "enableOpenCL"));
-        if (loadOpenCLPointer == nullptr) {
+        if (enableOpenCL == nullptr) {
             return false;
         }
         enableOpenCL();

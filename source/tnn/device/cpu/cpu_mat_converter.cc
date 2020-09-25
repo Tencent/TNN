@@ -60,6 +60,13 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
         return Status(TNNERR_NULL_PARAM, "input mat is null");
     }
 
+    int dst_width  = dst.GetWidth();
+    int dst_height = dst.GetHeight();
+
+    if (dst_width == 0 || dst_height == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
+    }
+
     if (src.GetDeviceType() != dst.GetDeviceType()) {
         return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
     }
@@ -76,13 +83,13 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
             for (int batch = 0; batch < src.GetBatch(); batch++)
             {
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
-                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst_width * dst_height * channel;
                 ResizeBilinear(src_ptr, src.GetWidth(), src.GetHeight(),
-                               dst_ptr, dst.GetWidth(), dst.GetHeight(), channel);
+                               dst_ptr, dst_width, dst_height, channel);
             } 
         } else if(param.type == INTERP_TYPE_NEAREST) {
             ResizeNearest((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),channel);
+            (uint8_t*)dst.GetData(), dst_width, dst_height, channel);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }

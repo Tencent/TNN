@@ -151,80 +151,93 @@ namespace ncnn {
                 }
                 structure->inputs_shape_map[input_name] = input_shape;
             } else {
-                auto cur_layer = std::make_shared<LayerInfo>();
-                // 0.LayerType;1.layer_name;2.input_count;3.output_count
-                std::string type_str = layer_cfg_arr[0];
-
-                cur_layer->type_str = type_str;
-                cur_layer->type     = LAYER_NOT_SUPPORT;
-                cur_layer->name     = layer_cfg_arr[1];
-
-                // 1. Parse in out nodes
-                int in_count = atoi(layer_cfg_arr[2].c_str());
-                cur_layer->inputs.clear();
-                int out_count = atoi(layer_cfg_arr[3].c_str());
-                cur_layer->outputs.clear();
-                int in_id  = layer_param_start_id;
-                int in_end = in_id + in_count;
-
-                cur_layer->inputs.reserve(std::max(in_end-in_id, 1));
-                for (; in_id < in_end; in_id++) {
-                    cur_layer->inputs.push_back(layer_cfg_arr[in_id]);
-                    structure->blobs.insert(layer_cfg_arr[in_id]);
-                }
-
-                int out_id  = in_end;
-                int out_end = out_id + out_count;
-
-                cur_layer->outputs.reserve(std::max(out_end-out_id, 1));
-                for (; out_id < out_end; out_id++) {
-                    cur_layer->outputs.push_back(layer_cfg_arr[out_id]);
-                    structure->blobs.insert(layer_cfg_arr[out_id]);
-                }
-
-                // 2. Split param dict
-                str_arr param_arr(layer_cfg_arr.begin() + out_end, layer_cfg_arr.end());
-                str_dict param_dict;
-                ret = SplitUtils::SplitParamList(param_arr, param_dict);
-                if (ret != TNN_OK) {
-                    LOGE("%s\n", ret.description().c_str());
-                    return Status(TNNERR_INVALID_NETCFG, "split layer param failed");
-                }
-
-                // 3. Create Layer interpreter
-                auto layer_interpreter = layer_interpreter_map[type_str];
-                if (layer_interpreter == NULL) {
-                    LOGET("layer %s not supported\n", "ncnn", type_str.c_str());
-                    return Status(TNNERR_INVALID_NETCFG, "nill interpreter");
-                }
-
-                // 4. Interpreter layer
-                LayerParam *param = NULL;
-                ret               = layer_interpreter->InterpretProto(type_str, param_dict, cur_layer->type, &param);
+                ret = AppendCommonLayer(layer_cfg_arr, structure, layer_interpreter_map);
                 if (ret != TNN_OK) {
                     return ret;
                 }
-
-                // 5. check Type
-                if (cur_layer->type == LAYER_NOT_SUPPORT) {
-                    LOGET("layer %s interprete failed\n", "ncnn", type_str.c_str());
-                    return Status(TNNERR_INVALID_NETCFG, "interpreter failed");
-                }
-
-                if (!param) {
-                    param = new LayerParam();
-                }
-
-                // name
-                if (param && layer_cfg_arr.size() >= 2) {
-                    param->name = layer_cfg_arr[1];
-                }
-
-                cur_layer->param = shared_ptr<LayerParam>(param);
-
-                structure->layers.push_back(cur_layer);
             }
         }
+
+        return TNN_OK;
+    }
+
+    Status NCNNModelInterpreter::AppendCommonLayer(
+            str_arr& layer_cfg_arr,
+            NetStructure *structure,
+            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map) {
+        Status ret = TNN_OK;
+        auto cur_layer = std::make_shared<LayerInfo>();
+        // 0.LayerType;1.layer_name;2.input_count;3.output_count
+        std::string type_str = layer_cfg_arr[0];
+
+        cur_layer->type_str = type_str;
+        cur_layer->type     = LAYER_NOT_SUPPORT;
+        cur_layer->name     = layer_cfg_arr[1];
+
+        // 1. Parse in out nodes
+        int in_count = atoi(layer_cfg_arr[2].c_str());
+        cur_layer->inputs.clear();
+        int out_count = atoi(layer_cfg_arr[3].c_str());
+        cur_layer->outputs.clear();
+        int in_id  = layer_param_start_id;
+        int in_end = in_id + in_count;
+
+        cur_layer->inputs.reserve(std::max(in_end-in_id, 1));
+        for (; in_id < in_end; in_id++) {
+            cur_layer->inputs.push_back(layer_cfg_arr[in_id]);
+            structure->blobs.insert(layer_cfg_arr[in_id]);
+        }
+
+        int out_id  = in_end;
+        int out_end = out_id + out_count;
+
+        cur_layer->outputs.reserve(std::max(out_end-out_id, 1));
+        for (; out_id < out_end; out_id++) {
+            cur_layer->outputs.push_back(layer_cfg_arr[out_id]);
+            structure->blobs.insert(layer_cfg_arr[out_id]);
+        }
+
+        // 2. Split param dict
+        str_arr param_arr(layer_cfg_arr.begin() + out_end, layer_cfg_arr.end());
+        str_dict param_dict;
+        ret = SplitUtils::SplitParamList(param_arr, param_dict);
+        if (ret != TNN_OK) {
+            LOGE("%s\n", ret.description().c_str());
+            return Status(TNNERR_INVALID_NETCFG, "split layer param failed");
+        }
+
+        // 3. Create Layer interpreter
+        auto layer_interpreter = layer_interpreter_map[type_str];
+        if (layer_interpreter == NULL) {
+            LOGET("layer %s not supported\n", "ncnn", type_str.c_str());
+            return Status(TNNERR_INVALID_NETCFG, "nill interpreter");
+        }
+
+        // 4. Interpreter layer
+        LayerParam *param = NULL;
+        ret               = layer_interpreter->InterpretProto(type_str, param_dict, cur_layer->type, &param);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+
+        // 5. check Type
+        if (cur_layer->type == LAYER_NOT_SUPPORT) {
+            LOGET("layer %s interprete failed\n", "ncnn", type_str.c_str());
+            return Status(TNNERR_INVALID_NETCFG, "interpreter failed");
+        }
+
+        if (!param) {
+            param = new LayerParam();
+        }
+
+        // name
+        if (param && layer_cfg_arr.size() >= 2) {
+            param->name = layer_cfg_arr[1];
+        }
+
+        cur_layer->param = shared_ptr<LayerParam>(param);
+
+        structure->layers.push_back(cur_layer);
 
         return TNN_OK;
     }

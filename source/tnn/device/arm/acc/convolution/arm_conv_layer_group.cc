@@ -171,11 +171,13 @@ Status ArmConvLayerGroup::DoForward(const std::vector<Blob *> &inputs, const std
 }
 
 Status ArmConvLayerGroup::SetGroupParam(std::shared_ptr<LayerParam> &group_param) {
+    auto conv_param_ = dynamic_cast<ConvLayerParam *>(param_);
+    CHECK_PARAM_NULL(conv_param_);
+
     auto conv_param = new ConvLayerParam();
     CHECK_PARAM_NULL(conv_param);
 
-    *conv_param                = *(dynamic_cast<ConvLayerParam *>(param_));
-    CHECK_PARAM_NULL(conv_param);
+    *conv_param                = *conv_param_;
     conv_param->output_channel = conv_param->output_channel / conv_param->group;
     conv_param->group          = 1;
 
