@@ -22,6 +22,45 @@
 
 namespace TNN_NS {
 
+Status OpenCLMatConverterAcc::SetExecuteUnit(
+        OpenCLExecuteUnit& unit, Mat& src, Mat& dst,
+        const bool copy_flag, const std::string& mat_key) {
+    Status ret = TNN_OK;
+    if(copy_flag){
+        if(execute_map_.count(mat_key) == 0) {
+            std::string program_name = "convert_to_mat";
+            std::string kernel_name = "";
+            if(N8UC4 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC4";
+            } else if (N8UC3 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC3";
+            }
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if(ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[mat_key] = unit;
+        }
+    } else {
+        if(execute_map_.count(mat_key) == 0) {
+            std::string program_name = "convert_from_mat";
+            std::string kernel_name = "";
+            if(N8UC4 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC4";
+            } else if (N8UC3 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC3";
+            }
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if(ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[mat_key] = unit;
+        }
+    }
+
+    return TNN_OK;
+}
+
 Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret           = TNN_OK;
     // force float to get the max memeory
@@ -81,37 +120,11 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     std::string mat_key = ToString(src.GetDeviceType()) + "_" + ToString(dst.GetDeviceType());
     //create convert unit only once for every key
     OpenCLExecuteUnit unit;
-    if(copy_flag){
-        if(execute_map_.count(mat_key) == 0) {
-            std::string program_name = "convert_to_mat";
-            std::string kernel_name = "";
-            if(N8UC4 == dst.GetMatType()) {
-                kernel_name = "CopyToN8UC4";
-            } else if (N8UC3 == dst.GetMatType()) {
-                kernel_name = "CopyToN8UC3";
-            }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
-            }
-            execute_map_[mat_key] = unit; 
-        }
-    } else {
-        if(execute_map_.count(mat_key) == 0) {
-            std::string program_name = "convert_from_mat";
-            std::string kernel_name = "";
-            if(N8UC4 == src.GetMatType()) {
-                kernel_name = "CopyFromN8UC4";
-            } else if (N8UC3 == src.GetMatType()) {
-                kernel_name = "CopyFromN8UC3";
-            }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
-            }
-            execute_map_[mat_key] = unit; 
-        }
+    ret = SetExecuteUnit(unit, src, dst, copy_flag, mat_key);
+    if (ret != TNN_OK) {
+        return ret;
     }
+
     // set copy_arguments
     ret                    = SetConvertArgs(unit, src, dst, false);
     if (ret != TNN_OK) {
