@@ -25,6 +25,7 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/data_format_converter.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -55,7 +56,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // add interpreter
     auto *default_interpreter                = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_                           = default_interpreter->GetNetStructure();
-    model_name_                              = NpuUtils::GetFileHash(model_config);
+    model_name_                              = NpuCommonUtils::GetFileHash(model_config);
     InputShapesMap instance_input_shapes_map = net_structure_->inputs_shape_map;
     InputShapesMap cpu_input_shape;
 
@@ -79,7 +80,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData om_model_buff;
 
-    if (use_path_ && NpuUtils::FileExits(model_path)) {
+    if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
     } else {
         // NPU IR build

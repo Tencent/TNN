@@ -12,28 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/layer/base_layer.h"
+#ifndef TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_
+#define TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_
+
+#include <tnn/core/blob.h>
+#include <tnn/interpreter/layer_resource.h>
+#include <tnn/interpreter/raw_buffer.h>
+
+#include "tnn/core/common.h"
+#include "tnn/core/status.h"
+#include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
-DECLARE_LAYER(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
 
-Status ArgMaxOrMinLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
-}
-
-Status ArgMaxOrMinLayer::InferOutputShape() {
-    auto param                      = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
-    CHECK_PARAM_NULL(param);
-    auto input_blob                 = input_blobs_[0];
-    auto output_blob                = output_blobs_[0];
-    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
-    if (param->axis < 0) {
-        param->axis += input_blob->GetBlobDesc().dims.size();
-    }
-    output_blob->GetBlobDesc().dims[param->axis] = 1;
-    return TNN_OK;
-}
-
-REGISTER_LAYER(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
+class NpuCommonUtils {
+public:
+    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
+                                         std::vector<int> &input_shape);
+    static std::string GetFileHash(ModelConfig &model_config);
+    
+    static bool FileExits(std::string model_path);
+};
 
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_UTILS_NPU_COMMON_UTILS_H_

@@ -48,7 +48,7 @@ struct MatConverterTestParam
     // WarpAffine
     WarpAffineParam warp_affine_param;
     // CvtColor
-    ColorConversionType cvt_type;
+    ColorConversionType cvt_type = COLOR_CONVERT_NV12TOBGR;
 
     // for Copy
     MatConverterTestParam(MatConverterType converter_type) :

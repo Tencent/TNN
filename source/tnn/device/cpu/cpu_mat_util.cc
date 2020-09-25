@@ -29,56 +29,29 @@ namespace TNN_NS {
 #define INTER_BITS      5
 #define INTER_TAB_SIZE  (1<<INTER_BITS)
 #define KSIZE 2
-static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
+static void ResizeGetAdjacentRows(int sy, int prev_sy, short* rows0, short* rows1, int* xofs,
                                      const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
-    if (sy == prev_sy) {
-        // reuse all rows
-    } else if (sy == prev_sy + 1) {
-        // hresize one row
-        short* rows0_old  = *rows0;
-        *rows0            = *rows1;
-        *rows1            = rows0_old;
-        const uint8_t* S1 = src + src_stride * (sy + 1);
+    const uint8_t* S0 = src + src_stride * (sy);
+    const uint8_t* S1 = src + src_stride * (sy + 1);
 
-        short* rows1p        = *rows1;
-        for (int dx = 0; dx < w; dx++) {
-            int sx   = xofs[dx];
-            short a0 = ialphap[0];
-            short a1 = ialphap[1];
+    short* rows0p        = rows0;
+    short* rows1p        = rows1;
+    for (int dx = 0; dx < w; dx++) {
+        int sx   = xofs[dx];
+        short a0 = ialphap[0];
+        short a1 = ialphap[1];
 
-            const uint8_t* S1p = S1 + sx;
+        const uint8_t* S0p = S0 + sx;
+        const uint8_t* S1p = S1 + sx;
 
-            for (int dc = 0; dc < c; ++dc) {
-                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
-            }
-
-            ialphap += 2;
-            rows1p += c;
+        for (int dc = 0; dc < c; ++dc) {
+            rows0p[dc]         = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
+            rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
         }
-    } else {
-        // hresize two rows
-        const uint8_t* S0 = src + src_stride * (sy);
-        const uint8_t* S1 = src + src_stride * (sy + 1);
 
-        short* rows0p        = *rows0;
-        short* rows1p        = *rows1;
-        for (int dx = 0; dx < w; dx++) {
-            int sx   = xofs[dx];
-            short a0 = ialphap[0];
-            short a1 = ialphap[1];
-
-            const uint8_t* S0p = S0 + sx;
-            const uint8_t* S1p = S1 + sx;
-
-            for (int dc = 0; dc < c; ++dc) {
-                rows0p[dc]         = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
-                rows1p[dc]         = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
-            }
-
-            ialphap += 2;
-            rows0p += c;
-            rows1p += c;
-        }
+        ialphap += 2;
+        rows0p += c;
+        rows1p += c;
     }
 }
 
@@ -211,7 +184,7 @@ void ResizeBilinearImpl(const uint8_t* src, int src_w, int src_h, int src_stride
 
     for (int dy = 0; dy < h; dy++) {
         int sy = yofs[dy];
-        ResizeGetAdjacentRows(sy, prev_sy, &rows0, &rows1, xofs, src, src_stride, channel, w, ialpha);
+        ResizeGetAdjacentRows(sy, prev_sy, rows0, rows1, xofs, src, src_stride, channel, w, ialpha);
         prev_sy = sy;
 
         // vresize

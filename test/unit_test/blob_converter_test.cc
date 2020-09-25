@@ -130,6 +130,17 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         mat_out_dev_data = malloc(out_size * sizeof(uint8_t));
     }
 
+#define CLEANUP()                   \
+    free(mat_in_data);              \
+    free(mat_out_ref_nchw_data);    \
+    free(mat_out_dev_nchw_data);    \
+    free(mat_out_ref_data);         \
+    free(mat_out_dev_data);         \
+
+#define CLEANUP_AND_FAIL()          \
+    CLEANUP();                      \
+    FAIL();                         \
+
     // blob desc
     BlobDesc cpu_blob_desc, device_blob_desc;
     cpu_blob_desc.dims        = {batch, channel, input_size, input_size};
@@ -184,12 +195,12 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     ret = cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
     ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
     if (ret != TNN_OK) {
         LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
 
     MatConvertParam to_mat_param;
@@ -198,13 +209,13 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     ret = cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, mat_out_dev_nchw_data);
     ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
     if (ret != TNN_OK) {
         LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
     int cmp_result    = 0;
     float compare_eps = blob_data_type == DATA_TYPE_INT8 ? max_i8_diff + 0.01 : 0.01;
@@ -220,12 +231,12 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         ret = cpu_converter.ConvertToMat(mat_out_ref, to_mat_param, NULL);
         if (ret != TNN_OK) {
             LOGE("cpu converter convert blob to mat failed, mat type: %d\n", mat_type);
-            FAIL();
+            CLEANUP_AND_FAIL();
         }
         ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-            FAIL();
+            CLEANUP_AND_FAIL();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
@@ -233,11 +244,11 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     EXPECT_EQ(0, cmp_result);
 
-    free(mat_in_data);
-    free(mat_out_ref_nchw_data);
-    free(mat_out_dev_nchw_data);
-    free(mat_out_ref_data);
-    free(mat_out_dev_data);
+    CLEANUP();
+
+#undef CLEANUP
+#undef CLEANUP_AND_FAIL
+
 }
 
 }  // namespace TNN_NS

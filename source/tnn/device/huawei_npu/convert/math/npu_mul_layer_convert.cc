@@ -16,6 +16,7 @@
 #include <tnn/core/status.h>
 #include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/huawei_npu/convert/npu_utils.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -40,7 +41,7 @@ Status NpuMulLayer::Convert() {
         auto weight_const             = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
         std::vector<int> weight_shape = resource->element_shape;
         std::vector<int> input_shape  = input_ops_[0]->GetShape();
-        Status calculate_ret          = NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
+        Status calculate_ret          = NpuCommonUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
         if (calculate_ret != TNN_OK) {
             return calculate_ret;
         }
