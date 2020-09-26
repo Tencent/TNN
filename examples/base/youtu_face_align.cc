@@ -251,7 +251,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::WarpByRect(std::shared_ptr<TNN_NS::
 returns:
     the image sent to the phase2 model
  */
-std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> image, std::shared_ptr<tnn::Mat> pre_pts, std::vector<float> mean_pts, int net_h, int net_w, float net_scale, std::vector<float>&M) {
+std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<TNN_NS::Mat> image, std::shared_ptr<TNN_NS::Mat> pre_pts, std::vector<float> mean_pts, int net_h, int net_w, float net_scale, std::vector<float>&M) {
     // check shape
     auto dims = pre_pts->GetDims();
     if(phase == 1) {
@@ -380,7 +380,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<tnn::Mat> im
 }
 
 // change BGR Mat to Gray Mat
-std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<tnn::Mat> bgr_image) {
+std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::Mat> bgr_image) {
     Status status = TNN_OK;
 
     if(bgr_image->GetMatType() != N8UC4){
@@ -474,7 +474,7 @@ std::vector<float> YoutuFaceAlign::MatrixInverse2x3(std::vector<float>& m, int r
  the maximum diff of pts before transform <=: phase1: /phase2: 0.41
  the maximum diff of pts after transform <=: phase1: /phase2: 0.78
  */
-void YoutuFaceAlign::LandMarkWarpAffine(std::shared_ptr<tnn::Mat> pts, std::vector<float> &M) {
+void YoutuFaceAlign::LandMarkWarpAffine(std::shared_ptr<TNN_NS::Mat> pts, std::vector<float> &M) {
     constexpr int N = 3;
     
     auto dims = pts->GetDims();

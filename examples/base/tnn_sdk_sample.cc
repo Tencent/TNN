@@ -13,8 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
-#include "sample_timer.h"
 #include <cstring>
+#include <sys/time.h>
 #include <float.h>
 
 #if defined(__APPLE__)
