@@ -9,7 +9,7 @@ for var in $(cmake --version | awk 'NR==1{print $3}')
 do
     cmake_version=$var
 done
-function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
+function version_lt { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
 
 if (version_lt $cmake_version 3.7.2); then
     echo "Cmake 3.7.2 or higher is required. You are running version ${cmake_version}"

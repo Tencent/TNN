@@ -17,7 +17,7 @@
 
 #include <memory>
 #include <vector>
-
+#include <algorithm>
 #include "tnn/interpreter/default_model_interpreter.h"
 
 namespace TNN_NS {

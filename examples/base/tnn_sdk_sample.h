@@ -23,6 +23,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
+#include <algorithm>
 
 #define TNN_SDK_ENABLE_BENCHMARK 1
 
