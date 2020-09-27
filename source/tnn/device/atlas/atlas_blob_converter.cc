@@ -121,7 +121,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
             return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+        return Status(TNNERR_PARAM_ERR, "not support this mat type convert yet!");
     }
 
     return TNN_OK;
@@ -234,13 +234,13 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
             } else {
-                return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
+                return Status(TNNERR_PARAM_ERR, "not support this device type convert in no-aipp model yet!");
             }
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert in no-aipp model yet!");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+        return Status(TNNERR_PARAM_ERR, "not support this mat type convert in no-aipp model yet!");
     }
 
     return TNN_OK;
@@ -270,13 +270,13 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
                                        atlas_cmd_queue->stream, true);
         if (tnn_ret != TNN_OK)
             return tnn_ret;
-    } else if (NNV12 == mat.GetMatType() && ACL_YUV420SP_U8 == model_info_.aipp_input_format) {
+    } else if ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) && ACL_YUV420SP_U8 == model_info_.aipp_input_format) {
         tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                        atlas_cmd_queue->stream, true);
         if (tnn_ret != TNN_OK)
             return tnn_ret;
     } else {
-        return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+        return Status(TNNERR_PARAM_ERR, "input mat type mismatch with static aipp!");
     }
 
     return TNN_OK;
@@ -310,7 +310,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithDynamicAipp(Mat &mat, MatCo
     int mat_bytesize = 0;
     tnn_ret          = MatUtils::GetMatByteSize(mat, mat_bytesize);
     if (TNN_OK != tnn_ret) {
-        LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithoutAipp\n");
+        LOGE("GetMatByteSize failed in ConvertFromMatAsyncWithDynamicAipp\n");
         return tnn_ret;
     }
 
