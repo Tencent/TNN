@@ -210,6 +210,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"SignedMul", LAYER_SIGNED_MUL},
     {"DetectionPostProcess", LAYER_DETECTION_POST_PROCESS},
     {"SquaredDifference", LAYER_SQUARED_DIFFERENCE},
+    {"ArgMaxOrMin", LAYER_ARG_MAX_OR_MIN},
+    {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {
