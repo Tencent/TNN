@@ -61,6 +61,64 @@ void BlobConverterTest::TearDownTestCase() {
     delete device_context_;
 }
 
+bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
+                                      MatConvertParam& from_mat_param, MatConvertParam& to_mat_param,
+                                      const DimsVector& dims, const int in_size, const int out_size,
+                                      MatType mat_type, const int mat_channel, const int channel,
+                                      BlobConverter& device_converter, void* device_command_queue,
+                                      void* mat_out_ref_data) {
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+    bool cmp_result = 0;
+    if (dev == DEVICE_OPENCL && mat_type == N8UC4) {
+        void* dev_mat_out_dev_data  = nullptr;
+        void* dev_mat_out_data  = nullptr;
+        dev_mat_out_dev_data = malloc(out_size * sizeof(uint8_t));
+        dev_mat_out_data = malloc(out_size * sizeof(uint8_t));
+
+        Mat device_mat_in(dev, mat_type, dims);
+        Status ret;
+        ret = MatUtils::Copy(cpu_mat_in, device_mat_in, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("copy cpu mat to device failed, mat type: %d\n", mat_type);
+            return false;
+        }
+        ret = device_converter.ConvertFromMat(device_mat_in, from_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
+            return false;
+        }
+
+        Mat device_mat_out(dev, mat_type, dims);
+        Mat dev_mat_out_dev(DEVICE_NAIVE, mat_type, dims, dev_mat_out_dev_data);
+        Mat dev_mat_out(DEVICE_NAIVE, mat_type, dims, dev_mat_out_data);
+
+        ret = device_converter.ConvertToMat(device_mat_out, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            return false;
+        }
+        ret = MatUtils::Copy(device_mat_out, dev_mat_out_dev, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("copy device mat to cpu failed, mat type: %d\n", mat_type);
+            return false;
+        }
+        cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_dev_data),
+                                    mat_channel, channel, out_size);
+
+        ret = device_converter.ConvertToMat(dev_mat_out, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            return false;
+        }
+        cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_data),
+                                    mat_channel, channel, out_size);
+
+        free(dev_mat_out_dev_data);
+        free(dev_mat_out_data);
+    }
+    return cmp_result;
+}
+
 INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                          ::testing::Combine(
                             // batch
@@ -193,14 +251,9 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     MatConvertParam from_mat_param;
     from_mat_param.reverse_channel = reverse_channel;
     std::vector<float> scale_data, bias_data;
-    if (mat_type != NCHW_FLOAT) {
-        scale_data = {scale, scale * 2, scale * 3, scale * 4};
-        bias_data = {bias, bias * 2, bias * 3, bias * 4};
-    } else {
-        for (int i = 0; i < channel; i++) {
-            scale_data.push_back(scale * (i + 1));
-            bias_data.push_back(bias * (i + 1));
-        }
+    for (int i = 0; i < mat_channel; i++) {
+        scale_data.push_back(scale * (i + 1));
+        bias_data.push_back(bias * (i + 1));
     }
     from_mat_param.scale = scale_data;
     from_mat_param.bias  = bias_data;
@@ -291,6 +344,10 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
+
+        cmp_result |= OpenCLMatTest(mat_in, from_mat_param, to_mat_param, dims, in_size, out_size,
+                                    mat_type, mat_channel, channel, device_converter,
+                                    device_command_queue, mat_out_ref_data);
     }
 
     EXPECT_EQ(0, cmp_result);

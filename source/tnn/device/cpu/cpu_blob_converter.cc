@@ -74,7 +74,7 @@ static void BGRToBlob(const uint8_t *src, float *dst, float *scale, float *bias,
 /*
  * Convert a nchw float mat to/from nchw float blob
  */
-static void NCHWToNCHW(const float *src, float *dst, float *scale, float *bias, int channel, int hw) {
+static void NCHWConvert(const float *src, float *dst, float *scale, float *bias, int channel, int hw) {
     for (int c = 0; c < channel; ++c) {
         for (int i = 0; i < hw; ++i) {
             int data_pos = c * hw + i;
@@ -285,8 +285,8 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWToNCHW(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
+                        param.scale.data(), param.bias.data(), dims[1], hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
@@ -384,8 +384,8 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
 
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWToNCHW(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
+                        param.scale.data(), param.bias.data(), dims[1], hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {

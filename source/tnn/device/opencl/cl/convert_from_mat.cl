@@ -76,6 +76,7 @@ __kernel void ConvertFromN8UC4(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
                                __global const uchar *input_ptr,
                                __private const int height,
                                __private const int width,
+                               __private const int channels,
                                __private const float4 scale,
                                __private const float4 bias) {
     int image_width_idx  = get_global_id(0);
@@ -90,6 +91,10 @@ __kernel void ConvertFromN8UC4(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
         ((batch_idx * height + height_idx) * width + image_width_idx) * 4;
 
     float4 values = convert_float4(vload4(0, input_ptr + buffer_offset));
+
+    if (channels == 3) {
+        values.w = 0;
+    }
 
 #ifdef SWAP_RB
     float temp = values.x;
@@ -219,7 +224,7 @@ __kernel void ConvertFromNNV21(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
 
 __kernel void ConvertFromN32FC4Image(
     GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
-    __write_only image2d_t output, __private const float4 scale,
+    __write_only image2d_t output, __private const int channels, __private const float4 scale,
     __private const float4 bias) {
     int image_width_idx  = get_global_id(0);
     int image_height_idx = get_global_id(1);
@@ -228,14 +233,19 @@ __kernel void ConvertFromN32FC4Image(
 
     int2 coord    = (int2)(image_width_idx, image_height_idx);
     float4 values = read_imagef(input, SAMPLER, coord);
-#ifdef ENABLE_SCALE_BIAS
-    values = values * scale + bias;
-#endif
+
+    if (channels == 3) {
+        values.w = 0;
+    }
 
 #ifdef SWAP_RB
     float temp = values.x;
     values.x   = values.z;
     values.z   = temp;
+#endif
+
+#ifdef ENABLE_SCALE_BIAS
+    values = values * scale + bias;
 #endif
 
     write_imagef(output, coord, values);
