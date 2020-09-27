@@ -155,83 +155,151 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
     
-## 三、Armlinux Demo 介绍
-
+## 三、Linux/Windows/ArmLinux Demo 介绍
 ### 功能
-* 展示TNN基础接口的调用方法，快速在linux环境下运行模型。
+* 快速在 Linux/Windows/ArmLinux 环境下运行模型，展示 TNN 接口的使用方法。
 
-### 编译
-* 修改build_aarch64.sh 或build_armhf.sh，以aarch64为例，需要配置编译选项：
+### 使用步骤
+#### 1. 下载 Demo 模型
+   ```
+   cd <path_to_tnn>/model
+   sh download_model.sh
+   ```
+   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+
+#### 2. 编译
+##### Linux
+* 环境要求  
+   - Cmake (>=3.7.2)
+* 编译  
+   进入 `examples/x86` 目录，执行 `build_x86_linux.sh`:
+   ```
+   cd <path_to_tnn>/examples/x86
+   ./build_x86_linux
+   ```
+* 执行  
+   进入 `examples/x86/build_x86_linux` 目录，执行文件：
+   ```
+   cd build_x86_linux
+
+   图形分类 demo
+   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   人脸检测 demo
+   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
+
+##### Windows
+* 环境要求  
+   - Visual Studio (>=2015)
+   - Cmake (>=3.7.2 或使用 Visual Studio Prompt 运行脚本)
+* 编译  
+   进入 `examples\x86` 目录，执行 `build_x86_msvc.bat`:
+   ```
+   cd <path_to_tnn>\examples\x86
+   .\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+   ```
+   如果找不到 Visual Studio 请手动指定版本
+* 执行  
+   进入 `examples\x86\build_x86_windows\Release` 目录，执行文件：
+   ```
+   cd build_x86_windows\Release
+   
+   图形分类 demo
+   .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
+
+   人脸检测 demo
+   .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+   ```
+
+##### ArmLinux
+* 环境要求
+   - Cmake (>= 3.1)
+   - 交叉编译需要安装编译工具链
+   - ubuntu: aarch64: sudo apt-get install g++-aarch64-linux-gnu      gcc-aarch64-linux-gnu  
+      arm32hf: sudo apt-get install g++-arm-linux-gnueabihf  gcc-arm-linux-gnueabihf
+   - other linux: 下载 arm toolchain: https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+
+* 编译  
+   进入 `examples/linux` 目录
+   ```
+   cd examples/linux
+   ```
+   修改 `build_aarch64.sh` 或 `build_armhf.sh`，以aarch64 为例，需要配置编译选项：
+   ```
    CC=aarch64-linux-gnu-gcc
    CXX=aarch64-linux-gnu-g++
    TNN_LIB_PATH=../../scripts/build_aarch64_linux/
-* 执行build_aarch64.sh  
-* 1.执行图像分类demo:  
+   ```
+   执行 `build_aarch64.sh`
+   ```
+   sh build_aarch64.sh
+   ```
+* 执行  
+   进入 `examples/linux/build` 目录，执行文件：
+   ```
+   cd build
+
+   图形分类 demo
    ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
-* 2.执行人脸检测demo:  
+
+   人脸检测 demo
    ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
-
+   ```
+ 
 ### 函数流程
 #### 图像分类函数流程
-* 创建predictor  
+* 创建predictor
+   ```cpp
    auto predictor = std::make_shared<ImageClassifier>();
+   ```
 * 初始化predictor  
+   ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
+   // 对 Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // 对 ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
 * 创建输入mat  
+   ```cpp
+   // 对 Linux/Windows
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // 对 ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
 * 执行predictor  
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+   ```
 #### 人脸检测函数流程
 * 创建predictor  
+   ```cpp
    auto predictor = std::make_shared<UltraFaceDetector>();
+   ```
 * 初始化predictor  
-      CHECK_TNN_STATUS(predictor->Init(option));
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Init(option));
+   // 对 Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // 对 ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
 * 创建输入mat  
+   ```cpp
+   // 对 Linux/Windows
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // 对 ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
 * 执行predictor  
+   ```cpp
    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+   ```
 * 人脸标记  
+   ```cpp
    TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
-
-## 四、X86 CPU Demo 介绍
-
-### 功能
-* 展示TNN基础接口的调用方法，快速在x86架构的机器(Linux, Windows)下运行模型。
-
-### 编译
-* Linux:  执行 build_linux.sh<br>
-  Windows:执行 build_msvc.bat<br>
-  如编译失败请参考[常见问题](openvino.md#常见问题)
-* 1.执行图像分类demo:
-   Linux: ./demo_x86_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
-   Windows: 
-  2.执行人脸检测demo
-   Linux: ./demo_x86_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
-   Windows: 
-
-### 函数流程
-#### 图像分类函数流程
-* 创建predictor  
-   auto predictor = std::make_shared<ImageClassifier>();
-* 初始化predictor  
-   CHECK_TNN_STATUS(predictor->Init(option));
-   其中 option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-* 创建输入mat  
-   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
-* 执行predictor  
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
-#### 人脸检测函数流程
-* 创建predictor  
-   auto predictor = std::make_shared<UltraFaceDetector>();
-* 初始化predictor  
-   CHECK_TNN_STATUS(predictor->Init(option));
-   其中 option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-* 创建输入mat  
-   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
-* 执行predictor  
-   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
-* 人脸标记  
-   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
+   ```
 
 ## 四、NCNN 模型使用及接口介绍
 

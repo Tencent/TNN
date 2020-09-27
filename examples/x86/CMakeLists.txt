@@ -35,6 +35,6 @@ endif()
 
 file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
-add_executable(demo_x86_linux_imagecalssify src/TNNImageClassify/TNNImageClassify.cc ${SRC})
-add_executable(demo_x86_linux_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${SRC})
+add_executable(demo_x86_imagecalssify src/TNNImageClassify/TNNImageClassify.cc ${SRC})
+add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${SRC})
 

@@ -154,80 +154,153 @@
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
    
-## III. Introduction to Armlinux Demo
+## III. Introduction to Linux/Windows/Armlinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Windows/ArmLinux environment.
 
-### Compile
-* Refer to[arm linux Readme文档](/examples/armlinux/Readme.md)
-* Run build_aarch64.sh  
-* 1.Run image classification demo:  
+### Running Steps
+#### 1. Downloand demo models
+   ```
+   cd <path_to_tnn>/model
+   sh download_model.sh
+   ```
+   If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
+
+#### 2. Compile Steps
+##### Linux
+* Environment Requirements  
+   - Cmake (>=3.7.2)
+* Compile  
+   Move to `examples/x86` directory and execute `build_x86_linux.sh`:
+   ```
+   cd <path_to_tnn>/examples/x86
+   ./build_x86_linux
+   ```
+* Execute  
+   Move to `examples/x86/build_x86_linux` directory and execute:
+   ```
+   cd build_x86_linux
+   
+   image-classification demo
+   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   face-detector demo
+   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
+
+##### Windows
+* Environment Requirements  
+   - Visual Studio (>=2015)
+   - Cmake (>=3.7.2; Or run scripts with Visual Studio Prompt)
+* Comiple  
+   Move to `examples\x86` directory and execute `build_x86_msvc.bat`:
+   ```
+   cd <path_to_tnn>\examples\x86
+   .\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+   ```
+   If Visual Studio not found, please refer to Visual Studio Version manually
+* Execute  
+   Move to `examples\x86\build_x86_windows\Release` directory and execute：
+   ```
+   cd build_x86_windows\Release
+
+   image-classification demo
+   .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
+
+   face-detector demo
+   .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+
+##### ArmLinux
+* Environment Requirements  
+   - Cmake (>=3.1)
+   - Install arm toolchain
+   - ubuntu:  
+      aarch64: sudo apt-get install g++-aarch64-linux-gnu  gcc-aarch64-linux-gnu  
+      arm32hf: sudo apt-get install g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
+  - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+* Comiple  
+   Move to `examples\linux` directory:
+   ```
+   cd <path_to_tnn>/examples/linux
+   ```
+   Modify `build_aarch64.sh` or `build_armhf.sh`，take aarch64 as an example, modify building options:
+   ```
+   CC=aarch64-linux-gnu-gcc
+   CXX=aarch64-linux-gnu-g++
+   TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+   ```
+   execute `build_aarch64.sh`
+   ```
+   sh build_aarch64.sh
+   ```
+* Execute  
+   Move to `examples/linux/build` directory and execute：
+   ```
+   cd build
+
+   image-classification demo
    ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
-* 2.Run face detection demo:  
+
+   face-detector demo
    ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
 
 ### Function process
 #### Image classification function process
 * Create predictor:  
+   ```cpp
    auto predictor = std::make_shared<ImageClassifier>();
+   ```
 * Init predictor:  
+   ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
+   // for Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
 * Create image_mat:  
+   ```cpp
+   // for Linux/Windows
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
 * Run predictor:  
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+   ```
 #### Face detection function process
 * Create predictor:  
+   ```cpp
    auto predictor = std::make_shared<UltraFaceDetector>();
+   ```
 * Init predictor:  
-      CHECK_TNN_STATUS(predictor->Init(option));
-* Create image_mat:  
-   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
-* Run predictor:  
-   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
-* Mark face:  
-   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
-
-## IV. Introduction to X86 CPU Demo
-
-### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in x86 architecture Linux/Windows environment.
-
-### Compile
-*  Linux: Run `build_linux.sh`<br>
-   Windows: Run `build_msvc.bat`<br>
-   Refer to [faq](../faq.md)
-* 1. Run image classification demo:
-   ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
-* 2.Run face detection demo:  
-   ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
-
-### Function process
-#### Image classification function process
-* Create predictor:  
-   auto predictor = std::make_shared<ImageClassifier>();
-* Init predictor:  
+   ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   Attension: option->compute_units = TNN_NS::TNNComputeUnitsOpenvino
+   // for Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
 * Create image_mat:  
+   ```cpp
+   // for Linux/Windows
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for ArmLinux
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
 * Run predictor:  
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
-#### Face detection function process
-* Create predictor:  
-   auto predictor = std::make_shared<UltraFaceDetector>();
-* Init predictor:  
-      CHECK_TNN_STATUS(predictor->Init(option));
-      Attension: option->compute_units = TNN_NS::TNNComputeUnitsOpenvino
-* Create image_mat:  
-   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
-* Run predictor:  
+   ```cpp
    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+   ```
 * Mark face:  
+   ```cpp
    TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
+   ```
 
 
-## V. NCNN model usage and interface introduction
+## IV. NCNN model usage and interface introduction
 
 - [NCNN related](./ncnn_en.md)
