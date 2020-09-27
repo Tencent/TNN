@@ -22,6 +22,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -106,6 +107,11 @@ Status Instance::SetCpuNumThreads(int num_threads) {
 // set input Mat
 Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
                              std::string input_name) {
+    if (!mat) {
+        LOGE("input mat is empty ,please check!\n");
+        return Status(TNNERR_PARAM_ERR, "input mat is empty ,please check!");;
+    }
+    
     //get input blobs
     BlobMap input_blobs;
     auto status = network_->GetAllInputBlobs(input_blobs);
@@ -178,14 +184,23 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
         return TNN_OK;
     }
     
-    //check if it has been allocated
+    //check if it has been allocated or reallocated for dims change.
     // allocate output mat
-    //创建output mat，根据应用场景不同选择不同的outputmat
-    if (output_mats_.find(output_name) == output_mats_.end()) {
+    bool need_allocate = true;
+    if (output_mats_.find(output_name) != output_mats_.end()) {
+        auto mat_dims = output_mats_[output_name]->GetDims();
+        auto blob_dims = output_blobs[output_name]->GetBlobDesc().dims;
+        if(DimsVectorUtils::Equal(mat_dims, blob_dims)) {
+            need_allocate = false;
+        }
+    }
+
+    if (need_allocate) {
         auto dims = output_blobs[output_name]->GetBlobDesc().dims;
         auto output_mat = std::make_shared<TNN_NS::Mat>(device, mat_type, dims);
         output_mats_[output_name] = output_mat;
     }
+
     mat = output_mats_[output_name];
     
     //check blob convert

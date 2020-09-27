@@ -1,0 +1,17 @@
+name: android-arm-cpu
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: sudo apt-get install attr
+    - name: build
+      run: export ANDROID_NDK=$ANDROID_HOME/ndk-bundle && ./scripts/build_android.sh

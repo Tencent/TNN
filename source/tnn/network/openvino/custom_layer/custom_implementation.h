@@ -23,6 +23,7 @@
 #include <ie_blob.h>
 
 #include <ngraph/ngraph.hpp>
+#include <ngraph/opsets/opset.hpp>
 #include <tnn/core/status.h>
 
 #ifndef TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
@@ -37,13 +38,13 @@ public:
                      BaseLayer* baselayer,
                      const std::vector<Blob*> input_blobs,
                      const std::vector<Blob*> output_blobs)
-                    : Op(input_nodes), _base_layer(baselayer), _input_blobs(input_blobs), _output_blobs(output_blobs) {
+                    : Op(input_nodes), base_layer_(baselayer), input_blobs_(input_blobs), output_blobs_(output_blobs) {
         constructor_validate_and_infer_types();
     };
 
     void validate_and_infer_types() override {
-        for (size_t i = 0; i < _output_blobs.size(); i++) {
-            auto dims0 = _output_blobs[i]->GetBlobDesc().dims;
+        for (size_t i = 0; i < output_blobs_.size(); i++) {
+            auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
             ngraph::Shape output_shape(dims0.size());
             for (size_t j = 0; j < dims0.size(); j++) {
                 output_shape[j] = dims0[j];
@@ -56,18 +57,18 @@ public:
         return true;
     }
 
-    BaseLayer* getBaseLayer() { return _base_layer; }
-    std::vector<Blob*> getInputBlobs() { return _input_blobs; }
-    std::vector<Blob*> getOutputBlobs() { return _output_blobs; }
+    BaseLayer* getBaseLayer() { return base_layer_; }
+    std::vector<Blob*> getInputBlobs() { return input_blobs_; }
+    std::vector<Blob*> getOutputBlobs() { return output_blobs_; }
 
 protected:
-    BaseLayer* _base_layer;
-    std::vector<Blob*> _input_blobs, _output_blobs; 
+    BaseLayer* base_layer_;
+    std::vector<Blob*> input_blobs_, output_blobs_; 
 };
 
 class CustomOpenvinoImpl: public InferenceEngine::ILayerExecImpl {
 public:
-    explicit CustomOpenvinoImpl(const std::shared_ptr<ngraph::Node>& node) : _node(node) {}
+    explicit CustomOpenvinoImpl(const std::shared_ptr<ngraph::Node>& node) : node_(node) {}
 
     // @brief get configurations desc of custom node implementation
     InferenceEngine::StatusCode
@@ -77,17 +78,17 @@ public:
         layerConfig.dynBatchSupport = true;
 
         auto node = GetNode();
-        for (size_t i = 0; i < _node->inputs().size(); i++) {
+        for (size_t i = 0; i < node_->inputs().size(); i++) {
             InferenceEngine::DataConfig cfg;
             cfg.constant = false;
             cfg.inPlace = -1;
 
             InferenceEngine::SizeVector order;
-            auto partialShape = _node->get_input_partial_shape(i);
+            auto partialShape = node_->get_input_partial_shape(i);
             if (partialShape.is_dynamic())
                 return InferenceEngine::GENERAL_ERROR;
             
-            auto shape = _node->get_input_shape(i);
+            auto shape = node_->get_input_shape(i);
             for (size_t j = 0; j < shape.size(); j++) {
                 order.push_back(j);
             }
@@ -95,17 +96,17 @@ public:
             layerConfig.inConfs.push_back(cfg);
         }
 
-        for (size_t i = 0; i < _node->outputs().size(); i++) {
+        for (size_t i = 0; i < node_->outputs().size(); i++) {
             InferenceEngine::DataConfig cfg;
             cfg.constant = false;
             cfg.inPlace = -1;
 
             InferenceEngine::SizeVector order;
-            auto partialShape = _node->get_output_partial_shape(i);
+            auto partialShape = node_->get_output_partial_shape(i);
             if (partialShape.is_dynamic())
                 return InferenceEngine::GENERAL_ERROR;
             
-            auto shape = _node->get_output_shape(i);
+            auto shape = node_->get_output_shape(i);
             for (size_t j = 0; j < shape.size(); j++) {
                 order.push_back(j);
             }
@@ -165,11 +166,11 @@ public:
         return InferenceEngine::OK; 
     }
     
-    // @brief get _node
-    const std::shared_ptr<ngraph::Node> GetNode() { return _node; }
+    // @brief get node_
+    const std::shared_ptr<ngraph::Node> GetNode() { return node_; }
 
 private:
-    const std::shared_ptr<ngraph::Node> _node;
+    const std::shared_ptr<ngraph::Node> node_;
 };
 
 class CustomOpenvinoLayerManager : public InferenceEngine::IExtension {
@@ -252,7 +253,7 @@ public:
 }
 
 #define DECLARE_CUSTOM_IMPLEMENTATION(type)                                                                                 \
-    class Custom##type##Impl: public tnn::CustomOpenvinoImpl {                                                              \
+    class Custom##type##Impl: public TNN_NS::CustomOpenvinoImpl {                                                              \
     public:                                                                                                                 \
         explicit Custom##type##Impl(const std::shared_ptr<ngraph::Node>& node) : CustomOpenvinoImpl(node) {}                \
     }
@@ -266,17 +267,17 @@ public:
     constexpr ngraph::NodeTypeInfo Custom##type##Op::type_info;                                                   
 
 #define DECLARE_CUSTOM_OP(type)                                                                                             \
-    class Custom##type##Op : public tnn::CustomOpenvinoOp {                                                                 \
+    class Custom##type##Op : public TNN_NS::CustomOpenvinoOp {                                                                 \
     public:                                                                                                                 \
         static constexpr ngraph::NodeTypeInfo type_info{"Custom"#type, 0};                                                  \
         const ngraph::NodeTypeInfo& get_type_info() const { return type_info; }                                             \
         Custom##type##Op(const ngraph::OutputVector input_nodes,                                                            \
-                          tnn::BaseLayer* baselayer,                                                                        \
-                          const std::vector<tnn::Blob*> input_blobs,                                                        \
-                          const std::vector<tnn::Blob*> output_blobs)                                                       \
-                        : tnn::CustomOpenvinoOp(input_nodes, baselayer, input_blobs, output_blobs) {};                      \
+                          TNN_NS::BaseLayer* baselayer,                                                                        \
+                          const std::vector<TNN_NS::Blob*> input_blobs,                                                        \
+                          const std::vector<TNN_NS::Blob*> output_blobs)                                                       \
+                        : TNN_NS::CustomOpenvinoOp(input_nodes, baselayer, input_blobs, output_blobs) {};                      \
         std::shared_ptr<ngraph::Node> copy_with_new_args(const ngraph::NodeVector& new_args) const override {               \
-            return std::make_shared<Custom##type##Op>(new_args[0]->outputs(), _base_layer, _input_blobs, _output_blobs);    \
+            return std::make_shared<Custom##type##Op>(new_args[0]->outputs(), base_layer_, input_blobs_, output_blobs_);    \
         }                                                                                                                   \
     }
 

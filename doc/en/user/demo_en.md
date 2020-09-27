@@ -93,10 +93,29 @@
    ```
 
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
+  
+   PS for Huawei NPU :
+   You need to download the DDK before run the demo. Refer to： [FAQ](../faq_en.md): Huawei NPU Compilation Prerequisite.
+ 
 
 2. Open the TNNExamples project
 
-   Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNNExamples project.
+   Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project.
+   
+   PS for Huawei NPU ：
+   
+   1).  After opening the TNN example project，you need to set the TNN_HUAWEI_NPU_ENABLE switch to ON in <path_to_tnn>/examples/android/demo/CMakeList.txt below to use Huawei NPU ：
+   
+   ````
+        set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
+      
+   2). If encountering  `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied，
+   Clean Project and rerun.
+  
+   3). Only Huawei phones of rom version >= 100.320.xxx.xxxx supportS building the example TNN models.
+  
+   To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq_en.md) to check the current NPU support and how to update the ROM.
 
 ### Running result
 1. Face Detection-Pictures
@@ -106,6 +125,11 @@
    Effect example: Huawei P30, ARM single thread 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "50%" height = " 50%"/>
+   
+       
+   Example： Huawei P30, NPU rom 100.320.010.022 9.04ms
+       
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "50%" height = "50%"/>
 
 2. Face detection-video
    Model source: https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
@@ -114,6 +138,10 @@
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "50%" height = " 50%"/>
 
+    Example： Huawei P30, NPU rom 100.320.010.022 28ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "50%" height = "50%"/>
+
 3. Image classification
 
    Model source: https://github.com/forresti/SqueezeNet
@@ -121,66 +149,156 @@
    Effect example: Huawei P30, ARM single thread 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "50%" height = " 50%"/>
-
-## III. Introduction to Armlinux Demo
+   
+   Example： Huawei P30, NPU rom 100.320.010.022 2.48ms
+    
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
+   
+## III. Introduction to Linux/Windows/Armlinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Windows/ArmLinux environment.
 
-### Compile
-* Refer to[arm linux Readme文档](/examples/armlinux/Readme.md)
+### Running Steps
+#### 1. Downloand demo models
+   ```
+   cd <path_to_tnn>/model
+   sh download_model.sh
+   ```
+   If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
 
-### Init function flow
+#### 2. Compile Steps
+##### Linux
+* Environment Requirements  
+   - Cmake (>=3.7.2)
+* Compile  
+   Move to `examples/x86` directory and execute `build_x86_linux.sh`:
+   ```
+   cd <path_to_tnn>/examples/x86
+   ./build_x86_linux
+   ```
+* Execute  
+   Move to `examples/x86/build_x86_linux` directory and execute:
+   ```
+   cd build_x86_linux
+   
+   image-classification demo
+   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
-1. Specify the model file path in TNN_NS::ModelConfig and create a TNN_NS::TNN instance.
+   face-detector demo
+   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
 
-Related code:
+##### Windows
+* Environment Requirements  
+   - Visual Studio (>=2015)
+   - Cmake (>=3.7.2; Or run scripts with Visual Studio Prompt)
+* Comiple  
+   Move to `examples\x86` directory and execute `build_x86_msvc.bat`:
+   ```
+   cd <path_to_tnn>\examples\x86
+   .\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+   ```
+   If Visual Studio not found, please refer to Visual Studio Version manually
+* Execute  
+   Move to `examples\x86\build_x86_windows\Release` directory and execute：
+   ```
+   cd build_x86_windows\Release
 
-    TNN_NS::ModelConfig model_config;
-    model_config.params.push_back(buffer);
-    model_config.params.push_back(model_file);
-    CHECK_TNN_STATUS(tnn_.Init(model_config));
+   image-classification demo
+   .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
 
-2. Specify the device type and other information in TNN_NS::NetworkConfig, then create a TNN_NS::Instance instance.
+   face-detector demo
+   .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
 
-Related code:
+##### ArmLinux
+* Environment Requirements  
+   - Cmake (>=3.1)
+   - Install arm toolchain
+   - ubuntu:  
+      aarch64: sudo apt-get install g++-aarch64-linux-gnu  gcc-aarch64-linux-gnu  
+      arm32hf: sudo apt-get install g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
+  - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+* Comiple  
+   Move to `examples\linux` directory:
+   ```
+   cd <path_to_tnn>/examples/linux
+   ```
+   Modify `build_aarch64.sh` or `build_armhf.sh`，take aarch64 as an example, modify building options:
+   ```
+   CC=aarch64-linux-gnu-gcc
+   CXX=aarch64-linux-gnu-g++
+   TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+   ```
+   execute `build_aarch64.sh`
+   ```
+   sh build_aarch64.sh
+   ```
+* Execute  
+   Move to `examples/linux/build` directory and execute：
+   ```
+   cd build
 
-    TNN_NS :: NetworkConfig config;
-    config.device_type = TNN_NS :: DEVICE_ARM;
-    TNN_NS :: Status error;
-    net_instance_ = tnn_.CreateInst (config, error);
-    CHECK_TNN_STATUS (error);
+   image-classification demo
+   ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
-3. Obtain input and output information.
+   face-detector demo
+   ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
 
-Related code:
-
-    CHECK_TNN_STATUS (net_instance _-> GetAllInputBlobs (input_blobs_));
-    CHECK_TNN_STATUS (net_instance _-> GetAllOutputBlobs (output_blobs_));
-
-### Forward function flow
-
-1. Preprocessing and data transfer.
-
-Related code:
-
-    TNN_NS :: BlobConverter input_blob_convert (input_blobs_.begin ()-> second);
-    CHECK_TNN_STATUS (
-        input_blob_convert.ConvertFromMat (input_mat, input_convert_param_, nullptr));
-
-2. Forward calculation.w
-
-Related code:
-
-    CHECK_TNN_STATUS (net_instance _-> Forward ());
-
-3. Data transferring and post-processing.
-
-Related code:
-
-    TNN_NS :: BlobConverter output_blob_convert (output_blobs_.begin ()-> second);
-    CHECK_TNN_STATUS (
-        output_blob_convert.ConvertToMat (output_mat, output_convert_param_, nullptr));
+### Function process
+#### Image classification function process
+* Create predictor:  
+   ```cpp
+   auto predictor = std::make_shared<ImageClassifier>();
+   ```
+* Init predictor:  
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Init(option));
+   // for Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
+* Create image_mat:  
+   ```cpp
+   // for Linux/Windows
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for ArmLinux
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
+* Run predictor:  
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+   ```
+#### Face detection function process
+* Create predictor:  
+   ```cpp
+   auto predictor = std::make_shared<UltraFaceDetector>();
+   ```
+* Init predictor:  
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Init(option));
+   // for Linux/Windows
+   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for ArmLinux
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   ```
+* Create image_mat:  
+   ```cpp
+   // for Linux/Windows
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for ArmLinux
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   ```
+* Run predictor:  
+   ```cpp
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+   ```
+* Mark face:  
+   ```cpp
+   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
+   ```
 
 
 ## IV. NCNN model usage and interface introduction

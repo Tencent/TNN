@@ -118,7 +118,12 @@ Add the LayerAcc implementation of the corresponding operator in the folder `<pa
 * `Reshape ()`
 * `Forward ()`
 
-(4) To implement Metal's kernel, add the corresponding metal file in the directory `<path_to_TNN>/source/tnn/device/metal/acc`, with the suffix of .metal
+### 3.5 Huawei NPU platform
+In folder`<path_to_TNN>/source/tnn/device/huawei_npu/convert`, add  the LayerConvert implementation of the corresponding operator.
+（1）Declare the LayerConvert implementation of the new operator，if no other input weights，Use`DECLARE_NPU_LAYER` to declare；  
+（2）`REGISTER_NPU_LAYER` register LayerConvert implementation of new Operator；  
+（3）Implement the following function：   
+* `Convert()` -- use IR to convert the tnn operator；  
 
 ## 4. Add Unit Test <span id = "4"> </span>
 Add the unit test file of the corresponding layer in the folder `<path_to_TNN>/test/unit_test/layer_test`.

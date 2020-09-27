@@ -44,5 +44,7 @@ void CPU_DIV(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
 void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output);
 
+void CPU_SQUARED_DIFFERENCE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes,
+                            void *output, DimsVector shape_output);
 }  // namespace TNN_NS
 #endif  // TNN_CPU_COMPUTE_ELEWISE_H_

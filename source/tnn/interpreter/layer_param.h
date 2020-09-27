@@ -110,7 +110,7 @@ struct RoiPoolingLayerParam : public LayerParam {
 
 struct UpsampleLayerParam : public LayerParam {
     //1: nereast 2:bilinear/linear
-    int type          = 0;
+    int mode          = 0;
     int align_corners = 0;
 
     // order [w h d]
@@ -139,7 +139,10 @@ struct NormalizeLayerParam : public LayerParam {
 };
 
 struct ReshapeLayerParam : public LayerParam {
-    int reshape_type = 0;  // meaning what ?
+    // reshape_type:
+    // onnx caffe reshape(nchw): 0
+    // Tensorflow TFLite reshape(nhwc): 1
+    int reshape_type = 0;
     int axis         = 0;
     int num_axes     = 0;
     std::vector<int> shape;
@@ -311,6 +314,21 @@ struct DetectionOutputLayerParam : public LayerParam {
     float eta;
 };
 
+struct DetectionPostProcessLayerParam : public LayerParam {
+    int max_detections;
+    int max_classes_per_detection;
+    int detections_per_class;
+    bool use_regular_nms;
+    float nms_score_threshold;
+    float nms_iou_threshold;
+    int num_classes;
+    // y_scale, x_scale, h_scale, w_scale
+    std::vector<float> center_size_encoding;
+    bool has_anchors;
+    int num_anchors;
+    int anchors_coord_num;
+};
+
 struct LRNLayerParam : public LayerParam {
     float alpha;
     float beta;
@@ -331,6 +349,21 @@ struct SignedMulLayerParam : public LayerParam {
     float alpha = 1.0f;
     float beta  = 1.0f;
     float gamma = 2.0f;
+};
+
+struct SqueezeLayerParam : public LayerParam {
+    std::vector<int> axes;
+};
+
+struct ArgMaxOrMinLayerParam : public LayerParam {
+    int mode;
+    int axis;
+    int keep_dims;
+    int select_last_index;
+};
+
+struct PixelShuffleLayerParam : public LayerParam {
+    int upscale_factor;
 };
 
 }  // namespace TNN_NS

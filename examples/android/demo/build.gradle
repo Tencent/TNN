@@ -36,14 +36,37 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs = ['libs']
+            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']
             jni.srcDirs = ['src/main/jni']
             assets.srcDirs = ['src/main/assets', '../../../model']
         }
     }
 }
 
+task deleteFiles(type: Delete) {
+    if ( file('src/main/jni/thirdparty/hiai_ddk/arm64-v8a').exists()) {
+        delete 'src/main/jni/thirdparty/hiai_ddk/arm64-v8a'
+    }
+    if (file('src/main/jni/thirdparty/hiai_ddk/armeabi-v7a').exists()) {
+        delete 'src/main/jni/thirdparty/hiai_ddk/armeabi-v7a'
+    }
+    if (file('src/main/jni/thirdparty/hiai_ddk/include').exists())
+        delete'src/main/jni/thirdparty/hiai_ddk/include'
+}
+clean.dependsOn(deleteFiles)
+
+task copyFiles(type: Copy) {
+    if (file('../../../third_party/huawei_npu/hiai_ddk_latest').exists()) {
+        from '../../../third_party/huawei_npu/hiai_ddk_latest'
+        into 'src/main/jni/thirdparty/hiai_ddk'
+    }
+}
+
+preBuild.dependsOn(copyFiles)
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:24.2.1'
 }
+
+

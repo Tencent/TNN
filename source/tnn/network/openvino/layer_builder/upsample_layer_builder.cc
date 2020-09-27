@@ -51,7 +51,7 @@ Status UpsampleOVLayerBuilder::Build() {
         attrs.axes.insert(axis);
     }
 
-    if (paramlist->type == 1) {
+    if (paramlist->mode == 1) {
         attrs.mode = "nearest";
     } else {
         attrs.mode = "linear";

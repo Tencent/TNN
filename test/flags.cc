@@ -20,11 +20,11 @@ DEFINE_bool(h, false, help_message);
 
 DEFINE_string(mt, "", model_type_message);
 
-DEFINE_string(nt, "", network_type_message);
-
 DEFINE_string(mp, "", model_path_message);
 
 DEFINE_string(dt, "ARM", device_type_message);
+
+DEFINE_string(nt, "NAIVE", network_type_message);
 
 DEFINE_string(lp, "", library_path_message);
 

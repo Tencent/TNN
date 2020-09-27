@@ -16,15 +16,14 @@ option(TNN_ARM_ENABLE "Enable Arm" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
-option(TNN_DSP_ENABLE "Enable DSP" OFF)
-option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
+option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
+option(TNN_RK_NPU_ENABLE "Enable RKNPU" OFF)
 option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
-option(TNN_NPU_ENABLE "Enable NPU" OFF)
-
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
 
 option(TNN_OPENMP_ENABLE "Enable OpenMP" OFF)
 option(TNN_BUILD_SHARED "Build Shared Library" ON)
+option(TNN_OPENVINO_BUILD_SHARED "Build Shared Openvino Library" OFF)
 option(TNN_TEST_ENABLE "Enable Test" OFF)
 option(TNN_UNIT_TEST_ENABLE "Enable Test" OFF)
 option(TNN_PROFILER_ENABLE "Enable Test" OFF)
@@ -32,6 +31,7 @@ option(TNN_QUANTIZATION_ENABLE "Enable Test" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
+option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 
 message(${CMAKE_SOURCE_DIR})
@@ -158,10 +158,9 @@ message(STATUS "\tArm:\t${TNN_ARM_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
-message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
-message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
+message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
+message(STATUS "\tRKNPU:\t${TNN_RK_NPU_ENABLE}")
 message(STATUS "\tOpenVINO:\t${TNN_OPENVINO_ENABLE}")
-message(STATUS "\tNPU:\t${TNN_NPU_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -171,6 +170,7 @@ message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
+message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 
 include_directories(include)
@@ -190,6 +190,10 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
+
+if(TNN_SYMBOL_HIDE AND UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
 
 if(TNN_CPU_ENABLE)
     add_subdirectory(source/tnn/device/cpu)
@@ -230,48 +234,36 @@ if(TNN_CUDA_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
-if(TNN_DSP_ENABLE)
-    add_subdirectory(source/tnn/device/dsp)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNDSP>")
+if(TNN_HUAWEI_NPU_ENABLE)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/arm-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
+                third_party/huawei_npu/hiai_ddk_latest/armeabi-v7a/
+        )
     else()
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/aarch64-android-clang6.0
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
-            )
+                third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/
+        )
+    endif()
+    add_subdirectory(source/tnn/device/huawei_npu)
+    if(TNN_CPU_ENABLE)
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
+    else()
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
     endif()
 endif()
 
-if(TNN_ATLAS_ENABLE)
-    add_subdirectory(source/tnn/device/atlas)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
-
-    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/tnn/device/atlas/cmake)
-    find_package(DDK REQUIRED)
-    include_directories(${DDK_INCLUDE_DIRS} ${DDK_CEREAL_INCLUDE_DIRS} ${DDK_PROTOBUF_INCLUDE_DIRS})
-    include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
-endif()
-
-if(TNN_NPU_ENABLE)
-    add_subdirectory(source/tnn/device/npu)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+if(TNN_RK_NPU_ENABLE)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib
-            )
+                ./third_party/rknpu/rknpu_ddk/lib64/
+        )
     else()
         link_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/npu/thirdparty/hiai_ddk_200/lib64
-            )
+                ./third_party/rknpu/rknpu_ddk/lib/
+        )
     endif()
-endif()
-
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+    add_subdirectory(source/tnn/device/rknpu)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNRKNPU>")
 endif()
 
 if(TNN_BUILD_SHARED)
@@ -308,12 +300,28 @@ if(TNN_MODEL_CHECK_ENABLE)
     add_subdirectory(tools/model_check)
 endif()
 
-if(TNN_TEST_ENABLE)
+
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
     add_subdirectory(third_party/gflags)
+    get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+    include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
+endif ()
+
+
+if(TNN_TEST_ENABLE)
     add_subdirectory(test)
 endif()
 
+if(TNN_CONVERTER_ENABLE)
+    add_subdirectory(third_party/flatbuffers)
+    add_subdirectory(tools/converter)
+endif()
+
 if(TNN_COVERAGE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -coverage -fprofile-arcs -ftest-coverage")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -coverage -lgcov")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -coverage -fprofile-arcs -ftest-coverage")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -coverage -lgcov")
+    endif()
 endif()

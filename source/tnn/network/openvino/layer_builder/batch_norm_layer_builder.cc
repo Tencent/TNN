@@ -77,7 +77,7 @@ Status BatchNormOVLayerBuilder::Build() {
         SetOutputTensors(outputNodes);
     } else {
         ngraph::OutputVector outputs;
-        auto batchNormNode = std::make_shared<CustomBatchNormOp>(input_node->outputs(), _base_layer, GetInputBlobs(), GetOutputBlobs());
+        auto batchNormNode = std::make_shared<CustomBatchNormOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
         batchNormNode->set_friendly_name(param_->name);
         ngraph::NodeVector outputNodes;
         outputNodes.push_back(batchNormNode);

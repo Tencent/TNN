@@ -7,7 +7,7 @@
 <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
 
 TNN currently supports the industry's mainstream model file formats, including ONNX, Pytorch, Tensorflow and Caffe. As shown in the figure above, TNN utilizes ONNX as the intermediate port to support multiple model file formats. 
-To convert model file formats such as Pytorch, Tensorflow, and Caffe to TNN, you need to use corresponding tool to convert from the original format to ONNX model first, which then will be transferred into a TNN model.
+To convert model file formats such as Pytorch, Tensorflow, TensorFlow-Lite, and Caffe to TNN, you need to use corresponding tool to convert from the original format to ONNX model first, which then will be transferred into a TNN model.
 
 | Source Model   | Convertor        | Target Model |
 |------------|-----------------|----------|
@@ -15,6 +15,7 @@ To convert model file formats such as Pytorch, Tensorflow, and Caffe to TNN, you
 | Tensorflow | tensorflow-onnx | ONNX     |
 | Caffe      | caffe2onnx      | ONNX     |
 | ONNX       | onnx2tnn        | TNN      |
+| TensorFlow-Lite     | tflite2tnn      | TNN      |
 
 At present, TNN only supports common network structures such as CNN. Networks like RNN and GAN are under development.
 
@@ -90,6 +91,7 @@ positional arguments:
     onnx2tnn            convert onnx model to tnn model
     caffe2tnn           convert caffe model to tnn model
     tf2tnn              convert tensorflow model to tnn model
+    tflite2tnn          convert tensorflow-lite model to tnn model
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -125,7 +127,7 @@ Here are the explanations for each parameter:
 - in parameter (required)
     Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
 - on parameter (required)
-    Specify the name of the model input through the "-on" parameter. If the model has multiple outputs, use ";" to split
+    Specify the name of the model output through the "-on" parameter. If the model has multiple outputs, use ";" to split
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
@@ -161,6 +163,15 @@ The above information only introduces the conversion for Tensorflow's models. It
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/mobilenetv3-small-c7eb32fe.onnx -optimize -v=v3.0
 # convert caffe
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py caffe2tnn /workspace/squeezenet.prototxt /workspace/squeezenet.caffemodel -optimize -v=v1.0
+
+# convert tflite
+docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter.py tflite2tnn \
+    /workspace/mobilenet_v1_1.0_224.tflite \
+    -v v1.0 \
+    -align  \
+    -input_file /workspace/in.txt \
+    -ref_file /workspace/ref.txt
+
 
 ```
 
@@ -408,6 +419,30 @@ Example：
 ```shell script
 python3 converter.py tf2tnn -tp ~/tf-model/test.pb -in=input0,input2 -on=output0 -v=v2.0 -optimize -o ~/tf-model/
 ```
+- tensorflow-lite2tnn
+
+The current tensorflow2tnn only supports the tflite format model which is  to facilitate mobile deployment.
+
+``` shell script
+python3 converter.py tflite2tnn -h
+```
+usage information：
+```
+usage: convert tflite2tnn [-h] TF_PATH [-o OUTPUT_DIR] [-v v1.0] [-align]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  TF_PATH           the path for tensorflow-lite graphdef file
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -align                align the tensorflow-lite model with tnn model
+  -input_file in.txt    the input file path which contains the input data for the inference model
+  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+```
+Example：
+```shell script
+python3 converter.py tflite2tnn  ~/tf-model/test.tflite  -o ~/tf-model/
+```
 
 ## Model Conversion Details
 convert2tnn is just an encapsulation of a variety of tools for model converting. According to the principles explained in the previous part "Introduction to model conversion", you can also convert the original model into ONNX first, and then convert the ONNX model into a TNN model. We provide documentation on how to manually convert Caffe, Pytorch, TensorFlow models into ONNX models, and then convert ONNX models into TNN models. If you encounter problems when using the convert2tnn converter, we recommend that you understand the relevant content, which may help you to use the tool more smoothly.
@@ -416,3 +451,4 @@ convert2tnn is just an encapsulation of a variety of tools for model converting.
 - [pytorch2tnn](onnx2tnn_en.md)
 - [tf2tnn](tf2tnn_en.md)
 - [caffe2tnn](caffe2tnn_en.md)
+- [tflite2tnn](tflite2tnn_en.md)

@@ -15,7 +15,13 @@
 #import "UIImage+Utility.h"
 
 namespace utility {
-std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width) {
+std::shared_ptr<char> UIImageGetData(UIImage *image) {
+    int height = (int)CGImageGetHeight(image.CGImage);
+    int width  = (int)CGImageGetWidth(image.CGImage);
+    return UIImageGetData(image, height, width, 0);
+}
+
+std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width, int gravity) {
     std::shared_ptr<char> data = nullptr;
     if (image == nil || image.CGImage == nil || height <= 0 || width <= 0) {
         return data;
@@ -28,8 +34,8 @@ std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width) {
     if (cols == 0 || rows == 0) {
         return data;
     }
-
-    data = std::shared_ptr<char>(new char[rows * cols * 4], [](char *p) { delete[] p; });
+    
+    data = std::shared_ptr<char>((char*)calloc(rows * cols * 4, 1), [](char *p) { free(p); });
 
     CGContextRef contextRef =
         CGBitmapContextCreate(data.get(),                                             // Pointer to backing data
@@ -41,11 +47,56 @@ std::shared_ptr<char> UIImageGetData(UIImage *image, int height, int width) {
                               kCGImageAlphaNoneSkipLast | kCGBitmapByteOrderDefault); // Bitmap info flags
 
     CGContextSetInterpolationQuality(contextRef, kCGInterpolationHigh);
-    CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
+    
+    int image_orig_height = (int)CGImageGetHeight(image.CGImage);
+    int image_orig_width = (int)CGImageGetWidth(image.CGImage);
+    
+    float image_target_aspect = height/(float)(width + FLT_EPSILON);
+    float image_orig_aspect = image_orig_height/(float)(image_orig_width + FLT_EPSILON);
+    
+    if (gravity == 1) {
+        int offset_x = 0;
+        int offset_y = 0;
+        if (image_orig_aspect > image_target_aspect) {
+            int object_aspect_width = height / image_orig_aspect;
+            offset_x = (width - object_aspect_width) / 2;
+        } else {
+            int object_aspect_height = width * image_orig_aspect;
+            offset_y = (height - object_aspect_height) / 2;
+        }
+        CGContextDrawImage(contextRef,
+                           CGRectMake(offset_x, offset_y, cols-2*offset_x, rows - 2*offset_y),
+                           image.CGImage);
+    } else if (gravity == 2) {
+        int offset_x = 0;
+        int offset_y = 0;
+        if (image_orig_aspect > image_target_aspect) {
+            int object_aspect_height = image_orig_width * image_target_aspect;
+            offset_y = (image_orig_height - object_aspect_height) / 2;
+        } else {
+            int object_aspect_width = image_orig_height / image_target_aspect;
+            offset_x = (image_orig_width - object_aspect_width) / 2;
+        }
+        
+        auto image_crop_ref = CGImageCreateWithImageInRect(image.CGImage,
+                                                           CGRectMake(offset_x, offset_y, image_orig_width-2*offset_x, image_orig_height-2*offset_y));
+        CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image_crop_ref);
+        CGImageRelease(image_crop_ref);
+    } else {
+        CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
+    }
+    
     CGContextRelease(contextRef);
     CGColorSpaceRelease(colorSpace);
 
     return data;
+}
+
+UIImage * UIImageCrop(UIImage *image, CGRect rect) {
+    CGImageRef imageRef = CGImageCreateWithImageInRect([image CGImage], rect);
+    UIImage *croppedImage = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return croppedImage;
 }
 
 UIImage *UIImageWithDataRGBA(void *image_data, int height, int width) {
@@ -100,6 +151,11 @@ UIImage *UIImageWithCVImageBuffRef(CVImageBufferRef imageBuffer) {
     return (image);
 }
 
+std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer) {
+    CGSize size = CVImageBufferGetDisplaySize(image_buffer);
+    return CVImageBuffRefGetData(image_buffer, size.height, size.width);
+}
+
 std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int target_height, int target_width) {
     std::shared_ptr<char> data = nullptr;
     if (image_buffer == nil){
@@ -136,7 +192,7 @@ std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int t
                                                         kCGImageAlphaNoneSkipLast | kCGBitmapByteOrderDefault);
 
         CGContextSetInterpolationQuality(context_target, kCGInterpolationHigh);
-        CGContextDrawImage(context_target, CGRectMake(0, 0, width, height), cgmage_orig);
+        CGContextDrawImage(context_target, CGRectMake(0, 0, target_width, target_height), cgmage_orig);
         CGContextRelease(context_target);
     }
     

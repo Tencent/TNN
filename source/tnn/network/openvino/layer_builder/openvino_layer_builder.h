@@ -72,7 +72,7 @@ protected:
     virtual Status Build() = 0 ;
 
     virtual LayerResource* GetResource();
-    BaseLayer* _base_layer;
+    BaseLayer* base_layer_;
 
     std::map<DataType, ngraph::element::Type_t> dataTypeTransfer = {
         {DATA_TYPE_FLOAT, ngraph::element::Type_t::f32},

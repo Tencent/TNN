@@ -17,53 +17,36 @@
 #include <cmath>
 #include <cstring>
 
+#define num_featuremap 4
+#define hard_nms 1
+#define blending_nms 2 /* mix nms was been proposaled in paper blaze face, aims to minimize the temporal jitter*/
 #define clip(x, y) (x < 0 ? 0 : (x > y ? y : x))
 
-/*
- * Adjust face info to original size
- */
-std::vector<FaceInfo> AdjustFaceInfoToOriginalSize(std::vector<FaceInfo> face_info,
-                                                int detect_image_height, int detect_image_width,
-                                                int orig_image_height, int orig_image_width)
-{
-    float scale_x = orig_image_width/(float)detect_image_width;
-    float scale_y = orig_image_height/(float)detect_image_height;
-    
-    std::vector<FaceInfo>  face_info_orig;
-    for (int i = 0; i < face_info.size(); i++) {
-        auto face = face_info[i];
-        int x_min = std::min(face.x1, face.x2)*scale_x;
-        int x_max = std::max(face.x1, face.x2)*scale_x;
-        int y_min = std::min(face.y1, face.y2)*scale_y;
-        int y_max = std::max(face.y1, face.y2)*scale_y;
-        
-        x_min = std::min(std::max(x_min, 0), orig_image_width-1);
-        x_max = std::min(std::max(x_max, 0), orig_image_width-1);
-        y_min = std::min(std::max(y_min, 0), orig_image_height-1);
-        y_max = std::min(std::max(y_max, 0), orig_image_height-1);
-        
-        face.x1 = x_min;
-        face.x2 = x_max;
-        face.y1 = y_min;
-        face.y2 = y_max;
-        
-        face_info_orig.push_back(face);
-    }
-    return face_info_orig;
-}
+namespace TNN_NS {
+UltraFaceDetectorOption::UltraFaceDetectorOption() {}
 
-/*
- * Initializing the FaceDetector.
- */
-UltraFaceDetector::UltraFaceDetector(int input_width, int input_length, int num_thread_, float score_threshold_,
-                                     float iou_threshold_, int topk_) {
-    num_thread      = num_thread_;
-    topk            = topk_;
-    score_threshold = score_threshold_;
-    iou_threshold   = iou_threshold_;
-    in_w            = input_width;
-    in_h            = input_length;
-    w_h_list        = {in_w, in_h};
+UltraFaceDetectorOption::~UltraFaceDetectorOption() {}
+
+UltraFaceDetectorInput::~UltraFaceDetectorInput() {}
+
+UltraFaceDetectorOutput::~UltraFaceDetectorOutput() {}
+
+Status UltraFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
+    Status status = TNN_OK;
+    auto option = dynamic_cast<UltraFaceDetectorOption *>(option_i.get());
+    RETURN_VALUE_ON_NEQ(!option, false,
+                        Status(TNNERR_PARAM_ERR, "TNNSDKOption is invalid"));
+    
+    status = TNNSDKSample::Init(option_i);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    auto input_dims = GetInputShape();
+    int in_h = input_dims[2];
+    int in_w = input_dims[3];
+    option->input_height = in_h;
+    option->input_width  = in_w;
+
+    auto w_h_list = {in_w, in_h};
 
     for (auto size : w_h_list) {
         std::vector<float> fm_item;
@@ -96,6 +79,8 @@ UltraFaceDetector::UltraFaceDetector(int input_width, int input_length, int num_
     }
     num_anchors = priors.size();
     /* generate prior anchors finished */
+    
+    return status;
 }
 
 /*
@@ -103,82 +88,72 @@ UltraFaceDetector::UltraFaceDetector(int input_width, int input_length, int num_
  */
 UltraFaceDetector::~UltraFaceDetector() {}
 
-/*
- * Do detection
- */
-int UltraFaceDetector::Detect(std::shared_ptr<TNN_NS::Mat> image_mat, int image_height, int image_width,
-                              std::vector<FaceInfo> &face_list) {
-    if (!image_mat || !image_mat->GetData()) {
-        std::cout << "image is empty ,please check!" << std::endl;
-        return -1;
+MatConvertParam UltraFaceDetector::GetConvertParamForInput(std::string tag) {
+    MatConvertParam input_convert_param;
+    input_convert_param.scale = {1.0 / 128, 1.0 / 128, 1.0 / 128, 0.0};
+    input_convert_param.bias  = {-127.0 / 128, -127.0 / 128, -127.0 / 128, 0.0};
+    return input_convert_param;
+}
+
+std::shared_ptr<TNNSDKOutput> UltraFaceDetector::CreateSDKOutput() {
+    return std::make_shared<UltraFaceDetectorOutput>();
+}
+
+std::shared_ptr<Mat> UltraFaceDetector::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
+                                                                   std::string name) {
+    auto target_dims = GetInputShape(name);
+    auto input_height = input_mat->GetHeight();
+    auto input_width = input_mat->GetWidth();
+    if (target_dims.size() >= 4 &&
+        (input_height != target_dims[2] || input_width != target_dims[3])) {
+        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
+                                                        input_mat->GetMatType(), target_dims);
+        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
+        if (status == TNN_OK) {
+            return target_mat;
+        } else {
+            LOGE("%s\n", status.description().c_str());
+            return nullptr;
+        }
     }
+    return input_mat;
+}
 
-    image_h = image_height;
-    image_w = image_width;
-
-#if TNN_SDK_ENABLE_BENCHMARK
-    bench_result_.Reset();
-    tnn::SampleTimer timer;
-    for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {    
-        timer.Start();
-#endif
-        // step 1. set input mat
-        TNN_NS::MatConvertParam input_convert_param;
-        input_convert_param.scale = {1.0 / 128, 1.0 / 128, 1.0 / 128, 0.0};
-        input_convert_param.bias  = {-127.0 / 128, -127.0 / 128, -127.0 / 128, 0.0};
-        auto status = instance_->SetInputMat(image_mat, input_convert_param);
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("input_blob_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
-            return status;
-        }
-
-        // step 2. Forward
-        status = instance_->ForwardAsync(nullptr);
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("instance.Forward Error: %s\n", status.description().c_str());
-            return status;
-        }
-
-        // step 3. get output mat
-        TNN_NS::MatConvertParam output_convert_param;
-        std::shared_ptr<TNN_NS::Mat> output_mat_scores = nullptr;
-        status = instance_->GetOutputMat(output_mat_scores, output_convert_param, "scores");
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("GetOutputMat Error: %s\n", status.description().c_str());
-            return status;
-        }
-        
-        std::shared_ptr<TNN_NS::Mat> output_mat_boxes = nullptr;
-        status = instance_->GetOutputMat(output_mat_boxes, output_convert_param, "boxes");
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("GetOutputMat Error: %s\n", status.description().c_str());
-            return status;
-        }
-        
-#if TNN_SDK_ENABLE_BENCHMARK
-        timer.Stop();
-        bench_result_.AddTime(timer.GetTime());
-        timer.Reset();
-#endif
-
-        std::vector<FaceInfo> bbox_collection;
-        std::vector<FaceInfo> valid_input;
-
-        GenerateBBox(bbox_collection, *(output_mat_scores.get()), *(output_mat_boxes.get()), score_threshold,
-                     num_anchors);
-        NMS(bbox_collection, face_list);
-
-#if TNN_SDK_ENABLE_BENCHMARK
-    }
-#endif
-    // Detection done
-    return 0;
+Status UltraFaceDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
+    Status status = TNN_OK;
+    auto option = dynamic_cast<UltraFaceDetectorOption *>(option_.get());
+    RETURN_VALUE_ON_NEQ(!option, false,
+                        Status(TNNERR_PARAM_ERR, "TNNSDKOption is invalid"));
+    auto output = dynamic_cast<UltraFaceDetectorOutput *>(output_.get());
+    RETURN_VALUE_ON_NEQ(!output, false,
+                        Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
+    
+    std::vector<FaceInfo> bbox_collection;
+    std::vector<FaceInfo> valid_input;
+    
+    auto output_mat_scores = output->GetMat("scores");
+    auto output_mat_boxes = output->GetMat("boxes");
+    RETURN_VALUE_ON_NEQ(!output_mat_scores, false,
+                        Status(TNNERR_PARAM_ERR, "output_mat_scores is invalid"));
+    RETURN_VALUE_ON_NEQ(!output_mat_boxes, false,
+                        Status(TNNERR_PARAM_ERR, "output_mat_boxes is invalid"));
+    
+    GenerateBBox(bbox_collection, *(output_mat_scores.get()), *(output_mat_boxes.get()),
+                 option->input_width, option->input_height,
+                 option->score_threshold, num_anchors);
+    
+    std::vector<FaceInfo> face_list;
+    NMS(bbox_collection, face_list, option->iou_threshold);
+    output->face_list = face_list;
+    return status;
 }
 
 /*
  * Generating Bbox from output blobs
  */
-void UltraFaceDetector::GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
+void UltraFaceDetector::GenerateBBox(std::vector<FaceInfo> &bbox_collection,
+                                     TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
+                                     int image_w, int image_h,
                                      float score_threshold, int num_anchors) {
     float *scores_data = (float *)scores.GetData();
     float *boxes_data  = (float *)boxes.GetData();
@@ -186,6 +161,9 @@ void UltraFaceDetector::GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN
     for (int i = 0; i < num_anchors; i++) {
         if (scores_data[i * 2 + 1] > score_threshold) {
             FaceInfo rects;
+            rects.image_width = image_w;
+            rects.image_height = image_h;
+            
             float x_center = boxes_data[i * 4] * center_variance * priors[i][2] + priors[i][0];
             float y_center = boxes_data[i * 4 + 1] * center_variance * priors[i][3] + priors[i][1];
             float w        = exp(boxes_data[i * 4 + 2] * size_variance) * priors[i][2];
@@ -204,7 +182,8 @@ void UltraFaceDetector::GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN
 /*
  * NMS
  */
-void UltraFaceDetector::NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, int type) {
+void UltraFaceDetector::NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output,
+                            float iou_threshold, int type) {
     std::sort(input.begin(), input.end(), [](const FaceInfo &a, const FaceInfo &b) { return a.score > b.score; });
     output.clear();
 
@@ -276,14 +255,17 @@ void UltraFaceDetector::NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> 
                     rects.x2 += buf[i].x2 * rate;
                     rects.y2 += buf[i].y2 * rate;
                     rects.score += buf[i].score * rate;
+                    
+                    rects.image_height = buf[i].image_height;
+                    rects.image_width = buf[i].image_width;
                 }
                 output.push_back(rects);
                 break;
             }
             default: {
-                printf("wrong type of nms.");
-                exit(-1);
             }
         }
     }
+}
+
 }

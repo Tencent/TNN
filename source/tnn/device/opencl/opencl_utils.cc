@@ -21,6 +21,10 @@
 #include "tnn/core/profile.h"
 #include "tnn/utils/half_utils.h"
 
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+#include <sys/system_properties.h>
+#endif
+
 namespace TNN_NS {
 
 std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
@@ -63,13 +67,13 @@ void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event
     cl_int error = CL_SUCCESS;
     error        = event->wait();
     CHECK_CL_SUCCESS(error);
-    int queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
+    unsigned long long queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
     CHECK_CL_SUCCESS(error);
-    int submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
+    unsigned long long submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
     CHECK_CL_SUCCESS(error);
-    int start_t = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
     CHECK_CL_SUCCESS(error);
-    int end_t = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
     CHECK_CL_SUCCESS(error);
     kernel_time  = (end_t - start_t) / 1000000.0;
     event_queued = (double)queued_t;
@@ -223,6 +227,26 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
     lws.clear();
 
     return lws;
+}
+
+Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
+{
+    bool force_fp32 = false;
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+    char sdk[128] = "0";
+    __system_property_get("ro.build.version.sdk", sdk);
+    int sdk_version = atoi(sdk);
+    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    force_fp32 = (sdk_version <= 25);
+#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
+    force_fp32 = true;
+#endif
+
+    if (force_fp32) {
+        build_options.emplace("-DFORCE_FP32");
+    }
+
+    return TNN_OK;
 }
 
 // calculate 3d local size

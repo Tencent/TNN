@@ -51,10 +51,10 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
     // create kernel
     std::string kernel_name;
-    if (upsample_param->type == 1) {  // nearst
+    if (upsample_param->mode == 1) {  // nearst
         LOGD("build nearest\n");
         kernel_name = "Nearest";
-    } else if (upsample_param->type == 2) {  // bilinear
+    } else if (upsample_param->mode == 2) {  // bilinear
         if (upsample_param->align_corners) {
             LOGD("build bilinear with aligned corners\n");
             kernel_name = "BilinearAlignCorners";
@@ -63,8 +63,8 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
             kernel_name = "Bilinear";
         }
     } else {
-        LOGE("Not support Upsample type: %d\n", upsample_param->type);
-        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample type");
+        LOGE("Not support Upsample type: %d\n", upsample_param->mode);
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
     }
     if (run_3d_ndrange_) {
         kernel_name += "GS3D";
@@ -105,7 +105,7 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     float height_scale;
     float width_scale;
-    if (upsample_param->type == 2 && upsample_param->align_corners) {
+    if (upsample_param->mode == 2 && upsample_param->align_corners) {
         height_scale = (float)(input_height - 1) / (float)(output_height - 1);
         width_scale  = (float)(input_width - 1) / (float)(output_width - 1);
     } else {
