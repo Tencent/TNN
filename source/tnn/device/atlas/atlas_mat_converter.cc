@@ -115,9 +115,11 @@ Status AtlasMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     aclrtMemcpyKind memcpy_type;
     if (DEVICE_ATLAS == src.GetDeviceType() && DEVICE_ATLAS == dst.GetDeviceType()) {
         memcpy_type = ACL_MEMCPY_DEVICE_TO_DEVICE;
-    } else if (DEVICE_ATLAS == src.GetDeviceType() && (DEVICE_NAIVE == dst.GetDeviceType() || DEVICE_ARM == dst.GetDeviceType())) {
+    } else if (DEVICE_ATLAS == src.GetDeviceType() &&
+               (DEVICE_NAIVE == dst.GetDeviceType() || DEVICE_ARM == dst.GetDeviceType())) {
         memcpy_type = ACL_MEMCPY_DEVICE_TO_HOST;
-    } else if ((DEVICE_NAIVE == src.GetDeviceType() || DEVICE_ARM == src.GetDeviceType()) && DEVICE_ATLAS == dst.GetDeviceType()) {
+    } else if ((DEVICE_NAIVE == src.GetDeviceType() || DEVICE_ARM == src.GetDeviceType()) &&
+               DEVICE_ATLAS == dst.GetDeviceType()) {
         memcpy_type = ACL_MEMCPY_HOST_TO_DEVICE;
     } else {
         return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "invalid mat device type for atlas Copy()");

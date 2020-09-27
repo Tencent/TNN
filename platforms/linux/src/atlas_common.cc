@@ -83,9 +83,9 @@ int GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
 
     auto input_data_format = input_blob->GetBlobDesc().data_format;
     printf("input data format: %d\n", input_data_format);
-    auto input_dims           = input_blob->GetBlobDesc().dims;
-    int batch                 = input_dims[0];
-    input_dims[0]             = 1;
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    int batch       = input_dims[0];
+    input_dims[0]   = 1;
     std::vector<int> mat_dims;
     if (input_data_format == DATA_FORMAT_NCHW) {
         mat_dims = input_dims;
@@ -130,7 +130,7 @@ int GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
     }
 
     output_mat = Mat(DEVICE_ATLAS, NNV12, {0, 0, 0, 0}, nullptr);
-    tnn_ret = MatUtils::ConcatMatWithBatch(input_mat_vec, output_mat, command_queue);
+    tnn_ret    = MatUtils::ConcatMatWithBatch(input_mat_vec, output_mat, command_queue);
     if (TNN_OK != tnn_ret) {
         printf("Concat mat failed\n");
         return -1;
@@ -191,16 +191,18 @@ void* RunTNN(void* param) {
     instance_->GetAllInputBlobs(input_blobs);
     Blob* input = input_blobs.begin()->second;
     for (auto it = input_blobs.begin(); it != input_blobs.end(); ++it) {
-        printf("input(%s) data_format: %s  data shape [ %d %d %d %d ]\n", it->first.c_str(), 
-               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW", 
-               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
+        printf("input(%s) data_format: %s  data shape [ %d %d %d %d ]\n", it->first.c_str(),
+               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW",
+               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2],
+               it->second->GetBlobDesc().dims[3]);
     }
     instance_->GetAllOutputBlobs(output_blobs);
 
     for (auto it = output_blobs.begin(); it != output_blobs.end(); ++it) {
         printf("output(%s) data_format: %s  data shape [ %d %d %d %d ]\n", it->first.c_str(),
-               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW", 
-               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2], it->second->GetBlobDesc().dims[3]);
+               DATA_FORMAT_NHWC == it->second->GetBlobDesc().data_format ? "NHWC" : "NCHW",
+               it->second->GetBlobDesc().dims[0], it->second->GetBlobDesc().dims[1], it->second->GetBlobDesc().dims[2],
+               it->second->GetBlobDesc().dims[3]);
     }
 
     // get input mat
@@ -254,7 +256,7 @@ void* RunTNN(void* param) {
     // copy data from atlas buffer
     // then dump to files
     for (auto output : output_blobs) {
-        auto output_dims = output.second->GetBlobDesc().dims;
+        auto output_dims                 = output.second->GetBlobDesc().dims;
         std::vector<int> output_mat_dims = output_dims;
         if (DATA_FORMAT_NHWC == output.second->GetBlobDesc().data_format) {
             output_mat_dims = {output_dims[0], output_dims[3], output_dims[1], output_dims[2]};

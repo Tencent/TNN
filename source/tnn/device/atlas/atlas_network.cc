@@ -276,7 +276,8 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
 }
 
 Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
-    aclError ret = aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &model_weight_size_);
+    aclError ret =
+        aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &model_weight_size_);
     if (ret != ACL_ERROR_NONE) {
         LOGE("query model failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
@@ -295,8 +296,8 @@ Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
     }
 
-    ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_, model_weight_ptr_,
-                                    model_weight_size_);
+    ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_,
+                                   model_weight_ptr_, model_weight_size_);
     if (ret != ACL_ERROR_NONE) {
         LOGE("load model from file failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "load model from file failed");
@@ -410,7 +411,7 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "no model description");
     }
 
-    Status ret = TNN_OK;
+    Status ret            = TNN_OK;
     std::string blob_name = "";
     std::vector<int> io_dims;
     aclDataType data_type;
@@ -499,7 +500,8 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
     return TNN_OK;
 }
 
-Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int>& input_dims, aclFormat& input_format, aclDataType& input_data_type) {
+Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int> &input_dims, aclFormat &input_format,
+                                  aclDataType &input_data_type) {
     std::string blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
     aclAippInfo aipp_info;
     aclError acl_ret = aclmdlGetFirstAippInfo(model_id_, index, &aipp_info);

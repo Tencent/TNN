@@ -32,8 +32,9 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
 
     auto model_info_map = AtlasRuntime::GetInstance()->GetModleInfoMap();
     if (model_info_map.find(blob) != model_info_map.end()) {
-        model_info_      = model_info_map[blob];
-        aclError acl_ret = aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &dynamic_aipp_index_);
+        model_info_ = model_info_map[blob];
+        aclError acl_ret =
+            aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &dynamic_aipp_index_);
         LOGD("acl ret: %d  input_index: %d\n", acl_ret, dynamic_aipp_index_);
         if (ACL_ERROR_NONE == acl_ret) {
             aipp_type_ = AIPP_DYNAMIC;
@@ -246,7 +247,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatConvertParam param,
-                                                          AtlasCommandQueue *atlas_cmd_queue) {
+                                                                AtlasCommandQueue *atlas_cmd_queue) {
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -282,7 +283,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithDynamicAipp(Mat &mat, MatConvertParam param,
-                                                          AtlasCommandQueue *atlas_cmd_queue) {
+                                                                 AtlasCommandQueue *atlas_cmd_queue) {
     Status tnn_ret = SetDynamicAipp(mat, param);
     if (TNN_OK != tnn_ret) {
         LOGE("set dynamic aipp failed!\n");
@@ -465,7 +466,8 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     }
 
     // set input aipp
-    acl_ret = aclmdlSetInputAIPP(model_info_.model_id, model_info_.input_dataset, dynamic_aipp_index_, aipp_dynamic_set_);
+    acl_ret =
+        aclmdlSetInputAIPP(model_info_.model_id, model_info_.input_dataset, dynamic_aipp_index_, aipp_dynamic_set_);
     if (ACL_ERROR_NONE != acl_ret) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set input failed!\n");
     }

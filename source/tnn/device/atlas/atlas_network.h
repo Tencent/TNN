@@ -84,7 +84,8 @@ private:
     Status AddBlobToMap(size_t index, void *data, bool is_input);
 
     // @brief get input dims
-    Status GetInputInfo(size_t index, std::vector<int>& input_dims, aclFormat& input_format, aclDataType& input_data_type);
+    Status GetInputInfo(size_t index, std::vector<int> &input_dims, aclFormat &input_format,
+                        aclDataType &input_data_type);
 
     // @brief set dynmaic batch size
     Status SetDynamicBatchSize(std::string blob_name, int batch_size);

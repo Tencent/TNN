@@ -23,11 +23,7 @@
 
 namespace TNN_NS {
 
-typedef enum {
-    AIPP_NONE = 0,
-    AIPP_STATIC,
-    AIPP_DYNAMIC
-} AippType;
+typedef enum { AIPP_NONE = 0, AIPP_STATIC, AIPP_DYNAMIC } AippType;
 
 class AtlasBlobConverterAcc : public BlobConverterAcc {
 public:

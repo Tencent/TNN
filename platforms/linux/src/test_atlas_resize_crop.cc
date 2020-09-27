@@ -40,7 +40,7 @@
 using namespace TNN_NS;
 TNN net_;
 
-#define OUTPUT_WIDTH  300 
+#define OUTPUT_WIDTH 300
 #define OUTPUT_HEIGHT 300
 
 int main(int argc, char* argv[]) {
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
     }
 
     printf("input dims: c: %d  h: %d  w: %d\n", channel, height, width);
-    std::vector<int> input_dims = {1, channel, height, width};
+    std::vector<int> input_dims  = {1, channel, height, width};
     std::vector<int> output_dims = {1, 3, OUTPUT_HEIGHT, OUTPUT_WIDTH};
 
     int index = 10;
@@ -115,32 +115,31 @@ int main(int argc, char* argv[]) {
     }
 
     // resize
-    printf("resize from (width x height) %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(), input_mat_org_device.GetHeight(),
-           output_mat.GetWidth(), output_mat.GetHeight());
+    printf("resize from (width x height) %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(),
+           input_mat_org_device.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
     ResizeParam param_resize;
-    float scale_w = (float)OUTPUT_WIDTH / (float)width;
-    float scale_h = (float)OUTPUT_HEIGHT / (float)height;
-    float scale   = scale_w > scale_h ? scale_h : scale_w;
+    float scale_w        = (float)OUTPUT_WIDTH / (float)width;
+    float scale_h        = (float)OUTPUT_HEIGHT / (float)height;
+    float scale          = scale_w > scale_h ? scale_h : scale_w;
     param_resize.scale_w = scale;
     param_resize.scale_h = scale;
     PasteParam paste_param;
     paste_param.type      = PASTE_TYPE_CENTER_ALIGN;
     paste_param.pad_value = 128;
-    tnn_ret               = MatUtils::ResizeAndPaste(input_mat_org_device, output_mat, param_resize, paste_param, command_queue);
+    tnn_ret = MatUtils::ResizeAndPaste(input_mat_org_device, output_mat, param_resize, paste_param, command_queue);
     if (tnn_ret != TNN_OK) {
         printf("Mat Resize falied (%s)\n", tnn_ret.description().c_str());
         return -1;
     }
 
     // crop
-    //printf("crop from %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(), input_mat_org_device.GetHeight(), output_mat.GetWidth(), output_mat.GetHeight());
-    //CropParam param_crop;
-    //param_crop.top_left_x = 0;
-    //param_crop.top_left_y = 0;
-    //param_crop.width = output_mat.GetWidth();
-    //param_crop.height = output_mat.GetHeight();
-    //tnn_ret = MatUtils::Crop(input_mat_org_device, output_mat, param_crop, command_queue);
-    //if (tnn_ret != TNN_OK) {
+    // printf("crop from %d x %d --->  %d x %d\n", input_mat_org_device.GetWidth(), input_mat_org_device.GetHeight(),
+    // output_mat.GetWidth(), output_mat.GetHeight()); CropParam param_crop; param_crop.top_left_x = 0;
+    // param_crop.top_left_y = 0;
+    // param_crop.width = output_mat.GetWidth();
+    // param_crop.height = output_mat.GetHeight();
+    // tnn_ret = MatUtils::Crop(input_mat_org_device, output_mat, param_crop, command_queue);
+    // if (tnn_ret != TNN_OK) {
     //   printf("Mat Crop falied (%s)\n", tnn_ret.description().c_str());
     //   return -1;
     //}
