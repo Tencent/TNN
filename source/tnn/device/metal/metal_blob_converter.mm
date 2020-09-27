@@ -38,6 +38,9 @@ protected:
     id<MTLDevice> device_                         = nil;
     id<MTLBuffer> buffer_param_                   = nil;
     id<MTLComputePipelineState> pipeline_process_ = nil;
+    // buffer for scale and bias used in nchw_float mat transformation
+    id<MTLBuffer> buffer_scale_;
+    id<MTLBuffer> buffer_bias_;
     // @param waitState: 0: no wait, 1: wait gpu completed, 2: wait gpu scheduled.
     Status ConvertToMatCommon(Mat &input_mat, Blob *output_blob, void *command_queue, int waitState = 1);
     Status ConvertFromMatCommon(Mat &input_mat, Blob *output_blob, void *command_queue, int waitState = 1);
@@ -67,33 +70,59 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
          metal_param.width, metal_param.size);
 
     float scale_texture_buffer = 1.0f;
+    float bias_texture_buffer  = 1.0f;
     if (mat->GetDeviceType() == DEVICE_METAL) {
         if (mat->GetMatType() == N8UC4) {
             scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
+            bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
         }
     }
 
-    if (param.scale.size() >= 4) {
-        metal_param.scale_x = scale_texture_buffer * param.scale[0];
-        metal_param.scale_y = scale_texture_buffer * param.scale[1];
-        metal_param.scale_z = scale_texture_buffer * param.scale[2];
-        metal_param.scale_w = scale_texture_buffer * param.scale[3];
+    if (mat->GetMatType() == NCHW_FLOAT) {
+        // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
+        if (param.scale.size() < dims[1] || param.bias.size() < dims[1]) {
+            // invalid scale and bias
+            return Status(TNNERR_INVALID_INPUT, "invalid scale or bias shape!");
+        }
+        if (buffer_scale_ == nil) {
+            buffer_scale_ = [device_ newBufferWithBytes:&(param.scale[0])
+                                                 length:sizeof(float)*dims[1]
+                                                options:MTLResourceCPUCacheModeWriteCombined];
+        }
+        if (buffer_bias_ == nil) {
+            buffer_bias_ = [device_ newBufferWithBytes:&(param.bias[0])
+                                                 length:sizeof(float)*dims[1]
+                                                options:MTLResourceCPUCacheModeWriteCombined];
+        }
+        if (buffer_scale_ == nil) {
+            return Status(TNNERR_INVALID_INPUT, "buffer scale is nil");
+        }
+        if (buffer_bias_ == nil) {
+            return Status(TNNERR_INVALID_INPUT, "buffer bias is nil");
+        }
     } else {
-        metal_param.scale_x = 1.0f;
-        metal_param.scale_y = 1.0f;
-        metal_param.scale_z = 1.0f;
-        metal_param.scale_w = 1.0f;
-    }
-    if (param.bias.size() >= 4) {
-        metal_param.bias_x = param.bias[0];
-        metal_param.bias_y = param.bias[1];
-        metal_param.bias_z = param.bias[2];
-        metal_param.bias_w = param.bias[3];
-    } else {
-        metal_param.bias_x = 0.0f;
-        metal_param.bias_y = 0.0f;
-        metal_param.bias_z = 0.0f;
-        metal_param.bias_w = 0.0f;
+        if (param.scale.size() >= 4) {
+            metal_param.scale_x = scale_texture_buffer * param.scale[0];
+            metal_param.scale_y = scale_texture_buffer * param.scale[1];
+            metal_param.scale_z = scale_texture_buffer * param.scale[2];
+            metal_param.scale_w = scale_texture_buffer * param.scale[3];
+        } else {
+            metal_param.scale_x = 1.0f;
+            metal_param.scale_y = 1.0f;
+            metal_param.scale_z = 1.0f;
+            metal_param.scale_w = 1.0f;
+        }
+        if (param.bias.size() >= 4) {
+            metal_param.bias_x = bias_texture_buffer * param.bias[0];
+            metal_param.bias_y = bias_texture_buffer * param.bias[1];
+            metal_param.bias_z = bias_texture_buffer * param.bias[2];
+            metal_param.bias_w = bias_texture_buffer * param.bias[3];
+        } else {
+            metal_param.bias_x = 0.0f;
+            metal_param.bias_y = 0.0f;
+            metal_param.bias_z = 0.0f;
+            metal_param.bias_w = 0.0f;
+        }
     }
 
     LOGD("metal_param scale: %.6f %.6f %.6f\n", metal_param.scale_x, metal_param.scale_y, metal_param.scale_z);
@@ -153,11 +182,11 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         }
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
-            func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float"];
-            LOGD("data_converter_nchw_2_nc4hw4_float\n");
+            func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
+            LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
         } else {
-            func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float"];
-            LOGD("data_converter_nc4hw4_2_nchw_float\n");
+            func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];
+            LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
         }
     }
 
@@ -292,6 +321,9 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                     offset:(NSUInteger)input_buffer_blob->GetHandle().bytes_offset
                    atIndex:1];
         [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+        // scale and bias
+        [encoder setBuffer:buffer_scale_ offset:0 atIndex:3];
+        [encoder setBuffer:buffer_bias_  offset:0 atIndex:4];
 
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
@@ -457,6 +489,9 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                        atIndex:0];
             [encoder setBuffer:input_buffer offset:0 atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+            //scale and bias
+            [encoder setBuffer:buffer_scale_ offset:0 atIndex:3];
+            [encoder setBuffer:buffer_bias_  offset:0 atIndex:4];
 
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];
