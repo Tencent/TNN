@@ -1,6 +1,6 @@
 # TNN X86/Openvino 使用文档
 ## TNN X86/Openvino 介绍
-本模块补充了 TNN 对 x86 架构的支持，封装了 OPENVINO 的框架到 TNN 内部，允许使用 TNN 的模型跑 OPENVINO 的网络。
+本模块支持 x86 架构，封装了 OPENVINO 的框架到 TNN 内部，允许使用 TNN 的模型跑 OPENVINO 的网络。
 
 ## 环境要求
 ### Linux
@@ -101,7 +101,7 @@ $ cd build_openvino/test/
 $ ./TNNTest -mp PATH_TO_MODEL -dt X86 -ip PATH_TO_INPUT -op PATH_TO_OUTPUT
 ```
 ### 2.  API 调用
-参考 [API 调用](doc/cn/user/api.md)，需要在初始化网络时设置 config.device_type 为 DEVICE_X86，config.network_type 为 NETWORK_TYPE_OPENVINO
+参考 [API 调用](api.md)，需要在初始化网络时设置 config.device_type 为 DEVICE_X86，config.network_type 为 NETWORK_TYPE_OPENVINO
 ```cpp
 config.device_type  = TNN_NS::DEVICE_X86
 config.network_type = TNN_NS::NETWORK_TYPE_OPENVINO

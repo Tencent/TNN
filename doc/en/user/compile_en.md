@@ -107,6 +107,39 @@ cd <path_to_tnn>/scripts
 ./build_arm_linux.sh
 ```
 
+## IV. Compile(x86 Linux)
+### 1. Enviromnment requirements
+#### Dependencies
+  - cmake (version 3.7.2 or higher)
+
+### 2. Compilation Steps
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+./build_x86_linux.sh
+```
+
+## V. Compile(x86 Windows)
+### 1. Environment requirements
+#### Dependencies
+  - Visual Studio(version 2015 or higher)
+  - cmake (vsrsion 3.7.2 or higher; Or use build-in cmake in Visual Studio)
+
+### 2. Compilation Steps
+1) switch to 'scripts` directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+```
+If Visual Studio cannot be recognized, please refer to a version manually
+More problems refer to [FAQ](openvino_en.md)
+
 ## Description for build options 
 
 |Option|Default|Description|

@@ -189,7 +189,45 @@
 * Mark face:  
    TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
 
+## IV. Introduction to X86 CPU Demo
 
-## IV. NCNN model usage and interface introduction
+### Ability
+* Demonstrate the calling method of TNN basic interface, quickly run the model in x86 architecture Linux/Windows environment.
+
+### Compile
+*  Linux: Run `build_linux.sh`<br>
+   Windows: Run `build_msvc.bat`<br>
+   Refer to [faq](../faq.md)
+* 1. Run image classification demo:
+   ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+* 2.Run face detection demo:  
+   ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+### Function process
+#### Image classification function process
+* Create predictor:  
+   auto predictor = std::make_shared<ImageClassifier>();
+* Init predictor:  
+   CHECK_TNN_STATUS(predictor->Init(option));
+   Attension: option->compute_units = TNN_NS::TNNComputeUnitsOpenvino
+* Create image_mat:  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+* Run predictor:  
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+#### Face detection function process
+* Create predictor:  
+   auto predictor = std::make_shared<UltraFaceDetector>();
+* Init predictor:  
+      CHECK_TNN_STATUS(predictor->Init(option));
+      Attension: option->compute_units = TNN_NS::TNNComputeUnitsOpenvino
+* Create image_mat:  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+* Run predictor:  
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+* Mark face:  
+   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
+
+
+## V. NCNN model usage and interface introduction
 
 - [NCNN related](./ncnn_en.md)

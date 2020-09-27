@@ -110,6 +110,39 @@ cd <path_to_tnn>/scripts
 ./build_arm_linux.sh
 ```
 
+## 四、Linux 环境编译
+### 1.环境要求
+依赖库
+  - cmake(使用3.7.2版本及以上)
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+./build_x86_linux.sh
+```
+
+## 五、Windows 环境编译
+### 1.环境要求
+依赖库
+  - Visual Studio(2015 及更高版本)
+  - cmake(把3.7.2及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+```
+如遇不能识别 Visual Studio 请手动指定版本
+更多编译问题请参考 [FAQ](openvino.md)
+
 ## 编译参数option说明
 
 |Option|默认值|说明|

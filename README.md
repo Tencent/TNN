@@ -23,6 +23,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 3. 最后一步就是使用编译好的 TNN 引擎进行推理，你可以在自己的应用程序中嵌入对 TNN 的调用，这方面我们提供了丰富而详实的 demo 来帮助你完成。
     *  [从0开始跑通一个iOS Demo](doc/cn/user/demo.md)
     *  [从0开始跑通一个Android Demo](doc/cn/user/demo.md)
+    *  [从0开始跑通一个Windows/Linux Demo](doc/cn/user/demo.md#四)
 
 ## 技术方案
 
