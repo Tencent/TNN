@@ -24,6 +24,8 @@ DEFINE_string(mp, "", model_path_message);
 
 DEFINE_string(dt, "ARM", device_type_message);
 
+DEFINE_string(nt, "NAIVE", network_type_message);
+
 DEFINE_string(lp, "", library_path_message);
 
 DEFINE_int32(di, 0, device_id_message);

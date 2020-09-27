@@ -1,0 +1,17 @@
+name: macos-x64-cpu
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  macos-clang:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: protobuf
+      run: brew install protobuf opencv3
+    - name: build
+      run: ./scripts/build_macos.sh

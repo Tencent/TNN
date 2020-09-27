@@ -16,6 +16,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -30,7 +31,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private final static String TAG = ImageFaceDetectFragment.class.getSimpleName();
     private FaceDetector mFaceDetector = new FaceDetector();
 
-    private static final String IMAGE = "test.jpg";
+    private static final String IMAGE = "test_face.jpg";
     private static final int NET_H_INPUT = 240;
     private static final int NET_W_INPUT = 320;
     private Paint mPaint = new Paint();
@@ -38,6 +39,11 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private ToggleButton mGPUSwitch;
     private Button mRunButton;
     private boolean mUseGPU = false;
+    //add for npu
+    private ToggleButton mHuaweiNPUswitch;
+    private boolean mUseHuaweiNpu = false;
+    private TextView HuaweiNpuTextView;
+
     /**********************************     Get Preview Advised    **********************************/
 
     @Override
@@ -45,6 +51,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        String modelPath = initModel();
+        NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -76,7 +84,22 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b)
     {
+        if(b && mHuaweiNPUswitch.isChecked()){
+            mHuaweiNPUswitch.setChecked(false);
+            mUseHuaweiNpu = false;
+        }
         mUseGPU = b;
+        TextView result_view = (TextView)$(R.id.result);
+        result_view.setText("");
+    }
+
+    private void onSwichNPU(boolean b)
+    {
+        if(b && mGPUSwitch.isChecked()){
+            mGPUSwitch.setChecked(false);
+            mUseGPU = false;
+        }
+        mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
     }
@@ -90,7 +113,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_imagefacedetector);
+        setView(R.layout.fragment_image_detector);
         setTitleGone();
         $$(R.id.back_rl);
         $$(R.id.gpu_switch);
@@ -101,6 +124,22 @@ public class ImageFaceDetectFragment extends BaseFragment {
                 onSwichGPU(b);
             }
         });
+
+        $$(R.id.npu_switch);
+        mHuaweiNPUswitch = $(R.id.npu_switch);
+        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwichNPU(b);
+            }
+        });
+
+        HuaweiNpuTextView = $(R.id.npu_text);
+
+        if (!NpuEnable) {
+            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
+            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
+        }
         mDrawView = (DrawView) $(R.id.drawView);
         mRunButton = $(R.id.run_button);
         mRunButton.setOnClickListener(new View.OnClickListener() {
@@ -141,10 +180,16 @@ public class ImageFaceDetectFragment extends BaseFragment {
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
-        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, mUseGPU?1:0);
+        int device = 0;
+        if(mUseHuaweiNpu) {
+            device = 2;
+        }else if(mUseGPU) {
+            device = 1;
+        }
+        int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
         if(result == 0) {
             Log.d(TAG, "detect from image");
-            FaceDetector.FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
+            FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
             Log.d(TAG, "detect from image result " + faceInfoList);
             int faceCount = 0;
             if (faceInfoList != null) {

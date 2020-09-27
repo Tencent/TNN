@@ -45,6 +45,15 @@ std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, 
     } else if (layer_param->orders[0] == 0 && layer_param->orders[1] == 2 &&
                layer_param->orders[2] == 1 &&  layer_param->orders[3] == 3) {
         return "permute_to_nhcw";
+    } else if (layer_param->orders[0] == 0 && layer_param->orders[1] == 3 &&
+               layer_param->orders[2] == 1 &&  layer_param->orders[3] == 2) {
+        return "permute_to_nwch";
+    } else if (layer_param->orders[0] == 1 && layer_param->orders[1] == 2 &&
+               layer_param->orders[2] == 3 &&  layer_param->orders[3] == 0) {
+        return "permute_to_chwn";
+    } else if (layer_param->orders[0] == 0 && layer_param->orders[1] == 1 &&
+               layer_param->orders[2] == 2 &&  layer_param->orders[3] == 3) {
+        return "permute_copy";
     }
     return "";
 }

@@ -35,6 +35,12 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         desc.data_format = DATA_FORMAT_NCHW;
         auto size_info   = Calculate(desc);
         return Allocate(handle, size_info);
+    } else if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY ||
+               mat_type == NNV21 || mat_type == NNV12) {
+        desc.data_type   = DATA_TYPE_INT8;
+        desc.data_format = DATA_FORMAT_NCHW;
+        auto size_info   = Calculate(desc);
+        return Allocate(handle, size_info);
     } else {
         LOGE("CpuDevice dont support mat_type:%d", mat_type);
         return Status(TNNERR_PARAM_ERR, "cpu dont support mat_type");

@@ -65,6 +65,8 @@ static const char memory_dump_output_path_message[] = "memory dump output path";
 
 static const char blob_name_message[] = "memory dump blob names";
 
+static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -72,6 +74,8 @@ DECLARE_string(mt);
 DECLARE_string(mp);
 
 DECLARE_string(dt);
+
+DECLARE_string(nt);
 
 DECLARE_string(lp);
 

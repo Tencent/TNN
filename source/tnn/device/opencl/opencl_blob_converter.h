@@ -11,8 +11,9 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
+
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_
 
 #include "tnn/core/macro.h"
 #include "tnn/device/opencl/opencl_utils.h"
@@ -51,4 +52,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_

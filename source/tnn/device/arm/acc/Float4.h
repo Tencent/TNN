@@ -35,6 +35,12 @@ struct Float4 {
     Float4(const float v) {
         value = vdupq_n_f32(v);
     }
+    Float4(const float32x4_t& v) {
+        value = v;
+    }
+    Float4(const float32x4_t&& v) {
+        value = std::move(v);
+    }
     Float4(const Float4& lr) {
         value = lr.value;
     }
@@ -99,6 +105,9 @@ struct Float4 {
     }
     static void get_high(Float4& v1, Float2& v2) {
         v2.value = vget_high_f32(v1.value);
+    }
+    static Float4 combine(Float2& v1, Float2& v2) {
+        return vcombine_f32(v1.value, v2.value);
     }
     static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
         Float4 dst;
@@ -217,7 +226,8 @@ struct Float4 {
     }
     static Float4 sqrt(const Float4& v) {
         Float4 dst;
-        dst.value = sqrt_ps(v.value);
+        static float32x4_t zero = vdupq_n_f32(0.0f);
+        dst.value = vbslq_f32(vceqq_f32(v.value, zero), zero, sqrt_ps(v.value));
         return dst;
     }
     static Float4 tanh(const Float4& v) {
@@ -540,6 +550,14 @@ struct Float4 {
     static void get_high(Float4& v1, Float2& v2) {
         v2.value[0] = v1.value[2];
         v2.value[1] = v1.value[3];
+    }
+    static Float4 combine(Float2& v1, Float2& v2) {
+        Float4 dst;
+        dst.value[0] = v1.value[0];
+        dst.value[1] = v1.value[1];
+        dst.value[2] = v2.value[0];
+        dst.value[3] = v2.value[1];
+        return dst;
     }
     static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
         Float4 dst;
