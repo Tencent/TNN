@@ -24,10 +24,10 @@ class SplitVLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SplitVLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                            // axis
-                                            testing::Values(1),
+                                            // split axis
+                                            testing::Values(1, 2, 3),
                                             // output cnt
-                                            testing::Values(2),
+                                            testing::Values(2, 3, 4, 6),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -41,11 +41,13 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (channel <= 1) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    std::vector<int> shapes = {batch, channel, input_size, input_size};
+    int dim_size_to_split = shapes[axis];
+    if (dim_size_to_split < output_count) {
         GTEST_SKIP();
     }
 
@@ -56,8 +58,14 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     // param
     SplitVLayerParam param;
     param.name   = "SplitV";
-    param.axis   = 1;
-    param.slices = {channel / 2, channel - channel / 2};
+    param.axis   = axis;
+    if (dim_size_to_split % output_count != 0) {
+        // set slices for unbalanced cases
+        int split_size = dim_size_to_split / output_count;
+        int last_size  = dim_size_to_split - split_size * (output_count - 1);
+        param.slices = std::vector<int>(output_count, split_size);
+        param.slices[output_count-1] = last_size;
+    }
 
     Run(LAYER_SPLITV, &param, nullptr, inputs_desc, outputs_desc);
 }

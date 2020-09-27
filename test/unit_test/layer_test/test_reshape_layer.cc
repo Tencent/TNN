@@ -19,16 +19,21 @@
 
 namespace TNN_NS {
 
-class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
+class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, int>> {};
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1)));
+INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest,
+                                        ::testing::Combine(
+                                            BASIC_BATCH_CHANNEL_SIZE,
+                                            testing::Values(0, 1, 2, 3),
+                                            testing::Values(0, 1)));
 
 TEST_P(ReshapeLayerTest, ReshapeLayer) {
     // get param
     int batch        = std::get<0>(GetParam());
     int channel      = std::get<1>(GetParam());
     int input_size   = std::get<2>(GetParam());
-    int reshape_type = std::get<3>(GetParam());
+    int reshape_axis = std::get<3>(GetParam());
+    int reshape_type = std::get<4>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
     // blob desc
@@ -41,7 +46,8 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     param.reshape_type = reshape_type;
     param.axis         = 0;
     param.num_axes     = 4;
-    param.shape        = {0, -1, 1, 1};
+    param.shape        = {0, 0, 0, 0};
+    param.shape[reshape_axis] = -1;
 
     Run(LAYER_RESHAPE, &param, nullptr, inputs_desc, outputs_desc);
 }
