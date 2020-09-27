@@ -13,14 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_utils.h"
-#include <tnn/interpreter/layer_resource.h>
-#include <tnn/utils/dims_vector_utils.h>
 #include <sstream>
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const>& attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
+Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
 
@@ -150,4 +149,27 @@ std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputSh
     }
     return model_suffix_stream.str();
 }
-}  // namespace TNN_NS 
+
+void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
+                            std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map) {
+    std::vector<shared_ptr<LayerInfo>> layers;
+    // only view input
+    InputShapesMap sub_input_shapes_map;
+    for (int i = cpu_count; i < net_structure->layers.size(); i++) {
+        std::shared_ptr<LayerInfo> &layer_info = net_structure->layers[i];
+        for (std::string &input : layer_info->inputs) {
+            // if the subnetwork input exists in visited
+            if (visited.count(input) > 0) {
+                // if the input has not defined in new inputShapeMap yet
+                if (sub_input_shapes_map.count(input) == 0) {
+                    sub_input_shapes_map[input] = global_operator_map[input]->GetShape();
+                }
+            }
+        }
+        layers.push_back(layer_info);
+    }
+    net_structure->layers           = layers;
+    net_structure->inputs_shape_map = sub_input_shapes_map;
+}
+
+}  // namespace TNN_NS

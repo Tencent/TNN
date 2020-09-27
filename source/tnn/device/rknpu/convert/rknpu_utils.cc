@@ -136,4 +136,4 @@ uint32_t RknpuUtils::CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> 
     return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<uint32_t>()) * type_size;
 }
 
-}  // namespace tnn
+}  // namespace TNN_NS
