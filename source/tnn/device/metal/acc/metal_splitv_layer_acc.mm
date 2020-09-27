@@ -100,7 +100,11 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             BREAK_IF(status != TNN_OK);
 
             MTLSize threads;
-            status = ComputeThreadSize(inputs, outputs, threads);
+            std::vector<Blob *> current_output = {outputs[i]};
+            status = ComputeThreadSize(inputs, current_output, threads);
+            BREAK_IF(status != TNN_OK);
+
+            status = AllocateBufferParam(inputs, current_output);
             BREAK_IF(status != TNN_OK);
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
