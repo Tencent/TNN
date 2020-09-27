@@ -38,7 +38,7 @@ protected:
     id<MTLDevice> device_                         = nil;
     id<MTLBuffer> buffer_param_                   = nil;
     id<MTLComputePipelineState> pipeline_process_ = nil;
-    // buffer for scale ans bias used in nchw_float mat transformation
+    // buffer for scale and bias used in nchw_float mat transformation
     id<MTLBuffer> buffer_scale_;
     id<MTLBuffer> buffer_bias_;
     // @param waitState: 0: no wait, 1: wait gpu completed, 2: wait gpu scheduled.
@@ -79,7 +79,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     }
 
     if (mat->GetMatType() == NCHW_FLOAT) {
-        // scale ans bias should have the same size as channel, so we use another buffer instead of metal_param
+        // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
         if (param.scale.size() < dims[1] || param.bias.size() < dims[1]) {
             // invalid scale and bias
             return Status(TNNERR_INVALID_INPUT, "invalid scale or bias shape!");
