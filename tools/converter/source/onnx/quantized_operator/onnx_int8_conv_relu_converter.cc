@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <fstream>
+
 #include "onnx/onnx_base_converter.h"
 #include "onnx/onnx_utils.h"
 #include "tnn/interpreter/tnn/objseri.h"
@@ -46,31 +48,52 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     const int input_size          = node.input_size();
     ASSERT(input_size == 2 || input_size == 3);
     // get convolution param
-    const auto &weight_name    = node.input(1);
-    const auto &weight_node    = FindNodeProto(weight_name, proxy_nodes);
-    auto weight_shape          = GetAttributeIntVector(*weight_node, "shape");
-    const int64_t co           = weight_shape[0];
-    const int64_t kh           = weight_shape[1];
-    const int64_t kw           = weight_shape[2];
-    const int64_t ci           = weight_shape[3];
-    const int64_t weight_count = co * kw * kw * ci;
-    param->input_channel       = ci;
-    param->output_channel      = co;
+    const auto &weight_name = node.input(1);
+    const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
+    auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
+    const int co            = weight_shape[0];
+    const int kh            = weight_shape[1];
+    const int kw            = weight_shape[2];
+    const int ci            = weight_shape[3];
+    const int weight_count  = co * kw * kw * ci;
+    param->input_channel    = ci;
+    param->output_channel   = co;
     param->kernels.push_back(kw);
     param->kernels.push_back(kh);
     // onnx order: stride_h, stride_w
     // tnn  order: stride_w, stride_h
     auto strides = GetAttributeIntVector(node, "strides");
     ASSERT(strides.size() == 2);
-    param->strides = {(int)strides[1], (int)strides[0]};
+    param->strides = {strides[1], strides[0]};
     // dilation
     auto dilations = GetAttributeIntVector(node, "dilations");
     ASSERT(dilations.size() == 2);
-    param->dialations = {(int)dilations[1], (int)dilations[0]};
-    param->group      = 1;
-    param->pad_type   = 0;
-    auto pads         = GetAttributeIntVector(node, "pads");
-    param->pads       = {(int)pads[0], (int)pads[1], (int)pads[2], (int)pads[3]};
+    param->dialations = {dilations[1], dilations[0]};
+    param->group      = GetAttributeInt(node, "group", 1);
+    // parse pads type
+    auto pads = GetAttributeIntVector(node, "pads");
+    if (!pads.empty()) {
+        param->pad_type = -1;
+        if (pads[0] < pads[2] || pads[1] < pads[3]) {
+            // same upper
+            param->pad_type = 0;
+        }
+        param->pads = {pads[1], pads[3], pads[0], pads[2]};
+    } else {
+        auto auto_pad = GetAttributeString(node, "auto_pad", "NOTSET");
+        if (auto_pad == "NOTSET") {
+            param->pad_type = -1;
+        } else if (auto_pad == "SAME_UPPER") {
+            param->pad_type = 0;
+        } else if (auto_pad == "VALID") {
+            param->pad_type = 1;
+        } else {
+            LOGE("Conv: SAME_LOWER does not support, change toSAME_UPPER\n");
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+        }
+        param->pads = {0, 0, 0, 0};
+    }
+
     ASSERT(pads.size() == 4);
     if (node.op_type() == "Int8ConvRelu") {
         param->activation_type = TNN_NS::ActivationType_ReLU;
@@ -110,7 +133,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
     layer_resource->name            = cur_layer->name;
     TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(int8_t));
     filter_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
-    OHWI2OIHW(reinterpret_cast<uint8_t *>(weight_value.data()), filter_handle.force_to<uint8_t *>(), co, kh, kw, ci);
+    OHWI2OIHW(reinterpret_cast<int8_t *>(weight_value.data()), filter_handle.force_to<int8_t *>(), co, kh, kw, ci);
     layer_resource->filter_handle = filter_handle;
     // quantized weight scale
     auto cal_weight_scale          = input_scale * weight_scale;
@@ -152,7 +175,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(tnn::NetStructure &net_structure,
         output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        output_blob_scale->scale_handle = output_scale_handle;
+        output_blob_scale->scale_handle     = output_scale_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
         output_blob_scale->bias_handle                   = zero_point_handle;
