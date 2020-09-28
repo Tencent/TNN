@@ -62,6 +62,19 @@ struct ObjectInfo {
     float IntersectionRatio(ObjectInfo *obj);
 };
 
+struct ImageInfo {
+    ImageInfo();
+    ImageInfo(std::shared_ptr<Mat>mat);
+    ImageInfo(const ImageInfo& info);
+    int image_width = 0;
+    int image_height = 0;
+    int image_channel = 0;
+    // 4-channel image data
+    std::shared_ptr<char> data;
+
+    ImageInfo FlipX();
+};
+
 struct BenchOption {
     int warm_count    = 0;
     int forward_count = 1;
