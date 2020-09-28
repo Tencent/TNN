@@ -75,7 +75,7 @@ std::shared_ptr<Mat> HairSegmentation::ProcessSDKInputMat(std::shared_ptr<Mat> i
     this->orig_dims = input_image->GetDims();
     // save input image mat for merging
     auto dims = input_image->GetDims();
-    dims[1] = 4;
+    //dims[1] = 4;
     this->input_image = std::make_shared<Mat>(DEVICE_ARM, N8UC4, dims);
     auto status = Copy(input_image, this->input_image);
     RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
@@ -105,12 +105,13 @@ std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha, RG
     auto merged_image_data = static_cast<uint8_t *>(merged_image->GetData());
 
     auto hw = orig_dims[2] * orig_dims[3];
+    auto channel = orig_dims[1];
     for(int s=0; s<hw; ++s) {
         float hair_conf = alpha_data[s];
         float bg_conf   = 1 - hair_conf;
-        float c0 = bg_conf * image_data[s*4 + 0] + hair_conf * color.r;
-        float c1 = bg_conf * image_data[s*4 + 1] + hair_conf * color.g;
-        float c2 = bg_conf * image_data[s*4 + 2] + hair_conf * color.b;
+        float c0 = bg_conf * image_data[s*channel + 0] + hair_conf * color.r;
+        float c1 = bg_conf * image_data[s*channel + 1] + hair_conf * color.g;
+        float c2 = bg_conf * image_data[s*channel + 2] + hair_conf * color.b;
         float c3 = 0;
 
         merged_image_data[s*4 + 0] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c0)));
