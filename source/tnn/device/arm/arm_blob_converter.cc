@@ -58,7 +58,7 @@ static void Int8BlobToNCHW(const int8_t *src, float *dst, int channel, int hw, f
 convert data type from uint8 to float, data format from nhwc 2 nchw
 */
 template <bool reverse_channel>
-static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *bias, int hw) {
+static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *bias, int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -83,6 +83,10 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *
         vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
         vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
 
+        if (channel == 3) {
+            vf32.val[3] = vdupq_n_f32(0.0f);
+        }
+
         vst4q_f32(dst + i * 4, vf32);
 
         vf32.val[0] = vcvtq_f32_s32(vmovl_s16(vget_high_s16(reverse_channel ? r_s16 : b_s16)));
@@ -95,6 +99,10 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *
         vf32.val[2] = vaddq_f32(bias_neon_r, vmulq_n_f32(vf32.val[2], scale[2]));
         vf32.val[3] = vaddq_f32(bias_neon_a, vmulq_n_f32(vf32.val[3], scale[3]));
 
+        if (channel == 3) {
+            vf32.val[3] = vdupq_n_f32(0.0f);
+        }
+
         vst4q_f32(dst + i * 4 + 16, vf32);
     }
 #endif
@@ -103,6 +111,9 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *
         dst[4 * i + 1] = scale[1] * src[4 * i + 1] + bias[1];
         dst[4 * i + 2] = scale[2] * src[4 * i + (reverse_channel ? 0 : 2)] + bias[2];
         dst[4 * i + 3] = scale[3] * src[4 * i + 3] + bias[3];
+        if (channel == 3) {
+            dst[4 * i + 3] = 0.0f;
+        }
     }
 }
 
@@ -110,7 +121,7 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *
 convert data type from uint8 to float, data format from nhw4 2 nc4hw4
 */
 template <bool reverse_channel>
-static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float *bias, int hw) {
+static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float *bias, int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -157,6 +168,10 @@ static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float 
         vi8x4.val[2] = vqmovn_s16(s16_2);
         vi8x4.val[3] = vqmovn_s16(s16_3);
 
+        if (channel == 3) {
+            vi8x4.val[3] = vdup_n_s8(0);
+        }
+
         vst4_s8(dst + i * 4, vi8x4);
     }
 #endif
@@ -165,16 +180,22 @@ static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float 
         dst[4 * i + 1] = float2int8(scale[1] * src[4 * i + 1] + bias[1]);
         dst[4 * i + 2] = float2int8(scale[2] * src[4 * i + (reverse_channel ? 0 : 2)] + bias[2]);
         dst[4 * i + 3] = float2int8(scale[3] * src[4 * i + 3] + bias[3]);
+        if (channel == 3) {
+            dst[4 * i + 3] = 0;
+        }
     }
 }
 
+/*
+if channel == 3, the fourth channel is ignored
+*/
 template<typename T>
 static void BGRAToBlob(const uint8_t *src, T *dst, float *scale, float *bias, int hw,
-                       bool reverse_channel) {
+                       bool reverse_channel, int channel) {
     if (reverse_channel) {
-        BGRAToBlobImpl<true>(src, dst, scale, bias, hw);
+        BGRAToBlobImpl<true>(src, dst, scale, bias, hw, channel);
     } else {
-        BGRAToBlobImpl<false>(src, dst, scale, bias, hw);
+        BGRAToBlobImpl<false>(src, dst, scale, bias, hw, channel);
     }
 }
 
@@ -373,7 +394,7 @@ void NCHWToBlob(const float *src, int8_t *dst, int channel, int hw, float *scale
 }
 
 template <bool reverse_channel>
-static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *bias, int hw) {
+static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *bias, int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -408,6 +429,11 @@ static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *
         vi8x4.val[2] = vqmovun_s16(s16_2);
         vi8x4.val[3] = vqmovun_s16(s16_3);
 
+        if (channel == 3) {
+            uint8x8x4_t vi8x4_tmp = vld4_u8(dst + i * 4);
+            vi8x4.val[3]          = vi8x4_tmp.val[3];
+        }
+
         vst4_u8(dst + i * 4, vi8x4);
     }
 #endif
@@ -417,12 +443,14 @@ static void BlobToBGRAImpl(const float *src, uint8_t *dst, float *scale, float *
         dst[4 * i + 1] = float2uint8(scale[1] * src[4 * i + 1] + bias[1]);
         dst[4 * i + 2] = float2uint8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
                                                        (scale[2] * src[4 * i + 2] + bias[2]));
-        dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
+        if (channel == 4) {
+            dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
+        }
     }
 }
 
 template <bool reverse_channel>
-static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float *bias, int hw) {
+static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float *bias, int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -469,6 +497,11 @@ static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float 
         vi8x4.val[2] = vqmovun_s16(s16_2);
         vi8x4.val[3] = vqmovun_s16(s16_3);
 
+        if (channel == 3) {
+            uint8x8x4_t vi8x4_tmp = vld4_u8(dst + i * 4);
+            vi8x4.val[3]          = vi8x4_tmp.val[3];
+        }
+
         vst4_u8(dst + i * 4, vi8x4);
     }
 #endif
@@ -478,17 +511,22 @@ static void BlobToBGRAImpl(const int8_t *src, uint8_t *dst, float *scale, float 
         dst[4 * i + 1] = float2uint8(scale[1] * src[4 * i + 1] + bias[1]);
         dst[4 * i + 2] = float2uint8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
                                                        (scale[2] * src[4 * i + 2] + bias[2]));
-        dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
+        if (channel == 4) {
+            dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
+        }
     }
 }
 
+/*
+if channel == 3, the fourth channel is ignored
+*/
 template<typename T>
 static void BlobToBGRA(const T *src, uint8_t *dst, float *scale, float *bias, int hw,
-                       bool reverse_channel) {
+                       bool reverse_channel, int channel) {
     if (reverse_channel) {
-        BlobToBGRAImpl<true>(src, dst, scale, bias, hw);
+        BlobToBGRAImpl<true>(src, dst, scale, bias, hw, channel);
     } else {
-        BlobToBGRAImpl<false>(src, dst, scale, bias, hw);
+        BlobToBGRAImpl<false>(src, dst, scale, bias, hw, channel);
     }
 }
 
@@ -752,11 +790,11 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
             if (desc.data_type == DATA_TYPE_INT8) {
                 BlobToBGRA(reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw,
                            reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, fused_int8_scale.data(),
-                           fused_int8_bias.data(), hw, param.reverse_channel);
+                           fused_int8_bias.data(), hw, param.reverse_channel, dims[1]);
             } else {
                 BlobToBGRA(reinterpret_cast<float *>(handle_ptr) + n * 4 * hw,
                            reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, param.scale.data(), param.bias.data(),
-                           hw, param.reverse_channel);
+                           hw, param.reverse_channel, dims[1]);
             }
         }
     } else if (image.GetMatType() == N8UC3) {
@@ -793,14 +831,11 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
         }
-        auto scale_handle = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle;
-        auto scale_data   = scale_handle.force_to<float *>();
-        auto scale_count  = scale_handle.GetDataCount();
+        auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
         for (int i = 0; i < dims[1]; i++) {
-            auto scale_idx = scale_count == 1 ? 0 : i;
-            if (scale_data[scale_idx] != 0) {
-                fused_int8_scale[i] = param.scale[i] / scale_data[scale_idx];
-                fused_int8_bias[i]  = param.bias[i] / scale_data[scale_idx];
+            if (blob_scale[i] != 0) {
+                fused_int8_scale[i] = param.scale[i] / blob_scale[i];
+                fused_int8_bias[i]  = param.bias[i] / blob_scale[i];
             } else {
                 fused_int8_scale[i] = 0;
                 fused_int8_bias[i]  = 0;
@@ -813,11 +848,11 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             if (desc.data_type == DATA_TYPE_INT8) {
                 BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
                            reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
-                           fused_int8_bias.data(), hw, param.reverse_channel);
+                           fused_int8_bias.data(), hw, param.reverse_channel, dims[1]);
             } else {
                 BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
                            reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
-                           hw, param.reverse_channel);
+                           hw, param.reverse_channel, dims[1]);
             }
         }
     } else if (image.GetMatType() == N8UC3) {

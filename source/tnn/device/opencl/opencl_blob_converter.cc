@@ -323,6 +323,18 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
             cl_ret = unit.ocl_kernel.setArg(idx++, *bias_buffer_);
             CHECK_CL_SUCCESS(cl_ret);
         } else {
+            // N8UC4 need channel parameter
+            if (N8UC4 == mat.GetMatType() && !convert_to_mat) {
+                cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+                CHECK_CL_SUCCESS(cl_ret);
+            }
+            // pad scale && bias for vectors in opencl kernel
+            while (param.scale.size() < 4) {
+                param.scale.push_back(1.0f);
+            }
+            while (param.bias.size() < 4) {
+                param.bias.push_back(0.0f);
+            }
             cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
             CHECK_CL_SUCCESS(cl_ret);
             cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.bias.size(), param.bias.data());
@@ -334,6 +346,10 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         CHECK_CL_SUCCESS(cl_ret);
         cl_ret = unit.ocl_kernel.setArg(idx++, *image);
         CHECK_CL_SUCCESS(cl_ret);
+        if (!convert_to_mat) {
+            cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+            CHECK_CL_SUCCESS(cl_ret);
+        }
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
         CHECK_CL_SUCCESS(cl_ret);
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.bias.size(), param.bias.data());

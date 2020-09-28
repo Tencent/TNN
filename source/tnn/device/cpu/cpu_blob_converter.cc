@@ -74,7 +74,7 @@ static void BGRToBlob(const uint8_t *src, float *dst, float *scale, float *bias,
 /*
  * Convert a nchw float mat to/from nchw float blob
  */
-static void NCHWToNCHW(const float *src, float *dst, float *scale, float *bias, int channel, int hw) {
+static void NCHWConvert(const float *src, float *dst, float *scale, float *bias, int channel, int hw) {
     for (int c = 0; c < channel; ++c) {
         for (int i = 0; i < hw; ++i) {
             int data_pos = c * hw + i;
@@ -285,8 +285,8 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWToNCHW(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
+                        param.scale.data(), param.bias.data(), dims[1], hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
@@ -384,8 +384,8 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
 
     if (image.GetMatType() == NCHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWToNCHW(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
+                        param.scale.data(), param.bias.data(), dims[1], hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
@@ -431,9 +431,8 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
 
     if (desc.data_type == DATA_TYPE_INT8) {
         auto blob_scale     = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
-        auto scale_len      = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
         auto real_blob_data = reinterpret_cast<int8_t *>(blob_->GetHandle().base);
-        CPU_QUANT(blob_data, blob_scale, scale_len, real_blob_data, dims);
+        CPU_QUANT(blob_data, blob_scale, dims[1], real_blob_data, dims);
         delete[] blob_data;
     }
     return TNN_OK;
