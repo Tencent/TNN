@@ -38,8 +38,9 @@ class HairSegmentationOutput : public TNNSDKOutput {
 public:
     HairSegmentationOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
     virtual ~HairSegmentationOutput() {};
-    // use TNN_NS::Mat to store mask
-    std::shared_ptr<Mat> hair_mask;
+
+    ImageInfo hair_mask;
+    ImageInfo merged_image;
 };
 
 class HairSegmentationOption : public TNNSDKOption {
@@ -50,7 +51,7 @@ public:
     int input_height;
     int num_thread = 1;
     // the processing mode of output mask
-    int mode;
+    int mode = 0;
 };
 
 class HairSegmentation : public TNN_NS::TNNSDKSample {
@@ -64,10 +65,15 @@ public:
 private:
     std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
     std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
+    std::shared_ptr<Mat> MergeImage(std::shared_ptr<Mat> alpha, RGBA color);
     Status ResizeFloatMat(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat> output_mat, TNNInterpType type = TNNInterpLinear);
     Status ConvertMat(std::shared_ptr<Mat>src, std::shared_ptr<Mat>dst);
     // the original input image shape
     DimsVector orig_dims;
+    // the original input image
+    std::shared_ptr<Mat> input_image;
+    // the color used on hair
+    RGBA hair_color = {102, 178, 255, 0}; // blue
 };
 
 }

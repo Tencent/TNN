@@ -20,8 +20,7 @@ Status HairSegmentation::ConvertMat(std::shared_ptr<Mat> src, std::shared_ptr<Ma
     if (DimsVectorUtils::Count(src->GetDims()) != DimsVectorUtils::Count(dst->GetDims()))
         return Status(TNNERR_PARAM_ERR, "src and dst mat have different dims!");
     if (src->GetMatType() == dst->GetMatType()) {
-        // copy
-        ;
+        return TNN_OK;
     } else {
         auto src_mat_type = src->GetMatType();
         auto dst_mat_type = dst->GetMatType();
@@ -64,7 +63,6 @@ MatConvertParam HairSegmentation::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
     input_convert_param.bias  = {-0.485 / 0.229,     -0.456 / 0.224,       -0.406 / 0.225,      0.0};
-    input_convert_param.reverse_channel = false;
     return input_convert_param;
 }
 
@@ -75,6 +73,13 @@ std::shared_ptr<TNNSDKOutput> HairSegmentation::CreateSDKOutput() {
 std::shared_ptr<Mat> HairSegmentation::ProcessSDKInputMat(std::shared_ptr<Mat> input_image, std::string name) {
     RETURN_VALUE_ON_NEQ(input_image->GetMatType(), N8UC4, nullptr);
     this->orig_dims = input_image->GetDims();
+    // save input image mat for merging
+    auto dims = input_image->GetDims();
+    dims[1] = 4;
+    this->input_image = std::make_shared<Mat>(DEVICE_ARM, N8UC4, dims);
+    auto status = Copy(input_image, this->input_image);
+    RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+
     auto target_dims = GetInputShape(name);
     auto input_height = input_image->GetHeight();
     auto input_width = input_image->GetWidth();
@@ -93,6 +98,29 @@ std::shared_ptr<Mat> HairSegmentation::ProcessSDKInputMat(std::shared_ptr<Mat> i
     return input_image;
 }
 
+std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha, RGBA color) {
+    auto merged_image = std::make_shared<Mat>(alpha->GetDeviceType(), N8UC4, orig_dims);
+    auto alpha_data = static_cast<float *>(alpha->GetData());
+    auto image_data = static_cast<uint8_t *>(input_image->GetData());
+    auto merged_image_data = static_cast<uint8_t *>(merged_image->GetData());
+
+    auto hw = orig_dims[2] * orig_dims[3];
+    for(int s=0; s<hw; ++s) {
+        float hair_conf = alpha_data[s];
+        float bg_conf   = 1 - hair_conf;
+        float c0 = bg_conf * image_data[s*4 + 0] + hair_conf * color.r;
+        float c1 = bg_conf * image_data[s*4 + 1] + hair_conf * color.g;
+        float c2 = bg_conf * image_data[s*4 + 2] + hair_conf * color.b;
+        float c3 = 0;
+
+        merged_image_data[s*4 + 0] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c0)));
+        merged_image_data[s*4 + 1] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c1)));
+        merged_image_data[s*4 + 2] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c2)));
+        merged_image_data[s*4 + 3] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c3)));
+    }
+    return merged_image;
+}
+
 Status HairSegmentation::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     Status status = TNN_OK;
     auto option = dynamic_cast<HairSegmentationOption *>(option_.get());
@@ -104,9 +132,11 @@ Status HairSegmentation::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     auto bg = output->GetMat("background");
     auto fg = output->GetMat("foreground");
     auto alpha = ProcessAlpha(fg, option->mode);
-    //auto merged_image = MergeImage(alpha);
+    auto merged_image = MergeImage(alpha, this->hair_color);
     alpha = GenerateAlphaImage(alpha);
-    output->hair_mask = alpha;
+
+    output->hair_mask = ImageInfo(alpha);
+    output->merged_image = ImageInfo(merged_image);
 
     return status;
 }
