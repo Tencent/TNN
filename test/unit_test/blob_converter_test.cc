@@ -280,7 +280,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         ret = MatUtils::Copy(mat_in, metal_tmp_buffer, device_command_queue);
         if (ret != TNN_OK) {
            LOGE("copy cpu mat to metal failed, mat type: %d\n", mat_type);
-           FAIL();
+           CLEANUP_AND_FAIL();
         }
         ret = device_converter.ConvertFromMat(metal_tmp_buffer, from_mat_param, device_command_queue);
     } else {
