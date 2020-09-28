@@ -1297,7 +1297,11 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
     Float4 _coeff_r(0.299);
     uint16x4_t _acc0, _acc1;
     for (; offset < plane>>3<<3; offset += 8) {
-        CVTGRAYIMPL(channel);
+        if (channel == 3) {
+            CVTGRAYIMPL(3);
+        } else {
+            CVTGRAYIMPL(4);
+        }
         Sp   += 8 * channel;
         Dp   += 8;
     }
