@@ -42,7 +42,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
     param->type      = cur_layer->type_str;
     param->quantized = true;
     param->axis      = 1;
-    param->transpose = 1;
+    param->transpose = 0;
     // get convolution param
     const auto &weight_name = node.input(1);
     const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
@@ -72,10 +72,11 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
     }
 
     // quantized weight value
-    auto weight_scale      = GetAttributeFloat(*weight_node, "Y_scale", 1.0);
-    auto weight_zero_point = GetAttributeInt(*weight_node, "Y_zero_point", 0);
-    auto weight_value      = GetAttributeUInt8Vector(*weight_node, "values");
-    auto weight_count      = weight_shape[0] * weight_shape[1];
+    auto weight_scale            = GetAttributeFloat(*weight_node, "Y_scale", 1.0);
+    auto weight_zero_point       = GetAttributeInt(*weight_node, "Y_zero_point", 0);
+    auto asymmetric_weight_value = GetAttributeUInt8Vector(*weight_node, "values");
+    auto weight_value            = Asymmetric2Symmetric(asymmetric_weight_value, weight_zero_point);
+    auto weight_count            = weight_shape[0] * weight_shape[1];
     assert(weight_count == weight_value.size());
     auto layer_resource             = new TNN_NS::InnerProductLayerResource;
     layer_resource->name            = cur_layer->name;
@@ -123,7 +124,7 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        output_blob_scale->scale_handle = output_scale_handle;
+        output_blob_scale->scale_handle     = output_scale_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
         output_blob_scale->bias_handle                   = zero_point_handle;
