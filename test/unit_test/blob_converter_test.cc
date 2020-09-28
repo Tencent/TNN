@@ -125,6 +125,9 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
                                     mat_channel, channel, out_size);
 
         FREE();
+
+#undef FREE
+#undef FREE_AND_RETURN
     }
     return cmp_result;
 }
