@@ -533,6 +533,37 @@ void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8
     uint8_t* ialpha = (uint8_t*)(buf + w + h);                          \
     uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
 
+
+#ifdef TNN_USE_NEON
+
+#define MAKE_LOAD(n)                                                    \
+    _sx = vldq_s32(xofs_p);                                             \
+    _S0 = vld##n_lane_u8(Sp + _sx[0], _S0, 0);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[1], _S0, 1);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[2], _S0, 2);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[3], _S0, 3);                          \
+    _S1 = vld##n_lane_u8(Sp + _sx[0] + ##n, _S1, 0);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[1] + ##n, _S1, 1);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[2] + ##n, _S1, 2);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[3] + ##n, _S1, 3);                    \
+    _sx = vld1q_s32(xofs_p + 4);                                        \
+    _S0 = vld##n_lane_u8(Sp + _sx[0], _S0, 4);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[1], _S0, 5);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[2], _S0, 6);                          \
+    _S0 = vld##n_lane_u8(Sp + _sx[3], _S0, 7);                          \
+    _S1 = vld##n_lane_u8(Sp + _sx[0] + ##n, _S1, 4);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[1] + ##n, _S1, 5);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[2] + ##n, _S1, 6);                    \
+    _S1 = vld##n_lane_u8(Sp + _sx[3] + ##n, _S1, 7);                    \
+    uint8x8_t _mask = vld1_u8(ialpha_p);                                \
+
+#define LOAD_C1() MAKE_LOAD(1)
+#define LOAD_C2() MAKE_LOAD(2)
+#define LOAD_C3() MAKE_LOAD(3)
+#define LOAD_C4() MAKE_LOAD(4)
+
+#endif
+
 void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
     ResizeNearestPreparation(1);
@@ -555,31 +586,7 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
             for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 0);
-                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 1);
-                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 2);
-                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 4);
-                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 5);
-                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 6);
-                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+                LOAD_C1();
 
                 vst1_u8(Dp_p, vbsl_u8(_mask, _S0, _S1));
 
@@ -624,31 +631,7 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
             for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 0);
-                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 1);
-                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 2);
-                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 4);
-                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 5);
-                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 6);
-                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+                LOAD_C2();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -696,31 +679,7 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
             for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 0);
-                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 1);
-                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 2);
-                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 4);
-                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 5);
-                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 6);
-                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+                LOAD_C3();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -770,31 +729,7 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
             for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 0);
-                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 1);
-                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 2);
-                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 4);
-                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 5);
-                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 6);
-                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+                LOAD_C4();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -822,6 +757,16 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
     delete[] buf;
 }
+
+#ifdef TNN_USE_NEON
+
+#undef MAKE_LOAD
+#undef LOAD_C1
+#undef LOAD_C2
+#undef LOAD_C3
+#undef LOAD_C4
+
+#endif
 
 void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
     return ResizeNearestC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
@@ -1399,6 +1344,17 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             dst[dst_loc + 3] = SATURATE_CAST_UCHAR((val_xy3 + (1 << 14)) >> 15);
         }
     }
+
+#ifdef TNN_USE_NEON
+
+#undef MAKE_CAL
+#undef CAL_C0
+#undef CAL_C1
+#undef CAL_C2
+#undef CAL_C3
+
+#endif
+
 }
 
 void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
