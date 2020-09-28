@@ -29,6 +29,7 @@
 namespace TNN_NS {
 
 int8_t float2int8(float val);
+uint8_t float2uint8(float val);
 
 template <typename T, typename Tacc>
 void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 

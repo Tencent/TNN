@@ -54,7 +54,7 @@ private:
                                  std::vector<float>& fused_int8_bias);
     Status ConvertBlobToFloatMat(Mat& image, char *handle_ptr,
                                  const DimsVector& dims, const int hw,
-                                 const int c_r4,
+                                 const int c_r4, MatConvertParam& param,
                                  std::vector<float>& fused_int8_scale);
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;

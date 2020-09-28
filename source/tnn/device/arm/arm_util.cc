@@ -276,7 +276,7 @@ template int UnpackC4ToNHWC(float *dst, const bfp16_t *src, size_t hw, size_t ch
 template int UnpackC4ToNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
-int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale) {
+int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale, float *bias) {
     int cur_hw;
     int c;
     int idx  = 0;
@@ -284,7 +284,7 @@ int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, f
     for (c = 0; c < channel; ++c) {
         auto *src_c = src + c;
         for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            dst[idx++] = src_c[c_r4 * cur_hw] * scale[c];
+            dst[idx++] = src_c[c_r4 * cur_hw] * scale[c] + bias[c];
         }
     }
     return 0;
