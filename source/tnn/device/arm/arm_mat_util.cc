@@ -1061,6 +1061,50 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
     const short* tab_p     = BilinearTab_i[0][0];
     int x                  = begin_x;
 
+#ifdef TNN_USE_NEON
+
+#define CAL_C0()                                                                    \
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));                           \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));                          \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));                           \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));                          \
+    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
+    _res0123 = vaddq_s32(_res0123, _offset);                                        \
+    _res16   = vshrn_n_s32(_res0123, 15);                                           \
+    _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+
+#define CAL_C1()
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));                           \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));                          \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));                           \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));                          \
+    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
+    _res0123 = vaddq_s32(_res0123, _offset);                                        \
+    _res16   = vshrn_n_s32(_res0123, 15);                                           \
+    _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+
+#define CAL_C2()                                                                    \
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));                           \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));                          \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));                           \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));                          \
+    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
+    _res0123 = vaddq_s32(_res0123, _offset);                                        \
+    _res16   = vshrn_n_s32(_res0123, 15);                                           \
+    _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+
+#define CAL_C3()                                                                    \
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_03));                           \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_03));                          \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_13));                           \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_13));                          \
+    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
+    _res0123 = vaddq_s32(_res0123, _offset);                                        \
+    _res16   = vshrn_n_s32(_res0123, 15);                                           \
+    _resu8.val[3] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+
+#endif
+
     if (channel == 1) {
 #ifdef TNN_USE_NEON
         uint8_t* dst_p         = dst +  dst_loc_base + begin_x * 1;
@@ -1170,23 +1214,8 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x2_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
 
             vst2_lane_u8(dst_p, _resu8, 0);
             vst2_lane_u8(dst_p + 2, _resu8, 1);
@@ -1261,32 +1290,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x3_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
+            CAL_C2();
 
             vst3_lane_u8(dst_p, _resu8, 0);
             vst3_lane_u8(dst_p + 3, _resu8, 1);
@@ -1369,41 +1375,10 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x4_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_03));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_03));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_13));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_13));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[3] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
+            CAL_C2();
+            CAL_C3();
 
             vst4_lane_u8(dst_p, _resu8, 0);
             vst4_lane_u8(dst_p + 4, _resu8, 1);
