@@ -183,18 +183,18 @@ enum LayerType {
     LAYER_SIGNED_MUL                                        = 196,
     LAYER_DETECTION_POST_PROCESS                            = 197,
     LAYER_SQUARED_DIFFERENCE                                = 198,
+    LAYER_ARG_MAX_OR_MIN                                    = 199,
 
-    LAYER_CONVOLUTION_3D = 201,
-    LAYER_POOLING_3D     = 202,
+    LAYER_CONVOLUTION_3D                                    = 201,
+    LAYER_POOLING_3D                                        = 202,
 
-    LAYER_HDRGUIDE = 302,
+    LAYER_HDRGUIDE                                          = 302,
+    LAYER_PIXEL_SHUFFLE                                     = 303,
 
-    LAYER_BLOB_SCALE = 600,
+    LAYER_BLOB_SCALE                                        = 600,
 
-    LAYER_INT8_RANGE = 700,
-    LAYER_TRT_ENGINE = 701,
-
-
+    LAYER_INT8_RANGE                                        = 700,
+    LAYER_TRT_ENGINE                                        = 701,
 
 };
 
