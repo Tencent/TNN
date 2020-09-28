@@ -27,5 +27,6 @@ using namespace::TNN_NS;
 
 //Object Detection
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(ImageInfo)getImage:(std::shared_ptr<TNNSDKOutput>)sdk_output;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 @end

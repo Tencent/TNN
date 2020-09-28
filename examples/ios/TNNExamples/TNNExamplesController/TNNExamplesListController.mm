@@ -20,6 +20,8 @@
 #import "TNNYoloObjectDetectorViewModel.h"
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
+#import "TNNHandDetectTrackerViewModel.h"
+#import "TNNHairSegmentationViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -159,6 +161,34 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //手部检测追踪 - HandDetectTracker
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"手部检测追踪 - HandDetectTracker";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNHandDetectTrackerViewModel new];
+            data.viewModel.title = @"HandDetectTracker";
+            data.viewModel.preferFrontCamera = false;
+        }
+        [examples addObject:data];
+    }
+
+    //头发分割 - HairSegmentation
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"头发分割 - HairSegmentation";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNHairSegmentationViewModel new];
+            data.viewModel.title = @"HairSegmentation";
+            data.viewModel.preferFrontCamera = true;
+        }
+        [examples addObject:data];
+    }
+
     self.examples = examples;
 }
 

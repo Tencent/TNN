@@ -26,6 +26,7 @@ Status HandDetectTracker::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) 
 
     predictor_detect_ = sdks[0];
     predictor_track_  = sdks[1];
+    this->need_hand_detect = true;
     return TNNSDKComposeSample::Init(sdks);
 }
 
@@ -50,7 +51,6 @@ Status HandDetectTracker::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
     // output of each model
     std::shared_ptr<TNNSDKOutput> sdk_output_detect = nullptr;
     std::shared_ptr<TNNSDKOutput> sdk_output_track  = nullptr;
-    bool need_hand_detect = true;
 
     //phase1 model
     if (need_hand_detect) {
@@ -70,13 +70,14 @@ Status HandDetectTracker::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         auto hand = hands[0];
         auto hand_orig = hand.AdjustToViewSize(image_orig_height, image_orig_width, 2);
         // set hands to the phase2 model
-        predictor_track_cast->SetHandRegion(hand.x1, hand.y1, hand.x2, hand.y2);
+        predictor_track_cast->SetHandRegion(hand_orig.x1, hand_orig.y1, hand_orig.x2, hand_orig.y2);
     }
 
     //phase2 model
     {
         status = predictor_track_cast->Predict(std::make_shared<HandTrackingInput>(image_mat), sdk_output_track);
         RETURN_ON_NEQ(status, TNN_OK);
+        need_hand_detect = predictor_track_cast->NeedHandDetect();
     }
 
     // generate results
@@ -86,10 +87,9 @@ Status HandDetectTracker::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
 
         auto phase2_output = dynamic_cast<HandTrackingOutput *>(sdk_output_track.get());
         auto hand = phase2_output->hand_list[0];
-        hand.image_height = image_orig_height;
-        hand.image_width  = image_orig_width;
+        auto hand_orig = hand.AdjustToViewSize(image_orig_height, image_orig_width, 2);
 
-        output->hand_list.push_back(hand);
+        output->hand_list.push_back(hand_orig);
     }
     return TNN_OK;
 }
