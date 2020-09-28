@@ -71,6 +71,9 @@ void NaiveYUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, b
 
 void NaiveYUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12);
 
+void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
+                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel);
+
 void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
 
 }  // namespace TNN_NS

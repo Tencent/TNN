@@ -666,6 +666,62 @@ void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int ch
     }
 }
 
+void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
+                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel) {
+    for (; remain > 0; remain -= 2) {
+        int u, v;
+        if (is_nv12) {
+            u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+        } else {
+            v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+        }
+
+        int ruv = 102 * v;
+        int guv = -52 * v + -25 * u;
+        int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+        int y00 = yptr0[0]* 74 - 1135;
+        if (channel == 4)
+            rgb0[3] = 255;
+        rgb0[0 * channel + 2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+        rgb0[0 * channel + 1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+        rgb0[0 * channel + 0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+        int y01 = yptr0[1]* 74 - 1135;
+        if (channel == 4)
+            rgb0[7] = 255;
+        rgb0[1 * channel + 2] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+        rgb0[1 * channel + 1] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+        rgb0[1 * channel + 0] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+        int y10 = yptr1[0]* 74 - 1135;
+        if (channel == 4)
+            rgb1[3] = 255;
+        rgb1[0 * channel + 2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+        rgb1[0 * channel + 1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+        rgb1[0 * channel + 0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+        int y11 = yptr1[1]* 74 - 1135;
+        if (channel == 4)
+            rgb1[7] = 255;
+        rgb1[1 * channel + 2] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+        rgb1[1 * channel + 1] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+        rgb1[1 * channel + 0] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+        yptr0 += 2;
+        yptr1 += 2;
+        vuptr += 2;
+        rgb0  += 2*channel;
+        rgb1  += 2*channel;
+    }
+}
+
 void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12) {
     const unsigned char* yptr  = yuv;
     const unsigned char* vuptr = yuv + w * h;
@@ -676,63 +732,11 @@ void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int
         unsigned char* rgb0 = bgr;
         unsigned char* rgb1 = bgr + w * channel;
 
-        int remain = w;
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, w, is_nv12, channel);
 
-        for (; remain > 0; remain -= 2) {
-            int u, v;
-            if (is_nv12) {
-                u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            } else {
-                v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-                u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-            }
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            if (channel == 4)
-                rgb0[3] = 255;
-            rgb0[0 * channel + 2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[0 * channel + 1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0 * channel + 0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            if (channel == 4)
-                rgb0[7] = 255;
-            rgb0[1 * channel + 2] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[1 * channel + 1] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[1 * channel + 0] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            if (channel == 4)
-                rgb1[3] = 255;
-            rgb1[0 * channel + 2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[0 * channel + 1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0 * channel + 0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            if (channel == 4)
-                rgb1[7] = 255;
-            rgb1[1 * channel + 2] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[1 * channel + 1] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[1 * channel + 0] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 2*channel;
-            rgb1  += 2*channel;
-        }
-
-        yptr += 2*w;
-        bgr  += 2*channel*w;
+        yptr  += 2*w;
+        vuptr += w;
+        bgr   += 2*channel*w;
     }
 }
 
