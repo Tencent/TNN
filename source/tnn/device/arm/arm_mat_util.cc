@@ -1063,45 +1063,20 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 
 #ifdef TNN_USE_NEON
 
-#define CAL_C0()                                                                    \
-    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));                           \
-    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));                          \
-    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));                           \
-    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));                          \
+#define MAKE_CAL(n)                                                                 \
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_0##n));                         \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_0##n));                        \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_1##n));                         \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_1##n));                        \
     _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
     _res0123 = vaddq_s32(_res0123, _offset);                                        \
     _res16   = vshrn_n_s32(_res0123, 15);                                           \
-    _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+    _resu8.val[n] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
 
-#define CAL_C1()
-    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));                           \
-    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));                          \
-    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));                           \
-    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));                          \
-    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
-    _res0123 = vaddq_s32(_res0123, _offset);                                        \
-    _res16   = vshrn_n_s32(_res0123, 15);                                           \
-    _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
-
-#define CAL_C2()                                                                    \
-    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));                           \
-    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));                          \
-    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));                           \
-    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));                          \
-    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
-    _res0123 = vaddq_s32(_res0123, _offset);                                        \
-    _res16   = vshrn_n_s32(_res0123, 15);                                           \
-    _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
-
-#define CAL_C3()                                                                    \
-    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_03));                           \
-    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_03));                          \
-    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_13));                           \
-    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_13));                          \
-    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
-    _res0123 = vaddq_s32(_res0123, _offset);                                        \
-    _res16   = vshrn_n_s32(_res0123, 15);                                           \
-    _resu8.val[3] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+#define CAL_C0() MAKE_CAL(0)
+#define CAL_C1() MAKE_CAL(1)
+#define CAL_C2() MAKE_CAL(2)
+#define CAL_C3() MAKE_CAL(3)
 
 #endif
 
