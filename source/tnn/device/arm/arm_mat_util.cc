@@ -883,7 +883,7 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
     }
 }
 
-static bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+static inline bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
     return new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
            new_y_loc >= -1 && new_y_loc <= (src_h - 1);
 }
@@ -1342,9 +1342,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
 
 }
 
-void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                          const float (*transform)[3], const float border_val) {
-    int schannel  = 1;
+template <int schannel>
+static void WarpAffineBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                        const float (*transform)[3], const float border_val) {
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
@@ -1376,114 +1376,26 @@ void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, u
     delete[] tab_loc;
 
     free(buffer);
+}
+
+void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val) {
+    WarpAffineBilinear<1>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 2;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<2>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 3;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<3>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 4;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<4>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
