@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include <half/macro.h>
-#include <sys/_types/_int64_t.h>
 
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
