@@ -1254,16 +1254,42 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 #endif // TNN_USE_NEON
 }
 
-void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+#ifdef TNN_USE_NEON
+
+#define CVTGRAYIMPL(n)                                                  \
+    uint8x8x##n##_t _S;                                                 \
+    _S  = vld##n##_u8(Sp);                                              \
+    _Bh = vmovl_u8(_S.val[0]);                                          \
+    _Gh = vmovl_u8(_S.val[1]);                                          \
+    _Rh = vmovl_u8(_S.val[2]);                                          \
+    _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));                \
+    _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));                \
+    _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));                \
+    _acc  = _Bval * _coeff_b;                                           \
+    _acc  = _acc + _Gval * _coeff_g;                                    \
+    _acc  = _acc + _Rval * _coeff_r;                                    \
+    _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));                       \
+    _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));               \
+    _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));               \
+    _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));               \
+    _acc  = _Bval * _coeff_b;                                           \
+    _acc  = _acc + _Gval * _coeff_g;                                    \
+    _acc  = _acc + _Rval * _coeff_r;                                    \
+    _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));                       \
+    vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));                 \
+
+#endif  // TNN_USE_NEON
+
+template <int channel>
+void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
 #ifndef TNN_USE_NEON
-    NaiveBGROrBGRAToGray(bgr, gray, h, w, 3);
+    NaiveBGROrBGRAToGray(bgr, gray, h, w, channel);
 #else
     int offset = 0;
     int plane  = h * w;
 
     const unsigned char* Sp = bgr;
     unsigned char* Dp       = gray;
-    uint8x8x3_t _S;
     uint16x8_t _Bh, _Gh, _Rh;
     Float4 _Bval, _Gval, _Rval, _acc;
     Float4 _coeff_b(0.114);
@@ -1271,30 +1297,8 @@ void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
     Float4 _coeff_r(0.299);
     uint16x4_t _acc0, _acc1;
     for (; offset < plane>>3<<3; offset += 8) {
-        _S  = vld3_u8(Sp);
-        _Bh = vmovl_u8(_S.val[0]);
-        _Gh = vmovl_u8(_S.val[1]);
-        _Rh = vmovl_u8(_S.val[2]);
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));
-
-        Sp   += 8 * 3;
+        CVTGRAYIMPL(channel);
+        Sp   += 8 * channel;
         Dp   += 8;
     }
     if (plane % 8) {
@@ -1302,70 +1306,27 @@ void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
     }
 
     for (; offset < plane; ++offset) {
-        unsigned b = bgr[offset * 3 + 0];
-        unsigned g = bgr[offset * 3 + 1];
-        unsigned r = bgr[offset * 3 + 2];
+        unsigned b = bgr[offset * channel + 0];
+        unsigned g = bgr[offset * channel + 1];
+        unsigned r = bgr[offset * channel + 2];
         float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
         gray[offset] = gray_color;
     }
 #endif // TNN_USE_NEON
+}
+
+void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+    BGROrBGRAToGray<3>(bgr, gray, h, w);
 }
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
-#ifndef TNN_USE_NEON
-    NaiveBGROrBGRAToGray(bgra, gray, h, w, 4);
-#else
-    int offset = 0;
-    int plane  = h * w;
-
-    const unsigned char* Sp = bgra;
-    unsigned char* Dp       = gray;
-    uint8x8x4_t _S;
-    uint16x8_t _Bh, _Gh, _Rh;
-    Float4 _Bval, _Gval, _Rval, _acc;
-    Float4 _coeff_b(0.114);
-    Float4 _coeff_g(0.587);
-    Float4 _coeff_r(0.299);
-    uint16x4_t _acc0, _acc1;
-    for (; offset < plane>>3<<3; offset += 8) {
-        _S  = vld4_u8(Sp);
-        _Bh = vmovl_u8(_S.val[0]);
-        _Gh = vmovl_u8(_S.val[1]);
-        _Rh = vmovl_u8(_S.val[2]);
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));
-
-        Sp   += 8 * 4;
-        Dp   += 8;
-    }
-    if (plane % 8) {
-        offset -= 8;
-    }
-
-    for (; offset < plane; ++offset) {
-        unsigned b = bgra[offset * 4 + 0];
-        unsigned g = bgra[offset * 4 + 1];
-        unsigned r = bgra[offset * 4 + 2];
-        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
-        gray[offset] = gray_color;
-    }
-#endif // TNN_USE_NEON
+    BGROrBGRAToGray<4>(bgra, gray, h, w);
 }
+
+#ifdef TNN_USE_NEON
+
+#undef CVTGRAYIMPL
+
+#endif  // TNN_USE_NEON
 
 }  // namespace TNN_NS
