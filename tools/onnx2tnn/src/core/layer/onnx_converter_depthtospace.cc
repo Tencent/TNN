@@ -14,34 +14,24 @@
 
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
+#include <half/macro.h>
 
 DECLARE_OP_CONVERTER(DepthToSpace);
 
 string OnnxOpConverterDepthToSpace::TNNOpType(NodeProto &node,
                                                    OnnxNetInfo &net_info) {
-    return "Reorg";
+    return "PixelShuffle";
 }
 
 string OnnxOpConverterDepthToSpace::TNNLayerParam(NodeProto &node,
                                                OnnxNetInfo &net_info) {
     
-    const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
+    int block_size = get_node_attr_i(node, "blocksize");
+    string mode_name = get_node_attr_s(node, "mode", "CRD");
+    ASSERT("CRD" == mode_name);
 
-    std::string defalt_mode = "CRD";
-
-    int block_size = 2;
-    int inverse = 1; // depthtospace convert to reorg inverse mode
-    int run_with_output_dims = 0;
-    string mode_name = get_node_attr_s(node, "mode", "DCR");
-    int mode; // 0 for DCR mode, 1 for CRD mode;
-    if (mode_name == "DCR") {
-        mode = 0;
-    } else {
-        mode = 1;
-    }
-
-    layer_param << block_size << " " << inverse << " " << run_with_output_dims << " " << mode << " ";
+    layer_param << block_size << " ";
    
     return layer_param.str();
 }
