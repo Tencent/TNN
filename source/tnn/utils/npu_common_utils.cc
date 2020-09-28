@@ -18,6 +18,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/layer/base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -60,6 +61,46 @@ std::string NpuCommonUtils::GetFileHash(ModelConfig &model_config) {
 bool NpuCommonUtils::FileExits(std::string model_path) {
     std::ifstream infile(model_path);
     return infile.good();
+}
+
+Status NpuCommonUtils::CalculateOutputShape(LayerType type, std::vector<Blob *> &input_blobs,
+                                            std::vector<Blob *> &output_blobs, LayerParam *param,
+                                            LayerResource *resource, std::vector<std::string> &outputs_name,
+                                            std::vector<std::vector<int>> &output_shapes) {
+    BaseLayer *shape_calculator = CreateLayer(type);
+
+    Status ret = shape_calculator->InferShapeAhead(input_blobs, output_blobs, param, resource);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    for (int i = 0; i < outputs_name.size(); i++) {
+        output_shapes.push_back(output_blobs[i]->GetBlobDesc().dims);
+    }
+
+    delete (shape_calculator);
+
+    return TNN_OK;
+}
+
+Status NpuCommonUtils::CreateBlobs(std::vector<BlobDesc> blob_descs, std::vector<Blob *> &blobs) {
+    for (auto &desc : blob_descs) {
+        Blob *blob = new Blob(desc);
+        blobs.push_back(blob);
+    }
+
+    return TNN_OK;
+}
+
+Status NpuCommonUtils::ReleaseBlobs(std::vector<Blob *> &input_blobs, std::vector<Blob *> &output_blobs) {
+    for (auto &blob : input_blobs) {
+        delete (blob);
+    }
+    for (auto &blob : output_blobs) {
+        delete (blob);
+    }
+    input_blobs.clear();
+    output_blobs.clear();
+
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

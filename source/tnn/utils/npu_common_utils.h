@@ -30,8 +30,17 @@ public:
     static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
                                          std::vector<int> &input_shape);
     static std::string GetFileHash(ModelConfig &model_config);
-    
+
     static bool FileExits(std::string model_path);
+
+    static Status CalculateOutputShape(LayerType type, std::vector<Blob *> &input_blobs,
+                                       std::vector<Blob *> &output_blobs, LayerParam *param, LayerResource *resource,
+                                       std::vector<std::string> &outputs_name,
+                                       std::vector<std::vector<int>> &output_shapes);
+
+    static Status CreateBlobs(std::vector<BlobDesc> blob_descs, std::vector<Blob *> &blobs);
+
+    static Status ReleaseBlobs(std::vector<Blob *> &input_blobs, std::vector<Blob *> &output_blobs);
 };
 
 }  // namespace TNN_NS
