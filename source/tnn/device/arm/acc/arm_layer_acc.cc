@@ -99,7 +99,8 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
 #endif
 
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-    if (DataTypeSupported(in_data_type)) {
+    //if (DataTypeSupported(in_data_type)) {
+    if (in_data_type == DATA_TYPE_INT8 || in_data_type == DATA_TYPE_FLOAT) {
         status = this->DoForward(inputs, outputs);
     } else {
         LOGE("Error : arm layer acc got unsupported data type %d\n", in_data_type);
