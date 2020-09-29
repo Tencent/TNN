@@ -193,8 +193,7 @@ Status ModelPacker::PackModel(std::string file_path) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
     // trick delete in future
-    header.layer_cnt_--;
-    printf("layer_cnt_ %d\n", header.layer_cnt_);
+    //header.layer_cnt_--;
     auto serializer = GetSerializer(write_stream);
     header.serialize(*serializer);
 
@@ -203,7 +202,6 @@ Status ModelPacker::PackModel(std::string file_path) {
     auto resource_map           = net_resource->resource_map;
     std::set<std::string> blob_scale_set;
     Status result;
-    int count = 0;
     for (const auto &layer_info : layers) {
         // save input blobs scale
         std::string layer_name = layer_info->name;
@@ -222,9 +220,7 @@ Status ModelPacker::PackModel(std::string file_path) {
                     write_stream.close();
                     return result;
                 }
-                count++;
                 blob_scale_set.insert(blob_scale_name);
-                printf("the blob scale: %s\n", blob_scale_name.c_str());
             }
         }
         // save layer resource
@@ -234,8 +230,6 @@ Status ModelPacker::PackModel(std::string file_path) {
                 write_stream.close();
                 return result;
             }
-            printf("the layer name: %s\n", layer_name.c_str());
-            count++;
         }
         // save output blob scale
         if (layer_info->param->quantized) {
@@ -255,13 +249,9 @@ Status ModelPacker::PackModel(std::string file_path) {
                     return result;
                 }
                 blob_scale_set.insert(blob_scale_name);
-                printf("the blob scale: %s\n", blob_scale_name.c_str());
-                count++;
             }
         }
     }
-    printf("the resource_map size %lu\n", resource_map.size());
-    printf("the count %d\n", count);
     write_stream.close();
     return TNN_OK;
 }
