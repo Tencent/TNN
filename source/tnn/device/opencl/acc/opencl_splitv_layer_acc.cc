@@ -65,11 +65,6 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         return Status(TNNERR_MODEL_ERR, "SplitVLayerParam is null");
     }
 
-    if (layer_param->axis != 1) {
-        LOGE("axis=%d is not support in SplitV yet!\n", layer_param->axis);
-        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "the axis not support");
-    }
-
     std::vector<int> slices = layer_param->slices;
 
     if (slices.size() != outputs.size()) {
