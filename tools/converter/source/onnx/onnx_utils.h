@@ -41,6 +41,12 @@ std::vector<uint8_t> GetAttributeUInt8Vector(const onnx::NodeProto &node, const 
 
 std::vector<int8_t> Asymmetric2Symmetric(std::vector<uint8_t>& raw_value, uint8_t zero_point);
 
+onnx::TensorProto GetAttributeTensor(const onnx::NodeProto& node, const char* key);
+
+const float* GetTensorProtoData(const onnx::TensorProto& tp);
+
+int GetTensorProtoDataSize(const onnx::TensorProto& tp);
+
 template <typename T>
 bool OHWI2OIHW(T *src, T *dst, int CO, int KH, int KW, int CI) {
     ASSERT(CO > 0);
