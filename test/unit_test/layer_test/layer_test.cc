@@ -463,10 +463,10 @@ Status LayerTest::Compare() {
         }
 
         if (cmp_result != 0) {
-            LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
+            LOGE("mat[%d], cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", index, static_cast<float*>(cpu_mat.GetData())[0],
                  static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
                  static_cast<float*>(cpu_mat.GetData())[3]);
-            LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
+            LOGE("mat[%d], dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", index, static_cast<float*>(dev_cpu_mat.GetData())[0],
                  static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
                  static_cast<float*>(dev_cpu_mat.GetData())[3]);
         }
