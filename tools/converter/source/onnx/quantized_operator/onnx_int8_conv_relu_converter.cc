@@ -28,9 +28,6 @@ std::string OnnxInt8ConvReluConverter::TNNOpType(const onnx::NodeProto &node, bo
 }
 
 TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::NodeProto &node) {
-    if (node.op_type() == "Int8ConvRelu") {
-        return TNN_NS::ActivationType_ReLU;
-    }
     return TNN_NS::ActivationType_None;
 }
 

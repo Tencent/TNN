@@ -122,12 +122,12 @@ TNN_NS::Status Onnx2Tnn::Conveter2Tnn(TNN_NS::NetStructure& net_structure, TNN_N
             LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
             return status;
         }
-        //        TNN_NS::ActivationType activation_function_tuype = converter->ActivationType(node);
-        //        status = converter->SeparateActivation(net_structure, activation_function_tuype);
-        //        if (status != TNN_NS::TNN_CONVERT_OK) {
-        //            LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
-        //            return status;
-        //        }
+        TNN_NS::ActivationType activation_function_tuype = converter->ActivationType(node);
+        status = converter->SeparateActivation(net_structure, activation_function_tuype);
+        if (status != TNN_NS::TNN_CONVERT_OK) {
+            LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
+            return status;
+        }
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

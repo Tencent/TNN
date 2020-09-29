@@ -39,7 +39,6 @@ TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, 
     param->name               = cur_layer->name;
     param->quantized          = true;
     param->weight_input_index = -1;
-#if 1
     // create input blob scale
     for (int i = 0; i < node.input_size(); ++i) {
         const auto &input_name     = node.input(i);
@@ -74,7 +73,6 @@ TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, 
         output_blob_scale->bias_handle                    = zero_point_handle;
         net_resource.resource_map[output_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
-#endif
     return TNN_NS::TNN_CONVERT_OK;
 }
 

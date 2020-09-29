@@ -32,34 +32,6 @@ TNN_NS::Status OnnxInt8QuantizedConverter::exec(TNN_NS::NetStructure &net_struct
                                                 std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                                 std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
                                                 bool &quantized_model) {
-#if 0
-    // create input blob scale
-    for (int i = 0; i < node.input_size(); ++i) {
-        const auto &input_name = node.input(i);
-        std::string input_blob_scale_name;
-        if (net_structure.inputs_shape_map.find(input_name) != net_structure.inputs_shape_map.end()) {
-            input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
-        } else {
-            input_blob_scale_name = node.output(0) + BLOB_SCALE_SUFFIX;
-        }
-        auto &resource_map = net_resource.resource_map;
-        if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
-            continue;
-        }
-        auto scale                           = GetAttributeFloat(node, "Y_scale", 1.0);
-        auto zero_point                      = GetAttributeInt(node, "Y_zero_point", 0);
-        auto input_blob_scale                = new TNN_NS::IntScaleResource;
-        input_blob_scale->name               = input_blob_scale_name;
-        TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
-        input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        input_blob_scale->scale_handle      = input_scale_handle;
-        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&zero_point);
-        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
-        input_blob_scale->bias_handle                    = zero_point_handle;
-        net_resource.resource_map[input_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
-    }
-#endif
-
     TNN_NS::LayerParam *param = new TNN_NS::LayerParam;
     auto cur_layer            = net_structure.layers.back();
     cur_layer->param          = std::shared_ptr<TNN_NS::LayerParam>(param);

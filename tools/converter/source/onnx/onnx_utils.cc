@@ -165,25 +165,6 @@ onnx::TensorProto GetAttributeTensor(const onnx::NodeProto &node, const char *ke
 }
 
 const float *GetTensorProtoData(const onnx::TensorProto &tp) {
-    /*
-        TensorProto_DataType_UNDEFINED = 0,
-        TensorProto_DataType_FLOAT = 1,
-        TensorProto_DataType_UINT8 = 2,
-        TensorProto_DataType_INT8 = 3,
-        TensorProto_DataType_UINT16 = 4,
-        TensorProto_DataType_INT16 = 5,
-        TensorProto_DataType_INT32 = 6,
-        TensorProto_DataType_INT64 = 7,
-        TensorProto_DataType_STRING = 8,
-        TensorProto_DataType_BOOL = 9,
-        TensorProto_DataType_FLOAT16 = 10,
-        TensorProto_DataType_DOUBLE = 11,
-        TensorProto_DataType_UINT32 = 12,
-        TensorProto_DataType_UINT64 = 13,
-        TensorProto_DataType_COMPLEX64 = 14,
-        TensorProto_DataType_COMPLEX128 = 15,
-        TensorProto_DataType_BFLOAT16 = 16
-    */
     if (tp.has_raw_data()) {
         return (const float *)tp.raw_data().data();
     } else if (tp.data_type() == 1) {
@@ -195,33 +176,12 @@ const float *GetTensorProtoData(const onnx::TensorProto &tp) {
     } else if (tp.data_type() == 11) {
         return (const float *)tp.double_data().data();
     } else {
-        printf("name:%s data_type :%d\n", tp.name().c_str(), tp.data_type());
         assert(0);
         return nullptr;
     }
 }
 
 int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
-    /*
-        TensorProto_DataType_UNDEFINED = 0,
-        TensorProto_DataType_FLOAT = 1,
-        TensorProto_DataType_UINT8 = 2,
-        TensorProto_DataType_INT8 = 3,
-        TensorProto_DataType_UINT16 = 4,
-        TensorProto_DataType_INT16 = 5,
-        TensorProto_DataType_INT32 = 6,
-        TensorProto_DataType_INT64 = 7,
-        TensorProto_DataType_STRING = 8,
-        TensorProto_DataType_BOOL = 9,
-        TensorProto_DataType_FLOAT16 = 10,
-        TensorProto_DataType_DOUBLE = 11,
-        TensorProto_DataType_UINT32 = 12,
-        TensorProto_DataType_UINT64 = 13,
-        TensorProto_DataType_COMPLEX64 = 14,
-        TensorProto_DataType_COMPLEX128 = 15,
-        TensorProto_DataType_BFLOAT16 = 16
-     */
-
     if (tp.has_raw_data()) {
         const std::string &raw_data = tp.raw_data();
         if (tp.data_type() == 1) {
@@ -258,8 +218,6 @@ int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
             assert(0);
         }
     }
-
-    return 0;
 }
 
 }  // namespace TNN_CONVERTER
