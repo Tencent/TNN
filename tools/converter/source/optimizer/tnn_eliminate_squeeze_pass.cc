@@ -23,7 +23,7 @@ std::string TnnOptimizeEliminateSqueezePass::PassName() {
     return "EliminateSqueeze";
 }
 
-TNN_NS::Status TnnOptimizeEliminateSqueezePass::exec(tnn::NetStructure& net_structure, tnn::NetResource& net_resource) {
+TNN_NS::Status TnnOptimizeEliminateSqueezePass::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     auto& layers = net_structure.layers;
     for (auto iter = layers.begin(); iter != layers.end();) {
         auto& layer = *iter;

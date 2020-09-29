@@ -1,3 +1,4 @@
+
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -515,6 +516,30 @@ struct MetalReshapeParams {
     int output_slice;
     int output_channel;
     int batch;
+};
+
+/** ArgMaxOrMin Param Struct **/
+struct MetalArgMaxOrMinParams {
+    int input_channel;
+    int outer_size;
+    int inner_size;
+    int reduce_size;
+    int mode;
+};
+
+/** PixelShuffle Param Struct **/
+struct MetalPixelShuffleParams {
+    int input_width;
+    int input_height;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_slice;
+    int batch;
+
+    int upscale_factor;
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
