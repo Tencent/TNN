@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_base_converter.h"
+#include "onnx_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reshape);
@@ -40,6 +41,18 @@ TNN_NS::Status OnnxReshapeConverter::exec(tnn::NetStructure &net_structure, tnn:
     param->num_axes     = 4;
     param->shape        = {0, -1, 1, 1};
     param->reshape_type = 0;
+
+    const auto &shape_name           = node.input(1);
+    const auto &shape_node           = FindNodeProto(shape_name, proxy_nodes);
+    const auto &shape_tensor         = GetAttributeTensor(*shape_node, "value");
+    const int64_t *shape_tensor_data = (int64_t *)GetTensorProtoData(shape_tensor);
+    const int shape_tensor_size      = GetTensorProtoDataSize(shape_tensor);
+
+    assert(shape_tensor_size <= 4);
+
+    for (int i = 0; i < shape_tensor_size; i++) {
+        param->shape[i] = shape_tensor_data[i];
+    }
 
     cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);

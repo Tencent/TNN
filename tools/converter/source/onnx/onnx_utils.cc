@@ -78,6 +78,8 @@ std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto &node, const st
     return attributes;
 }
 
+
+
 float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, float default_value) {
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
@@ -152,4 +154,114 @@ std::vector<int8_t> Asymmetric2Symmetric(std::vector<uint8_t> &raw_value, uint8_
     }
     return res;
 }
+
+onnx::TensorProto GetAttributeTensor(const onnx::NodeProto& node, const char* key) {
+    for (int i = 0; i < node.attribute_size(); i++) {
+        const onnx::AttributeProto& attr = node.attribute(i);
+        if (attr.name() == key) {
+            return attr.t();
+        }
+    }
+
+    return onnx::TensorProto();
+}
+
+const float *GetTensorProtoData(const onnx::TensorProto &tp) {
+    /*
+        TensorProto_DataType_UNDEFINED = 0,
+        TensorProto_DataType_FLOAT = 1,
+        TensorProto_DataType_UINT8 = 2,
+        TensorProto_DataType_INT8 = 3,
+        TensorProto_DataType_UINT16 = 4,
+        TensorProto_DataType_INT16 = 5,
+        TensorProto_DataType_INT32 = 6,
+        TensorProto_DataType_INT64 = 7,
+        TensorProto_DataType_STRING = 8,
+        TensorProto_DataType_BOOL = 9,
+        TensorProto_DataType_FLOAT16 = 10,
+        TensorProto_DataType_DOUBLE = 11,
+        TensorProto_DataType_UINT32 = 12,
+        TensorProto_DataType_UINT64 = 13,
+        TensorProto_DataType_COMPLEX64 = 14,
+        TensorProto_DataType_COMPLEX128 = 15,
+        TensorProto_DataType_BFLOAT16 = 16
+    */
+    if (tp.has_raw_data()) {
+        return (const float*)tp.raw_data().data();
+    } else if (tp.data_type() == 1) {
+        return tp.float_data().data();
+    } else if (tp.data_type() == 6) {
+        return (const float*)tp.int32_data().data();
+    } else if (tp.data_type() == 7) {
+        return (const float*)tp.int64_data().data();
+    } else if (tp.data_type() == 11) {
+        return (const float*)tp.double_data().data();
+    } else {
+        printf("name:%s data_type :%d\n", tp.name().c_str(), tp.data_type());
+        assert(0);
+        return nullptr;
+    }
+}
+
+int GetTensorProtoDataSize(const onnx::TensorProto& tp) {
+    /*
+        TensorProto_DataType_UNDEFINED = 0,
+        TensorProto_DataType_FLOAT = 1,
+        TensorProto_DataType_UINT8 = 2,
+        TensorProto_DataType_INT8 = 3,
+        TensorProto_DataType_UINT16 = 4,
+        TensorProto_DataType_INT16 = 5,
+        TensorProto_DataType_INT32 = 6,
+        TensorProto_DataType_INT64 = 7,
+        TensorProto_DataType_STRING = 8,
+        TensorProto_DataType_BOOL = 9,
+        TensorProto_DataType_FLOAT16 = 10,
+        TensorProto_DataType_DOUBLE = 11,
+        TensorProto_DataType_UINT32 = 12,
+        TensorProto_DataType_UINT64 = 13,
+        TensorProto_DataType_COMPLEX64 = 14,
+        TensorProto_DataType_COMPLEX128 = 15,
+        TensorProto_DataType_BFLOAT16 = 16
+     */
+
+    if (tp.has_raw_data()) {
+        const std::string& raw_data = tp.raw_data();
+        if (tp.data_type() == 1) {
+            return (int)raw_data.size() / 4;
+        } else if (tp.data_type() == 2) {
+            return (int)raw_data.size() / 1;
+        } else if (tp.data_type() == 3) {
+            return (int)raw_data.size() / 1;
+        } else if (tp.data_type() == 4) {
+            return (int)raw_data.size() / 2;
+        } else if (tp.data_type() == 5) {
+            return (int)raw_data.size() / 2;
+        } else if (tp.data_type() == 6) {
+            return (int)raw_data.size() / 4;
+        } else if (tp.data_type() == 7) {
+            return (int)raw_data.size() / 8;
+        } else if (tp.data_type() == 11) {
+            return (int)raw_data.size() / 8;
+        } else {
+            LOGD("unsupport data type: %d\n", tp.data_type());
+            assert(0);
+        }
+    } else {
+        if (tp.data_type() == 1) {
+            return tp.float_data_size();
+        } else if (tp.data_type() == 6) {
+            return tp.int32_data_size();
+        } else if (tp.data_type() == 7) {
+            return tp.int64_data_size();
+        } else if (tp.data_type() == 11) {
+            return tp.double_data_size();
+        } else {
+            LOGD("unsupport data type: %d\n", tp.data_type());
+            assert(0);
+        }
+    }
+
+    return 0;
+}
+
 }  // namespace TNN_CONVERTER
