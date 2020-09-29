@@ -55,6 +55,7 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
     int axis_n          = input_dims[softmax_param->axis];
 
+    // only support fine-grained parallelism in softmax height
     bool run_local_work = softmax_param->axis == 2 &&
                           cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
     if (run_local_work) {
@@ -86,11 +87,11 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch    = output_dims[0];
-    const int channels = output_dims[1];
-    const int height   = output_dims[2];
-    const int width    = output_dims[3];
-    int c4_n = input_dims[1] / 4;
+    const int batch     = output_dims[0];
+    const int channels  = output_dims[1];
+    const int height    = output_dims[2];
+    const int width     = output_dims[3];
+    int c4_n            = input_dims[1] / 4;
 
     const int channelBlocks  = UP_DIV(channels, 4);
     const int remainChannels = channelBlocks * 4 - channels;
@@ -114,12 +115,12 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, remainChannels);
         execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
     } else if (2 == softmax_param->axis) {
-        bool run_local_work = cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+        bool run_local_work     = cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
         uint32_t workgroup_size = 0;
         auto &unit              = execute_units_[0];
         if (run_local_work) {
             workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * sizeof(float))),
-                                    unit.workgroupsize_max);
+                                      unit.workgroupsize_max);
             workgroup_size = std::min(static_cast<uint32_t>(axis_n), workgroup_size);
             int temp_size = 1;
             while ((temp_size <<= 1) <= workgroup_size);
@@ -127,8 +128,7 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
             unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(batch)};
             unit.local_work_size  = {workgroup_size, 1};
-        }
-        if (!run_local_work) {
+        } else {
             if (execute_units_[0].workgroupsize_max > 256) {
                 execute_units_[0].local_work_size = {16, 16, 1};
             } else {
