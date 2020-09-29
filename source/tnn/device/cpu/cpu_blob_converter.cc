@@ -178,7 +178,8 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         } else {
             auto real_blob_data = new float[dims[0] * dims[1] * dims[2] * dims[3]];
             auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
-            CPU_DEQUANT(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, dims[1], real_blob_data, dims);
+            auto scale_len  = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
+            CPU_DEQUANT(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, scale_len, real_blob_data, dims);
             blob_data = real_blob_data;
         }
     } else if (desc.data_type == DATA_TYPE_BFP16) {
@@ -345,8 +346,9 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
 
     if (desc.data_type == DATA_TYPE_INT8) {
         auto blob_scale     = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
+        auto scale_len      = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
         auto real_blob_data = reinterpret_cast<int8_t *>(blob_->GetHandle().base);
-        CPU_QUANT(blob_data, blob_scale, dims[1], real_blob_data, dims);
+        CPU_QUANT(blob_data, blob_scale, scale_len, real_blob_data, dims);
         delete[] blob_data;
     }
     return TNN_OK;
