@@ -60,7 +60,7 @@ int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_t c_step, size_t w_step, size_t depth);
 
-int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale);
+int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale, float *bias);
 
 template <typename T>
 int ConvertWeightsC4ToC8(T *weight, int ic, int oc);
