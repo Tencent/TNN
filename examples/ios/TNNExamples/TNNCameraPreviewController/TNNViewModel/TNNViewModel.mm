@@ -34,6 +34,10 @@
     return {};
 }
 
+-(ImageInfo)getImage:(std::shared_ptr<TNNSDKOutput>)sdk_output {
+    return {};
+}
+
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
     [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func labelForObject"];
     return nil;

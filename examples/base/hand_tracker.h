@@ -60,7 +60,6 @@ public:
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
-   // virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
     // hand region set by the detection model or in previous frame
     void SetHandRegion(float x1, float y1, float x2, float y2) {
         x1_ = x1;
@@ -68,13 +67,19 @@ public:
         x2_ = x2;
         y2_ = y2;
     }
+    bool NeedHandDetect() {
+        return !this->valid_hand_in_prev_frame_;
+    }
 private:
+    Status GetHandRegion(std::shared_ptr<Mat>mat, std::vector<float>& locations);
     float x1_;
     float y1_;
     float x2_;
     float y2_;
     // whether valid hand in this frame
     bool valid_hand_in_prev_frame_ = false;
+    // original input shspe
+    DimsVector input_shape;
 };
 
 }

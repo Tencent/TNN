@@ -75,6 +75,8 @@ private:
 
     float conf_thresh;
     float nms_thresh;
+    // the input image size
+    DimsVector input_shape;
 };
 
 }

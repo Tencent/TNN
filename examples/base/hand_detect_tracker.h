@@ -39,6 +39,8 @@ public:
 protected:
     std::shared_ptr<TNNSDKSample> predictor_detect_ = nullptr;
     std::shared_ptr<TNNSDKSample> predictor_track_  = nullptr;
+private:
+    bool need_hand_detect = true;
 };
 
 }

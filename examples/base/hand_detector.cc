@@ -52,6 +52,7 @@ Status HandDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
 
 std::shared_ptr<Mat> HandDetector::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
+    this->input_shape = input_mat->GetDims();
     auto target_dims = GetInputShape(name);
     auto input_height = input_mat->GetHeight();
     auto input_width = input_mat->GetWidth();
@@ -100,6 +101,7 @@ Status HandDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
 }
 
 void HandDetector::GenerateBBox(Mat *bbox_x, Mat *bbox_y, Mat *bbox_h, Mat *bbox_w, Mat *conf, std::vector<ObjectInfo>& bboxes) {
+    bboxes.clear();
     auto dims   = bbox_x->GetDims();
     // process (x, y)
     float *bbox_x_ptr = static_cast<float *>(bbox_x->GetData());
@@ -123,6 +125,11 @@ void HandDetector::GenerateBBox(Mat *bbox_x, Mat *bbox_y, Mat *bbox_h, Mat *bbox
     float *conf_ptr = static_cast<float *>(conf->GetData());
     auto option = reinterpret_cast<HandDetectorOption *>(option_.get());
     auto count = DimsVectorUtils::Count(dims);
+
+    int orig_input_width  = this->input_shape[3];
+    int orig_input_height = this->input_shape[2];
+    int target_input_width  = option->input_width;
+    int target_input_height = option->input_height;
     for(int i=0; i<count; ++i) {
         float score    = conf_ptr[i];
         if (score < this->conf_thresh)
@@ -132,13 +139,18 @@ void HandDetector::GenerateBBox(Mat *bbox_x, Mat *bbox_y, Mat *bbox_h, Mat *bbox
         float width    = bbox_w_ptr[i];
         float height   = bbox_h_ptr[i];
         ObjectInfo obj;
-        obj.x1 = center_x - width / 2.0;
-        obj.y1 = center_y - height / 2.0;
-        obj.x2 = center_x + width / 2.0;
-        obj.y2 = center_y + height / 2.0;
+        float x1 = center_x - width / 2.0;
+        float y1 = center_y - height / 2.0;
+        float x2 = center_x + width / 2.0;
+        float y2 = center_y + height / 2.0;
+        // modify the location
+        obj.x1 = x1 * orig_input_width / target_input_width * 0.9;
+        obj.x2 = x2 * orig_input_width / target_input_width * 1.1;
+        obj.y1 = y1 * orig_input_height / target_input_height * 0.9;
+        obj.y2 = y2 * orig_input_height / target_input_height * 1.1;
         obj.score = score;
-        obj.image_width  = option->input_width;
-        obj.image_height = option->input_height;
+        obj.image_width  = orig_input_width;
+        obj.image_height = orig_input_height;
         bboxes.push_back(std::move(obj));
     }
 }

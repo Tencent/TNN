@@ -41,6 +41,8 @@ MatConvertParam HandTracking::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / 128.0, 1.0 / 128.0, 1.0 / 128.0, 0.0};
     input_convert_param.bias  = {-1.0, -1.0, -1.0, 0.0};
+    // hand tracker requires input in BGR
+    input_convert_param.reverse_channel = true;
     return input_convert_param;
 }
 
@@ -54,6 +56,8 @@ std::shared_ptr<Mat> HandTracking::ProcessSDKInputMat(std::shared_ptr<Mat> input
     auto input_height = input_image->GetHeight();
     auto input_width = input_image->GetWidth();
 
+    this->input_shape = input_image->GetDims();
+
     // crop face region accorfing
     auto start_x = x1_;
     auto start_y = y1_;
@@ -63,7 +67,7 @@ std::shared_ptr<Mat> HandTracking::ProcessSDKInputMat(std::shared_ptr<Mat> input
         auto center_x = (x1_ + x2_) / 2;
         auto center_y = (y1_ + y2_) / 2;
         start_x = x1_ - (center_x - x1_) * 0.5;
-        start_y = y1_ - (center_x - y1_) * 0.5;
+        start_y = y1_ - (center_y - y1_) * 0.5;
         end_x   = x2_ + (x2_ - center_x) * 0.5;
         end_y   = y2_ + (y2_ - center_y) * 0.5;
 
@@ -71,6 +75,11 @@ std::shared_ptr<Mat> HandTracking::ProcessSDKInputMat(std::shared_ptr<Mat> input
         start_y = fmax(0, start_y);
         end_x   = fmin(end_x, input_width  - 2);
         end_y   = fmin(end_y, input_height - 2);
+
+        x1_ = start_x;
+        x2_ = end_x;
+        y1_ = start_y;
+        y2_ = end_y;
     }
     auto croped_dims = input_image->GetDims();
     croped_dims[2] = end_y - start_y + 1;
@@ -107,29 +116,64 @@ Status HandTracking::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     RETURN_VALUE_ON_NEQ(!output, false,
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
 
-    auto tracking_result  = output->GetMat("output0");
+    auto heat_map         = output->GetMat("output0");
     auto prob             = output->GetMat("output1");
     // get score
-    float score = static_cast<float*>(prob->GetData())[0];
-    float *region_ptr = static_cast<float*>(tracking_result->GetData());
+    float* score_ptr = static_cast<float*>(prob->GetData());
+    float score = score_ptr[1];
+
+    std::vector<float> hand_locations;
+    status = GetHandRegion(heat_map, hand_locations);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     ObjectInfo hand;
-    auto x1 = region_ptr[0];
-    auto y1 = region_ptr[1];
-    auto x2 = region_ptr[2];
-    auto y2 = region_ptr[3];
-    hand.x1 = x1;
-    hand.y1 = y1;
-    hand.x2 = x2;
-    hand.y2 = y2;
+    hand.x1 = hand_locations[0];
+    hand.y1 = hand_locations[1];
+    hand.x2 = hand_locations[2];
+    hand.y2 = hand_locations[3];
+    hand.image_width  = this->input_shape[3];
+    hand.image_height = this->input_shape[2];
+    hand.score = score;
     output->hand_list.push_back(std::move(hand));
     if (score >= option->hand_presence_threshold) {
         valid_hand_in_prev_frame_ = true;
-        // update hand region
-        SetHandRegion(x1, y1, x2, y2);
+        // next frame will use tracking result, update hand region
+        SetHandRegion(hand.x1, hand.y1, hand.x2, hand.y2);
     } else {
+        // next frame will use hand detector
+        SetHandRegion(0, 0, 0, 0);
         valid_hand_in_prev_frame_ = false;
     }
     return status;
+}
+
+Status HandTracking::GetHandRegion(std::shared_ptr<Mat> mat, std::vector<float>& locations) {
+    // get the max value location
+    auto arg_max_hw = [](const float* data, size_t size, size_t w) {
+        auto idx = std::distance(data, std::max_element(data, data+size));
+        return std::make_pair(idx % w, idx / w);
+    };
+    locations.clear();
+
+    auto heat_map_data = static_cast<float *>(mat->GetData());
+    auto dims = mat->GetDims();
+    auto hw   = dims[2] * dims[3];
+    RETURN_VALUE_ON_NEQ(dims[1], 2, Status(TNNERR_PARAM_ERR, "heat_map mat should have 2 channels!"));
+
+    HandTrackingOption* option = dynamic_cast<HandTrackingOption *>(option_.get());
+    auto target_height = option->input_height;
+    auto target_width  = option->input_width;
+    assert(target_height == 64);
+    assert(target_width == 64);
+    for(int c=0; c<dims[1]; ++c) {
+        auto xy = arg_max_hw(heat_map_data + c*hw, hw, dims[3]);
+        float x = xy.first  * (x2_ - x1_) / target_width  + x1_;
+        float y = xy.second * (y2_ - y1_) / target_height + y1_;
+        locations.push_back(x);
+        locations.push_back(y);
+    }
+
+    return TNN_OK;
 }
 
 }

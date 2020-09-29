@@ -13,20 +13,22 @@
 // specific language governing permissions and limitations under the License.
 
 #import <Foundation/Foundation.h>
-#import "tnn_sdk_sample.h"
+#import <UIKit/UIKit.h>
+#include <memory>
+#include <vector>
 
-using namespace::TNN_NS;
+@interface TNNMaskImage : NSObject
+@property (nonatomic, strong, readonly) CALayer *imageLayer;
 
-@interface TNNViewModel : NSObject
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
+- (instancetype)init;
 
-@property (nonatomic, strong) NSString *title;
-@property (nonatomic, assign) bool preferFrontCamera;
-@property (nonatomic, assign) bool preferGPU;
--(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
+-(void)addToLayer:(CALayer *)layer;
+-(void)removeFromSuperLayer;
 
-//Object Detection
--(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
--(ImageInfo)getImage:(std::shared_ptr<TNNSDKOutput>)sdk_output;
--(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+- (void)showImage:(UIImage *)image atFrame:(CGRect)frame;
+
+
+- (void)hide;
 @end
+
+
