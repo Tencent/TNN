@@ -210,7 +210,7 @@ Status ModelPacker::PackModel(std::string file_path) {
                     continue;
                 }
                 if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(layer_name)->second == nullptr) {
+                    resource_map.find(blob_scale_name)->second == nullptr) {
                     continue;
                 }
                 result = PackResource(resource_map, blob_scale_name, serializer, write_stream);
@@ -237,7 +237,7 @@ Status ModelPacker::PackModel(std::string file_path) {
                     continue;
                 }
                 if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(layer_name)->second == nullptr) {
+                    resource_map.find(blob_scale_name)->second == nullptr) {
                     continue;
                 }
                 blob_scale_set.insert(blob_scale_name);
