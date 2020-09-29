@@ -19,6 +19,9 @@ namespace TNN_NS {
 
 DECLARE_OPENCL_ACC(Softmax);
 
+#define LowOpParallelismThre 32
+#define HighOpIntensityThre 256
+
 Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init SoftMax Acc\n");
@@ -45,6 +48,19 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid softmax axis");
     }
 
+    auto output_dims    = outputs[0]->GetBlobDesc().dims;
+    const int batch     = output_dims[0];
+    int cw              = output_dims[3] * UP_DIV(output_dims[1], 4);
+
+    auto input_dims     = inputs[0]->GetBlobDesc().dims;
+    int axis_n          = input_dims[softmax_param->axis];
+
+    bool run_local_work = softmax_param->axis == 2 &&
+                          cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+    if (run_local_work) {
+        kernel_name += "Local";
+    }
+
     std::set<std::string> build_options;
     AdjustBuildOptionForFp32(build_options);
 
@@ -67,15 +83,20 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     ASSERT(inputs.size() == 1);
 
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
     const int batch    = output_dims[0];
     const int channels = output_dims[1];
     const int height   = output_dims[2];
     const int width    = output_dims[3];
+    int c4_n = input_dims[1] / 4;
 
     const int channelBlocks  = UP_DIV(channels, 4);
     const int remainChannels = channelBlocks * 4 - channels;
+
+    int cw      = output_dims[3] * channelBlocks;
+    int axis_n  = input_dims[softmax_param->axis];
 
     uint32_t idx = 0;
 
@@ -93,16 +114,39 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, remainChannels);
         execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
     } else if (2 == softmax_param->axis) {
-        if (execute_units_[0].workgroupsize_max > 256) {
-            execute_units_[0].local_work_size = {16, 16, 1};
-        } else {
-            execute_units_[0].local_work_size = {8, 8, 1};
+        bool run_local_work = cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+        uint32_t workgroup_size = 0;
+        auto &unit              = execute_units_[0];
+        if (run_local_work) {
+            workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * sizeof(float))),
+                                    unit.workgroupsize_max);
+            workgroup_size = std::min(static_cast<uint32_t>(axis_n), workgroup_size);
+            int temp_size = 1;
+            while ((temp_size <<= 1) <= workgroup_size);
+            workgroup_size = temp_size >> 1;
+
+            unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(batch)};
+            unit.local_work_size  = {workgroup_size, 1};
         }
-        execute_units_[0].global_work_size = {(uint32_t)channelBlocks * width, (uint32_t)batch, 1};
+        if (!run_local_work) {
+            if (execute_units_[0].workgroupsize_max > 256) {
+                execute_units_[0].local_work_size = {16, 16, 1};
+            } else {
+                execute_units_[0].local_work_size = {8, 8, 1};
+            }
+            execute_units_[0].global_work_size = {(uint32_t)channelBlocks * width, (uint32_t)batch, 1};
+        }
         int shape[]                        = {batch, channelBlocks, height, width};
+
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
         execute_units_[0].ocl_kernel.setArg(idx++, shape);
+        if (run_local_work) {
+            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
+            execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * sizeof(float), nullptr);
+        }
     } else {
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "invalid softmax axis");
