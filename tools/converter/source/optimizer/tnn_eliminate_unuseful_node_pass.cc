@@ -50,8 +50,8 @@ TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& 
         // erase blob scale
         auto& resource_map = net_resource.resource_map;
         if (layer->type_str == "Int8Quantized") {
-            const auto& output_name            = layer_output_names[0];
-            const auto& input_blob_scale_name  = layer->inputs[0] + BLOB_SCALE_SUFFIX;
+            const auto& output_name           = layer_output_names[0];
+            const auto& input_blob_scale_name = layer->inputs[0] + BLOB_SCALE_SUFFIX;
             if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
                 for (const auto& sub_iter : layers) {
                     auto& inputs    = sub_iter->inputs;

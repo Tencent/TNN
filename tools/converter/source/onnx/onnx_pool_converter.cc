@@ -30,7 +30,7 @@ TNN_NS::ActivationType OnnxPoolingConverter::ActivationType(const onnx::NodeProt
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxPoolingConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const onnx::NodeProto &node,
                                           std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,

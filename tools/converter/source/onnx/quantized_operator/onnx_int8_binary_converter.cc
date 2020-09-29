@@ -30,7 +30,7 @@ TNN_NS::ActivationType OnnxInt8BinaryConverter::ActivationType(const onnx::NodeP
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxInt8BinaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                              const onnx::NodeProto &node,
                                              std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                              std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
@@ -62,17 +62,17 @@ TNN_NS::Status OnnxInt8BinaryConverter::exec(tnn::NetStructure &net_structure, t
         }
     }
     // create output scale
-    const auto &output_name    = node.output(0);
+    const auto &output_name     = node.output(0);
     auto output_blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
     if (net_resource.resource_map.find(output_blob_scale_name) == net_resource.resource_map.end()) {
-        const auto &node                     = FindNodeProto(output_name, proxy_nodes);
-        auto scale                           = GetAttributeFloat(*node, "Y_scale", 1.0);
-        auto zero_point                      = GetAttributeInt(*node, "Y_zero_point", 0);
-        auto output_blob_scale               = new TNN_NS::IntScaleResource;
-        output_blob_scale->name              = output_blob_scale_name;
+        const auto &node               = FindNodeProto(output_name, proxy_nodes);
+        auto scale                     = GetAttributeFloat(*node, "Y_scale", 1.0);
+        auto zero_point                = GetAttributeInt(*node, "Y_zero_point", 0);
+        auto output_blob_scale         = new TNN_NS::IntScaleResource;
+        output_blob_scale->name        = output_blob_scale_name;
         TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
         scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        output_blob_scale->scale_handle      = scale_handle;
+        output_blob_scale->scale_handle     = scale_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&zero_point);
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
         output_blob_scale->bias_handle                    = zero_point_handle;

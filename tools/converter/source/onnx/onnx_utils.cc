@@ -78,8 +78,6 @@ std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto &node, const st
     return attributes;
 }
 
-
-
 float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, float default_value) {
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
@@ -155,9 +153,9 @@ std::vector<int8_t> Asymmetric2Symmetric(std::vector<uint8_t> &raw_value, uint8_
     return res;
 }
 
-onnx::TensorProto GetAttributeTensor(const onnx::NodeProto& node, const char* key) {
+onnx::TensorProto GetAttributeTensor(const onnx::NodeProto &node, const char *key) {
     for (int i = 0; i < node.attribute_size(); i++) {
-        const onnx::AttributeProto& attr = node.attribute(i);
+        const onnx::AttributeProto &attr = node.attribute(i);
         if (attr.name() == key) {
             return attr.t();
         }
@@ -187,15 +185,15 @@ const float *GetTensorProtoData(const onnx::TensorProto &tp) {
         TensorProto_DataType_BFLOAT16 = 16
     */
     if (tp.has_raw_data()) {
-        return (const float*)tp.raw_data().data();
+        return (const float *)tp.raw_data().data();
     } else if (tp.data_type() == 1) {
         return tp.float_data().data();
     } else if (tp.data_type() == 6) {
-        return (const float*)tp.int32_data().data();
+        return (const float *)tp.int32_data().data();
     } else if (tp.data_type() == 7) {
-        return (const float*)tp.int64_data().data();
+        return (const float *)tp.int64_data().data();
     } else if (tp.data_type() == 11) {
-        return (const float*)tp.double_data().data();
+        return (const float *)tp.double_data().data();
     } else {
         printf("name:%s data_type :%d\n", tp.name().c_str(), tp.data_type());
         assert(0);
@@ -203,7 +201,7 @@ const float *GetTensorProtoData(const onnx::TensorProto &tp) {
     }
 }
 
-int GetTensorProtoDataSize(const onnx::TensorProto& tp) {
+int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
     /*
         TensorProto_DataType_UNDEFINED = 0,
         TensorProto_DataType_FLOAT = 1,
@@ -225,7 +223,7 @@ int GetTensorProtoDataSize(const onnx::TensorProto& tp) {
      */
 
     if (tp.has_raw_data()) {
-        const std::string& raw_data = tp.raw_data();
+        const std::string &raw_data = tp.raw_data();
         if (tp.data_type() == 1) {
             return (int)raw_data.size() / 4;
         } else if (tp.data_type() == 2) {

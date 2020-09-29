@@ -37,7 +37,7 @@ std::vector<std::string> GetAttributeStringVector(const onnx::NodeProto& node, c
 
 std::vector<std::string> SplitString(std::string& s, const std::string& c);
 
-std::vector<uint8_t> GetAttributeUInt8Vector(const onnx::NodeProto &node, const std::string &name);
+std::vector<uint8_t> GetAttributeUInt8Vector(const onnx::NodeProto& node, const std::string& name);
 
 std::vector<int8_t> Asymmetric2Symmetric(std::vector<uint8_t>& raw_value, uint8_t zero_point);
 
@@ -48,7 +48,7 @@ const float* GetTensorProtoData(const onnx::TensorProto& tp);
 int GetTensorProtoDataSize(const onnx::TensorProto& tp);
 
 template <typename T>
-bool OHWI2OIHW(T *src, T *dst, int CO, int KH, int KW, int CI) {
+bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
     ASSERT(CO > 0);
     ASSERT(KH > 0);
     ASSERT(KW > 0);

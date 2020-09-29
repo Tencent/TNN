@@ -23,7 +23,7 @@ std::string OnnxConvConverter::TNNOpType(const onnx::NodeProto &node, bool quant
 TNN_NS::ActivationType OnnxConvConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
-TNN_NS::Status OnnxConvConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxConvConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                        const onnx::NodeProto &node,
                                        std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,

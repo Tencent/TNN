@@ -27,7 +27,7 @@ TNN_NS::ActivationType OnnxInt8QuantizedConverter::ActivationType(const onnx::No
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8QuantizedConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxInt8QuantizedConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                                 const onnx::NodeProto &node,
                                                 std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
                                                 std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
@@ -61,11 +61,11 @@ TNN_NS::Status OnnxInt8QuantizedConverter::exec(tnn::NetStructure &net_structure
 #endif
 
     TNN_NS::LayerParam *param = new TNN_NS::LayerParam;
-    auto cur_layer                = net_structure.layers.back();
-    cur_layer->param              = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name                   = cur_layer->name;
-    param->type                   = cur_layer->type_str;
-    param->quantized              = false;
+    auto cur_layer            = net_structure.layers.back();
+    cur_layer->param          = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name               = cur_layer->name;
+    param->type               = cur_layer->type_str;
+    param->quantized          = false;
     for (int i = 0; i < node.input_size(); ++i) {
         const auto &input_name            = node.input(i);
         std::string input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
