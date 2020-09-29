@@ -12,22 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn_optimizer.h"
-
-#include "tnn_optimize_pass.h"
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#include "onnx.pb.h"
+#include "tnn/core/status.h"
+#include "tnn/interpreter/net_resource.h"
+#include "tnn/interpreter/net_structure.h"
 
 namespace TNN_CONVERTER {
+class Onnx2Tnn {
+public:
+    Onnx2Tnn(std::string model_path);
+    Onnx2Tnn() = delete;
+    ~Onnx2Tnn();
+    TNN_NS::Status Conveter2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 
-TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
-    std::vector<std::string> optimize_pass = {"EliminateUnusefulNode", "TransformReduceMean"};
-    for (auto pass_name : optimize_pass) {
-        auto pass = TnnOptimizePassManager::get()->search(pass_name);
-        if (pass == nullptr) {
-            LOGE("Unsupport optimize pass %s\n", pass_name.c_str());
-            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
-        }
-        pass->exec(net_structure, net_resource);
-    }
-    return TNN_NS::TNN_CONVERT_OK;
-}
+private:
+    bool ReadModel();
+    bool IsQuantized();
+    std::string onnx_model_path_;
+    std::unique_ptr<onnx::ModelProto> onnx_model_;
+};
+
 }  // namespace TNN_CONVERTER
+
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_

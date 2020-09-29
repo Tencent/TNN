@@ -43,7 +43,6 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     if (quantized_model) {
         // TODO
     } else {
-
         param->name      = cur_layer->name;
         param->type      = cur_layer->type_str;
         param->quantized = false;
