@@ -59,6 +59,13 @@ TNN_NS::Status OnnxInt8QuantizedConverter::exec(tnn::NetStructure &net_structure
         net_resource.resource_map[input_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
     }
 #endif
+
+    TNN_NS::LayerParam *param = new TNN_NS::LayerParam;
+    auto cur_layer                = net_structure.layers.back();
+    cur_layer->param              = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name                   = cur_layer->name;
+    param->type                   = cur_layer->type_str;
+    param->quantized              = false;
     for (int i = 0; i < node.input_size(); ++i) {
         const auto &input_name            = node.input(i);
         std::string input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;

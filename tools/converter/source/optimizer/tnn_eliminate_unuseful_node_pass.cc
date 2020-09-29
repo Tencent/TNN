@@ -38,46 +38,60 @@ TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& 
         // 处理悬空节点
         if (layer->inputs.empty() || layer->outputs.empty()) {
             iter = layers.erase(iter);
+            iter++;
             continue;
         }
-
-        auto input        = layer->inputs[0];
-        auto output_names = layer->outputs;
-        for (auto sub_iter = layers.begin(); sub_iter != layers.end(); sub_iter++) {
-            auto& sub_layer = *sub_iter;
-            for (int i = 0; i < sub_layer->inputs.size(); i++) {
-                if (std::find(output_names.begin(), output_names.end(), sub_layer->inputs[i]) != output_names.end()) {
-                    sub_layer->inputs[i] = input;
+        if (layer->inputs.size() > 1) {
+            iter++;
+            continue;
+        }
+        auto pre_node_name      = layer->inputs[0];
+        auto layer_output_names = layer->outputs;
+        // erase blob scale
+        auto& resource_map = net_resource.resource_map;
+        if (layer->type_str == "Int8Quantized") {
+            const auto& output_name            = layer_output_names[0];
+            const auto& input_blob_scale_name  = layer->inputs[0] + BLOB_SCALE_SUFFIX;
+            if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
+                for (const auto& sub_iter : layers) {
+                    auto& inputs    = sub_iter->inputs;
+                    auto& cur_layer = *sub_iter;
+                    if (!cur_layer.param->quantized &&
+                        std::find(inputs.begin(), inputs.end(), output_name) != inputs.end()) {
+                        if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
+                            resource_map.erase(input_blob_scale_name);
+                            break;
+                        }
+                    }
                 }
             }
         }
-        auto& model_outputs = net_structure.outputs;
-        for (const auto& iter : model_outputs) {
-            if (std::find(output_names.begin(), output_names.end(), iter) != output_names.end()) {
-                model_outputs.erase(iter);
-                model_outputs.insert(input);
+        // eliminate
+        for (const auto& output_name : layer_output_names) {
+            auto output_blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
+            if (resource_map.find(output_blob_scale_name) != resource_map.end()) {
+                resource_map.erase(output_blob_scale_name);
+            }
+        }
+
+        auto& model_output_names = net_structure.outputs;
+        for (const auto& output_name : model_output_names) {
+            if (std::find(layer_output_names.begin(), layer_output_names.end(), output_name) !=
+                layer_output_names.end()) {
+                model_output_names.erase(output_name);
+                model_output_names.insert(pre_node_name);
                 break;
             }
         }
-        // erase blob scale
-        auto& resource_map = net_resource.resource_map;
-        if (layer->type_str == "QuantizedPermute" || layer->type_str == "Int8Quantized" ){
-            for (const auto& output_name : output_names) {
-                auto output_blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
-                if (resource_map.find(output_blob_scale_name) != resource_map.end()) {
-                    resource_map.erase(output_blob_scale_name);
+
+        for (const auto& sub_iter : layers) {
+            for (int i = 0; i < sub_iter->inputs.size(); i++) {
+                if (std::find(layer_output_names.begin(), layer_output_names.end(), sub_iter->inputs[i]) !=
+                    layer_output_names.end()) {
+                    sub_iter->inputs[i] = pre_node_name;
                 }
             }
         }
-//        else if (layer->type_str == "Int8Quantized") {
-//            if (net_structure.inputs_shape_map.find(input) == net_structure.inputs_shape_map.end()) {
-//               auto input_blob_scale_name = input + BLOB_SCALE_SUFFIX;
-//               if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
-//                   resource_map.erase(input_blob_scale_name);
-//               }
-//            }
-//        }
-
         iter = layers.erase(iter);
     }
     return TNN_NS::TNN_CONVERT_OK;

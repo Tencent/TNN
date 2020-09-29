@@ -41,7 +41,7 @@ TNN_NS::Status OnnxReshapeConverter::exec(tnn::NetStructure &net_structure, tnn:
     param->num_axes     = 4;
     param->shape        = {0, -1, 1, 1};
     param->reshape_type = 0;
-
+#if 0
     const auto &shape_name           = node.input(1);
     const auto &shape_node           = FindNodeProto(shape_name, proxy_nodes);
     const auto &shape_tensor         = GetAttributeTensor(*shape_node, "value");
@@ -53,7 +53,7 @@ TNN_NS::Status OnnxReshapeConverter::exec(tnn::NetStructure &net_structure, tnn:
     for (int i = 0; i < shape_tensor_size; i++) {
         param->shape[i] = shape_tensor_data[i];
     }
-
+#endif
     cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
     return TNN_NS::TNN_CONVERT_OK;
