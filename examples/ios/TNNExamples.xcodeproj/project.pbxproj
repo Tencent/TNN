@@ -51,16 +51,7 @@
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
 		EC0BE110251238FC009BD69A /* hand_tracker.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE10E251238FC009BD69A /* hand_tracker.cc */; };
 		EC0BE18D2518533D009BD69A /* hair_segmentation.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE18B2518533D009BD69A /* hair_segmentation.cc */; };
-		EC0BE1942519A86A009BD69A /* TNNHairSegmentationController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1932519A86A009BD69A /* TNNHairSegmentationController.mm */; };
-		EC0BE19C2519B39F009BD69A /* hair_seg_1.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE1962519B39F009BD69A /* hair_seg_1.jpg */; };
-		EC0BE19D2519B39F009BD69A /* hair_seg_10.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE1972519B39F009BD69A /* hair_seg_10.jpg */; };
-		EC0BE19E2519B39F009BD69A /* hair_seg_10000.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE1982519B39F009BD69A /* hair_seg_10000.jpg */; };
-		EC0BE19F2519B39F009BD69A /* hair_seg_100.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE1992519B39F009BD69A /* hair_seg_100.jpg */; };
-		EC0BE1A02519B39F009BD69A /* hair_seg_1000.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE19A2519B39F009BD69A /* hair_seg_1000.jpg */; };
-		EC0BE1A12519B39F009BD69A /* hair_seg_0.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE19B2519B39F009BD69A /* hair_seg_0.jpg */; };
 		EC0BE1A5251AEA84009BD69A /* hand_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1A3251AEA84009BD69A /* hand_detector.cc */; };
-		EC0BE1A8251AF674009BD69A /* TNNHandDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1A7251AF674009BD69A /* TNNHandDetectorController.mm */; };
-		EC0BE1AB251AFC59009BD69A /* test_hand.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EC0BE1AA251AFC59009BD69A /* test_hand.jpg */; };
 		EC0BE1AF251C327E009BD69A /* hand_detect_tracker.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1AD251C327E009BD69A /* hand_detect_tracker.cc */; };
 		EC0BE1B5251C436B009BD69A /* TNNHandDetectTrackerViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1B4251C436B009BD69A /* TNNHandDetectTrackerViewModel.mm */; };
 		EC0BE1C325207D11009BD69A /* TNNHairSegmentationViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1C225207D11009BD69A /* TNNHairSegmentationViewModel.mm */; };
@@ -175,19 +166,8 @@
 		EC0BE10F251238FC009BD69A /* hand_tracker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hand_tracker.h; sourceTree = "<group>"; };
 		EC0BE18B2518533D009BD69A /* hair_segmentation.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = hair_segmentation.cc; sourceTree = "<group>"; };
 		EC0BE18C2518533D009BD69A /* hair_segmentation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hair_segmentation.h; sourceTree = "<group>"; };
-		EC0BE1932519A86A009BD69A /* TNNHairSegmentationController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNHairSegmentationController.mm; sourceTree = "<group>"; };
-		EC0BE1952519A881009BD69A /* TNNHairSegmentationController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNHairSegmentationController.h; sourceTree = "<group>"; };
-		EC0BE1962519B39F009BD69A /* hair_seg_1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_1.jpg; sourceTree = "<group>"; };
-		EC0BE1972519B39F009BD69A /* hair_seg_10.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_10.jpg; sourceTree = "<group>"; };
-		EC0BE1982519B39F009BD69A /* hair_seg_10000.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_10000.jpg; sourceTree = "<group>"; };
-		EC0BE1992519B39F009BD69A /* hair_seg_100.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_100.jpg; sourceTree = "<group>"; };
-		EC0BE19A2519B39F009BD69A /* hair_seg_1000.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_1000.jpg; sourceTree = "<group>"; };
-		EC0BE19B2519B39F009BD69A /* hair_seg_0.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = hair_seg_0.jpg; sourceTree = "<group>"; };
 		EC0BE1A3251AEA84009BD69A /* hand_detector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = hand_detector.cc; sourceTree = "<group>"; };
 		EC0BE1A4251AEA84009BD69A /* hand_detector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hand_detector.h; sourceTree = "<group>"; };
-		EC0BE1A7251AF674009BD69A /* TNNHandDetectorController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNHandDetectorController.mm; sourceTree = "<group>"; };
-		EC0BE1A9251AF68C009BD69A /* TNNHandDetectorController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNHandDetectorController.h; sourceTree = "<group>"; };
-		EC0BE1AA251AFC59009BD69A /* test_hand.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_hand.jpg; sourceTree = "<group>"; };
 		EC0BE1AD251C327E009BD69A /* hand_detect_tracker.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = hand_detect_tracker.cc; sourceTree = "<group>"; };
 		EC0BE1AE251C327E009BD69A /* hand_detect_tracker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hand_detect_tracker.h; sourceTree = "<group>"; };
 		EC0BE1B4251C436B009BD69A /* TNNHandDetectTrackerViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNHandDetectTrackerViewModel.mm; sourceTree = "<group>"; };
@@ -355,8 +335,6 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
-				EC0BE1A6251AF65A009BD69A /* TNNHandDetectorController */,
-				EC0BE1922519A834009BD69A /* TNNHairSegmentationController */,
 				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
 				9DDED30B2429A839000C09EA /* base */,
@@ -475,31 +453,6 @@
 			path = CameraDevice;
 			sourceTree = "<group>";
 		};
-		EC0BE1922519A834009BD69A /* TNNHairSegmentationController */ = {
-			isa = PBXGroup;
-			children = (
-				EC0BE19B2519B39F009BD69A /* hair_seg_0.jpg */,
-				EC0BE1962519B39F009BD69A /* hair_seg_1.jpg */,
-				EC0BE1972519B39F009BD69A /* hair_seg_10.jpg */,
-				EC0BE1992519B39F009BD69A /* hair_seg_100.jpg */,
-				EC0BE19A2519B39F009BD69A /* hair_seg_1000.jpg */,
-				EC0BE1982519B39F009BD69A /* hair_seg_10000.jpg */,
-				EC0BE1932519A86A009BD69A /* TNNHairSegmentationController.mm */,
-				EC0BE1952519A881009BD69A /* TNNHairSegmentationController.h */,
-			);
-			path = TNNHairSegmentationController;
-			sourceTree = "<group>";
-		};
-		EC0BE1A6251AF65A009BD69A /* TNNHandDetectorController */ = {
-			isa = PBXGroup;
-			children = (
-				EC0BE1AA251AFC59009BD69A /* test_hand.jpg */,
-				EC0BE1A7251AF674009BD69A /* TNNHandDetectorController.mm */,
-				EC0BE1A9251AF68C009BD69A /* TNNHandDetectorController.h */,
-			);
-			path = TNNHandDetectorController;
-			sourceTree = "<group>";
-		};
 		EC4E1B4C24C97A0500B88179 /* TNNBlazefaceDetectorController */ = {
 			isa = PBXGroup;
 			children = (
@@ -605,23 +558,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EC0BE19E2519B39F009BD69A /* hair_seg_10000.jpg in Resources */,
-				EC0BE19D2519B39F009BD69A /* hair_seg_10.jpg in Resources */,
-				EC0BE1A12519B39F009BD69A /* hair_seg_0.jpg in Resources */,
 				9D71E7A324C4F35A00074C1A /* gray_00001.jpg in Resources */,
 				EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */,
-				EC0BE19C2519B39F009BD69A /* hair_seg_1.jpg in Resources */,
 				9DD579FD23B5A20E00A96E63 /* LaunchScreen.storyboard in Resources */,
 				9D9187E3242C30D600DF2B79 /* test.jpg in Resources */,
-				EC0BE1AB251AFC59009BD69A /* test_hand.jpg in Resources */,
 				9D71E7B024C560C900074C1A /* 004545.jpg in Resources */,
-				EC0BE1A02519B39F009BD69A /* hair_seg_1000.jpg in Resources */,
 				D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */,
 				9DDED30A2429A0BE000C09EA /* model in Resources */,
 				ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */,
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
-				EC0BE19F2519B39F009BD69A /* hair_seg_100.jpg in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
 				EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */,
@@ -665,9 +611,7 @@
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				EC0BE1B5251C436B009BD69A /* TNNHandDetectTrackerViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
-				EC0BE1A8251AF674009BD69A /* TNNHandDetectorController.mm in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
-				EC0BE1942519A86A009BD69A /* TNNHairSegmentationController.mm in Sources */,
 				9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */,
 				ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,

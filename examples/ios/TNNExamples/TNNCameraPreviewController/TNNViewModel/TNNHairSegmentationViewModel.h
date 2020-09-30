@@ -26,7 +26,5 @@
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 
-@property int mode;
-
 @end
 
