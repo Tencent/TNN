@@ -79,6 +79,20 @@ std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto &node, const st
     return attributes;
 }
 
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<int64_t> attributes;
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_INTS);
+        for (const auto &value : iter.ints()) {
+            attributes.push_back(value);
+        }
+    }
+    return attributes;
+}
+
 float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, float default_value) {
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {

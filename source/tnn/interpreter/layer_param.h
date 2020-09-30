@@ -152,6 +152,10 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 };
 
+struct CastLayerParam : public LayerParam {
+    int to = 0;
+};
+
 struct ScaleLayerParam : public LayerParam {
     int axis      = 1;
     int num_axes  = 1;
@@ -221,6 +225,12 @@ struct SliceLayerParam : public LayerParam {
     // size of each slice
     std::vector<int> slices;
     int axis;
+};
+
+struct QuantizedSliceLayerParam : public LayerParam {
+    std::vector<int> axis;
+    std::vector<int> ends;
+    std::vector<int> starts;
 };
 
 struct ElementWiseLayerParam : public LayerParam {};

@@ -69,9 +69,12 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
 
         output_stream << layer_param->mode << " ";
 
-        ASSERT(layer_param->scales.size() == 2);
+        /*ASSERT(layer_param->scales.size() == 2);
         output_stream << layer_param->scales[1] << " ";
-        output_stream << layer_param->scales[0] << " ";
+        output_stream << layer_param->scales[0] << " ";*/
+        for(int i = layer_param->scales.size() - 1; i >= 0; i--) {
+            output_stream << layer_param->scales[i] << " ";
+        }
 
         output_stream << layer_param->align_corners << " ";
 
