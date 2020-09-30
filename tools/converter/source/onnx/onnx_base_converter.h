@@ -14,6 +14,8 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_BASE_CONVERTER_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_BASE_CONVERTER_H_
+#include <memory>
+
 #include "onnx.pb.h"
 #include "onnx_proxy_graph.h"
 #include "tnn/interpreter/net_resource.h"
