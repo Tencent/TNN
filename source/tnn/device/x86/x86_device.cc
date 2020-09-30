@@ -35,7 +35,8 @@ Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         desc.data_format = DATA_FORMAT_NCHW;
         auto size_info   = Calculate(desc);
         return Allocate(handle, size_info);
-    } else if (mat_type == N8UC3) {
+    } else if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY ||
+               mat_type == NNV21 || mat_type == NNV12) {
         desc.data_type   = DATA_TYPE_INT8;
         desc.data_format = DATA_FORMAT_NCHW;
         auto size_info   = Calculate(desc);
@@ -75,6 +76,7 @@ Status X86Device::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDes
 
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset,
            reinterpret_cast<char*>(src->base) + src->bytes_offset, size_in_bytes);
+
     return TNN_OK;
 }
 

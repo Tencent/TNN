@@ -58,6 +58,6 @@ private:
     X86TypeLayerAccRegister<TypeLayerAccCreator<X86##type_string##LayerAcc>> g_x86_##layer_type##_acc_register( \
         layer_type);                                                                                            \
 
-}
+} // TNN_NS
 
-#endif
+#endif // TNN_SOURCE_TNN_DEVICE_X86_X86_LAYER_ACC_H_
