@@ -67,7 +67,11 @@ int GetInputMat(Blob* input_blob, std::string input_file, Mat& output_mat) {
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
 #ifdef INPUT_8UC3_ENABLE
-    output_mat = Mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+    if(mat_dims[1] == 1) {
+        output_mat = Mat(DEVICE_NAIVE, NGRAY, mat_dims, input_data_ptr);
+    } else {
+        output_mat = Mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+    }
 #else
     output_mat = Mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
 #endif

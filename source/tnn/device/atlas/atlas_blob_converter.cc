@@ -264,13 +264,11 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
         return tnn_ret;
     }
 
-    LOGD("Convert From Mat:  mat type: %d  mat device type: %d\n", mat.GetMatType(), mat.GetDeviceType());
-    if (N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == model_info_.aipp_input_format) {
-        tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                       atlas_cmd_queue->stream, true);
-        if (tnn_ret != TNN_OK)
-            return tnn_ret;
-    } else if ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) && ACL_YUV420SP_U8 == model_info_.aipp_input_format) {
+    LOGD("Convert From Mat:  mat type: %d  mat device type: %d  acl input format:%d\n", mat.GetMatType(), mat.GetDeviceType(), model_info_.aipp_input_format);
+    if ((N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == model_info_.aipp_input_format) ||
+        (NGRAY == mat.GetMatType() && ACL_YUV400_U8 == model_info_.aipp_input_format) ||
+        ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) && ACL_YUV420SP_U8 == model_info_.aipp_input_format)
+        ) {
         tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                        atlas_cmd_queue->stream, true);
         if (tnn_ret != TNN_OK)
