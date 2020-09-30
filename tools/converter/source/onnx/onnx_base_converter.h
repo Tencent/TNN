@@ -14,6 +14,8 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_BASE_CONVERTER_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_BASE_CONVERTER_H_
+#include <memory>
+
 #include "onnx.pb.h"
 #include "onnx_proxy_graph.h"
 #include "tnn/interpreter/net_resource.h"
@@ -42,16 +44,15 @@ protected:
 
 class OnnxConverterManager {
 public:
+    OnnxConverterManager() = default;
+    ~OnnxConverterManager();
     static OnnxConverterManager* get();
     void insert(const std::string onnx_op_type, OnnxBaseConverter* onnx_base_converter);
     OnnxBaseConverter* search(const std::string onnx_op_type);
-    OnnxConverterManager(){};
-    ~OnnxConverterManager();
 
 private:
     static OnnxConverterManager* onnx_converter_manager_;
-    std::map<const std::string, OnnxBaseConverter*> onnx_converter_map_;
-    std::vector<const std::string> operator_black_list_;
+    std::map<std::string, OnnxBaseConverter*> onnx_converter_map_;
 };
 template <class T>
 class OnnxConverterRegister {
