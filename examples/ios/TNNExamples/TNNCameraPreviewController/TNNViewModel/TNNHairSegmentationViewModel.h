@@ -19,8 +19,14 @@
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
+-(void) SetHairSegmentationAlpha:(float)alpha;
+-(void) SetHairSegmentationRGB:(unsigned char)r g:(unsigned char)g b:(unsigned char)b;
+
 //Object Detection
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+
+@property int mode;
+
 @end
 

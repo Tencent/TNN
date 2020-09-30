@@ -30,9 +30,9 @@ using namespace std;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/hair_segmentation/hair_for_youtu.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/hair_segmentation/segmentation.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/hair_segmentation/hair_for_youtu.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/hair_segmentation/segmentation.tnnproto"
                                                           ofType:nil];
     if (proto_path.length <= 0 || model_path.length <= 0) {
         status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
@@ -60,7 +60,7 @@ using namespace std;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
 
-        option->mode = 0;
+        option->mode = 1;
     }
         
     auto predictor = std::make_shared<HairSegmentation>();
@@ -73,6 +73,12 @@ using namespace std;
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
     self.predictor = predictor;
+
+    // merging weight
+    [self SetHairSegmentationAlpha:0.4];
+    // color blue
+    [self SetHairSegmentationRGB:0 g:0 b:255];
+
     return status;
 }
 
@@ -94,6 +100,22 @@ using namespace std;
 
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
     return nil;
+}
+
+-(void) SetHairSegmentationAlpha:(float)alpha {
+    if (self.predictor) {
+        auto* predictor_cast = dynamic_cast<HairSegmentation *>(self.predictor.get());
+        predictor_cast->SetAlpha(alpha);
+    }
+}
+
+-(void) SetHairSegmentationRGB:(unsigned char)red
+                             g:(unsigned char)green
+                             b:(unsigned char)blue {
+    if (self.predictor) {
+        auto* predictor_cast = dynamic_cast<HairSegmentation *>(self.predictor.get());
+        predictor_cast->SetHairColor({red, green, blue, 0});
+    }
 }
 
 @end

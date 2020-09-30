@@ -62,6 +62,16 @@ public:
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
+    // Set the color used on hair
+    void SetHairColor(const RGBA& color) {
+        this->hair_color_ = color;
+    }
+    // Set the alpha weight for hair
+    void SetAlpha(float alpha) {
+        if (alpha <= 0 || alpha > 1)
+            return;
+        this->alpha_ = alpha;
+    }
 private:
     std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
     std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
@@ -73,7 +83,9 @@ private:
     // the original input image
     std::shared_ptr<Mat> input_image;
     // the color used on hair
-    RGBA hair_color = {102, 178, 255, 0}; // blue
+    RGBA hair_color_ = {0, 0, 255, 0}; // blue
+    // the merging weight on hair
+    float alpha_ = 0.4;
 };
 
 }

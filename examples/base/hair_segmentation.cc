@@ -108,10 +108,12 @@ std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha, RG
     auto channel = orig_dims[1];
     for(int s=0; s<hw; ++s) {
         float hair_conf = alpha_data[s];
-        float bg_conf   = 1 - hair_conf;
-        float c0 = bg_conf * image_data[s*channel + 0] + hair_conf * color.r;
-        float c1 = bg_conf * image_data[s*channel + 1] + hair_conf * color.g;
-        float c2 = bg_conf * image_data[s*channel + 2] + hair_conf * color.b;
+        //float bg_conf   = 1 - hair_conf;
+        const float bg_conf = 1.0f;
+        const float merge_weight = this->alpha_;
+        float c0 = bg_conf * image_data[s*channel + 0] + merge_weight * hair_conf * color.r;
+        float c1 = bg_conf * image_data[s*channel + 1] + merge_weight * hair_conf * color.g;
+        float c2 = bg_conf * image_data[s*channel + 2] + merge_weight * hair_conf * color.b;
         float c3 = 0;
 
         merged_image_data[s*4 + 0] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c0)));
@@ -133,7 +135,7 @@ Status HairSegmentation::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     auto bg = output->GetMat("background");
     auto fg = output->GetMat("foreground");
     auto alpha = ProcessAlpha(fg, option->mode);
-    auto merged_image = MergeImage(alpha, this->hair_color);
+    auto merged_image = MergeImage(alpha, this->hair_color_);
     alpha = GenerateAlphaImage(alpha);
 
     output->hair_mask = ImageInfo(alpha);

@@ -176,18 +176,18 @@ using namespace std;
     }
 
     //头发分割 - HairSegmentation
-    {
-        auto data = [TNNExampleData new];
-        data.title = @"头发分割 - HairSegmentation";
-        data.desc = @"摄像头 - 单输入单输出";
-        data.viewControllerID = @"TNNCameraPreviewController";
-        {
-            data.viewModel = [TNNHairSegmentationViewModel new];
-            data.viewModel.title = @"HairSegmentation";
-            data.viewModel.preferFrontCamera = true;
-        }
-        [examples addObject:data];
-    }
+       {
+           auto data = [TNNExampleData new];
+           data.title = @"头发分割 - HairSegmentation";
+           data.desc = @"摄像头 - 单输入单输出";
+           data.viewControllerID = @"TNNCameraPreviewController";
+           {
+               data.viewModel = [TNNHairSegmentationViewModel new];
+               data.viewModel.title = @"HairSegmentation";
+               data.viewModel.preferFrontCamera = true;
+           }
+           [examples addObject:data];
+       }
 
     self.examples = examples;
 }
