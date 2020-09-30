@@ -75,11 +75,10 @@ Status PoolingOVLayerBuilder::Build() {
     }
     
     // kernel shape
-    std::reverse(paramlist->kernels.begin(), paramlist->kernels.end());
     ngraph::Shape kernel_shape;
-    for (size_t i = 0; i < 2; i++) {
+    for (int i = 1; i >= 0; i--) {
         if (paramlist->kernels.at(i) == 0) {
-            kernel_shape.push_back(input_node[0]->output(0).get_shape().at(i+2));
+            kernel_shape.push_back(input_node[0]->output(0).get_shape().at(3-i));
         } else {
             kernel_shape.push_back(paramlist->kernels.at(i));
         }
