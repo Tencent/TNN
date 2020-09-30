@@ -27,6 +27,7 @@ Status PixelShuffleLayer::InferOutputShape() {
     auto input_dims        = input_blob->GetBlobDesc().dims;
     auto output_blob       = output_blobs_[0];
     auto layer_param       = dynamic_cast<PixelShuffleLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
     int upscale_factor     = layer_param->upscale_factor;
     DimsVector output_dims = input_dims;
     ASSERT(input_dims[1] >= upscale_factor && input_dims[1] % (upscale_factor * upscale_factor) == 0);

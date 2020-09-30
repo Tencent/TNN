@@ -106,47 +106,8 @@ namespace optimizer {
             std::shared_ptr<LayerInfo> new_layer =
                 CreateReformat(cur_layer->name + reformat_name_suffix, cur_layer->param->quantized);
 
-            // change blobs for unquantized layer for layers to read
-            // int8resource correctly
-            // src_type int8, change dst blob
-            if (cur_layer->param->quantized) {
-                new_layer->inputs = reformat_outs;
-                for (auto cur_out : reformat_outs) {
-                    auto new_out = cur_out + reformat_name_suffix;
-                    new_layer->outputs.push_back(new_out);
-                    structure->blobs.insert(new_out);
-                    // change the inputs of successed int8 layers
-                    for (int next_id = index + 1; next_id < count; next_id++) {
-                        auto next_layer = layers_orig[next_id];
-                        for (auto &next_in : next_layer->inputs) {
-                            // only use reformat out when quantized param diff
-                            if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
-                                next_in = new_out;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // dst type int8, change src blob
-                new_layer->outputs = reformat_outs;
-                for (auto cur_out : reformat_outs) {
-                    auto new_out = cur_out + reformat_name_suffix;
-                    new_layer->inputs.push_back(new_out);
-                    structure->blobs.insert(new_out);
-                    for (auto &cur_layer_out : cur_layer->outputs) {
-                        cur_layer_out = new_out;
-                    }
-                    // change the inputs of successed float layers
-                    for (int next_id = index + 1; next_id < count; next_id++) {
-                        auto next_layer = layers_orig[next_id];
-                        for (auto &next_in : next_layer->inputs) {
-                            if (next_in == cur_out && !next_layer->param->quantized) {
-                                next_in = new_out;
-                            }
-                        }
-                    }
-                }
-            }
+            AdjustLayer(layers_orig, structure, cur_layer, new_layer,
+                        reformat_outs, reformat_name_suffix, index, count);
 
             LOGD("Insert refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
             layers_fused.push_back(new_layer);
@@ -154,6 +115,58 @@ namespace optimizer {
         structure->layers = layers_fused;
 
         return TNN_OK;
+    }
+
+    void NetOptimizerInsertReformat::AdjustLayer(
+            std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
+            NetStructure *structure,
+            std::shared_ptr<LayerInfo>& cur_layer,
+            std::shared_ptr<LayerInfo>& new_layer,
+            std::vector<std::string>& reformat_outs,
+            const std::string& reformat_name_suffix,
+            const int index,
+            const int count) {
+        // change blobs for unquantized layer for layers to read
+        // int8resource correctly
+        // src_type int8, change dst blob
+        if (cur_layer->param->quantized) {
+            new_layer->inputs = reformat_outs;
+            for (auto cur_out : reformat_outs) {
+                auto new_out = cur_out + reformat_name_suffix;
+                new_layer->outputs.push_back(new_out);
+                structure->blobs.insert(new_out);
+                // change the inputs of successed int8 layers
+                for (int next_id = index + 1; next_id < count; next_id++) {
+                    auto next_layer = layers_orig[next_id];
+                    for (auto &next_in : next_layer->inputs) {
+                        // only use reformat out when quantized param diff
+                        if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
+                            next_in = new_out;
+                        }
+                    }
+                }
+            }
+        } else {
+            // dst type int8, change src blob
+            new_layer->outputs = reformat_outs;
+            for (auto cur_out : reformat_outs) {
+                auto new_out = cur_out + reformat_name_suffix;
+                new_layer->inputs.push_back(new_out);
+                structure->blobs.insert(new_out);
+                for (auto &cur_layer_out : cur_layer->outputs) {
+                    cur_layer_out = new_out;
+                }
+                // change the inputs of successed float layers
+                for (int next_id = index + 1; next_id < count; next_id++) {
+                    auto next_layer = layers_orig[next_id];
+                    for (auto &next_in : next_layer->inputs) {
+                        if (next_in == cur_out && !next_layer->param->quantized) {
+                            next_in = new_out;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }  // namespace optimizer

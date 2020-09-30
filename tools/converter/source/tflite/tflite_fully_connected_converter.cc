@@ -67,7 +67,8 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             auto tmp         = new float[weight_size]();
             for (int i = 0; i < co; ++i) {
                 auto data_ptr = weight_ptr + (i * feature_size);
-                TNN_NS::DataFormatConverter::ConvertFromNHWCToNCHW<float>(data_ptr, &tmp[i * feature_size], n, c, h, w);
+                TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<float>(
+                    data_ptr, &tmp[i * feature_size], n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
             }
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
             ::memcpy(weight_handle.force_to<float *>(), tmp, weight_size * sizeof(float));

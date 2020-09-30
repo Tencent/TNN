@@ -45,6 +45,9 @@ namespace ncnn {
         Status InterpretProto(std::string content);
         Status InterpretModel(std::string model_content);
         Status InterpretInput();
+        Status AppendCommonLayer(
+            str_arr& layer_cfg_arr, NetStructure *structure,
+            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map);
 
         Status FindOutputs();
         Status Convert(shared_ptr<LayerInfo> cur_layer, std::vector<std::shared_ptr<LayerInfo>> output_layers);

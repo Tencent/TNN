@@ -27,6 +27,7 @@ class BinaryLayerTest : public LayerTest,
 public:
     BinaryLayerTest(LayerType type);
     void RunBinaryTest();
+    bool InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch);
 
 protected:
     LayerType layer_type_;
