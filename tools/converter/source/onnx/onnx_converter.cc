@@ -35,7 +35,7 @@ Onnx2Tnn::~Onnx2Tnn() {
     // do nothing
 }
 
-TNN_NS::Status Onnx2Tnn::Conveter2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
+TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     if (!ReadModel()) {
         return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
     }
