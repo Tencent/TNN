@@ -14,6 +14,7 @@
 
 #include "onnx/onnx_base_converter.h"
 #include "onnx/onnx_utils.h"
+#include "tnn/interpreter/raw_buffer.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/dims_vector_utils.h"
 
