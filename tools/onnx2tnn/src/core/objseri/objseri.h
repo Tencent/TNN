@@ -6,6 +6,7 @@
 #include <string>
 #include <string.h>
 #include <typeinfo>
+#include <vector>
 
 namespace parser{
     static const uint32_t g_version_magic_number_tnn = 0x0FABC0002;
@@ -171,8 +172,19 @@ namespace parser{
             if (_ostream.bad())
                 return;
         }
-        
-        
+        void put_dims(std::vector<int> dims) {
+            put_int(g_version_magic_number_tnn);
+            put_int(static_cast<int>(DATA_TYPE_INT32));
+            put_int(static_cast<int>(dims.size()));
+            if (dims.empty()) {
+                return;
+            }
+            _ostream.write(reinterpret_cast<char*>(dims.data()),
+                           static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
+            if (_ostream.bad())
+                return;
+        }
+
     protected:
         template<typename T> void put_basic_t(T value);
         template<typename T> void put_string_t(const T& value);

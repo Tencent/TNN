@@ -110,6 +110,14 @@ struct DetectionPostProcessLayerResource : public LayerResource {
     RawBuffer anchors_handle;
 };
 
+struct ScatterNDLayerResource : public LayerResource {
+    std::vector<int> indices_dims;
+    RawBuffer indices;
+    // optional
+    std::vector<int> updates_dims;
+    RawBuffer updates;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_

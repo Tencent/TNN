@@ -366,6 +366,10 @@ struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
 };
 
+struct ExpandLayerParam : public LayerParam {
+    std::vector<int> shape;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
