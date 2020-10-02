@@ -205,4 +205,26 @@ std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef image_buffer, int t
     return data;
 }
 
+void SaveImage(UIImage* image, const std::string& path) {
+    if (image == nil) {
+        return;
+    }
+#if TARGET_IPHONE_SIMULATOR
+    if (path.size() <= 0)
+        return;
+    // save image on simulator
+    NSString *save_path = [NSString stringWithCString:path.c_str()
+                                              encoding:[NSString defaultCStringEncoding]];
+    [UIImageJPEGRepresentation(image, 1.0) writeToFile:save_path atomically:YES];
+#else
+    //save to album on real device
+    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil);
+#endif
+}
+
+void SaveImage(void* image_data, int height, int width, const std::string& path) {
+    UIImage* image = UIImageWithDataRGBA(image_data, height, width);
+    SaveImage(image, path);
+}
+
 }

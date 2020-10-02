@@ -15,6 +15,7 @@
 #import <UIKit/UIKit.h>
 #include <memory>
 #include <tuple>
+#include <string>
 
 namespace utility {
 /***
@@ -60,4 +61,20 @@ std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef imageBuffer);
 std::shared_ptr<char> CVImageBuffRefGetData(CVImageBufferRef imageBuffer, int height, int width);
 
 UIImage *UIImageWithCVImageBuffRef(CVImageBufferRef imageBuffer);
+
+/**
+@brief save image, on real iOS device, the imae will be saved in album. On simulator,  the image will be saved at @path
+@param image: the image to save
+@param path: save path on simulator
+*/
+void SaveImage(UIImage* image, const std::string& path = std::string());
+/**
+@brief save  image rgba raw data as image, on real iOS device, the imae will be saved in album. On simulator,  the image will be saved at @path
+@param image_data rgba raw data pointer
+@param height image height
+@param width image width
+@param path: save path on simulator
+*/
+void SaveImage(void* image_data, int height, int width, const std::string& path = std::string());
+
 }
