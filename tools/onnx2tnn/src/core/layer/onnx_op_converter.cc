@@ -16,6 +16,7 @@
 #include <mutex>
 #include "half_utils.h"
 #include "onnx_utility.h"
+#include "onnx.pb.h"
 
 string OnnxOpConverter::TNNLayerProto(NodeProto &node,
                                            OnnxNetInfo &net_info) {
@@ -62,6 +63,27 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     string param = TNNLayerParam(node, net_info);
     proto_layer << param << ",\"";
     return proto_layer.str();
+}
+
+int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer) {
+    if (tensor.data_type() == onnx::TensorProto_DataType_INT64) {
+        int item_size = get_tensor_proto_data_size(tensor);
+        if (item_size == 0) {
+            DLog("invalid size \n");
+            return -1;
+        }
+        if (tensor.has_raw_data()) {
+            int64_t * raw_data = (int64_t *)tensor.raw_data().data();
+            int32_t* tmp = new int32_t[item_size];
+            for (int i = 0; i < item_size; ++i) {
+                tmp[i] = raw_data[i];
+            }
+            writer->put_raw(sizeof(int32_t) * item_size, (char*)tmp, DATA_TYPE_INT32);
+            delete[] tmp;
+        }
+        // cast from int64 to int32
+    }
+    return 0;
 }
 
 int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,

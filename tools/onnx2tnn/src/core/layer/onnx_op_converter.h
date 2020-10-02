@@ -74,6 +74,8 @@ public:
     int WriteRawData(const float *raw_data, int data_count, serializer *writer,
                      DataType dataType);
 
+    int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
+
 protected:
     string onnx_op_type_;
 };

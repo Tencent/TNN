@@ -43,7 +43,7 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer *net_writer, NodeProto &n
     std::vector<int> indices_dims(indices.dims().begin(), indices.dims().end());
     net_writer->put_dims(indices_dims);
     // save indices value
-    WriteTensorData(indices, net_writer, DATA_TYPE_INT32);
+    WriteIntTensorData(indices, net_writer);
 
     // save update
     int has_update = 0;
