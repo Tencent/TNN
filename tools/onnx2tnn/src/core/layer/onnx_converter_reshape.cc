@@ -36,13 +36,28 @@ string OnnxOpConverterReshape::TNNLayerParam(NodeProto &node,
     
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
+    int start_axis = 0;
+    const onnx::TensorProto& shape_tp = net_info.weights_map[node.input(1)];
+    auto shape_data = (const int64_t*)get_tensor_proto_data(shape_tp);
+    int shape_dim = get_tensor_proto_data_size(shape_tp);
+    int end_axis = shape_dim;
+    int shape_size = shape_dim;
+    layer_param << start_axis  << " ";
+    layer_param << end_axis  << " ";
+    layer_param << shape_size  << " ";
+    for (int i = 0; i < shape_size; ++i) {
+        layer_param <<  shape_data[i] << " ";
+    }
+    int reshape_type = 0;
+    layer_param << reshape_type << " ";
 
+#if 0
     int start_axis          = 0;
     int num_axis            = net_info.is_3D_model ? 5 : 4;
     int top_blob_shape_size = net_info.is_3D_model ? 5 : 4;
     layer_param << start_axis << " " << num_axis << " "
     << top_blob_shape_size << " ";
-    
+
     const onnx::TensorProto& shape_tp = net_info.weights_map[node.input(1)];
     const int64_t* shape_data =
     (const int64_t*)get_tensor_proto_data(shape_tp);
@@ -67,7 +82,7 @@ string OnnxOpConverterReshape::TNNLayerParam(NodeProto &node,
     for(;param_ii < top_blob_shape_size;param_ii++) {
         layer_param << output_shape[param_ii] << " ";
     }
-    
+#endif
     return layer_param.str();
 }
 
