@@ -12,24 +12,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn_optimizer.h"
-
-#include "tnn_optimize_pass.h"
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_
+#include "include/tnn/core/common.h"
+#include "include/tnn/core/status.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 
 namespace TNN_CONVERTER {
 
-TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
-    // pre optimize
-    std::vector<std::string> optimize_pass = {"EliminateUnusefulNode", "TransformReduceMean"};
-    for (auto pass_name : optimize_pass) {
-        auto pass = TnnOptimizePassManager::get()->search(pass_name);
-        if (pass == nullptr) {
-            LOGE("Unsupport optimize pass %s\n", pass_name.c_str());
-            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
-        }
-        pass->exec(net_structure, net_resource);
-    }
+class TnnRuntime {
+public:
+    TnnRuntime();
+    ~TnnRuntime();
+    TNN_NS::Status run(std::shared_ptr<TNN_NS::AbstractModelInterpreter> interpreter);
+    //TNN_NS::Status run(TNN_NS::DefaultModelInterpreter* interpreter);
 
-    return TNN_NS::TNN_CONVERT_OK;
+private:
+    TNN_NS::NetworkConfig network_config_;
+    TNN_NS::ModelConfig model_config_;
+};
+
 }
-}  // namespace TNN_CONVERTER
+
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_

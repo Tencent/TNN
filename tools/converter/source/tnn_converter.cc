@@ -12,22 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "include/tnn/core/tnn.h"
 #include "onnx/onnx_converter.h"
 #include "optimizer/tnn_optimizer.h"
 #include "tflite/tflite_converter.h"
+#include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "utils/command.h"
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
+#include "runtime/tnn_runtime.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
-
-    TNN_NS::NetStructure net_structure;
-    TNN_NS::NetResource net_resource;
+    auto interpreter =
+        std::shared_ptr<TNN_NS::AbstractModelInterpreter>(TNN_NS::CreateModelInterpreter(TNN_NS::MODEL_TYPE_TNN));
+    TNN_NS::NetStructure& net_structure =
+        *(dynamic_cast<TNN_NS::DefaultModelInterpreter*>(interpreter.get())->GetNetStructure());
+    TNN_NS::NetResource& net_resource =
+        *(dynamic_cast<TNN_NS::DefaultModelInterpreter*>(interpreter.get())->GetNetResource());
     ModelConfig model_config(FLAGS_mt, FLAGS_mp, FLAGS_od);
     TNN_NS::Status status;
     if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_TF_LITE) {
@@ -42,12 +49,18 @@ int Run(int argc, char* argv[]) {
         return status;
     }
     // TODO optimize the model
+    // prefer optimize
     TnnOptimizer tnn_optimizer;
     status = tnn_optimizer.Optimize(net_structure, net_resource);
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());
         return status;
     }
+    // tnn run time
+    TnnRuntime tnn_runtime;
+    tnn_runtime.run(interpreter);
+    // post optimize
+
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
     status                = GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
