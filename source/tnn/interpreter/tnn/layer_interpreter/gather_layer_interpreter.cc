@@ -27,9 +27,18 @@ Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
 }
 
 Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    auto layer_res = CreateLayerRes<GatherLayerResource*>(resource);
-    std::string layer_name = deserializer.GetString();
-
+    auto layer_res           = CreateLayerRes<GatherLayerResource>(resource);
+    std::string layer_name   = deserializer.GetString();
+    bool data_in_resource    = deserializer.GetInt() == 1;
+    bool indices_in_resource = deserializer.GetInt() == 1;
+    if (data_in_resource) {
+        deserializer.GetDims(layer_res->data_dims);
+        GET_BUFFER_FOR_ATTR(layer_res, data, deserializer);
+    }
+    if (indices_in_resource) {
+        deserializer.GetDims(layer_res->indices_dims);
+        GET_BUFFER_FOR_ATTR(layer_res, indices, deserializer);
+    }
     return TNN_OK;
 }
 
@@ -49,7 +58,7 @@ Status GatherLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
 
 Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param);
-    auto layer_res = dynamic_cast<GatherLayerResource*>(resource);
+    auto layer_res   = dynamic_cast<GatherLayerResource*>(resource);
     if (layer_param == nullptr || layer_res == nullptr) {
         LOGE("Interpreter Gather: layer param or layer resource is null\n");
         return TNNERR_INVALID_MODEL;
@@ -66,9 +75,11 @@ Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
         serializer.PutInt(0);
     }
     if (layer_param->data_in_resource) {
+        serializer.PutDims(layer_res->data_dims);
         serializer.PutRaw(layer_res->data);
     }
     if (layer_param->indices_in_resource) {
+        serializer.PutDims(layer_res->indices_dims);
         serializer.PutRaw(layer_res->indices);
     }
     return TNN_OK;
