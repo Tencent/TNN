@@ -118,6 +118,14 @@ struct ScatterNDLayerResource : public LayerResource {
     RawBuffer updates;
 };
 
+struct GatherLayerResource : public LayerResource {
+    std::vector<int> data_dims;
+    RawBuffer data;
+
+    std::vector<int> indices_dims;
+    RawBuffer indices;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_

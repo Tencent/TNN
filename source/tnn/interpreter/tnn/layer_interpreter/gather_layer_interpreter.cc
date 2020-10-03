@@ -18,19 +18,59 @@ namespace TNN_NS {
 
 DECLARE_LAYER_INTERPRETER(Gather, LAYER_GATHER);
 
-Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
+Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
+    auto layer_param = CreateLayerParam<GatherLayerParam>(param);
+    GET_INT_1_OR_DEFAULT(layer_param->axis, 0);
+    GET_INT_1_OR_DEFAULT(layer_param->data_in_resource, 0);
+    GET_INT_1_OR_DEFAULT(layer_param->indices_in_resource, 1);
     return TNN_OK;
 }
 
 Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
+    auto layer_res = CreateLayerRes<GatherLayerResource*>(resource);
+    std::string layer_name = deserializer.GetString();
+
     return TNN_OK;
 }
 
 Status GatherLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+    auto layer_param = dynamic_cast<GatherLayerParam*>(param);
+    if (layer_param == nullptr) {
+        LOGE("invalid layer param to save\n");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
+    }
+    int data_in_resource    = layer_param->data_in_resource ? 1 : 0;
+    int indices_in_resource = layer_param->indices_in_resource ? 1 : 0;
+    output_stream << layer_param->axis << " ";
+    output_stream << data_in_resource << " ";
+    output_stream << indices_in_resource << " ";
     return TNN_OK;
 }
 
 Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
+    auto layer_param = dynamic_cast<GatherLayerParam*>(param);
+    auto layer_res = dynamic_cast<GatherLayerResource*>(resource);
+    if (layer_param == nullptr || layer_res == nullptr) {
+        LOGE("Interpreter Gather: layer param or layer resource is null\n");
+        return TNNERR_INVALID_MODEL;
+    }
+    serializer.PutString(layer_param->name);
+    if (layer_param->data_in_resource) {
+        serializer.PutInt(1);
+    } else {
+        serializer.PutInt(0);
+    }
+    if (layer_param->indices_in_resource) {
+        serializer.PutInt(1);
+    } else {
+        serializer.PutInt(0);
+    }
+    if (layer_param->data_in_resource) {
+        serializer.PutRaw(layer_res->data);
+    }
+    if (layer_param->indices_in_resource) {
+        serializer.PutRaw(layer_res->indices);
+    }
     return TNN_OK;
 }
 

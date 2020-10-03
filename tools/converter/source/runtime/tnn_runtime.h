@@ -15,9 +15,11 @@
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_
 #include "include/tnn/core/common.h"
+#include "include/tnn/core/mat.h"
 #include "include/tnn/core/status.h"
-#include "tnn/interpreter/net_structure.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/utils/blob_converter.h"
 
 namespace TNN_CONVERTER {
 
@@ -26,13 +28,15 @@ public:
     TnnRuntime();
     ~TnnRuntime();
     TNN_NS::Status run(std::shared_ptr<TNN_NS::AbstractModelInterpreter> interpreter);
-    //TNN_NS::Status run(TNN_NS::DefaultModelInterpreter* interpreter);
+    // TNN_NS::Status run(TNN_NS::DefaultModelInterpreter* interpreter);
 
 private:
+    TNN_NS::MatMap CreateBlobMatMap(TNN_NS::BlobMap& blob_map, int format_type);
+    void InitInputMatMap(TNN_NS::MatMap& mat_map);
+    std::map<std::string, std::shared_ptr<TNN_NS::BlobConverter>> CreateBlobConverterMap(TNN_NS::BlobMap& blob_map);
+    std::map<std::string, TNN_NS::MatConvertParam> CreateConvertParamMap(TNN_NS::MatMap& mat_map);
     TNN_NS::NetworkConfig network_config_;
     TNN_NS::ModelConfig model_config_;
 };
-
-}
-
+}  // namespace TNN_CONVERTER
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_RUNTIME_TNN_RUNTIME_H_

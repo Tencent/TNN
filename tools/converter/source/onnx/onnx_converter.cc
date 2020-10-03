@@ -91,8 +91,7 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill") {
             continue;
         }
-        if (node_op_type == "Shape" || node_op_type == "Gather" || node_op_type == "Unsqueeze" ||
-            node_op_type == "Concat" || node_op_type == "Constant") {
+        if (node_op_type == "Constant") {
             continue;
         }
 
@@ -128,6 +127,7 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             LOGE("Onnx2Tnn converter %s failed!\n", cur_layer->type_str.c_str());
             return status;
         }
+        converter->InsertBlobs(net_structure);
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

@@ -221,4 +221,13 @@ int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
     return 0;
 }
 
+void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataType data_type) {
+    void* data_ptr = nullptr;
+    if (tensor.data_type() == data_type) {
+        if (tensor.has_raw_data()) {
+            data_ptr = (void*)tensor.raw_data().data();
+        }
+    }
+    return data_ptr;
+}
 }  // namespace TNN_CONVERTER

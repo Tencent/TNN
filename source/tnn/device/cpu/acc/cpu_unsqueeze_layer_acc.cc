@@ -12,27 +12,24 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/acc/cpu_layer_acc.h"
-
+#include "cpu_layer_acc.h"
 namespace TNN_NS {
 
-CpuLayerAcc::~CpuLayerAcc() {}
+DECLARE_CPU_ACC(Unsqueeze, LAYER_SQUEEZE);
 
-Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-
-    param_    = param;
-    resource_ = resource;
-    return Reshape(inputs, outputs);
+Status CpuUnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
 
-std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    if (dims_size > 0 ) {
-        support_list.push_back(DATA_FORMAT_NCHW);
+Status CpuUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const auto &input_dims  = inputs[0]->GetBlobDesc().dims;
+    const auto &output_blob = outputs[0];
+    auto output_data        = static_cast<int *>(output_blob->GetHandle().base);
+    for (int i = 0; i < input_dims.size(); ++i) {
+        output_data[i] = input_dims[i];
     }
-    return support_list;
+    return TNN_OK;
 }
 
+REGISTER_CPU_ACC(Unsqueeze, LAYER_SQUEEZE);
 }  // namespace TNN_NS

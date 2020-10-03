@@ -58,7 +58,11 @@ int Run(int argc, char* argv[]) {
     }
     // tnn run time
     TnnRuntime tnn_runtime;
-    tnn_runtime.run(interpreter);
+    status =tnn_runtime.run(interpreter);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("Converter: tnn runtime failed\n");
+        return status;
+    }
     // post optimize
 
     // wright the model

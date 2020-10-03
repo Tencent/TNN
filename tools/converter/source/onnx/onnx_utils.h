@@ -47,6 +47,8 @@ const float* GetTensorProtoData(const onnx::TensorProto& tp);
 
 int GetTensorProtoDataSize(const onnx::TensorProto& tp);
 
+void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataType data_type);
+
 template <typename T>
 bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
     ASSERT(CO > 0);

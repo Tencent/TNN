@@ -16,24 +16,40 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER_INTERPRETER(Unqueeze, LAYER_UNSQUEEZE);
+DECLARE_LAYER_INTERPRETER(Unsqueeze, LAYER_UNSQUEEZE);
 
-Status UnqueezeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
+Status UnsqueezeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam **param) {
+    auto layer_param = CreateLayerParam<UnsqueezeLayerParam>(param);
+    int size         = 0;
+    GET_INT_1(size);
+    for (int i = 0; i < size; ++i) {
+        int axis = 0;
+        GET_INT_1(axis);
+        layer_param->axes.push_back(axis);
+    }
     return TNN_OK;
 }
 
-Status UnqueezeLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
+Status UnsqueezeLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **Resource) {
     return TNN_OK;
 }
 
-Status UnqueezeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status UnsqueezeLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+    auto layer_param = dynamic_cast<UnsqueezeLayerParam *>(param);
+    if (nullptr == layer_param) {
+        LOGE("invalid layer param to save\n");
+        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
+    }
+    output_stream << layer_param->axes.size() << " ";
+    for (auto axis : layer_param->axes) {
+        output_stream << axis << " ";
+    }
     return TNN_OK;
 }
 
-Status UnqueezeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
+Status UnsqueezeLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
     return TNN_OK;
 }
 
-REGISTER_LAYER_INTERPRETER(Unqueeze, LAYER_UNSQUEEZE);
-
+REGISTER_LAYER_INTERPRETER(Unsqueeze, LAYER_UNSQUEEZE);
 }  // namespace TNN_NS

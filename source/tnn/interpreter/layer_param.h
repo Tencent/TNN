@@ -355,6 +355,8 @@ struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
 };
 
+struct UnsqueezeLayerParam: public SqueezeLayerParam {};
+
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
     int axis;
@@ -364,6 +366,13 @@ struct ArgMaxOrMinLayerParam : public LayerParam {
 
 struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
+    int axis;
+};
+
+struct GatherLayerParam : public LayerParam {
+    int axis                 = 0;
+    bool data_in_resource    = false;
+    bool indices_in_resource = true;
 };
 
 struct ExpandLayerParam : public LayerParam {

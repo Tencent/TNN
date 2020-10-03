@@ -12,27 +12,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "base_layer.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
+DECLARE_LAYER(Shape, LAYER_SHAPE);
 
-CpuLayerAcc::~CpuLayerAcc() {}
-
-Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-
-    param_    = param;
-    resource_ = resource;
-    return Reshape(inputs, outputs);
+Status ShapeLayer::InferOutputDataType() {
+    ASSERT(output_blobs_.size() == 1);
+    output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    return TNN_OK;
 }
 
-std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    if (dims_size > 0 ) {
-        support_list.push_back(DATA_FORMAT_NCHW);
-    }
-    return support_list;
+Status ShapeLayer::InferOutputShape() {
+    ASSERT(input_blobs_.size() == 1);
+    const auto& input_blob = input_blobs_[0];
+    const auto& output_blob = output_blobs_[0];
+    // the output blob has only one dim, the value is the size of input blob dims
+    output_blob->GetBlobDesc().dims = std::vector<int>(1, input_blob->GetBlobDesc().dims.size());
+    return TNN_OK;
 }
+
+REGISTER_LAYER(Shape, LAYER_SHAPE);
 
 }  // namespace TNN_NS
