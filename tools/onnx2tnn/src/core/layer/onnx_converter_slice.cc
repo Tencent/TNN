@@ -36,7 +36,7 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node,
     if (net_info.opset >= 11) {
         steps = get_node_attr_ai(node, "steps", net_info, 4);
     } else {
-        steps = {1, 1, 1, 1};
+        steps = std::vector<int64_t>(starts.size(), 1);
     }
 
 
@@ -59,7 +59,7 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node,
         }
     }
 
-    int dimension = 4;
+    int dimension = 5;
     std::vector<int> all_starts, all_ends, all_steps;
     for (int ii = 0; ii < dimension; ii++) {
         all_starts.push_back(0);
