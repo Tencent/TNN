@@ -353,6 +353,7 @@ struct SignedMulLayerParam : public LayerParam {
 
 struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
+    bool data_in_resource = false;
 };
 
 struct UnsqueezeLayerParam: public SqueezeLayerParam {};

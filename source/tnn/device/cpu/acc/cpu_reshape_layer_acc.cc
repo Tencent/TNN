@@ -26,10 +26,23 @@ Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input  = inputs[0];
-    auto output = outputs[0];
+    auto& input  = inputs[0];
+    auto& output = outputs[0];
     auto param  = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
+    if (param->shape.empty() && inputs.size() == 2 && inputs[1]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        ASSERT(inputs.size() == 2);
+        auto& shape_dims = inputs[1]->GetBlobDesc().dims;
+        output->GetBlobDesc().dims = shape_dims;
+        auto input_data = static_cast<int32_t*>(inputs[1]->GetHandle().base);
+        auto count = DimsVectorUtils::Count(shape_dims);
+        for (int i = 0; i < count; ++i) {
+            param->shape.push_back(input_data[i]);
+        }
+        param->axis = 0;
+        param->num_axes = shape_dims.size();
+        param->reshape_type = 0;
+    }
     if (param->reshape_type == 0) {
         if (output->GetHandle().base != input->GetHandle().base) {
             auto dims_input    = input->GetBlobDesc().dims;
@@ -38,9 +51,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
             memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
         }
     } else if (param->reshape_type == 1) {
-        // tensorflow 的数据格式是 nhwc, 但是 tnn 的数据格式是 nchw，所以reshape 算子进行转换的时候，需要进行特殊处理
-        // tflite: input(nhwc) -> reshape(1,-1,1,3) -> output(nhwc)
-        // tflite: input(nchw) -> transpose(0,2,3,1) -> reshape(1,-1,1,3) -> transpose(0, 3, 1, 2)->output(nchw)
+        // tensorflow reshape
         DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
         DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
     } else {

@@ -13,23 +13,44 @@
 // specific language governing permissions and limitations under the License.
 
 #include "cpu_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Unsqueeze, LAYER_SQUEEZE);
+DECLARE_CPU_ACC(Unsqueeze, LAYER_UNSQUEEZE);
 
 Status CpuUnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
 Status CpuUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    const auto &input_dims  = inputs[0]->GetBlobDesc().dims;
-    const auto &output_blob = outputs[0];
-    auto output_data        = static_cast<int *>(output_blob->GetHandle().base);
-    for (int i = 0; i < input_dims.size(); ++i) {
-        output_data[i] = input_dims[i];
+    const auto& param = dynamic_cast<UnsqueezeLayerParam*>(param_);
+    if (param->data_in_resource) {
+        auto output_data = outputs[0]->GetHandle().base;
+        const auto& resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);
+        const auto& data_dims = resource->data_dims;
+        auto data_size = resource->data.GetDataCount();
+        if (resource->data.GetDataType() == DATA_TYPE_INT32) {
+            memcpy(output_data, resource->data.force_to<int32_t*>(), data_size*sizeof(int32_t));
+        } else {
+            LOGE("Unqueeze acc: do not support data type\n");
+            return TNNERR_UNSUPPORT_NET;
+        }
+    } else {
+        const auto input_blob = inputs[0];
+        const auto &input_dims  = input_blob->GetBlobDesc().dims;
+        const auto &output_blob = outputs[0];
+        if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            auto input_data  = static_cast<int *>(input_blob->GetHandle().base);
+            auto output_data = static_cast<int *>(output_blob->GetHandle().base);
+            auto data_size = DimsVectorUtils::Count(input_dims);
+            memcpy(output_data, input_data, data_size * sizeof(int32_t));
+        } else {
+            LOGE("Unqueeze acc: do not support data type\n");
+            return TNNERR_UNSUPPORT_NET;
+        }
     }
     return TNN_OK;
 }
 
-REGISTER_CPU_ACC(Unsqueeze, LAYER_SQUEEZE);
+REGISTER_CPU_ACC(Unsqueeze, LAYER_UNSQUEEZE);
 }  // namespace TNN_NS

@@ -20,7 +20,7 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Concat);
 
 std::string OnnxConcatConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "";
+    return "Concat";
 }
 
 TNN_NS::ActivationType OnnxConcatConverter::ActivationType(const onnx::NodeProto &node) {
@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxConcatConverter::ActivationType(const onnx::NodeProto
 
 TNN_NS::Status OnnxConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                          const onnx::NodeProto &node,
-                                         std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                         std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                          bool &quantized_model) {
     auto param       = new TNN_NS::ConcatLayerParam;
     auto cur_layer   = net_structure.layers.back();

@@ -28,10 +28,11 @@ Status CpuShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     const auto& input_dims = inputs[0]->GetBlobDesc().dims;
     const auto& output_blob = outputs[0];
     const auto& data_type = output_blob->GetBlobDesc().data_type;
-    if (output_blob->GetHandle().base != input_blob->GetHandle().base) {
-        int data_byte_size = DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
-        auto count = DimsVectorUtils::Count(input_dims);
-        memcpy(output_blob->GetHandle().base, input_blob->GetHandle().base, count * data_byte_size);
+    if (data_type == DATA_TYPE_INT32) {
+        auto output_data = static_cast<int32_t*>(output_blob->GetHandle().base);
+        for (int i = 0; i < input_dims.size(); ++i) {
+            output_data[i] = input_dims[i];
+        }
     }
     return TNN_OK;
 }

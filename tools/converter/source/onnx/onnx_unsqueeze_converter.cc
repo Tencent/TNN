@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxUnsqueezeConverter::ActivationType(const onnx::NodePr
 
 TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                         const onnx::NodeProto &node,
-                                        std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                        std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                         bool &quantized_model) {
     auto param       = new TNN_NS::UnsqueezeLayerParam;
     auto cur_layer   = net_structure.layers.back();
@@ -39,6 +39,21 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure &net_structure, tn
     param->name      = cur_layer->name;
     param->quantized = false;
     param->axes = GetAttributeIntVector(node, "axes");
+    auto& data_name = node.input(0);
+    const auto& iter = proxy_nodes.find(data_name);
+    if (iter != proxy_nodes.end() && iter->second->op_type == "Constant") {
+        param->data_in_resource = true;
+        auto& resource_map = net_resource.resource_map;
+        auto resource = std::make_shared<TNN_NS::UnsqueezeLayerResource>();
+        resource_map[cur_layer->name] = resource;
+        const auto& data_node_proto = iter->second->onnx_node;
+        TNN_NS::RawBuffer* data_raw_buffer = nullptr;
+        ConverterConstantToRawBuffer(*data_node_proto, &data_raw_buffer, resource->data_dims);
+        resource->data = *data_raw_buffer;
+        cur_layer->inputs.clear();
+    } else {
+        param->data_in_resource = false;
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 

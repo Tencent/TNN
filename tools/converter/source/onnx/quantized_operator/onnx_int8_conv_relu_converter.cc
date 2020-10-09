@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::Nod
 
 TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                                const onnx::NodeProto &node,
-                                               std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                               std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                                bool &quantized_model) {
     TNN_NS::ConvLayerParam *param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();

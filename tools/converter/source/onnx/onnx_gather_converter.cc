@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <memory>
+
 #include "onnx_base_converter.h"
 #include "onnx_utils.h"
 #include "tnn/interpreter/layer_resource.h"
@@ -31,8 +33,8 @@ TNN_NS::ActivationType OnnxGatherConverter::ActivationType(const onnx::NodeProto
 
 TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                          const onnx::NodeProto &node,
-                                         std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                          bool &quantized_model) {
     ASSERT(node.input_size() == 2);
     auto param       = new TNN_NS::GatherLayerParam;
@@ -68,6 +70,14 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         memcpy(indices_raw_buffer.force_to<int32_t *>(), tmp, indices_count);
         resource->indices = indices_raw_buffer;
         delete[] tmp;
+    } else if (proxy_nodes.find(indices_name) != proxy_nodes.end() &&
+               proxy_nodes.find(indices_name)->second->op_type == "Constant") {
+        param->indices_in_resource            = true;
+        auto indices_node                     = proxy_nodes.find(indices_name)->second->onnx_node;
+        TNN_NS::RawBuffer *indices_raw_buffer = nullptr;
+        ConverterConstantToRawBuffer(*indices_node, &indices_raw_buffer, resource->indices_dims);
+        ASSERT(indices_raw_buffer != nullptr);
+        resource->indices = *indices_raw_buffer;
     } else {
         param->indices_in_resource = false;
     }

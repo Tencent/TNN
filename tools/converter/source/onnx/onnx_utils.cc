@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #include <algorithm>
 
@@ -221,13 +222,43 @@ int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
     return 0;
 }
 
-void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataType data_type) {
-    void* data_ptr = nullptr;
+void *GetDataFromTensor(const onnx::TensorProto &tensor, onnx::TensorProto_DataType data_type) {
+    void *data_ptr = nullptr;
     if (tensor.data_type() == data_type) {
         if (tensor.has_raw_data()) {
-            data_ptr = (void*)tensor.raw_data().data();
+            data_ptr = (void *)tensor.raw_data().data();
         }
     }
     return data_ptr;
+}
+
+void ConverterConstantToRawBuffer(const onnx::NodeProto &constant_node, TNN_NS::RawBuffer** raw_buffer,
+                                  std::vector<int>& data_dims) {
+    ASSERT(constant_node.op_type() == "Constant");
+    onnx::TensorProto constant_tensor;
+    for (int i = 0; i < constant_node.attribute_size(); ++i) {
+        const auto &attribute_proto = constant_node.attribute(i);
+        const auto &attribute_name  = attribute_proto.name();
+        if (attribute_name == "value") {
+            constant_tensor = attribute_proto.t();
+            break;
+        }
+    }
+    switch (constant_tensor.data_type()) {
+        case onnx::TensorProto_DataType_INT64: {
+            data_dims.push_back(1);
+            auto data_count = 1;
+            const void* tensor_data_ptr = constant_tensor.raw_data().data();
+            //raw_buffer = std::make_shared<TNN_NS::RawBuffer>(data_count * sizeof(int32_t)).get();
+            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t));
+            (*raw_buffer)->SetDataType(TNN_NS::DATA_TYPE_INT32);
+            int value = *((int64_t*)tensor_data_ptr);
+            memcpy((*raw_buffer)->force_to<int32_t*>(), &value, data_count * sizeof(int32_t));
+            break;
+        }
+        default: {
+            LOGE("Converter: do not support onnx tensor type\n");
+        }
+    }
 }
 }  // namespace TNN_CONVERTER

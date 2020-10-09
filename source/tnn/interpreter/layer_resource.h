@@ -126,6 +126,13 @@ struct GatherLayerResource : public LayerResource {
     RawBuffer indices;
 };
 
+struct SqueezeLayerResource : public LayerResource {
+    std::vector<int> data_dims;
+    RawBuffer data;
+};
+
+struct UnsqueezeLayerResource : public SqueezeLayerResource {};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_

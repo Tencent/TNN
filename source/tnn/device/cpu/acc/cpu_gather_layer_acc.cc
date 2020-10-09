@@ -40,7 +40,7 @@ Status CpuGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         indices_data[i] = indices_raw_data[i];
     }
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        auto input_data_ptr  = (int32_t *)output_blob->GetHandle().base;
+        auto input_data_ptr  = (int32_t *)input_blob->GetHandle().base;
         auto output_data_ptr = (int32_t *)output_blob->GetHandle().base;
         int steps            = DimsVectorUtils::Count(indices_dims, axis, indices_dims.size());
         for (int i = 0; i < indices_count; ++i) {

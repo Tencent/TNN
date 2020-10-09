@@ -19,24 +19,43 @@ namespace TNN_NS {
 DECLARE_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
 
 Status UnsqueezeLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    // TODO: refactor this method
+    // return BaseLayer::InferOutputDataType();
+    for (auto output_blob : output_blobs_) {
+        output_blob->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    }
+    return TNN_OK;
 }
 
 Status UnsqueezeLayer::InferOutputShape() {
-    ASSERT(input_blobs_.size() == 1);
-    const auto& input_blob  = input_blobs_[0];
-    const auto& input_dims  = input_blob->GetBlobDesc().dims;
-    const auto& output_blob = output_blobs_[0];
-    auto& output_dims       = output_blob->GetBlobDesc().dims;
-    // the output blob has only one dim, the value is the size of input blob dims
+    //ASSERT(input_blobs_.size() == 1);
     auto layer_param      = dynamic_cast<UnsqueezeLayerParam*>(param_);
-    auto axes             = layer_param->axes;
-    auto output_dims_size = axes.size() + input_dims.size();
-    output_dims = input_dims;
-    for (const auto& axis : axes) {
-        output_dims.insert(output_dims.begin() + axis, 1);
+    auto layer_resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);
+    if (layer_param->data_in_resource) {
+        const auto& output_blob = output_blobs_[0];
+        auto& output_dims       = output_blob->GetBlobDesc().dims;
+        output_dims = layer_resource->data_dims;
+        auto axes             = layer_param->axes;
+        auto output_dims_size = axes.size() + layer_resource->data_dims.size();
+        output_dims           = layer_resource->data_dims;
+        for (const auto& axis : axes) {
+            output_dims.insert(output_dims.begin() + axis, 1);
+        }
+        return TNN_OK;
+    } else {
+        const auto& input_blob  = input_blobs_[0];
+        const auto& input_dims  = input_blob->GetBlobDesc().dims;
+        const auto& output_blob = output_blobs_[0];
+        auto& output_dims       = output_blob->GetBlobDesc().dims;
+        // the output blob has only one dim, the value is the size of input blob dims
+        auto axes             = layer_param->axes;
+        auto output_dims_size = axes.size() + input_dims.size();
+        output_dims           = input_dims;
+        for (const auto& axis : axes) {
+            output_dims.insert(output_dims.begin() + axis, 1);
+        }
+        return TNN_OK;
     }
-    return TNN_OK;
 }
 
 REGISTER_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
