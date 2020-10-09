@@ -33,6 +33,8 @@
 		9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */; };
 		9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FEB24116548009B3FB1 /* RootNavController.mm */; };
 		9DA25C2625304501000C3512 /* logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9DA25C2525304501000C3512 /* logo@2x.png */; };
+		9DA25C3125304EFE000C3512 /* UIColor+Utility.m in Sources */ = {isa = PBXBuildFile; fileRef = 9DA25C2D25304EFE000C3512 /* UIColor+Utility.m */; };
+		9DA25C3825304FC2000C3512 /* DYFlatButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 9DA25C3625304FC2000C3512 /* DYFlatButton.m */; };
 		9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */; };
 		9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579EE23B5A20500A96E63 /* AppDelegate.mm */; };
 		9DD579F223B5A20500A96E63 /* SceneDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579F123B5A20500A96E63 /* SceneDelegate.mm */; };
@@ -139,6 +141,10 @@
 		9D961FEB24116548009B3FB1 /* RootNavController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RootNavController.mm; sourceTree = "<group>"; };
 		9D961FEC24116548009B3FB1 /* RootNavController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RootNavController.h; sourceTree = "<group>"; };
 		9DA25C2525304501000C3512 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
+		9DA25C2A25304EFE000C3512 /* UIColor+Utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIColor+Utility.h"; sourceTree = "<group>"; };
+		9DA25C2D25304EFE000C3512 /* UIColor+Utility.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIColor+Utility.m"; sourceTree = "<group>"; };
+		9DA25C3625304FC2000C3512 /* DYFlatButton.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DYFlatButton.m; sourceTree = "<group>"; };
+		9DA25C3725304FC2000C3512 /* DYFlatButton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DYFlatButton.h; sourceTree = "<group>"; };
 		9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazeFaceDetectorViewModel.mm; sourceTree = "<group>"; };
 		9DC7116124D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNBlazeFaceDetectorViewModel.h; sourceTree = "<group>"; };
 		9DD579EA23B5A20500A96E63 /* TNNExamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TNNExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -317,6 +323,17 @@
 			path = TNNFaceDetectorController;
 			sourceTree = "<group>";
 		};
+		9DA25C2925304EFE000C3512 /* Component */ = {
+			isa = PBXGroup;
+			children = (
+				9DA25C3725304FC2000C3512 /* DYFlatButton.h */,
+				9DA25C3625304FC2000C3512 /* DYFlatButton.m */,
+				9DA25C2A25304EFE000C3512 /* UIColor+Utility.h */,
+				9DA25C2D25304EFE000C3512 /* UIColor+Utility.m */,
+			);
+			path = Component;
+			sourceTree = "<group>";
+		};
 		9DD579E123B5A20500A96E63 = {
 			isa = PBXGroup;
 			children = (
@@ -359,6 +376,7 @@
 				9DD579F923B5A20E00A96E63 /* Assets.xcassets */,
 				9DD579F623B5A20500A96E63 /* Main.storyboard */,
 				9DD579FB23B5A20E00A96E63 /* LaunchScreen.storyboard */,
+				9DA25C2925304EFE000C3512 /* Component */,
 				9DA25C2525304501000C3512 /* logo@2x.png */,
 				9DD579FE23B5A20E00A96E63 /* Info.plist */,
 				9DD579FF23B5A20E00A96E63 /* main.m */,
@@ -631,6 +649,7 @@
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
 				ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */,
+				9DA25C3825304FC2000C3512 /* DYFlatButton.m in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
 				9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */,
 				EC0BE1A5251AEA84009BD69A /* hand_detector.cc in Sources */,
@@ -645,6 +664,7 @@
 				EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */,
 				EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */,
 				D1330F47244AC2D900CEBF29 /* TNNCameraPreviewController.mm in Sources */,
+				9DA25C3125304EFE000C3512 /* UIColor+Utility.m in Sources */,
 				9DF1A0B824A8987C00E1376D /* face_gray_transfer.cc in Sources */,
 				EC1B9AA824BC0B7B0003A742 /* object_detector_yolo.cc in Sources */,
 				EC0BE1AF251C327E009BD69A /* hand_detect_tracker.cc in Sources */,
