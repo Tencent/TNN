@@ -32,6 +32,7 @@
 		9D9187E3242C30D600DF2B79 /* test.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9D9187DE242C30D500DF2B79 /* test.jpg */; };
 		9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */; };
 		9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D961FEB24116548009B3FB1 /* RootNavController.mm */; };
+		9DA25C2625304501000C3512 /* logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9DA25C2525304501000C3512 /* logo@2x.png */; };
 		9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */; };
 		9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579EE23B5A20500A96E63 /* AppDelegate.mm */; };
 		9DD579F223B5A20500A96E63 /* SceneDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD579F123B5A20500A96E63 /* SceneDelegate.mm */; };
@@ -137,6 +138,7 @@
 		9D9187DF242C30D500DF2B79 /* TNNFaceDetectorController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectorController.mm; sourceTree = "<group>"; };
 		9D961FEB24116548009B3FB1 /* RootNavController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RootNavController.mm; sourceTree = "<group>"; };
 		9D961FEC24116548009B3FB1 /* RootNavController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RootNavController.h; sourceTree = "<group>"; };
+		9DA25C2525304501000C3512 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
 		9DC7116024D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazeFaceDetectorViewModel.mm; sourceTree = "<group>"; };
 		9DC7116124D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNBlazeFaceDetectorViewModel.h; sourceTree = "<group>"; };
 		9DD579EA23B5A20500A96E63 /* TNNExamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TNNExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -357,6 +359,7 @@
 				9DD579F923B5A20E00A96E63 /* Assets.xcassets */,
 				9DD579F623B5A20500A96E63 /* Main.storyboard */,
 				9DD579FB23B5A20E00A96E63 /* LaunchScreen.storyboard */,
+				9DA25C2525304501000C3512 /* logo@2x.png */,
 				9DD579FE23B5A20E00A96E63 /* Info.plist */,
 				9DD579FF23B5A20E00A96E63 /* main.m */,
 				9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */,
@@ -568,6 +571,7 @@
 				ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */,
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
+				9DA25C2625304501000C3512 /* logo@2x.png in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
 				EC4E1B5624C994B400B88179 /* blazeface_anchors.txt in Resources */,
