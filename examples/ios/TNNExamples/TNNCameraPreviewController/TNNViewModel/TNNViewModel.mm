@@ -42,4 +42,10 @@
     [NSException raise:NSInvalidArgumentException format:@"subclass must overide the func labelForObject"];
     return nil;
 }
+
+- (void)setupCustomView:(UIView *)view layoutHeight:(NSLayoutConstraint *)viewLayoutHeight {
+    if (view && viewLayoutHeight) {
+        viewLayoutHeight.constant = 0;
+    }
+}
 @end

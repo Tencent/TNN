@@ -110,7 +110,7 @@ typedef enum {
 } TNNComputeUnits;
 
 typedef  struct{
-    unsigned char r,g,b,a;
+    unsigned char r = 0, g = 0, b = 0, a = 0;
 }RGBA;
 
 

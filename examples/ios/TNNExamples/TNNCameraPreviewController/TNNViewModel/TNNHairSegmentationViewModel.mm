@@ -15,7 +15,15 @@
 #import "TNNHairSegmentationViewModel.h"
 #import "hair_segmentation.h"
 
+#import "DYFlatButton.h"
+#import "UIColor+Utility.h"
+
 using namespace std;
+
+@interface TNNHairSegmentationViewModel ()
+@property (nonatomic, assign) vector<RGBA> colors;
+@property (nonatomic, strong) NSArray<DYFlatButton *> *colorButtons;
+@end
 
 @implementation TNNHairSegmentationViewModel
 
@@ -73,12 +81,9 @@ using namespace std;
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
     self.predictor = predictor;
-
-    // merging weight
-    [self SetHairSegmentationAlpha:0.4];
+    
     // color blue
-    [self SetHairSegmentationRGB:0 g:0 b:255];
-
+    [self setHairSegmentationRGBA:{0,0,185,90}];
     return status;
 }
 
@@ -102,20 +107,80 @@ using namespace std;
     return nil;
 }
 
--(void) SetHairSegmentationAlpha:(float)alpha {
+-(void) setHairSegmentationRGBA:(RGBA) color{
     if (self.predictor) {
         auto* predictor_cast = dynamic_cast<HairSegmentation *>(self.predictor.get());
-        predictor_cast->SetAlpha(alpha);
+        predictor_cast->SetHairColor(color);
     }
 }
 
--(void) SetHairSegmentationRGB:(unsigned char)red
-                             g:(unsigned char)green
-                             b:(unsigned char)blue {
-    if (self.predictor) {
-        auto* predictor_cast = dynamic_cast<HairSegmentation *>(self.predictor.get());
-        predictor_cast->SetHairColor({red, green, blue, 0});
+#pragma mark - UI control
+- (void)setupCustomView:(UIView *)view
+           layoutHeight:(NSLayoutConstraint *)viewLayoutHeight {
+    self.colors = {
+        //蓝色
+        {0,0,185,90},
+        //青色
+        {0,185,185,40},
+        //绿色
+        {0,185,0,50},
+        //紫色
+        {185,0,185,64},
+        //红色
+        {185,0,0,64},
+    };
+    
+    viewLayoutHeight.constant = 60;
+    
+    //label
+    auto label = [[UILabel alloc] initWithFrame:CGRectMake(15, 0, 80, viewLayoutHeight.constant)];
+    label.font = [UIFont systemFontOfSize:14];
+    label.text = @"头发颜色：";
+    label.textColor = [UIColor whiteColor];
+    [view addSubview:label];
+    
+    auto colorButtons = [NSMutableArray new];
+    for (int i=0; i<self.colors.size(); i++) {
+        auto color = self.colors[i];
+        auto button = [[DYFlatButton alloc] initWithFrame:CGRectMake(15 + 80 + i*(36 + 12),
+                                                                 12, 36, 36)];
+        button.tag = i;
+        
+        button.autoHighlightMode = DYAutoHighlightModeAll;
+        [button setBackgroundColor:[UIColor colorWithRed:color.r/255.0 green:color.g/255.0 blue:color.b/255.0 alpha:0.85]
+                          forState:UIControlStateNormal];
+        [button setBackgroundColor:[UIColor colorWithRed:color.r/255.0 green:color.g/255.0 blue:color.b/255.0 alpha:0.85]
+                          forState:UIControlStateSelected];
+        [button setBorderColor:[UIColor clearColor] forState:UIControlStateNormal];
+        [button setBorderColor:[UIColor whiteColor] forState:UIControlStateSelected];
+        [button addTarget:self action:@selector(onButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+        [view addSubview:button];
+        [colorButtons addObject:button];
+        button.selected = i == 0;
     }
+    
+    self.colorButtons = colorButtons;
+}
+
+- (void)onButtonClick:(DYFlatButton *)button {
+    auto selected = button.selected;
+    if (selected) {
+        for (DYFlatButton *item in self.colorButtons) {
+            item.selected = NO;
+        }
+    } else {
+        for (DYFlatButton *item in self.colorButtons) {
+            item.selected = NO;
+        }
+        button.selected = YES;
+    }
+    
+    RGBA color = {0,0,0,0};
+    if (button.selected) {
+        color = self.colors[button.tag];
+    }
+    
+    [self setHairSegmentationRGBA:color];
 }
 
 @end
