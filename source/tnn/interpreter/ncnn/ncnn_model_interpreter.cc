@@ -34,7 +34,7 @@ namespace ncnn {
     TypeModelInterpreterRegister<TypeModelInterpreterCreator<NCNNModelInterpreter>> g_ncnn_model_interpreter_register(
         MODEL_TYPE_NCNN);
 
-    Status NCNNModelInterpreter::Interpret(std::vector<std::string> params) {
+    Status NCNNModelInterpreter::Interpret(std::vector<std::string> &params) {
         std::string proto_content = params.size() > 0 ? params[0] : "";
         RETURN_ON_ERROR(InterpretProto(proto_content));
         std::string model_content = params.size() > 1 ? params[1] : "";

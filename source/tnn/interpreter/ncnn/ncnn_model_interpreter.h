@@ -34,7 +34,7 @@ namespace ncnn {
     class NCNNModelInterpreter : public DefaultModelInterpreter {
     public:
         // @brief ncnn model interpreter load params is param content and bin
-        virtual Status Interpret(std::vector<std::string> params);
+        virtual Status Interpret(std::vector<std::string> &params);
 
         static Status RegisterLayerInterpreter(std::string type_name, AbstractLayerInterpreter* creator);
 
