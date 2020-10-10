@@ -51,7 +51,7 @@ int Run(int argc, char* argv[]) {
     // TODO optimize the model
     // prefer optimize
     TnnOptimizer tnn_optimizer;
-    status = tnn_optimizer.Optimize(net_structure, net_resource);
+    status = tnn_optimizer.PreOptimize(net_structure, net_resource);
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());
         return status;
@@ -64,6 +64,11 @@ int Run(int argc, char* argv[]) {
         return status;
     }
     // post optimize
+    status = tnn_optimizer.PostOptimize(net_structure, net_resource);
+    if (status != TNN_NS::TNN_CONVERT_OK) {
+        LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());
+        return status;
+    }
 
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
