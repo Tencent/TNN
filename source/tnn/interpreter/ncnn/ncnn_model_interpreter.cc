@@ -34,10 +34,11 @@ namespace ncnn {
     TypeModelInterpreterRegister<TypeModelInterpreterCreator<NCNNModelInterpreter>> g_ncnn_model_interpreter_register(
         MODEL_TYPE_NCNN);
 
-    Status NCNNModelInterpreter::Interpret(std::vector<std::string> params) {
-        std::string proto_content = params.size() > 0 ? params[0] : "";
+    Status NCNNModelInterpreter::Interpret(std::vector<std::string> &params) {
+        std::string empty_content = "";
+        std::string &proto_content = params.size() > 0 ? params[0] : empty_content;
         RETURN_ON_ERROR(InterpretProto(proto_content));
-        std::string model_content = params.size() > 1 ? params[1] : "";
+        std::string &model_content = params.size() > 1 ? params[1] : empty_content;
         RETURN_ON_ERROR(InterpretModel(model_content));
         RETURN_ON_ERROR(NCNNOptimizerManager::Optimize(GetNetStructure(), GetNetResource()));
         RETURN_ON_ERROR(FindOutputs());
@@ -73,7 +74,7 @@ namespace ncnn {
         return TNN_OK;
     }
 
-    Status NCNNModelInterpreter::InterpretProto(std::string content) {
+    Status NCNNModelInterpreter::InterpretProto(std::string &content) {
         Status ret                   = TNN_OK;
         NetStructure *structure      = GetNetStructure();
         structure->source_model_type = MODEL_TYPE_NCNN;
@@ -242,7 +243,7 @@ namespace ncnn {
         return TNN_OK;
     }
 
-    Status NCNNModelInterpreter::InterpretModel(std::string model_content) {
+    Status NCNNModelInterpreter::InterpretModel(std::string &model_content) {
         auto &layer_interpreter_map = GetLayerInterpreterMap();
 
         NetResource *net_resource = GetNetResource();
