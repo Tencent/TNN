@@ -148,7 +148,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
         auto bias_value       = GetAttributeIntVector(*bias_node, "values");
         // calculate bias
         std::vector<int32_t> cal_bias_value;
-        for (const auto value : bias_value) {
+        for (const auto& value : bias_value) {
             cal_bias_value.push_back(value * bias_scale / cal_weight_scale);
         }
         assert(bias_shape.size() == 1);
