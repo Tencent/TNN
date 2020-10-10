@@ -66,12 +66,7 @@ public:
     void SetHairColor(const RGBA& color) {
         this->hair_color_ = color;
     }
-    // Set the alpha weight for hair
-    void SetAlpha(float alpha) {
-        if (alpha <= 0 || alpha > 1)
-            return;
-        this->alpha_ = alpha;
-    }
+
 private:
     std::shared_ptr<Mat> ProcessAlpha(std::shared_ptr<Mat> alpha, int mode);
     std::shared_ptr<Mat> GenerateAlphaImage(std::shared_ptr<Mat> alpha);
@@ -83,9 +78,7 @@ private:
     // the original input image
     std::shared_ptr<Mat> input_image;
     // the color used on hair
-    RGBA hair_color_ = {0, 0, 255, 0}; // blue
-    // the merging weight on hair
-    float alpha_ = 0.4;
+    RGBA hair_color_ = {0x00, 0x00, 0xbb, 0x55}; // blue
 };
 
 }

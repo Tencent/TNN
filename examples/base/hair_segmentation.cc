@@ -110,7 +110,7 @@ std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha, RG
         float hair_conf = alpha_data[s];
         //float bg_conf   = 1 - hair_conf;
         const float bg_conf = 1.0f;
-        const float merge_weight = this->alpha_;
+        const float merge_weight = color.a/255.0f;
         float c0 = bg_conf * image_data[s*channel + 0] + merge_weight * hair_conf * color.r;
         float c1 = bg_conf * image_data[s*channel + 1] + merge_weight * hair_conf * color.g;
         float c2 = bg_conf * image_data[s*channel + 2] + merge_weight * hair_conf * color.b;
