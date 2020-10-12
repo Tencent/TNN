@@ -14,7 +14,10 @@
 
 #include "tnn/layer/base_layer.h"
 
+#include "tnn/utils/string_utils_inner.h"
+
 #include <mutex>
+#include <sstream>
 
 #include "tnn/core/macro.h"
 
@@ -50,10 +53,15 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     if (status != TNN_OK) {
         return status;
     }
+
     for (auto& output_blob : output_blobs) {
-        LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", output_blob->GetBlobDesc().name.c_str(),
-             output_blob->GetBlobDesc().dims[0], output_blob->GetBlobDesc().dims[1], output_blob->GetBlobDesc().dims[2],
-             output_blob->GetBlobDesc().dims[3]);
+        BlobDesc desc = output_blob->GetBlobDesc();
+        std::string log_info = "";
+        for(int i = 0; i < desc.dims.size(); ++i) {
+            log_info = log_info + ToString(desc.dims[i]);
+            log_info = log_info + " ";
+        }
+        LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
     }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {

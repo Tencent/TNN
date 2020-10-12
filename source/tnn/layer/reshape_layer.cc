@@ -31,12 +31,15 @@ Status ReshapeLayer::InferOutputShape() {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     if (!reshape_param->shape.empty()) {
-        if ((reshape_param->shape.size() + reshape_param->axis) != input_blob->GetBlobDesc().dims.size()) {
-            LOGE("reshape param size error\n");
-            return Status(TNNERR_PARAM_ERR, "reshape param size error");
-        }
 
-        auto output_dims = input_blob->GetBlobDesc().dims;
+        auto input_dims = input_blob->GetBlobDesc().dims;
+
+        int output_size = reshape_param->shape.size() + reshape_param->axis;
+        DimsVector output_dims(output_size, 1);
+
+        for(int i = 0; i < reshape_param->axis; ++i) {
+            output_dims[i] = input_dims[i];
+        }
 
         int infer_dim_count = 0;
         int infer_dim_pos   = -1;

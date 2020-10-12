@@ -31,6 +31,8 @@ std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int d
     std::vector<DataFormat> support_list;
     if (dims_size > 0 ) {
         support_list.push_back(DATA_FORMAT_NCHW);
+    } else if(dims_size == 5) {
+        support_list.push_back(DATA_FORMAT_NCDHW);
     }
     return support_list;
 }
