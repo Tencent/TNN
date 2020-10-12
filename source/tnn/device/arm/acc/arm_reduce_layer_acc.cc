@@ -28,6 +28,59 @@ Status ArmReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     return ret;
 }
 
+void ArmReduceLayerAcc::ReduceChannel(
+        float* input_data, float* output_data, DimsVector& dims_in,
+        const int c4n, const int c4r, const Float4 axis_n, const int hw_r, const int hw_c, const int hw) {
+    float reduce_c = dims_in[1];
+    for (int n = 0; n < dims_in[0]; n++) {
+        for (int c = 0; c < c4n; c++) {
+            OMP_PARALLEL_FOR_
+            for (int i = 0; i < hw_c; i++) {
+                int p      = i * 16;
+                Float4x4 v = Float4x4::ld4(input_data + p);
+                Float4 r, t;
+                r.set_lane(*(output_data + p), 0);
+                r.set_lane(*(output_data + p + 4), 1);
+                r.set_lane(*(output_data + p + 8), 2);
+                r.set_lane(*(output_data + p + 12), 3);
+                int e      = 4;
+                if ((c == c4n - 1) && (c4r != 0)) {
+                    e = c4r;
+                }
+                for (int j = 0; j < e; j++) {
+                    // t.value = v.value.val[j];
+                    v.get_lane(t, j);
+                    r       = op_->Calculate(r, t);
+                }
+                if (c == c4n - 1) {
+                    r = op_->PostCalculate(r, axis_n);
+                }
+                *(output_data + p)      = r.value[0];
+                *(output_data + p + 4)  = r.value[1];
+                *(output_data + p + 8)  = r.value[2];
+                *(output_data + p + 12) = r.value[3];
+            }
+
+            for (int i = 0; i < hw_r; i++) {
+                int p = hw_c * 16 + i * 4;
+                int e = 4;
+                if ((c == c4n - 1) && (c4r != 0)) {
+                    e = c4r;
+                }
+                for (int j = 0; j < e; j++) {
+                    *(output_data + p) = op_->Calculate(*(output_data + p), *(input_data + p + j));
+                }
+                if (c == c4n - 1) {
+                    *(output_data + p) = op_->PostCalculate(*(output_data + p), reduce_c);
+                }
+            }
+
+            input_data += hw << 2;
+        }
+        output_data += hw << 2;
+    }
+}
+
 Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReduceLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
@@ -63,55 +116,7 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         op_->DataInit(output_data, out_count);
 
         if (axis == 1) {
-            float reduce_c = dims_in[1];
-            for (int n = 0; n < dims_in[0]; n++) {
-                for (int c = 0; c < c4n; c++) {
-                    OMP_PARALLEL_FOR_
-                    for (int i = 0; i < hw_c; i++) {
-                        int p      = i * 16;
-                        Float4x4 v = Float4x4::ld4(input_data + p);
-                        Float4 r, t;
-                        r.set_lane(*(output_data + p), 0);
-                        r.set_lane(*(output_data + p + 4), 1);
-                        r.set_lane(*(output_data + p + 8), 2);
-                        r.set_lane(*(output_data + p + 12), 3);
-                        int e      = 4;
-                        if ((c == c4n - 1) && (c4r != 0)) {
-                            e = c4r;
-                        }
-                        for (int j = 0; j < e; j++) {
-                            // t.value = v.value.val[j];
-                            v.get_lane(t, j);
-                            r       = op_->Calculate(r, t);
-                        }
-                        if (c == c4n - 1) {
-                            r = op_->PostCalculate(r, axis_n);
-                        }
-                        *(output_data + p)      = r.value[0];
-                        *(output_data + p + 4)  = r.value[1];
-                        *(output_data + p + 8)  = r.value[2];
-                        *(output_data + p + 12) = r.value[3];
-                    }
-
-                    for (int i = 0; i < hw_r; i++) {
-                        int p = hw_c * 16 + i * 4;
-                        int e = 4;
-                        if ((c == c4n - 1) && (c4r != 0)) {
-                            e = c4r;
-                        }
-                        for (int j = 0; j < e; j++) {
-                            *(output_data + p) = op_->Calculate(*(output_data + p), *(input_data + p + j));
-                        }
-                        if (c == c4n - 1) {
-                            *(output_data + p) = op_->PostCalculate(*(output_data + p), reduce_c);
-                        }
-                    }
-
-                    input_data += hw << 2;
-                }
-                output_data += hw << 2;
-            }
-
+            ReduceChannel(input_data, output_data, dims_in, c4n, c4r, axis_n, hw_r, hw_c, hw);
         } else if (axis == 0) {
             int outer_dim = dims_in[0];
             int inner_dim = c4u * hw;

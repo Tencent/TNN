@@ -21,20 +21,8 @@
 
 namespace TNN_NS {
 
-/*
-Binary func with different opreator,
-set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
-*/
-template <typename Tout, typename Tin1, typename Tin2>
-Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0,
-                                     DimsVector &dims1) {
-    DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
-    DimsVector dims_broadcast;
-    BroadcastType type = BroadcastTypeUnknown;
-    auto _input0       = input0_ptr;
-    auto _input1       = input1_ptr;
-    bool swap_flag     = false;
-
+void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const DimsVector &dims1,
+                   BroadcastType& type, DimsVector &dims_broadcast, bool &swap_flag) {
     if (DimsVectorUtils::Equal(dims0, dims1)) {
         type = BroadcastTypeNormal;
         dims_broadcast.clear();
@@ -59,6 +47,23 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         dims_broadcast = dims0;
         swap_flag      = true;
     }
+}
+
+/*
+Binary func with different opreator,
+set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
+*/
+template <typename Tout, typename Tin1, typename Tin2>
+Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0,
+                                     DimsVector &dims1) {
+    DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
+    DimsVector dims_broadcast;
+    BroadcastType type = BroadcastTypeUnknown;
+    auto _input0       = input0_ptr;
+    auto _input1       = input1_ptr;
+    bool swap_flag     = false;
+
+    BroadCastInit(dims, dims0, dims1, type, dims_broadcast, swap_flag);
 
     if (swap_flag) {
         std::swap(_input0, _input1);

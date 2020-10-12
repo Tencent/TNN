@@ -33,7 +33,7 @@ public:
     virtual ~DefaultModelInterpreter() = 0;
 
     // @brief different interpreter has different order param
-    virtual Status Interpret(std::vector<std::string> params) = 0;
+    virtual Status Interpret(std::vector<std::string> &params) = 0;
 
     //@brief GetNetStruture return network build info
     virtual NetStructure *GetNetStructure();

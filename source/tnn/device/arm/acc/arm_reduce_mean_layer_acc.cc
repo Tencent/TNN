@@ -17,22 +17,6 @@
 namespace TNN_NS {
 
 typedef struct arm_reduce_mean_operator : arm_reduce_operator {
-    virtual void DataInit(void *data, size_t count) {
-        memset(data, 0, count * sizeof(float));
-    };
-
-    virtual Float4 DataInit() {
-        return Float4(0);
-    };
-
-    virtual Float4 Calculate(Float4 &v, Float4 &t) {
-        return v + t;
-    };
-
-    virtual float Calculate(const float &v, const float &t) {
-        return v + t;
-    };
-
     virtual Float4 PostCalculate(const Float4 &v, const Float4 &t) {
         return Float4::div(v, t);
     };
