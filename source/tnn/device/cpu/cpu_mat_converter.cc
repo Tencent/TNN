@@ -267,6 +267,5 @@ void CpuMatConverterAcc::MatMemcpy2D(void* src, void* dst, int width, int height
 
 DECLARE_MAT_CONVERTER_CREATER(Cpu);
 REGISTER_MAT_CONVERTER(Cpu, DEVICE_NAIVE);
-REGISTER_MAT_CONVERTER(Cpu, DEVICE_X86);
 
 }

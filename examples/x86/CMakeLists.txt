@@ -1,10 +1,9 @@
-
 cmake_minimum_required(VERSION 3.1)
 project(TNN-demo)
 message(${CMAKE_SOURCE_DIR})
 message(${TNN_LIB_PATH})
 option(TNN_OPENVINO_LIB_PATH "openvino lib path" "")
-# option(CMAKE_SYSTEM_NAME "system name" "Linux")
+
 set(CMAKE_CXX_STANDARD 11)
 set(TNN_CPU_ENABLE ON)
 set(TNN_OPENVINO_ENABLE ON)
@@ -29,8 +28,10 @@ if (${TNN_OPENVINO_ENABLE})
 endif()
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     link_libraries(TNN)
-else()
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
     link_libraries(-Wl,--whole-archive TNN MKLDNNPlugin -Wl,--no-whole-archive)
+else()
+    link_libraries(TNN MKLDNNPlugin)
 endif()
 
 file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../base/*.cc")

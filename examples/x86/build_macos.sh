@@ -9,9 +9,9 @@ cd ../../scripts
 sh build_x86_linux.sh
 cd -
 
-rm -r build_x86_linux
-mkdir build_x86_linux
-cd build_x86_linux
+rm -rf build_x86_macos
+mkdir build_x86_macos
+cd build_x86_macos
 
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \

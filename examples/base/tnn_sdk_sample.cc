@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+
 #include <cstring>
 #include <sys/time.h>
 #include <float.h>
@@ -20,6 +21,8 @@
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
+
+#include "sample_timer.h"
 
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
