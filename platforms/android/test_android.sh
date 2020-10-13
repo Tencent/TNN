@@ -41,6 +41,7 @@ then
     adb push ${TEST_MODEL_PATH} ${ANDROID_DIR}/test.tnnmodel
 fi
 
+adb shell "echo "${DEVICE}" > $ANDROID_DIR/test.log"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     echo "Run Huawei Npu"
