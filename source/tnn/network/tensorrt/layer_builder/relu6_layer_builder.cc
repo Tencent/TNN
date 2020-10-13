@@ -16,19 +16,20 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReLU6, LAYER_RELU6);
+DECLARE_TENSORRT_LAYER_BUILDER(ReLU6, LAYER_RELU6);
 
-bool ReLU6TRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
+ILayer* ReLU6TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kCLIP);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+        layer->setAlpha(0.f);
+        layer->setBeta(6.f);
     }
-    return false;
+    return layer;
 }
 
-ILayer* ReLU6TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(ReLU6, LAYER_RELU6);
+REGISTER_TENSORRT_LAYER_BUILDER(ReLU6, LAYER_RELU6);
 
 }  //  namespace TNN_NS

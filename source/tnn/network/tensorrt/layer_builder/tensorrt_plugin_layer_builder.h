@@ -15,12 +15,15 @@
 #ifndef TNN_SOURCE_TNN_NETWORK_TENSORR_LAYER_BUILDER_TENSORRT_PLUGIN_LAYER_BUILDER_H_
 #define TNN_SOURCE_TNN_NETWORK_TENSORR_LAYER_BUILDER_TENSORRT_PLUGIN_LAYER_BUILDER_H_
 
+#include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/layer_builder/tensorrt_base_layer_builder.h"
 
 namespace TNN_NS {
 
+constexpr const char* PLUGIN_VERSION{"1"};
+
 // @brief TensorRTPluginLayer Builder, defines the tensorRT plugin layer builder interface
-class TensorRTPluginLayerBuilder : public TensorRTBaseLayerBuilder, public nvinfer1::IPluginExt {
+class TensorRTPluginLayerBuilder : public TensorRTBaseLayerBuilder, public nvinfer1::IPluginV2DynamicExt {
 public:
     explicit TensorRTPluginLayerBuilder(LayerType type);
 
@@ -30,10 +33,6 @@ public:
     // @brief virtual layer init
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
-
-    virtual nvinfer1::IPluginExt* CreatePlugin();
-
-    virtual nvinfer1::IPluginExt* CreatePlugin(const void* data, size_t length);
 
     // @brief virtual Reshape recalculate the output tensor dims
     virtual Status Reshape();
@@ -46,36 +45,54 @@ public:
 
     virtual int getNbOutputs() const;
 
-    virtual Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims);
-
-    virtual void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-            nvinfer1::DataType type, PluginFormat format, int maxBatchSize);
+    virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
+        nvinfer1::IExprBuilder& exprBuilder);
 
     virtual int initialize();
 
     virtual void terminate();
 
-    virtual size_t getWorkspaceSize(int maxBatchSize) const;
+    virtual size_t getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs, int nbInputs,
+        const nvinfer1::PluginTensorDesc* outputs, int nbOutputs) const;
 
-    virtual int enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream);
+    virtual int enqueue(const nvinfer1::PluginTensorDesc* inputDesc, const nvinfer1::PluginTensorDesc* outputDesc,
+        const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream);
 
-    virtual size_t getSerializationSize();
+    virtual size_t getSerializationSize() const;
 
-    virtual void serialize(void* buffer);
+    virtual void serialize(void* buffer) const;
+
+    virtual const char* getPluginVersion() const;
+
+    virtual void destroy();
+
+    virtual void setPluginNamespace(const char* pluginNamespace);
+
+    virtual const char* getPluginNamespace() const;
+
+    virtual void configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
+        const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs);
+
+    nvinfer1::IPluginV2DynamicExt* CreatePlugin();
+
+    nvinfer1::IPluginV2DynamicExt* CreatePlugin(const void* data, size_t length);
 
 protected:
+    std::shared_ptr<AbstractLayerAcc> plugin_layer_acc_;
+    std::string m_plugin_namespace;
     nvinfer1::DataType m_type;
     PluginFormat m_format;
+    Context* context_;
 
 private:
     template<typename T>
-    void write(char*& buffer, const T& val) {
+    void write(char*& buffer, const T& val) const {
         *reinterpret_cast<T*>(buffer) = val;
         buffer += sizeof(T);
     }
 
     template<typename T>
-    T read(const char*& buffer) {
+    T read(const char*& buffer) const {
         T val = *reinterpret_cast<const T*>(buffer);
         buffer += sizeof(T);
     }
@@ -90,17 +107,63 @@ public:
     }
 };
 
-#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                 \
-    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                     \
-    public:                                                                                                            \
-        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}           \
-        virtual ~type_string##TRTPluginLayerBuilder() {}                                                               \
-        virtual bool supportsFormat(nvinfer1::DataType type, PluginFormat format) const;                               \
-        virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                     \
-    }
+#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                            \
+    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                                \
+    public:                                                                                                                       \
+        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}                      \
+        virtual ~type_string##TRTPluginLayerBuilder() {}                                                                          \
+        virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut,                                  \
+            int nbInputs, int nbOutputs);                                                                                         \
+        virtual const char* getPluginType() const;                                                                                \
+        virtual nvinfer1::IPluginV2DynamicExt* clone() const {                                                                    \
+            auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                                         \
+            plugin->setPluginNamespace(this->m_plugin_namespace.c_str());                                                         \
+            return plugin;                                                                                                        \
+        }                                                                                                                         \
+        virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,                             \
+            int nbInputs) const;                                                                                                  \
+        virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                                \
+    };                                                                                                                            \
+    class type_string##PluginCreator : public nvinfer1::IPluginCreator {                                                          \
+    public:                                                                                                                       \
+        type_string##PluginCreator() {                                                                                            \
+            m_fc.nbFields = 0;                                                                                                    \
+            m_fc.fields = nullptr;                                                                                                \
+        }                                                                                                                         \
+        virtual const char* getPluginName() const;                                                                                \
+        virtual const char* getPluginVersion() const { return PLUGIN_VERSION; }                                                   \
+        virtual const nvinfer1::PluginFieldCollection* getFieldNames() { return &m_fc; }                                          \
+        virtual const char* getPluginNamespace() const { return m_plugin_namespace.c_str(); }                                     \
+        virtual void setPluginNamespace(const char* libNamespace) { m_plugin_namespace = libNamespace; }                          \
+        virtual nvinfer1::IPluginV2DynamicExt* createPlugin(const char* name,                                                     \
+                const nvinfer1::PluginFieldCollection* fc) {                                                                      \
+            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map = TensorRTNetwork_::GetPluginLayerNameMap();   \
+            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                                  \
+            auto plugin = layer->CreatePlugin();                                                                                  \
+            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                               \
+            return plugin;                                                                                                        \
+        }                                                                                                                         \
+        virtual nvinfer1::IPluginV2DynamicExt* deserializePlugin(const char* name,                                                \
+                const void* serialData, size_t serialLength) {                                                                    \
+            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map = TensorRTNetwork_::GetPluginLayerNameMap();   \
+            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                                  \
+            IPluginV2DynamicExt* plugin;                                                                                          \
+            if (serialLength == 0) {                                                                                              \
+                plugin = layer->CreatePlugin();                                                                                   \
+            } else {                                                                                                              \
+                plugin = layer->CreatePlugin(serialData, serialLength);                                                           \
+            }                                                                                                                     \
+            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                               \
+            return plugin;                                                                                                        \
+        }                                                                                                                         \
+    private:                                                                                                                      \
+        nvinfer1::PluginFieldCollection m_fc;                                                                                     \
+        std::string m_plugin_namespace;                                                                                           \
+    };                                                                                                                            \
+    REGISTER_TENSORRT_PLUGIN(type_string##PluginCreator);
 
-#define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                \
-    TensorRTPluginTypeLayerBuilderRegister<TypeLayerBuilderCreator<type_string##TRTPluginLayerBuilder>>                \
+#define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                           \
+    TensorRTPluginTypeLayerBuilderRegister<TypeLayerBuilderCreator<type_string##TRTPluginLayerBuilder>>                           \
         g_##layer_type##_trt_plugin_layer_builder_register(layer_type);
 
 }  //  namespace TNN_NS

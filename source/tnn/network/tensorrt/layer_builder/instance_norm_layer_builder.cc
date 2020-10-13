@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(InstanceNorm, LAYER_INST_BATCH_NORM);
 
-bool InstanceNormTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool InstanceNormTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* InstanceNormTRTPluginLayerBuilder::getPluginType() const {
+    return "InstanceNorm";
+}
+
+nvinfer1::DataType InstanceNormTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* InstanceNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* InstanceNormPluginCreator::getPluginName() const {
+    return "InstanceNorm";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(InstanceNorm, LAYER_INST_BATCH_NORM);

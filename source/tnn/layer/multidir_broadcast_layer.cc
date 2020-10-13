@@ -35,6 +35,10 @@ static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
             type = BroadcastTypeHeightWidth;
         } else if (input_count == DimsVectorUtils::Count(output, 3)) {
             type = BroadcastTypeWidth;
+        } else if (input_count == output[1] * output[2]) {
+            type = BroadcastTypeChannelHeight;
+        } else if (input_count == output[1] * output[3]) {
+            type = BroadcastTypeChannelWidth;
         } else {
             LOGE("%d %d %d %d %d\n", input_count, output[0], output[1],
                     output[2], output[3]);

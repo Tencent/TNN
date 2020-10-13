@@ -19,7 +19,7 @@
 namespace TNN_NS {
 
 TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type), trt_batchsize(0) {
-    m_layer = CreateLayer(type);
+    m_layer = std::shared_ptr<BaseLayer>(CreateLayer(type));
 }
 
 TensorRTBaseLayerBuilder::~TensorRTBaseLayerBuilder() {

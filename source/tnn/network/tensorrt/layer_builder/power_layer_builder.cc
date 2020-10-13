@@ -18,15 +18,23 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pow, LAYER_POWER);
 
-bool PowTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool PowTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* PowTRTPluginLayerBuilder::getPluginType() const {
+    return "Pow";
+}
+
+nvinfer1::DataType PowTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* PowTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<PowLayerParam *>(param_);
+    auto paramlist = dynamic_cast<PowLayerParam*>(param_);
     if (paramlist->exponent == 1 && paramlist->scale == -1 && paramlist->shift == 0) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
@@ -40,6 +48,11 @@ ILayer* PowTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 }
 
+const char* PowPluginCreator::getPluginName() const {
+    return "Pow";
+}
+
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pow, LAYER_POWER);
+
 
 }  //  namespace TNN_NS

@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Permute, LAYER_PERMUTE);
 
-bool PermuteTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool PermuteTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* PermuteTRTPluginLayerBuilder::getPluginType() const {
+    return "Permute";
+}
+
+nvinfer1::DataType PermuteTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* PermuteTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* PermutePluginCreator::getPluginName() const {
+    return "Permute";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Permute, LAYER_PERMUTE);

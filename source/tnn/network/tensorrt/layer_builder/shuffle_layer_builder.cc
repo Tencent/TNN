@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Shuffle, LAYER_SHUFFLE_CHANNEL);
 
-bool ShuffleTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool ShuffleTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* ShuffleTRTPluginLayerBuilder::getPluginType() const {
+    return "Shuffle";
+}
+
+nvinfer1::DataType ShuffleTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* ShuffleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* ShufflePluginCreator::getPluginName() const {
+    return "Shuffle";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Shuffle, LAYER_SHUFFLE_CHANNEL);

@@ -75,7 +75,7 @@ protected:
     // @brief Build the foreign network
     virtual Status Build();
 
-    BaseLayer* m_layer;
+    std::shared_ptr<BaseLayer> m_layer;
     bool is_plugin;
     int trt_batchsize;
 };

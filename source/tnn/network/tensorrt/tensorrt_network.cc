@@ -12,23 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <fstream>
-#include <string>
-
 #include <memory>
+
+#include "tnn/device/cuda/thirdparty/md5/md5.h"
 
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-#define MAX_SCRATCH_MEMORY (1<<25 - 1)
+#define MAX_SCRATCH_MEMORY (1<<31 - 1)
+#define TENSORRT_SERIALIZE_VERSION "v1.0"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>> g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
 
-TensorRTNetwork_::TensorRTNetwork_() : m_plugin_factory(this) {
+std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
+
+TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_builder = nullptr;
     m_trt_network = nullptr;
     m_trt_engine = nullptr;
@@ -45,18 +48,11 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter* interpreter,
         InputShapesMap inputs_shape) {
+
+    cudaSetDevice(net_config.device_id);
+
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
-
-    int output_size;
-    std::vector<std::string> names;
-    std::ifstream fp("config");
-    fp >> output_size;
-    for (int i = 0; i < output_size; i++) {
-        std::string tmp;
-        fp >> tmp;
-        names.push_back(tmp);
-    }
 
     NetStructure *net_structure = default_interpreter->GetNetStructure();
     NetResource *net_resource   = default_interpreter->GetNetResource();
@@ -118,23 +114,25 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
        return ret;
     }
 
-    // TODO(johnzlli) need generat file name with md5sum, device_id and some other params.
-    std::string file_name = GetCacheFileName();
-    ExclFile *file_lock = new ExclFile(file_name);
-
-    std::string cache_file_name = GetCacheFileName();
+    std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1],
+        inputs, outputs, net_config.device_id, this->m_max_batchsize);
+    ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (false == file_lock->Ready()) {
         this->m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
-        this->m_trt_network = m_trt_builder->createNetwork();
+        this->m_trt_network = m_trt_builder->createNetworkV2(1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
+        this->m_trt_config = this->m_trt_builder->createBuilderConfig();
 
         for (auto input : inputs) {
             auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
             auto desc = input.second->GetBlobDesc();
-            nvinfer1::DimsCHW in_dim(desc.dims[1], desc.dims[2], desc.dims[3]);
-
             nvinfer1::ITensor* in_tensor = this->m_trt_network->addInput(desc.name.c_str(),
-                nvinfer1::DataType::kFLOAT, in_dim);
+                nvinfer1::DataType::kFLOAT, Dims4{-1, desc.dims[1], -1, -1});
+            auto profile = this->m_trt_builder->createOptimizationProfile();
+            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, Dims4{1, desc.dims[1], 1, 1});
+            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
+            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{64, desc.dims[1], desc.dims[2], desc.dims[3]});
+            this->m_trt_config->addOptimizationProfile(profile);
             auto tensorrtTensor = std::make_shared<TensorRTTensor>();
             tensorrtTensor->SetTensor(in_tensor);
             foreign_blob->SetForeignTensor(tensorrtTensor);
@@ -151,22 +149,20 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                 auto tensorrtTensor = std::make_shared<TensorRTTensor>();
                 tensorrtTensor->SetTensor(output_tensor);
                 foreign_blob->SetForeignTensor(tensorrtTensor);
-                // TODO Debug
-                printf("%s:%d %d %d %d\n", output->GetBlobDesc().name.c_str(), output_tensor->getDimensions().nbDims,
-                    output_tensor->getDimensions().d[0], output_tensor->getDimensions().d[1], output_tensor->getDimensions().d[2]);
             }
         }
 
         for (auto output : outputs) {
             auto foreign_tensor = dynamic_cast<ForeignBlob*>(output.second)->GetForeignTensor();
             auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+            //Do not delete, may cause trt bug
             LOGD("shape: %d %d %d\n", tensor->getDimensions().d[0], tensor->getDimensions().d[1], tensor->getDimensions().d[2]);
             this->m_trt_network->markOutput(*tensor);
         }
 
-        this->m_trt_builder->setMaxBatchSize(m_max_batchsize);
-        m_trt_builder->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
-        m_trt_engine = m_trt_builder->buildCudaEngine(*m_trt_network);
+        m_trt_builder->setMaxBatchSize(64);
+        m_trt_config->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
+        m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
@@ -188,7 +184,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         char *model_stream = new char[size];
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
-        m_trt_engine = runtime->deserializeCudaEngine(model_stream, size, &m_plugin_factory);
+        m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
 
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
@@ -206,6 +202,9 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        auto dims = iter.second->GetBlobDesc().dims;
+        nvinfer1::Dims4 inputDims(dims[0], dims[1], dims[2], dims[3]);
+        m_trt_context->setBindingDimensions(index, inputDims);
     }
 
     for (auto iter : outputs) {
@@ -217,7 +216,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 }
 
 Status TensorRTNetwork_::Forward() {
-    bool ret = this->m_trt_context->enqueue(this->m_max_batchsize, this->m_trt_bindings,
+    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
@@ -229,8 +228,35 @@ Status TensorRTNetwork_::Forward() {
     return TNN_OK;
 }
 
+Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto dims = iter.second;
+        nvinfer1::Dims4 inputDims(dims[0], dims[1], dims[2], dims[3]);
+        m_trt_context->setBindingDimensions(index, inputDims);
+    }
+
+    BlobMap outputs;
+    Status ret = blob_manager_->GetAllOutputBlobs(outputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get output blobs failed");
+        return ret;
+    }
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        auto &dims = iter.second->GetBlobDesc().dims;
+        dims[0] = trt_dims[0];
+        dims[1] = trt_dims[1];
+        dims[2] = trt_dims[2];
+        dims[3] = trt_dims[3];
+    }
+
+    return TNN_OK;
+}
+
 Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
-    bool ret = this->m_trt_context->enqueue(this->m_max_batchsize, this->m_trt_bindings,
+    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
@@ -302,8 +328,25 @@ Status TensorRTNetwork_::CreateExecuteContext() {
     return TNN_OK;
 }
 
-std::string TensorRTNetwork_::GetCacheFileName() {
-    return ".cache";
+std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map, BlobMap output_map,
+        int device_id, int batchsize) {
+    std::string md5_source = md5(cfg) + md5(model);
+
+    for (auto iter : input_map) {
+        char input_hw[2000];
+        sprintf(input_hw, "chw:%d%d%d", iter.second->GetBlobDesc().dims[1], iter.second->GetBlobDesc().dims[2],
+            iter.second->GetBlobDesc().dims[3]);
+        md5_source += input_hw;
+    }
+    for (auto iter : output_map) {
+        md5_source += iter.first;
+    }
+
+    std::string cache_file_name = "." +  md5(md5_source) + "-"
+        + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
+        + "-" + get_gpu_type(device_id) + "-" + get_trt_version() + get_cuda_version()
+        + ".cache";
+    return cache_file_name;
 }
 
 }  //  namespace  TNN_NS

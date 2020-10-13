@@ -18,11 +18,19 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
-bool SoftmaxTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool SoftmaxTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* SoftmaxTRTPluginLayerBuilder::getPluginType() const {
+    return "Softmax";
+}
+
+nvinfer1::DataType SoftmaxTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
@@ -38,6 +46,10 @@ ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     } else {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
+}
+
+const char* SoftmaxPluginCreator::getPluginName() const {
+    return "Softmax";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);

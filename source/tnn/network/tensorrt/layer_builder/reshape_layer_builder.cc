@@ -24,22 +24,13 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto output_dims = output_blob->GetBlobDesc().dims;
 
     Dims reshape_dims;
-    if (output_dims[0] == trt_batchsize) {
-        reshape_dims.nbDims = 3;
-        reshape_dims.d[0] = output_dims[1];
-        reshape_dims.d[1] = output_dims[2];
-        reshape_dims.d[2] = output_dims[3];
-        reshape_dims.type[0] = DimensionType::kCHANNEL;
-        reshape_dims.type[1] = reshape_dims.type[2] = DimensionType::kSPATIAL;
-    } else {
-        reshape_dims.nbDims = 4;
-        reshape_dims.d[0] = -1;
-        reshape_dims.d[1] = output_dims[1];
-        reshape_dims.d[2] = output_dims[2];
-        reshape_dims.d[3] = output_dims[3];
-        reshape_dims.type[1] = DimensionType::kCHANNEL;
-        reshape_dims.type[2] = reshape_dims.type[3] = DimensionType::kSPATIAL;
-    }
+    reshape_dims.nbDims = 4;
+    reshape_dims.d[0] = -1;
+    reshape_dims.d[1] = output_dims[1];
+    reshape_dims.d[2] = output_dims[2];
+    reshape_dims.d[3] = output_dims[3];
+    reshape_dims.type[1] = DimensionType::kCHANNEL;
+    reshape_dims.type[2] = reshape_dims.type[3] = DimensionType::kSPATIAL;
 
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();

@@ -44,27 +44,17 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
 
     param_    = param;
     resource_ = resource;
+    context_ = context;
 
-    layer_acc_ = device->CreateLayerAcc(type_);
-    if (layer_acc_ != NULL) {
-        return layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
+    plugin_layer_acc_ = std::shared_ptr<AbstractLayerAcc>(device->CreateLayerAcc(type_));
+    if (plugin_layer_acc_ != NULL) {
+        return plugin_layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc of type(%d) is nil\n", type_);
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
     return TNN_OK;
-}
-
-IPluginExt* TensorRTPluginLayerBuilder::CreatePlugin() {
-    return this;
-}
-
-IPluginExt* TensorRTPluginLayerBuilder::CreatePlugin(const void* data, size_t length) {
-    const char* d = reinterpret_cast<const char*>(data);
-    m_type = read<nvinfer1::DataType>(d);
-    m_format = read<PluginFormat>(d);
-    return this;
 }
 
 Status TensorRTPluginLayerBuilder::Reshape() {
@@ -79,15 +69,10 @@ int TensorRTPluginLayerBuilder::getNbOutputs() const {
     return output_blobs_.size();
 }
 
-Dims TensorRTPluginLayerBuilder::getOutputDimensions(int index, const Dims* inputs, int nbInputDims) {
-    auto shape = output_blobs_[index]->GetBlobDesc();
-    return DimsCHW(shape.dims[1], shape.dims[2], shape.dims[3]);
-}
-
-void TensorRTPluginLayerBuilder::configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-            nvinfer1::DataType type, PluginFormat format, int maxBatchSize) {
-    m_type = type;
-    m_format = format;
+DimsExprs TensorRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
+        nvinfer1::IExprBuilder& exprBuilder) {
+    nvinfer1::DimsExprs output(inputs[0]);
+    return output;
 }
 
 int TensorRTPluginLayerBuilder::initialize() {
@@ -97,11 +82,13 @@ int TensorRTPluginLayerBuilder::initialize() {
 void TensorRTPluginLayerBuilder::terminate() {
 }
 
-size_t TensorRTPluginLayerBuilder::getWorkspaceSize(int maxBatchSize) const {
+size_t TensorRTPluginLayerBuilder::getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs, int nbInputs,
+        const nvinfer1::PluginTensorDesc* outputs, int nbOutputs) const {
     return 0;
 }
 
-int TensorRTPluginLayerBuilder::enqueue(int batchSize, const void* const* inputs, void** outputs,
+int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
+        const nvinfer1::PluginTensorDesc* outputDesc, const void* const* inputs, void* const* outputs,
         void* workspace, cudaStream_t stream) {
     for (int i = 0; i < input_blobs_.size(); i++) {
         Blob* input_blob = input_blobs_[i];
@@ -119,22 +106,56 @@ int TensorRTPluginLayerBuilder::enqueue(int batchSize, const void* const* inputs
         output_blob->SetHandle(output_handle);
     }
 
-    Status ret = BaseLayer::Forward();
-    if (ret != TNN_OK) {
+    if (plugin_layer_acc_ != NULL) {
+        Status ret = plugin_layer_acc_->Forward(input_blobs_, output_blobs_);
+        if (ret != TNN_OK) return -1;
+    } else {
+        LOGE("layer acc is nil\n");
         return -1;
     }
 
     return 0;
 }
 
-size_t TensorRTPluginLayerBuilder::getSerializationSize() {
+size_t TensorRTPluginLayerBuilder::getSerializationSize() const {
     return sizeof(m_type) + sizeof(m_format);
 }
 
-void TensorRTPluginLayerBuilder::serialize(void* buffer) {
+void TensorRTPluginLayerBuilder::serialize(void* buffer) const {
     char* d = reinterpret_cast<char*>(buffer);
     write(d, m_type);
     write(d, m_format);
+}
+
+const char* TensorRTPluginLayerBuilder::getPluginVersion() const {
+    return PLUGIN_VERSION;
+}
+
+void TensorRTPluginLayerBuilder::destroy() {
+    delete this;
+}
+
+void TensorRTPluginLayerBuilder::setPluginNamespace(const char* libNamespace) {
+    m_plugin_namespace = libNamespace;
+}
+
+const char* TensorRTPluginLayerBuilder::getPluginNamespace() const {
+    return m_plugin_namespace.c_str();
+}
+
+void TensorRTPluginLayerBuilder::configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
+        const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs) {
+}
+
+nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin() {
+    return this;
+}
+
+nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin(const void* data, size_t length) {
+    const char* d = reinterpret_cast<const char*>(data);
+    m_type = read<nvinfer1::DataType>(d);
+    m_format = read<PluginFormat>(d);
+    return this;
 }
 
 ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
@@ -145,7 +166,7 @@ ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
         tensors.push_back(tensor);
     }
-    ILayer* layer = network->addPlugin(tensors.data(), size, *CreatePlugin());
+    ILayer* layer = network->addPluginV2(tensors.data(), size, *this);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
     }

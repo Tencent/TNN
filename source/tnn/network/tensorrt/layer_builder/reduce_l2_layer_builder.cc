@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
 
-bool ReduceL2TRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool ReduceL2TRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* ReduceL2TRTPluginLayerBuilder::getPluginType() const {
+    return "ReduceL2";
+}
+
+nvinfer1::DataType ReduceL2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* ReduceL2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* ReduceL2PluginCreator::getPluginName() const {
+    return "ReduceL2";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);

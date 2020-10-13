@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PriorBox, LAYER_PRIOR_BOX);
 
-bool PriorBoxTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool PriorBoxTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* PriorBoxTRTPluginLayerBuilder::getPluginType() const {
+    return "PriorBox";
+}
+
+nvinfer1::DataType PriorBoxTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* PriorBoxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* PriorBoxPluginCreator::getPluginName() const {
+    return "PriorBox";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(PriorBox, LAYER_PRIOR_BOX);

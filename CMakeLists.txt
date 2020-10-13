@@ -21,9 +21,7 @@ option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
 option(TNN_TENSORRT_ENABLE "Enable TensorRT" OFF)
 option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
 option(TNN_NPU_ENABLE "Enable NPU" OFF)
-
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
-
 option(TNN_OPENMP_ENABLE "Enable OpenMP" OFF)
 option(TNN_BUILD_SHARED "Build Shared Library" ON)
 option(TNN_TEST_ENABLE "Enable Test" OFF)

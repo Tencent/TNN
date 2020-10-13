@@ -18,15 +18,27 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(DetectionOutput, LAYER_DETECTION_OUTPUT);
 
-bool DetectionOutputTRTPluginLayerBuilder::supportsFormat(nvinfer1::DataType type, PluginFormat format) const {
-    if (type == nvinfer1::DataType::kFLOAT) {
-        return true;
-    }
-    return false;
+bool DetectionOutputTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
+}
+
+const char* DetectionOutputTRTPluginLayerBuilder::getPluginType() const {
+    return "DetectionOutput";
+}
+
+nvinfer1::DataType DetectionOutputTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
 }
 
 ILayer* DetectionOutputTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+const char* DetectionOutputPluginCreator::getPluginName() const {
+    return "DetectionOutput";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(DetectionOutput, LAYER_DETECTION_OUTPUT);

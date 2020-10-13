@@ -33,6 +33,7 @@ TensorRTBlobManager::~TensorRTBlobManager() {
 
 Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
                          DataType input_data_type) {
+    //TODO debug
     int output_size;
     std::vector<std::string> names;
     std::ifstream fp("config");
@@ -107,7 +108,9 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
     std::set<std::string> &output_blob_names = net_structure_->outputs;
     for (auto name : output_blob_names) {
         Blob *blob          = blobs_[name];
-        output_blobs_[name] = blob;
+        if (std::find(net_structure_->blobs.begin(), net_structure_->blobs.end(), name) != net_structure_->blobs.end()) {
+            output_blobs_[name] = blob;
+        }
     }
 
     return TNN_OK;

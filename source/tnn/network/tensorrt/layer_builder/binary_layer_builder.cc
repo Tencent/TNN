@@ -37,44 +37,44 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         weight.type = nvinfer1::DataType::kFLOAT;
         weight.values = resource->element_handle.force_to<void*>();
         weight.count = resource->element_handle.GetDataCount();
-        DimsCHW dims(weight.count, 1, 1);
+        Dims4 dims(1, weight.count, 1, 1);
         int n = input_blobs_[0]->GetBlobDesc().dims[0];
         int c = input_blobs_[0]->GetBlobDesc().dims[1];
         int h = input_blobs_[0]->GetBlobDesc().dims[2];
         int w = input_blobs_[0]->GetBlobDesc().dims[3];
         if (weight.count == 1) {
             // broadcast on chw
-            dims = DimsCHW(1, 1, 1);
+            dims = Dims4(n, 1, 1, 1);
         } else if (weight.count == h * w) {
             // broadcast on channel  
-            dims = DimsCHW(1, h, w);
+            dims = Dims4(n, 1, h, w);
         } else if (weight.count == c) {
             // broadcast on hw
-            dims = DimsCHW(c, 1, 1);
+            dims = Dims4(n, c, 1, 1);
         } else if (weight.count == c * h * w) {
             // no broadcast
-            dims = DimsCHW(c, h, w);
+            dims = Dims4(n, c, h, w);
         } else if (weight.count == c * w) {
             // broadcast on h
-            dims = DimsCHW(c, 1, w);
+            dims = Dims4(n, c, 1, w);
         } else if (weight.count == c * h) {
             // broadcast on w
-            dims = DimsCHW(c, h, 1);
-        }  else if ( w!= 1 && h==1 && weight.count % w == 0 ) {
+            dims = Dims4(n, c, h, 1);
+        }  else if (w!= 1 && h==1 && weight.count % w == 0) {
             // for weights shape: {1, 1, h, w}
             //     input   shape: {1, c, 1, w}
             h = weight.count / w;
-            dims = DimsCHW(1, h, w);
-        } else if ( h!= 1 && c==1 && weight.count % h == 0 ) {
+            dims = Dims4(n, 1, h, w);
+        } else if (h!= 1 && c==1 && weight.count % h == 0) {
             // for weights shape: {1, c, h, 1}
             //     input   shape: {1, 1, h, w}
             c = weight.count / h;
-            dims = DimsCHW(c, h, 1);
-        } else if ( c!= 1 && h==1 && weight.count % c == 0 ) {
+            dims = Dims4(n, c, h, 1);
+        } else if (c!= 1 && h==1 && weight.count % c == 0) {
             // for weights shape: {1, c, h, 1}
             //     input   shape: {1, c, 1, w}
             h = weight.count / c;
-            dims = DimsCHW(c, h, 1);
+            dims = Dims4(n, c, h, 1);
         }
         ILayer* const_layer = network->addConstant(dims, weight);
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();

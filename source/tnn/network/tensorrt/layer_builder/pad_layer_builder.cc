@@ -16,31 +16,31 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Normalize, LAYER_NORMALIZE);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pad, LAYER_PAD);
 
-bool NormalizeTRTPluginLayerBuilder::supportsFormatCombination(
+bool PadTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
     return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* NormalizeTRTPluginLayerBuilder::getPluginType() const {
-    return "Normalize";
+const char* PadTRTPluginLayerBuilder::getPluginType() const {
+    return "Pad";
 }
 
-nvinfer1::DataType NormalizeTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+nvinfer1::DataType PadTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
     return inputTypes[0];
 }
 
-ILayer* NormalizeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-const char* NormalizePluginCreator::getPluginName() const {
-    return "Normalize";
+const char* PadPluginCreator::getPluginName() const {
+    return "Pad";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Normalize, LAYER_NORMALIZE);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pad, LAYER_PAD);
 
 }  //  namespace TNN_NS

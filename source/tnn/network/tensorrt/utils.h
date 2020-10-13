@@ -12,28 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_PLUGIN_FACTORY_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_PLUGIN_FACTORY_H_
-
-#include "NvInfer.h"
-#include "NvInferPlugin.h"
-
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
+#define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
 
 namespace TNN_NS {
 
-class TensorRTNetwork_;
+std::string get_gpu_type(int gpu_id);
 
-class PluginFactory : public nvinfer1::IPluginFactory {
-public:
-    PluginFactory(TensorRTNetwork_* net);
+std::string get_gpu_arch(int gpu_id);
 
-    virtual nvinfer1::IPlugin* createPlugin(const char* layerName, const void* serialData, size_t serialLength) override;
+std::string get_cuda_version();
 
-private:
-    TensorRTNetwork_* m_net;
-};
+std::string get_trt_version();
 
 }  //  namespace TNN_NS
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_PLUGIN_FACTORY_H_
+#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_

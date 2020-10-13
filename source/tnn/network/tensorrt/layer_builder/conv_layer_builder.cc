@@ -37,16 +37,29 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         biasWeights.count = 0;
     }
 
-    DimsHW kernalSize(paramlist->kernels[1], paramlist->kernels[0]);
+    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IConvolutionLayer* layer = network->addConvolution(*tensor, paramlist->output_channel, kernalSize, kernelWeights, biasWeights);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-        layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
-        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
-        layer->setNbGroups(paramlist->group);
+    IConvolutionLayer* layer;
+    if (paramlist->pad_type == -1) {
+        layer = network->addConvolution(*tensor, paramlist->output_channel, kernelSize, kernelWeights, biasWeights);
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+            layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
+            layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
+            layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+            layer->setNbGroups(paramlist->group);
+        }
+    } else {
+        IPaddingLayer* padding_layer = network->addPadding(*tensor, DimsHW{0, 0}, DimsHW{1, 1});
+        ITensor* tensor = padding_layer->getOutput(0);
+        layer = network->addConvolution(*tensor, paramlist->output_channel, kernelSize, kernelWeights, biasWeights);
+        if(layer != NULL) {
+            layer->setName(layer_name_.c_str());
+            layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
+            layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
+            layer->setNbGroups(paramlist->group);
+        }
     }
 
     return layer;

@@ -23,7 +23,6 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
-#include "tnn/network/tensorrt/plugin_factory.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
 
 namespace TNN_NS {
@@ -44,6 +43,8 @@ public:
         std::cerr << msg << std::endl;
     }
 };
+
+class TensorRTPluginLayerBuilder;
 
 class TensorRTNetwork_ : public DefaultNetwork {
 public:
@@ -66,12 +67,17 @@ public:
     // @brief network forward
     virtual Status Forward();
 
+    // @brief reshape with input shape info
+    // @inputs input shape info
+    virtual Status Reshape(const InputShapesMap &inputs);
+
     // @brief tnn instance network infer, it will not wait
     virtual Status ForwardAsync(Callback call_back);
 
-    std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
+    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
-    std::string GetCacheFileName();
+    std::string GetCacheFileName(std::string cfg, std::string model, BlobMap input_map, BlobMap output_map,
+        int device_id, int batchsize);
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
@@ -83,10 +89,10 @@ private:
     nvinfer1::INetworkDefinition* m_trt_network;
     nvinfer1::ICudaEngine* m_trt_engine;
     nvinfer1::IExecutionContext* m_trt_context;
+    nvinfer1::IBuilderConfig* m_trt_config;
     TRTLogger m_trt_logger;
-    PluginFactory m_plugin_factory;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
-    std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
+    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
     void* m_context_memory;

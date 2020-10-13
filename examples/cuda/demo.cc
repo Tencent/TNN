@@ -1,6 +1,8 @@
 #include <fstream>
 #include <string>
 #include <cuda_runtime.h>
+#include <sys/time.h>
+#include "cuda_profiler_api.h"
 
 #include "tnn/core/tnn.h"
 #include "tnn/core/macro.h"
@@ -27,20 +29,21 @@ std::string fdLoadFile(std::string path) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        printf("how to run: %s proto model height width\n", argv[0]);
+    if (argc < 10) {
+        printf("how to run: %s proto model batch channel height width input_name output_name times\n", argv[0]);
         exit(-1);
     }
 
     int n = 1, c = 3, h = 224, w = 224;
+    int times = 1;
     std::string output_name;
-    if (argc >= 8) {
-        n = std::atoi(argv[3]);
-        c = std::atoi(argv[4]);
-        h = std::atoi(argv[5]);
-        w = std::atoi(argv[6]);
-        output_name = std::string(argv[7]);
-    }
+    std::string input_name;
+    n = std::atoi(argv[3]);
+    c = std::atoi(argv[4]);
+    h = std::atoi(argv[5]);
+    w = std::atoi(argv[6]);
+    input_name = std::string(argv[7]);
+    output_name = std::string(argv[8]);
 
     std::shared_ptr<TNN_NS::TNN> net_ = nullptr;
     std::shared_ptr<TNN_NS::Instance> instance_ = nullptr;
@@ -61,16 +64,21 @@ int main(int argc, char** argv) {
     }
     net_ = net;
 
-    std::vector<int> nchw = {n, c, h, w};
+    std::vector<int> nchw = {n, c, h*2, w*2};
     TNN_NS::InputShapesMap shapeMap;
-    shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>("input", nchw));
+    shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>(input_name, nchw));
     TNN_NS::NetworkConfig network_config;
     network_config.device_type = device_type_;
     network_config.network_type = TNN_NS::NETWORK_TYPE_TENSORRT;
     auto instance = net_->CreateInst(network_config, status, shapeMap);
     instance_ = instance;
 
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::NCHW_FLOAT, nchw);
+    std::vector<int> nchw2 = {n, c, h, w};
+    TNN_NS::InputShapesMap newShapeMap;
+    newShapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>(input_name, nchw2));
+    status = instance_->Reshape(newShapeMap);
+
+    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::NCHW_FLOAT, nchw2);
     TNN_NS::MatConvertParam input_cvt_param;
     input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
     input_cvt_param.bias = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
@@ -84,11 +92,24 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    status = instance_->ForwardAsync(nullptr);
-    if (status != TNN_NS::TNN_OK) {
-        printf("forward failed %d\n", (int)status);
-        exit(-1);
+    struct timezone zone;
+    struct timeval time1;
+    struct timeval time2;
+
+    cudaDeviceSynchronize();
+    gettimeofday(&time1, &zone);
+    for (int i = 0; i < times; i++) {
+        status = instance_->ForwardAsync(nullptr);
+        if (status != TNN_NS::TNN_OK) {
+            printf("forward failed %d\n", (int)status);
+            exit(-1);
+        }
     }
+    cudaDeviceSynchronize();
+    gettimeofday(&time2, &zone);
+    printf("forward is done.\n");
+    float delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
+    printf("time cost: %g ms\n", delta/(float)times);
 
     TNN_NS::MatConvertParam output_cvt_param;
     std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;

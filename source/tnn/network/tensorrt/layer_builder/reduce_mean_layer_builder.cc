@@ -12,23 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/plugin_factory.h"
-#include "tnn/network/tensorrt/tensorrt_network.h"
+#include "tnn/network/tensorrt/layer_builder/reduce_layer_builder.h"
 
 namespace TNN_NS {
 
-PluginFactory::PluginFactory(TensorRTNetwork_* net) {
-    m_net = net;
+DECLARE_TRT_REDUCE_LAYER_BUILDER(ReduceMean);
+
+ReduceMeanTRTLayerBuilder::ReduceMeanTRTLayerBuilder(LayerType ignore) : ReduceTRTLayerBuilder(ignore) {
+    m_op = ReduceOperation::kAVG;
 }
 
-nvinfer1::IPlugin* PluginFactory::createPlugin(const char* layerName, const void* serialData, size_t serialLength) {
-    std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map = m_net->GetPluginLayerNameMap();
-    TensorRTPluginLayerBuilder* layer = layer_map[layerName];
-    if (serialLength == 0) {
-        return layer->CreatePlugin();
-    } else {
-        return layer->CreatePlugin(serialData, serialLength);
-    }
-}
+REGISTER_TENSORRT_LAYER_BUILDER(ReduceMean, LAYER_REDUCE_MEAN);
 
 }  //  namespace TNN_NS

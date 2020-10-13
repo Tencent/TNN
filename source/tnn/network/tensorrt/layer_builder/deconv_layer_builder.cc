@@ -44,9 +44,14 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        layer->setDilationNd(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
-        layer->setPadding(DimsHW(paramlist->pads[1], paramlist->pads[0]));
+        //layer->setDilationNd(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
+        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
         layer->setNbGroups(paramlist->group);
+        if (paramlist->pad_type == -1) {
+            layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
+        } else {
+            layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+        }
     }
 
     return layer;
