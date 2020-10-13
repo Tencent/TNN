@@ -91,7 +91,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
 
         DimsVector weight_shape = layer_res->element_shape;
         if (weight_shape.size() < 4) {
-            weight_shape       = {1, 1, 1, 1};
+            weight_shape       = DimsVector(input_shape.size(), 1);
             int layer_res_size = layer_res->element_handle.GetDataCount();
             if (layer_res_size == 1) {
                 // single element
@@ -106,6 +106,10 @@ Status MultidirBroadcastLayer::InferOutputShape() {
                 weight_shape[3] = input_shape[3];
             } else if (layer_res_size == input_shape[3]){
                 weight_shape[3] = input_shape[3];
+            } else if(layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
+                for(int i = 2; i < input_shape.size(); ++i) {
+                    weight_shape[i] = input_shape[i];
+                }
             } else {
                 LOGE("Error: unsupported broadcast type\n");
                 return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
