@@ -39,18 +39,21 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
 }
 
 // Interpret the proto and model.
-Status ModelInterpreter::Interpret(std::vector<std::string> params) {
-    auto proto_content = params.size() > 0 ? params[0] : "";
-    Status status = InterpretProto(proto_content);
+Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
+    std::string empty_content = "";
+
+    auto &proto_content = params.size() > 0 ? params[0] : empty_content;
+    Status status       = InterpretProto(proto_content);
     if (status != TNN_OK) {
         return status;
     }
-    auto model_content = params.size() > 1 ? params[1] : "";
-    status = InterpretModel(model_content);
+
+    auto &model_content = params.size() > 1 ? params[1] : empty_content;
+    status              = InterpretModel(model_content);
     return status;
 }
 
-Status ModelInterpreter::InterpretProto(std::string content) {
+Status ModelInterpreter::InterpretProto(std::string &content) {
     Status ret              = TNN_OK;
     NetStructure *structure = GetNetStructure();
     // NOTE??????
@@ -194,8 +197,8 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
     cur_layer->outputs.clear();
     int in_id  = layer_param_start_id;
     int in_end = in_id + in_count;
-    
-    cur_layer->inputs.reserve(std::max(in_end-in_id, 1));
+
+    cur_layer->inputs.reserve(std::max(in_end - in_id, 1));
     for (; in_id < in_end; in_id++) {
         auto blob_name = Transfer(layer_cfg_arr[in_id]);
         cur_layer->inputs.push_back(blob_name);
@@ -205,7 +208,7 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
     int out_id  = in_end;
     int out_end = out_id + out_count;
 
-    cur_layer->outputs.reserve(std::max(out_end-out_id, 1));
+    cur_layer->outputs.reserve(std::max(out_end - out_id, 1));
     for (; out_id < out_end; out_id++) {
         auto blob_name = Transfer(layer_cfg_arr[out_id]);
         cur_layer->outputs.push_back(blob_name);
@@ -246,7 +249,7 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
     return TNN_OK;
 }
 
-Status ModelInterpreter::InterpretModel(std::string model_content) {
+Status ModelInterpreter::InterpretModel(std::string &model_content) {
     NetResource *net_resource = GetNetResource();
 
     const auto model_length = model_content.length();

@@ -97,6 +97,7 @@ public:
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    Status GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob);
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;

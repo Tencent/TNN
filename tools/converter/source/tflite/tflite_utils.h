@@ -16,6 +16,7 @@
 #define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
 #include <cstdint>
 #include <vector>
+
 #include "tflite-schema/schema_generated.h"
 
 namespace TNN_CONVERTER {

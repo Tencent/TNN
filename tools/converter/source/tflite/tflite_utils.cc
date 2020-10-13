@@ -57,7 +57,7 @@ bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW
 }
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
-    if (shape.empty()){
+    if (shape.empty()) {
         LOGE("TNN Converter do not support wrong shape!\n");
         return false;
     }
@@ -138,16 +138,24 @@ void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
     ASSERT(mask <= 15 && mask >= 0);
     if (upper == 0) {
         // 处理的是 begin，取的是 0
-        if (mask & 0x1) v[0] = 0;
-        if (mask & 0x2) v[1] = 0;
-        if (mask & 0x4) v[2] = 0;
-        if (mask & 0x8) v[3] = 0;
+        if (mask & 0x1)
+            v[0] = 0;
+        if (mask & 0x2)
+            v[1] = 0;
+        if (mask & 0x4)
+            v[2] = 0;
+        if (mask & 0x8)
+            v[3] = 0;
     } else {
         // 处理的是 ends， 取最大值
-        if (mask & 0x1) v[0] = shape[0];
-        if (mask & 0x2) v[1] = shape[1];
-        if (mask & 0x4) v[2] = shape[2];
-        if (mask & 0x8) v[3] = shape[3];
+        if (mask & 0x1)
+            v[0] = shape[0];
+        if (mask & 0x2)
+            v[1] = shape[1];
+        if (mask & 0x4)
+            v[2] = shape[2];
+        if (mask & 0x8)
+            v[3] = shape[3];
     }
 }
 }  // namespace TNN_CONVERTER
