@@ -26,6 +26,54 @@
 
 namespace TNN_NS {
 
+void GemmInt8Unit8x8(
+    long mr,
+    long nr,
+    long k,
+    const int8_t* a,
+    long a_stride,
+    const void* w,
+    int8_t* c,
+    long c_stride,
+    long output_channel_index,
+    float* scales) {
+    printf("unimplement\n");
+}
+
+static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start, long nr_block_start,
+                              long mr_block_size, long nr_block_size) {
+    const long k         = context->k;
+    const long k_stride  = context->k_stride;
+    const long n         = context->n;
+    const long n_stride  = context->n_stride;
+    const int8_t* a      = context->a;
+    const long a_stride  = context->a_stride;
+    const void* packed_w = context->packed_w;
+    int8_t* c            = context->c;
+    const long c_stride  = context->c_stride;
+
+    const long output_channel_index = nr_block_start;
+
+    GemmInt8Unit8x8(mr_block_size,
+	                nr_block_size,
+					k,
+                    a + (mr_block_start) * a_stride,
+                    a_stride,
+                    (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
+                    c + mr_block_start * c_stride + nr_block_start,
+                    c_stride,
+                    output_channel_index,
+                    context->scales);
+}
+
+void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
+    for (int32_t k = 0; k < range_k; k += tile_k) {
+        for (int32_t l = 0; l < range_l; l += tile_l) {
+            ComputeQ8GemmTile(context, k, l, std::min(range_k - k, tile_k), std::min(range_l - l, tile_l));
+        }
+    }
+}
+
 #ifndef TNN_USE_NEON
 /*
 kernel func used in linux debug mode

@@ -22,10 +22,25 @@
 #include <algorithm>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/bfp16.h"
 #include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
+
+struct Q8GemmContext {
+    int32_t k;
+    int32_t k_stride;
+    int32_t n;
+    int32_t n_stride;
+    const int8_t* a;
+    int32_t a_stride;
+    const int8_t* packed_w;
+    int8_t* c;
+    int32_t c_stride;
+    float* scales;
+};
+
+void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
 
 void MaxPoolingINT8(const int8_t* src, long inputWidth, long inputHeight, int8_t* dst, long outputWidth,
                     long outputHeight, long channel, long kernelWidth, long kernelHeight, long strideWidth,

@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_1x1.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_depthwise.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_1x1.h"
@@ -83,6 +84,10 @@ void ArmConvLayerAcc::GetImpInt8(const std::vector<Blob *> &inputs, const std::v
     if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8LayerDepthwise *>(conv_acc_impl_.get())) {
             conv_acc_impl_ = std::make_shared<ArmConvInt8LayerDepthwise>();
+        }
+    } else if (ArmConvInt8Layer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvInt8Layer1x1 *>(conv_acc_impl_.get())) {
+            conv_acc_impl_ = std::make_shared<ArmConvInt8Layer1x1>();
         }
     } else if (ArmConvInt8LayerCommon::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8LayerCommon *>(conv_acc_impl_.get())) {
