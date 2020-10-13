@@ -227,12 +227,6 @@ struct SliceLayerParam : public LayerParam {
     int axis;
 };
 
-struct QuantizedSliceLayerParam : public LayerParam {
-    std::vector<int> axis;
-    std::vector<int> ends;
-    std::vector<int> starts;
-};
-
 struct ElementWiseLayerParam : public LayerParam {};
 
 typedef enum {
