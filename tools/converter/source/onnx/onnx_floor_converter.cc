@@ -33,7 +33,7 @@ TNN_NS::Status OnnxFloorConverter::exec(tnn::NetStructure &net_structure, tnn::N
                                             std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::LayerParam;
+    auto param                 = new TNN_NS::ElementWiseLayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
