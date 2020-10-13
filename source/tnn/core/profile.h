@@ -80,7 +80,7 @@ protected:
      * This function shows an overview of the timings in the model.
      * the timing is grouped by the type of layer.
      */
-    virtual std::string GetProfilingDataSummary();
+    virtual std::string GetProfilingDataSummary(bool do_average);
 
     std::vector<std::shared_ptr<ProfilingData>> profiling_data_ = {};
 };
