@@ -123,7 +123,7 @@ std::string OpenCLProfileResult::GetProfilingDataInfo() {
 
     std::string detailed_string = StringFormatter::Table(title, header, data);
 
-    std::string summary_string = GetProfilingDataSummary();
+    std::string summary_string = GetProfilingDataSummary(false);
 
     std::ostringstream ostr;
     ostr << "kernel runtime total: " << kernel_time_sum << " ms\n\n";
