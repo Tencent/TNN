@@ -13,9 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/profile.h"
+#include <time.h>
 #include <iomanip>
 #include <sstream>
-#include <time.h>
 
 #include "tnn/core/status.h"
 #include "tnn/utils/string_format.h"
@@ -88,13 +88,30 @@ void ProfileResult::AddProfilingData(std::shared_ptr<ProfilingData> pdata) {
 }
 
 /*
+call this function in network
+*/
+void ProfileResult::AddProfileResult(std::shared_ptr<ProfileResult> result) {
+    auto result_profiling_data = result->GetData();
+    for (auto pf_data : result_profiling_data) {
+        AddProfilingData(pf_data);
+    }
+}
+
+/*
+get profilint data vector
+*/
+std::vector<std::shared_ptr<ProfilingData>> ProfileResult::GetData() {
+    return profiling_data_;
+}
+
+/*
 format print profile info
 */
-std::string ProfileResult::GetProfilingData() {
+std::string ProfileResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",         "Op Type", "Kernel(ms)", "Input Dims", "Output Dims",
-                                            "Filter(OIHW)", "Stride",  "Pad",        "Dilation"};
+                                             "Filter(OIHW)", "Stride",  "Pad",        "Dilation"};
 
     std::vector<std::vector<std::string>> data;
 

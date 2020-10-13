@@ -47,21 +47,17 @@ void OpenCLContext::StartProfile() {
     profiling_result_ = std::make_shared<OpenCLProfileResult>();
 }
 
-OpenCLProfilingData::~OpenCLProfilingData() {
+OpenCLProfilingData::~OpenCLProfilingData() {}
 
-}
+OpenCLProfileResult::~OpenCLProfileResult() {}
 
-OpenCLProfileResult::~OpenCLProfileResult() {
-
-}
-
-std::string OpenCLProfileResult::GetProfilingData() {
+std::string OpenCLProfileResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",       "Op Type",   "Kernel(ms)",  "Queued(ms)",   "Submit(ms)",
-                                            "Start(ms)",  "End(ms)",   "Input(NCHW)", "Output(NCHW)", "Filter(OIHW)",
-                                            "Stride",     "Pad",       "Dilation",    "GFlops",       "BW(GB/s)",
-                                            "GWS(0,1,2)", "LWS(0,1,2)"};
+                                             "Start(ms)",  "End(ms)",   "Input(NCHW)", "Output(NCHW)", "Filter(OIHW)",
+                                             "Stride",     "Pad",       "Dilation",    "GFlops",       "BW(GB/s)",
+                                             "GWS(0,1,2)", "LWS(0,1,2)"};
 
     std::vector<std::vector<std::string>> data;
 
