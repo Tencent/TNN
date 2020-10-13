@@ -33,7 +33,7 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
                                             std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::QuantizedSliceLayerParam;
+    auto param                 = new TNN_NS::StrideSliceLayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
@@ -44,14 +44,14 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
     int axis_size = axis.size();
 
     for (int i = 0; i < axis_size; i++) {
-        param->axis.push_back(axis[i]);
+        param->strides.push_back(axis[i]);
     }
 
     auto starts     = GetAttributeInt64Vector(node, "starts");
     int starts_size = starts.size();
 
     for (int i = 0; i < starts_size; i++) {
-        param->starts.push_back(starts[i]);
+        param->begins.push_back(starts[i]);
     }
 
     auto ends     = GetAttributeInt64Vector(node, "ends");
