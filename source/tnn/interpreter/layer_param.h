@@ -152,6 +152,10 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 };
 
+struct CastLayerParam : public LayerParam {
+    int to = 0;
+};
+
 struct ScaleLayerParam : public LayerParam {
     int axis      = 1;
     int num_axes  = 1;

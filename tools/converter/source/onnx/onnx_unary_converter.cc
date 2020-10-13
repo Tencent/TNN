@@ -20,10 +20,7 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Unary);
 
 std::string OnnxUnaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    if (node.op_type() == "Shape") {
-        return "Shape";
-    }
-    return "";
+    return node.op_type();
 }
 
 TNN_NS::ActivationType OnnxUnaryConverter::ActivationType(const onnx::NodeProto &node) {
@@ -45,5 +42,6 @@ TNN_NS::Status OnnxUnaryConverter::exec(tnn::NetStructure &net_structure, tnn::N
 }
 
 REGISTER_CONVERTER(Unary, Shape);
+REGISTER_CONVERTER(Unary, Floor);
 
 }  // namespace TNN_CONVERTER

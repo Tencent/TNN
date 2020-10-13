@@ -53,6 +53,7 @@ void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataT
 
 void ConverterConstantToRawBuffer(const onnx::NodeProto& constant_node, TNN_NS::RawBuffer** raw_buffer,
                                   std::vector<int>& data_dims);
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto &node, const std::string &name);
 
 template <typename T>
 bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {

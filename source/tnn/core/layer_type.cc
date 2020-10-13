@@ -214,6 +214,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
     {"Expand", LAYER_EXPAND},
     {"ScatterND", LAYER_SCATTER_ND},
+    {"QuantizedSigmoid", LAYER_SIGMOID},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

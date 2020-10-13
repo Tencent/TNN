@@ -192,6 +192,8 @@ Status ModelPacker::PackModel(std::string file_path) {
     if (header.layer_cnt_ <= 0) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
+    // trick delete in future
+    header.layer_cnt_--;
     auto serializer = GetSerializer(write_stream);
     header.serialize(*serializer);
 
