@@ -60,7 +60,7 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         auto input_shape_tensor        = input->type().tensor_type().shape();
         TNN_NS::DimsVector dims_vector = ConvertTensorShapeProtoToDimsVector(input_shape_tensor);
         if (dims_vector.size() != 4) {
-            dims_vector.push_back(1);
+            //dims_vector.push_back(1);
             //            LOGE("The onnx have support input shape\n");
             //            return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             continue;
