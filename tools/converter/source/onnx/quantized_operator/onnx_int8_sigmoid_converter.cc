@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxInt8SigmoidConverter::ActivationType(const onnx::Node
 
 TNN_NS::Status OnnxInt8SigmoidConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                            const onnx::NodeProto &node,
-                                           std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                           std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                            bool &quantized_model) {
     auto param                = new TNN_NS::MultidirBroadcastLayerParam;
     auto cur_layer            = net_structure.layers.back();
@@ -78,6 +78,6 @@ TNN_NS::Status OnnxInt8SigmoidConverter::exec(tnn::NetStructure &net_structure, 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Int8Sigmoid, Int8Sigmoid);
+//REGISTER_CONVERTER(Int8Sigmoid, Int8Sigmoid);
 
 }  // namespace TNN_CONVERTER

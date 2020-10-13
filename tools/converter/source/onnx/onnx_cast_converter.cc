@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxCastConverter::ActivationType(const onnx::NodeProto &
 
 TNN_NS::Status OnnxCastConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                             const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::CastLayerParam;

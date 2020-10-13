@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxDivConverter::ActivationType(const onnx::NodeProto &n
 
 TNN_NS::Status OnnxDivConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                             const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::LayerParam;
