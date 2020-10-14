@@ -23,6 +23,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #define TNN_SDK_ENABLE_BENCHMARK 1
 
@@ -174,6 +175,10 @@ public:
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
     Status Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst);
+    Status CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                          std::shared_ptr<TNN_NS::Mat> dst,
+                          int top, int bottom, int left, int right,
+                          TNNBorderType border_type);
 
 protected:
     BenchOption bench_option_;
@@ -211,6 +216,7 @@ protected:
 typedef enum {
     TNNHardNMS      = 0,
     TNNBlendingNMS  = 1,
+    TNNWeightedNMS  = 2,
 } TNNNMSType;
 
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);

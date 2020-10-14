@@ -434,6 +434,45 @@ Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
     return status;
 }
 
+Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                      std::shared_ptr<TNN_NS::Mat> dst,
+                      int top, int bottom, int left, int right,
+                                    TNNBorderType border_type) {
+    Status status = TNN_OK;
+
+    if (src->GetMatType() != dst->GetMatType()) {
+        return Status(TNNERR_PARAM_ERR, "src and dst have differnt device types!");
+    }
+    if (src->GetDeviceType() != DEVICE_ARM || src->GetMatType() != N8UC4) {
+        return Status(TNNERR_PARAM_ERR, "invalid device type or mat type!");
+    }
+    if (border_type != TNNBorderConstant) {
+        return Status(TNNERR_PARAM_ERR, "invalid border type!");
+    }
+
+    auto src_dims = src->GetDims();
+    auto dst_dims = dst->GetDims();
+
+    uint8_t *src_data = static_cast<uint8_t *>(src->GetData());
+    uint8_t *dst_data = static_cast<uint8_t *>(dst->GetData());
+    memset(dst_data, 0, sizeof(uint8_t) * DimsVectorUtils::Count(dst_dims));
+
+    for(int h=0; h<src_dims[2]; ++h) {
+        auto dst_data_row = dst_data + (top + h) * dst_dims[3] + left;
+        auto src_data_row = src_data + h * src_dims[3];
+        auto offset = 0;
+        for(int w=0; w<src_dims[3]; ++w) {
+            dst_data_row[offset + 0] = src_data_row[offset + 0];
+            dst_data_row[offset + 1] = src_data_row[offset + 1];
+            dst_data_row[offset + 2] = src_data_row[offset + 2];
+            dst_data_row[offset + 3] = src_data_row[offset + 3];
+            offset = 4;
+        }
+    }
+
+    return status;
+}
+
 void TNNSDKSample::setNpuModelPath(std::string stored_path)
 {
     model_path_str_ = stored_path;
@@ -791,6 +830,31 @@ void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float 
                 rects.key_points.resize(buf[0].key_points.size());
                 for (int i = 0; i < buf.size(); i++) {
                     float rate = exp(buf[i].score) / total;
+                    rects.x1 += buf[i].x1 * rate;
+                    rects.y1 += buf[i].y1 * rate;
+                    rects.x2 += buf[i].x2 * rate;
+                    rects.y2 += buf[i].y2 * rate;
+                    rects.score += buf[i].score * rate;
+                    for(int j = 0; j < buf[i].key_points.size(); ++j) {
+                        rects.key_points[j].first += buf[i].key_points[j].first * rate;
+                        rects.key_points[j].second += buf[i].key_points[j].second * rate;
+                    }
+                    rects.image_height = buf[0].image_height;
+                    rects.image_width  = buf[0].image_width;
+                }
+                output.push_back(rects);
+                break;
+            }
+            case TNNWeightedNMS: {
+                float total = 0;
+                for (int i = 0; i < buf.size(); i++) {
+                    total += buf[i].score;
+                }
+                ObjectInfo rects;
+                memset(&rects, 0, sizeof(rects));
+                rects.key_points.resize(buf[0].key_points.size());
+                for (int i = 0; i < buf.size(); i++) {
+                    float rate = buf[i].score / total;
                     rects.x1 += buf[i].x1 * rate;
                     rects.y1 += buf[i].y1 * rate;
                     rects.x2 += buf[i].x2 * rate;
