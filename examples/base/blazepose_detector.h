@@ -21,6 +21,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <array>
 
 namespace TNN_NS {
 
@@ -77,6 +78,9 @@ private:
                       float min_score_threshold);
     void DecodeBoxes(std::vector<float>& boxes, const float* raw_boxes);
     void DecodeScore(std::vector<float>& scores, std::vector<int>& classes, const float* raw_scores);
+    void RemoveLetterBox(std::vector<BlazePoseInfo>& detects);
+    // pads for remove latterbox from detection
+    std::array<float, 4> letterbox_pads;
 
     // configs for generating anchors
     struct AnchorOptions {

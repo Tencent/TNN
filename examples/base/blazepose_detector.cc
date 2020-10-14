@@ -56,6 +56,19 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
     auto input_height  = mat->GetHeight();
     auto input_width   = mat->GetWidth();
 
+    letterbox_pads.fill(0.f);
+    const float input_aspect_ratio  = static_cast<float>(input_width) / input_height;
+    const float output_aspect_ratio = static_cast<float>(target_width) / target_height;
+    if (input_aspect_ratio < output_aspect_ratio) {
+        // Compute left and right padding.
+        letterbox_pads[0] = (1.f - input_aspect_ratio / output_aspect_ratio) / 2.f;
+        letterbox_pads[2] = letterbox_pads[0];
+    } else if (output_aspect_ratio < input_aspect_ratio) {
+        // Compute top and bottom padding.
+        letterbox_pads[1] = (1.f - output_aspect_ratio / input_aspect_ratio) / 2.f;
+        letterbox_pads[3] = letterbox_pads[1];
+    }
+
     if (input_height != target_height || input_width !=target_width) {
         const float scale = std::min(static_cast<float>(target_width) / input_width,
                                      static_cast<float>(target_height) / input_height);
@@ -328,6 +341,25 @@ void BlazePoseDetector::DecodeScore(std::vector<float>& scores, std::vector<int>
         }
         scores[i] = max_score;
         classes[i] = class_id;
+    }
+}
+
+void BlazePoseDetector::RemoveLetterBox(std::vector<BlazePoseInfo>& detects) {
+    const float left = letterbox_pads[0];
+    const float top  = letterbox_pads[1];
+    const float left_and_right = letterbox_pads[0] + letterbox_pads[2];
+    const float top_and_bottom = letterbox_pads[1] + letterbox_pads[3];
+    for (auto& pose : detects) {
+        pose.x1 = (pose.x1 - left) / (1.0f - left_and_right);
+        pose.y1 = (pose.y1 - top)  / (1.0f - top_and_bottom);
+        pose.x2 = (pose.x2 - left) / (1.0f - left_and_right);
+        pose.y2 = (pose.y2 - top)  / (1.0f - top_and_bottom);
+        for (int i = 0; pose.key_points.size(); ++i) {
+            auto kp = pose.key_points[i];
+            const float new_x = (kp.first  - left) / (1.0f - left_and_right);
+            const float new_y = (kp.second - top)  / (1.0f - top_and_bottom);
+            pose.key_points[i] = std::make_pair(new_x, new_y);
+        }
     }
 }
 
