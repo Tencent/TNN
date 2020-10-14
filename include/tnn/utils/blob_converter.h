@@ -49,6 +49,9 @@ public:
 private:
     Blob* blob_ = nullptr;
     std::shared_ptr<BlobConverterAcc> impl_ = nullptr;
+
+    Status CheckScaleBiasInParam(Mat& image, MatConvertParam& param, bool convert_to_mat);
+    bool NeedDoScaleBias(MatConvertParam &param);
 };
 
 }  // namespace TNN_NS

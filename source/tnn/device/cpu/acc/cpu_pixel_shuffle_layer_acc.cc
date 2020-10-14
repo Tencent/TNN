@@ -25,6 +25,7 @@ Status CpuPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
 Status CpuPixelShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param   = dynamic_cast<PixelShuffleLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
     int upscale_factor = layer_param->upscale_factor;
     auto input_blob    = inputs[0];
     auto input_dims    = input_blob->GetBlobDesc().dims;

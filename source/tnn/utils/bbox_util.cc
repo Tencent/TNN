@@ -415,6 +415,54 @@ void CasRegDecodeBBoxesAll(const vector<LabelBBox>& all_loc_preds, const vector<
     }
 }
 
+void MatchBBoxPostProcess(map<int, map<int, float>>& overlaps, vector<int>* match_indices,
+                          const MatchType match_type, vector<float>* match_overlaps,
+                          vector<int>& gt_indices, int num_gt, const float overlap_threshold) {
+    switch (match_type) {
+        case MultiBoxLossParameter_MatchType_BIPARTITE:
+            // Already done.
+            break;
+        case MultiBoxLossParameter_MatchType_PER_PREDICTION:
+            // Get most overlaped for the rest prediction bboxes.
+            for (map<int, map<int, float>>::iterator it = overlaps.begin(); it != overlaps.end(); ++it) {
+                int i = it->first;
+                if ((*match_indices)[i] != -1) {
+                    // The prediction already have matched ground truth.
+                    continue;
+                }
+                int max_gt_idx    = -1;
+                float max_overlap = -1;
+                for (int j = 0; j < num_gt; ++j) {
+                    if (it->second.find(j) == it->second.end()) {
+                        // No overlap between the i-th prediction and j-th
+                        // ground truth.
+                        continue;
+                    }
+                    // Find the maximum overlapped pair.
+                    float overlap = it->second[j];
+                    if (overlap >= overlap_threshold && overlap > max_overlap) {
+                        // If the prediction has not been matched to any ground
+                        // truth, and the overlap is larger than maximum
+                        // overlap, update.
+                        max_gt_idx  = j;
+                        max_overlap = overlap;
+                    }
+                }
+                if (max_gt_idx != -1) {
+                    // Found a matched ground truth.
+                    CHECK_EQ((*match_indices)[i], -1);
+                    (*match_indices)[i]  = gt_indices[max_gt_idx];
+                    (*match_overlaps)[i] = max_overlap;
+                }
+            }
+            break;
+        default:
+            // LOG(FATAL) << "Unknown matching type.";
+            assert(false);  // Unknown matching type.
+            break;
+    }
+}
+
 void MatchBBox(const vector<NormalizedBBox>& gt_bboxes, const vector<NormalizedBBox>& pred_bboxes, const int label,
                const MatchType match_type, const float overlap_threshold, vector<int>* match_indices,
                vector<float>* match_overlaps) {
@@ -503,49 +551,8 @@ void MatchBBox(const vector<NormalizedBBox>& gt_bboxes, const vector<NormalizedB
         }
     }
 
-    switch (match_type) {
-        case MultiBoxLossParameter_MatchType_BIPARTITE:
-            // Already done.
-            break;
-        case MultiBoxLossParameter_MatchType_PER_PREDICTION:
-            // Get most overlaped for the rest prediction bboxes.
-            for (map<int, map<int, float>>::iterator it = overlaps.begin(); it != overlaps.end(); ++it) {
-                int i = it->first;
-                if ((*match_indices)[i] != -1) {
-                    // The prediction already have matched ground truth.
-                    continue;
-                }
-                int max_gt_idx    = -1;
-                float max_overlap = -1;
-                for (int j = 0; j < num_gt; ++j) {
-                    if (it->second.find(j) == it->second.end()) {
-                        // No overlap between the i-th prediction and j-th
-                        // ground truth.
-                        continue;
-                    }
-                    // Find the maximum overlapped pair.
-                    float overlap = it->second[j];
-                    if (overlap >= overlap_threshold && overlap > max_overlap) {
-                        // If the prediction has not been matched to any ground
-                        // truth, and the overlap is larger than maximum
-                        // overlap, update.
-                        max_gt_idx  = j;
-                        max_overlap = overlap;
-                    }
-                }
-                if (max_gt_idx != -1) {
-                    // Found a matched ground truth.
-                    CHECK_EQ((*match_indices)[i], -1);
-                    (*match_indices)[i]  = gt_indices[max_gt_idx];
-                    (*match_overlaps)[i] = max_overlap;
-                }
-            }
-            break;
-        default:
-            // LOG(FATAL) << "Unknown matching type.";
-            assert(false);  // Unknown matching type.
-            break;
-    }
+    MatchBBoxPostProcess(overlaps, match_indices, match_type, match_overlaps,
+                         gt_indices, num_gt, overlap_threshold);
 
     return;
 }

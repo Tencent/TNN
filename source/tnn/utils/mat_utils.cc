@@ -43,6 +43,9 @@ Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
 }
 
 Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
+    if (src.GetWidth() == 0 || src.GetHeight() == 0) {
+        return Status(TNNERR_INVALID_INPUT, "src size is zero");
+    }
     if(param.scale_w == 0) {
          param.scale_w = (double)dst.GetWidth() / src.GetWidth();
     }

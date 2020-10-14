@@ -19,6 +19,8 @@
 #include <random>
 
 #include "tnn/core/macro.h"
+#include "tnn/core/abstract_device.h"
+#include "tnn/core/context.h"
 #include "tnn/interpreter/layer_resource.h"
 
 namespace TNN_NS {
@@ -28,6 +30,7 @@ int InitRandom(T* host_data, size_t n, T range);
 template <typename T>
 int InitRandom(T* host_data, size_t n, T range_min, T range_max);
 IntScaleResource* CreateIntScale(int channel);
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context);
 
 }  // namespace TNN_NS
 

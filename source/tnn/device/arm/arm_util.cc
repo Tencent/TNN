@@ -276,7 +276,7 @@ template int UnpackC4ToNHWC(float *dst, const bfp16_t *src, size_t hw, size_t ch
 template int UnpackC4ToNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
-int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale) {
+int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale, float *bias) {
     int cur_hw;
     int c;
     int idx  = 0;
@@ -284,7 +284,7 @@ int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, f
     for (c = 0; c < channel; ++c) {
         auto *src_c = src + c;
         for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            dst[idx++] = src_c[c_r4 * cur_hw] * scale[c];
+            dst[idx++] = src_c[c_r4 * cur_hw] * scale[c] + bias[c];
         }
     }
     return 0;
@@ -310,18 +310,19 @@ int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_
     return 0;
 }
 
+#define ConvertWeightsPreparation                                        \
+    const int goc       = output_channel / group;                        \
+    const int gic       = input_channel / group;                         \
+    const int goc_4     = (goc + 3) / 4;                                 \
+    const int gic_4     = (gic + 3) / 4;                                 \
+    const int src_count = group * goc * gic * height * width;            \
+    int src_index = 0;
 // to   [g][o/4][i/4][h][w][16]
 // from [g][o][i][h][w]
 template <typename T>
 int ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int input_channel, int output_channel, int height,
                                      int width) {
-    const int goc       = output_channel / group;
-    const int gic       = input_channel / group;
-    const int goc_4     = (goc + 3) / 4;
-    const int gic_4     = (gic + 3) / 4;
-    const int src_count = group * goc * gic * height * width;
-
-    int src_index = 0;
+    ConvertWeightsPreparation;
 
     for (int g = 0; g < group; g++) {
         auto g_dst = dst + g * goc_4 * gic_4 * height * width * 16;  // g
@@ -357,13 +358,7 @@ template int ConvertWeightsFromGOIHWToGOIHW16(float *src, float *dst, int group,
 template <typename T>
 int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channel, int output_channel, int height,
                                      int width) {
-    const int goc       = output_channel / group;
-    const int gic       = input_channel / group;
-    const int goc_4     = (goc + 3) / 4;
-    const int gic_4     = (gic + 3) / 4;
-    const int src_count = group * goc * gic * height * width;
-
-    int src_index = 0;
+    ConvertWeightsPreparation;
 
     for (int g = 0; g < group; g++) {
         auto g_dst = dst + g * goc_4 * gic_4 * height * width * 16;  // g
@@ -496,6 +491,9 @@ template int ConvertWeightsFromOI3HWToOHW12(float *src, float *dst, int input_ch
 //     g = (74 *y - 1135 - 52 * vv - 25 * uu ) >> 6
 //     b = (74 *y - 1135 + 129 * uu ) >> 6
 void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv12, bgr, 3, h, w, true);
+#else
     const unsigned char* yptr  = nv12;
     const unsigned char* vuptr = nv12 + w * h;
 
@@ -504,8 +502,6 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgr;
         unsigned char* rgb1 = bgr + w * 3;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -674,55 +670,18 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
-        for (; remain > 0; remain -= 2) {
-            int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-            int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 6;
-            rgb1  += 6;
-        }
-
-        yptr += 2*w;
-        bgr  += 2*3*w;
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, remain, true, 3);
+        yptr  += 2*w;
+        vuptr += remain;
+        bgr   += 2*3*w;
     }
+#endif
 }
 
 void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv21, bgr, 3, h, w, false);
+#else
     const unsigned char* yptr  = nv21;
     const unsigned char* vuptr = nv21 + w * h;
 
@@ -731,8 +690,6 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgr;
         unsigned char* rgb1 = bgr + w * 3;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -901,55 +858,18 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
-        for (; remain > 0; remain -= 2) {
-            int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-            int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgb0[5] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[4] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[3] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgb1[5] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[4] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[3] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 6;
-            rgb1  += 6;
-        }
-
-        yptr += 2*w;
-        bgr  += 2*3*w;
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, remain, false, 3);
+        yptr  += 2*w;
+        vuptr += remain;
+        bgr   += 2*3*w;
     }
+#endif // TNN_USE_NEON
 }
 
 void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv12, bgra, 4, h, w, true);
+#else
     const unsigned char* yptr  = nv12;
     const unsigned char* vuptr = nv12 + w * h;
 
@@ -958,8 +878,6 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgra;
         unsigned char* rgb1 = bgra + w * 4;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -1134,59 +1052,18 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
-        for (; remain > 0; remain -= 2) {
-            int u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-            int v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgb0[3] = 255;
-            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgb0[7] = 255;
-            rgb0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgb1[3] = 255;
-            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgb1[7] = 255;
-            rgb1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 8;
-            rgb1  += 8;
-        }
-
-        yptr += 2*w;
-        bgra += 2*4*w;
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, remain, true, 4);
+        yptr  += 2*w;
+        vuptr += remain;
+        bgra  += 2*4*w;
     }
+#endif // TNN_USE_NEON
 }
 
 void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
+#ifndef TNN_USE_NEON
+    return NaiveYUVToBGROrBGRA(nv21, bgra, 4, h, w, false);
+#else
     const unsigned char* yptr  = nv21;
     const unsigned char* vuptr = nv21 + w * h;
 
@@ -1195,8 +1072,6 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         const unsigned char* yptr1 = yptr + w;
         unsigned char* rgb0 = bgra;
         unsigned char* rgb1 = bgra + w * 4;
-
-#ifdef TNN_USE_NEON
 #if __aarch64__
         int64_t nn = w >> 3;
         int remain = w - (nn << 3);
@@ -1371,166 +1246,91 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
             );
         }
 #endif //__aarch64__
-#else
-        int remain = w;
-#endif // TNN_USE_NEON
-
-        for (; remain > 0; remain -= 2) {
-            int v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
-            int u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
-
-            int ruv = 102 * v;
-            int guv = -52 * v + -25 * u;
-            int buv = 129 * u;
-
-#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
-
-            int y00 = yptr0[0]* 74 - 1135;
-            rgb0[3] = 255;
-            rgb0[2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
-            rgb0[1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
-            rgb0[0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
-
-            int y01 = yptr0[1]* 74 - 1135;
-            rgb0[7] = 255;
-            rgb0[6] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
-            rgb0[5] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
-            rgb0[4] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
-
-            int y10 = yptr1[0]* 74 - 1135;
-            rgb1[3] = 255;
-            rgb1[2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
-            rgb1[1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
-            rgb1[0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
-
-            int y11 = yptr1[1]* 74 - 1135;
-            rgb1[7] = 255;
-            rgb1[6] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
-            rgb1[5] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
-            rgb1[4] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
-
-#undef SATURATE_CAST_UCHAR
-
-            yptr0 += 2;
-            yptr1 += 2;
-            vuptr += 2;
-            rgb0  += 8;
-            rgb1  += 8;
-        }
-
-        yptr += 2*w;
-        bgra += 2*4*w;
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, remain, false, 4);
+        yptr  += 2*w;
+        vuptr += remain;
+        bgra  += 2*4*w;
     }
+#endif // TNN_USE_NEON
+}
+
+#ifdef TNN_USE_NEON
+
+#define CVTGRAYIMPL(n)                                                  \
+    uint8x8x##n##_t _S;                                                 \
+    _S  = vld##n##_u8(Sp);                                              \
+    _Bh = vmovl_u8(_S.val[0]);                                          \
+    _Gh = vmovl_u8(_S.val[1]);                                          \
+    _Rh = vmovl_u8(_S.val[2]);                                          \
+    _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));                \
+    _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));                \
+    _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));                \
+    _acc  = _Bval * _coeff_b;                                           \
+    _acc  = _acc + _Gval * _coeff_g;                                    \
+    _acc  = _acc + _Rval * _coeff_r;                                    \
+    _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));                       \
+    _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));               \
+    _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));               \
+    _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));               \
+    _acc  = _Bval * _coeff_b;                                           \
+    _acc  = _acc + _Gval * _coeff_g;                                    \
+    _acc  = _acc + _Rval * _coeff_r;                                    \
+    _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));                       \
+    vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));                 \
+
+#endif  // TNN_USE_NEON
+
+template <int channel>
+void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+#ifndef TNN_USE_NEON
+    NaiveBGROrBGRAToGray(bgr, gray, h, w, channel);
+#else
+    int offset = 0;
+    int plane  = h * w;
+
+    const unsigned char* Sp = bgr;
+    unsigned char* Dp       = gray;
+    uint16x8_t _Bh, _Gh, _Rh;
+    Float4 _Bval, _Gval, _Rval, _acc;
+    Float4 _coeff_b(0.114);
+    Float4 _coeff_g(0.587);
+    Float4 _coeff_r(0.299);
+    uint16x4_t _acc0, _acc1;
+    for (; offset < plane>>3<<3; offset += 8) {
+        if (channel == 3) {
+            CVTGRAYIMPL(3);
+        } else {
+            CVTGRAYIMPL(4);
+        }
+        Sp   += 8 * channel;
+        Dp   += 8;
+    }
+    if (plane % 8) {
+        offset -= 8;
+    }
+
+    for (; offset < plane; ++offset) {
+        unsigned b = bgr[offset * channel + 0];
+        unsigned g = bgr[offset * channel + 1];
+        unsigned r = bgr[offset * channel + 2];
+        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
+        gray[offset] = gray_color;
+    }
+#endif // TNN_USE_NEON
 }
 
 void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
-    int offset = 0;
-    int plane  = h * w;
-
-#ifdef TNN_USE_NEON
-    const unsigned char* Sp = bgr;
-    unsigned char* Dp       = gray;
-    uint8x8x3_t _S;
-    uint16x8_t _Bh, _Gh, _Rh;
-    Float4 _Bval, _Gval, _Rval, _acc;
-    Float4 _coeff_b(0.114);
-    Float4 _coeff_g(0.587);
-    Float4 _coeff_r(0.299);
-    uint16x4_t _acc0, _acc1;
-    for (; offset < plane>>3<<3; offset += 8) {
-        _S  = vld3_u8(Sp);
-        _Bh = vmovl_u8(_S.val[0]);
-        _Gh = vmovl_u8(_S.val[1]);
-        _Rh = vmovl_u8(_S.val[2]);
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));
-
-        Sp   += 8 * 3;
-        Dp   += 8;
-    }
-    if (plane % 8) {
-        offset -= 8;
-    }
-#endif
-
-    for (; offset < plane; ++offset) {
-        unsigned b = bgr[offset * 3 + 0];
-        unsigned g = bgr[offset * 3 + 1];
-        unsigned r = bgr[offset * 3 + 2];
-        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
-        gray[offset] = gray_color;
-    }
+    BGROrBGRAToGray<3>(bgr, gray, h, w);
 }
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
-    int offset = 0;
-    int plane  = h * w;
+    BGROrBGRAToGray<4>(bgra, gray, h, w);
+}
 
 #ifdef TNN_USE_NEON
-    const unsigned char* Sp = bgra;
-    unsigned char* Dp       = gray;
-    uint8x8x4_t _S;
-    uint16x8_t _Bh, _Gh, _Rh;
-    Float4 _Bval, _Gval, _Rval, _acc;
-    Float4 _coeff_b(0.114);
-    Float4 _coeff_g(0.587);
-    Float4 _coeff_r(0.299);
-    uint16x4_t _acc0, _acc1;
-    for (; offset < plane>>3<<3; offset += 8) {
-        _S  = vld4_u8(Sp);
-        _Bh = vmovl_u8(_S.val[0]);
-        _Gh = vmovl_u8(_S.val[1]);
-        _Rh = vmovl_u8(_S.val[2]);
 
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc0 = vmovn_u32(vcvtq_u32_f32(_acc.value));
+#undef CVTGRAYIMPL
 
-        _Bval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Bh)));
-        _Gval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Gh)));
-        _Rval = vcvtq_f32_u32(vmovl_u16(vget_high_u16(_Rh)));
-        _acc  = _Bval * _coeff_b;
-        _acc  = _acc + _Gval * _coeff_g;
-        _acc  = _acc + _Rval * _coeff_r;
-        _acc1 = vmovn_u32(vcvtq_u32_f32(_acc.value));
-
-        vst1_u8(Dp, vmovn_u16(vcombine_u16(_acc0, _acc1)));
-
-        Sp   += 8 * 4;
-        Dp   += 8;
-    }
-    if (plane % 8) {
-        offset -= 8;
-    }
-#endif
-
-    for (; offset < plane; ++offset) {
-        unsigned b = bgra[offset * 4 + 0];
-        unsigned g = bgra[offset * 4 + 1];
-        unsigned r = bgra[offset * 4 + 2];
-        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
-        gray[offset] = gray_color;
-    }
-}
+#endif  // TNN_USE_NEON
 
 }  // namespace TNN_NS

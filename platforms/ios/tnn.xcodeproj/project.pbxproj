@@ -635,6 +635,8 @@
 		EC0BE18525144C4F009BD69A /* arm_arg_max_or_min_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE18125144C4F009BD69A /* arm_arg_max_or_min_layer_acc.cc */; };
 		EC0BE18625144C4F009BD69A /* arm_signed_mul_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = EC0BE18225144C4F009BD69A /* arm_signed_mul_layer_acc.h */; };
 		EC0BE18725144C4F009BD69A /* arm_signed_mul_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE18325144C4F009BD69A /* arm_signed_mul_layer_acc.cc */; };
+		EC0BE1BB251DBE65009BD69A /* mat_converter_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */; };
+		EC0BE1BC251DBE65009BD69A /* mat_converter_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */; };
 		EC2CF72525078C1200EE3899 /* metal_mat_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */; };
 		EC2CF72625078C1200EE3899 /* metal_mat_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */; };
 		EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */ = {isa = PBXBuildFile; fileRef = EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */; };
@@ -1284,6 +1286,8 @@
 		EC0BE18125144C4F009BD69A /* arm_arg_max_or_min_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_arg_max_or_min_layer_acc.cc; sourceTree = "<group>"; };
 		EC0BE18225144C4F009BD69A /* arm_signed_mul_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_signed_mul_layer_acc.h; sourceTree = "<group>"; };
 		EC0BE18325144C4F009BD69A /* arm_signed_mul_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_signed_mul_layer_acc.cc; sourceTree = "<group>"; };
+		EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_utils.cc; sourceTree = "<group>"; };
+		EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_utils.h; sourceTree = "<group>"; };
 		EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_mat_converter.mm; sourceTree = "<group>"; };
 		EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_mat_converter.metal; sourceTree = "<group>"; };
 		EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_deconv_layer_stride.h; sourceTree = "<group>"; };
@@ -1428,6 +1432,8 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */,
+				EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */,
 				EC0BE13525144B5D009BD69A /* detection_post_process_utils.cc */,
 				EC0BE13425144B5D009BD69A /* detection_post_process_utils.h */,
 				EC0BE13625144B5D009BD69A /* string_utils.cc */,
@@ -2306,6 +2312,7 @@
 				9DD1FB42247CE9BE00800139 /* metal_prelu_layer_acc.h in Headers */,
 				9DD1FBB8247CE9BE00800139 /* metal_conv_layer_acc.h in Headers */,
 				9DF26BDA24645EA500F22F0D /* naive_compute.h in Headers */,
+				EC0BE1BC251DBE65009BD69A /* mat_converter_utils.h in Headers */,
 				9DD1FB36247CE9BE00800139 /* tnn_impl_coreml.h in Headers */,
 				9D32FC9924557EEC002DCDAB /* memory_mode_state_factory.h in Headers */,
 				9DD1FCFB247CEB2B00800139 /* encryption.h in Headers */,
@@ -2807,6 +2814,7 @@
 				9D5B716024BF0A300062DF64 /* metal_prior_box_layer_acc.metal in Sources */,
 				9DD1FB6C247CE9BE00800139 /* metal_reduce_layer_acc.mm in Sources */,
 				9D32FF0524557EED002DCDAB /* net_resource.cc in Sources */,
+				EC0BE1BB251DBE65009BD69A /* mat_converter_utils.cc in Sources */,
 				9D32FCAE24557EEC002DCDAB /* blob_dump_utils.cc in Sources */,
 				9DD1FBC1247CE9BE00800139 /* metal_inner_product_layer_acc.metal in Sources */,
 				9DD1FB57247CE9BE00800139 /* metal_reduce_sum_layer_acc.mm in Sources */,

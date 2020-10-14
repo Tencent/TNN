@@ -68,6 +68,22 @@ protected:
     Status AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue);
 
     Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
+    Status CopyInputCheck(Mat& src, Mat& dst,
+                          const DeviceType& src_device_type, const DeviceType& dst_device_type,
+                          const MatType& src_mat_type, const MatType& dst_mat_type);
+    bool DeviceTypeCheck(const DeviceType& src_device_type,
+                         const DeviceType& dst_device_type);
+    Status SetDevice(Mat& src, Mat& dst,
+                     const DeviceType& src_device_type, const DeviceType& dst_device_type,
+                     const MatType& src_mat_type, const MatType& dst_mat_type);
+    Status MetalCopyToCPU(Mat& src, Mat& dst,
+                          const DimsVector& dims,
+                          const MatType& src_mat_type, const MatType& dst_mat_type,
+                          TNNMetalCommandQueueImpl *command_queue_impl);
+    Status CPUCopyToMetal(Mat& src, Mat& dst,
+                          const DimsVector& dims,
+                          const MatType& src_mat_type, const MatType& dst_mat_type,
+                          TNNMetalCommandQueueImpl *command_queue_impl);
 };
 
 Status MetalMatConverterAcc::AllocateBufferResizeParam(ResizeParam param, Mat& src, Mat& dst) {
@@ -502,18 +518,18 @@ Status MetalMatConverterAcc::AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst,
     return TNN_OK;
 }
 
-Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
-    auto src_device_type = src.GetDeviceType();
-    auto dst_device_type = dst.GetDeviceType();
+bool MetalMatConverterAcc::DeviceTypeCheck(const DeviceType& src_device_type,
+                                           const DeviceType& dst_device_type) {
+    return dst_device_type != DEVICE_METAL && src_device_type != DEVICE_METAL;
+}
 
-    auto src_mat_type    = src.GetMatType();
-    auto dst_mat_type    = dst.GetMatType();
-
-    if (src_device_type == dst_device_type) {
-        return TNN_OK;
-    }
-
-    if (dst_device_type != DEVICE_METAL && src_device_type!=DEVICE_METAL) {
+Status MetalMatConverterAcc::CopyInputCheck(Mat& src,
+                                            Mat& dst,
+                                            const DeviceType& src_device_type,
+                                            const DeviceType& dst_device_type,
+                                            const MatType& src_mat_type,
+                                            const MatType& dst_mat_type) {
+    if (DeviceTypeCheck(src_device_type, dst_device_type)) {
         return Status(TNNERR_INVALID_INPUT, "neither src nor dst is not Metal Mat");
     }
 
@@ -533,6 +549,15 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         return Status(TNNERR_INVALID_INPUT, "src and dst shape not match");
     }
 
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::SetDevice(Mat& src,
+                                       Mat& dst,
+                                       const DeviceType& src_device_type,
+                                       const DeviceType& dst_device_type,
+                                       const MatType& src_mat_type,
+                                       const MatType& dst_mat_type) {
     if (device_ == nil) {
         if (src_device_type == DEVICE_METAL) {
             if(src_mat_type == N8UC4) {
@@ -552,6 +577,167 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
             }
         }
     }
+
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::MetalCopyToCPU(Mat& src, Mat& dst,
+                                            const DimsVector& dims,
+                                            const MatType& src_mat_type, const MatType& dst_mat_type,
+                                            TNNMetalCommandQueueImpl *command_queue_impl) {
+    // 1) metal => buffer
+    id<MTLBuffer> tmp_buffer = nil;
+    if (dst_mat_type == N8UC3) {
+        tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
+                                            options:MTLResourceOptionCPUCacheModeDefault];
+    } else if(dst_mat_type == N8UC4){
+        // N8UC4
+        tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*4
+                                            options:MTLResourceOptionCPUCacheModeDefault];
+    } else {
+        // NCHW_FLOAT
+        auto count = DimsVectorUtils::Count(dims);
+        tmp_buffer = [device_ newBufferWithLength: count*4
+                                            options:MTLResourceOptionCPUCacheModeDefault];
+    }
+    if (tmp_buffer == nil) {
+        return Status(TNNERR_INST_ERR, "tmp_buffer is nil");
+    }
+    do {
+        auto slice = UP_DIV(dims[1], 4) * dims[0];
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
+        if (src_mat_type == NCHW_FLOAT) {
+            groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)slice};
+        }
+
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+        if (dst_mat_type == N8UC4) {
+            id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+
+            [encoder setTexture:input_texture atIndex:0];
+            [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
+        } else if(dst_mat_type == NCHW_FLOAT) {
+            id<MTLBuffer> input_buffer = (__bridge id<MTLBuffer>)(src.GetData());
+
+            [encoder setBuffer:input_buffer offset:0 atIndex:0];
+            [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
+            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
+        } else if(dst_mat_type == N8UC3) {
+            id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+
+            [encoder setTexture:input_texture atIndex:0];
+            [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
+        }
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+
+        [command_buffer commit];
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+    } while(0);
+    // 2) buffer => dst
+    memcpy(dst.GetData(), [tmp_buffer contents], tmp_buffer.length);
+
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::CPUCopyToMetal(Mat& src, Mat& dst,
+                                            const DimsVector& dims,
+                                            const MatType& src_mat_type, const MatType& dst_mat_type,
+                                            TNNMetalCommandQueueImpl *command_queue_impl) {
+    if (src_mat_type == N8UC4) {
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(dst.GetData());
+        if (!texture) {
+            return Status(TNNERR_INST_ERR, "dst GetTexture return nil");
+        }
+        [texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
+                    mipmapLevel:0
+                        withBytes:src.GetData()
+                    bytesPerRow:dims[3]*4];
+    } else if(src_mat_type == NCHW_FLOAT) {
+        // 1) cpu => buffer
+        auto count = DimsVectorUtils::Count(dims);
+        id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: count*4
+                                                        options:MTLResourceOptionCPUCacheModeDefault];
+        memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
+        // 2) buffer => metal
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)dims[1]};
+
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+
+        id<MTLBuffer> dst_buffer = (__bridge id<MTLBuffer>)(dst.GetData());
+
+        [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+        [encoder setBuffer:dst_buffer offset:0 atIndex:1];
+        [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
+
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+
+        [command_buffer commit];
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+    } else if(src_mat_type == N8UC3) {
+        // 1) cpu => buffer
+        id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
+                                                        options:MTLResourceOptionCPUCacheModeDefault];
+        memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
+
+        // 2) buffer => metal
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
+
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+
+        id<MTLTexture> dst_texture = (__bridge id<MTLTexture>)(dst.GetData());
+
+        [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+        [encoder setTexture:dst_texture atIndex:0];
+        [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
+
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+
+        [command_buffer commit];
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+    }
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    auto src_device_type = src.GetDeviceType();
+    auto dst_device_type = dst.GetDeviceType();
+
+    auto src_mat_type    = src.GetMatType();
+    auto dst_mat_type    = dst.GetMatType();
+
+    if (src_device_type == dst_device_type) {
+        return TNN_OK;
+    }
+
+    auto status = CopyInputCheck(src, dst, src_device_type, dst_device_type, src_mat_type, dst_mat_type);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    status = SetDevice(src, dst, src_device_type, dst_device_type, src_mat_type, dst_mat_type);
+    if (status != TNN_OK) {
+        return status;
+    }
     
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
     if (!command_queue_impl) {
@@ -560,7 +746,7 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     
     auto context_impl = command_queue_impl.metalContextImpl;
     
-    auto status = AllocateBufferCopyParam(src, dst);
+    status = AllocateBufferCopyParam(src, dst);
     if (status != TNN_OK) {
         return status;
     }
@@ -574,129 +760,15 @@ Status MetalMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     //check copy direction
     if (src_device_type == DEVICE_METAL) {
         // Metal => cpu
-        // 1) metal => buffer
-        id<MTLBuffer> tmp_buffer = nil;
-        if (dst_mat_type == N8UC3) {
-            tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
-                                              options:MTLResourceOptionCPUCacheModeDefault];
-        } else if(dst_mat_type == N8UC4){
-            // N8UC4
-            tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*4
-                                              options:MTLResourceOptionCPUCacheModeDefault];
-        } else {
-            // NCHW_FLOAT
-            auto count = DimsVectorUtils::Count(dims);
-            tmp_buffer = [device_ newBufferWithLength: count*4
-                                              options:MTLResourceOptionCPUCacheModeDefault];
+        status = MetalCopyToCPU(src, dst, dims, src_mat_type, dst_mat_type, command_queue_impl);
+        if (status != TNN_OK) {
+            return status;
         }
-        if (tmp_buffer == nil) {
-            return Status(TNNERR_INST_ERR, "tmp_buffer is nil");
-        }
-        do {
-            auto slice = UP_DIV(dims[1], 4) * dims[0];
-            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
-            if (src_mat_type == NCHW_FLOAT) {
-                groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)slice};
-            }
-
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState: pipeline_process_];
-            if (dst_mat_type == N8UC4) {
-                id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
-                
-                [encoder setTexture:input_texture atIndex:0];
-                [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
-                [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
-            } else if(dst_mat_type == NCHW_FLOAT) {
-                id<MTLBuffer> input_buffer = (__bridge id<MTLBuffer>)(src.GetData());
-                
-                [encoder setBuffer:input_buffer offset:0 atIndex:0];
-                [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
-                [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
-            } else if(dst_mat_type == N8UC3) {
-                id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
-                
-                [encoder setTexture:input_texture atIndex:0];
-                [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
-                [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
-            }
-            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
-            [encoder endEncoding];
-            
-            [command_buffer commit];
-            //wait to complete
-            [command_buffer waitUntilCompleted];
-        } while(0);
-        // 2) buffer => dst
-        memcpy(dst.GetData(), [tmp_buffer contents], tmp_buffer.length);
     } else {
         // cpu => Metal
-        if (src_mat_type == N8UC4) {
-            id<MTLTexture> texture = (__bridge id<MTLTexture>)(dst.GetData());
-            if (!texture) {
-                return Status(TNNERR_INST_ERR, "dst GetTexture return nil");
-            }
-            [texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
-                       mipmapLevel:0
-                         withBytes:src.GetData()
-                       bytesPerRow:dims[3]*4];
-        } else if(src_mat_type == NCHW_FLOAT) {
-            // 1) cpu => buffer
-            auto count = DimsVectorUtils::Count(dims);
-            id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: count*4
-                                                            options:MTLResourceOptionCPUCacheModeDefault];
-            memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
-            // 2) buffer => metal
-            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)dims[1]};
-            
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState: pipeline_process_];
-            
-            id<MTLBuffer> dst_buffer = (__bridge id<MTLBuffer>)(dst.GetData());
-            
-            [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
-            [encoder setBuffer:dst_buffer offset:0 atIndex:1];
-            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:2];
-            
-            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
-            [encoder endEncoding];
-            
-            [command_buffer commit];
-            //wait to complete
-            [command_buffer waitUntilCompleted];
-        } else if(src_mat_type == N8UC3) {
-            // 1) cpu => buffer
-            id<MTLBuffer> tmp_buffer = [device_ newBufferWithLength: dims[2]*dims[3]*3
-                                                            options:MTLResourceOptionCPUCacheModeDefault];
-            memcpy([tmp_buffer contents], src.GetData(), tmp_buffer.length);
-            
-            // 2) buffer => metal
-            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2], (NSUInteger)1};
-            
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState: pipeline_process_];
-            
-            id<MTLTexture> dst_texture = (__bridge id<MTLTexture>)(dst.GetData());
-            
-            [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
-            [encoder setTexture:dst_texture atIndex:0];
-            [encoder setBuffer:buffer_copy_param_ offset:0 atIndex:1];
-            
-            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
-            [encoder endEncoding];
-            
-            [command_buffer commit];
-            //wait to complete
-            [command_buffer waitUntilCompleted];
+        status = CPUCopyToMetal(src, dst, dims, src_mat_type, dst_mat_type, command_queue_impl);
+        if (status != TNN_OK) {
+            return status;
         }
     }
     return TNN_OK;

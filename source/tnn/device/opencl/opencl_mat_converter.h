@@ -32,6 +32,7 @@ public:
     virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL);
 private:
     //Status CreateConvertUnit(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);
+    Status SetExecuteUnit(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, const bool copy_flag, const std::string& mat_key);
     Status SetConvertArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, bool convert_to_mat);
     Status SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& src, Mat& dst, WarpAffineParam param);
     Status RunConvertUnit(OpenCLExecuteUnit& unit, cl::CommandQueue* command_queue, bool need_wait = false);

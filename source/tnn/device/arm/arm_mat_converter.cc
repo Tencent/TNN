@@ -18,21 +18,16 @@
 #include "tnn/device/arm/arm_util.h"
 
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
 
 Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    // src device and dst device can be both arm or between arm and cpu
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    ret = CheckMatConverterParams(src, dst, false);
+    if (ret != TNN_OK)
+        return ret;
 
     auto elem_num = DimsVectorUtils::Count(src.GetDims());
 
@@ -50,55 +45,54 @@ Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
+    int dst_width  = dst.GetWidth();
+    int dst_height = dst.GetHeight();
 
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    if (dst_width == 0 || dst_height == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
     }
 
     if (src.GetMatType() == NGRAY) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC3) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == N8UC4) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                             (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                            (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                            (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinearYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                   (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                                   (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else if (param.type == INTERP_TYPE_NEAREST) {
             ResizeNearestYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                  (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight());
+                                  (uint8_t*)dst.GetData(), dst_width, dst_height);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
@@ -112,17 +106,9 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
 Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
@@ -175,22 +161,21 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
 Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
+    int dst_width  = dst.GetWidth();
+    int dst_height = dst.GetHeight();
 
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+    if (dst_width == 0 || dst_height == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
     }
 
     if (src.GetMatType() == NGRAY) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -198,7 +183,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == N8UC3) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -206,7 +191,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == N8UC4) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
                                  param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -214,7 +199,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
             WarpAffineBilinearYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                       (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                       (uint8_t*)dst.GetData(), dst_width, dst_height,
                                        param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
@@ -229,17 +214,9 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
 Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     Status ret = TNN_OK;
 
-    if (src.GetData() == nullptr) {
-        return Status(TNNERR_NULL_PARAM, "input mat is null");
-    }
-
-    if (src.GetDeviceType() != dst.GetDeviceType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
-    }
-
-    if (dst.GetData() == nullptr) {
-        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
-    }
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
 
     if (type == COLOR_CONVERT_NV12TOBGR) {
         NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());

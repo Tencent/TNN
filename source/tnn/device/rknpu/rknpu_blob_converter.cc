@@ -23,21 +23,6 @@ class RknpuBlobConverterAcc : public CpuBlobConverterAcc {
 public:
     RknpuBlobConverterAcc(Blob *blob) : CpuBlobConverterAcc(blob) {}
     ~RknpuBlobConverterAcc() {}
-    // output
-    virtual Status ConvertToMat(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertToMat(image, param, command_queue);
-    }
-    virtual Status ConvertToMatAsync(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertToMatAsync(image, param, command_queue);
-    }
-
-    // input
-    virtual Status ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertFromMat(image, param, command_queue);
-    }
-    virtual Status ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertFromMatAsync(image, param, command_queue);
-    }
 };
 
 DECLARE_BLOB_CONVERTER_CREATER(Rknpu);
