@@ -55,11 +55,7 @@ int main(int argc, char** argv) {
     // 创建tnn实例
     auto proto_content = fdLoadFile(argv[1]);
     auto model_content = fdLoadFile(argv[2]);
-    int h = 224, w = 224;
-    if(argc >= 5) {
-        h = std::atoi(argv[3]);
-        w = std::atoi(argv[4]);
-    }
+
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
@@ -69,7 +65,6 @@ int main(int argc, char** argv) {
     }
 
     auto predictor = std::make_shared<ImageClassifier>();
-    std::vector<int> nchw = {1, 3, h, w};
 
     char* temp_p;
     char line[256];
@@ -92,9 +87,9 @@ int main(int argc, char** argv) {
     char *input_imgfn = img_buff;
     if(argc < 6)
 #ifdef _WIN32
-        strncpy(input_imgfn, "../../../assets/dog.png", 256);
+        strncpy(input_imgfn, "../../../assets/tiger_cat.jpg", 256);
 #else
-        strncpy(input_imgfn, "../../assets/dog.png", 256);
+        strncpy(input_imgfn, "../../assets/tiger_cat.jpg", 256);
 #endif
     else
         strncpy(input_imgfn, argv[5], 256);
@@ -102,12 +97,13 @@ int main(int argc, char** argv) {
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+    std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
     //Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
     //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
 
     int class_id = -1;
@@ -117,6 +113,7 @@ int main(int argc, char** argv) {
     }
     //完成计算，获取任意输出点
     fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[class_id], class_id+1);
+    fprintf(stdout, "%s\n", predictor->GetBenchResult().Description().c_str());
     free(data);
     return 0;
 }
