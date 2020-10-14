@@ -25,8 +25,9 @@ ArmConvInt8Layer1x1 used for 1x1 conv with small c and big h*w
 */
 bool ArmConvInt8Layer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs) {
-    if (param->group != 1 || param->strides[0] != 1 || param->strides[1] != 1 || param->pads[0] != 0 ||
-        param->pads[1] != 0 || param->pads[2] != 0 || param->pads[3] != 0) {
+    if (param->group != 1 || param->kernels[0] != 1 || param->kernels[1] != 1 || param->strides[0] != 1 ||
+        param->strides[1] != 1 || param->pads[0] != 0 || param->pads[1] != 0 || param->pads[2] != 0 ||
+        param->pads[3] != 0) {
         return false;
     }
     auto dims_input         = inputs[0]->GetBlobDesc().dims;
@@ -36,6 +37,7 @@ bool ArmConvInt8Layer1x1::isPrefered(ConvLayerParam *param, const std::vector<Bl
     if (input_channel <= 16 && h * w > param->output_channel) {
         return true;
     }
+
     return false;
 }
 
@@ -131,7 +133,7 @@ Status ArmConvInt8Layer1x1::DoForward(const std::vector<Blob *> &inputs, const s
     int8_t *output_data = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     struct Q8GemmContext context = {.k        = ic,
-                                    .k_stride = ROUND_UP(ic, 4),
+                                    .k_stride = ic,
                                     .n        = oc,
                                     .n_stride = ROUND_UP(oc, 8),
                                     .a        = input_data,

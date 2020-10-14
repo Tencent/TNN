@@ -35,9 +35,6 @@ public:
 
     virtual Status allocateBufferWeightBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-protected:
-    RawBuffer buffer_weight_;
-    RawBuffer buffer_scale_;
 };
 
 }  // namespace TNN_NS

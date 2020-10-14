@@ -26,18 +26,25 @@
 
 namespace TNN_NS {
 
-void GemmInt8Unit8x8(
-    long mr,
-    long nr,
-    long k,
-    const int8_t* a,
-    long a_stride,
-    const void* w,
-    int8_t* c,
-    long c_stride,
-    long output_channel_index,
-    float* scales) {
-    printf("unimplement\n");
+void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
+                     long output_channel_index, float* scales) {
+    union {
+        const void* as_void_ptr;
+        int8_t* as_int8_ptr;
+        int32_t* as_int32_ptr;
+    } packed = {w};
+
+    for (int m = 0; m < mr; m++) {
+        for (int n = 0; n < nr; n++) {
+            int acc          = packed.as_int32_ptr[n];
+            int8_t* packed_w = reinterpret_cast<int8_t*>(packed.as_int32_ptr + 8);
+            for (int kk = 0; kk < k; kk++) {
+                acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
+            }
+
+            c[m * c_stride + n] = float2int8(acc * scales[output_channel_index + n]);
+        }
+    }
 }
 
 static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start, long nr_block_start,
