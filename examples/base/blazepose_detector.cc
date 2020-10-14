@@ -99,7 +99,7 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
 MatConvertParam BlazePoseDetector::GetConvertParamForInput(std::string tag) {
     MatConvertParam param;
     param.scale = {2.0 / 255.0, 2.0 / 255.0, 2.0 / 255.0, 0.0};
-    param.bias   = {-1.0,        -1.0,        -1.0,       0.0};
+    param.bias  = {-1.0,        -1.0,        -1.0,        0.0};
     //TODO: ensure mediapipe requires RGB or BGR
     return param;
 }
