@@ -228,11 +228,11 @@ static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int h
 };
 
 Status DataFormatConverter::ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width) {
-    return ConvertFromNCHWToNHWC<float>(src, dst, num, channel, height, width);
+    return ConvertBetweenNHWCAndNCHW<float>(src, dst, num, channel, height, width, NCHW2NHWC);
 }
 
 Status DataFormatConverter::ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width) {
-    return ConvertFromNHWCToNCHW<float>(src, dst, num, channel, height, width);
+    return ConvertBetweenNHWCAndNCHW<float>(src, dst, num, channel, height, width, NHWC2NCHW);
 }
 
 Status DataFormatConverter::ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,
