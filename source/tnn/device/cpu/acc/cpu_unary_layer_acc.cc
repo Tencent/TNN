@@ -70,11 +70,11 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         int scale_len_i = input_scale_handle.GetDataCount();
         int scale_len_o = output_scale_handle.GetDataCount();
         for (int n = 0; n < dims[0]; ++n) {
-            auto input_data_n  = input_data + dims[1] * dims[2] * dims[3];
-            auto output_data_n = output_data + dims[1] * dims[2] * dims[3];
+            auto input_data_n  = input_data + n * dims[1] * dims[2] * dims[3];
+            auto output_data_n = output_data + n * dims[1] * dims[2] * dims[3];
             for (int c = 0; c < dims[1]; ++c) {
-                auto input_data_c  = input_data_n + dims[2] * dims[3];
-                auto output_data_c = output_data_n + dims[2] * dims[3];
+                auto input_data_c  = input_data_n + c * dims[2] * dims[3];
+                auto output_data_c = output_data_n + c * dims[2] * dims[3];
                 float input_scale   = scale_len_i == 0 ? i_scale[0] : i_scale[c];
                 float output_scale  = scale_len_o == 0 ? o_scale[0] : o_scale[c];
                 for (int hw = 0; hw < dims[2] * dims[3]; ++hw) {
