@@ -321,13 +321,13 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             Log.i(TAG, "detect from stream ret " + faceInfoList);
                             int faceCount = 0;
                             if (faceInfoList != null) {
                                 faceCount = faceInfoList.length;
                             }
-                            mDrawView.addFaceRect(faceInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addFaceRect(faceInfoList);
                         }
                         else {
                             Log.i(TAG,"No face");
