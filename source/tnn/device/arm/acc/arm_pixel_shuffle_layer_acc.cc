@@ -189,6 +189,7 @@ static Status ExecFactorCommon(const std::vector<Blob *> &inputs, const std::vec
 template <typename T>
 Status ArmPixelShuffleLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param         = dynamic_cast<PixelShuffleLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
     int upscale_factor = param->upscale_factor;
 
     int data_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);

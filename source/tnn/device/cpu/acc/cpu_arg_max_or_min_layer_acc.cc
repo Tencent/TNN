@@ -26,6 +26,7 @@ Status CpuArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
 Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param       = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
     auto input_blob  = inputs[0];
     auto output_blob = outputs[0];
     auto input_dims  = input_blob->GetBlobDesc().dims;

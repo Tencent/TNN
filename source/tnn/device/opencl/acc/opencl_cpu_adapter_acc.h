@@ -44,7 +44,7 @@ private:
     
     DeviceType impl_device_type_;
     Context* impl_device_context_;
-    AbstractLayerAcc* cpu_adapter_acc_;
+    AbstractLayerAcc* cpu_adapter_acc_ = nullptr;
 
     OpenCLContext *ocl_context_ = nullptr;
 

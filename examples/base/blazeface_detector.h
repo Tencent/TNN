@@ -24,8 +24,7 @@
 
 namespace TNN_NS {
 
-struct BlazeFaceInfo : TNN_NS::ObjectInfo {
-};
+typedef ObjectInfo BlazeFaceInfo;
 
 class BlazeFaceDetectorInput : public TNNSDKInput {
 public:

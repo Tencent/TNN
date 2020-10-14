@@ -47,12 +47,6 @@ public:
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
-    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
-                                         std::vector<int> &input_shape);
-    static std::string GetFileHash(ModelConfig &model_config);
-
-    static bool FileExits(std::string model_path);
-
     static Status GetPadMode(int &pad_mode, int pad_type);
 
     static int checkNpuVersion(const char *version);
