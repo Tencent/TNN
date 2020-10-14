@@ -62,6 +62,9 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         for (int i = 0; i < count; ++i) {
             param->shape.push_back(input_data[i]);
         }
+        while (param->shape.size() < 4) {
+            param->shape.push_back(1);
+        }
         param->axis         = 0;
         param->num_axes     = shape_dims.size();
         param->reshape_type = 0;

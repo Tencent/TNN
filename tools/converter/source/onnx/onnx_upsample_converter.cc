@@ -28,10 +28,10 @@ TNN_NS::ActivationType OnnxUpsampleConverter::ActivationType(const onnx::NodePro
 }
 
 TNN_NS::Status OnnxUpsampleConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
-                                            bool &quantized_model) {
+                                           const onnx::NodeProto &node,
+                                           std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                           bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::UpsampleLayerParam;
     auto cur_layer             = net_structure.layers.back();
@@ -41,24 +41,27 @@ TNN_NS::Status OnnxUpsampleConverter::exec(TNN_NS::NetStructure &net_structure, 
     param->quantized           = false;
     param->mode                = 0;
 
-    auto model     = GetAttributeString(node, "mode", "nearest");
-    if("linear" == model) {
+    auto model = GetAttributeString(node, "mode", "nearest");
+    if ("nearest" == model) {
         param->mode = 1;
+    } else if ("bilinear" == model || "linear" == model) {
+        param->mode = 2;
+    } else if ("trilinear" == model) {
+        LOGE("Onnx Converter: do not support upsample trilinear mode\n");
+        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
 
-    const auto &shape_name           = node.input(1);
-    const auto &shape_node           = FindNodeProto(shape_name, proxy_nodes);
-    const auto &shape_tensor         = GetAttributeTensor(*shape_node, "scales");
-    const int64_t *shape_tensor_data = (int64_t *)GetTensorProtoData(shape_tensor);
-    const int shape_tensor_size      = GetTensorProtoDataSize(shape_tensor);
-
-    for (int i = 0; i < shape_tensor_size; i++) {
-        param->scales[i] = shape_tensor_data[i];
+    const auto &scale_name = node.input(1);
+    if (proxy_initializers_map.find(scale_name) != proxy_initializers_map.end()) {
+        // TODO
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = node.input(0);
+    } else {
+        // the upsample's scale should be calculate in tnn runtime;
+        param->align_corners = -1;
+        param->scales        = {};
+        param->dims          = {};
     }
-
-    cur_layer->inputs.resize(1);
-    cur_layer->inputs[0] = node.input(0);
-
     return TNN_NS::TNN_CONVERT_OK;
 }
 
