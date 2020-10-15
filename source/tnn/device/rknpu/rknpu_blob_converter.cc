@@ -14,14 +14,14 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
 #define TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
 #include "tnn/core/macro.h"
-#include "tnn/device/cpu/cpu_blob_converter.h"
+#include "tnn/utils/blob_converter_default.h"
 #include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
 
-class RknpuBlobConverterAcc : public CpuBlobConverterAcc {
+class RknpuBlobConverterAcc : public DefaultBlobConverterAcc {
 public:
-    RknpuBlobConverterAcc(Blob *blob) : CpuBlobConverterAcc(blob) {}
+    RknpuBlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
     ~RknpuBlobConverterAcc() {}
 };
 
