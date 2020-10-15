@@ -642,7 +642,7 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
-        
+
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -659,22 +659,22 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
             if (option_->compute_units == TNNComputeUnitsOpenvino) {
                 status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_X86);
             } else {
-                status = instance_->GetOutputMat(output_mat, output_convert_param);
+                status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_NAIVE);
             }
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
-                  auto output_convert_param = GetConvertParamForOutput(name);
-                  std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-                  if (option_->compute_units == TNNComputeUnitsOpenvino) {
-                      status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_X86);
-                  } else {
-                    status = instance_->GetOutputMat(output_mat, output_convert_param, name);
-                  }
-                  RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-                  output->AddMat(output_mat, name);
-              }
+                auto output_convert_param = GetConvertParamForOutput(name);
+                std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+                if (option_->compute_units == TNNComputeUnitsOpenvino) {
+                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_X86);
+                } else {
+                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_NAIVE);
+                }
+                RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+                output->AddMat(output_mat, name);
+            }
         }
   
         

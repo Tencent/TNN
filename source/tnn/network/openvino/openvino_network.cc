@@ -144,6 +144,7 @@ Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
     for (auto name : net_structure->outputs) {
         auto output_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name))->GetForeignTensor();
         auto output_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(output_tensor);
+        output_openvino_tensor->GetNode()->set_friendly_name(name);
         auto result_node = std::make_shared<ngraph::op::Result>(output_openvino_tensor->GetNode());
         outputNodes.push_back(result_node);
     } 

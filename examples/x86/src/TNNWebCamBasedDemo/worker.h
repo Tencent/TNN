@@ -23,6 +23,8 @@
 #include "tnn/core/status.h"
 #include "ultra_face_detector.h"
 #include "blazeface_detector.h"
+#include "youtu_face_align.h"
+#include "face_detect_aligner.h"
 #include "tnn_fps_counter.h"
 
 using TNN_NS::Status;
@@ -30,8 +32,9 @@ using TNN_NS::Status;
 class Worker {
 public:
     Status Init(std::string model_path); 
-    Status FaceDetectWithDraw(cv::Mat &frame, cv::Mat &frame_paint);
-    Status BlazeFaceDetectWithDraw(cv::Mat &frame, cv::Mat &frame_paint);
+    Status FaceDetectWithPaint(cv::Mat &frame, cv::Mat &frame_paint);
+    Status BlazeFaceDetectWithPaint(cv::Mat &frame, cv::Mat &frame_paint);
+    Status AlignWithPaint(cv::Mat &frame, cv::Mat &frame_paint);
     Status FrocessFrame(cv::Mat &frame, cv::Mat &frame_paint);
 private:
     Status DrawUI(cv::Mat &frame_paint);
@@ -39,6 +42,7 @@ private:
     std::shared_ptr<TNNFPSCounter> fps_counter_;
 
     std::shared_ptr<TNN_NS::BlazeFaceDetector> blaze_detecotr_;
+    std::shared_ptr<TNN_NS::FaceDetectAligner> aligner_;
 
 };
 

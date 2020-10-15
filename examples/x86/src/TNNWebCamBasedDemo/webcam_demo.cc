@@ -38,8 +38,6 @@ int main(int argc, char** argv)
         std::cerr << "ERROR! Unable to open camera\n";
         return -1;
     }
-#else
-    frame = cv::imread("1.jpg");
 #endif
 
     Worker worker;
@@ -49,8 +47,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    int cnt = 0;
     while(true)
     {
+        char fname[50];
+        snprintf(fname, 50, "images/%d.jpg", cnt);
 
 #ifndef FAKE_FRAME
         cap.read(frame);
@@ -58,22 +59,30 @@ int main(int argc, char** argv)
             std::cerr << "ERROR! blank frame grabbed\n";
             break;
         }
+#else   
+        frame = cv::imread(fname);
+        if (frame.empty()) {
+            fprintf(stderr, "%s get empty frame\n", fname);
+            break;
+        }
 #endif
-        cv::Mat frame_rgb;
-        cv::cvtColor(frame, frame_rgb, cv::COLOR_BGR2RGB);
 
         cv::Mat frame_paint = frame.clone();
-        BREAK_ON_NEQ(worker.FrocessFrame(frame_rgb, frame_paint), TNN_OK);
+        BREAK_ON_NEQ(worker.FrocessFrame(frame, frame_paint), TNN_OK);
 
 #ifdef FAKE_FRAME
         cv::imwrite("result.jpg", frame_paint);
-        break;
+        if (cnt > 50) {
+            break;
+        }
 #else
         cv::imshow("Live", frame_paint);
         int key = cv::waitKey(5);
         if (key == 'c')
             break;
 #endif
+
+        cnt = (cnt + 1 ) % 10000;
 
     }
 

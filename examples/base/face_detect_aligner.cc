@@ -64,7 +64,7 @@ Status FaceDetectAligner::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             auto facedetector_input_dims = predictor_detect_->GetInputShape();
             
             //preprocess
-            auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, facedetector_input_dims);
+            auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), image_mat->GetMatType(), facedetector_input_dims);
             
             status = predictor_detect_async->Resize(image_mat, input_mat, TNNInterpLinear);
             RETURN_ON_NEQ(status, TNN_OK);
