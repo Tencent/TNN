@@ -66,7 +66,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
             param->shape.push_back(1);
         }
         param->axis         = 0;
-        param->num_axes     = shape_dims.size();
+        param->num_axes     = param->shape.size();
         param->reshape_type = 0;
         CalculateOutputDims(input_dims, param->reshape_type, param->shape, output_dims);
     }
