@@ -39,6 +39,16 @@ g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
          return TNN_NS::ModelInterpreter::Interpret(params);
     }
 
+    ModelVersion ModelInterpreter::GetModelVersion() {
+        if (g_version_magic_number_rapidnet_v3 == this->version_magic_number) {
+            return MV_RPNV3;
+        } else if (g_version_magic_number_tnn == this->version_magic_number) {
+            return MV_TNN;
+        } else {
+            return MV_RPNV1;
+        }
+    }
+
     Status ModelInterpreter::InterpretProto(std::string content) {
         return TNN_NS::ModelInterpreter::InterpretProto(content);
     }

@@ -30,6 +30,9 @@ namespace rapidnetv3 {
         // model path.
         virtual Status Interpret(std::vector<std::string> params);
 
+        // @brief get model version
+        ModelVersion GetModelVersion();
+
         static Status RegisterLayerInterpreter(
             LayerType type, TNN_NS::AbstractLayerInterpreter* creator);
 
@@ -48,6 +51,9 @@ namespace rapidnetv3 {
         virtual std::string Transfer(std::string content);
         virtual bool IsValidVersionNumber(uint32_t number);
         virtual std::shared_ptr<TNN_NS::Deserializer> GetDeserializer(std::istream &is);
+
+    protected:
+        ModelVersion model_version_;
     };
 
 }  // namespace rapidnetv3
