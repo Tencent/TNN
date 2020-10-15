@@ -15,7 +15,6 @@
 #include "tnn_sdk_sample.h"
 
 #include <cstring>
-#include <sys/time.h>
 #include <float.h>
 
 #if defined(__APPLE__)
