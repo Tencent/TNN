@@ -49,19 +49,30 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         param->reshape_type = 1;
         param->axis         = 0;
         param->num_axes     = 4;
-        assert(tf_lite_operator->inputs.size() == 2);
-        const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
-        assert(shape_tensor->type == tflite::TensorType_INT32);
 
-        int shape_size = 1;
-        for (int i = 0; i < shape_tensor->shape.size(); ++i) {
-            shape_size *= shape_tensor->shape[i];
+        const auto option     = tf_lite_operator->builtin_options.AsReshapeOptions();
+        std::vector<int> reshape_dim;
+        if (tf_lite_operator->inputs.size() == 2) {
+            const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
+            assert(shape_tensor->type == tflite::TensorType_INT32);
+
+            int shape_size = 1;
+            for (int i = 0; i < shape_tensor->shape.size(); ++i) {
+                shape_size *= shape_tensor->shape[i];
+            }
+            const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
+            ASSERT(shape_size == shape_data.size() / 4);
+
+            auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
+            reshape_dim.assign(shape_data_ptr, shape_data_ptr + shape_size);
+        } else if (option->new_shape.size() > 0) {
+            const auto& new_shape = option->new_shape;
+            reshape_dim.assign(new_shape.begin(), new_shape.end());
+        } else {
+            LOGE("TNN Reshape do not support type\n");
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
-        ASSERT(shape_size == shape_data.size() / 4);
 
-        auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
-        std::vector<int> reshape_dim(shape_data_ptr, shape_data_ptr + shape_size);
         reshape_dim[0] = 0;
         ConvertShapeFormatTFLite(reshape_dim);
         param->shape = reshape_dim;
