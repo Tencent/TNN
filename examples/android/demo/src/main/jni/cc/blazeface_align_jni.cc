@@ -224,7 +224,7 @@ JNIEXPORT JNICALL jint TNN_BLAZEFACE_ALIGN(deinit)(JNIEnv *env, jobject thiz) {
 
 JNIEXPORT JNICALL jobjectArray
 TNN_BLAZEFACE_ALIGN(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width,
-                                         jint height, jint rotate) {
+                                         jint height, jint view_width, jint view_height, jint rotate) {
     jobjectArray faceInfoArray;
     auto asyncRefDetector = gAligner ;
     // Convert yuv to rgb
@@ -268,7 +268,8 @@ TNN_BLAZEFACE_ALIGN(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv4
         jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
         int keypointsNum = face.key_points.size();
 
-        auto face_orig = face.AdjustToViewSize(width, height, 2);
+        auto face_preview = face.AdjustToImageSize(width, height);
+        auto face_orig = face_preview.AdjustToViewSize(view_height, view_width, 2);
         //from here start to create point
         jclass cls1dArr = env->FindClass("[F");
         // Create the returnable jobjectArray with an initial value

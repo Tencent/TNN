@@ -64,6 +64,18 @@ void priorbox_set_value(const int N, const float alpha, float *Y);
 
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param);
+
+void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+
+void NaiveYUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12);
+
+void NaiveYUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12);
+
+void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
+                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel);
+
+void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_UTILS_NAIVE_COMPUTE_H_

@@ -12,10 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <fstream>
-
 #include "onnx/onnx_base_converter.h"
 #include "onnx/onnx_utils.h"
+#include "tnn/interpreter/raw_buffer.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/dims_vector_utils.h"
 

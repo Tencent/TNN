@@ -14,6 +14,9 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_PROXY_GRAPH_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_PROXY_GRAPH_H_
+#include <memory>
+#include <set>
+
 #include "onnx.pb.h"
 
 namespace TNN_CONVERTER {

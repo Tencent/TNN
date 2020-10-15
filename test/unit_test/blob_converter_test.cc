@@ -31,34 +31,38 @@ Context* BlobConverterTest::cpu_context_;
 Context* BlobConverterTest::device_context_;
 
 void BlobConverterTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // cpu
-    cpu_ = GetDevice(DEVICE_NAIVE);
-    ASSERT(cpu_ != NULL);
-
-    cpu_context_ = cpu_->CreateContext(0);
-    ASSERT(cpu_context_ != NULL);
-
-    // device
-    device_ = GetDevice(config.device_type);
-    ASSERT(device_ != NULL);
-
-    device_context_ = device_->CreateContext(config.device_id);
-    ASSERT(device_context_ != NULL);
-
-    ret = device_context_->LoadLibrary(config.library_path);
-    ASSERT(ret == TNN_OK);
+    SetUpEnvironment(&cpu_, &device_, &cpu_context_, &device_context_);
 }
 
 void BlobConverterTest::TearDownTestCase() {
     delete cpu_context_;
     delete device_context_;
+}
+
+bool BlobConverterTest::TestFilterCheck(
+        const DataType& blob_data_type, const DeviceType& dev,
+        const MatType& mat_type, const int batch, const int channel,
+        const int input_size, const bool reverse_channel) {
+    if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        return true;
+    }
+
+    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
+        return true;
+    }
+
+    if (mat_type == N8UC3 && channel != 3) {
+        return true;
+    } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
+        return true;
+    } else if (mat_type == NGRAY && channel != 1) {
+        return true;
+    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0 || DEVICE_ARM != dev)) {
+        return true;
+    } else if ((mat_type == NGRAY || mat_type == NNV12 || mat_type == NNV21 || mat_type == NCHW_FLOAT) && reverse_channel) {
+        return true;
+    }
+    return false;
 }
 
 bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
@@ -74,18 +78,25 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
         void* dev_mat_out_data  = nullptr;
         dev_mat_out_dev_data = malloc(out_size * sizeof(uint8_t));
         dev_mat_out_data = malloc(out_size * sizeof(uint8_t));
+#define FREE()                  \
+    free(dev_mat_out_dev_data); \
+    free(dev_mat_out_data);
+
+#define FREE_AND_RETURN()       \
+    FREE();                     \
+    return false;
 
         Mat device_mat_in(dev, mat_type, dims);
         Status ret;
         ret = MatUtils::Copy(cpu_mat_in, device_mat_in, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("copy cpu mat to device failed, mat type: %d\n", mat_type);
-            return false;
+            FREE_AND_RETURN();
         }
         ret = device_converter.ConvertFromMat(device_mat_in, from_mat_param, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
-            return false;
+            FREE_AND_RETURN();
         }
 
         Mat device_mat_out(dev, mat_type, dims);
@@ -95,12 +106,12 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
         ret = device_converter.ConvertToMat(device_mat_out, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-            return false;
+            FREE_AND_RETURN();
         }
         ret = MatUtils::Copy(device_mat_out, dev_mat_out_dev, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("copy device mat to cpu failed, mat type: %d\n", mat_type);
-            return false;
+            FREE_AND_RETURN();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_dev_data),
                                     mat_channel, channel, out_size);
@@ -108,13 +119,15 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in,
         ret = device_converter.ConvertToMat(dev_mat_out, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
             LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-            return false;
+            FREE_AND_RETURN();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_data),
                                     mat_channel, channel, out_size);
 
-        free(dev_mat_out_dev_data);
-        free(dev_mat_out_data);
+        FREE();
+
+#undef FREE
+#undef FREE_AND_RETURN
     }
     return cmp_result;
 }
@@ -150,28 +163,14 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     DataType blob_data_type = std::get<7>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+
+    if (TestFilterCheck(blob_data_type, dev, mat_type, batch, channel, input_size, reverse_channel)) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
-        GTEST_SKIP();
-    }
     bool need_tmp_buffer_metal = false;
     if (DEVICE_METAL == dev && N8UC4 == mat_type) {
         need_tmp_buffer_metal = true;
-    }
-
-    if (mat_type == N8UC3 && channel != 3) {
-        GTEST_SKIP();
-    } else if (mat_type == N8UC4 && channel != 3 && channel != 4) {
-        GTEST_SKIP();
-    } else if (mat_type == NGRAY && channel != 1) {
-        GTEST_SKIP();
-    } else if ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0 || DEVICE_ARM != dev)) {
-        GTEST_SKIP();
-    } else if ((mat_type == NGRAY || mat_type == NNV12 || mat_type == NNV21 || mat_type == NCHW_FLOAT) && reverse_channel) {
-        GTEST_SKIP();
     }
 
     int mat_channel;
@@ -206,6 +205,17 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         mat_out_ref_data = malloc(out_size * sizeof(uint8_t));
         mat_out_dev_data = malloc(out_size * sizeof(uint8_t));
     }
+
+#define CLEANUP()                   \
+    free(mat_in_data);              \
+    free(mat_out_ref_nchw_data);    \
+    free(mat_out_dev_nchw_data);    \
+    free(mat_out_ref_data);         \
+    free(mat_out_dev_data);         \
+
+#define CLEANUP_AND_FAIL()          \
+    CLEANUP();                      \
+    FAIL();                         \
 
     // blob desc
     BlobDesc cpu_blob_desc, device_blob_desc;
@@ -263,14 +273,14 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     ret = cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
     if (need_tmp_buffer_metal) {
         Mat metal_tmp_buffer(DEVICE_METAL, mat_type, dims);
         ret = MatUtils::Copy(mat_in, metal_tmp_buffer, device_command_queue);
         if (ret != TNN_OK) {
            LOGE("copy cpu mat to metal failed, mat type: %d\n", mat_type);
-           FAIL();
+           CLEANUP_AND_FAIL();
         }
         ret = device_converter.ConvertFromMat(metal_tmp_buffer, from_mat_param, device_command_queue);
     } else {
@@ -278,7 +288,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     }
     if (ret != TNN_OK) {
         LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
 
     MatConvertParam to_mat_param;
@@ -290,13 +300,13 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     ret = cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_dev_nchw_data);
     ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
     if (ret != TNN_OK) {
         LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
-        FAIL();
+        CLEANUP_AND_FAIL();
     }
 
     int cmp_result    = 0;
@@ -320,7 +330,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         ret = cpu_converter.ConvertToMat(mat_out_ref, to_mat_param, NULL);
         if (ret != TNN_OK) {
             LOGE("cpu converter convert blob to mat failed, mat type: %d\n", mat_type);
-            FAIL();
+            CLEANUP_AND_FAIL();
         }
 
         if (need_tmp_buffer_metal) {
@@ -328,18 +338,18 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             ret = device_converter.ConvertToMat(metal_tmp_buffer, to_mat_param, device_command_queue);
             if (ret != TNN_OK) {
                 LOGE("metal converter convert blob to mat failed, mat type: %d\n", mat_type);
-                FAIL();
+                CLEANUP_AND_FAIL();
             }
             ret = MatUtils::Copy(metal_tmp_buffer, mat_out_dev, device_command_queue);
             if (ret != TNN_OK) {
                 LOGE("copy metal mat to cpu failed, mat type: %d\n", mat_type);
-                FAIL();
+                CLEANUP_AND_FAIL();
             }
         } else {
             ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
             if (ret != TNN_OK) {
                 LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-                FAIL();
+                CLEANUP_AND_FAIL();
             }
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
@@ -352,11 +362,11 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     EXPECT_EQ(0, cmp_result);
 
-    free(mat_in_data);
-    free(mat_out_ref_nchw_data);
-    free(mat_out_dev_nchw_data);
-    free(mat_out_ref_data);
-    free(mat_out_dev_data);
+    CLEANUP();
+
+#undef CLEANUP
+#undef CLEANUP_AND_FAIL
+
 }
 
 }  // namespace TNN_NS

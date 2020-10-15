@@ -27,24 +27,6 @@
 #include "stb_image_write.h"
 
 using namespace TNN_NS;
-// Helper functions
-std::string fdLoadFile(std::string path) {
-    std::ifstream file(path, std::ios::in);
-    if (file.is_open()) {
-        file.seekg(0, file.end);
-        int size      = file.tellg();
-        char* content = new char[size];
-        file.seekg(0, file.beg);
-        file.read(content, size);
-        std::string fileContent;
-        fileContent.assign(content, size);
-        delete[] content;
-        file.close();
-        return fileContent;
-    } else {
-        return "";
-    }
-}
 
 int main(int argc, char** argv) {
 // int main(int argc, char** argv) {

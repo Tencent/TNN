@@ -394,7 +394,7 @@ Status LayerTest::Forward() {
     }
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
     auto profile_result = device_context_->FinishProfile();
-    auto result_str = profile_result->GetProfilingData();
+    auto result_str = profile_result->GetProfilingDataInfo();
     printf("%s", result_str.c_str());
 #endif
 

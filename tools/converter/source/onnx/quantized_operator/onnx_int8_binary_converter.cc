@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx/onnx_utils.h"
+#include "tnn/interpreter/raw_buffer.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
