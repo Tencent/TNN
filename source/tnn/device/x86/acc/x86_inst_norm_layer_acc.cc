@@ -55,133 +55,109 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         for (int b = 0; b < batch; b++) {
-            if (1) {
+            if (0) {
                 for (int c = 0; c < channels; c++) {
-                    if (0) {
-                        double sum_x = 0;
-                        double sum_x2 = 0;
-                        for (int hw = 0; hw < area; ++hw) {
-                            auto temp = input_data[hw];
-                            sum_x += temp;
-                            sum_x2 += temp * temp;
-                        }
-                        auto mean_x = sum_x / area;
-                        auto mean_x2 = sum_x2 / area;
-
-                        auto variance = mean_x2 - mean_x * mean_x;
-                        variance = variance > 0 ? variance : 0;
-                        variance = 1.0f / sqrt(variance + epsilon);
-
-                        double k = k_data[c];
-                        variance *= k;
-                        double b = b_data == NULL ? 0.0f : b_data[c];
-                        b -= mean_x * variance;
-                        for (int hw = 0; hw < area; ++hw, ++output_data, ++input_data) {
-                            *output_data = (float)((*input_data) * variance + b);
-                        }
-                    } else {
 #ifdef AVX2
-                        register __m256 _sum_x, _sum_x2;
-                        register float buffer[8];
-                        _sum_x = _mm256_setzero_ps();
-                        _sum_x2 = _mm256_setzero_ps();
+                    register __m256 _sum_x, _sum_x2;
+                    register float buffer[8];
+                    _sum_x = _mm256_setzero_ps();
+                    _sum_x2 = _mm256_setzero_ps();
 
-                        int head = 0;
-                        const int tail = area - area % 8;
-                        double temp;
-                        register __m256 _temp;
-                        for (size_t i = head; i < tail; i += 8) {
-                            _temp = _mm256_loadu_ps(input_data + i);
-                            _sum_x = _mm256_add_ps(_sum_x, _temp);
-                            _sum_x2 = _mm256_fmadd_ps(_temp, _temp, _sum_x2);
-                        }
-
-                        float sum_x, sum_x2;
-                        _mm256_storeu_ps(buffer, _sum_x);
-                        sum_x = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6] + buffer[7];
-                        _mm256_storeu_ps(buffer, _sum_x2);
-                        sum_x2 = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6] + buffer[7];
-                        for (size_t i = tail; i < area; i++) {
-                            temp = input_data[i];
-                            sum_x += temp;
-                            sum_x2 += temp * temp;
-                        }
-
-                        auto mean_x = sum_x / area;
-                        auto mean_x2 = sum_x2 / area;
-                        float variance = mean_x2 - mean_x * mean_x;
-                        variance = variance > 0 ? variance : 0;
-                        variance = 1.0f / sqrt(variance + epsilon);
-                        float k = k_data[c];
-                        variance *= k;
-
-                        float b = b_data == NULL ? 0.0f : b_data[c];
-                        b -= mean_x * variance;
-
-                        _sum_x = _mm256_broadcast_ss(&variance);
-                        _sum_x2 = _mm256_broadcast_ss(&b);
-                        const float *tail_p = output_data + tail;
-                        for (; output_data < tail_p; output_data += 8, input_data += 8) {
-                            // std::cout << i << std::endl;
-                            _temp = _mm256_loadu_ps(input_data);
-                            _temp = _mm256_fmadd_ps(_temp, _sum_x, _sum_x2);
-                            _mm256_storeu_ps(output_data, _temp);
-                        }
-                        for (size_t i = tail; i < area; i++, output_data++, input_data++) {
-                            *output_data = (*input_data) * variance + b;
-                        }
-#else
-                        register __m128 _sum_x, _sum_x2;
-                        register float buffer[4];
-                        _sum_x = _mm_setzero_ps();
-                        _sum_x2 = _mm_setzero_ps();
-
-                        int head = 0;
-                        const int tail = area - area % 4;
-                        double temp;
-                        register __m128 _temp;
-                        for (size_t i = head; i < tail; i += 4) {
-                            _temp = _mm_loadu_ps(input_data + i);
-                            _sum_x = _mm_add_ps(_sum_x, _temp);
-                            _sum_x2 = _mm_fmadd_ps(_temp, _temp, _sum_x2);
-                        }
-
-                        float sum_x, sum_x2;
-                        _mm_storeu_ps(buffer, _sum_x);
-                        sum_x = buffer[0] + buffer[1] + buffer[2] + buffer[3];
-                        _mm_storeu_ps(buffer, _sum_x2);
-                        sum_x2 = buffer[0] + buffer[1] + buffer[2] + buffer[3];
-                        for (size_t i = tail; i < area; i++) {
-                            temp = input_data[i];
-                            sum_x += temp;
-                            sum_x2 += temp * temp;
-                        }
-
-                        auto mean_x = sum_x / area;
-                        auto mean_x2 = sum_x2 / area;
-                        float variance = mean_x2 - mean_x * mean_x;
-                        variance = variance > 0 ? variance : 0;
-                        variance = 1.0f / sqrt(variance + epsilon);
-                        float k = k_data[c];
-                        variance *= k;
-
-                        float b = b_data == NULL ? 0.0f : b_data[c];
-                        b -= mean_x * variance;
-
-                        _sum_x = _mm_load1_ps(&variance);
-                        _sum_x2 = _mm_load1_ps(&b);
-                        const float *tail_p = output_data + tail;
-                        for (; output_data < tail_p; output_data += 4, input_data += 4) {
-                            // std::cout << i << std::endl;
-                            _temp = _mm_loadu_ps(input_data);
-                            _temp = _mm_fmadd_ps(_temp, _sum_x, _sum_x2);
-                            _mm_storeu_ps(output_data, _temp);
-                        }
-                        for (size_t i = tail; i < area; i++, output_data++, input_data++) {
-                            *output_data = (*input_data) * variance + b;
-                        }
-#endif
+                    int head = 0;
+                    const int tail = area - area % 8;
+                    double temp;
+                    register __m256 _temp;
+                    for (size_t i = head; i < tail; i += 8) {
+                        _temp = _mm256_loadu_ps(input_data + i);
+                        _sum_x = _mm256_add_ps(_sum_x, _temp);
+                        _sum_x2 = _mm256_fmadd_ps(_temp, _temp, _sum_x2);
                     }
+
+                    float sum_x, sum_x2;
+                    _mm256_storeu_ps(buffer, _sum_x);
+                    sum_x = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6] + buffer[7];
+                    _mm256_storeu_ps(buffer, _sum_x2);
+                    sum_x2 = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6] + buffer[7];
+                    for (size_t i = tail; i < area; i++) {
+                        temp = input_data[i];
+                        sum_x += temp;
+                        sum_x2 += temp * temp;
+                    }
+
+                    auto mean_x = sum_x / area;
+                    auto mean_x2 = sum_x2 / area;
+                    float variance = mean_x2 - mean_x * mean_x;
+                    variance = variance > 0 ? variance : 0;
+                    variance = 1.0f / sqrt(variance + epsilon);
+                    float k = k_data[c];
+                    variance *= k;
+
+                    float b = b_data == NULL ? 0.0f : b_data[c];
+                    b -= mean_x * variance;
+
+                    _sum_x = _mm256_broadcast_ss(&variance);
+                    _sum_x2 = _mm256_broadcast_ss(&b);
+                    const float *tail_p = output_data + tail;
+                    for (; output_data < tail_p; output_data += 8, input_data += 8) {
+                        // std::cout << i << std::endl;
+                        _temp = _mm256_loadu_ps(input_data);
+                        _temp = _mm256_fmadd_ps(_temp, _sum_x, _sum_x2);
+                        _mm256_storeu_ps(output_data, _temp);
+                    }
+                    for (size_t i = tail; i < area; i++, output_data++, input_data++) {
+                        *output_data = (*input_data) * variance + b;
+                    }
+#else
+                    register __m128 _sum_x, _sum_x2;
+                    register float buffer[4];
+                    _sum_x = _mm_setzero_ps();
+                    _sum_x2 = _mm_setzero_ps();
+
+                    int head = 0;
+                    const int tail = area - area % 4;
+                    double temp;
+                    register __m128 _temp;
+                    for (size_t i = head; i < tail; i += 4) {
+                        _temp = _mm_loadu_ps(input_data + i);
+                        _sum_x = _mm_add_ps(_sum_x, _temp);
+                        _sum_x2 = _mm_fmadd_ps(_temp, _temp, _sum_x2);
+                    }
+
+                    float sum_x, sum_x2;
+                    _mm_storeu_ps(buffer, _sum_x);
+                    sum_x = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+                    _mm_storeu_ps(buffer, _sum_x2);
+                    sum_x2 = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+                    for (size_t i = tail; i < area; i++) {
+                        temp = input_data[i];
+                        sum_x += temp;
+                        sum_x2 += temp * temp;
+                    }
+
+                    auto mean_x = sum_x / area;
+                    auto mean_x2 = sum_x2 / area;
+                    float variance = mean_x2 - mean_x * mean_x;
+                    variance = variance > 0 ? variance : 0;
+                    variance = 1.0f / sqrt(variance + epsilon);
+                    float k = k_data[c];
+                    variance *= k;
+
+                    float b = b_data == NULL ? 0.0f : b_data[c];
+                    b -= mean_x * variance;
+
+                    _sum_x = _mm_load1_ps(&variance);
+                    _sum_x2 = _mm_load1_ps(&b);
+                    const float *tail_p = output_data + tail;
+                    for (; output_data < tail_p; output_data += 4, input_data += 4) {
+                        // std::cout << i << std::endl;
+                        _temp = _mm_loadu_ps(input_data);
+                        _temp = _mm_fmadd_ps(_temp, _sum_x, _sum_x2);
+                        _mm_storeu_ps(output_data, _temp);
+                    }
+                    for (size_t i = tail; i < area; i++, output_data++, input_data++) {
+                        *output_data = (*input_data) * variance + b;
+                    }
+#endif
                 }
             } else {
                 for (int c = 0; c < channels; c += 4) {
@@ -435,5 +411,5 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
     return TNN_OK;
 }
 
-REGISTER_X86_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+// REGISTER_X86_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
 }

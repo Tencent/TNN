@@ -20,7 +20,7 @@
 namespace TNN_NS {
     
 DECLARE_CUSTOM_OP(InstanceNorm);
-REGISTER_CUTOM_OP(InstanceNorm);
+REGISTER_CUSTOM_OP(InstanceNorm);
 
 DECLARE_CUSTOM_IMPLEMENTATION(InstanceNorm);
 REGISTER_CUSTOM_IMPLEMENTATION(InstanceNorm, CustomInstanceNorm);

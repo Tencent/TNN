@@ -12,17 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/openvino/custom_layer/custom_implementation.h"
-#include "immintrin.h"
-#include "time.h"
-#include <chrono>
+#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+#include <cmath>
 
 namespace TNN_NS {
-    
-DECLARE_CUSTOM_OP(BatchNorm);
-REGISTER_CUSTOM_OP(BatchNorm);
+typedef struct x86_sign_operator : x86_unary_operator {
+    virtual float operator()(const float v) {
+        float tmp = v;
+        if (tmp > 0) return 1;
+        else if (tmp < 0) return -1;
+        else return 0;
+    }
+} X86_SIGN_OP;
 
-DECLARE_CUSTOM_IMPLEMENTATION(BatchNorm);
-REGISTER_CUSTOM_IMPLEMENTATION(BatchNorm, CustomBatchNorm);
+DECLARE_X86_UNARY_ACC(Sign, X86_SIGN_OP);
 
-}
+REGISTER_X86_ACC(Sign, LAYER_SIGN);
+
+}   // namespace TNN_NS
