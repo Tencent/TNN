@@ -197,7 +197,7 @@ Status Worker::FaceDetectWithPaint(cv::Mat &frame, cv::Mat &frame_paint) {
         auto face = face_info[i].AdjustToViewSize(image_orig_height, image_orig_width, 2);
         cv::Point top_left(face.x1, face.y1);
         cv::Point bottom_right(face.x2, face.y2);
-        cv::rectangle(frame_paint, top_left, bottom_right, cv::Scalar(0, 0, 255));
+        cv::rectangle(frame_paint, top_left, bottom_right, cv::Scalar(0, 255, 127));
     }
 
     return TNN_OK;
@@ -282,8 +282,8 @@ Status Worker::FrocessFrame(cv::Mat &frame, cv::Mat &frame_paint) {
     cv::Mat frame_croped = frame(roi).clone();
     cv::Mat frame_paint_croped = frame_paint(roi);
 
-    // RETURN_ON_NEQ(FaceDetectWithPaint(frame, frame_paint), TNN_OK);
-    RETURN_ON_NEQ(BlazeFaceDetectWithPaint(frame_croped, frame_paint_croped), TNN_OK);
+    RETURN_ON_NEQ(FaceDetectWithPaint(frame, frame_paint), TNN_OK);
+    // RETURN_ON_NEQ(BlazeFaceDetectWithPaint(frame_croped, frame_paint_croped), TNN_OK);
     RETURN_ON_NEQ(AlignWithPaint(frame_croped, frame_paint_croped), TNN_OK);
 
     fps_counter_->End("frame");
