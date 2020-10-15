@@ -27,44 +27,44 @@
 namespace TNN_NS {
 
 #define COMPUTE_UNIT_LOW(c, i)                                                                                         \
-    const int16x8_t vb01234567c##c = vmvol_s8(vld1_u8(w));                                                             \
+    const int16x8_t vb01234567c##c = vmovl_s8(vld1_s8((const int8_t*)w));                                              \
     w                              = (const void*)((uintptr_t)w + 8);                                                  \
-    vacc0x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va0), i);         \
-    vacc0x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va0), i);        \
-    vacc1x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va1), i);         \
-    vacc1x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va1), i);        \
-    vacc2x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va2), i);         \
-    vacc2x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va2), i);        \
-    vacc3x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va3), i);         \
-    vacc3x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va3), i);        \
-    vacc4x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va4), i);         \
-    vacc4x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va4), i);        \
-    vacc5x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va5), i);         \
-    vacc5x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va5), i);        \
-    vacc6x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va6), i);         \
-    vacc6x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va6), i);        \
-    vacc7x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_low_s16(va7), i);         \
-    vacc7x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_low_s16(va7), i);
+    vacc0x0123                     = vmlal_lane_s16(vacc0x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va0), i);   \
+    vacc0x4567                     = vmlal_lane_s16(vacc0x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va0), i);  \
+    vacc1x0123                     = vmlal_lane_s16(vacc1x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va1), i);   \
+    vacc1x4567                     = vmlal_lane_s16(vacc1x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va1), i);  \
+    vacc2x0123                     = vmlal_lane_s16(vacc2x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va2), i);   \
+    vacc2x4567                     = vmlal_lane_s16(vacc2x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va2), i);  \
+    vacc3x0123                     = vmlal_lane_s16(vacc3x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va3), i);   \
+    vacc3x4567                     = vmlal_lane_s16(vacc3x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va3), i);  \
+    vacc4x0123                     = vmlal_lane_s16(vacc4x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va4), i);   \
+    vacc4x4567                     = vmlal_lane_s16(vacc4x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va4), i);  \
+    vacc5x0123                     = vmlal_lane_s16(vacc5x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va5), i);   \
+    vacc5x4567                     = vmlal_lane_s16(vacc5x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va5), i);  \
+    vacc6x0123                     = vmlal_lane_s16(vacc6x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va6), i);   \
+    vacc6x4567                     = vmlal_lane_s16(vacc6x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va6), i);  \
+    vacc7x0123                     = vmlal_lane_s16(vacc7x0123, vget_low_s16(vb01234567c##c), vget_low_s16(va7), i);   \
+    vacc7x4567                     = vmlal_lane_s16(vacc7x4567, vget_high_s16(vb01234567c##c), vget_low_s16(va7), i);
 
 #define COMPUTE_UNIT_HIGH(c, i)                                                                                        \
-    const int16x8_t vb01234567c##c = vmvol_s8(vld1_u8(w));                                                             \
+    const int16x8_t vb01234567c##c = vmovl_s8(vld1_s8((const int8_t*)w));                                              \
     w                              = (const void*)((uintptr_t)w + 8);                                                  \
-    vacc0x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va0), i);        \
-    vacc0x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va0), i);       \
-    vacc1x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va1), i);        \
-    vacc1x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va1), i);       \
-    vacc2x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va2), i);        \
-    vacc2x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va2), i);       \
-    vacc3x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va3), i);        \
-    vacc3x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va3), i);       \
-    vacc4x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va4), i);        \
-    vacc4x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va4), i);       \
-    vacc5x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va5), i);        \
-    vacc5x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va5), i);       \
-    vacc6x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va6), i);        \
-    vacc6x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va6), i);       \
-    vacc7x0123                     = vmlal_s16(vacc0x0123, vget_low_s16(vb0123456c##c), vget_high_s16(va7), i);        \
-    vacc7x4567                     = vmlal_s16(vacc0x4567, vget_high_s16(vb0123456c##c), vget_high_s16(va7), i);
+    vacc0x0123                     = vmlal_lane_s16(vacc0x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va0), i);  \
+    vacc0x4567                     = vmlal_lane_s16(vacc0x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va0), i); \
+    vacc1x0123                     = vmlal_lane_s16(vacc1x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va1), i);  \
+    vacc1x4567                     = vmlal_lane_s16(vacc1x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va1), i); \
+    vacc2x0123                     = vmlal_lane_s16(vacc2x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va2), i);  \
+    vacc2x4567                     = vmlal_lane_s16(vacc2x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va2), i); \
+    vacc3x0123                     = vmlal_lane_s16(vacc3x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va3), i);  \
+    vacc3x4567                     = vmlal_lane_s16(vacc3x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va3), i); \
+    vacc4x0123                     = vmlal_lane_s16(vacc4x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va4), i);  \
+    vacc4x4567                     = vmlal_lane_s16(vacc4x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va4), i); \
+    vacc5x0123                     = vmlal_lane_s16(vacc5x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va5), i);  \
+    vacc5x4567                     = vmlal_lane_s16(vacc5x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va5), i); \
+    vacc6x0123                     = vmlal_lane_s16(vacc6x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va6), i);  \
+    vacc6x4567                     = vmlal_lane_s16(vacc6x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va6), i); \
+    vacc7x0123                     = vmlal_lane_s16(vacc7x0123, vget_low_s16(vb01234567c##c), vget_high_s16(va7), i);  \
+    vacc7x4567                     = vmlal_lane_s16(vacc7x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va7), i);
 
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
                      long output_channel_index, float* scales) {
@@ -87,8 +87,8 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
         }
     }
 #else
-    int32x4_t vacc0x0123 = vld1q_s32(w); w = (const void*)((uintptr_t)w + 16);
-    int32x4_t vacc0x4567 = vld1q_s32(w); w = (const void*)((uintptr_t)w + 16);
+    int32x4_t vacc0x0123 = vld1q_s32((const int*)w); w = (const void*)((uintptr_t)w + 16);
+    int32x4_t vacc0x4567 = vld1q_s32((const int*)w); w = (const void*)((uintptr_t)w + 16);
     int32x4_t vacc1x0123 = vacc0x0123;
     int32x4_t vacc1x4567 = vacc0x4567;
     int32x4_t vacc2x0123 = vacc0x0123;
@@ -207,31 +207,31 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
 
     const float32x4_t vscale0123 = vld1q_f32(scales + output_channel_index);
     const float32x4_t vscale4567 = (nr > 4) ? vld1q_f32(scales + output_channel_index + 4) : vdupq_n_f32(0.f);
-    vacc0x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc0x0123), vscale0123); 
-    vacc1x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc1x0123), vscale0123); 
-    vacc2x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc2x0123), vscale0123); 
-    vacc3x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc3x0123), vscale0123); 
-    vacc4x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc4x0123), vscale0123); 
-    vacc5x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc5x0123), vscale0123); 
-    vacc6x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc6x0123), vscale0123); 
-    vacc7x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc7x0123), vscale0123); 
-    vacc0x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc0x4567), vscale4567); 
-    vacc1x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc1x4567), vscale4567); 
-    vacc2x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc2x4567), vscale4567); 
-    vacc3x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc3x4567), vscale4567); 
-    vacc4x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc4x4567), vscale4567); 
-    vacc5x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc5x4567), vscale4567); 
-    vacc6x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc6x4567), vscale4567); 
-    vacc7x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc7x4567), vscale4567);
+    vacc0x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc0x0123), vscale0123));
+    vacc1x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc1x0123), vscale0123));
+    vacc2x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc2x0123), vscale0123));
+    vacc3x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc3x0123), vscale0123));
+    vacc4x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc4x0123), vscale0123));
+    vacc5x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc5x0123), vscale0123));
+    vacc6x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc6x0123), vscale0123));
+    vacc7x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc7x0123), vscale0123));
+    vacc0x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc0x4567), vscale4567));
+    vacc1x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc1x4567), vscale4567));
+    vacc2x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc2x4567), vscale4567));
+    vacc3x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc3x4567), vscale4567));
+    vacc4x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc4x4567), vscale4567));
+    vacc5x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc5x4567), vscale4567));
+    vacc6x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc6x4567), vscale4567));
+    vacc7x4567 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc7x4567), vscale4567));
 
-    const int8x8_t vacc0x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc0x0123), vacc0x4567));
-    const int8x8_t vacc1x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc1x0123), vacc1x4567));
-    const int8x8_t vacc2x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc2x0123), vacc2x4567));
-    const int8x8_t vacc3x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc3x0123), vacc3x4567));
-    const int8x8_t vacc4x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc4x0123), vacc4x4567));
-    const int8x8_t vacc5x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc5x0123), vacc5x4567));
-    const int8x8_t vacc6x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc6x0123), vacc6x4567));
-    const int8x8_t vacc7x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc7x0123), vacc7x4567));
+    int8x8_t vacc0x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc0x0123), vacc0x4567));
+    int8x8_t vacc1x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc1x0123), vacc1x4567));
+    int8x8_t vacc2x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc2x0123), vacc2x4567));
+    int8x8_t vacc3x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc3x0123), vacc3x4567));
+    int8x8_t vacc4x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc4x0123), vacc4x4567));
+    int8x8_t vacc5x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc5x0123), vacc5x4567));
+    int8x8_t vacc6x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc6x0123), vacc6x4567));
+    int8x8_t vacc7x01234567 = vqmovn_s16(VQMOVN_HIGH_S32_T(vqmovn_s32(vacc7x0123), vacc7x4567));
 
     int8_t* c0 = c;
     int8_t* c1 = (int8_t*) ((uintptr_t)c0 + c_stride);
@@ -264,78 +264,78 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
     }
 
     if (nr == 8) {
-        vst1_u8(c0, vacc0x01234567);
-        vst1_u8(c1, vacc1x01234567);
-        vst1_u8(c2, vacc2x01234567);
-        vst1_u8(c3, vacc3x01234567);
-        vst1_u8(c4, vacc4x01234567);
-        vst1_u8(c5, vacc5x01234567);
-        vst1_u8(c6, vacc6x01234567);
-        vst1_u8(c7, vacc7x01234567);
+        vst1_s8(c0, vacc0x01234567);
+        vst1_s8(c1, vacc1x01234567);
+        vst1_s8(c2, vacc2x01234567);
+        vst1_s8(c3, vacc3x01234567);
+        vst1_s8(c4, vacc4x01234567);
+        vst1_s8(c5, vacc5x01234567);
+        vst1_s8(c6, vacc6x01234567);
+        vst1_s8(c7, vacc7x01234567);
     } else {
         if (nr >= 4) {
-            vst1_lane_s32(__builtin_assume_aligned(c0, 1), vreinterpret_s32_s8(vacc0x01234567), 0);
+            vst1_lane_s32((int32_t *)c0, vreinterpret_s32_s8(vacc0x01234567), 0);
             c0 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c1, 1), vreinterpret_s32_s8(vacc1x01234567), 0);
+            vst1_lane_s32((int32_t *)c1, vreinterpret_s32_s8(vacc1x01234567), 0);
             c1 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c2, 1), vreinterpret_s32_s8(vacc2x01234567), 0);
+            vst1_lane_s32((int32_t *)c2, vreinterpret_s32_s8(vacc2x01234567), 0);
             c2 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c3, 1), vreinterpret_s32_s8(vacc3x01234567), 0);
+            vst1_lane_s32((int32_t *)c3, vreinterpret_s32_s8(vacc3x01234567), 0);
             c3 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c4, 1), vreinterpret_s32_s8(vacc4x01234567), 0);
+            vst1_lane_s32((int32_t *)c4, vreinterpret_s32_s8(vacc4x01234567), 0);
             c4 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c5, 1), vreinterpret_s32_s8(vacc5x01234567), 0);
+            vst1_lane_s32((int32_t *)c5, vreinterpret_s32_s8(vacc5x01234567), 0);
             c5 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c6, 1), vreinterpret_s32_s8(vacc6x01234567), 0);
+            vst1_lane_s32((int32_t *)c6, vreinterpret_s32_s8(vacc6x01234567), 0);
             c6 += 4;
-            vst1_lane_s32(__builtin_assume_aligned(c7, 1), vreinterpret_s32_s8(vacc7x01234567), 0);
+            vst1_lane_s32((int32_t *)c7, vreinterpret_s32_s8(vacc7x01234567), 0);
             c7 += 4;
-            vacc0x012345678 = vext_s8(vacc0x01234567, vacc0x01234567, 4);
-            vacc1x012345678 = vext_s8(vacc1x01234567, vacc1x01234567, 4);
-            vacc2x012345678 = vext_s8(vacc2x01234567, vacc2x01234567, 4);
-            vacc3x012345678 = vext_s8(vacc3x01234567, vacc3x01234567, 4);
-            vacc4x012345678 = vext_s8(vacc4x01234567, vacc4x01234567, 4);
-            vacc5x012345678 = vext_s8(vacc5x01234567, vacc5x01234567, 4);
-            vacc6x012345678 = vext_s8(vacc6x01234567, vacc6x01234567, 4);
-            vacc7x012345678 = vext_s8(vacc7x01234567, vacc7x01234567, 4);
+            vacc0x01234567 = vext_s8(vacc0x01234567, vacc0x01234567, 4);
+            vacc1x01234567 = vext_s8(vacc1x01234567, vacc1x01234567, 4);
+            vacc2x01234567 = vext_s8(vacc2x01234567, vacc2x01234567, 4);
+            vacc3x01234567 = vext_s8(vacc3x01234567, vacc3x01234567, 4);
+            vacc4x01234567 = vext_s8(vacc4x01234567, vacc4x01234567, 4);
+            vacc5x01234567 = vext_s8(vacc5x01234567, vacc5x01234567, 4);
+            vacc6x01234567 = vext_s8(vacc6x01234567, vacc6x01234567, 4);
+            vacc7x01234567 = vext_s8(vacc7x01234567, vacc7x01234567, 4);
             nr -= 4;
         }
         if (nr >= 2) {
-            vst1_lane_s16(__builtin_assume_aligned(c0, 1), vreinterpret_s16_s8(vacc0x01234567), 0);
+            vst1_lane_s16((int16_t *)c0, vreinterpret_s16_s8(vacc0x01234567), 0);
             c0 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c1, 1), vreinterpret_s16_s8(vacc1x01234567), 0);
+            vst1_lane_s16((int16_t *)c1, vreinterpret_s16_s8(vacc1x01234567), 0);
             c1 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c2, 1), vreinterpret_s16_s8(vacc2x01234567), 0);
+            vst1_lane_s16((int16_t *)c2, vreinterpret_s16_s8(vacc2x01234567), 0);
             c2 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c3, 1), vreinterpret_s16_s8(vacc3x01234567), 0);
+            vst1_lane_s16((int16_t *)c3, vreinterpret_s16_s8(vacc3x01234567), 0);
             c3 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c4, 1), vreinterpret_s16_s8(vacc4x01234567), 0);
+            vst1_lane_s16((int16_t *)c4, vreinterpret_s16_s8(vacc4x01234567), 0);
             c4 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c5, 1), vreinterpret_s16_s8(vacc5x01234567), 0);
+            vst1_lane_s16((int16_t *)c5, vreinterpret_s16_s8(vacc5x01234567), 0);
             c5 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c6, 1), vreinterpret_s16_s8(vacc6x01234567), 0);
+            vst1_lane_s16((int16_t *)c6, vreinterpret_s16_s8(vacc6x01234567), 0);
             c6 += 2;
-            vst1_lane_s16(__builtin_assume_aligned(c7, 1), vreinterpret_s16_s8(vacc7x01234567), 0);
+            vst1_lane_s16((int16_t *)c7, vreinterpret_s16_s8(vacc7x01234567), 0);
             c7 += 2;
-            vacc0x012345678 = vext_s8(vacc0x01234567, vacc0x01234567, 2);
-            vacc1x012345678 = vext_s8(vacc1x01234567, vacc1x01234567, 2);
-            vacc2x012345678 = vext_s8(vacc2x01234567, vacc2x01234567, 2);
-            vacc3x012345678 = vext_s8(vacc3x01234567, vacc3x01234567, 2);
-            vacc4x012345678 = vext_s8(vacc4x01234567, vacc4x01234567, 2);
-            vacc5x012345678 = vext_s8(vacc5x01234567, vacc5x01234567, 2);
-            vacc6x012345678 = vext_s8(vacc6x01234567, vacc6x01234567, 2);
-            vacc7x012345678 = vext_s8(vacc7x01234567, vacc7x01234567, 2);
+            vacc0x01234567 = vext_s8(vacc0x01234567, vacc0x01234567, 2);
+            vacc1x01234567 = vext_s8(vacc1x01234567, vacc1x01234567, 2);
+            vacc2x01234567 = vext_s8(vacc2x01234567, vacc2x01234567, 2);
+            vacc3x01234567 = vext_s8(vacc3x01234567, vacc3x01234567, 2);
+            vacc4x01234567 = vext_s8(vacc4x01234567, vacc4x01234567, 2);
+            vacc5x01234567 = vext_s8(vacc5x01234567, vacc5x01234567, 2);
+            vacc6x01234567 = vext_s8(vacc6x01234567, vacc6x01234567, 2);
+            vacc7x01234567 = vext_s8(vacc7x01234567, vacc7x01234567, 2);
             nr -= 2;
         }
         if (nr != 0) {
-            vst1q_lane_u8(c0, vacc0x01234567, 0);
-            vst1q_lane_u8(c1, vacc1x01234567, 0);
-            vst1q_lane_u8(c2, vacc2x01234567, 0);
-            vst1q_lane_u8(c3, vacc3x01234567, 0);
-            vst1q_lane_u8(c4, vacc4x01234567, 0);
-            vst1q_lane_u8(c5, vacc5x01234567, 0);
-            vst1q_lane_u8(c6, vacc6x01234567, 0);
-            vst1q_lane_u8(c7, vacc7x01234567, 0);
+            vst1_lane_s8(c0, vacc0x01234567, 0);
+            vst1_lane_s8(c1, vacc1x01234567, 0);
+            vst1_lane_s8(c2, vacc2x01234567, 0);
+            vst1_lane_s8(c3, vacc3x01234567, 0);
+            vst1_lane_s8(c4, vacc4x01234567, 0);
+            vst1_lane_s8(c5, vacc5x01234567, 0);
+            vst1_lane_s8(c6, vacc6x01234567, 0);
+            vst1_lane_s8(c7, vacc7x01234567, 0);
         }
     }
 #endif
