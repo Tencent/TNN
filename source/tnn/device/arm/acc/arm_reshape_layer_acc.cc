@@ -50,8 +50,6 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR nhwc/int8 fc, in todo list");
     }
-
-    return TNN_OK;
 }
 
 template <typename T>

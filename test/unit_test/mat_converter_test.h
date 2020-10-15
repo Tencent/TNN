@@ -48,7 +48,7 @@ struct MatConverterTestParam
     // WarpAffine
     WarpAffineParam warp_affine_param;
     // CvtColor
-    ColorConversionType cvt_type;
+    ColorConversionType cvt_type = COLOR_CONVERT_NV12TOBGR;
 
     // for Copy
     MatConverterTestParam(MatConverterType converter_type) :
@@ -108,6 +108,19 @@ protected:
     int Compare(Blob* cpu_blob, Blob* device_blob);
     int CreateTestData(int batch, int channel, int input_size, MatType mat_type, int output_size);
     int DestroyTestData();
+
+    bool OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type);
+    bool MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
+                         const MatConverterType& mat_converter_type, const int batch);
+    bool MatChannelCheck(const MatType& mat_type, const int channel);
+    bool CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
+                       const MatConverterType& mat_converter_type,
+                       const ColorConversionType& cvt_type,
+                       const int input_size);
+    void GetOutputSize(const MatConverterTestParam& mat_converter_test_param,
+                       const MatConverterType& mat_converter_type,
+                       const int input_size,
+                       int& output_size);
 
     void* mat_in_data_;
     void* mat_out_ref_data_;

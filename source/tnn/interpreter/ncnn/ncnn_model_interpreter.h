@@ -34,7 +34,7 @@ namespace ncnn {
     class NCNNModelInterpreter : public DefaultModelInterpreter {
     public:
         // @brief ncnn model interpreter load params is param content and bin
-        virtual Status Interpret(std::vector<std::string> params);
+        virtual Status Interpret(std::vector<std::string> &params);
 
         static Status RegisterLayerInterpreter(std::string type_name, AbstractLayerInterpreter* creator);
 
@@ -42,9 +42,12 @@ namespace ncnn {
         static std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
 
     private:
-        Status InterpretProto(std::string content);
-        Status InterpretModel(std::string model_content);
+        Status InterpretProto(std::string &content);
+        Status InterpretModel(std::string &model_content);
         Status InterpretInput();
+        Status AppendCommonLayer(
+            str_arr& layer_cfg_arr, NetStructure *structure,
+            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map);
 
         Status FindOutputs();
         Status Convert(shared_ptr<LayerInfo> cur_layer, std::vector<std::shared_ptr<LayerInfo>> output_layers);

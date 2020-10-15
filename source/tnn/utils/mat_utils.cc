@@ -36,6 +36,9 @@ Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
             return Status(TNNERR_PARAM_ERR, "src and dst DeviceType need be equal or one is device cpu");
         }
         auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(device_type);
+        if (!converter) {
+            return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
+        }
         return converter->Copy(src, dst, command_queue);
     }else {
         return Status(TNNERR_PARAM_ERR, "src and dst dims or MatType not equal"); 
@@ -43,6 +46,9 @@ Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
 }
 
 Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
+    if (src.GetWidth() == 0 || src.GetHeight() == 0) {
+        return Status(TNNERR_INVALID_INPUT, "src size is zero");
+    }
     if(param.scale_w == 0) {
          param.scale_w = (double)dst.GetWidth() / src.GetWidth();
     }
@@ -53,6 +59,9 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
         return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    if (!converter) {
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
+    }
     return converter->Resize(src, dst, param, command_queue);
 }
 
@@ -67,6 +76,9 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
         return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    if (!converter) {
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
+    }
     return converter->Crop(src, dst, param, command_queue);
 }
 
@@ -75,6 +87,9 @@ Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* com
         return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    if (!converter) {
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
+    }
     return converter->WarpAffine(src, dst, param, command_queue);
 }
 
@@ -83,6 +98,9 @@ Status MatUtils::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* co
         return Status(TNNERR_PARAM_ERR, "DeviceType or MatType not equal");
     }
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(src.GetDeviceType());
+    if (!converter) {
+        return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");
+    }
     return converter->CvtColor(src, dst, type, command_queue);
 }
 

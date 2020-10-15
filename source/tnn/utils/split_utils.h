@@ -40,6 +40,10 @@ private:
     static bool IsQuote(char c);
     static char *StrNCpy(char *dst, const char *src, int maxcnt);
     static int TrimStr(char *pstr, const char trim_char = ' ', bool trim_gb = false);
+    static void ParseStr(const char *str, char *subs, const int len,
+                         const bool supp_quote, const bool trim, const bool ignore_blank,
+                         const bool trim_quote, const bool supp_quanjiao, const int i,
+                         int& cursor, bool &left_quote, bool &right_quote);
 };
 
 }  // namespace TNN_NS

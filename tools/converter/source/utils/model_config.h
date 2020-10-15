@@ -23,11 +23,7 @@
 
 namespace TNN_CONVERTER {
 
-typedef enum {
-    MODEL_TYPE_CAFFE   = 0,
-    MODEL_TYPE_TF      = 1,
-    MODEL_TYPE_TF_LITE = 2,
-} ModelType;
+typedef enum { MODEL_TYPE_CAFFE = 0, MODEL_TYPE_TF = 1, MODEL_TYPE_TF_LITE = 2, MODEL_TYPE_ONNX = 3 } ModelType;
 
 class ModelConfig {
 public:

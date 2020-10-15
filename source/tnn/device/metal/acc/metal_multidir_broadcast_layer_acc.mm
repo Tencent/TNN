@@ -67,10 +67,6 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     return status;
 }
 
-std::string MetalMultidirBroadcastLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return "";
-}
-
 Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
                                                              id<MTLComputeCommandEncoder> encoder,
                                                              const std::vector<Blob *> &inputs,
@@ -108,16 +104,6 @@ Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
                 offset:(NSUInteger)output->GetHandle().bytes_offset
                atIndex:2];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-    return TNN_OK;
-}
-
-Status MetalMultidirBroadcastLayerAcc::ComputeThreadSize(
-                                                         const std::vector<Blob *> &inputs,
-                                                         const std::vector<Blob *> &outputs,
-                                                         MTLSize &size) {
-    auto output = outputs[0];
-    auto dims_output  = output->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, true);
     return TNN_OK;
 }
 

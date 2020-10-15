@@ -23,6 +23,7 @@ Status ArgMaxOrMinLayer::InferOutputDataType() {
 
 Status ArgMaxOrMinLayer::InferOutputShape() {
     auto param                      = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
+    CHECK_PARAM_NULL(param);
     auto input_blob                 = input_blobs_[0];
     auto output_blob                = output_blobs_[0];
     output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;

@@ -20,6 +20,17 @@ BinaryLayerTest::BinaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
+bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        return true;
+    }
+
+    if (batch > 1 && DEVICE_METAL == dev) {
+        return true;
+    }
+    return false;
+}
+
 void BinaryLayerTest::RunBinaryTest() {
     // get param
     int batch            = std::get<0>(GetParam());
@@ -32,11 +43,7 @@ void BinaryLayerTest::RunBinaryTest() {
     LayerType layer_type = layer_type_;
     DeviceType dev       = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (batch > 1 && DEVICE_METAL == dev) {
+    if (InputParamCheck(data_type, dev, batch)) {
         GTEST_SKIP();
     }
 
