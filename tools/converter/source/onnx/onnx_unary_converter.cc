@@ -43,5 +43,6 @@ TNN_NS::Status OnnxUnaryConverter::exec(tnn::NetStructure &net_structure, tnn::N
 
 REGISTER_CONVERTER(Unary, Shape);
 REGISTER_CONVERTER(Unary, Floor);
+REGISTER_CONVERTER(Unary, Relu);
 
 }  // namespace TNN_CONVERTER
