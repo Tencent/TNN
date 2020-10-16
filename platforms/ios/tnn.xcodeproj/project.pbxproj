@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1FC98D8D25039D6000A81D79 /* arm_conv_layer_group.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1FC98D8B25039D5F00A81D79 /* arm_conv_layer_group.cc */; };
 		1FC98D8E25039D6000A81D79 /* arm_conv_layer_group.h in Headers */ = {isa = PBXBuildFile; fileRef = 1FC98D8C25039D6000A81D79 /* arm_conv_layer_group.h */; };
+		5046C44D2539C9FB002EC590 /* encryption.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCF5247CEB2B00800139 /* encryption.cc */; };
 		9D29E25122DC89310050DC63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D29E25022DC89300050DC63 /* Foundation.framework */; };
 		9D2DB1D622D759C8000C508F /* tnn.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D2DB1D422D759C8000C508F /* tnn.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9D31636023169B1600531250 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D31635F23169B1600531250 /* CoreML.framework */; };
@@ -587,7 +588,6 @@
 		9DD1FCF0247CEA1500800139 /* arm_device.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FC63247CEA1400800139 /* arm_device.h */; };
 		9DD1FCF1247CEA1500800139 /* arm_device.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FC64247CEA1400800139 /* arm_device.cc */; };
 		9DD1FCFB247CEB2B00800139 /* encryption.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF4247CEB2B00800139 /* encryption.h */; };
-		9DD1FCFC247CEB2B00800139 /* encryption.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCF5247CEB2B00800139 /* encryption.cc */; };
 		9DD1FCFD247CEB2B00800139 /* model_interpreter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF6247CEB2B00800139 /* model_interpreter.h */; };
 		9DD1FCFE247CEB2B00800139 /* model_packer.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FCF7247CEB2B00800139 /* model_packer.h */; };
 		9DD1FCFF247CEB2B00800139 /* model_packer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FCF8247CEB2B00800139 /* model_packer.cc */; };
@@ -2675,6 +2675,7 @@
 				9DD1FBA3247CE9BE00800139 /* metal_relu6_layer_acc.mm in Sources */,
 				9DD1FB39247CE9BE00800139 /* metal_blob_converter.metal in Sources */,
 				9DD1FBBD247CE9BE00800139 /* metal_conv_layer_1x1.mm in Sources */,
+				5046C44D2539C9FB002EC590 /* encryption.cc in Sources */,
 				9DD1FBC2247CE9BE00800139 /* metal_conv_layer_depthwise.metal in Sources */,
 				ECEC5D6724FCDBA50044DDF1 /* arm_mat_util.cc in Sources */,
 				9DD1FB47247CE9BE00800139 /* metal_multidir_broadcast_layer_acc.mm in Sources */,
