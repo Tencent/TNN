@@ -11,8 +11,8 @@ do
 done
 function version_lt { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
 
-if (version_lt $cmake_version 3.7.2); then
-    echo "Cmake 3.7.2 or higher is required. You are running version ${cmake_version}"
+if (version_lt $cmake_version 3.11); then
+    echo "Cmake 3.11 or higher is required. You are running version ${cmake_version}"
     exit 2
 fi
 
