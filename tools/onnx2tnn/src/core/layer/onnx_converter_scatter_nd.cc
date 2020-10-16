@@ -17,18 +17,18 @@
 
 DECLARE_OP_CONVERTER(ScatterND);
 
-string OnnxOpConverterScatterND::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
+string OnnxOpConverterScatterND::TNNOpType(NodeProto& node, OnnxNetInfo& net_info) {
     return "ScatterND";
 }
 
-string OnnxOpConverterScatterND::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+string OnnxOpConverterScatterND::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_info) {
     ostringstream layer_param;
     return layer_param.str();
 }
 
-int OnnxOpConverterScatterND::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
-    const std::string& onnx_op = node.op_type();
-    std::string name = !node.name().empty() ? node.name() : node.output(0);
+int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
+    const std::string& onnx_op        = node.op_type();
+    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
     net_writer->put_int(0);
@@ -36,27 +36,34 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer *net_writer, NodeProto &n
     net_writer->put_string(name);
 
     net_writer->put_string(name);
-    const onnx::TensorProto& indices = net_info.weights_map[node.input(1)];
-
-    // save indices shape
-    // cast int64_t to int
-    std::vector<int> indices_dims(indices.dims().begin(), indices.dims().end());
-    net_writer->put_dims(indices_dims);
-    // save indices value
-    WriteIntTensorData(indices, net_writer);
-
+    const auto& weights_map  = net_info.weights_map;
+    const auto& indices_name = node.input(1);
+    bool has_indices         = false;
+    if (weights_map.find(node.input(1)) != weights_map.end()) {
+        has_indices                      = true;
+        const onnx::TensorProto& indices = net_info.weights_map[node.input(1)];
+        // save indices shape
+        // cast int64_t to int
+        std::vector<int> indices_dims(indices.dims().begin(), indices.dims().end());
+        net_writer->put_bool(has_indices);
+        net_writer->put_dims(indices_dims);
+        // save indices value
+        WriteIntTensorData(indices, net_writer);
+    } else {
+        net_writer->put_bool(has_indices);
+    }
     // save update
-    int has_update = 0;
+    bool has_update   = false;
     auto& update_name = node.input(2);
-    if (net_info.weights_map.find(update_name) != net_info.weights_map.end()) {
-        has_update = 1;
-        net_writer->put_int(has_update);
+    if (weights_map.find(update_name) != weights_map.end()) {
+        has_update                      = true;
         const onnx::TensorProto& update = net_info.weights_map[update_name];
         std::vector<int> update_dims(update.dims().begin(), update.dims().end());
+        net_writer->put_bool(has_update);
         net_writer->put_dims(update_dims);
         WriteTensorData(update, net_writer, DATA_TYPE_FLOAT);
     } else {
-        net_writer->put_int(has_update);
+        net_writer->put_bool(has_update);
     }
 
     return 0;

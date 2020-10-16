@@ -22,10 +22,13 @@ Status ScatterNDLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
 
 Status ScatterNDLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **resource) {
     auto layer_resource = CreateLayerRes<ScatterNDLayerResource>(resource);
-    auto layer_name = deserializer.GetString();
-    deserializer.GetDims(layer_resource->indices_dims);
-    GET_BUFFER_FOR_ATTR(layer_resource, indices, deserializer);
-    bool has_update = deserializer.GetInt() == 1;
+    auto layer_name     = deserializer.GetString();
+    bool has_indices    = deserializer.GetBool();
+    if (has_indices) {
+        deserializer.GetDims(layer_resource->indices_dims);
+        GET_BUFFER_FOR_ATTR(layer_resource, indices, deserializer);
+    }
+    bool has_update = deserializer.GetBool();
     if (has_update) {
         deserializer.GetDims(layer_resource->updates_dims);
         GET_BUFFER_FOR_ATTR(layer_resource, updates, deserializer);
@@ -41,15 +44,21 @@ Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerPara
     CAST_OR_RET_ERROR(layer_param, LayerParam, "invalid layer param", param);
     CAST_OR_RET_ERROR(layer_resource, ScatterNDLayerResource, "invalid layer res to save", resource);
     serializer.PutString(layer_param->name);
-    serializer.PutDims(layer_resource->indices_dims);
-    serializer.PutRaw(layer_resource->indices);
+    bool has_indices = !layer_resource->indices_dims.empty();
+    if (has_indices) {
+        serializer.PutBool(true);
+        serializer.PutDims(layer_resource->indices_dims);
+        serializer.PutRaw(layer_resource->indices);
+    } else {
+        serializer.PutBool(true);
+    }
     bool has_update = !layer_resource->updates_dims.empty();
     if (has_update) {
-        serializer.PutInt(1);
+        serializer.PutBool(true);
         serializer.PutDims(layer_resource->updates_dims);
         serializer.PutRaw(layer_resource->updates);
     } else {
-        serializer.PutInt(0);
+        serializer.PutInt(false);
     }
     return TNN_OK;
 }

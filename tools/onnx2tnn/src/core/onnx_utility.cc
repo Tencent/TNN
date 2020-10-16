@@ -469,62 +469,88 @@ onnx::TensorProto get_node_attr_tensor(const onnx::NodeProto& node,
 }
 
 int get_tensor_proto_data_size(const onnx::TensorProto& tp) {
-    //    TensorProto_DataType_UNDEFINED = 0,
-    //    TensorProto_DataType_FLOAT = 1,
-    //    TensorProto_DataType_UINT8 = 2,
-    //    TensorProto_DataType_INT8 = 3,
-    //    TensorProto_DataType_UINT16 = 4,
-    //    TensorProto_DataType_INT16 = 5,
-    //    TensorProto_DataType_INT32 = 6,
-    //    TensorProto_DataType_INT64 = 7,
-    //    TensorProto_DataType_STRING = 8,
-    //    TensorProto_DataType_BOOL = 9,
-    //    TensorProto_DataType_FLOAT16 = 10,
-    //    TensorProto_DataType_DOUBLE = 11,
-    //    TensorProto_DataType_UINT32 = 12,
-    //    TensorProto_DataType_UINT64 = 13,
-    //    TensorProto_DataType_COMPLEX64 = 14,
-    //    TensorProto_DataType_COMPLEX128 = 15,
-    //    TensorProto_DataType_BFLOAT16 = 16
-
+    int size = 0;
     if (tp.has_raw_data()) {
-        const std::string& raw_data = tp.raw_data();
-        if (tp.data_type() == 1) {
-            return (int)raw_data.size() / 4;
-        } else if (tp.data_type() == 2) {
-            return (int)raw_data.size() / 1;
-        } else if (tp.data_type() == 3) {
-            return (int)raw_data.size() / 1;
-        } else if (tp.data_type() == 4) {
-            return (int)raw_data.size() / 2;
-        } else if (tp.data_type() == 5) {
-            return (int)raw_data.size() / 2;
-        } else if (tp.data_type() == 6) {
-            return (int)raw_data.size() / 4;
-        } else if (tp.data_type() == 7) {
-            return (int)raw_data.size() / 8;
-        } else if (tp.data_type() == 11) {
-            return (int)raw_data.size() / 8;
-        } else {
-            LOGD("unsupport data type: %d\n", tp.data_type());
-            assert(0);
+        const std::string &raw_data = tp.raw_data();
+        switch (tp.data_type()) {
+            case onnx::TensorProto_DataType_FLOAT: {
+                size = int(raw_data.size() / sizeof(float));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT8: {
+                size = int(raw_data.size() / sizeof(uint8_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT8: {
+                size = int(raw_data.size() / sizeof(int8_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT16: {
+                size = int(raw_data.size() / sizeof(uint16_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT16: {
+                size = int(raw_data.size() / sizeof(int16_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT32: {
+                size = int(raw_data.size() / sizeof(int32_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT64: {
+                size = int(raw_data.size() / sizeof(int64_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_BOOL: {
+                size = int(raw_data.size() / sizeof(bool));
+                break;
+            }
+            case onnx::TensorProto_DataType_FLOAT16: {
+                size = int(raw_data.size() / (sizeof(float) / 2));
+                break;
+            }
+            case onnx::TensorProto_DataType_DOUBLE: {
+                size = int(raw_data.size() / sizeof(double));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT32: {
+                size = int(raw_data.size() / sizeof(uint32_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT64: {
+                size = int(raw_data.size() / sizeof(uint64_t));
+                break;
+            }
+            default: {
+                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                size = -1;
+            }
         }
     } else {
-        if (tp.data_type() == 1) {
-            return tp.float_data_size();
-        } else if (tp.data_type() == 6) {
-            return tp.int32_data_size();
-        } else if (tp.data_type() == 7) {
-            return tp.int64_data_size();
-        } else if (tp.data_type() == 11) {
-            return tp.double_data_size();
-        } else {
-            LOGD("unsupport data type: %d\n", tp.data_type());
-            assert(0);
+        switch (tp.data_type()) {
+            case onnx::TensorProto_DataType_FLOAT: {
+                size = tp.float_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_INT32: {
+                size = tp.int32_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_INT64: {
+                size = tp.int64_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_DOUBLE: {
+                size = tp.double_data_size();
+                break;
+            }
+            default: {
+                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                size = -1;
+            }
         }
     }
-
-    return 0;
+    return size;
 }
 
 const float* get_tensor_proto_data(const onnx::TensorProto& tp) {
