@@ -1036,8 +1036,11 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
     // general k3 process, calc left dx
     for (; dx < width; dx++) {
         long dc = 0;
-        DepthwiseI8K3Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh, scale_z, dx,
-                            dc);
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K3Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh, scale_z, dx,
+                                dc);
+        }
+
         if (dc < dst_depth) {
             dc = dst_depth - 8;
             DepthwiseI8K3Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh, scale_z, dx,
