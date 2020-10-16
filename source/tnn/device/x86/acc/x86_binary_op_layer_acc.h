@@ -29,7 +29,7 @@ public:
         return TNN_OK;
     }
 
-    virtual float operator()(const float v1, const float v2) {}
+    virtual float operator()(const float v1, const float v2) { return v1;}
 
 protected:
     LayerParam *param_ = nullptr;
