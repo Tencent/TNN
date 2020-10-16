@@ -71,7 +71,7 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::stri
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_convert [-h] [-p] [-m] [-v]\n"
+        "usage:\n./model_convert [-h] [-i] [-p] <proto_path> [-m] <model_path> [-v] <version>\n"
         "\t-h, --help        \t show this message\n"
         "\t-i, --info        \t show info of model\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"

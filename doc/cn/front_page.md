@@ -94,6 +94,7 @@ TNN作为一个移动端高性能、轻量级的推断框架，同时拥有跨�
 * [从源码编译](./user/compile.md)
 * [工具集]()
     * [模型转换](./user/convert.md)
+    * [模型互转工具](./user/model_converter.md)
     * [模型量化](./user/quantization.md)
     * [模型可视化](https://lutzroeder.github.io/netron/)
     * [性能分析工具](./development/profiling.md)
