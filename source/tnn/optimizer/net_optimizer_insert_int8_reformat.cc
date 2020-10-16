@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/optimizer/net_optimizer_insert_reformat.h"
+#include "tnn/optimizer/net_optimizer_insert_int8_reformat.h"
 
 #include <algorithm>
 #include <map>
@@ -30,23 +30,22 @@ namespace TNN_NS {
 namespace optimizer {
 
     // Plast priority: reformat after all fuse
-    NetOptimizerRegister<NetOptimizerInsertReformat> g_net_optimizer_Insert_reformat(OptPriority::PLAST);
-    static const std::string reformat_name_suffix                  = "_reformat";
-    static std::map<LayerType, ActivationType> kLayerActivationMap = {{LAYER_RELU, ActivationType_ReLU},
-                                                                    {LAYER_RELU6, ActivationType_ReLU6}};
+    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_Insert_reformat(OptPriority::PLAST);
+    static const std::string reformat_name_suffix = "_int8_reformat";
 
-    std::string NetOptimizerInsertReformat::Strategy() {
-        return kNetOptimizerInsertReformat;
+    std::string NetOptimizerInsertInt8Reformat::Strategy() {
+        return kNetOptimizerInsertInt8Reformat;
     }
 
-    bool NetOptimizerInsertReformat::SupportDevice(DeviceType device) {
+    bool NetOptimizerInsertInt8Reformat::IsSupported(const NetworkConfig &net_config) {
+        auto device = net_config.device_type;
         return device == DEVICE_ARM || device == DEVICE_NAIVE;
     }
 
-    std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
+    static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
-        new_layer->type_str                  = "Reformat";
+        new_layer->type_str                  = "Int8Reformat";
         new_layer->name                      = name;
         ReformatLayerParam *param            = new ReformatLayerParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
@@ -56,7 +55,7 @@ namespace optimizer {
         return new_layer;
     }
 
-    Status NetOptimizerInsertReformat::Optimize(NetStructure *structure, NetResource *resource) {
+    Status NetOptimizerInsertInt8Reformat::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
             return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
@@ -117,7 +116,7 @@ namespace optimizer {
         return TNN_OK;
     }
 
-    void NetOptimizerInsertReformat::AdjustLayer(
+    void NetOptimizerInsertInt8Reformat::AdjustLayer(
             std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
             NetStructure *structure,
             std::shared_ptr<LayerInfo>& cur_layer,
