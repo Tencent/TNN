@@ -218,6 +218,7 @@ int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
             assert(0);
         }
     }
+    return 0;
 }
 
 }  // namespace TNN_CONVERTER

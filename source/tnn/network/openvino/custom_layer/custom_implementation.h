@@ -262,7 +262,7 @@ public:
 #define REGISTER_CUSTOM_IMPLEMENTATION(type, type_string)                                                                   \
     CustomImplementationRegister<Custom##type##Impl> g_custom_##type##_impl_register(#type_string);    
 
-#define REGISTER_CUTOM_OP(type)                                                                                             \
+#define REGISTER_CUSTOM_OP(type)                                                                                             \
     CustomOpRegister<Custom##type##Op> g_custom_##type##_op_register();                                                     \
     constexpr ngraph::NodeTypeInfo Custom##type##Op::type_info;                                                   
 

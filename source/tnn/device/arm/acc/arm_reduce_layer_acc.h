@@ -24,7 +24,7 @@ namespace TNN_NS {
 typedef struct arm_reduce_operator {
 public:
     virtual void DataInit(void *data, size_t count) {
-        memset(data, 0, count);
+        memset(data, 0, count * sizeof(float));
     };
 
     virtual Float4 DataInit() {
@@ -32,11 +32,11 @@ public:
     };
 
     virtual Float4 Calculate(Float4 &v, Float4 &t) {
-        return v;
+        return v + t;
     };
 
     virtual float Calculate(const float &v, const float &t) {
-        return v;
+        return v + t;
     };
 
     virtual Float4 PostCalculate(const Float4 &v, const Float4 &t) {
@@ -60,6 +60,8 @@ public:
 
 protected:
     std::shared_ptr<ARM_REDUCE_OP> op_;
+    void ReduceChannel(float* input_data, float* output_data, DimsVector& dims_in,
+        const int c4n, const int c4r, const Float4 axis_n, const int hw_r, const int hw_c, const int hw);
 };
 
 #define DECLARE_ARM_REDUCE_ACC(type_string, op_type)                                                                   \

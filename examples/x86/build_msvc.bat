@@ -6,11 +6,11 @@ set "TNN_LIB_PATH=!ROOT_DIR!\..\..\scripts\build_x86\Release\"
 set "TNN_OPENVINO_LIB_PATH=!ROOT_DIR!\..\..\source\tnn\network\openvino\thirdparty\openvino\lib"
 
 cd ..\..\scripts
-call build_x86.bat
+call build_x86_msvc.bat
 echo !cd!
 cd ..\examples\x86\
 
-del build_x86_windows /q /f /s
+rmdir /s /q build_x86_windows
 mkdir build_x86_windows
 cd build_x86_windows
 
@@ -55,6 +55,7 @@ if "!VS_VERSION!"=="2019" (
 cmake -G !VS_FLAG! -A x64 .. ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DTNN_LIB_PATH=!TNN_LIB_PATH! ^
+    -DTNN_DEMO_WITH_WEBCAM=ON ^
     -DTNN_OPENVINO_LIB_PATH=!TNN_OPENVINO_LIB_PATH!
 
 cmake --build . --config Release -j4

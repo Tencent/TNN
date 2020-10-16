@@ -96,10 +96,18 @@ public:
     // @brief set device affinity
     virtual Status SetDeviceAffinity(const std::vector<int> &device_list);
 
+#if TNN_PROFILE
+public:
+    virtual void StartProfile();
+    virtual std::shared_ptr<ProfileResult> FinishProfile();
+#endif
+
 private:
     // add for huawei_npu
 
     Status InitCheck();
+
+    bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
 
     Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
                           AbstractModelInterpreter *interpreter);
@@ -116,6 +124,7 @@ private:
 
     Status InitBlobs(InputShapesMap &instance_input_shapes_map, InputShapesMap &cpu_input_shape);
 
+private:
     AbstractDevice *device_ = nullptr;
 
     Context *context_ = nullptr;
@@ -144,7 +153,7 @@ private:
 
     // here to add sub network :
     std::shared_ptr<DefaultNetwork> sub_network_;
-    //count how many layers have been constructed
+    // count how many layers have been constructed
     int cpu_count_;
     std::set<std::string> visited_;
     bool use_subnet_ = false;

@@ -25,6 +25,7 @@ Status DetectionPostProcessLayer::InferOutputShape() {
     assert(input_blobs_.size() == 2);
     assert(output_blobs_.size() == 4);
     auto param                   = dynamic_cast<DetectionPostProcessLayerParam*>(param_);
+    CHECK_PARAM_NULL(param);
     const int num_detected_boxes = param->max_detections * param->max_classes_per_detection;
     const int bath_size          = input_blobs_[0]->GetBlobDesc().dims[0];
     // Outputs: detection_boxes, detection_classes, detection_scores, num_detections

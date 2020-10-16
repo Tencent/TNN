@@ -44,13 +44,15 @@ Status PadOVLayerBuilder::Build() {
 
     // set pad node
     std::vector<int> beginPattern, endPattern;
-    for (size_t i = 0; i < 2; i++) {
+    for (size_t i = 0; i < 1; i++) {
         beginPattern.push_back(0);
         endPattern.push_back(0);
     }
 
+    beginPattern.push_back(paramlist->pads.at(4));
     beginPattern.push_back(paramlist->pads.at(2));
     beginPattern.push_back(paramlist->pads.at(0));
+    endPattern.push_back(paramlist->pads.at(5));
     endPattern.push_back(paramlist->pads.at(3));
     endPattern.push_back(paramlist->pads.at(1));
 

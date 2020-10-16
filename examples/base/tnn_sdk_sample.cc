@@ -13,13 +13,15 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+
 #include <cstring>
-#include <sys/time.h>
 #include <float.h>
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
+
+#include "sample_timer.h"
 
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
@@ -567,6 +569,25 @@ std::vector<std::string> TNNSDKSample::GetOutputNames() {
     return names;
 }
 
+std::shared_ptr<Mat> TNNSDKSample::ResizeToInputShape(std::shared_ptr<Mat> input_mat, std::string name) {
+    auto target_dims = GetInputShape(name);
+    auto input_height = input_mat->GetHeight();
+    auto input_width = input_mat->GetWidth();
+    if (target_dims.size() >= 4 &&
+        (input_height != target_dims[2] || input_width != target_dims[3])) {
+        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
+                                                        input_mat->GetMatType(), target_dims);
+        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
+        if (status == TNN_OK) {
+            return target_mat;
+        } else {
+            LOGE("%s\n", status.description().c_str());
+            return nullptr;
+        }
+    }
+    return input_mat;
+}
+
 TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForInput(std::string name) {
     return TNN_NS::MatConvertParam();
 }
@@ -620,7 +641,7 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
-        
+
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -637,22 +658,22 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
             if (option_->compute_units == TNNComputeUnitsOpenvino) {
                 status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_X86);
             } else {
-                status = instance_->GetOutputMat(output_mat, output_convert_param);
+                status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_NAIVE);
             }
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
-                  auto output_convert_param = GetConvertParamForOutput(name);
-                  std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-                  if (option_->compute_units == TNNComputeUnitsOpenvino) {
-                      status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_X86);
-                  } else {
-                    status = instance_->GetOutputMat(output_mat, output_convert_param, name);
-                  }
-                  RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-                  output->AddMat(output_mat, name);
-              }
+                auto output_convert_param = GetConvertParamForOutput(name);
+                std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+                if (option_->compute_units == TNNComputeUnitsOpenvino) {
+                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_X86);
+                } else {
+                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_NAIVE);
+                }
+                RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+                output->AddMat(output_mat, name);
+            }
         }
   
         
@@ -709,6 +730,98 @@ TNN_NS::Status TNNSDKComposeSample::Predict(std::shared_ptr<TNNSDKInput> input,
                                             std::shared_ptr<TNNSDKOutput> &output) {
     LOGE("subclass of TNNSDKComposeSample must implement this interface\n");
     return Status(TNNERR_NO_RESULT, "subclass of TNNSDKComposeSample must implement this interface");
+}
+
+/*
+* NMS, supporting hard-nms and blending-nms
+*/
+void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type) {
+    std::sort(input.begin(), input.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
+    output.clear();
+
+    int box_num = input.size();
+
+    std::vector<int> merged(box_num, 0);
+
+    for (int i = 0; i < box_num; i++) {
+        if (merged[i])
+            continue;
+        std::vector<ObjectInfo> buf;
+
+        buf.push_back(input[i]);
+        merged[i] = 1;
+
+        float h0 = input[i].y2 - input[i].y1 + 1;
+        float w0 = input[i].x2 - input[i].x1 + 1;
+
+        float area0 = h0 * w0;
+
+        for (int j = i + 1; j < box_num; j++) {
+            if (merged[j])
+                continue;
+
+            float inner_x0 = input[i].x1 > input[j].x1 ? input[i].x1 : input[j].x1;
+            float inner_y0 = input[i].y1 > input[j].y1 ? input[i].y1 : input[j].y1;
+
+            float inner_x1 = input[i].x2 < input[j].x2 ? input[i].x2 : input[j].x2;
+            float inner_y1 = input[i].y2 < input[j].y2 ? input[i].y2 : input[j].y2;
+
+            float inner_h = inner_y1 - inner_y0 + 1;
+            float inner_w = inner_x1 - inner_x0 + 1;
+
+            if (inner_h <= 0 || inner_w <= 0)
+                continue;
+
+            float inner_area = inner_h * inner_w;
+
+            float h1 = input[j].y2 - input[j].y1 + 1;
+            float w1 = input[j].x2 - input[j].x1 + 1;
+
+            float area1 = h1 * w1;
+
+            float score;
+
+            score = inner_area / (area0 + area1 - inner_area);
+
+            if (score > iou_threshold) {
+                merged[j] = 1;
+                buf.push_back(input[j]);
+            }
+        }
+        switch (type) {
+            case TNNHardNMS: {
+                output.push_back(buf[0]);
+                break;
+            }
+            case TNNBlendingNMS: {
+                float total = 0;
+                for (int i = 0; i < buf.size(); i++) {
+                    total += exp(buf[i].score);
+                }
+                ObjectInfo rects;
+                memset(&rects, 0, sizeof(rects));
+                rects.key_points.resize(buf[0].key_points.size());
+                for (int i = 0; i < buf.size(); i++) {
+                    float rate = exp(buf[i].score) / total;
+                    rects.x1 += buf[i].x1 * rate;
+                    rects.y1 += buf[i].y1 * rate;
+                    rects.x2 += buf[i].x2 * rate;
+                    rects.y2 += buf[i].y2 * rate;
+                    rects.score += buf[i].score * rate;
+                    for(int j = 0; j < buf[i].key_points.size(); ++j) {
+                        rects.key_points[j].first += buf[i].key_points[j].first * rate;
+                        rects.key_points[j].second += buf[i].key_points[j].second * rate;
+                    }
+                    rects.image_height = buf[0].image_height;
+                    rects.image_width  = buf[0].image_width;
+                }
+                output.push_back(rects);
+                break;
+            }
+            default: {
+            }
+        }
+    }
 }
 
 /*

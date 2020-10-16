@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 TNN_LIB_PATH=../../scripts/build_linux/
 
 cd ../../scripts

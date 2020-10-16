@@ -37,14 +37,14 @@ protected:
 
         // pad mode
         int pad_mode = 0;
-        ret          = NpuUtils::GetPadMode(pad_mode, pad_type);
+        ret          = NpuUtils::GetPadMode(pad_mode, pad_type_);
         if (ret != TNN_OK)
             return ret;
 
         // weight
         int total_data_size = resource->filter_handle.GetDataCount();
-        int in_group        = total_data_size / (kernel_h * kernel_w * output_channel);
-        ge::Shape weight_shape({output_channel, in_group, kernel_h, kernel_w});
+        int in_group        = total_data_size / (kernel_h_ * kernel_w_ * output_channel_);
+        ge::Shape weight_shape({output_channel_, in_group, kernel_h_, kernel_w_});
         auto weight_const = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
@@ -63,13 +63,13 @@ protected:
             weight_ops_.push_back(bias_const);
             output->set_input_b(*bias_const);
         }
-        output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h, kernel_w}));
-        output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-        output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
-        output->set_attr_group(group);
-        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end, pad_w_begin, pad_w_end}));
+        output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h_, kernel_w_}));
+        output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
+        output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
+        output->set_attr_group(group_);
+        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
         output->set_attr_pad_mode(pad_mode);
-        output->set_attr_num_output(output_channel);
+        output->set_attr_num_output(output_channel_);
 
         ADD_OUTPUT_OP(output)
     }

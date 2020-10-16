@@ -14,8 +14,8 @@ do
 done
 function version_lt { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
 
-if (version_lt $cmake_version 3.7.2); then
-    echo "Cmake 3.7.2 or higher is required. You are running version ${cmake_version}"
+if (version_lt $cmake_version 3.11); then
+    echo "Cmake 3.11 or higher is required. You are running version ${cmake_version}"
     exit 2
 fi
 
@@ -79,7 +79,7 @@ make install
 cd ../../
 
 # TNN/scripts/build_x86/ 拷贝 lib 和 include 文件到 thirdparty 下
-cp -R openvinoInstall/deployment_tools/inference_engine/include/ ${thirdparty_dir}/openvino/
+cp -R openvinoInstall/deployment_tools/inference_engine/include ${thirdparty_dir}/openvino/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine.a ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy.a ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations.a ${thirdparty_dir}/openvino/lib/
@@ -87,7 +87,7 @@ cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.dylib ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ${thirdparty_dir}/openvino/lib/
 cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
-cp -R openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
+cp -R openvinoInstall/deployment_tools/ngraph/include ${thirdparty_dir}/ngraph/
 if [ -d openvinoInstall/deployment_tools/ngraph/lib64/ ]
 then
 cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.a ${thirdparty_dir}/openvino/lib/

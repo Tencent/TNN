@@ -61,9 +61,11 @@ protected:
                 }
                 const float *slope_data = resource->slope_handle.force_to<float *>();
                 if (param->channel_shared) {
-                    // if channel shared
-                    // output->set_attr_negative_slope(slope_data[0]);
-                    return Status(TNNERR_LAYER_ERR, "Error: rknpu currently no supports shared-channel prelu");
+                    rk::nn::LeakyReluAttr attr;
+                    attr.alpha = slope_data[0];
+                    graph_->AddOperator(rk::nn::OperatorType::LEAKY_RELU, inputs, output_ops_, (void *)&attr);
+
+                    return TNN_OK;
                 } else {
                     // std::vector<int> slope_shape = {1, output_shapes[0][1], 1, 1};
                     std::vector<int> slope_shape = {output_shapes[0][1]};
