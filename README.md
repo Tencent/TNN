@@ -97,6 +97,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 * [从源码编译](doc/cn/user/compile.md)
 * [工具集]()
     * [模型转换](doc/cn/user/convert.md)
+    * [模型互转工具](doc/cn/user/model_converter.md)
     * [模型量化](doc/cn/user/quantization.md)
     * [模型可视化Netron](https://lutzroeder.github.io/netron/)
     * [性能分析工具](doc/cn/development/profiling.md)
