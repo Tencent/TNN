@@ -441,7 +441,7 @@ Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
     Status status = TNN_OK;
 
     if (src->GetMatType() != dst->GetMatType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst have differnt device types!");
+        return Status(TNNERR_PARAM_ERR, "src and dst have differnt mat types!");
     }
     if (src->GetDeviceType() != DEVICE_ARM || src->GetMatType() != N8UC4) {
         return Status(TNNERR_PARAM_ERR, "invalid device type or mat type!");
@@ -458,15 +458,18 @@ Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
     memset(dst_data, 0, sizeof(uint8_t) * DimsVectorUtils::Count(dst_dims));
 
     for(int h=0; h<src_dims[2]; ++h) {
-        auto dst_data_row = dst_data + (top + h) * dst_dims[3] + left;
-        auto src_data_row = src_data + h * src_dims[3];
-        auto offset = 0;
+        auto dst_data_row = dst_data + ((top + h) * dst_dims[3] + left)*4;
+        auto src_data_row = src_data + (h * src_dims[3])*4;
+        auto src_offset = 0;
+        auto dst_offset = 0;
         for(int w=0; w<src_dims[3]; ++w) {
-            dst_data_row[offset + 0] = src_data_row[offset + 0];
-            dst_data_row[offset + 1] = src_data_row[offset + 1];
-            dst_data_row[offset + 2] = src_data_row[offset + 2];
-            dst_data_row[offset + 3] = src_data_row[offset + 3];
-            offset = 4;
+            dst_data_row[dst_offset + 0] = src_data_row[src_offset + 0];
+            dst_data_row[dst_offset + 1] = src_data_row[src_offset + 1];
+            dst_data_row[dst_offset + 2] = src_data_row[src_offset + 2];
+            dst_data_row[dst_offset + 3] = src_data_row[src_offset + 3];
+
+            src_offset += 4;
+            dst_offset += 4;
         }
     }
 
@@ -760,7 +763,7 @@ TNN_NS::Status TNNSDKComposeSample::Predict(std::shared_ptr<TNNSDKInput> input,
 }
 
 /*
-* NMS, supporting hard-nms and blending-nms
+* NMS, supporting hard-nms, blending-nms and weighted-nms
 */
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type) {
     std::sort(input.begin(), input.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
