@@ -112,7 +112,7 @@ std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetOutputNodes(
             return std::vector<std::shared_ptr<ngraph::Node>>();
         }
     }
-    // return outputNodes_;
+     return output_nodes;
 }
 
 Status OpenVINOLayerBuilder::Reshape(){
