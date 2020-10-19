@@ -28,10 +28,8 @@ void BlazePoseLandmark::KeyPoints2RoI(std::vector<Keypoints2D>& key_points, cons
     const int end_kp_idx = option.keypoints_end_idx;
     const float target_angle = option.rotation_target_angle / 180.0 * PI;
 
-    //const int input_height = origin_input_shape[2];
-    //const int input_width  = origin_input_shape[3];
-    const int input_height = 340;
-    const int input_width  = 256;
+    const int input_height = origin_input_shape[2];
+    const int input_width  = origin_input_shape[3];
 
     float x_center = 0;
     float y_center = 0;
@@ -70,10 +68,8 @@ void BlazePoseLandmark::KeyPoints2RoI(std::vector<Keypoints3D>& key_points, cons
     const int end_kp_idx = option.keypoints_end_idx;
     const float target_angle = option.rotation_target_angle / 180.0 * PI;
 
-    //const int input_height = origin_input_shape[2];
-    //const int input_width  = origin_input_shape[3];
-    const int input_height = 340;
-    const int input_width  = 256;
+    const int input_height = origin_input_shape[2];
+    const int input_width  = origin_input_shape[3];
 
     float x_center = 0;
     float y_center = 0;
@@ -258,6 +254,14 @@ std::shared_ptr<Mat> BlazePoseLandmark::ProcessSDKInputMat(std::shared_ptr<Mat> 
             input_mat = input_mat_dev;
         }
         return input_mat;
+    } else {
+        if (mat_->GetDeviceType() != DEVICE_ARM){
+            auto cropped_mat_dev = std::make_shared<Mat>(mat_->GetDeviceType(), cropped_mat->GetMatType(), cropped_mat->GetDims());
+            auto status = Copy(cropped_mat, cropped_mat_dev);
+            RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+
+            cropped_mat = cropped_mat_dev;
+        }
     }
     return cropped_mat;
 }
@@ -332,12 +336,12 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
      landmark[29]:(0.713909, 0.430072, 0.000002)
      landmark[30]:(0.716196, 0.418809, -0.000010)
      */
-    DeNormalize(detects);
-    output->body_list.push_back(std::move(detects[0]));
     if (roi_from_prev_frame) {
         // generate roi for the next frame
-        KeyPoints2RoI(output->body_list[0].key_points_3d, this->roi_option);
+        KeyPoints2RoI(detects[0].key_points_3d, this->roi_option);
     }
+    DeNormalize(detects);
+    output->body_list.push_back(std::move(detects[0]));
 
     return status;
 }

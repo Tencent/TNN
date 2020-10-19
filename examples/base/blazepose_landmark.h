@@ -83,6 +83,12 @@ public:
     bool NeedPoseDetection() {
         return !roi_from_prev_frame;
     }
+    void SetOrigianlInputShape(int height, int width) {
+        if (this->origin_input_shape.size() <= 0)
+            this->origin_input_shape.resize(4, 0);
+        this->origin_input_shape[2] = height;
+        this->origin_input_shape[3] = width;
+    }
 private:
     void GetCropMatrix(const ROIRect& roi, float trans_mat[2][3], std::vector<float>& target_size);
     void ProcessLandmarks(Mat& landmark_mat, std::vector<BlazePoseInfo>& detects);

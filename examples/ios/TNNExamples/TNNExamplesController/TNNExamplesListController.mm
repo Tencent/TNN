@@ -20,6 +20,7 @@
 #import "TNNYoloObjectDetectorViewModel.h"
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
+#import "TNNPoseDetectLandmarkViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -159,6 +160,20 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //人体姿势关键点 - BlazePose
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"人体关键点 - BlazePose";
+        data.desc = @"摄像头 - 单输入多输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNPoseDetectLandmarkViewModel new];
+            data.viewModel.title = @"BlazePose";
+            data.viewModel.preferFrontCamera = false;
+        }
+        [examples addObject:data];
+    }
+
     self.examples = examples;
 }
 

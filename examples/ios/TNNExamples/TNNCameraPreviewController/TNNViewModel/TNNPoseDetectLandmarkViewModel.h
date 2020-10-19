@@ -15,7 +15,7 @@
 #import <Foundation/Foundation.h>
 #import "TNNViewModel.h"
 
-@interface TNNBlazePoseDetectorViewModel : TNNViewModel
+@interface TNNPoseDetectLandmarkViewModel : TNNViewModel
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 

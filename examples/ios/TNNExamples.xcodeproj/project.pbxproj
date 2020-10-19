@@ -54,7 +54,7 @@
 		EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */; };
 		EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72E250797C800EE3899 /* sample_timer.cc */; };
 		EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72F250797C800EE3899 /* ultra_face_detector.cc */; };
-		EC2F9CC625369FE8005A5F28 /* TNNBlazePoseDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2F9CC525369FE8005A5F28 /* TNNBlazePoseDetectorViewModel.mm */; };
+		EC2F9CC625369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2F9CC525369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm */; };
 		EC2F9CCC2536A14F005A5F28 /* blazepose_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2F9CCA2536A14F005A5F28 /* blazepose_detector.cc */; };
 		EC2F9CDF25371536005A5F28 /* blazepose_landmark.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2F9CDD25371536005A5F28 /* blazepose_landmark.cc */; };
 		EC2F9CE525371769005A5F28 /* pose_detect_landmark.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2F9CE325371769005A5F28 /* pose_detect_landmark.cc */; };
@@ -168,8 +168,8 @@
 		EC2CF72E250797C800EE3899 /* sample_timer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sample_timer.cc; sourceTree = "<group>"; };
 		EC2CF72F250797C800EE3899 /* ultra_face_detector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ultra_face_detector.cc; sourceTree = "<group>"; };
 		EC2CF730250797C800EE3899 /* image_classifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image_classifier.h; sourceTree = "<group>"; };
-		EC2F9CC525369FE8005A5F28 /* TNNBlazePoseDetectorViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNBlazePoseDetectorViewModel.mm; sourceTree = "<group>"; };
-		EC2F9CC92536A001005A5F28 /* TNNBlazePoseDetectorViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNBlazePoseDetectorViewModel.h; sourceTree = "<group>"; };
+		EC2F9CC525369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNPoseDetectLandmarkViewModel.mm; sourceTree = "<group>"; };
+		EC2F9CC92536A001005A5F28 /* TNNPoseDetectLandmarkViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNPoseDetectLandmarkViewModel.h; sourceTree = "<group>"; };
 		EC2F9CCA2536A14F005A5F28 /* blazepose_detector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = blazepose_detector.cc; sourceTree = "<group>"; };
 		EC2F9CCB2536A14F005A5F28 /* blazepose_detector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = blazepose_detector.h; sourceTree = "<group>"; };
 		EC2F9CDD25371536005A5F28 /* blazepose_landmark.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = blazepose_landmark.cc; sourceTree = "<group>"; };
@@ -273,8 +273,8 @@
 				9D71E7C224C5BE1200074C1A /* TNNViewModel.h */,
 				ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */,
 				ECD14A052505FE3100271443 /* TNNFaceDetectMeshViewModel.h */,
-				EC2F9CC525369FE8005A5F28 /* TNNBlazePoseDetectorViewModel.mm */,
-				EC2F9CC92536A001005A5F28 /* TNNBlazePoseDetectorViewModel.h */,
+				EC2F9CC525369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm */,
+				EC2F9CC92536A001005A5F28 /* TNNPoseDetectLandmarkViewModel.h */,
 			);
 			path = TNNViewModel;
 			sourceTree = "<group>";
@@ -598,7 +598,7 @@
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
 				EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */,
-				EC2F9CC625369FE8005A5F28 /* TNNBlazePoseDetectorViewModel.mm in Sources */,
+				EC2F9CC625369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm in Sources */,
 				ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */,
 				9DD579F223B5A20500A96E63 /* SceneDelegate.mm in Sources */,
 				9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */,

@@ -42,6 +42,8 @@ Status PoseDetectLandmark::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
     auto predictor_landmark_async = predictor_landmark_;
     auto predictor_detect_cast = dynamic_cast<BlazePoseDetector *>(predictor_detect_async.get());
     auto predictor_landmark_cast = dynamic_cast<BlazePoseLandmark *>(predictor_landmark_async.get());
+    const unsigned int input_height = sdk_input->GetMat()->GetHeight();
+    const unsigned int input_width  = sdk_input->GetMat()->GetWidth();
 
     // output of each model
     std::shared_ptr<TNNSDKOutput> sdk_output_detect = nullptr;
@@ -61,11 +63,15 @@ Status PoseDetectLandmark::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             // no detects, return
             return status;
         }
+        // set the original input shape
+        predictor_landmark_cast->SetOrigianlInputShape(input_height, input_width);
         // only use the first detect
         predictor_landmark_cast->Detection2RoI((*detects)[0], this->detect2toi_option);
     }
     // phase2: blazepose landmark
     {
+        // set the original input shape
+        predictor_landmark_cast->SetOrigianlInputShape(input_height, input_width);
         status = predictor_landmark_cast->Predict(sdk_input, sdk_output_landmark);
         RETURN_ON_NEQ(status, TNN_OK);
     }
