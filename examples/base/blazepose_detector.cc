@@ -47,11 +47,21 @@ Status BlazePoseDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     return status;
 }
 
-std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> mat,
+std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> mat_,
                                                                    std::string name) {
     auto target_dims   = GetInputShape(name);
     auto target_height = target_dims[2];
     auto target_width  = target_dims[3];
+
+    //TODO: eliminate copy
+    std::shared_ptr<Mat> mat = nullptr;
+    if (mat_->GetDeviceType() == DEVICE_ARM) {
+        mat = mat_;
+    } else {
+        mat = std::make_shared<Mat>(DEVICE_ARM, mat_->GetMatType(), mat_->GetDims());
+        auto status = Copy(mat_, mat);
+        RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+    }
 
     auto input_height  = mat->GetHeight();
     auto input_width   = mat->GetWidth();
@@ -60,11 +70,11 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
     const float input_aspect_ratio  = static_cast<float>(input_width) / input_height;
     const float output_aspect_ratio = static_cast<float>(target_width) / target_height;
     if (input_aspect_ratio < output_aspect_ratio) {
-        // Compute left and right padding.
+        // compute left and right padding.
         letterbox_pads[0] = (1.f - input_aspect_ratio / output_aspect_ratio) / 2.f;
         letterbox_pads[2] = letterbox_pads[0];
     } else if (output_aspect_ratio < input_aspect_ratio) {
-        // Compute top and bottom padding.
+        // compute top and bottom padding.
         letterbox_pads[1] = (1.f - output_aspect_ratio / input_aspect_ratio) / 2.f;
         letterbox_pads[3] = letterbox_pads[1];
     }
@@ -75,9 +85,11 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
         const int resized_width  = std::round(input_width * scale);
         const int resized_height = std::round(input_height * scale);
 
-        // TODO: we should use INTER_AREA when scale<1.0, use INTER_LINEAR for now, as TNN does not support INTER_AREA
+        // TODO: we should use INTER_AREA when scale<1.0
         auto interp_mode = scale < 1.0f ? TNNInterpLinear : TNNInterpLinear;
-        DimsVector intermediate_shape = {1, 4, resized_height, resized_width};
+        DimsVector intermediate_shape = mat->GetDims();
+        intermediate_shape[2] = resized_height;
+        intermediate_shape[3] = resized_width;
         auto intermediate_mat = std::make_shared<Mat>(DEVICE_ARM, N8UC4, intermediate_shape);
         auto status = Resize(mat, intermediate_mat, interp_mode);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
@@ -91,16 +103,23 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
         status = CopyMakeBorder(intermediate_mat, input_mat, top, bottom, left, right, TNNBorderConstant);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
+        if (mat_->GetDeviceType() != DEVICE_ARM){
+            auto input_mat_dev = std::make_shared<Mat>(mat_->GetDeviceType(), input_mat->GetMatType(), input_mat->GetDims());
+            auto status = Copy(input_mat, input_mat_dev);
+            RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+
+            input_mat = input_mat_dev;
+        }
         return input_mat;
     }
-    return mat;
+    return mat_;
 }
 
 MatConvertParam BlazePoseDetector::GetConvertParamForInput(std::string tag) {
     MatConvertParam param;
     param.scale = {2.0 / 255.0, 2.0 / 255.0, 2.0 / 255.0, 0.0};
     param.bias  = {-1.0,        -1.0,        -1.0,        0.0};
-    //TODO: ensure mediapipe requires RGB or BGR
+    //mediapipe requires RGB input
     return param;
 }
 
@@ -117,8 +136,9 @@ Status BlazePoseDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     RETURN_VALUE_ON_NEQ(!output, false,
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
 
-    auto scores = output->GetMat("classificators");
-    auto boxes  = output->GetMat("regressors");
+    //TODO: tnn's output shape mismatches with tflite
+    auto scores = output->GetMat("classificators"); //(1, 1, 896, 1) vs (1, 896, 1)
+    auto boxes  = output->GetMat("regressors"); //(1, 12, 896, 1) vs (1, 896, 12)
     RETURN_VALUE_ON_NEQ(!scores, false,
                            Status(TNNERR_PARAM_ERR, "scores mat is nil"));
     RETURN_VALUE_ON_NEQ(!boxes, false,
@@ -126,11 +146,15 @@ Status BlazePoseDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
 
     std::vector<BlazePoseInfo> poses;
     GenerateBBox(poses, *(scores.get()), *(boxes.get()), option->min_score_threshold);
-    NMS(poses, output->body_list, option->min_suppression_threshold, TNNWeightedNMS);
+    NMS(poses, output->body_list, option->min_suppression_threshold, TNNBlendingNMS);
+    RemoveLetterBox(output->body_list);
 
     return status;
 }
 
+/*
+ mediapipe ssd_anchors_calculator
+ */
 void BlazePoseDetector::GenerateAnchor(std::vector<Anchor>* anchors) {
     const int stride_size = anchor_options.strides.size();
     const int ar_size     = anchor_options.aspect_ratios.size();
@@ -155,8 +179,7 @@ void BlazePoseDetector::GenerateAnchor(std::vector<Anchor>* anchors) {
             }
             if (anchor_options.interpolated_scale_aspect_ratio > 0.0) {
                 const float scale_next =
-                last_same_stride_layer == anchor_options.strides.size() - 1
-                ? 1.0f
+                last_same_stride_layer == stride_size - 1 ? 1.0f
                 : CalculateScale(anchor_options.min_scale, anchor_options.max_scale,
                                  last_same_stride_layer + 1,
                                  stride_size);
@@ -172,19 +195,16 @@ void BlazePoseDetector::GenerateAnchor(std::vector<Anchor>* anchors) {
             anchor_width.push_back(scales[i] * ratio_sqrts);
         }
 
-        int feature_map_height = 0;
-        int feature_map_width = 0;
         const int stride = anchor_options.strides[layer_id];
         auto input_shape = GetInputShape();
         const int input_height = input_shape[2];
         const int input_wdith  = input_shape[3];
-        feature_map_height = std::ceil(1.0f * input_height / stride);
-        feature_map_width = std::ceil(1.0f * input_wdith / stride);
+        int feature_map_height = std::ceil(1.0f * input_height / stride);
+        int feature_map_width = std::ceil(1.0f * input_wdith / stride);
 
         for (int y = 0; y < feature_map_height; ++y) {
             for (int x = 0; x < feature_map_width; ++x) {
                 for (int anchor_id = 0; anchor_id < anchor_height.size(); ++anchor_id) {
-                    // TODO: Support specifying anchor_offset_x, anchor_offset_y.
                     const float x_center = (x + anchor_options.anchor_offset_x) * 1.0f / feature_map_width;
                     const float y_center = (y + anchor_options.anchor_offset_y) * 1.0f / feature_map_height;
 
@@ -208,7 +228,6 @@ void BlazePoseDetector::GenerateBBox(std::vector<BlazePoseInfo> &detects, Mat &s
     // check shape
     auto box_dims = boxMat.GetDims();
     auto score_dims = scoreMat.GetDims();
-    
     if (box_dims[1] != decode_options.num_boxes ||
         box_dims[2] != decode_options.num_coords) {
         return;
@@ -225,8 +244,8 @@ void BlazePoseDetector::GenerateBBox(std::vector<BlazePoseInfo> &detects, Mat &s
     // decode box
     DecodeBoxes(boxes, raw_boxes);
     // decode score
-    std::vector<float> scores;
-    std::vector<int> classes;
+    std::vector<float> scores(decode_options.num_boxes);
+    std::vector<int> classes(decode_options.num_boxes);
     DecodeScore(scores, classes, raw_scores);
 
     // generate output
@@ -314,8 +333,8 @@ void BlazePoseDetector::DecodeBoxes(std::vector<float>& boxes, const float* raw_
 }
 
 void BlazePoseDetector::DecodeScore(std::vector<float>& scores, std::vector<int>& classes, const float* raw_scores) {
-    scores.resize(decode_options.num_boxes);
-    classes.resize(decode_options.num_boxes);
+    scores.resize(decode_options.num_boxes, 0);
+    classes.resize(decode_options.num_boxes, -1);
     // Filter classes by scores.
     for (int i = 0; i < decode_options.num_boxes; ++i) {
         int class_id = -1;
@@ -354,7 +373,7 @@ void BlazePoseDetector::RemoveLetterBox(std::vector<BlazePoseInfo>& detects) {
         pose.y1 = (pose.y1 - top)  / (1.0f - top_and_bottom);
         pose.x2 = (pose.x2 - left) / (1.0f - left_and_right);
         pose.y2 = (pose.y2 - top)  / (1.0f - top_and_bottom);
-        for (int i = 0; pose.key_points.size(); ++i) {
+        for (int i = 0; i<pose.key_points.size(); ++i) {
             auto kp = pose.key_points[i];
             const float new_x = (kp.first  - left) / (1.0f - left_and_right);
             const float new_y = (kp.second - top)  / (1.0f - top_and_bottom);

@@ -27,16 +27,6 @@ namespace TNN_NS {
 
 typedef ObjectInfo BlazePoseInfo;
 
-struct Anchor {
-    // Encoded anchor box center.
-    float x_center;
-    float y_center;
-    // Encoded anchor box height.
-    float h;
-    // Encoded anchor box width.
-    float w;
-};
-
 class BlazePoseDetectorInput : public TNNSDKInput {
 public:
     BlazePoseDetectorInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
@@ -72,16 +62,19 @@ public:
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
     virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
                                                             std::string name = kTNNSDKDefaultName);
-private:
-    void GenerateAnchor(std::vector<Anchor>* anchors);
-    void GenerateBBox(std::vector<BlazePoseInfo> &detects, Mat &scores, Mat &boxes,
-                      float min_score_threshold);
-    void DecodeBoxes(std::vector<float>& boxes, const float* raw_boxes);
-    void DecodeScore(std::vector<float>& scores, std::vector<int>& classes, const float* raw_scores);
-    void RemoveLetterBox(std::vector<BlazePoseInfo>& detects);
-    // pads for remove latterbox from detection
-    std::array<float, 4> letterbox_pads;
+    std::shared_ptr<Mat> input_;
 
+private:
+    // struct for a detection anchor
+    struct Anchor {
+        // Encoded anchor box center.
+        float x_center;
+        float y_center;
+        // Encoded anchor box height.
+        float h;
+        // Encoded anchor box width.
+        float w;
+    };
     // configs for generating anchors
     struct AnchorOptions {
         int num_layers = 4;
@@ -93,9 +86,6 @@ private:
         std::vector<float> aspect_ratios = {1.0};
         float interpolated_scale_aspect_ratio = 1.0;
     };
-    AnchorOptions anchor_options;
-    std::vector<Anchor> anchors;
-
     // configs for decoding score and boxes
     struct DeocdingOptions {
         int num_boxes = 896;
@@ -108,6 +98,19 @@ private:
         float score_clipping_thresh = 100;
         bool reverse_output_order = true;
     };
+
+private:
+    void GenerateAnchor(std::vector<Anchor>* anchors);
+    void GenerateBBox(std::vector<BlazePoseInfo> &detects, Mat &scores, Mat &boxes,
+                      float min_score_threshold);
+    void DecodeBoxes(std::vector<float>& boxes, const float* raw_boxes);
+    void DecodeScore(std::vector<float>& scores, std::vector<int>& classes, const float* raw_scores);
+    void RemoveLetterBox(std::vector<BlazePoseInfo>& detects);
+    // pads for remove latterbox from detection
+    std::array<float, 4> letterbox_pads;
+
+    AnchorOptions anchor_options;
+    std::vector<Anchor> anchors;
     // box decoding config
     DeocdingOptions decode_options;
 };
