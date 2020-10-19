@@ -24,7 +24,7 @@ Status ReduceOpLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start
 
     layer_param->axis.clear();
     for (int i = index; i < layer_cfg_arr.size(); ++i) {
-        int axis = atoi(layer_cfg_arr[index].c_str());
+        int axis = atoi(layer_cfg_arr[index++].c_str());
         layer_param->axis.push_back(axis);
     }
     return TNN_OK;
