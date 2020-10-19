@@ -26,6 +26,12 @@
 
 namespace TNN_NS {
 
+struct EnabledPrecision {
+    bool fp32_enabled  = false;
+    bool fp16_enabled  = false;
+    bool bfp16_enabled = false;
+};
+
 // @brief AbstractDevice define create memory, context and layer acc interface.
 class AbstractDevice {
 public:
@@ -69,6 +75,9 @@ public:
 
     // @brief CreateContext create tnn instance device context
     virtual Context* CreateContext(int device_id) = 0;
+
+    // @brief get enabled precisions on the device by layer type
+    virtual std::shared_ptr<const EnabledPrecision> GetEnabledPrecision(LayerType type);
 
     // @brief get factory device type
     DeviceType GetDeviceType();

@@ -108,7 +108,7 @@ namespace optimizer {
             AdjustLayer(layers_orig, structure, cur_layer, new_layer,
                         reformat_outs, reformat_name_suffix, index, count);
 
-            LOGD("Insert refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
+            LOGD("Insert int8 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
             layers_fused.push_back(new_layer);
         }
         structure->layers = layers_fused;
