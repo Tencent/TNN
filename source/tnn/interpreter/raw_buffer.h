@@ -39,10 +39,12 @@ public:
 
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
+    void SetBufferShape(DimsVector shape);
 
     DataType GetDataType();
     int GetBytesSize();
     int GetDataCount();
+    DimsVector GetBufferShape();
 
     void Permute(size_t outter, size_t inner);
 
@@ -55,6 +57,7 @@ private:
     shared_ptr<char> buff_ = nullptr;
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
+    DimsVector shape_;
 };
 
 RawBuffer ConvertHalfHandle(RawBuffer &buf);

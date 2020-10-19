@@ -50,6 +50,14 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->buff_       = buf.buff_;
 }
 
+void RawBuffer::SetBufferShape(DimsVector shape) {
+    this->shape_ = shape;
+}
+
+DimsVector RawBuffer::GetBufferShape() {
+    return this->shape_;
+}
+
 template <typename T>
 void permute(void *in, void *out, size_t outter, size_t inner) {
     T *in_ptr  = static_cast<T *>(in);

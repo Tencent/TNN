@@ -27,6 +27,7 @@
 
 namespace TNN_NS {
     static const uint32_t g_version_magic_number = 0x0FABC0002;
+    static const uint32_t g_version_magic_number_v2 = 0x0FABC0003;
 
     class Serializer {
     public:
@@ -60,19 +61,27 @@ namespace TNN_NS {
         virtual void PutRaw(TNN_NS::RawBuffer &value) {
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
+            DimsVector  shape  = value.GetBufferDims();
             char *buffer = value.force_to<char *>();
             
-            PutInt(g_version_magic_number);
+            PutInt(g_version_magic_number_v2);
             PutInt(data_type);
             PutInt(static_cast<int>(length));
             if (length <= 0) {
                 return;
             }
-            
-            _ostream.write(reinterpret_cast<char *>(buffer),
-                           static_cast<std::streamsize>(length));
+           
+            PutInt(shape.size());
+            if (shape.empty()) {
+                return;
+            }
+            _ostream.write(reinterpret_cast<char *>(shape.data()),
+                           static_cast<std::streamsize>(shape.size() * sizeof(int32_t)));
             if (_ostream.bad())
                 return;
+ 
+            _ostream.write(reinterpret_cast<char *>(buffer),
+                           static_cast<std::streamsize>(length));
             return;
         }
 
@@ -144,9 +153,21 @@ namespace TNN_NS {
             if (length <= 0) {
                 return;
             }
-            
+
+            DimsVector shape;
+            if(magic_number == g_version_magic_number_v2) {
+                int size = GetInt();
+                if (size <= 0) {
+                    return;
+                }
+                for (int i = 0; i < size; ++i) {
+                    shape.push_back(GetInt());
+                }
+            }
+ 
             value = TNN_NS::RawBuffer(length);
             value.SetDataType(data_type);
+            value.SetBufferShape(shape);
 
             char *buffer = value.force_to<char *>();
             if (_istream.eof())
