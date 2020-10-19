@@ -27,6 +27,7 @@ Status ReorgLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
 
     layer_param->stride  = atoi(layer_cfg_arr[index++].c_str());
     layer_param->reverse = atoi(layer_cfg_arr[index++].c_str());
+    layer_param->mode = atoi(layer_cfg_arr[index++].c_str());
 
     return TNN_OK;
 }
@@ -44,6 +45,7 @@ Status ReorgLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam
 
     output_stream << layer_param->stride << " ";
     output_stream << layer_param->reverse << " ";
+    output_stream << layer_param->mode << " ";
 
     return TNN_OK;
 }

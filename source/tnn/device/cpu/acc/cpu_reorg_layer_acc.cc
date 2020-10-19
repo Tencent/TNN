@@ -40,12 +40,13 @@ Status CpuReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     CHECK_PARAM_NULL(layer_param);
 
     int stride   = layer_param->stride;
-    bool reverse = layer_param->reverse;
+    int reverse = layer_param->reverse;
+    int mode = layer_param->mode;
 
     float *bottom_data = static_cast<float *>(input_blob->GetHandle().base);
     float *top_data    = static_cast<float *>(output_blob->GetHandle().base);
 
-    NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, top_data);
+    NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
 
     return TNN_OK;
 }

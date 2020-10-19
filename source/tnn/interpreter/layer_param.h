@@ -338,7 +338,8 @@ struct LRNLayerParam : public LayerParam {
 
 struct ReorgLayerParam : public LayerParam {
     int stride;
-    bool reverse;
+    int reverse;
+    int mode;
 };
 
 struct ConstLayerParam : public LayerParam {

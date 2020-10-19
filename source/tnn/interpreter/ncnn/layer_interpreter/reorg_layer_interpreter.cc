@@ -37,6 +37,7 @@ namespace ncnn {
 
         layer_param->stride = GetInt(p, 0, 0);
         layer_param->reverse = false;
+        layer_param->mode = GetInt(p, 2, 1);
 
 
         return TNN_OK;
