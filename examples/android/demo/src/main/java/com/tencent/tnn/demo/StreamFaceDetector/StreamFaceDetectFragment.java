@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.FpsCounter;
 import com.tencent.tnn.demo.FaceInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
@@ -47,6 +48,8 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
     private FaceDetector mFaceDetector = new FaceDetector();
     private boolean mIsDetectingFace = false;
+    private FpsCounter mFpsCounter = new FpsCounter();
+    private boolean mIsCountFps = false;
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
@@ -302,6 +305,14 @@ public class StreamFaceDetectFragment extends BaseFragment {
                         mIsDetectingFace = false;
                         Log.e(TAG, "Face detector init failed " + ret);
                     }
+
+                    ret = mFpsCounter.init();
+                    if (ret == 0) {
+                        mIsCountFps = true;
+                    } else {
+                        mIsCountFps = false;
+                        Log.e(TAG, "Fps Counter init failed " + ret);
+                    }
                 } else {
                     Log.e(TAG, "Failed to init camera");
                 }
@@ -321,7 +332,25 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("FaceDetect");
+                            }
                             FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            if (mIsCountFps) {
+                                mFpsCounter.end("FaceDetect");
+                                double fps = mFpsCounter.getFps("FaceDetect");
+                                String monitorResult = "device: ";
+                                if (mUseGPU) {
+                                    monitorResult += "opencl\n";
+                                } else if (mUseHuaweiNpu) {
+                                    monitorResult += "huawei_npu\n";
+                                } else {
+                                    monitorResult += "arm\n";
+                                }
+                                monitorResult += "fps: " + String.format("%.02f", fps);
+                                TextView monitor_result_view = (TextView)$(R.id.monitor_result);
+                                monitor_result_view.setText(monitorResult);
+                            }
                             Log.i(TAG, "detect from stream ret " + faceInfoList);
                             int faceCount = 0;
                             if (faceInfoList != null) {

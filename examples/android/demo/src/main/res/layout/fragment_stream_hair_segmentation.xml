@@ -3,10 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="576dp"
+        android:layout_height="550dp"
         android:id="@+id/preview_layout">
 
         <com.tencent.tnn.demo.common.component.PreviewFrameLayout
@@ -33,6 +32,67 @@
                 android:layout_height="match_parent" />
 
         </FrameLayout>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginLeft="10dp"
+        android:layout_marginBottom="90dp"
+        android:gravity="bottom">
+
+        <LinearLayout
+            android:layout_width="380dp"
+            android:layout_height="40dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:text="头发颜色： "
+                android:textSize="18dp" />
+
+            <RadioGroup
+                android:id="@+id/color_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/button_blue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:buttonTint="#0000b9" />
+
+                <RadioButton
+                    android:id="@+id/button_cyan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="#00b9b9" />
+
+                <RadioButton
+                    android:id="@+id/button_green"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="#00b900" />
+
+                <RadioButton
+                    android:id="@+id/button_purple"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="#b900b9" />
+
+                <RadioButton
+                    android:id="@+id/button_red"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="#b90000" />
+            </RadioGroup>
+        </LinearLayout>
 
     </RelativeLayout>
 
@@ -69,7 +129,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="576dp"
+        android:layout_marginTop="550dp"
         android:gravity="top">
         <TextView
             android:id="@+id/result"

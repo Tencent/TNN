@@ -109,9 +109,10 @@ typedef enum {
     TNNComputeUnitsHuaweiNPU = 2,
 } TNNComputeUnits;
 
-typedef  struct{
-    unsigned char r = 0, g = 0, b = 0, a = 0;
-}RGBA;
+struct RGBA{
+    RGBA(int r = 0, int g = 0, int b = 0, int a = 0) : r(r), g(g), b(b), a(a) {}
+    unsigned char r, g, b, a;
+};
 
 
 extern const std::string kTNNSDKDefaultName;
