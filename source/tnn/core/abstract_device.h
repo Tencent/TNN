@@ -97,7 +97,10 @@ template <typename T>
 class TypeDeviceRegister {
 public:
     explicit TypeDeviceRegister(DeviceType type) {
-        GetGlobalDeviceMap()[type] = std::shared_ptr<T>(new T(type));
+        auto &device_map = GetGlobalDeviceMap();
+        if (device_map.find(type) == device_map.end()) {
+            device_map[type] = std::shared_ptr<T>(new T(type));
+        }
     }
 };
 
