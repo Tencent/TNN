@@ -16,6 +16,7 @@
 #include <fstream>
 #include <string>
 #include <typeinfo>
+#include <utility>
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -51,7 +52,7 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
 }
 
 void RawBuffer::SetBufferShape(DimsVector shape) {
-    this->shape_ = shape;
+    this->shape_ = std::move(shape);
 }
 
 DimsVector RawBuffer::GetBufferShape() {

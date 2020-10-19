@@ -86,11 +86,11 @@ namespace optimizer {
             // support multi inputs/outputs
             // only quant & dequant now
             std::vector<std::string> reformat_outs;
-            for (auto cur_out : cur_layer->outputs) {
+            for (auto& cur_out : cur_layer->outputs) {
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
                     auto next_layer = layers_orig[next_id];
-                    for (auto next_in : next_layer->inputs) {
+                    for (auto& next_in : next_layer->inputs) {
                         if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
                             if (cur_layer->type == LAYER_REFORMAT || next_layer->type == LAYER_REFORMAT) {
                                 need_reformat = false;
@@ -103,7 +103,7 @@ namespace optimizer {
                 if (need_reformat)
                     reformat_outs.push_back(cur_out);
             }
-            if (!reformat_outs.size()) {
+            if (reformat_outs.empty()) {
                 continue;
             }
 
@@ -132,7 +132,7 @@ namespace optimizer {
         // src_type int8, change dst blob
         if (cur_layer->param->quantized) {
             new_layer->inputs = reformat_outs;
-            for (auto cur_out : reformat_outs) {
+            for (auto& cur_out : reformat_outs) {
                 auto new_out = cur_out + reformat_name_suffix;
                 new_layer->outputs.push_back(new_out);
                 structure->blobs.insert(new_out);
@@ -150,7 +150,7 @@ namespace optimizer {
         } else {
             // dst type int8, change src blob
             new_layer->outputs = reformat_outs;
-            for (auto cur_out : reformat_outs) {
+            for (auto& cur_out : reformat_outs) {
                 auto new_out = cur_out + reformat_name_suffix;
                 new_layer->inputs.push_back(new_out);
                 structure->blobs.insert(new_out);

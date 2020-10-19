@@ -61,7 +61,7 @@ namespace TNN_NS {
         virtual void PutRaw(TNN_NS::RawBuffer &value) {
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
-            DimsVector  shape  = value.GetBufferDims();
+            DimsVector  shape  = value.GetBufferShape();
             char *buffer = value.force_to<char *>();
             
             PutInt(g_version_magic_number_v2);
