@@ -303,7 +303,7 @@ template void NaivePermute(const int count, int8_t *bottom_data, const std::vect
                         const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
                         int8_t *top_data);
 
-void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data) {
+void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int reverse, int mode, float *top_data) {
     int b, i, j, k;
     int out_c = c / (stride * stride);
 
@@ -312,12 +312,17 @@ void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, 
             for (j = 0; j < h; ++j) {
                 for (i = 0; i < w; ++i) {
                     int in_index  = i + w * (j + h * (k + c * b));
-                    int c2        = k % out_c;
                     int offset    = k / out_c;
+                    int c2        = k % out_c;
                     int w2        = i * stride + offset % stride;
                     int h2        = j * stride + offset / stride;
+                    if(mode) {
+                        c2        = k / (stride * stride);
+                        w2        = i * stride + k % stride;
+                        h2        = j * stride + (k % (stride * stride)) / stride;
+                    }
                     int out_index = w2 + w * stride * (h2 + h * stride * (c2 + out_c * b));
-                    if (forward)
+                    if (reverse)
                         top_data[out_index] = bottom_data[in_index];
                     else
                         top_data[in_index] = bottom_data[out_index];

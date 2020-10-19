@@ -55,7 +55,7 @@ template <typename T>
 void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
                 const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes, T *top_data);
 
-void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data);
+void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int reverse, int mode, float *top_data);
 
 void NaivePriorbox(PriorBoxLayerParam *param, int output_h, int output_w, float *output_data, int layer_height,
                    int layer_width, int img_height, int img_width, float step_h, float step_w);

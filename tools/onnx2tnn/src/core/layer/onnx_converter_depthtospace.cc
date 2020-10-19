@@ -28,12 +28,12 @@ string OnnxOpConverterDepthToSpace::TNNLayerParam(NodeProto &node,
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
 
-    std::string defalt_mode = "CRD";
+    const std::string defalt_mode = "CRD";
 
     int block_size = 2;
     int inverse = 1; // depthtospace convert to reorg inverse mode
     int run_with_output_dims = 0;
-    string mode_name = get_node_attr_s(node, "mode", "DCR");
+    string mode_name = get_node_attr_s(node, "mode", defalt_mode);
     int mode; // 0 for DCR mode, 1 for CRD mode;
     if (mode_name == "DCR") {
         mode = 0;
@@ -41,7 +41,7 @@ string OnnxOpConverterDepthToSpace::TNNLayerParam(NodeProto &node,
         mode = 1;
     }
 
-    layer_param << block_size << " " << inverse << " " << run_with_output_dims << " " << mode << " ";
+    layer_param << block_size << " " << inverse << " " << mode << " ";
    
     return layer_param.str();
 }
