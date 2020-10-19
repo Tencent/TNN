@@ -64,4 +64,65 @@ Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::ve
     return TNN_OK;
 }
 
+Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, 
+              int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float* dst) {
+    int height_col = (height + 2 * padh - dilationh * (kernelh - 1) - 1) / strideh + 1;
+    int width_col  = (width + 2 * padw - dilationw * (kernelw - 1) - 1) / stridew + 1;
+    int channels_col = channel * kernelh * kernelw;
+
+    // im2col
+    for (int c = 0; c < channels_col; c++) {
+        int w_offset = c % kernelw;
+        int h_offset = (c / kernelw) % kernelh;
+        int c_im = c / kernelh / kernelw;
+        for (int h = 0; h < height_col; h++) {
+            for (int w = 0; w < width_col; w++) {
+                int h_pad = h * strideh - padh + h_offset * dilationh;
+                int w_pad = w * stridew - padw + w_offset * dilationw;
+                if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+                    dst[(c * height_col + h) * width_col + w] = src[(c_im * height + h_pad) * width + w_pad];
+                else
+                    dst[(c * height_col + h) * width_col + w] = 0;
+            }
+        }
+    }
+
+    // for (int c = 0; c < channel; c++) {
+    //     for (int h = 0; h < height_col; h++) {
+    //         for (int w = 0; w < width_col; w++) {
+    //             for (int kh = 0; kh < kernelh; kh++) {
+    //                 for (int kw = 0; kw < kernelw; kw++) {
+    //                     int h_pad = h * strideh - padh + kh;
+    //                     int w_pad = w * stridew - padw + kw;
+    //                     if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width) {
+    //                         *dst = src[(c * height + h_pad) * width + w_pad];
+    //                         std::cout << (c * height + h_pad) * width + w_pad << std::endl;}
+    //                     else
+    //                         *dst = 0;
+    //                     dst++;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+    return TNN_OK;
+}
+
+Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C,
+                     int has_bias, float *bias, int activation_type) {
+    for (int mm = 0; mm < m; mm++) {
+        for (int nn = 0; nn < n; nn++) {
+            float tmp = 0.f;
+            for (int kk = 0; kk < k; kk++) {
+                tmp += A[mm * k + kk] * B[kk * n + nn];
+            }
+            if (has_bias) tmp += bias[mm];
+            if (activation_type == ActivationType_ReLU) tmp = std::max(0.f, tmp);
+            C[mm * n + nn] = tmp;
+        }
+    }
+    return TNN_OK;
+}
+
 }

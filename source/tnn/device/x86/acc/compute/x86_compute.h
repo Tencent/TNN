@@ -19,12 +19,22 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
+#include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
 
 // binary
 Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, 
                             Blob *output, std::shared_ptr<X86_BINARY_OP> op);
+
+// @brief store by row
+Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 
+                  int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float *dst);
+
+// @brief C = A * B with B tranposed, (m * k) * (k * n), NAIVE
+Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C, 
+                     int has_bias = 0, float *bias = nullptr, int activation_type = ActivationType_None);
+
 }   // namespace TNN_NS
 
 #endif
