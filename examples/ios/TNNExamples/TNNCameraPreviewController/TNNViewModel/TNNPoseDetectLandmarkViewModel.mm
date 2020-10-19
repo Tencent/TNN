@@ -140,10 +140,6 @@ using namespace std;
             }
             *body = item;
             body_list.push_back(body);
-            LOGE("\n =x= (width, height):(%d, %d) =x=\n", body->image_height,body->image_width);
-            for(const auto& kp3d: body->key_points_3d) {
-                LOGE("\n =x= (%.3f, %.3f) =x=\n", std::get<0>(kp3d), std::get<1>(kp3d));
-            }
         }
     }
     return body_list;
