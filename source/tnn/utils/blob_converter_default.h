@@ -11,20 +11,19 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_SOURCE_TNN_DEVICE_CPU_CPU_BLOB_CONVERTER_H_
-#define TNN_SOURCE_TNN_DEVICE_CPU_CPU_BLOB_CONVERTER_H_
+#ifndef TNN_SOURCE_TNN_UTILS_BLOB_CONVERTER_DEFAULT_H_
+#define TNN_SOURCE_TNN_UTILS_BLOB_CONVERTER_DEFAULT_H_
 
 #include "tnn/core/macro.h"
-#include "tnn/device/cpu/acc/compute/compute_int8.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/blob_converter_internal.h"
 
 namespace TNN_NS {
 
-class CpuBlobConverterAcc : public BlobConverterAcc {
+class DefaultBlobConverterAcc : public BlobConverterAcc {
 public:
-    CpuBlobConverterAcc(Blob* blob);
-    virtual ~CpuBlobConverterAcc();
+    DefaultBlobConverterAcc(Blob* blob);
+    virtual ~DefaultBlobConverterAcc();
 
     virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue = NULL);
     virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
@@ -33,12 +32,10 @@ public:
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
 
 private:
-    Status ConvertNCHWToNHWC(uint8_t* src, uint8_t* dst);
-    Status ConvertNHWCToNCHW(uint8_t* src, uint8_t* dst);
     Status ConvertFromMatFunc(Mat& image, float* blob_data, MatConvertParam& param, BlobDesc& desc,
                               const DimsVector& dims, const int hw);
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_CPU_CPU_BLOB_CONVERTER_H_
+#endif  // TNN_SOURCE_TNN_UTILS_BLOB_CONVERTER_DEFAULT_H_
