@@ -72,6 +72,7 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
             DLog("invalid size \n");
             return -1;
         }
+        auto dims = GetDimsFromTensor(tensor);
         item_size = item_size * 2;
         if (tensor.has_raw_data()) {
             int32_t* raw_data = (int32_t *)tensor.raw_data().data();
@@ -79,7 +80,7 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
             for (int i = 0; i < item_size; ++i) {
                 tmp[i] = raw_data[i];
             }
-            writer->put_raw(sizeof(int32_t) * item_size, (char*)tmp, DATA_TYPE_INT32);
+            writer->put_raw(sizeof(int32_t) * item_size, (char*)tmp, dims, DATA_TYPE_INT32);
             delete[] tmp;
         }
         // cast from int64 to int32
@@ -97,27 +98,27 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
             assert(0);
             break;
         }
-
+        const auto dims = GetDimsFromTensor(tensor);
         if (tensor.has_raw_data()) {
             const std::string &raw_data = tensor.raw_data();
-            WriteRawData((float *)raw_data.data(), item_size, writer, dataType);
+            WriteRawData((float *)raw_data.data(), item_size, writer, dataType, dims);
         } else if (tensor.data_type() == 1) {
             WriteRawData((float *)tensor.float_data().data(), item_size, writer,
-                         dataType);
+                         dataType, dims);
         } else if (tensor.data_type() == 6) {
             int32_t *raw_data = (int32_t *)tensor.int32_data().data();
             float *temp = new float[item_size];
             for (int i=0; i<item_size; i++) {
                 temp[i] = raw_data[i];
             }
-            WriteRawData(temp, item_size, writer, dataType);
+            WriteRawData(temp, item_size, writer, dataType, dims);
         } else if (tensor.data_type() == 7) {
             int64_t *raw_data = (int64_t *)tensor.int64_data().data();
             float *temp = new float[item_size];
             for (int i=0; i<item_size; i++) {
                 temp[i] = raw_data[i];
             }
-            WriteRawData(temp, item_size, writer, dataType);
+            WriteRawData(temp, item_size, writer, dataType, dims);
             delete [] temp;
         } else {
             DLog("invalid tensor type\n");
@@ -129,7 +130,7 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
 }
 
 int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count,
-                                  serializer *writer, DataType dataType) {
+                                  serializer *writer, DataType dataType, std::vector<int> dims) {
     int ret = 0;
     do {
         if (data_count == 0 || !raw_data) {
@@ -139,11 +140,11 @@ int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count,
         }
 
         if (dataType == DATA_TYPE_FLOAT) {
-            writer->put_raw(data_count * sizeof(float), (char *)raw_data);
+            writer->put_raw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
         } else if (dataType == DATA_TYPE_HALF) {
             float16 *half_data = new float16[data_count];
             ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
-            writer->put_raw(data_count * sizeof(float16), (char *)half_data, DATA_TYPE_HALF);
+            writer->put_raw(data_count * sizeof(float16), (char *)half_data,dims , DATA_TYPE_HALF);
             delete[] half_data;
         }
     } while (0);

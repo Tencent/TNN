@@ -72,7 +72,7 @@ public:
     int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
                         DataType dataType);
     int WriteRawData(const float *raw_data, int data_count, serializer *writer,
-                     DataType dataType);
+                     DataType dataType, std::vector<int32_t> dims);
 
     int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
 

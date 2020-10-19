@@ -110,4 +110,6 @@ int read_proto_from_binary(const char *filepath,
 
 bool set_node_attr_ai(onnx::NodeProto& node, const char* key, std::vector<int64_t> values);
 
+std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor);
+
 #endif /* onnx_utility_hpp */

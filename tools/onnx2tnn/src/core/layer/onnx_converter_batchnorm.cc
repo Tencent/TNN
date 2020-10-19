@@ -71,8 +71,8 @@ int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
         }
     }
 
-    WriteRawData(slope, channels, net_writer, net_info.data_type);
-    WriteRawData(bias, channels, net_writer, net_info.data_type);
+    WriteRawData(slope, channels, net_writer, net_info.data_type, {channels});
+    WriteRawData(bias, channels, net_writer, net_info.data_type, {channels});
 
     delete[] slope;
     delete[] bias;

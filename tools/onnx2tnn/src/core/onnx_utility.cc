@@ -633,3 +633,11 @@ std::string replace_node_name(std::string str, char older_value,
     }
     return str;
 }
+
+std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor) {
+    std::vector<int> dims = {};
+    for (const auto dim: tensor.dims()) {
+        dims.push_back(int(dim));
+    }
+    return dims;
+}

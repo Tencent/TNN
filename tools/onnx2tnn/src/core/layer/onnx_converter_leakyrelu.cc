@@ -46,7 +46,7 @@ int OnnxOpConverterLeakyRelu::WriteTNNModel(serializer *net_writer,
     float slope = get_node_attr_f(node, "alpha", 0.01f);
 
     net_writer->put_string(name);
-    WriteRawData(&slope, 1, net_writer, DATA_TYPE_FLOAT);
+    WriteRawData(&slope, 1, net_writer, DATA_TYPE_FLOAT, {1});
     
     //有权值写入的返回1， 没有的返回0
     return 1;

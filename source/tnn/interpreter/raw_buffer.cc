@@ -51,12 +51,12 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->buff_       = buf.buff_;
 }
 
-void RawBuffer::SetBufferShape(DimsVector shape) {
-    this->shape_ = std::move(shape);
+void RawBuffer::SetBufferDims(DimsVector dims) {
+    this->dims_ = std::move(dims);
 }
 
-DimsVector RawBuffer::GetBufferShape() {
-    return this->shape_;
+DimsVector RawBuffer::GetBufferDims() {
+    return this->dims_;
 }
 
 template <typename T>

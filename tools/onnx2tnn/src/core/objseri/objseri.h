@@ -145,6 +145,7 @@ namespace parser{
     private:
         char* buff_;
         int len_;
+        std::vector<int> dims_;
         MODEL_DATA_BITS data_bits_;
         int _effective_data_bits;
     };
@@ -160,12 +161,20 @@ namespace parser{
         void put_int(int value) { return put_basic_t<int>(value); }
         void put_string(const std::string& value) { return put_string_t<std::string>(value); }
         
-        void put_raw(int length, char* buff, DataType data_type = DATA_TYPE_FLOAT)
+        void put_raw(int length, char* buff, std::vector<int> dims, DataType data_type = DATA_TYPE_FLOAT)
         {
-            put_int(g_version_magic_number_tnn);
+            put_int(g_version_magic_number_tnn_v2);
             put_int(static_cast<int>(data_type));
             put_int(static_cast<int>(length));
             if (length <= 0) {
+                return;
+            }
+            put_int(dims.size());
+            if (dims.empty()) {
+                return;
+            }
+            _ostream.write(reinterpret_cast<char*>(dims.data()), static_cast<std::streamsize>(dims.size())* sizeof(int32_t));
+            if (_ostream.bad()) {
                 return;
             }
             _ostream.write(reinterpret_cast<char*>(buff),
@@ -216,7 +225,7 @@ namespace parser{
         else
             return;
     }
-    
+
     class deserializer
     {
     public:
