@@ -43,67 +43,38 @@ Status PoseDetectLandmark::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
     auto predictor_detect_cast = dynamic_cast<BlazePoseDetector *>(predictor_detect_async.get());
     auto predictor_landmark_cast = dynamic_cast<BlazePoseLandmark *>(predictor_landmark_async.get());
 
-    auto image_mat = sdk_input->GetMat();
-    origin_input_shape = image_mat->GetDims();
-    const int image_orig_height = image_mat->GetHeight();
-    const int image_orig_width = image_mat->GetWidth();
-
     // output of each model
-    std::shared_ptr<TNNSDKOutput> sdk_output_face = nullptr;
-    std::shared_ptr<TNNSDKOutput> sdk_output_mesh = nullptr;
+    std::shared_ptr<TNNSDKOutput> sdk_output_detect = nullptr;
+    std::shared_ptr<TNNSDKOutput> sdk_output_landmark = nullptr;
 
     // phase1: blazepose detect
-    {
-    }
+    if (predictor_landmark_cast->NeedPoseDetection()) {
+        status = predictor_detect_cast->Predict(sdk_input, sdk_output_detect);
+        RETURN_ON_NEQ(status, TNN_OK);
 
+        std::vector<BlazePoseInfo>* detects = nullptr;
+        if (sdk_output_detect && dynamic_cast<BlazePoseDetectorOutput *>(sdk_output_detect.get())) {
+            auto output = dynamic_cast<BlazePoseDetectorOutput *>(sdk_output_detect.get());
+            detects = &(output->body_list);
+        }
+        if (!detects || detects->size() <= 0) {
+            // no detects, return
+            return status;
+        }
+        // only use the first detect
+        predictor_landmark_cast->Detection2RoI((*detects)[0], this->detect2toi_option);
+    }
     // phase2: blazepose landmark
     {
+        status = predictor_landmark_cast->Predict(sdk_input, sdk_output_landmark);
+        RETURN_ON_NEQ(status, TNN_OK);
     }
 
     //get output
     {
+        sdk_output = sdk_output_landmark;
     }
     return TNN_OK;
-}
-
-#define M_PI        3.14159265358979323846264338327950288
-
-static inline float NormalizeRadians(float angle) {
-    return angle - 2 * M_PI * std::floor((angle - (-M_PI)) / (2 * M_PI));
-}
-
-void PoseDetectLandmark::Detection2ROI(std::vector<BlazePoseInfo>& detects, ROIRect& roi) {
-    constexpr int start_kp_idx = 2;
-    constexpr int end_kp_idx = 3;
-    constexpr float target_angle = 90.0 / 180.0;
-    // only use the first detect
-    const auto& detect = detects[0];
-    const int input_height = origin_input_shape[2];
-    const int input_width  = origin_input_shape[3];
-    float x_center = detect.key_points[start_kp_idx].first * input_width;
-    float y_center = detect.key_points[start_kp_idx].second * input_height;
-    float x_scale  = detect.key_points[end_kp_idx].first * input_width;
-    float y_scale  = detect.key_points[end_kp_idx].second * input_height;
-
-    // bounding box size as double distance from center to scale point.
-    const float box_size = std::sqrt((x_scale - x_center) * (x_scale - x_center) +
-                    (y_scale - y_center) * (y_scale - y_center)) * 2.0;
-    // rotation
-    float rotation = NormalizeRadians(target_angle - std::atan2(-(y_scale - y_center), x_scale - x_center));
-    // resulting bounding box.
-    x_center = x_center / input_width;
-    y_center = y_center / input_height;
-    float width  = box_size / input_width;
-    float height = box_size / input_height;
-    const float long_side = std::max(width * input_width, height * input_height);
-    width  = long_side  / input_width;
-    height = long_side / input_height;
-    // TODO: we need to set these to the blazepose_landmark model
-    roi.x_center = x_center;
-    roi.y_center = y_center;
-    roi.width  = width;
-    roi.height = height;
-    roi.rotation = rotation;
 }
 
 }

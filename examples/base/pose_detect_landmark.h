@@ -39,8 +39,14 @@ protected:
     std::shared_ptr<TNNSDKSample> predictor_detect_ = nullptr;
     std::shared_ptr<TNNSDKSample> predictor_landmark_ = nullptr;
 private:
-    void Detection2ROI(std::vector<BlazePoseInfo>& detects, ROIRect& roi);
     DimsVector origin_input_shape;
+    BlazePoseLandmark::RoIGenOptions detect2toi_option = {
+        2,
+        3,
+        90.0f,
+        1.5f,
+        1.5f
+    };
 };
 
 }
