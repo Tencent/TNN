@@ -76,19 +76,19 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 
         std::vector<int> element_counts(last_indice_dimension, 0);
 
-        for (int64_t i = 0; i < last_indice_dimension; ++i) {
+        for (int i = 0; i < last_indice_dimension; ++i) {
             element_counts[i] = DimsVectorUtils::Count(input_dims, i + 1);
         }
 
         int element_to_copy = DimsVectorUtils::Count(input_dims, last_indice_dimension);
         int* indice_offset = indices.force_to<int*>();
         int offset_count = DimsVectorUtils::Count(indices_dims, 0, indice_rank - 1);
-        
+ 
         for(int i = 0; i < offset_count; ++i) {
             int offset = 0;
             for(int j = 0; j < last_indice_dimension; ++j) {
                 auto indice = *(indice_offset + i * last_indice_dimension + j);
-                offset += indice * element_counts[i];
+                offset += indice * element_counts[j];
             }
             memcpy(output_data + offset, update_data + i * element_to_copy, element_to_copy * sizeof(float));
         }

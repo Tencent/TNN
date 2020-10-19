@@ -36,8 +36,7 @@ static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
         } else if (input_count == DimsVectorUtils::Count(output, 3)) {
             type = BroadcastTypeWidth;
         } else {
-            LOGE("Error: unsupported broadcast type\n");
-            return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
+            type = BroadcastTypeGeneral;
         }
     }
     return TNN_OK;
@@ -89,7 +88,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         DimsVector input_shape = input_blobs_[0]->GetBlobDesc().dims;
         int input_count        = DimsVectorUtils::Count(input_shape, 1);
 
-        DimsVector weight_shape = layer_res->element_shape;
+        DimsVector weight_shape = layer_res->element_handle.GetBufferDims();
         if (weight_shape.size() < 4) {
             weight_shape       = DimsVector(input_shape.size(), 1);
             int layer_res_size = layer_res->element_handle.GetDataCount();
@@ -114,6 +113,8 @@ Status MultidirBroadcastLayer::InferOutputShape() {
                 LOGE("Error: unsupported broadcast type\n");
                 return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
             }
+            layer_res->element_shape = weight_shape;
+        } else {
             layer_res->element_shape = weight_shape;
         }
         DimsVector dims_output               = DimsVectorUtils::Max(input_shape, weight_shape);

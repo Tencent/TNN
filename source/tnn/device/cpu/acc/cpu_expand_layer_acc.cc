@@ -31,12 +31,12 @@ Status CpuExpandLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     auto input_dims = input_blob->GetBlobDesc().dims;
     int diff = output_dims.size() - input_dims.size();
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = reinterpret_cast<float *>(input_blob->GetHandle().base);
+        float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
         int output_diff_start_cnt = DimsVectorUtils::Count(output_dims, diff);
         for(int i = 0; i < output_diff_start_cnt; ++i) {
             int index = i, in_index = 0;
-            for(int j = input_dims.size() - 1; j >= 0; ++j) {
+            for(int j = input_dims.size() - 1; j >= 0; --j) {
                 int input_dim = input_dims[j];
                 int output_dim = output_dims[j + diff];
                 int mod = index % output_dim;
@@ -44,7 +44,7 @@ Status CpuExpandLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
                     mod = 0;
                 }
                 index /= output_dim;
-                in_index += mod * DimsVectorUtils::Count(input_dims, i);
+                in_index += mod * DimsVectorUtils::Count(input_dims, j + 1);
             }
             output_data[i] = input_data[in_index];
         }

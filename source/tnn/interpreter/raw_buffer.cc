@@ -49,10 +49,11 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->bytes_size_ = buf.bytes_size_;
     this->data_type_  = buf.data_type_;
     this->buff_       = buf.buff_;
+    this->dims_       = buf.dims_;
 }
 
 void RawBuffer::SetBufferDims(DimsVector dims) {
-    this->dims_ = std::move(dims);
+    this->dims_ = dims;
 }
 
 DimsVector RawBuffer::GetBufferDims() {
@@ -94,6 +95,7 @@ RawBuffer &RawBuffer::operator=(RawBuffer buf) {
     this->bytes_size_ = buf.bytes_size_;
     this->data_type_  = buf.data_type_;
     this->buff_       = buf.buff_;
+    this->dims_       = buf.dims_;
     return *this;
 }
 

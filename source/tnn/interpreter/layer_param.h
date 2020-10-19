@@ -244,7 +244,9 @@ typedef enum {
     // broadcast height x width
     BroadcastTypeHeightWidth = 4,
     // broadcast width
-    BroadcastTypeWidth = 5
+    BroadcastTypeWidth = 5,
+    // broadcast for any dim
+    BroadcastTypeGeneral = 6
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
