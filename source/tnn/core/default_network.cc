@@ -152,6 +152,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             if (is_int8_blob) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
             }
+            // Check for fp16
+            bool is_fp16_blob = (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) &&
+                                device_->GetEnabledPrecision(layer_info->type)->fp16_enabled;
+            if (is_fp16_blob && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
+            }
             // Check for bfp16
             if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
@@ -188,6 +194,16 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             // Check for int8
             if (is_int8_blob) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
+            }
+            // Check for fp16
+            bool is_fp16_enabled = (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) &&
+                                   device_->GetEnabledPrecision(layer_info->type)->fp16_enabled;
+            bool is_fp16_blob =
+                is_fp16_enabled ||
+                (type == LAYER_REFORMAT &&
+                 reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_HALF);
+            if (is_fp16_blob && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
             }
             // Check for bfp16
             if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
