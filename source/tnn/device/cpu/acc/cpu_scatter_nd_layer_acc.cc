@@ -32,7 +32,7 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     CHECK_PARAM_NULL(resource);
     Blob *output_blob = outputs[0];
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto indice_dims = resource->indices_dims;
+        auto indices_dims = resource->indices.GetBufferDims();
         auto indices = resource->indices;
         Blob* input_data_blob = inputs[0];
         Blob* update_data_blob = inputs[1];
@@ -41,12 +41,12 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         float* output_data = reinterpret_cast<float*>(output_blob->GetHandle().base);
         auto input_dims = input_data_blob->GetBlobDesc().dims;
         auto update_dims = update_data_blob->GetBlobDesc().dims;
-        if(indice_dims.size() == 0) {
+        if(indices_dims.empty()) {
             LOGE("Error: indices dims has rank 0");
             return Status(TNNERR_PARAM_ERR, "Error: indices dims has rank 0");
         }
-        auto indice_rank = indice_dims.size();
-        auto last_indice_dimension = indice_dims[indice_rank - 1];
+        auto indice_rank = indices_dims.size();
+        auto last_indice_dimension = indices_dims[indice_rank - 1];
         if(last_indice_dimension > input_dims.size()) {
             LOGE("Error: last dimension of indices larger than input blob dims size ");
             return Status(TNNERR_PARAM_ERR, "Error: last dimension of indices larger than input blob dims size ");
@@ -60,15 +60,15 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
 
         for(int i = 0; i < indice_rank -1; ++i) {
-            if(indice_dims[i] != update_dims[i]) {
-                LOGE("Error: indice_dims and update dims not equal before index indice_rank -1");
-                return Status(TNNERR_PARAM_ERR, "Error: indice_dims and update dims not equal before index indice_rank -1");
+            if(indices_dims[i] != update_dims[i]) {
+                LOGE("Error: indices_dims and update dims not equal before index indice_rank -1");
+                return Status(TNNERR_PARAM_ERR, "Error: indices_dims and update dims not equal before index indice_rank -1");
             }
         }
 
         if(DimsVectorUtils::Count(update_dims, indice_rank -1) != DimsVectorUtils::Count(input_dims, last_indice_dimension)) {
-                LOGE("Error: indice_dims and update dims not equal before index indice_rank -1");
-                return Status(TNNERR_PARAM_ERR, "Error: indice_dims and update dims not equal before index indice_rank -1");
+                LOGE("Error: indices_dims and update dims not equal before index indice_rank -1");
+                return Status(TNNERR_PARAM_ERR, "Error: indices_dims and update dims not equal before index indice_rank -1");
         }
 
         //copy input to output
@@ -82,7 +82,7 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 
         int element_to_copy = DimsVectorUtils::Count(input_dims, last_indice_dimension);
         int* indice_offset = indices.force_to<int*>();
-        int offset_count = DimsVectorUtils::Count(indice_dims, 0, indice_rank - 1);
+        int offset_count = DimsVectorUtils::Count(indices_dims, 0, indice_rank - 1);
         
         for(int i = 0; i < offset_count; ++i) {
             int offset = 0;

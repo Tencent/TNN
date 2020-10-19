@@ -98,7 +98,10 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
             assert(0);
             break;
         }
-        const auto dims = GetDimsFromTensor(tensor);
+        auto dims = GetDimsFromTensor(tensor);
+        if (dims.empty()) {
+            dims.push_back(item_size);
+        }
         if (tensor.has_raw_data()) {
             const std::string &raw_data = tensor.raw_data();
             WriteRawData((float *)raw_data.data(), item_size, writer, dataType, dims);

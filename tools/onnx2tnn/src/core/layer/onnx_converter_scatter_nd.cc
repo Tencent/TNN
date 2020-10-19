@@ -46,7 +46,6 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& n
         // cast int64_t to int
         std::vector<int> indices_dims(indices.dims().begin(), indices.dims().end());
         net_writer->put_bool(has_indices);
-        net_writer->put_dims(indices_dims);
         // save indices value
         WriteIntTensorData(indices, net_writer);
     } else {
@@ -60,7 +59,6 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& n
         const onnx::TensorProto& update = net_info.weights_map[update_name];
         std::vector<int> update_dims(update.dims().begin(), update.dims().end());
         net_writer->put_bool(has_update);
-        net_writer->put_dims(update_dims);
         WriteTensorData(update, net_writer, DATA_TYPE_FLOAT);
     } else {
         net_writer->put_bool(has_update);

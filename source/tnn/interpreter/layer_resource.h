@@ -111,10 +111,8 @@ struct DetectionPostProcessLayerResource : public LayerResource {
 };
 
 struct ScatterNDLayerResource : public LayerResource {
-    std::vector<int> indices_dims;
     RawBuffer indices;
     // optional
-    std::vector<int> updates_dims;
     RawBuffer updates;
 };
 

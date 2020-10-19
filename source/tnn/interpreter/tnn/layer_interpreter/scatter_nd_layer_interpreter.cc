@@ -25,12 +25,10 @@ Status ScatterNDLayerInterpreter::InterpretResource(Deserializer &deserializer, 
     auto layer_name     = deserializer.GetString();
     bool has_indices    = deserializer.GetBool();
     if (has_indices) {
-        deserializer.GetDims(layer_resource->indices_dims);
         GET_BUFFER_FOR_ATTR(layer_resource, indices, deserializer);
     }
     bool has_update = deserializer.GetBool();
     if (has_update) {
-        deserializer.GetDims(layer_resource->updates_dims);
         GET_BUFFER_FOR_ATTR(layer_resource, updates, deserializer);
     }
     return TNN_OK;
@@ -44,18 +42,18 @@ Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerPara
     CAST_OR_RET_ERROR(layer_param, LayerParam, "invalid layer param", param);
     CAST_OR_RET_ERROR(layer_resource, ScatterNDLayerResource, "invalid layer res to save", resource);
     serializer.PutString(layer_param->name);
-    bool has_indices = !layer_resource->indices_dims.empty();
+    const auto &indices_dims = layer_resource->indices.GetBufferDims();
+    bool has_indices         = !indices_dims.empty();
     if (has_indices) {
         serializer.PutBool(true);
-        serializer.PutDims(layer_resource->indices_dims);
         serializer.PutRaw(layer_resource->indices);
     } else {
         serializer.PutBool(true);
     }
-    bool has_update = !layer_resource->updates_dims.empty();
+    const auto &update_dims = layer_resource->updates.GetBufferDims();
+    bool has_update         = !update_dims.empty();
     if (has_update) {
         serializer.PutBool(true);
-        serializer.PutDims(layer_resource->updates_dims);
         serializer.PutRaw(layer_resource->updates);
     } else {
         serializer.PutInt(false);

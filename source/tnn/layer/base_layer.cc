@@ -46,11 +46,13 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
 
     auto status = InferOutputDataType();
     if (status != TNN_OK) {
+        LOGE("InferOutputDataType failed\n");
         return status;
     }
 
     status = InferOutputShape();
     if (status != TNN_OK) {
+        LOGE("InferOutputShape failed\n");
         return status;
     }
 
