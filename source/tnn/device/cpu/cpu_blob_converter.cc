@@ -74,10 +74,10 @@ static void BGRToBlob(const uint8_t *src, float *dst, float *scale, float *bias,
 /*
  * Convert a nchw float mat to/from nchw float blob
  */
-static void NCHWConvert(const float *src, float *dst, float *scale, float *bias, int channel, int hw) {
+static void NCHWConvert(const float *src, float *dst, float *scale, float *bias, int channel, int stride_channel) {
     for (int c = 0; c < channel; ++c) {
-        for (int i = 0; i < hw; ++i) {
-            int data_pos = c * hw + i;
+        for (int i = 0; i < stride_channel; ++i) {
+            int data_pos = c * stride_channel + i;
             dst[data_pos] = scale[c] * src[data_pos] + bias[c];
         }
     }
@@ -169,7 +169,7 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
-    auto hw        = dims[2] * dims[3];
+    auto stride_channel = DimsVectorUtils::Count(dims, 2);
 
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
@@ -189,25 +189,25 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         }
     }
 
-    if (image.GetMatType() == NCHW_FLOAT) {
+    if (image.GetMatType() == NCHW_FLOAT || image.GetMatType() == NCDHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWConvert(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(blob_data + n * dims[1] * stride_channel, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * stride_channel,
+                        param.scale.data(), param.bias.data(), dims[1], stride_channel);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
-            BlobToBGRA(blob_data + n * dims[1] * hw, reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            BlobToBGRA(blob_data + n * dims[1] * stride_channel, reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * stride_channel,
+                       param.scale.data(), param.bias.data(), dims[1], stride_channel);
         }
     } else if (image.GetMatType() == N8UC3) {
         for (int n = 0; n < dims[0]; n++) {
-            BlobToBGR(blob_data + n * 3 * hw, reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                      param.scale.data(), param.bias.data(), hw);
+            BlobToBGR(blob_data + n * 3 * stride_channel, reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel,
+                      param.scale.data(), param.bias.data(), stride_channel);
         }
     } else if (image.GetMatType() == NGRAY) {
         for (int n = 0; n < dims[0]; n++) {
-            BlobToGray(blob_data + n * hw, reinterpret_cast<uint8_t *>(image.GetData()) + n * hw, param.scale[0],
-                       param.bias[0], hw);
+            BlobToGray(blob_data + n * stride_channel, reinterpret_cast<uint8_t *>(image.GetData()) + n * stride_channel, param.scale[0],
+                       param.bias[0], stride_channel);
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
@@ -223,14 +223,14 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         if (image.GetMatType() == N8UC3) {
             for (int n = 0; n < dims[0]; n++) {
                 RGBChannelReverseNaive(
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw, dims[1], hw);
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel,
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel, dims[1], stride_channel);
             }
         } else if (image.GetMatType() == N8UC4) {
             for (int n = 0; n < dims[0]; n++) {
                 RGBAChannelReverseNaive(
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, dims[1], hw);
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * stride_channel,
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * stride_channel, dims[1], stride_channel);
             }
         } else {
             FREE_INT8_TEMP_DATA();
@@ -244,42 +244,42 @@ Status CpuBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 }
 
 Status CpuBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
-        MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
-    if (image.GetMatType() == NCHW_FLOAT) {
+        MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int stride_channel) {
+    if (image.GetMatType() == NCHW_FLOAT || image.GetMatType() == NCDHW_FLOAT) {
         for (int n = 0; n < dims[0]; n++) {
-            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * stride_channel, blob_data + n * dims[1] * stride_channel,
+                        param.scale.data(), param.bias.data(), dims[1], stride_channel);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
-            BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw, blob_data + n * dims[1] * hw,
-                       param.scale.data(), param.bias.data(), dims[1], hw);
+            BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * stride_channel, blob_data + n * dims[1] * stride_channel,
+                       param.scale.data(), param.bias.data(), dims[1], stride_channel);
         }
     } else if (image.GetMatType() == N8UC3) {
         for (int n = 0; n < dims[0]; n++) {
-            BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
-                      param.scale.data(), param.bias.data(), hw);
+            BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel, blob_data + n * 3 * stride_channel,
+                      param.scale.data(), param.bias.data(), stride_channel);
         }
     } else if (image.GetMatType() == NGRAY) {
         for (int n = 0; n < dims[0]; n++) {
-            GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * hw, blob_data + n * hw, param.scale[0],
-                       param.bias[0], hw);
+            GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * stride_channel, blob_data + n * stride_channel, param.scale[0],
+                       param.bias[0], stride_channel);
         }
     } else if (image.GetMatType() == NNV12) {
         Mat bgr(DEVICE_NAIVE, RESERVED_INT8_TEST, image.GetDims());
         for (int n = 0; n < dims[0]; n++) {
-            NV12ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
-                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
-            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
-                      param.scale.data(), param.bias.data(), hw);
+            NV12ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * stride_channel, dims[2], dims[3]);
+            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * stride_channel, blob_data + n * 3 * stride_channel,
+                      param.scale.data(), param.bias.data(), stride_channel);
         }
     } else if (image.GetMatType() == NNV21) {
         Mat bgr(DEVICE_NAIVE, RESERVED_INT8_TEST, image.GetDims());
         for (int n = 0; n < dims[0]; n++) {
-            NV21ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw / 2,
-                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, dims[2], dims[3]);
-            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
-                      param.scale.data(), param.bias.data(), hw);
+            NV21ToBGR(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel / 2,
+                      reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * stride_channel, dims[2], dims[3]);
+            BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * stride_channel, blob_data + n * 3 * stride_channel,
+                      param.scale.data(), param.bias.data(), stride_channel);
         }
     } else if (image.GetMatType() == RESERVED_BFP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
@@ -298,14 +298,14 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
     }
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
-    auto hw        = dims[2] * dims[3];
+    auto stride_channel  = DimsVectorUtils::Count(dims, 2);
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image_src.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else
-            blob_data = new float[dims[0] * dims[1] * hw];
+            blob_data = new float[dims[0] * dims[1] * stride_channel];
     } else if (desc.data_type == DATA_TYPE_BFP16) {
         if (image_src.GetMatType() == RESERVED_BFP16_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
@@ -321,14 +321,14 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
         if (image.GetMatType() == N8UC3) {
             for (int n = 0; n < dims[0]; n++) {
                 RGBChannelReverseNaive(
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                    reinterpret_cast<uint8_t *>(reversed.GetData()) + n * 3 * hw, dims[1], hw);
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * stride_channel,
+                    reinterpret_cast<uint8_t *>(reversed.GetData()) + n * 3 * stride_channel, dims[1], stride_channel);
             }
         } else if (image.GetMatType() == N8UC4) {
             for (int n = 0; n < dims[0]; n++) {
                 RGBAChannelReverseNaive(
-                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                    reinterpret_cast<uint8_t *>(reversed.GetData()) + n * 4 * hw, dims[1], hw);
+                    reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * stride_channel,
+                    reinterpret_cast<uint8_t *>(reversed.GetData()) + n * 4 * stride_channel, dims[1], stride_channel);
             }
         } else {
             FREE_INT8_TEMP_DATA();
@@ -338,7 +338,7 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
         image = reversed;
     }
 
-    Status ret = ConvertFromMatFunc(image, blob_data, param, desc, dims, hw);
+    Status ret = ConvertFromMatFunc(image, blob_data, param, desc, dims, stride_channel);
     if (ret != TNN_OK) {
         FREE_INT8_TEMP_DATA();
         return ret;
