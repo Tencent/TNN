@@ -25,6 +25,10 @@
 using namespace std;
 using namespace TNN_NS;
 
+#define BREAK_IF(cond)               \
+    if (cond)                        \
+        break
+
 @interface TNNYoutuFaceAlignController ()
 
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
@@ -239,36 +243,97 @@ using namespace TNN_NS;
     self.labelResult.text = nil;
 }
 
+- (UIImage*) DrawFaceAlignResult:(std::shared_ptr<TNN_NS::Mat>) phase1_pts :
+                             (std::shared_ptr<TNN_NS::Mat>) phase2_pts :
+                             (UIImage *) input_image :
+                             (NSString *) image_path {
+    const int image_orig_height = (int)CGImageGetHeight(input_image.CGImage);
+    const int image_orig_width  = (int)CGImageGetWidth(input_image.CGImage);
+    auto image_orig_data        = utility::UIImageGetData(input_image, image_orig_height, image_orig_width);
+    const float scale_x = 1.0;
+    const float scale_y = 1.0;
+
+    auto pts_count_phase1 = TNN_NS::DimsVectorUtils::Count(phase1_pts->GetDims()) / 2;
+    float* pts1 = static_cast<float*>(phase1_pts->GetData());
+    for(int pid=0; pid < pts_count_phase1; ++pid) {
+        int x = static_cast<int>(pts1[pid * 2 + 0]);
+        int y = static_cast<int>(pts1[pid * 2 + 1]);
+        TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
+    }
+
+    auto pts_count_phase2 = TNN_NS::DimsVectorUtils::Count(phase2_pts->GetDims()) / 2;
+    float* pts2 = static_cast<float*>(phase2_pts->GetData());
+    for(int pid=0; pid < pts_count_phase2; ++pid) {
+        int x = static_cast<int>(pts2[pid * 2 + 0]);
+        int y = static_cast<int>(pts2[pid * 2 + 1]);
+        TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
+    }
+
+    UIImage *output_image = utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
+
+#if TARGET_IPHONE_SIMULATOR
+    // save image on simulator
+    NSString *out_name = [[image_path lastPathComponent] stringByReplacingOccurrencesOfString: @".jpg" withString:@"_out.jpg"];
+    // set to destination directory
+    const std::string save_dir = "/tmp/";
+    std::string save_path = save_dir+string([out_name UTF8String]);
+    NSString *path = [NSString stringWithCString:save_path.c_str()
+                                        encoding:[NSString defaultCStringEncoding]];
+    [UIImageJPEGRepresentation(output_image, 1.0) writeToFile:path atomically:YES];
+#else
+    // write to album on real device
+    UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
+#endif
+    return output_image;
+}
+
+- (std::shared_ptr<TNN_NS::Mat>) ConvertImageToMat:(TNNComputeUnits) units : (DimsVector) dims : (std::shared_ptr<char>) image_data {
+    std::shared_ptr<Mat> image_mat = nullptr;
+    if (units == TNNComputeUnitsGPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, dims);
+
+        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
+        if (!texture_rgba) {
+            self.labelResult.text = @"Error texture input rgba is nil";
+            NSLog(@"Error texture input rgba is nil");
+            return image_mat;
+        }
+        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
+                        mipmapLevel:0
+                          withBytes:image_data.get()
+                        bytesPerRow:dims[3] * 4];
+    } else if (units == TNNComputeUnitsCPU) {
+        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, dims, image_data.get());
+    }
+    return image_mat;
+}
+
+- (void) CheckStatusSetLabel:(Status)status {
+    if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
+        NSLog(@"Error: %s", status.description().c_str());
+        return;
+    }
+}
+
 - (IBAction)onBtnTNNExamples:(id)sender {
     //clear result
     self.labelResult.text = nil;
     //load models
-
     self.face_detector = [self loadFaceDetector];
     self.predictor_phase1 = [self loadYoutuFaceAlign:1];
     self.predictor_phase2 = [self loadYoutuFaceAlign:2];
-    
-    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
-    
     self.prev_face = false;
     
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     TNN_NS::DimsVector orig_image_dims = {1, 3, image_orig_height, image_orig_width};
-    
-    const int facedetector_input_height = 128;
-    const int facedetector_input_width = 128;
-    DimsVector facedetector_input_dims = {1, 3, facedetector_input_height, facedetector_input_width};
+    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 
     auto idx = 0;
-    
     Status status = TNN_OK;
-    BenchOption bench_option;
-    bench_option.forward_count = 1;
-    
     UIImage* last_frame = nil;
-    // perf bech result
-    float sum_time = 0.f;
+
     for (NSString * img_path in self.result) {
         // use autoreleasepool to rease images allocated inside each loop right after each iteration completes,
         // otherwise the memory will be released after the complete loop completes and the code will take too much memory.
@@ -278,46 +343,17 @@ using namespace TNN_NS;
             auto image_data = utility::UIImageGetData(input_image);
 
             std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-
             std::shared_ptr<TNN_NS::Mat> phase1_pts = nullptr;
             //phase1 model
             {
                 // 1) prepare input for phase1 model
                 if(!self.prev_face) {
                     // i) get face from detector
-                    self.face_detector->SetBenchOption(bench_option);
                     std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-
-                    if (compute_units == TNNComputeUnitsGPU) {
-                        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
-                        
-                        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                        if (!texture_rgba) {
-                            self.labelResult.text = @"Error texture input rgba is nil";
-                            NSLog(@"Error texture input rgba is nil");
-                            return;
-                        }
-                        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
-                                        mipmapLevel:0
-                                          withBytes:image_data.get()
-                                        bytesPerRow:orig_image_dims[3] * 4];
-                        
-                    } else if (compute_units == TNNComputeUnitsCPU) {
-                        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
-                    }
-                    // preprocess
-                    auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), N8UC4, facedetector_input_dims);
-                    self.face_detector->Resize(image_mat, input_mat, TNNInterpLinear);
-
-                    status = self.face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(input_mat), sdk_output);
-
-                    if (status != TNN_OK) {
-                        self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
-                        NSLog(@"Error: %s", status.description().c_str());
-                        return;
-                    }
-                    auto bench_result     = self.face_detector->GetBenchResult();
-                    sum_time += bench_result.total;
+                    image_mat = [self ConvertImageToMat: compute_units :orig_image_dims :image_data];
+                    status = self.face_detector->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output);
+                    [self CheckStatusSetLabel:status];
+                    BREAK_IF(status != TNN_OK);
 
                     std::vector<BlazeFaceInfo> face_info;
                     if (sdk_output && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output.get()))
@@ -326,59 +362,27 @@ using namespace TNN_NS;
                         face_info = face_output->face_list;
                     }
                     if(face_info.size() <= 0) {
-                        //no faces, return
-                        self.labelResult.text = @"Error no faces found!";
-                        NSLog(@"Error no faces found!");
+                        LOGE("Error no faces found!");
                         continue;
                     }
                     auto face = face_info[0];
                     // scale the face point according to the original image size
                     auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
-                    LOGE("%s, face_origin:(%f,%f,%f,%f), conf=%.4f\n", [[img_path lastPathComponent] UTF8String], face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2, face_orig.score);
+                    //LOGE("%s, face_origin:(%f,%f,%f,%f), conf=%.4f\n", [[img_path lastPathComponent] UTF8String], face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2, face_orig.score);
                     // set face region for phase1 model
                     if(!self.predictor_phase1->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2)) {
-                        //no invalid faces, return
-                        self.labelResult.text = @"Error no valid faces found!";
-                        NSLog(@"Error no valid faces found!");
+                        LOGE("Error no valid faces found!");
                         continue;
                     }
                 }
                 // 2) predict
-                self.predictor_phase1->SetBenchOption(bench_option);
                 std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-                
-                if (compute_units == TNNComputeUnitsGPU) {
-                    if (image_mat == nullptr) {
-                        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, orig_image_dims);
-
-                        id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
-                        if (!texture_rgba) {
-                            self.labelResult.text = @"Error texture input rgba is nil";
-                            NSLog(@"Error texture input rgba is nil");
-                            return;
-                        }
-                        [texture_rgba replaceRegion:MTLRegionMake2D(0, 0, orig_image_dims[3], orig_image_dims[2])
-                                        mipmapLevel:0
-                                          withBytes:image_data.get()
-                                        bytesPerRow:orig_image_dims[3] * 4];
-                    }
-
-                } else if (compute_units == TNNComputeUnitsCPU) {
-                    if (image_mat == nullptr) {
-                        image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
-                    }
+                if (image_mat == nullptr) {
+                    image_mat = [self ConvertImageToMat: compute_units :orig_image_dims :image_data];
                 }
-
                 status = self.predictor_phase1->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output);
-
-                auto bench_result     = self.predictor_phase1->GetBenchResult();
-                sum_time += bench_result.total;
-
-                if (status != TNN_OK) {
-                    self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
-                    NSLog(@"Error: %s", status.description().c_str());
-                    return;
-                }
+                [self CheckStatusSetLabel:status];
+                BREAK_IF(status != TNN_OK);
                 // update prev_face
                 self.prev_face = self.predictor_phase1->GetPrevFace();
                 if(!self.prev_face) {
@@ -386,85 +390,28 @@ using namespace TNN_NS;
                 }
                 phase1_pts = self.predictor_phase1->GetPrePts();
             }
-            std::shared_ptr<TNN_NS::Mat> phase2_pts = nullptr;
 
+            std::shared_ptr<TNN_NS::Mat> phase2_pts = nullptr;
             //phase2 model
             {
                 // 1) prepare phase1 pts
                 self.predictor_phase2->SetPrePts(phase1_pts, true);
                 // 2) predict
-                self.predictor_phase2->SetBenchOption(bench_option);
                 std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-                
                 status = self.predictor_phase2->Predict(std::make_shared<YoutuFaceAlignInput>(image_mat), sdk_output);
-                
-                auto bench_result     = self.predictor_phase2->GetBenchResult();
-                sum_time += bench_result.total;
-                
-                if (status != TNN_OK) {
-                    self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
-                    NSLog(@"Error: %s", status.description().c_str());
-                    return;
-                }
-                if (!(sdk_output && dynamic_cast<YoutuFaceAlignOutput *>(sdk_output.get())))
-                {
-                    self.labelResult.text = [NSString stringWithUTF8String:status.description().c_str()];
-                    NSLog(@"Error: %s", status.description().c_str());
-                    return;
-                }
+                [self CheckStatusSetLabel:status];
+                BREAK_IF(status != TNN_OK);
                 phase2_pts = self.predictor_phase2->GetPrePts();
             }
 
-            // draw points
-            {
-                auto image_orig_data        = utility::UIImageGetData(input_image, image_orig_height, image_orig_width);
-                const float scale_x = 1.0;
-                const float scale_y = 1.0;
-                
-                auto pts_count_phase1 = TNN_NS::DimsVectorUtils::Count(phase1_pts->GetDims()) / 2;
-                float* pts1 = static_cast<float*>(phase1_pts->GetData());
-                for(int pid=0; pid < pts_count_phase1; ++pid) {
-                    int x = static_cast<int>(pts1[pid * 2 + 0]);
-                    int y = static_cast<int>(pts1[pid * 2 + 1]);
-                    TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
-                }
-                
-                auto pts_count_phase2 = TNN_NS::DimsVectorUtils::Count(phase2_pts->GetDims()) / 2;
-                float* pts2 = static_cast<float*>(phase2_pts->GetData());
-                for(int pid=0; pid < pts_count_phase2; ++pid) {
-                    int x = static_cast<int>(pts2[pid * 2 + 0]);
-                    int y = static_cast<int>(pts2[pid * 2 + 1]);
-                    TNN_NS::Point((void*)image_orig_data.get(), image_orig_height, image_orig_width, x, y, 0, scale_x, scale_y);
-                }
-                
-                UIImage *output_image = utility::UIImageWithDataRGBA((void *)image_orig_data.get(), image_orig_height, image_orig_width);
-                
-#if TARGET_IPHONE_SIMULATOR
-                // save image on simulator
-                NSString *out_name = [[img_path lastPathComponent] stringByReplacingOccurrencesOfString: @".jpg" withString:@"_out.jpg"];
-                // set to destination directory
-                const std::string save_dir = "/tmp/";
-                std::string save_path = save_dir+string([out_name UTF8String]);
-                NSString *path = [NSString stringWithCString:save_path.c_str()
-                                                    encoding:[NSString defaultCStringEncoding]];
-                [UIImageJPEGRepresentation(output_image, 1.0) writeToFile:path atomically:YES];
-#else
-                // write to album on real device
-                UIImageWriteToSavedPhotosAlbum(output_image, nil, nil, nil);
-#endif
-                if(idx == [self.result count]) {
-                    last_frame = output_image;
-                }
+            UIImage* output_image = [self DrawFaceAlignResult:phase1_pts :phase2_pts :input_image :img_path];
+            if(idx == [self.result count]) {
+                last_frame = output_image;
             }
         }
     }
     // update view image
     self.imageView.image = last_frame;
-    // update perf
-    float avg_time = sum_time / (idx * bench_option.forward_count);
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@\ntotal %d images\ntime per frame:%.3f ms", \
-                             compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", idx, avg_time];
 }
-
 
 @end

@@ -41,7 +41,7 @@ TNN_NS::Status TFLiteStridedSliceConverter::exec(
     parm->quantized  = false;
     auto option      = tf_lite_operator->builtin_options.AsStridedSliceOptions();
     ASSERT(tf_lite_operator->inputs.size() >= 3);
-    auto& input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
+    auto &input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
     auto &begin_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
     auto begin_size =
         tf_lite_model_buffer[begin_tensor->buffer]->data.size() / SizeofTFLiteTensorData(begin_tensor->type);

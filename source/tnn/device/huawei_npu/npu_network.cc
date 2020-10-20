@@ -25,6 +25,7 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/data_format_converter.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -41,9 +42,13 @@ NpuNetwork::~NpuNetwork() {
     DeInit();
 }
 
+bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
+    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN;
+}
+
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
-    if (net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN) {
+    if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
     }
     // init check whether the rom version is compatible
@@ -55,7 +60,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // add interpreter
     auto *default_interpreter                = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_                           = default_interpreter->GetNetStructure();
-    model_name_                              = NpuUtils::GetFileHash(model_config);
+    model_name_                              = NpuCommonUtils::GetFileHash(model_config);
     InputShapesMap instance_input_shapes_map = net_structure_->inputs_shape_map;
     InputShapesMap cpu_input_shape;
 
@@ -79,7 +84,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData om_model_buff;
 
-    if (use_path_ && NpuUtils::FileExits(model_path)) {
+    if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
     } else {
         // NPU IR build
