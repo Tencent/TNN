@@ -64,7 +64,7 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& n
         net_writer->put_bool(has_update);
     }
 
-    return 0;
+    return 1;
 }
 
 REGISTER_OP_CONVERTER(ScatterND, ScatterND);
