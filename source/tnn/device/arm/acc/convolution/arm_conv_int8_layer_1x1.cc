@@ -34,7 +34,7 @@ bool ArmConvInt8Layer1x1::isPrefered(ConvLayerParam *param, const std::vector<Bl
     const int input_channel = dims_input[1];
     const int h             = dims_input[2];
     const int w             = dims_input[3];
-    if (input_channel <= 16 && h * w > param->output_channel) {
+    if (input_channel <= 32 && h * w > param->output_channel) {
         return true;
     }
 

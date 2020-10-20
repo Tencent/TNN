@@ -51,9 +51,6 @@ private:
 
     Status SplitResource();
 
-    void CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
-                     std::shared_ptr<ArmLayerAcc> &deconv_acc_impl);
-
     Status SetSplitBlobDesc(Blob *blob);
     Status SetSplitBlobHandle(Blob *blob, RawBuffer &buf);
 
