@@ -133,8 +133,7 @@ void MatConverterTest::GetOutputSize(const MatConverterTestParam& mat_converter_
                                      const int input_size,
                                      int& output_size) {
     if (mat_converter_type == MatConverterType::Resize){
-        // TODO: strange code, just copy from origin test
-        output_size = 380;
+        output_size = int(round(mat_converter_test_param.resize_param.scale_h * input_size));
     } else if(mat_converter_type == MatConverterType::Crop) {
         output_size = mat_converter_test_param.crop_param.width;
     } else {
