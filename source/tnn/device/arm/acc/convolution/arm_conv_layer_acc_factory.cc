@@ -70,7 +70,7 @@ void ArmConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, cons
     }
 }
 
-void ArmConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+void ArmConvLayerAccFactory::CreateImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                          LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {}
 
 }  // namespace TNN_NS
