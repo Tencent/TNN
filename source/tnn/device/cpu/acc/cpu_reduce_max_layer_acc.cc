@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/naive_compute.h"
 #include "tnn/device/cpu/acc/cpu_reduce_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
@@ -23,17 +23,19 @@ DECLARE_CPU_REDUCE_ACC(ReduceMax, LAYER_REDUCE_MAX);
 
 Status CpuReduceMaxLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                              int inner_dim) {
+    int output_size = outer_dim * inner_dim;
+    for (int i = 0; i < output_size; ++i) {
+        output_data[i] = -FLT_MAX;
+    }
+
     for (int oc = 0; oc < outer_dim; oc++) {
-        auto input_out = input_data + oc * channels * inner_dim;
-        auto output_out = output_data + oc * inner_dim;
-        for (int ic = 0; ic < inner_dim; ic++) {
-            auto input_in = input_out + ic;
-            auto output_in = output_out + ic;
-            *output_in = -FLT_MAX;
-            for (int c = 0; c < channels; c++) {
-                *output_in = std::max(*output_in, input_in[c * inner_dim]);
+        for (int c = 0; c < channels; c++) {
+            for (int ic = 0; ic < inner_dim; ic++) {
+                output_data[ic] = std::max(input_data[ic], output_data[ic]);
             }
+            input_data += inner_dim;
         }
+        output_data += inner_dim;
     }
     return TNN_OK;
 }

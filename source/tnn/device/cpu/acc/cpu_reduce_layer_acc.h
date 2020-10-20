@@ -34,6 +34,9 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+protected:
+    virtual Status PostCalculateReduce(float *dst, float *src, int count);
+
 private:
     virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,
                                    int inner_dim) = 0;
@@ -43,6 +46,19 @@ private:
     class Cpu##type_string##LayerAcc : public CpuReduceLayerAcc {                                                      \
     public:                                                                                                            \
         virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
+                                                                                                                       \
+    private:                                                                                                           \
+        virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,             \
+                                       int inner_dim);                                                                 \
+    }
+
+#define DECLARE_CPU_REDUCE_WITH_POST_ACC(type_string, layer_type)                                                      \
+    class Cpu##type_string##LayerAcc : public CpuReduceLayerAcc {                                                      \
+    public:                                                                                                            \
+        virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
+                                                                                                                       \
+    protected:                                                                                                         \
+        virtual Status PostCalculateReduce(float *dst, float *src, int count);                                         \
                                                                                                                        \
     private:                                                                                                           \
         virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,             \
