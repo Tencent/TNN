@@ -125,4 +125,68 @@ Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C,
     return TNN_OK;
 }
 
+// max pooling can use heap
+Status X86_MAX_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
+                       int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w) {
+    
+    auto input_width = input_dim[3], input_height = input_dim[2], input_channel = input_dim[1];
+    auto output_width = output_dim[3], output_height = output_dim[2], output_channel = output_dim[1];
+
+    for (int b = 0; b < input_dim[0]; b++) {
+        for (int c = 0; c < output_channel; c++) {
+            float* input_data  = input + (b * input_channel + c) * input_height * input_width;
+            float* output_data = output + (b * output_channel + c) * output_height * output_width;
+            for (int h = 0; h < output_height; h++) {
+                for (int w = 0; w < output_width; w++) {
+                    // if use heap, build for first try
+                    int h_start = h * stride_h - pad_h, h_end = h_start + kernel_h;
+                    int w_start = w * stride_w - pad_w, w_end = w_start + kernel_w;
+                    h_start = std::max(0, h_start); h_end = std::min(input_height, h_end);
+                    w_start = std::max(0, w_start); w_end = std::min(input_width, w_end);
+                    float tmp = input_data[h_start * input_width + w_start];
+                    for (int hin = h_start; hin < h_end; hin++) {
+                        for (int win = w_start; win < w_end; win++) {
+                            tmp = std::max(tmp, input_data[hin * input_width + win]);
+                        }
+                    }
+                    output_data[h * output_width + w] = tmp;
+                }
+            }
+        }
+    }
+    return TNN_OK;
+}
+
+Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
+                           int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w) {
+    
+    auto input_width = input_dim[3], input_height = input_dim[2], input_channel = input_dim[1];
+    auto output_width = output_dim[3], output_height = output_dim[2], output_channel = output_dim[1];
+
+    for (int b = 0; b < input_dim[0]; b++) {
+        for (int c = 0; c < output_channel; c++) {
+            float* input_data  = input + (b * input_channel + c) * input_height * input_width;
+            float* output_data = output + (b * output_channel + c) * output_height * output_width;
+            for (int h = 0; h < output_height; h++) {
+                for (int w = 0; w < output_width; w++) {
+                    // if use heap, build for first try
+                    int h_start = h * stride_h - pad_h, h_end = h_start + kernel_h;
+                    int w_start = w * stride_w - pad_w, w_end = w_start + kernel_w;
+                    h_start = std::max(0, h_start); h_end = std::min(input_height, h_end);
+                    w_start = std::max(0, w_start); w_end = std::min(input_width, w_end);
+                    auto kernel_count = (h_end - h_start) * (w_end - w_start);
+                    float tmp = 0.f;
+                    for (int hin = h_start; hin < h_end; hin++) {
+                        for (int win = w_start; win < w_end; win++) {
+                            tmp += input_data[hin * input_width + win];
+                        }
+                    }
+                    output_data[h * output_width + w] = tmp / kernel_count;
+                }
+            }
+        }
+    }
+    return TNN_OK;
+}
+
 }

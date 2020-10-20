@@ -35,6 +35,12 @@ Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, i
 Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C, 
                      int has_bias = 0, float *bias = nullptr, int activation_type = ActivationType_None);
 
+Status X86_MAX_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
+                       int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w);
+
+Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
+                           int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w);
+
 }   // namespace TNN_NS
 
 #endif
