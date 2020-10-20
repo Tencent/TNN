@@ -19,6 +19,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
@@ -40,6 +41,9 @@ Status X86_MAX_POOLING(float *input, float *output, DimsVector input_dim, DimsVe
 
 Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
                            int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w);
+
+Status X86_FMA(float *input, float *output, float *scale, float *bias,
+               bool shared_channel, bool has_bias, DimsVector output_dim);
 
 }   // namespace TNN_NS
 

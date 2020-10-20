@@ -55,7 +55,7 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         for (int b = 0; b < batch; b++) {
-            if (0) {
+            if (1) {
                 for (int c = 0; c < channels; c++) {
 #ifdef AVX2
                     register __m256 _sum_x, _sum_x2;
@@ -411,5 +411,5 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
     return TNN_OK;
 }
 
-// REGISTER_X86_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_X86_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
 }
