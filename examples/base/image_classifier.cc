@@ -43,7 +43,7 @@ Status ImageClassifier::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) 
     RETURN_VALUE_ON_NEQ(!output_mat_scores, false,
                         Status(TNNERR_PARAM_ERR, "output_mat_scores is invalid"));
     
-    int class_id           = -1;
+    int class_id           = 0;
     float *scores_data = (float *)output_mat_scores.get()->GetData();
     float max_v        = scores_data[0];
     for (int i = 1; i < output_mat_scores->GetChannel(); ++i) {
