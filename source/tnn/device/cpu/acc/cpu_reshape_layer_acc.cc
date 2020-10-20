@@ -74,7 +74,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         if (output->GetHandle().base != input->GetHandle().base) {
             auto dims_input    = input->GetBlobDesc().dims;
             int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
-            auto size_in_bytes = dims_input[0] * dims_input[1] * dims_input[2] * dims_input[3] * data_byte_size;
+            auto size_in_bytes = DimsVectorUtils::Count(dims_input) * data_byte_size;
             memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
         }
     } else if (param->reshape_type == 1) {

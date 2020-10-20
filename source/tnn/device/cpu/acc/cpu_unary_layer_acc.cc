@@ -77,7 +77,7 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
                 auto output_data_c = output_data_n + c * dims[2] * dims[3];
                 float input_scale   = scale_len_i == 0 ? i_scale[0] : i_scale[c];
                 float output_scale  = scale_len_o == 0 ? o_scale[0] : o_scale[c];
-                for (int hw = 0; hw < dims[2] * dims[3]; ++hw) {
+                for (int hw = 0; hw < DimsVectorUtils::Count(dims, 2); ++hw) {
                     float input_data_tmp  = input_data_c[hw] * input_scale;
                     float output_data_tmp = (*op_)(input_data_tmp);
                     output_data_c[hw] = float2int8(output_data_tmp / output_scale);
