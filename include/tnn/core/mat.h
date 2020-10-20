@@ -41,6 +41,9 @@ typedef enum {
     NNV12      = 0x12,
     //nchw: float
     NCHW_FLOAT = 0x20,
+    //ncdhw: float
+    NCDHW_FLOAT = 0x100,
+    
     // RESERVED FOR INTERNAL TEST USE
     RESERVED_BFP16_TEST = 0x200,
     RESERVED_FP16_TEST  = 0x201,

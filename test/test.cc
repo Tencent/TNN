@@ -129,7 +129,12 @@ namespace test {
                     auto blob_converter = element.second;
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+                ret = instance->Forward();
+#else
                 ret = instance->ForwardAsync(nullptr);
+#endif
+
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
