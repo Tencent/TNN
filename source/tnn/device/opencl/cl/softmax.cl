@@ -117,10 +117,11 @@ __kernel void SoftmaxHeightLocal(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                                  __local FLOAT4* local_output) {
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
-    const int cw = get_global_id(0) / group_size;
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
     const int bh = get_global_id(1);
 
-    DEAL_NON_UNIFORM_DIM2(cw, bh);
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
 
     FLOAT4 t;
     FLOAT4 image_cache[CACHE_SIZE];

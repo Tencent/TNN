@@ -19,8 +19,7 @@ namespace TNN_NS {
 
 DECLARE_OPENCL_ACC(Softmax);
 
-#define LowOpParallelismThre 32
-#define HighOpIntensityThre 256
+#define HighOpIntensityThre 128
 
 Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -56,8 +55,7 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     int axis_n          = input_dims[softmax_param->axis];
 
     // only support fine-grained parallelism in softmax height
-    bool run_local_work = softmax_param->axis == 2 &&
-                          cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+    bool run_local_work = softmax_param->axis == 2 && axis_n >= HighOpIntensityThre;
     if (run_local_work) {
         kernel_name += "Local";
     }
@@ -101,6 +99,12 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     uint32_t idx = 0;
 
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    int type_size = sizeof(float);
+    if (opencl_runtime->GetFp16Enable()) {
+        type_size = 2;
+    }
+
     if (1 == softmax_param->axis) {
         execute_units_[0].global_work_size = {static_cast<uint32_t>(channelBlocks), static_cast<uint32_t>(width),
                                                 static_cast<uint32_t>(height * batch)};
@@ -115,11 +119,11 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, remainChannels);
         execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
     } else if (2 == softmax_param->axis) {
-        bool run_local_work     = cw * batch < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+        bool run_local_work     = axis_n >= HighOpIntensityThre;
         uint32_t workgroup_size = 0;
         auto &unit              = execute_units_[0];
         if (run_local_work) {
-            workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * sizeof(float))),
+            workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
                                       unit.workgroupsize_max);
             workgroup_size = std::min(static_cast<uint32_t>(axis_n), workgroup_size);
             int temp_size = 1;
@@ -145,7 +149,7 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, shape);
         if (run_local_work) {
             execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
-            execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * sizeof(float), nullptr);
+            execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
         }
     } else {
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);

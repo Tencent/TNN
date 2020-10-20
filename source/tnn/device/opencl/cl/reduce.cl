@@ -128,10 +128,11 @@ __kernel void ReduceC3(REDUCE_INPUTS) {
 __kernel void ReduceC0Local(REDUCE_LOCAL_INPUTS) {
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
-    const int cw = get_global_id(0) / group_size;
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
     const int bh = get_global_id(1);
 
-    DEAL_NON_UNIFORM_DIM2(cw, bh);
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
 
     FLOAT4 t;
     local_output[local_id] = (FLOAT4)(DATAINIT);
@@ -150,10 +151,11 @@ __kernel void ReduceC0Local(REDUCE_LOCAL_INPUTS) {
 __kernel void ReduceC1Local(REDUCE_LOCAL_INPUTS) {
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
-    const int cw = get_global_id(0) / group_size;
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
     const int bh = get_global_id(1);
 
-    DEAL_NON_UNIFORM_DIM2(cw, bh);
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
 
     FLOAT4 t;
     local_output[local_id] = (FLOAT4)(DATAINIT);
@@ -200,10 +202,11 @@ __kernel void ReduceC1Local(REDUCE_LOCAL_INPUTS) {
 __kernel void ReduceC2Local(REDUCE_LOCAL_INPUTS) {
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
-    const int cw = get_global_id(0) / group_size;
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
     const int bh = get_global_id(1);
 
-    DEAL_NON_UNIFORM_DIM2(cw, bh);
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
 
     FLOAT4 t;
     local_output[local_id] = (FLOAT4)(DATAINIT);
@@ -222,10 +225,11 @@ __kernel void ReduceC2Local(REDUCE_LOCAL_INPUTS) {
 __kernel void ReduceC3Local(REDUCE_LOCAL_INPUTS) {
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
-    const int cw = get_global_id(0) / group_size;
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
     const int bh = get_global_id(1);
 
-    DEAL_NON_UNIFORM_DIM2(cw, bh);
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
 
     FLOAT4 t;
     local_output[local_id] = (FLOAT4)(DATAINIT);

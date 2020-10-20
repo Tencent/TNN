@@ -17,8 +17,8 @@
 
 namespace TNN_NS {
 
-#define LowOpParallelismThre 32
-#define HighOpIntensityThre 256
+#define LowOpParallelismThre 256
+#define HighOpIntensityThre 128
 
 Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -100,8 +100,15 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     auto &unit            = execute_units_[0];
     uint32_t workgroup_size = 0;
+
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    int type_size = sizeof(float);
+    if (opencl_runtime->GetFp16Enable()) {
+        type_size = 2;
+    }
+
     if (run_local_work_) {
-        workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * sizeof(float))),
+        workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
                                   unit.workgroupsize_max);
         workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
         int temp_size = 1;
@@ -136,7 +143,7 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         } else {
             execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
         }
-        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * sizeof(float), nullptr);
+        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
     }
 
     return TNN_OK;
