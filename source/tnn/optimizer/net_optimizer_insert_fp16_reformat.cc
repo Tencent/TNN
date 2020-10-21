@@ -79,10 +79,10 @@ namespace optimizer {
         }
 
         // only insert reformat for fp16-enabled layer
-        auto fl16_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [&](std::shared_ptr<LayerInfo> iter) {
+        auto fp16_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [&](std::shared_ptr<LayerInfo> iter) {
             return device_->GetEnabledPrecision(iter->type)->fp16_enabled;
         });
-        if (fl16_layer == layers_orig.end()) {
+        if (fp16_layer == layers_orig.end()) {
             return TNN_OK;
         }
 
