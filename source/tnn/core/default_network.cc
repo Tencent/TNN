@@ -228,10 +228,13 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
  Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                             const std::string &name, NetResource *net_resource, Blob **blob) {
+    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
+        return TNN_OK;
+    }
+    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
-    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    bool device_implemented_fp16 = device_->GetEnabledPrecision(layer_type)->fp16_enabled;
 
     if (layer_type != LAYER_REFORMAT) {
         // update blob of quantized network by layer info
@@ -240,9 +243,10 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
+            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                desc.data_type = (cpu_support_fp16 && device_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
             } else if (config_.precision == PRECISION_HIGH) {

@@ -92,19 +92,19 @@ private:
 
 class ArmTypeLayerFp16PrecisionCreator {
 public:
-    static std::shared_ptr<EnabledPrecision> UpdateEnabledPrecision(LayerType layer_type) {
+    static std::shared_ptr<ImplementedPrecision> UpdateImplementedPrecision(LayerType layer_type) {
         // make sure arm device has been registered
         TypeDeviceRegister<ArmDevice> arm_device_register(DEVICE_ARM);
-        auto enabled_precision = GetDevice(DEVICE_ARM)->GetEnabledPrecision(layer_type);
-        auto updated_precision = std::make_shared<EnabledPrecision>(*enabled_precision);
-        updated_precision->fp16_enabled = true;
+        auto implemented_precision = GetDevice(DEVICE_ARM)->GetImplementedPrecision(layer_type);
+        auto updated_precision     = std::make_shared<ImplementedPrecision>(*implemented_precision);
+        updated_precision->fp16_implemented = true;
         return updated_precision;
     };
 };
 
 #define REGISTER_ARM_PRECISION_FP16(layer_type)                                                                        \
     ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(layer_type,                             \
-        ArmTypeLayerFp16PrecisionCreator::UpdateEnabledPrecision(layer_type));
+        ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
 
 }  // namespace TNN_NS
 

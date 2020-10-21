@@ -78,9 +78,9 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        // only insert reformat for fp16-enabled layer
+        // only insert reformat for fp16-implemented layer
         auto fp16_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [&](std::shared_ptr<LayerInfo> iter) {
-            return device_->GetEnabledPrecision(iter->type)->fp16_enabled;
+            return device_->GetImplementedPrecision(iter->type)->fp16_implemented;
         });
         if (fp16_layer == layers_orig.end()) {
             return TNN_OK;
@@ -95,12 +95,12 @@ namespace optimizer {
             // find blobs need reformat
             // support multi inputs/outputs
             std::vector<std::string> reformat_outs;
-            bool is_cur_layer_fp16 = device_->GetEnabledPrecision(cur_layer->type)->fp16_enabled;
+            bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented;
             for (auto cur_out : cur_layer->outputs) {
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
                     auto next_layer = layers_orig[next_id];
-                    bool is_next_layer_fp16 = device_->GetEnabledPrecision(next_layer->type)->fp16_enabled;
+                    bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
                     for (auto next_in : next_layer->inputs) {
                         if (next_in == cur_out && is_next_layer_fp16 != is_cur_layer_fp16) {
                             need_reformat = true;
@@ -115,7 +115,7 @@ namespace optimizer {
             }
 
             std::shared_ptr<LayerInfo> new_layer =
-                CreateReformat(cur_layer->name + reformat_name_suffix, cur_layer->param->quantized);
+                CreateReformat(cur_layer->name + reformat_name_suffix, is_cur_layer_fp16);
 
             AdjustLayer(layers_orig, structure, cur_layer, new_layer,
                         reformat_outs, reformat_name_suffix, index, count);
@@ -137,7 +137,7 @@ namespace optimizer {
             const std::string& reformat_name_suffix,
             const int index,
             const int count) {
-        bool is_cur_layer_fp16 = device_->GetEnabledPrecision(cur_layer->type)->fp16_enabled;
+        bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented;
         // change blobs for for layers to read blob data correctly
         new_layer->inputs = reformat_outs;
         for (auto cur_out : reformat_outs) {
@@ -147,7 +147,7 @@ namespace optimizer {
             // change the inputs of successed layers
             for (int next_id = index + 1; next_id < count; next_id++) {
                 auto next_layer = layers_orig[next_id];
-                bool is_next_layer_fp16 = device_->GetEnabledPrecision(next_layer->type)->fp16_enabled;
+                bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when fp16 status diff
                     if (next_in == cur_out && is_next_layer_fp16 != is_cur_layer_fp16) {

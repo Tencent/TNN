@@ -108,12 +108,12 @@ AbstractLayerAcc *ArmDevice::CreateLayerAcc(LayerType type) {
     return NULL;
 }
 
-std::shared_ptr<const EnabledPrecision> ArmDevice::GetEnabledPrecision(LayerType type) {
+std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(LayerType type) {
     auto &layer_precision_map = GetLayerPrecisionMap();
     if (layer_precision_map.count(type) > 0) {
         return layer_precision_map[type];
     }
-    return std::make_shared<EnabledPrecision>();
+    return std::make_shared<ImplementedPrecision>();
 }
 
 Context *ArmDevice::CreateContext(int device_id) {
@@ -130,13 +130,13 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>> &ArmDevice::GetLayerCreato
     return layer_creator_map;
 }
 
-Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<EnabledPrecision> precision) {
+Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<ImplementedPrecision> precision) {
     GetLayerPrecisionMap()[type] = precision;
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<EnabledPrecision>> &ArmDevice::GetLayerPrecisionMap() {
-    static std::map<LayerType, std::shared_ptr<EnabledPrecision>> layer_precision_map;
+std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
 };
 
