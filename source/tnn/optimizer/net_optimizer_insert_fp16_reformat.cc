@@ -24,6 +24,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/optimizer/optimizer_const.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -42,7 +43,8 @@ namespace optimizer {
         auto precision = net_config.precision;
         device_        = GetDevice(device);
         return (device == DEVICE_ARM || device == DEVICE_NAIVE) &&
-               (precision == PRECISION_NORMAL || precision == PRECISION_AUTO);
+               (precision == PRECISION_NORMAL || precision == PRECISION_AUTO) &&
+               CpuUtils::CpuSupportFp16();
     }
 
     static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_fp16) {
@@ -70,7 +72,13 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        // only insert reformat for fl16 layer
+        // skip if network is quantized
+        auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
+        if (is_quantized_net) {
+            return TNN_OK;
+        }
+
+        // only insert reformat for fp16-enabled layer
         auto fl16_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [&](std::shared_ptr<LayerInfo> iter) {
             return device_->GetEnabledPrecision(iter->type)->fp16_enabled;
         });

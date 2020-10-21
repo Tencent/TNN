@@ -68,10 +68,8 @@ namespace optimizer {
         }
 
         // only insert reformat before quantized layer now
-        auto quantize_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [](std::shared_ptr<LayerInfo> iter) {
-            return iter->param->quantized == true;
-        });
-        if (quantize_layer == layers_orig.end()) {
+        auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
+        if (!is_quantized_net) {
             return TNN_OK;
         }
 
