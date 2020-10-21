@@ -57,12 +57,11 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
         for (int b = 0; b < batch; b++) {
             if (1) {
                 for (int c = 0; c < channels; c++) {
-#ifdef AVX2
+#ifdef __AVX2__
                     register __m256 _sum_x, _sum_x2;
                     register float buffer[8];
                     _sum_x = _mm256_setzero_ps();
                     _sum_x2 = _mm256_setzero_ps();
-
                     int head = 0;
                     const int tail = area - area % 8;
                     double temp;
@@ -161,7 +160,7 @@ Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const 
                 }
             } else {
                 for (int c = 0; c < channels; c += 4) {
-#ifdef AVX2
+#ifdef __AVX2__
                     register __m256 _sum1_x, _sum2_x, _sum3_x, _sum4_x, _sum1_x2, _sum2_x2, _sum3_x2, _sum4_x2;
                     // register __m256 _sum_x[4], _sum_x2[4];
                     register float buffer[8];

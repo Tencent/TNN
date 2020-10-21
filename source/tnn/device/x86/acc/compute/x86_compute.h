@@ -19,6 +19,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
+#include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/layer_param.h"
 
@@ -44,6 +45,9 @@ Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, Di
 
 Status X86_FMA(float *input, float *output, float *scale, float *bias,
                bool shared_channel, bool has_bias, DimsVector output_dim);
+
+// @brief allow 2 ops for instanceNorm
+Status X86_REDUCE_CALCULATE(float *input, float *output, DimsVector input_dim, DimsVector output_dim, std::shared_ptr<X86_REDUCE_OP> op);
 
 }   // namespace TNN_NS
 

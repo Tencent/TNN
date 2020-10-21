@@ -12,18 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
+#include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
+
+#include <vector>
+#include <iostream>
+#include <immintrin.h>
 
 namespace TNN_NS {
 
-typedef struct x86_add_layer_operator : x86_binary_operator {
-    float operator()(const float v1, const float v2) {
+typedef struct x86_reduce_sum_operator : x86_reduce_operator {
+#ifdef __AVX2__
+    __m256 operator()(const __m256 v1_, const __m256 v2_) { 
+        return _mm256_add_ps(v1_, v2_);
+    }
+#else
+    void operator()(const float v1, const float v2) {
         return v1 + v2;
     }
-} X86_ADD_OP;
+#endif
+} X86_REDUCE_SUM_OP;
 
-DECLARE_X86_BINARY_OP_ACC(Add, X86_ADD_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceSum, X86_REDUCE_SUM_OP);
 
-REGISTER_X86_ACC(Add, LAYER_ADD);
+REGISTER_X86_ACC(ReduceSum, LAYER_REDUCE_SUM);
 
 }   // namespace TNN_NS
+

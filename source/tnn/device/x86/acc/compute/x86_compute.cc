@@ -200,12 +200,12 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
         cal_count = DimsVectorUtils::Count(output_dim, 2);
     
     if (shared_channel) {
-#ifdef AVX2
+#ifdef __AVX2__
         int tail = cal_count - cal_count % 8;
         if (has_bias) {     // has bias
             register __m256 src, scale, bias;
-            scale = _mm256_broadcast_ps(scale_data[0]);
-            bias  = _mm256_broadcast_ps(bias_data[0]);
+            scale = _mm256_broadcast_ss(&scale_data[0]);
+            bias  = _mm256_broadcast_ss(&bias_data[0]);
             for (size_t i = 0; i < tail; i += 8) {
                 src = _mm256_loadu_ps(input_data + i);
                 src = _mm256_fmadd_ps(src, scale, bias);
@@ -216,7 +216,7 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
             }
         } else {        // no bias
             register __m256 src, scale;
-            scale = _mm256_broadcast_ps(scale_data[0]);
+            scale = _mm256_broadcast_ss(&scale_data[0]);
             for (size_t i = 0; i < tail; i += 8) {
                 src = _mm256_loadu_ps(input_data + i);
                 src = _mm256_mul_ps(src, scale);
@@ -238,14 +238,14 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
         }
 #endif
     } else {
-#ifdef AVX2
+#ifdef __AVX2__
         int tail = cal_count - cal_count % 8;
         for (int b = 0; b < output_dim[0]; b++) {
             for (int c = 0; c < channel; c++) {
                 if (has_bias) {
                     register __m256 src, scale, bias;
-                    scale = _mm256_broadcast_ps(scale_data[c]);
-                    bias  = _mm256_broadcast_ps(bias_data[c]);
+                    scale = _mm256_broadcast_ss(&scale_data[c]);
+                    bias  = _mm256_broadcast_ss(&bias_data[c]);
                     float *input  = input_data + (b * channel + c) * cal_count;
                     float *output = output_data + (b * channel + c) * cal_count;
                     for (size_t index = 0; index < tail; index += 8) {
@@ -257,7 +257,7 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
                         output[index] = input[index] * scale_data[c] + bias_data[c];
                 } else {
                     register __m256 src, scale;
-                    scale = _mm256_broadcast_ps(scale_data[c]);
+                    scale = _mm256_broadcast_ss(&scale_data[c]);
                     float *input  = input_data + (b * channel + c) * cal_count;
                     float *output = output_data + (b * channel + c) * cal_count;
                     for (size_t index = 0; index < tail; index += 8) {
@@ -290,4 +290,57 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
     }
     return TNN_OK;
 }
+
+Status X86_REDUCE_CALCULATE(float *input, float *output, DimsVector input_dim, DimsVector output_dim, std::shared_ptr<X86_REDUCE_OP> op) {
+
+    int channel = input_dim[1];
+    int channel_size = DimsVectorUtils::Count(input_dim, 2);
+#ifdef __AVX2__
+    int tail = channel_size - channel_size % 8;
+    register __m256 src_, tmp_;
+    for (int b = 0; b < output_dim[0]; b++) {
+        for (int index = 0; index < tail; index += 8) {
+            tmp_ = _mm256_setzero_ps();
+            for (int c = 0; c < channel; c++) {
+                src_ = _mm256_loadu_ps(input + (b * channel + c) * channel_size + index);
+                tmp_ = (*op)(tmp_, src_);
+            }
+            _mm256_storeu_ps(output + b * channel_size + index, tmp_);
+        }
+
+        for (int index = tail; index < channel_size; index++) {
+            float tmp = 0.f;
+            for (int c = 0; c < channel; c++) {
+                tmp += input[(b * channel + c) * channel_size + index];
+            }
+            output[b * channel_size + index] = tmp;
+        }
+        // unsigned a[8] = {0};
+        // for (int i = 0; i < channel_size % 8; i++) a[i] = 1;
+        // for (int i = 0; i < 8; i++) std::cout << a[i] << std::endl;
+        // __m256i mask_ = _mm256_loadu_si256((__m256i*)a);
+        
+        // for (int index = tail; index < channel_size; index += 8) {
+        //     tmp_ = _mm256_setzero_ps();
+        //     for (int c = 0; c < channel; c++) {
+        //         src_ = _mm256_maskload_ps(input + (b * channel + c) * channel_size + index, mask_);
+        //         tmp_ = (*op)(tmp_, src_);
+        //     }
+        //     _mm256_maskstore_ps(output + b * channel_size + index, mask_, tmp_);
+        // }
+    }
+#else
+    for (int b = 0; b < output_dim[0]; b++) {
+        for (int index = 0; index < channel_size; index++) {
+            op->Init();
+            for (int c = 0; c < channel; c++) {
+                (*op)(input[(b * channel + c) * channel_size + index]);
+            }
+            output[b * channel_size + index] = op->GetValue();
+        }
+    }
+#endif
+    return TNN_OK;
+}
+
 }
