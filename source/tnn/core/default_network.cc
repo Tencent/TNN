@@ -24,6 +24,7 @@
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
+#include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -229,6 +230,8 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
                                             const std::string &name, NetResource *net_resource, Blob **blob) {
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
+    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+    bool device_implemented_fp16 = device_->GetEnabledPrecision(layer_type)->fp16_enabled;
 
     if (layer_type != LAYER_REFORMAT) {
         // update blob of quantized network by layer info
@@ -239,8 +242,7 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
         } else {
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                desc.data_type = device_->GetEnabledPrecision(layer_type)->fp16_enabled ?
-                                 DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                desc.data_type = (cpu_support_fp16 && device_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
             } else if (config_.precision == PRECISION_HIGH) {
