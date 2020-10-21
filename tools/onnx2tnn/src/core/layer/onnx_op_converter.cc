@@ -73,9 +73,8 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
             return -1;
         }
         auto dims = GetDimsFromTensor(tensor);
-        item_size = item_size * 2;
         if (tensor.has_raw_data()) {
-            int32_t* raw_data = (int32_t *)tensor.raw_data().data();
+            int64_t * raw_data = (int64_t *)tensor.raw_data().data();
             auto tmp = new int32_t[item_size];
             for (int i = 0; i < item_size; ++i) {
                 tmp[i] = raw_data[i];
