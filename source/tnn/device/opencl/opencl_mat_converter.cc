@@ -504,6 +504,10 @@ Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType t
     return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
 }
 
+Status OpenCLMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support copy make border");
+}
+
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);
 REGISTER_MAT_CONVERTER(OpenCL, DEVICE_OPENCL);
 }  // namespace TNN_NS

@@ -34,6 +34,7 @@ public:
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
+    virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL);
 
     ~MetalMatConverterAcc() {};
 protected:
@@ -1042,6 +1043,10 @@ Status MetalMatConverterAcc::BGR2Gray(Mat& src, Mat& dst, void* command_queue) {
 
 Status MetalMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     return Status(TNNERR_PARAM_ERR, "metal not support color conversion");
+}
+
+Status MetalMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "metal not support copy make border");
 }
 
 DECLARE_MAT_CONVERTER_CREATER(Metal);

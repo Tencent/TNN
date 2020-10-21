@@ -175,7 +175,7 @@ Status MatUtils::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* co
     return converter->CvtColor(src, dst, type, command_queue);
 }
 
-static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+Status MatUtils::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
     auto ret = CheckSrcAndDstMat(src, dst, true, true, true);
     if (ret != TNN_OK) {
         return ret;
@@ -194,7 +194,7 @@ static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void
     }
 
     GET_MAT_CONVERTER(src.GetDeviceType());
-    // return converter->CopyMakeBorder(src, dst, param, command_queue);
+    return converter->CopyMakeBorder(src, dst, param, command_queue);
 }
 
 #undef GET_MAT_CONVERTER

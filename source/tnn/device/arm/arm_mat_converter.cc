@@ -237,6 +237,9 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
+Status ArmMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    return TNN_OK;
+}
 
 DECLARE_MAT_CONVERTER_CREATER(Arm);
 REGISTER_MAT_CONVERTER(Arm, DEVICE_ARM);
