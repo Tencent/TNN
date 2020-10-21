@@ -134,8 +134,11 @@ void MatConverterTest::GetOutputSize(const MatConverterTestParam& mat_converter_
                                      int& output_size) {
     if (mat_converter_type == MatConverterType::Resize){
         output_size = int(round(mat_converter_test_param.resize_param.scale_h * input_size));
-    } else if(mat_converter_type == MatConverterType::Crop) {
+    } else if (mat_converter_type == MatConverterType::Crop) {
         output_size = mat_converter_test_param.crop_param.width;
+    } else if (mat_converter_type == MatConverterType::CopyMakeBorder) {
+        output_size = input_size + mat_converter_test_param.copy_make_border_param.top +
+                      mat_converter_test_param.copy_make_border_param.bottom;
     } else {
         output_size = input_size;
     }
@@ -184,7 +187,16 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
-                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA)
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA),
+                                // CopyMakeBorder
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 0, 10, 0, 10,
+                                                      BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 5, 7, 5, 7,
+                                                      BORDER_TYPE_CONSTANT, 255.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 3, 9, 7, 5,
+                                                      BORDER_TYPE_CONSTANT, 100.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 7, 3, 3, 7,
+                                                      BORDER_TYPE_CONSTANT, 50.0)
                                                       )
                             ));
 
@@ -328,6 +340,29 @@ TEST_P(MatConverterTest, MatConverterTest) {
                 mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY) {
                 out_size_ /= channel;
             }
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
+                                      channel, channel, out_size_);
+            EXPECT_EQ(0, cmp_result);
+            break;
+        }
+        case MatConverterType::CopyMakeBorder:
+        {
+            TNN_NS::Status status = MatUtils::CopyMakeBorder(cpu_in_mat, cpu_ref_mat,
+                                                             mat_converter_test_param.copy_make_border_param, NULL);
+            if (status != TNN_OK) {
+                FAIL();
+            }
+
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
+                                           device_command_queue);
+            status = MatUtils::CopyMakeBorder(device_in_mat, device_mat,
+                                                 mat_converter_test_param.copy_make_border_param,
+                                                 device_command_queue);
+            if (status != TNN_OK) {
+                FAIL();
+            }
+
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);
