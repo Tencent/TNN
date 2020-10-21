@@ -2,22 +2,24 @@
 
 ANDROID_DIR=/data/local/tmp/
 
-TEST_PROTO_PATH=
+TEST_PROTO_PATH=./npu_model/test_tnn.rapidproto
 #DEVIVE: ARM/OPENCL/HUAWEI_NPU
 DEVICE="ARM"
 WARM_UP_COUNT=0
 ITERATOR_COUNT=1
 NEED_REBUILD=true
 NEED_PUSH=true
-INPUT_PATH=
+INPUT_PATH=./npu_model/input_320.txt
 
 WORK_DIR=`pwd`
 ABI="armeabi-v7a"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     export HUAWEI_NPU="ON"
+else 
+    export HUAWEI_NPU="OFF"
 fi
-
+DEVICE="ARM"
 if $NEED_REBUILD
 then
     ../../scripts/build_android.sh -ic
