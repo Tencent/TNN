@@ -24,61 +24,17 @@ CpuReduceLayerAcc::~CpuReduceLayerAcc() {}
 
 Status CalculateReduceDims(Blob *input_blob, ReduceLayerParam *layer_param,
                            std::vector<std::tuple<int, int, int>> &reduce_dims) {
-    auto input_dims    = input_blob->GetBlobDesc().dims;
-    auto reduce_axises = layer_param->axis;
-    for (int i = 0; i < reduce_axises.size(); i++) {
-        int axis = reduce_axises[i];
-        axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
-        if (axis < 0 || axis >= input_dims.size()) {
-            LOGE("Error: layer param axis is invalid\n");
-            return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
-        }
-        reduce_axises[i] = axis;
-    }
-    int dimension    = (int)input_dims.size();
-    int element_size = DimsVectorUtils::Count(input_dims, 0, dimension);
-    std::vector<int> dims(dimension);
-    for (int i = 0; i < dims.size(); ++i) {
-        dims[i] = input_dims[i];
-    }
-    std::sort(reduce_axises.begin(), reduce_axises.end());
-    std::vector<std::pair<int, int>> pair_axises;
-    int head = reduce_axises[0], tail = reduce_axises[0];
-    int length = 1;
-    for (int i = 1; i < reduce_axises.size(); ++i) {
-        int cur = reduce_axises[i];
-        if (cur - tail == 1) {
-            length++;
-        } else {
-            pair_axises.emplace_back(std::make_pair(head, length));
-            head   = reduce_axises[i];
-            length = 1;
-        }
-        tail = reduce_axises[i];
-    }
-    pair_axises.emplace_back(std::make_pair(head, length));
-
-    for (int i = 0; i < pair_axises.size(); ++i) {
-        int outer_dim = 1, inner_dim = 1, channels = 1;
-        auto head   = pair_axises[i].first;
-        auto length = pair_axises[i].second;
-        for (int j = 0; j < head; ++j) {
-            outer_dim *= dims[j];
-        }
-        for (int j = head; j < head + length; ++j) {
-            channels *= dims[j];
-            dims[j] = 1;
-        }
-        for (int j = head + length; j < dims.size(); ++j) {
-            inner_dim *= dims[j];
-        }
-        if (1 == channels) {
-            continue;
-        }
-        reduce_dims.emplace_back(std::make_tuple(outer_dim, channels, inner_dim));
-    }
-    if (reduce_dims.empty()) {
-        reduce_dims.emplace_back(std::make_tuple(1, 1, element_size));
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto axes       = layer_param->axis;
+    std::sort(axes.begin(), axes.end());
+    reduce_dims.clear();
+    for (const auto &axis : axes) {
+        int outer_count   = DimsVectorUtils::Count(input_dims, 0, axis);
+        int reducer_count = input_dims[axis];
+        int inner_count   = DimsVectorUtils::Count(input_dims, axis + 1);
+        inner_count       = inner_count == 0 ? 1 : inner_count;
+        reduce_dims.emplace_back(std::make_tuple(outer_count, reducer_count, inner_count));
+        input_dims[axis] = 1;
     }
     return TNN_OK;
 }
@@ -136,9 +92,8 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             src = tmp_ptr;
         }
         PostCalculateReduce(output_data, src, output_count);
-        if (tmp_ptr != nullptr) {
-            delete[] tmp_ptr;
-            tmp_ptr = nullptr;
+        if (release_mem) {
+            delete[] src;
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);

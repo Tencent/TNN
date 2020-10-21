@@ -34,10 +34,6 @@ Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* in
         }
         output_data += inner_dim;
     }
-
-    for (int i = 0; i < output_size; ++i) {
-        origin_output_data[i] = std::log(origin_output_data[i]);
-    }
     return TNN_OK;
 }
 Status CpuReduceLogSumExpLayerAcc::PostCalculateReduce(float* dst, float* src, int count) {

@@ -29,17 +29,14 @@ Status ReduceLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
     auto dims         = input_blob->GetBlobDesc().dims;
 
-    for(int i = 0; i < layer_param->axis.size(); i++) {
-        int axis = layer_param->axis[i];
+    for (auto& axis : layer_param->axis) {
         axis = axis >= 0 ? axis : axis + (int)dims.size();
         if (axis < 0 || axis >= dims.size()) {
             LOGE("Error: layer param axis is invalid\n");
             return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
         }
-        layer_param->axis[i] = axis;
-        dims[layer_param->axis[i]]      = 1;
+        dims[axis] = 1;
     }
-
     output_blob->GetBlobDesc().dims = dims;
 
     return TNN_OK;
