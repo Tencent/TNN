@@ -56,7 +56,7 @@ Status BaseLayerBuilder::Init(Context* context, LayerParam* param, LayerResource
             return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
         }
     }
-
+    return TNN_OK;
 }
 
 Status BaseLayerBuilder::Reshape(){
