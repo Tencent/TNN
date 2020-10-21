@@ -19,7 +19,11 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_REDUCE_WITH_POST_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+DECLARE_CPU_PRE_REDUCE_POST_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+
+Status CpuReduceLogSumLayerAcc::PreCalculateReduce(float* dst, float* src, int count) {
+    return TNN_OK;
+}
 
 Status CpuReduceLogSumLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                                 int inner_dim) {

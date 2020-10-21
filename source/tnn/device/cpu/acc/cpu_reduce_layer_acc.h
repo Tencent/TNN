@@ -35,6 +35,7 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
+    virtual Status PreCalculateReduce(float *dst, float *src, int count);
     virtual Status PostCalculateReduce(float *dst, float *src, int count);
 
 private:
@@ -52,12 +53,13 @@ private:
                                        int inner_dim);                                                                 \
     }
 
-#define DECLARE_CPU_REDUCE_WITH_POST_ACC(type_string, layer_type)                                                      \
+#define DECLARE_CPU_PRE_REDUCE_POST_ACC(type_string, layer_type)                                                       \
     class Cpu##type_string##LayerAcc : public CpuReduceLayerAcc {                                                      \
     public:                                                                                                            \
         virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
                                                                                                                        \
     protected:                                                                                                         \
+        virtual Status PreCalculateReduce(float *dst, float *src, int count);                                          \
         virtual Status PostCalculateReduce(float *dst, float *src, int count);                                         \
                                                                                                                        \
     private:                                                                                                           \

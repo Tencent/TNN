@@ -38,6 +38,11 @@ Status CalculateReduceDims(Blob *input_blob, ReduceLayerParam *layer_param,
     }
     return TNN_OK;
 }
+
+Status CpuReduceLayerAcc::PreCalculateReduce(float *dst, float *src, int count) {
+    return TNN_OK;
+}
+
 Status CpuReduceLayerAcc::PostCalculateReduce(float *dst, float *src, int count) {
     ::memcpy(dst, src, count * sizeof(float));
     return TNN_OK;
@@ -72,6 +77,9 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+
+        int input_count = DimsVectorUtils::Count(input_dims);
+        PreCalculateReduce(input_data, input_data, input_count);
 
         float *src       = input_data;
         float *tmp_ptr   = nullptr;

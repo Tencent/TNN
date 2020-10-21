@@ -19,7 +19,14 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_REDUCE_WITH_POST_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+DECLARE_CPU_PRE_REDUCE_POST_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+
+Status CpuReduceLogSumExpLayerAcc::PreCalculateReduce(float* dst, float* src, int count) {
+    for (int i = 0; i < count; ++i) {
+        dst[i] = std::exp(src[i]);
+    }
+    return TNN_OK;
+}
 
 Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                                    int inner_dim) {
@@ -28,7 +35,7 @@ Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* in
     for (int oc = 0; oc < outer_dim; oc++) {
         for (int c = 0; c < channels; c++) {
             for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] += std::exp(input_data[ic]);
+                output_data[ic] += input_data[ic];
             }
             input_data += inner_dim;
         }
