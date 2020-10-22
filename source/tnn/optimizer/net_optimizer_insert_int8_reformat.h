@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
-#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
+#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_INT8_REFORMAT_H_
+#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_INT8_REFORMAT_H_
 
 #include <string>
 
@@ -28,10 +28,10 @@ namespace TNN_NS {
 namespace optimizer {
 
     //@brief net optimize: fuse relu and relu6 to convolution
-    class NetOptimizerInsertReformat : public NetOptimizer {
+    class NetOptimizerInsertInt8Reformat : public NetOptimizer {
     public:
         virtual std::string Strategy();
-        virtual bool SupportDevice(DeviceType device);
+        virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
 
         void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
@@ -48,4 +48,4 @@ namespace optimizer {
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
+#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_INT8_REFORMAT_H_

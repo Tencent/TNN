@@ -32,6 +32,9 @@ public:
     // @brief set cpu powersave
     // @param powersave 0:all cpus 1:little cluster 2:big cluster
     PUBLIC static Status SetCpuPowersave(int powersave);
+
+    // @brief get cpu fp16 capability
+    PUBLIC static bool CpuSupportFp16();
 };
 
 }  // namespace TNN_NS
