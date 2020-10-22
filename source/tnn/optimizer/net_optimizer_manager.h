@@ -45,7 +45,7 @@ namespace optimizer {
     //@brief net optimize: fuse relu and relu6 to convolution
     class NetOptimizerManager {
     public:
-        static Status Optimize(NetStructure *structure, NetResource *resource, DeviceType device);
+        static Status Optimize(NetStructure *structure, NetResource *resource, const NetworkConfig &net_config);
 
         static void RegisterNetOptimizer(NetOptimizer *ptimizer, OptPriority prior);
 

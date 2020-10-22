@@ -1257,11 +1257,11 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 #ifdef TNN_USE_NEON
 
 #define CVTGRAYIMPL(n)                                                  \
-    uint8x8x##n##_t _S;                                                 \
-    _S  = vld##n##_u8(Sp);                                              \
-    _Bh = vmovl_u8(_S.val[0]);                                          \
-    _Gh = vmovl_u8(_S.val[1]);                                          \
-    _Rh = vmovl_u8(_S.val[2]);                                          \
+    uint8x8x##n##_t _Src;                                               \
+    _Src  = vld##n##_u8(Sp);                                            \
+    _Bh   = vmovl_u8(_Src.val[0]);                                      \
+    _Gh   = vmovl_u8(_Src.val[1]);                                      \
+    _Rh   = vmovl_u8(_Src.val[2]);                                      \
     _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));                \
     _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));                \
     _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));                \

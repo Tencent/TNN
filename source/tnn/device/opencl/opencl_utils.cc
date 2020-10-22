@@ -464,6 +464,8 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
 
+    unit.local_mem_size = opencl_runtime->DeviceLocalMemerySize();
+
     return TNN_OK;
 }
 

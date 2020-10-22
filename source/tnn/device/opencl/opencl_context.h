@@ -38,7 +38,7 @@ struct OpenCLProfilingData : public ProfilingData {
 class OpenCLProfileResult : public ProfileResult {
 public:
     virtual ~OpenCLProfileResult();
-    virtual std::string GetProfilingData() override;
+    virtual std::string GetProfilingDataInfo() override;
 };
 #endif
 

@@ -76,6 +76,10 @@ void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yp
 
 void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
 
+void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims);
+
+void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_UTILS_NAIVE_COMPUTE_H_
