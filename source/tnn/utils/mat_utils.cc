@@ -18,10 +18,20 @@
 
 namespace TNN_NS {
 
-#define GET_MAT_CONVERTER(device_type)                                                  \
+#define MAT_CONVERTER_PREPARATION(device_type)                                          \
+    if (dst.GetData() == nullptr) {                                                     \
+        dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());                \
+    }                                                                                   \
     auto converter = MatConverterManager::Shared()->CreateMatConverterAcc(device_type); \
     if (!converter) {                                                                   \
         return Status(TNNERR_INIT_LAYER, "image converter is nil, check device type");  \
+    }
+
+#define CHECK_DST_DATA_NULL                                                             \
+    if (dst.GetData() != nullptr) {                                                     \
+        return Status(TNNERR_PARAM_ERR, "Incompatible param and dst size.\n "           \
+                      "\tSet compatible param and dst size, "                           \
+                      "or set dst mat data to null and let tnn infer dst size.");       \
     }
 
 static Status CheckSrcAndDstMat(Mat& src, Mat& dst, bool check_device_type, bool check_mat_type,
@@ -79,7 +89,7 @@ Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
         } else {
             return Status(TNNERR_PARAM_ERR, "src and dst DeviceType need be equal or one is device cpu");
         }
-        GET_MAT_CONVERTER(device_type);
+        MAT_CONVERTER_PREPARATION(device_type);
         return converter->Copy(src, dst, command_queue);
     } else {
         return Status(TNNERR_PARAM_ERR, "src and dst dims not equal");
@@ -96,6 +106,7 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
         int new_h = int(round(param.scale_h * src.GetHeight()));
         int new_w = int(round(param.scale_w * src.GetWidth()));
         if (dst.GetWidth() != new_w || dst.GetHeight() != new_h) {
+            CHECK_DST_DATA_NULL;
             // calculate dst size using param scale_h and scale_w
             DimsVector dims = {src.GetBatch(), src.GetChannel(), new_h, new_w};
             dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dims);
@@ -109,7 +120,7 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
         }
     }
 
-    GET_MAT_CONVERTER(src.GetDeviceType());
+    MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->Resize(src, dst, param, command_queue);
 }
 
@@ -121,6 +132,7 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
 
     if (param.width > 0 && param.height > 0) {
         if (dst.GetWidth() != param.width || dst.GetHeight() != param.height) {
+            CHECK_DST_DATA_NULL;
             // set dst size by param height and width
             DimsVector dims = {src.GetBatch(), src.GetChannel(), param.height, param.width};
             dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dims);
@@ -134,7 +146,7 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
         }
     }
 
-    GET_MAT_CONVERTER(src.GetDeviceType());
+    MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->Crop(src, dst, param, command_queue);
 }
 
@@ -149,7 +161,7 @@ Status MatUtils::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* com
         dst = Mat(dst.GetDeviceType(), dst.GetMatType(), src.GetDims());
     }
 
-    GET_MAT_CONVERTER(src.GetDeviceType());
+    MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->WarpAffine(src, dst, param, command_queue);
 }
 
@@ -171,7 +183,7 @@ Status MatUtils::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* co
         }
     }
 
-    GET_MAT_CONVERTER(src.GetDeviceType());
+    MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->CvtColor(src, dst, type, command_queue);
 }
 
@@ -185,6 +197,7 @@ Status MatUtils::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, v
         int new_h = src.GetHeight() + param.top + param.bottom;
         int new_w = src.GetWidth() + param.left + param.right;
         if (dst.GetWidth() != new_w || dst.GetHeight() != new_h) {
+            CHECK_DST_DATA_NULL;
             // calculate dst size using param top, bottom, left and right
             DimsVector dims = {src.GetBatch(), src.GetChannel(), new_h, new_w};
             dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dims);
@@ -193,10 +206,11 @@ Status MatUtils::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, v
         return Status(TNNERR_PARAM_ERR, "border size is negnative");
     }
 
-    GET_MAT_CONVERTER(src.GetDeviceType());
+    MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->CopyMakeBorder(src, dst, param, command_queue);
 }
 
-#undef GET_MAT_CONVERTER
+#undef CHECK_DST_DATA_NULL
+#undef MAT_CONVERTER_PREPARATION
 
 }  // namespace TNN_NS

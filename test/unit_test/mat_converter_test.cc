@@ -200,6 +200,12 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                                       )
                             ));
 
+#define CHECK_STATUS                                        \
+    if (status != TNN_OK) {                                 \
+        std::cout << status.description() << std::endl;     \
+        FAIL();                                             \
+    }
+
 TEST_P(MatConverterTest, MatConverterTest) {
     int batch                                       = std::get<0>(GetParam());
     int channel                                     = std::get<1>(GetParam());
@@ -240,9 +246,11 @@ TEST_P(MatConverterTest, MatConverterTest) {
     {
         case MatConverterType::Copy:
         {
-            MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
+            TNN_NS::Status status = MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
+            CHECK_STATUS;
 
-            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+            status = MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+            CHECK_STATUS;
 
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data_), static_cast<uint8_t*>(mat_in_data_),
                                       channel, channel, out_size_);
@@ -253,18 +261,14 @@ TEST_P(MatConverterTest, MatConverterTest) {
         case MatConverterType::Resize:
         {
             TNN_NS::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Resize(device_in_mat, device_mat,
                                                  mat_converter_test_param.resize_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -275,18 +279,14 @@ TEST_P(MatConverterTest, MatConverterTest) {
         case MatConverterType::Crop:
         {
             TNN_NS::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Crop(device_in_mat, device_mat,
                                                  mat_converter_test_param.crop_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -299,18 +299,14 @@ TEST_P(MatConverterTest, MatConverterTest) {
             TNN_NS::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::WarpAffine(device_in_mat, device_mat,
                                                  mat_converter_test_param.warp_affine_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -321,18 +317,14 @@ TEST_P(MatConverterTest, MatConverterTest) {
         case MatConverterType::CvtColor:
         {
             TNN_NS::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::CvtColor(device_in_mat, device_mat,
                                                  mat_converter_test_param.cvt_type,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
 
@@ -349,18 +341,14 @@ TEST_P(MatConverterTest, MatConverterTest) {
         {
             TNN_NS::Status status = MatUtils::CopyMakeBorder(cpu_in_mat, cpu_ref_mat,
                                                              mat_converter_test_param.copy_make_border_param, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::CopyMakeBorder(device_in_mat, device_mat,
                                                  mat_converter_test_param.copy_make_border_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -372,5 +360,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
     rtn = DestroyTestData();
     EXPECT_EQ(rtn, 0);
 }
+
+#undef CHECK_STATUS
 
 }  // namespace TNN_NS
