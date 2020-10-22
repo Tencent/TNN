@@ -22,6 +22,7 @@
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -46,11 +47,16 @@ std::string BlobDescToString(BlobDesc desc) {
     } else {
         snprintf(dim, 1000, "NCHW-%d-%d-%d-%d", desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]);
     }
+    std::string dims_info = "dims";
+    for(int i = 0; i < desc.dims.size(); ++i) {
+       dims_info += "-" + ToString(desc.dims[i]);
+    }
+
     // blob name rather than layer name
     char ss[1000];
     std::string name = desc.name;
     std::replace(name.begin(), name.end(), '/', '_');
-    snprintf(ss, 1000, "%s-%s", name.c_str(), dim);
+    snprintf(ss, 1000, "%s-%s", name.c_str(), dims_info.c_str());
     return std::string(ss);
 }
 

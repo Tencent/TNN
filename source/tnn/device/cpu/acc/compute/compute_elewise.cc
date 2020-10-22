@@ -49,8 +49,9 @@ void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVe
             auto input_shape  = input_shapes[i];
 
             DimsVector input_index;
+            int diff = shape_output.size() - input_shape.size();
             for(int i = 0; i < input_shape.size(); ++i) {
-                input_index.push_back(std::min(output_index[i], input_shape[i] - 1));
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
             }
              
             int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);

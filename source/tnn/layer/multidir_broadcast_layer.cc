@@ -117,6 +117,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         } else {
             layer_res->element_shape = weight_shape;
         }
+        EXPAND(input_shape, weight_shape);
         DimsVector dims_output               = DimsVectorUtils::Max(input_shape, weight_shape);
         output_blobs_[0]->GetBlobDesc().dims = dims_output;
 
