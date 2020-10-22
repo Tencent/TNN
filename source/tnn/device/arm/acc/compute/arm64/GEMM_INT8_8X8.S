@@ -18,7 +18,7 @@
 
 .text
 .align 5
-asm_function GemmInt8Unit8x8_
+asm_function GemmInt8Unit8x8
 //void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
 //                     const float* scales)
 //x0(mr),
@@ -55,33 +55,33 @@ mov v22.16b, v8.16b
 mov v23.16b, v9.16b
 
 # a1
-cmp x0, 2
+cmp x0, #2
 add x9, x3, x4
 csel x9, x3, x9, lo
 # a2
 add x10, x9, x4
 csel x10, x9, x10, ls
 # a3
-cmp x0, 4
+cmp x0, #4
 add x11, x10, x4
 csel x11, x10, x11, lo
 # a4
 add x12, x11, x4
 csel x12, x11, x12, ls
 # a5
-cmp x0, 6
+cmp x0, #6
 add x13, x12, x4
 csel x13, x12, x13, lo
 # a6
 add x14, x13, x4
 csel x14, x13, x14, ls
 # a7
-cmp x0, 8
+cmp x0, #8
 add x15, x14, x4
 csel x15, x14, x15, ne 
 
-subs x2, x2, 8
-b.lo 1f
+subs x2, x2, #8
+blo 1f
 
 0:
     ld1 {v0.8b}, [x3], #8
@@ -292,40 +292,37 @@ b.lo 1f
     sshl d24, d24, d29 //???
 
     // Load x0-a7
-    ld1 {v0.8b}, [x3], 8
+    ld1 {v0.8b}, [x3], #8
     sshl d0, d0, d29
     sxtl v0.8h, v0.8b
 
-    ld1 {v1.8b}, [x9], 8
+    ld1 {v1.8b}, [x9], #8
     sshl d1, d1, d29
     sxtl v1.8h, v1.8b
 
-    ld1 {v2.8b}, [x10], 8
+    ld1 {v2.8b}, [x10], #8
     sshl d2, d2, d29
     sxtl v2.8h, v2.8b
 
-    ld1 {v3.8b}, [x11], 8
+    ld1 {v3.8b}, [x11], #8
     sshl d3, d3, d29
     sxtl v3.8h, v3.8b
 
-    ld1 {v4.8b}, [x12], 8
+    ld1 {v4.8b}, [x12], #8
     sshl d4, d4, d29
     sxtl v4.8h, v4.8b
 
-    ld1 {v5.8b}, [x13], 8
+    ld1 {v5.8b}, [x13], #8
     sshl d5, d5, d29
     sxtl v5.8h, v5.8b
 
-    ld1 {v6.8b}, [x14], 8
+    ld1 {v6.8b}, [x14], #8
     sshl d6, d6, d29
     sxtl v6.8h, v6.8b
 
-    ld1 {v7.8b}, [x15], 8
+    ld1 {v7.8b}, [x15], #8
     sshl d7, d7, d29
     sxtl v7.8h, v7.8b
-
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
 
     // c0
     ld1 {v27.8b}, [x5], #8
@@ -574,31 +571,31 @@ b.lo 1f
     sqxtn v22.8b, v22.8h
 
     add  x9, x6,  x7
-    cmp x0, 2
+    cmp x0, #2
     csel x9, x6, x9, lo
 
     add x10, x9,  x7
     csel x10, x9, x10, ls
 
     add x11, x10, x7
-    cmp x0, 4
+    cmp x0, #4
     csel x11, x10, x11, lo
 
     add x12, x11, x7
     csel x12, x11, x12, ls
 
     add x13, x12, x7
-    cmp x0, 6
+    cmp x0, #6
     csel x13, x12, x13, lo
 
     add x14, x13, x7
     csel x14, x13, x14, ls
 
     add x15, x14, x7
-    cmp x0, 8
+    cmp x0, #8
     csel x15, x14, x15, ne
 
-    cmp x1, 8
+    cmp x1, #8
     bne 4f
 
     st1 {v8.d}[0], [x6]
@@ -616,7 +613,7 @@ b.lo 1f
     ret
 
 4:
-    cmp x1, 4
+    cmp x1, #4
     blo 5f
 
     st1 {v8.s}[0], [x6], #4

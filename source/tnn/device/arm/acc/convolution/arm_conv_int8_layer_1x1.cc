@@ -25,6 +25,7 @@ ArmConvInt8Layer1x1 used for 1x1 conv with small c and big h*w
 */
 bool ArmConvInt8Layer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs) {
+#ifdef __aarch64__
     if (param->group != 1 || param->kernels[0] != 1 || param->kernels[1] != 1 || param->strides[0] != 1 ||
         param->strides[1] != 1 || param->pads[0] != 0 || param->pads[1] != 0 || param->pads[2] != 0 ||
         param->pads[3] != 0) {
@@ -39,6 +40,9 @@ bool ArmConvInt8Layer1x1::isPrefered(ConvLayerParam *param, const std::vector<Bl
     }
 
     return false;
+#else
+    return false;
+#endif
 }
 
 ArmConvInt8Layer1x1::~ArmConvInt8Layer1x1() {}
