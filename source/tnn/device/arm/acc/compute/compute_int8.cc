@@ -67,7 +67,7 @@ namespace TNN_NS {
     vacc7x4567                     = vmlal_lane_s16(vacc7x4567, vget_high_s16(vb01234567c##c), vget_high_s16(va7), i);
 
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     long output_channel_index, float* scales) {
+                     const float* scales) {
 #ifndef TNN_USE_NEON
     union {
         const void* as_void_ptr;
@@ -83,7 +83,7 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
                 acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
             }
 
-            c[m * c_stride + n] = float2int8(acc * scales[output_channel_index + n]);
+            c[m * c_stride + n] = float2int8(acc * scales[n]);
         }
     }
 #else
@@ -205,8 +205,8 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
         }
     }
 
-    const float32x4_t vscale0123 = vld1q_f32(scales + output_channel_index);
-    const float32x4_t vscale4567 = (nr > 4) ? vld1q_f32(scales + output_channel_index + 4) : vdupq_n_f32(0.f);
+    const float32x4_t vscale0123 = vld1q_f32(scales);
+    const float32x4_t vscale4567 = (nr > 4) ? vld1q_f32(scales + 4) : vdupq_n_f32(0.f);
     vacc0x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc0x0123), vscale0123));
     vacc1x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc1x0123), vscale0123));
     vacc2x0123 = VCVTAQ_S32_F32(vmulq_f32(vcvtq_f32_s32(vacc2x0123), vscale0123));
@@ -353,8 +353,6 @@ static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start,
     int8_t* c            = context->c;
     const long c_stride  = context->c_stride;
 
-    const long output_channel_index = nr_block_start;
-
     GemmInt8Unit8x8(mr_block_size,
 	                nr_block_size,
 					k,
@@ -363,8 +361,7 @@ static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start,
                     (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
                     c + mr_block_start * c_stride + nr_block_start,
                     c_stride,
-                    output_channel_index,
-                    context->scales);
+                    context->scales + nr_block_start);
 }
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
