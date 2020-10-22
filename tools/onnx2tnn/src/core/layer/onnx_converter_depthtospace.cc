@@ -26,17 +26,19 @@ string OnnxOpConverterDepthToSpace::TNNLayerParam(NodeProto &node, OnnxNetInfo &
     ostringstream layer_param;
 
     int block_size           = get_node_attr_i(node, "blocksize", 2);
-    int forward              = 1; // DepthToSpace
     int run_with_output_dims = 0;
     string mode_name         = get_node_attr_s(node, "mode", "DCR");
+    int forward              = 1;
+    if (node.op_type() == "SpaceToDepth") {
+        forward = 0;  // SpaceToDepth
+    } else if (node.op_type() == "DepthToSpace") {
+        forward = 1;  // DepthToSpace
+    }
     int mode;  // 0 for DCR mode, 1 for CRD mode;
     if (mode_name == "DCR" || node.op_type() == "SpaceToDepth") {
         mode = 0;
     } else {
         mode = 1;
-    }
-    if (node.op_type() == "SpaceToDepth") {
-        forward = 0; // SpaceToDepth
     }
     layer_param << block_size << " " << forward << " " << run_with_output_dims << " " << mode << " ";
 

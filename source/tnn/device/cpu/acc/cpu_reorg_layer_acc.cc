@@ -29,24 +29,32 @@ Status CpuReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 Status CpuReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
-
-    DimsVector input_dims = input_blob->GetBlobDesc().dims;
-    int batch             = input_dims[0];
-    int channel           = input_dims[1];
-    int height            = input_dims[2];
-    int width             = input_dims[3];
-
-    auto layer_param = dynamic_cast<ReorgLayerParam *>(param_);
+    auto layer_param  = dynamic_cast<ReorgLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
-    int stride   = layer_param->stride;
+    int stride  = layer_param->stride;
     int reverse = layer_param->reverse;
-    int mode = layer_param->mode;
+    int mode    = layer_param->mode;
 
-    float *bottom_data = static_cast<float *>(input_blob->GetHandle().base);
-    float *top_data    = static_cast<float *>(output_blob->GetHandle().base);
-
-    NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        float *bottom_data = static_cast<float *>(input_blob->GetHandle().base);
+        float *top_data    = static_cast<float *>(output_blob->GetHandle().base);
+        if (reverse) {
+            DimsVector input_dims = input_blob->GetBlobDesc().dims;
+            int batch             = input_dims[0];
+            int channel           = input_dims[1];
+            int height            = input_dims[2];
+            int width             = input_dims[3];
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
+        } else {
+            DimsVector output_dims = output_blob->GetBlobDesc().dims;
+            int batch              = output_dims[0];
+            int channel            = output_dims[1];
+            int height             = output_dims[2];
+            int width              = output_dims[3];
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
+        }
+    }
 
     return TNN_OK;
 }

@@ -322,6 +322,7 @@ void NaiveReorg(float *bottom_data, int width, int height, int channel, int numb
                         out_index = w2 + width * stride * (h2 + height * stride * (c2 + out_c * n));
                     } else if (mode == 1) {
                         // CRD mode
+                        in_index  = w + width * (h + height * (c + channel * n));
                         c2        = c / (stride * stride);
                         offset    = c % (stride * stride);
                         h2        = h * stride + offset / stride;
