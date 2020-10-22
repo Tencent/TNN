@@ -27,27 +27,6 @@
 
 namespace TNN_NS {
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
-    int element_size = 0;
-    DataType type    = raw_buffer.GetDataType();
-    int bytes        = raw_buffer.GetBytesSize();
-    std::shared_ptr<float> float_data;
-    if (type == DATA_TYPE_FLOAT) {
-        element_size = bytes / sizeof(float);
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
-    } else if (type == DATA_TYPE_HALF) {
-        element_size = bytes / 2;
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
-    } else if (type == DATA_TYPE_INT8) {
-        LOGE("Not support INT8 raw buffer\n");
-        return nullptr;
-    }
-
-    return float_data;
-}
-
 // get image width and height
 std::vector<int> GetImageShape(const OpenCLMemory *image) {
     std::vector<int> shape;
