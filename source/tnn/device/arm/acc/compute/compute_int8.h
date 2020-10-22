@@ -56,6 +56,7 @@ struct Q8GemmContext {
     int8_t* c;
     int32_t c_stride;
     float* scales;
+    int relu;
 };
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);

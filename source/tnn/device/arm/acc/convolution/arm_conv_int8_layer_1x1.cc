@@ -145,16 +145,11 @@ Status ArmConvInt8Layer1x1::DoForward(const std::vector<Blob *> &inputs, const s
                                     .packed_w = reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                                     .c        = output_data,
                                     .c_stride = ROUND_UP(oc, 4),
-                                    .scales   = reinterpret_cast<float *>(k_param_->scale)};
+                                    .scales   = reinterpret_cast<float *>(k_param_->scale),
+                                    .relu     = conv_param->activation_type == ActivationType_ReLU};
     size_t output_size           = k_param_->ow * k_param_->oh * k_param_->oc_r4;
     ComputeQ8Gemm(&context, dims_output[2] * dims_output[3], oc, mr, nr);
 
-    for (int n = 0; n < batch; ++n) {
-        auto output_batch = output_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4;
-        if (conv_param->activation_type == ActivationType_ReLU) {
-            ReluInt8(output_batch, output_batch, k_param_->ow * k_param_->oh * k_param_->oc_r4);
-        }
-    }
     return TNN_OK;
 }
 

@@ -28,7 +28,7 @@ namespace TNN_NS {
 
 #ifndef __aarch64__
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales) {
+                     const float* scales, long relu) {
     union {
         const void* as_void_ptr;
         int8_t* as_int8_ptr;
@@ -44,13 +44,16 @@ void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, c
             }
 
             c[m * c_stride + n] = float2int8(acc * scales[n]);
+            if (relu) {
+                c[m * c_stride + n] = MAX(0, c[m * c_stride + n] );
+            }
         }
     }
 }
 #else
 extern "C" {
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales);    
+                     const float* scales, long);
 }
 #endif
 
@@ -74,7 +77,8 @@ static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start,
                     (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
                     c + mr_block_start * c_stride + nr_block_start,
                     c_stride,
-                    context->scales + nr_block_start);
+                    context->scales + nr_block_start,
+                    context->relu);
 }
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {

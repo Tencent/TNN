@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit8x8
 //void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-//                     const float* scales)
+//                     const float* scales, long relu)
 //x0(mr),
 //x1(nr),
 //x2(k),
@@ -84,6 +84,8 @@ subs x2, x2, #8
 blo 1f
 
 0:
+    ld1 {v27.8b}, [x5], #8
+    sxtl v27.8h, v27.8b
     ld1 {v0.8b}, [x3], #8
     sxtl v0.8h, v0.8b
     ld1 {v1.8b}, [x9], #8
@@ -102,9 +104,7 @@ blo 1f
     sxtl v7.8h, v7.8b
 
     // c0
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
-
+    ld1 {v28.8b}, [x5], #8
     smlal v8.4s, v27.4h, v0.h[0]
     smlal2 v9.4s, v27.8h, v0.h[0]
     smlal v10.4s, v27.4h, v1.h[0]
@@ -113,6 +113,7 @@ blo 1f
     smlal2 v13.4s, v27.8h, v2.h[0]
     smlal v14.4s, v27.4h, v3.h[0]
     smlal2 v15.4s, v27.8h, v3.h[0]
+    sxtl v28.8h, v28.8b
     smlal v16.4s, v27.4h, v4.h[0]
     smlal2 v17.4s, v27.8h, v4.h[0]
     smlal v18.4s, v27.4h, v5.h[0]
@@ -123,9 +124,7 @@ blo 1f
     smlal2 v23.4s, v27.8h, v7.h[0]
 
     // c1            
-    ld1 {v28.8b}, [x5], #8
-    sxtl v28.8h, v28.8b
-
+    ld1 {v27.8b}, [x5], #8
     smlal v8.4s, v28.4h, v0.h[1]
     smlal2 v9.4s, v28.8h, v0.h[1]
     smlal v10.4s, v28.4h, v1.h[1]
@@ -134,6 +133,7 @@ blo 1f
     smlal2 v13.4s, v28.8h, v2.h[1]
     smlal v14.4s, v28.4h, v3.h[1]
     smlal2 v15.4s, v28.8h, v3.h[1]
+    sxtl v27.8h, v27.8b
     smlal v16.4s, v28.4h, v4.h[1]
     smlal2 v17.4s, v28.8h, v4.h[1]
     smlal v18.4s, v28.4h, v5.h[1]
@@ -144,9 +144,7 @@ blo 1f
     smlal2 v23.4s, v28.8h, v7.h[1]
 
     // c2            
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
-
+    ld1 {v28.8b}, [x5], #8
     smlal v8.4s, v27.4h, v0.h[2]
     smlal2 v9.4s, v27.8h, v0.h[2]
     smlal v10.4s, v27.4h, v1.h[2]
@@ -155,6 +153,7 @@ blo 1f
     smlal2 v13.4s, v27.8h, v2.h[2]
     smlal v14.4s, v27.4h, v3.h[2]
     smlal2 v15.4s, v27.8h, v3.h[2]
+    sxtl v28.8h, v28.8b
     smlal v16.4s, v27.4h, v4.h[2]
     smlal2 v17.4s, v27.8h, v4.h[2]
     smlal v18.4s, v27.4h, v5.h[2]
@@ -165,9 +164,7 @@ blo 1f
     smlal2 v23.4s, v27.8h, v7.h[2]
 
     // c3            
-    ld1 {v28.8b}, [x5], #8
-    sxtl v28.8h, v28.8b
-
+    ld1 {v27.8b}, [x5], #8
     smlal v8.4s, v28.4h, v0.h[3]
     smlal2 v9.4s, v28.8h, v0.h[3]
     smlal v10.4s, v28.4h, v1.h[3]
@@ -176,6 +173,7 @@ blo 1f
     smlal2 v13.4s, v28.8h, v2.h[3]
     smlal v14.4s, v28.4h, v3.h[3]
     smlal2 v15.4s, v28.8h, v3.h[3]
+    sxtl v27.8h, v27.8b
     smlal v16.4s, v28.4h, v4.h[3]
     smlal2 v17.4s, v28.8h, v4.h[3]
     smlal v18.4s, v28.4h, v5.h[3]
@@ -186,9 +184,7 @@ blo 1f
     smlal2 v23.4s, v28.8h, v7.h[3]
 
     // c4
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
-
+    ld1 {v28.8b}, [x5], #8
     smlal v8.4s, v27.4h, v0.h[4]
     smlal2 v9.4s, v27.8h, v0.h[4]
     smlal v10.4s, v27.4h, v1.h[4]
@@ -197,6 +193,7 @@ blo 1f
     smlal2 v13.4s, v27.8h, v2.h[4]
     smlal v14.4s, v27.4h, v3.h[4]
     smlal2 v15.4s, v27.8h, v3.h[4]
+    sxtl v28.8h, v28.8b
     smlal v16.4s, v27.4h, v4.h[4]
     smlal2 v17.4s, v27.8h, v4.h[4]
     smlal v18.4s, v27.4h, v5.h[4]
@@ -207,9 +204,7 @@ blo 1f
     smlal2 v23.4s, v27.8h, v7.h[4]
 
     // c5            
-    ld1 {v28.8b}, [x5], #8
-    sxtl v28.8h, v28.8b
-
+    ld1 {v27.8b}, [x5], #8
     smlal v8.4s, v28.4h, v0.h[5]
     smlal2 v9.4s, v28.8h, v0.h[5]
     smlal v10.4s, v28.4h, v1.h[5]
@@ -218,6 +213,7 @@ blo 1f
     smlal2 v13.4s, v28.8h, v2.h[5]
     smlal v14.4s, v28.4h, v3.h[5]
     smlal2 v15.4s, v28.8h, v3.h[5]
+    sxtl v27.8h, v27.8b
     smlal v16.4s, v28.4h, v4.h[5]
     smlal2 v17.4s, v28.8h, v4.h[5]
     smlal v18.4s, v28.4h, v5.h[5]
@@ -228,9 +224,7 @@ blo 1f
     smlal2 v23.4s, v28.8h, v7.h[5]
 
     // c6            
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
-
+    ld1 {v28.8b}, [x5], #8
     smlal v8.4s, v27.4h, v0.h[6]
     smlal2 v9.4s, v27.8h, v0.h[6]
     smlal v10.4s, v27.4h, v1.h[6]
@@ -239,6 +233,7 @@ blo 1f
     smlal2 v13.4s, v27.8h, v2.h[6]
     smlal v14.4s, v27.4h, v3.h[6]
     smlal2 v15.4s, v27.8h, v3.h[6]
+    sxtl v28.8h, v28.8b
     smlal v16.4s, v27.4h, v4.h[6]
     smlal2 v17.4s, v27.8h, v4.h[6]
     smlal v18.4s, v27.4h, v5.h[6]
@@ -249,9 +244,6 @@ blo 1f
     smlal2 v23.4s, v27.8h, v7.h[6]
 
     // c7            
-    ld1 {v28.8b}, [x5], #8
-    sxtl v28.8h, v28.8b
-
     subs x2, x2, #8
 
     smlal v8.4s, v28.4h, v0.h[7]
@@ -570,6 +562,19 @@ blo 1f
     sqxtn v20.8b, v20.8h
     sqxtn v22.8b, v22.8h
 
+    ldr x8, [sp, #8]
+    cbz x8, 3f
+    movi v0.16b, #0
+    smax v8.8b, v8.8b, v0.8b
+    smax v10.8b, v10.8b, v0.8b
+    smax v12.8b, v12.8b, v0.8b
+    smax v14.8b, v14.8b, v0.8b
+    smax v16.8b, v16.8b, v0.8b
+    smax v18.8b, v18.8b, v0.8b
+    smax v20.8b, v20.8b, v0.8b
+    smax v22.8b, v22.8b, v0.8b
+
+3:
     add  x9, x6,  x7
     cmp x0, #2
     csel x9, x6, x9, lo
