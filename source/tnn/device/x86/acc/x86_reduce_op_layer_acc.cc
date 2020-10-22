@@ -22,7 +22,6 @@ X86ReduceOpLayerAcc::~X86ReduceOpLayerAcc() {}
 
 Status X86ReduceOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource* resource, const std::vector<Blob*> &inputs,
                           const std::vector<Blob *> &outputs) {
-    std::cout << "Init" << std::endl;
     RETURN_ON_NEQ(X86LayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     return TNN_OK;
 }

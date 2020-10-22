@@ -18,7 +18,7 @@
 #include <vector>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-
+#include <iostream>
 #include "immintrin.h"
 
 namespace TNN_NS {
@@ -26,10 +26,13 @@ namespace TNN_NS {
 typedef struct x86_reduce_operator {
 public:
 #ifdef __AVX2__
-    virtual __m256 PostProcess(const __m256 v_) { return v_; };
+    // for some special reduce_op that need auxiliary variable
+    virtual __m256 Init() { return _mm256_setzero_ps(); };
+    virtual __m256 PostProcess(const __m256 v_, const int channel = 1) { return v_; };
     virtual __m256 operator()(const __m256 v1_, const __m256 v2_) {};
 #else
-    virtual float PostProcess(const float v) { return v; };
+    virtual float Init() { return 0.f; }
+    virtual float PostProcess(const float v, int channel = 1) { return v; };
     virtual float operator()(const float v1, const float v2) {};
 #endif
 } X86_REDUCE_OP;
