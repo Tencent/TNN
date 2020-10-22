@@ -74,7 +74,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
                               nullptr, &error);
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL Allocate Image falied");
+        char error_str[128];
+        sprintf(error_str, "OpenCL Allocate Image Failed (w=%d, h=%d)", w, h);
+        return Status(TNNERR_OPENCL_API_ERROR, error_str);
     }
     return TNN_OK;
 }
