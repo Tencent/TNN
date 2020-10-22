@@ -43,7 +43,7 @@ namespace optimizer {
         return kNetOptimizerRemoveLayers;
     }
 
-    bool NetOptimizerRemoveLayers::SupportDevice(DeviceType device) {
+    bool NetOptimizerRemoveLayers::IsSupported(const NetworkConfig &net_config) {
         return true;
     }
 

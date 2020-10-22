@@ -31,7 +31,7 @@ namespace optimizer {
     class NetOptimizerFuseConvRelu : public NetOptimizer {
     public:
         virtual std::string Strategy();
-        virtual bool SupportDevice(DeviceType device);
+        virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
     private:
         std::map<LayerType, ActivationType> kLayerActivationMap;

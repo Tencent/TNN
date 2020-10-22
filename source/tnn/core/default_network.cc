@@ -24,6 +24,7 @@
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
+#include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -94,7 +95,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     {
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
-        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config.device_type);
+        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -132,6 +133,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
  */
 Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
+    bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
@@ -147,14 +149,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
-            // Check for int8
-            bool is_int8_blob = layer_info->param->quantized && blob->GetBlobDesc().data_type != DATA_TYPE_INT8;
-            if (is_int8_blob) {
-                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
-            }
-            // Check for bfp16
-            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
+            auto ret = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+            if (ret != TNN_OK) {
+                return ret;
             }
             inputs.push_back(blob);
         }
@@ -181,17 +178,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            bool is_int8_blob =
-                layer_info->param->quantized ||
-                (type == LAYER_REFORMAT &&
-                 reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
-            // Check for int8
-            if (is_int8_blob) {
-                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
-            }
-            // Check for bfp16
-            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
+            auto ret = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
+            if (ret != TNN_OK) {
+                return ret;
             }
             outputs.push_back(blob);
         }
@@ -233,6 +222,49 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
     new_blob->SetIntResource(reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
     blob_manager_->ReplaceBlob(name, new_blob);
     *blob = new_blob;
+
+    return TNN_OK;
+}
+
+ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
+                                            const std::string &name, NetResource *net_resource, Blob **blob) {
+    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
+        return TNN_OK;
+    }
+    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+
+    auto &desc      = (*blob)->GetBlobDesc();
+    auto layer_type = layer_info->type;
+
+    if (layer_type != LAYER_REFORMAT) {
+        // update blob of quantized network by layer info
+        if (is_quantized_net) {
+            if (layer_info->param->quantized && desc.data_type != DATA_TYPE_INT8) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+            }
+        } else {
+            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
+            // update blob of non-quantized network by config precision and enabled precision
+            if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
+                desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+            } else if (config_.precision == PRECISION_LOW) {
+                desc.data_type = DATA_TYPE_BFP16;
+            } else if (config_.precision == PRECISION_HIGH) {
+                desc.data_type = DATA_TYPE_FLOAT;
+            } else {
+                return Status(TNNERR_PARAM_ERR, "invalid precision");
+            }
+        }
+    } else if (!is_input) {
+        // reformat layer cannot be the first layer
+        // only need to deal with output blob of reformat layer
+        auto dst_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type;
+        if (dst_type == DATA_TYPE_INT8) {
+            RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+        } else {
+            desc.data_type = dst_type;
+        }
+    }
 
     return TNN_OK;
 }
