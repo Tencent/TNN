@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.StreamBlazeFaceDetector;
+package com.tencent.tnn.demo.StreamHairSegmentation;
 
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -9,12 +9,14 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.RadioGroup;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.tencent.tnn.demo.BlazeFaceDetector;
+import com.tencent.tnn.demo.HairSegmentation;
 import com.tencent.tnn.demo.FpsCounter;
-import com.tencent.tnn.demo.FaceInfo;
+import com.tencent.tnn.demo.ImageInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -26,9 +28,9 @@ import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 import java.io.IOException;
 
 
-public class StreamBlazeFaceDetectFragment extends BaseFragment {
+public class StreamHairSegmentationFragment extends BaseFragment {
 
-    private final static String TAG = StreamBlazeFaceDetectFragment.class.getSimpleName();
+    private final static String TAG = StreamHairSegmentationFragment.class.getSimpleName();
 
     /**********************************     Define    **********************************/
 
@@ -37,8 +39,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     private DrawView mDrawView;
     private int mCameraWidth;
     private int mCameraHeight;
-    private static final int NET_H_INPUT = 128;
-    private static final int NET_W_INPUT = 128;
+
     Camera mOpenedCamera;
     int mOpenedCameraId = 0;
     DemoSurfaceHolder mDemoSurfaceHolder = null;
@@ -47,10 +48,11 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
 
-    private BlazeFaceDetector mFaceDetector = new BlazeFaceDetector();
-    private boolean mIsDetectingFace = false;
+    private HairSegmentation mHairSegmentation = new HairSegmentation();
     private FpsCounter mFpsCounter = new FpsCounter();
+    private boolean mIsSegmentingHair = false;
     private boolean mIsCountFps = false;
+    private RadioGroup color_button;
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
@@ -69,27 +71,27 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
-        NpuEnable = mFaceDetector.checkNpu(modelPath);
+        NpuEnable = mHairSegmentation.checkNpu(modelPath);
     }
 
     private String initModel() {
 
-        String targetDir = getActivity().getFilesDir().getAbsolutePath();
+        String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
-        //copy detect model to sdcard
-        String[] modelPathsDetector = {
-                "blazeface.tnnmodel",
-                "blazeface.tnnproto",
+        // copy segmentation model to sdcard
+        String[] modelPathsSegmentation = {
+                "segmentation.tnnmodel",
+                "segmentation.tnnproto",
         };
 
-        for (int i = 0; i < modelPathsDetector.length; i++) {
-            String modelFilePath = modelPathsDetector[i];
-            String interModelFilePath = targetDir + "/" + modelFilePath;
-            FileUtils.copyAsset(getActivity().getAssets(), "blazeface/" + modelFilePath, interModelFilePath);
+        for (int i = 0; i < modelPathsSegmentation.length; i++) {
+            String modelFilePath = modelPathsSegmentation[i];
+            String interModelFilePath = targetDir + "/" + modelFilePath ;
+            FileUtils.copyAsset(getActivity().getAssets(), "hair_segmentation/"+modelFilePath, interModelFilePath);
         }
-        FileUtils.copyAsset(getActivity().getAssets(),"blazeface_anchors.txt", targetDir + "/blazeface_anchors.txt");
         return targetDir;
     }
+
     @Override
     public void onClick(View view) {
         int i = view.getId();
@@ -97,14 +99,12 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-    private void restartCamera()
-    {
+    private void restartCamera() {
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
     }
-    private void onSwichGPU(boolean b)
-    {
+    private void onSwichGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -115,8 +115,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         restartCamera();
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwichNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -136,7 +135,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_stream_detector);
+        setView(R.layout.fragment_stream_hair_segmentation);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -161,6 +160,31 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             HuaweiNpuTextView.setVisibility(View.INVISIBLE);
             mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
+
+        $$(R.id.color_button);
+        color_button = $(R.id.color_button);
+        color_button.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, int i) {
+                if (i == R.id.button_blue) {
+                    byte[] color = {(byte)0, (byte)0, (byte)185, (byte)90};
+                    mHairSegmentation.setHairColor(color);
+                } else if (i == R.id.button_cyan) {
+                    byte[] color = {(byte)0, (byte)185, (byte)185, (byte)40};
+                    mHairSegmentation.setHairColor(color);
+                } else if (i == R.id.button_green) {
+                    byte[] color = {(byte)0, (byte)185, (byte)0, (byte)50};
+                    mHairSegmentation.setHairColor(color);
+                } else if (i == R.id.button_purple) {
+                    byte[] color = {(byte)185, (byte)0, (byte)185, (byte)64};
+                    mHairSegmentation.setHairColor(color);
+                } else if (i == R.id.button_red) {
+                    byte[] color = {(byte)185, (byte)0, (byte)0, (byte)64};
+                    mHairSegmentation.setHairColor(color);
+                }
+            }
+        });
+
         init();
     }
 
@@ -183,9 +207,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             }
         });
 
-
         mDrawView = (DrawView) $(R.id.drawView);
-
     }
 
     @Override
@@ -255,7 +277,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     }
 
     private void openCamera(int cameraFacing) {
-        mIsDetectingFace = true;
+        mIsSegmentingHair = true;
         mCameraFacing = cameraFacing;
         try {
             int numberOfCameras = Camera.getNumberOfCameras();
@@ -276,6 +298,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                 }
             }
             if (mOpenedCamera == null) {
+//                popTip("can't find camera","");
                 Log.e(TAG, "can't find camera");
             }
             else {
@@ -296,12 +319,12 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                     } else if (mUseGPU) {
                         device = 1;
                     }
-                    int ret = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.975f, 0.23f, 1, device);
+                    int ret = mHairSegmentation.init(modelPath, mCameraHeight, mCameraWidth, device);
                     if (ret == 0) {
-                        mIsDetectingFace = true;
+                        mIsSegmentingHair = true;
                     } else {
-                        mIsDetectingFace = false;
-                        Log.e(TAG, "Face detector init failed " + ret);
+                        mIsSegmentingHair = false;
+                        Log.e(TAG, "Hair Segmentation init failed " + ret);
                     }
 
                     ret = mFpsCounter.init();
@@ -328,15 +351,15 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                 mOpenedCamera.setPreviewCallback(new Camera.PreviewCallback() {
                     @Override
                     public void onPreviewFrame(byte[] data, Camera camera) {
-                        if (mIsDetectingFace) {
+                        if (mIsSegmentingHair) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
                             if (mIsCountFps) {
-                                mFpsCounter.begin("BlazeFaceDetect");
+                                mFpsCounter.begin("HairSegmentation");
                             }
-                            FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mRotate);
+                            ImageInfo[] imageInfoList = mHairSegmentation.predictFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             if (mIsCountFps) {
-                                mFpsCounter.end("BlazeFaceDetect");
-                                double fps = mFpsCounter.getFps("BlazeFaceDetect");
+                                mFpsCounter.end("HairSegmentation");
+                                double fps = mFpsCounter.getFps("HairSegmentation");
                                 String monitorResult = "device: ";
                                 if (mUseGPU) {
                                     monitorResult += "opencl\n";
@@ -349,12 +372,8 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                                 TextView monitor_result_view = (TextView)$(R.id.monitor_result);
                                 monitor_result_view.setText(monitorResult);
                             }
-                            Log.i(TAG, "detect from stream ret " + faceInfoList);
-                            int faceCount = 0;
-                            if (faceInfoList != null) {
-                                faceCount = faceInfoList.length;
-                            }
-                            mDrawView.addFaceRect(faceInfoList,  mCameraParameters.getPreviewSize().height,  mCameraParameters.getPreviewSize().width);
+                            Log.i(TAG, "predict from stream ret " + imageInfoList);
+                            mDrawView.addImageInfo(imageInfoList[1]);
                         }
                         else {
                             Log.i(TAG,"No face");
@@ -374,7 +393,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
 
     public void closeCamera() {
         Log.i(TAG, "closeCamera");
-        mIsDetectingFace = false;
+        mIsSegmentingHair = false;
         if (mOpenedCamera != null) {
             try {
                 mOpenedCamera.stopPreview();
@@ -394,7 +413,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                 mOpenedCamera = null;
             }
         }
-        mFaceDetector.deinit();
+        mHairSegmentation.deinit();
     }
 
 }

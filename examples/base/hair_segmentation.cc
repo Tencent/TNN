@@ -114,7 +114,7 @@ std::shared_ptr<Mat> HairSegmentation::MergeImage(std::shared_ptr<Mat> alpha, RG
         float c0 = bg_conf * image_data[s*channel + 0] + merge_weight * hair_conf * color.r;
         float c1 = bg_conf * image_data[s*channel + 1] + merge_weight * hair_conf * color.g;
         float c2 = bg_conf * image_data[s*channel + 2] + merge_weight * hair_conf * color.b;
-        float c3 = 0;
+        float c3 = 255;
 
         merged_image_data[s*4 + 0] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c0)));
         merged_image_data[s*4 + 1] = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, c1)));
@@ -131,7 +131,7 @@ Status HairSegmentation::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     
     auto output = dynamic_cast<HairSegmentationOutput *>(output_.get());
     RETURN_VALUE_ON_NEQ(!output, false, Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
-    
+
     auto bg = output->GetMat("background");
     auto fg = output->GetMat("foreground");
     auto alpha = ProcessAlpha(fg, option->mode);

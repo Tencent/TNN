@@ -31,7 +31,7 @@ Status OpenCLSigmoidLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 std::set<std::string> OpenCLSigmoidLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
-    std::string compute = "(FLOAT)(1.0f)/((FLOAT)(1.0f)+exp(-in))";
+    std::string compute = "(FLOAT)(1.0f)/((FLOAT)1.0f+exp(-in))";
     build_options.emplace(" -DOPERATOR=" + compute);
 
     AdjustBuildOptionForFp32(build_options);
