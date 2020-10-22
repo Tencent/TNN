@@ -24,6 +24,8 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "test/flags.h"
 #include "test/test_utils.h"
@@ -40,6 +42,12 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils_inner.h"
+
+typedef std::map<std::string, TNN_NS::DimsVector> NameShapeMap;
+typedef std::map<std::string, std::shared_ptr<char>> NameMemoryMap;
+static NameShapeMap shapeMap;
+static NameMemoryMap memMap;
+
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -154,9 +162,63 @@ namespace test {
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
             }
- 
+
             timer.Print();
- 
+#ifdef FORWARD_CALLBACK_ENABLE
+            if (FLAGS_md) {
+                auto dump_blob = [&](std::vector<TNN_NS::Blob*>& blobs, TNN_NS::LayerInfo* info) {
+                    for(auto blob: blobs) {
+                        auto blobDesc = blob->GetBlobDesc();
+                        std::string blobName = blobDesc.name;
+                        int blobDataBytes = TNN_NS::DimsVectorUtils::Count(blobDesc.dims) * sizeof(float);
+                        memMap[blobName] = std::shared_ptr<char>(new char[blobDataBytes], [] (char*p){delete[] p;});
+                       
+                        void* commandQueue;
+                        instance->GetCommandQueue(&commandQueue);
+                        TNN_NS::MatConvertParam param;
+                        TNN_NS::BlobConverter blobConverter(blob);
+                       
+                        TNN_NS::Mat mat(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, blobDesc.dims, memMap[blobName].get());
+                        TNN_NS::Status ret = blobConverter.ConvertToMat(mat, param, commandQueue);
+                        shapeMap[blobName] = blobDesc.dims;
+                    }
+                };
+                auto status = instance->ForwardWithCallback(nullptr, dump_blob);
+
+                if (!FLAGS_bn.empty()) {
+                    std::vector<std::string> mem_dump_blobs = GetMemDumpBlobList(FLAGS_bn);
+                    int dir_status = mkdir(FLAGS_dp.c_str(), 0777);
+                    if(!(dir_status == 0 || dir_status == -1)) {
+                        printf("Make directory for %s not success!", FLAGS_bn.c_str());
+                        return -1;
+                    }
+                    for (auto dump_blob_name: mem_dump_blobs) {
+                        std::string dump_path = FLAGS_dp + "/" + dump_blob_name + ".txt";
+                        auto shape = shapeMap[dump_blob_name];
+                        float* data = reinterpret_cast<float*>(memMap[dump_blob_name].get());
+                        SaveDataTo(data, shape, dump_path, dump_blob_name);
+                    }
+
+                }
+
+                else {
+                    std::string dump_path = FLAGS_dp.empty() ? "mem_dump" : FLAGS_dp;
+                    int dir_status = mkdir(dump_path.c_str(), 0777);
+                    if(!(dir_status == 0 || dir_status == -1)) {
+                        printf("Make directory for %s not success!", dump_path.c_str());
+                        return -1;
+                    }
+                    dump_path += "/";
+                    for(auto pair:shapeMap) {
+                        auto name = pair.first;
+                        auto shape = pair.second;
+                        std::string dump_file = dump_path + name + ".txt";
+                        float* data = reinterpret_cast<float*>(memMap[name].get());
+                        SaveDataTo(data, shape, dump_file, name);
+                    }
+                }
+            }
+ #endif
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
         }
@@ -459,6 +521,42 @@ namespace test {
         for(auto iter : mat_map) {
             free(iter.second->GetData());
         }
+    }
+
+    template <typename T> void SaveDataTo(const T* ptr, TNN_NS::DimsVector shape, std::string path, std::string name) {
+        std::ofstream f(path);
+        if (shape.size() == 4) {
+            int index = 0;
+            for(int n=0; n<shape[0]; ++n){
+                for(int c=0; c<shape[1]; ++c){
+                    for(int h=0; h<shape[2]; ++h){
+                        for(int w=0; w<shape[3]; ++w){
+                            f << n <<"," << c << "," <<h <<"," << w <<":"<<ptr[index++] << std::endl;
+                        }
+                    }
+                } 
+            }
+        } else {
+            printf("The blob %s memory dump output failed! \n", name.c_str());
+        }
+        f.close();
+    }
+
+    std::vector<std::string> GetMemDumpBlobList(std::string path) {
+        std::vector<std::string> blob_list;
+        std::string delimiter = ",";
+        int p1 = 0, p2;
+        while (true) {
+            p2 = path.find(delimiter, p1);
+            if (p2 != std::string::npos) {
+                blob_list.push_back(path.substr(p1, p2 - p1).c_str());
+                p1 = p2 + 1;
+            } else {
+                blob_list.push_back(path.substr(p1, path.length() - p1).c_str());
+                break;
+            }
+        }
+        return blob_list;
     }
 
 }  // namespace test

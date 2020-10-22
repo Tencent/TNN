@@ -59,6 +59,12 @@ static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
 static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
+static const char memory_dump_message[] = "memory dump or not";
+
+static const char memory_dump_output_path_message[] = "memory dump output path";
+
+static const char blob_name_message[] = "memory dump blob names";
+
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
 DECLARE_bool(h);
@@ -96,6 +102,12 @@ DECLARE_int32(it);
 DECLARE_string(pr);
 
 DECLARE_string(is);
+
+DECLARE_bool(md);
+
+DECLARE_string(dp);
+
+DECLARE_string(bn);
 
 }  // namespace TNN_NS
 

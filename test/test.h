@@ -54,6 +54,10 @@ namespace test {
 
     void FreeMatMapMemory(MatMap& mat_map);
 
+    template <typename T> void SaveDataTo(const T* ptr, TNN_NS::DimsVector shape, std::string path, std::string blob_name);
+
+    std::vector<std::string> GetMemDumpBlobList(std::string path);
+
 }  // namespace test
 
 }  // namespace TNN_NS

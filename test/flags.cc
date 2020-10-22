@@ -52,4 +52,10 @@ DEFINE_string(pr, "AUTO", precision_message);
 
 DEFINE_string(is, "", input_shape_message);
 
+DEFINE_bool(md, false, memory_dump_message);
+
+DEFINE_string(dp, "", memory_dump_output_path_message);
+
+DEFINE_string(bn, "", blob_name_message);
+
 }  // namespace TNN_NS
