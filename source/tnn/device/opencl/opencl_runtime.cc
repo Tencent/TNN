@@ -166,6 +166,7 @@ Status OpenCLRuntime::Init() {
         device_->getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, &global_memery_cachesize_);
         device_->getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &compute_units_);
         device_->getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &max_freq_);
+        device_->getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &local_memory_size_);
         cl_device_fp_config fp_config;
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
@@ -206,6 +207,10 @@ uint32_t OpenCLRuntime::DeviceComputeUnits() const {
 
 uint32_t OpenCLRuntime::DeviceMaxFreq() const {
     return max_freq_;
+}
+
+uint64_t OpenCLRuntime::DeviceLocalMemerySize() const {
+    return local_memory_size_;
 }
 
 //get kernel enqueue max work group size 

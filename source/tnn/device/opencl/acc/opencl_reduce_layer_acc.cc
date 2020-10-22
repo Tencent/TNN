@@ -17,6 +17,9 @@
 
 namespace TNN_NS {
 
+#define LowOpParallelismThre 256
+#define HighOpIntensityThre 128
+
 Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Reduce Acc\n");
@@ -29,9 +32,18 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+
+    int hb   = output_dims[0] * output_dims[2];
+    int cw   = output_dims[3] * UP_DIV(output_dims[1], 4);
+
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     int axis = reduce_param->axis[0];
     axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+
+    int axis_n = input_dims[axis];
+
+    run_local_work_ = cw * hb < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
 
     run_3d_ndrange_         = false;
     std::string kernel_name;
@@ -43,6 +55,10 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         kernel_name = "ReduceC2";
     } else {
         kernel_name = "ReduceC3";
+    }
+
+    if (run_local_work_) {
+        kernel_name += "Local";
     }
 
     std::set<std::string> build_options = CreateBuildOptions();
@@ -83,8 +99,28 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     int axis_n = input_dims[axis];
 
     auto &unit            = execute_units_[0];
-    unit.global_work_size = {static_cast<uint32_t>(cw), static_cast<uint32_t>(hb)};
-    unit.local_work_size  = LocalWS2DDefault(unit);
+    uint32_t workgroup_size = 0;
+
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    int type_size = sizeof(float);
+    if (opencl_runtime->GetFp16Enable()) {
+        type_size = 2;
+    }
+
+    if (run_local_work_) {
+        workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
+                                  unit.workgroupsize_max);
+        workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
+        int temp_size = 1;
+        while ((temp_size <<= 1) <= workgroup_size);
+        workgroup_size = temp_size >> 1;
+
+        unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(hb)};
+        unit.local_work_size  = {workgroup_size, 1};
+    } else {
+        unit.global_work_size = {static_cast<uint32_t>(cw), static_cast<uint32_t>(hb)};
+        unit.local_work_size  = LocalWS2DDefault(unit);
+    }
 
     uint32_t idx = 0;
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
@@ -100,6 +136,15 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
     execute_units_[0].ocl_kernel.setArg(idx++, cw4);
     execute_units_[0].ocl_kernel.setArg(idx++, axis_n);
+
+    if (run_local_work_) {
+        if (axis == 1) {
+            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(c4_n, workgroup_size));
+        } else {
+            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
+        }
+        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
+    }
 
     return TNN_OK;
 }
