@@ -129,6 +129,11 @@ static void ChannelPadAligned(float *input_data_base, float *output_ptr_c, int i
     }
 }
 
+static void CalculatePad(Float4& src, const Float4& vvalue, const int padded_zero) {
+    if (padded_zero)
+        src = Float4::pad(src, vvalue, padded_zero);
+}
+
 // ic_mapped is not alligned to 4 when pad_c_b % 4 != 0
 static void ChannelPadNotAligned(float *input_data_base, float *output_ptr_c, int ic_mapped, int ic, int ih, int iw,
                                  int oh, int ow, int pad_t, int pad_b, int pad_l, int pad_r, int iw_bytes, Float4 &vvalue) {
@@ -172,8 +177,8 @@ static void ChannelPadNotAligned(float *input_data_base, float *output_ptr_c, in
                 // extract from vvalue && left boundary
                 for (int i = 0; i < iw; i++) {
                     Float4 src = Float4::load(input_ptr_h1);
-                    if (ic_mapped_1 == ic_r4 - 4 && padded_zero)
-                        src = Float4::pad(src, vvalue, padded_zero);
+                    if (ic_mapped_1 == ic_r4 - 4)
+                        CalculatePad(src, vvalue, padded_zero);
                     Float4 res = Float4::extract(vvalue, src, shift_c);
                     Float4::save(output_ptr_h, res);
                     input_ptr_h1  += 4;
@@ -183,8 +188,7 @@ static void ChannelPadNotAligned(float *input_data_base, float *output_ptr_c, in
                 // extract from two vectors, the right one at the boundary
                 for (int i = 0; i < iw; i++) {
                     Float4 src = Float4::load(input_ptr_h1);
-                    if (padded_zero)
-                        src = Float4::pad(src, vvalue, padded_zero);
+                    CalculatePad(src, vvalue, padded_zero);
                     Float4 res = Float4::extract(Float4::load(input_ptr_h0), src, shift_c);
                     Float4::save(output_ptr_h, res);
                     input_ptr_h0 += 4;
@@ -195,8 +199,7 @@ static void ChannelPadNotAligned(float *input_data_base, float *output_ptr_c, in
                 // extract from right boundary && vvalue
                 for (int i = 0; i < iw; i++) {
                     Float4 src = Float4::load(input_ptr_h0);
-                    if (padded_zero)
-                        src = Float4::pad(src, vvalue, padded_zero);
+                    CalculatePad(src, vvalue, padded_zero);
                     Float4 res = Float4::extract(src, vvalue, shift_c);
                     Float4::save(output_ptr_h, res);
                     input_ptr_h0 += 4;

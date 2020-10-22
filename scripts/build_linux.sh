@@ -35,4 +35,10 @@ cmake ${TNN_ROOT_PATH} \
 
 make -j4
 
+# check compile error, or ci will not stop
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
+
 ctest --output-on-failure -j 2

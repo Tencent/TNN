@@ -22,6 +22,9 @@ namespace TNN_NS {
 
 OpenCLCpuAdapterAcc::OpenCLCpuAdapterAcc(LayerType impl_layer_type) {
     impl_layer_type_ = impl_layer_type;
+    cpu_adapter_acc_ = NULL;
+    impl_device_type_ = DEVICE_ARM;
+    impl_device_context_ = NULL;
     DeviceType device_list[2] = {DEVICE_ARM, DEVICE_X86};
     for(auto device_type : device_list) {
         auto device = GetDevice(device_type);
