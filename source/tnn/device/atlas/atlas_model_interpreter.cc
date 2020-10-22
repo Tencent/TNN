@@ -11,7 +11,7 @@ AtlasModelInterpreter::AtlasModelInterpreter() {}
 
 AtlasModelInterpreter::~AtlasModelInterpreter() {}
 
-Status AtlasModelInterpreter::Interpret(std::vector<std::string> params) {
+Status AtlasModelInterpreter::Interpret(std::vector<std::string> &params) {
     model_config_.om_str  = params[0];
     model_config_.is_path = false;
     if (model_config_.om_str.length() < 1024) {

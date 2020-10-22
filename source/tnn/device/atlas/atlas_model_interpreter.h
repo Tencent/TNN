@@ -21,7 +21,7 @@ public:
     virtual ~AtlasModelInterpreter();
 
     // @brief different interpreter has different order param
-    virtual Status Interpret(std::vector<std::string> params);
+    virtual Status Interpret(std::vector<std::string> &params);
 
     AtlasModelConfig& GetModelConfig();
 
