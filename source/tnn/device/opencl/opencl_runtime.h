@@ -54,6 +54,7 @@ public:
     uint64_t DeviceGlobalMemeryCacheSize() const;
     uint32_t DeviceComputeUnits() const;
     uint32_t DeviceMaxFreq() const;
+    uint64_t DeviceLocalMemerySize() const;
     uint64_t GetMaxWorkGroupSize(const cl::Kernel &kernel);
     uint32_t GetSubGroupSize(const cl::Kernel &kernel, const cl::NDRange &range = cl::NullRange);
     GpuInfo GetGpuInfo();
@@ -83,6 +84,7 @@ private:
     uint64_t global_memery_cachesize_ = 0;
     uint32_t compute_units_ = 0;
     uint32_t max_freq_ = 0;
+    uint64_t local_memory_size_ = 0;
     std::string default_build_opts_ = "";
     GpuInfo gpu_info_;
     bool support_fp16_ = false;
