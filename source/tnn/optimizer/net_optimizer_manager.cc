@@ -30,13 +30,13 @@ namespace optimizer {
         return s_net_optimizer_seq;
     }
 
-    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource, DeviceType device) {
+    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource, const NetworkConfig &net_config) {
         auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
         std::sort(NetOptimizerManager::GetNetOptimizerSeq().begin(), NetOptimizerManager::GetNetOptimizerSeq().end());
 
         for (auto iter : NetOptimizerManager::GetNetOptimizerSeq()) {
             auto optimizer = optimizer_map[iter.second];
-            if (optimizer->SupportDevice(device)) {
+            if (optimizer->IsSupported(net_config)) {
                 auto status = optimizer->Optimize(structure, resource);
                 if (status != TNN_OK) {
                     return status;

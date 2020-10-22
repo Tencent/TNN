@@ -12,11 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_REMOVE_LAYERS_H_
-#define TNN_SOURCE_TNN_NET_OPTIMIZER_REMOVE_LAYERS_H_
+#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_FP16_REFORMAT_H_
+#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_FP16_REFORMAT_H_
 
 #include <string>
 
+#include "tnn/core/abstract_device.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/net_resource.h"
@@ -28,15 +29,27 @@ namespace TNN_NS {
 namespace optimizer {
 
     //@brief net optimize: fuse relu and relu6 to convolution
-    class NetOptimizerRemoveLayers : public NetOptimizer {
+    class NetOptimizerInsertFp16Reformat : public NetOptimizer {
     public:
         virtual std::string Strategy();
         virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
+
+        void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
+                         NetStructure *structure,
+                         std::shared_ptr<LayerInfo>& cur_layer,
+                         std::shared_ptr<LayerInfo>& new_layer,
+                         std::vector<std::string>& reformat_outs,
+                         const std::string& reformat_name_suffix,
+                         const int index,
+                         const int count);
+
+    private:
+        AbstractDevice* device_;
     };
 
 }  // namespace optimizer
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_REMOVE_LAYERS_H_
+#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_FP16_REFORMAT_H_

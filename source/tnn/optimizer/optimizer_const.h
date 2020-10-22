@@ -22,8 +22,11 @@ namespace TNN_NS {
 static const std::string kNetOptimizerFuseConvRelu =
     "net_optimizer_fuse_conv_relu";
 
-static const std::string kNetOptimizerInsertReformat =
-    "net_optimizer_Insert_reformat";
+static const std::string kNetOptimizerInsertInt8Reformat =
+    "net_optimizer_insert_int8_reformat";
+
+static const std::string kNetOptimizerInsertFp16Reformat =
+    "net_optimizer_insert_fp16_reformat";
 
 static const std::string kNetOptimizerRemoveLayers =
     "net_optimizer_remove_layers";
