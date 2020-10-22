@@ -38,7 +38,6 @@ Status ReorgLayer::InferOutputShape() {
     int channels    = dims_input[1];
     int height      = dims_input[2];
     int width       = dims_input[3];
-
     int reorged_channels, reorged_height, reorged_width;
 
     if (reverse) {
