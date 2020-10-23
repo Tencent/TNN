@@ -277,10 +277,10 @@ static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint
             int point11 = src2[src_loc + channel + c];
 
             int val_xy;
-            if (coeffs_y < (1>>4)) {
-                val_xy = (coeffs_x < (1>>4)) ? point00 : point01;
+            if (coeffs_y < (1<<4)) {
+                val_xy = (coeffs_x < (1<<4)) ? point00 : point01;
             } else {
-                val_xy = (coeffs_x < (1>>4)) ? point10 : point11;
+                val_xy = (coeffs_x < (1<<4)) ? point10 : point11;
             }
 
             dst[dst_loc + c] = val_xy;
@@ -301,10 +301,10 @@ static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint
             int point11 = mask3 ? src2[src_loc + channel + c] : border_val;
 
             int val_xy = 0;
-            if (coeffs_y < (1>>4)) {
-                val_xy = (coeffs_x < (1>>4)) ? point00 : point01;
+            if (coeffs_y < (1<<4)) {
+                val_xy = (coeffs_x < (1<<4)) ? point00 : point01;
             } else {
-                val_xy = (coeffs_x < (1>>4)) ? point10 : point11;
+                val_xy = (coeffs_x < (1<<4)) ? point10 : point11;
             }
 
             dst[dsc_loc + c] = val_xy;
