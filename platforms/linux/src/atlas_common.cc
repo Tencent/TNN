@@ -183,7 +183,7 @@ void* RunTNN(void* param) {
     instance_->GetAllInputBlobs(input_blobs_temp);
     InputShapesMap input_shapemap;
     input_shapemap[input_blobs_temp.begin()->first]    = input_blobs_temp.begin()->second->GetBlobDesc().dims;
-    input_shapemap[input_blobs_temp.begin()->first][0] = 1;
+    input_shapemap[input_blobs_temp.begin()->first][0] = tnn_param->batch_size;
     tnn_ret                                            = instance_->Reshape(input_shapemap);
     if (tnn_ret != TNN_OK) {
         printf("instance Reshape() falied (%s)\n", tnn_ret.description().c_str());

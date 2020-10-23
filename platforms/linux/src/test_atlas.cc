@@ -37,13 +37,17 @@ TNN net_;
 
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
+    int batch_size = 1;
     if (argc == 1) {
-        printf("./AtlasTest <om_file> <input_filename>\n");
+        printf("./AtlasTest <om_file> <input_filename> <batch_size>\n");
         return 0;
     } else {
         if (argc < 3) {
             printf("invalid args\n");
             return 0;
+        }
+        if (argc >=4) {
+            batch_size = atoi(argv[3]);
         }
         for (int i = 1; i < argc; i++) {
             printf("arg%d: %s\n", i - 1, argv[i]);
@@ -88,6 +92,7 @@ int main(int argc, char* argv[]) {
     run_param.input_file = argv[2];
     run_param.device_id  = 0;
     run_param.tnn_net    = &net_;
+    run_param.batch_size = batch_size;
 
     RunTNN(&run_param);
 

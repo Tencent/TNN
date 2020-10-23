@@ -22,6 +22,7 @@ struct TNNParam {
     std::string input_file;
     int device_id = 0;
     int thread_id = 0;
+    int batch_size = 1;
     TNN_NS::TNN* tnn_net;
     TNN_NS::NetworkType network_type = TNN_NS::NETWORK_TYPE_ATLAS;
     TNN_NS::DeviceType device_type   = TNN_NS::DEVICE_ATLAS;
