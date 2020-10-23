@@ -80,6 +80,8 @@ subs r2, r2, #8
 blo 1f
 
 0:
+    vld1.8 d9, [r7]!
+    vmovl.s8 q4, d9
     vld1.8 d1, [r3]!
     vmovl.s8 q0, d1
     vld1.8 d3, [r4]!
@@ -90,84 +92,84 @@ blo 1f
     vmovl.s8 q3, d7
 
     // c0
-    vld1.8 d9, [r7]!
-    vmovl.s8 q4, d9
+    vld1.8 d11, [r7]!
     vmlal.s16 q8, d8, d0[0]
     vmlal.s16 q9, d9, d0[0]
     vmlal.s16 q10, d8, d2[0]
     vmlal.s16 q11, d9, d2[0]
+    vmovl.s8 q5, d11
     vmlal.s16 q12, d8, d4[0]
     vmlal.s16 q13, d9, d4[0]
     vmlal.s16 q14, d8, d6[0]
     vmlal.s16 q15, d9, d6[0]
 
     // c1
-    vld1.8 d11, [r7]!
-    vmovl.s8 q5, d11
+    vld1.8 d9, [r7]!
     vmlal.s16 q8, d10, d0[1]
     vmlal.s16 q9, d11, d0[1]
     vmlal.s16 q10, d10, d2[1]
     vmlal.s16 q11, d11, d2[1]
+    vmovl.s8 q4, d9
     vmlal.s16 q12, d10, d4[1]
     vmlal.s16 q13, d11, d4[1]
     vmlal.s16 q14, d10, d6[1]
     vmlal.s16 q15, d11, d6[1]
 
     // c2
-    vld1.8 d9, [r7]!
-    vmovl.s8 q4, d9
+    vld1.8 d11, [r7]!
     vmlal.s16 q8, d8, d0[2]
     vmlal.s16 q9, d9, d0[2]
     vmlal.s16 q10, d8, d2[2]
     vmlal.s16 q11, d9, d2[2]
+    vmovl.s8 q5, d11
     vmlal.s16 q12, d8, d4[2]
     vmlal.s16 q13, d9, d4[2]
     vmlal.s16 q14, d8, d6[2]
     vmlal.s16 q15, d9, d6[2]
 
     // c3
-    vld1.8 d11, [r7]!
-    vmovl.s8 q5, d11
+    vld1.8 d9, [r7]!
     vmlal.s16 q8, d10, d0[3]
     vmlal.s16 q9, d11, d0[3]
     vmlal.s16 q10, d10, d2[3]
     vmlal.s16 q11, d11, d2[3]
+    vmovl.s8 q4, d9
     vmlal.s16 q12, d10, d4[3]
     vmlal.s16 q13, d11, d4[3]
     vmlal.s16 q14, d10, d6[3]
     vmlal.s16 q15, d11, d6[3]
 
     // c4
-    vld1.8 d9, [r7]!
-    vmovl.s8 q4, d9
+    vld1.8 d11, [r7]!
     vmlal.s16 q8, d8, d1[0]
     vmlal.s16 q9, d9, d1[0]
     vmlal.s16 q10, d8, d3[0]
     vmlal.s16 q11, d9, d3[0]
+    vmovl.s8 q5, d11
     vmlal.s16 q12, d8, d5[0]
     vmlal.s16 q13, d9, d5[0]
     vmlal.s16 q14, d8, d7[0]
     vmlal.s16 q15, d9, d7[0]
 
     // c5
-    vld1.8 d11, [r7]!
-    vmovl.s8 q5, d11
+    vld1.8 d9, [r7]!
     vmlal.s16 q8, d10, d1[1]
     vmlal.s16 q9, d11, d1[1]
     vmlal.s16 q10, d10, d3[1]
     vmlal.s16 q11, d11, d3[1]
+    vmovl.s8 q4, d9
     vmlal.s16 q12, d10, d5[1]
     vmlal.s16 q13, d11, d5[1]
     vmlal.s16 q14, d10, d7[1]
     vmlal.s16 q15, d11, d7[1]
 
     // c6
-    vld1.8 d9, [r7]!
-    vmovl.s8 q4, d9
+    vld1.8 d11, [r7]!
     vmlal.s16 q8, d8, d1[2]
     vmlal.s16 q9, d9, d1[2]
     vmlal.s16 q10, d8, d3[2]
     vmlal.s16 q11, d9, d3[2]
+    vmovl.s8 q5, d11
     vmlal.s16 q12, d8, d5[2]
     vmlal.s16 q13, d9, d5[2]
     vmlal.s16 q14, d8, d7[2]
@@ -176,8 +178,6 @@ blo 1f
     subs r2, r2, #8
 
     // c7
-    vld1.8 d11, [r7]!
-    vmovl.s8 q5, d11
     vmlal.s16 q8, d10, d1[3]
     vmlal.s16 q9, d11, d1[3]
     vmlal.s16 q10, d10, d3[3]
@@ -317,11 +317,11 @@ blo 1f
 
 2:
 
-    vld1.f32 q6, [r10]!
+    vld1.32 {d12,d13}, [r10]!
     vmov.i32 q7, #0
     cmp r1, #4
     ble 22f
-    vld1.f32 q7, [r10]
+    vld1.32 {d14,d15}, [r10]
 
 22:
     vcvt.f32.s32 q8, q8
