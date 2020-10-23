@@ -15,6 +15,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter_acc.h"
+#include <math.h>
 
 namespace TNN_NS {
 
