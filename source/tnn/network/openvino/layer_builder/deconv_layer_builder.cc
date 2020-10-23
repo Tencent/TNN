@@ -76,8 +76,8 @@ Status DeconvOVLayerBuilder::Build() {
     // set weights
     ngraph::Shape weights_shape;
     weights_shape.push_back(paramlist->group);
-    weights_shape.push_back(paramlist->output_channel / paramlist->group);
     weights_shape.push_back(paramlist->input_channel);
+    weights_shape.push_back(paramlist->output_channel / paramlist->group);
     auto kernels = std::vector<int>{paramlist->kernels};
     std::reverse(kernels.begin(), kernels.end());
     for (auto item : kernels) {
@@ -88,9 +88,16 @@ Status DeconvOVLayerBuilder::Build() {
     auto weightsNode = std::make_shared<ngraph::op::Constant>(
         DataTransfer(resource->filter_handle.GetDataType()), weights_shape, resource->filter_handle.force_to<float*>());
 
+    // set output shape as tnn 
+    auto output_spatial_dims = std::vector<int>({GetOutputBlobs()[0]->GetBlobDesc().dims[2], GetOutputBlobs()[0]->GetBlobDesc().dims[3]});
+    auto output_shape = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i32, ngraph::Shape({2}), output_spatial_dims);
+    auto dims = GetOutputBlobs()[0]->GetBlobDesc().dims;
+
     // assume that channels == weights input channels
     auto deConvNode = std::make_shared<ngraph::op::v1::GroupConvolutionBackpropData>(
-        input_node->output(0), weightsNode, strides, pads_begin, pads_end, dilations, pad_type);
+        input_node->output(0), weightsNode, output_shape, strides, pads_begin, pads_end, dilations, pad_type);
+
     deConvNode->validate_and_infer_types();
 
     // has bias
