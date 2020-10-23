@@ -19,10 +19,6 @@ DECLARE_OP_CONVERTER(Gather);
 
 string OnnxOpConverterGather::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
-    auto indices = get_node_attr_ai(node, "indices", net_info, 1);
-    if (indices.size() == 1) {
-        return "StridedSlice";
-    }
     return "Gather";
 }
 

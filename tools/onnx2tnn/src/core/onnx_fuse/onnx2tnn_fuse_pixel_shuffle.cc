@@ -31,21 +31,21 @@ int Onnx2TNN::FusePixelShuffle(onnx::GraphProto* mutable_graph, std::vector<Inde
             if (node->op_type() != "Reshape" || i + 2 >= node_count) {
                 break;
             }
-            auto shapes = get_node_attr_ai(*node, "shape", weights, 1);
-            if (shapes.size() != 6) {
-                break;
-            }
             auto transpose_node = index_nodes[i + 1].node;
             if (transpose_node->op_type() != "Transpose") {
+                break;
+            }
+            auto reshape_node = index_nodes[i + 2].node;
+            if (reshape_node->op_type() != "Reshape") {
+                break;
+            }
+            auto shapes = get_node_attr_ai(*node, "shape", weights, 1);
+            if (shapes.size() != 6) {
                 break;
             }
             auto permute = get_node_attr_ai(*transpose_node, "perm");
             if (permute.size() != 6 || permute[0] != 0 || permute[1] != 1 || permute[2] != 4 || permute[3] != 2 ||
                 permute[4] != 5 || permute[5] != 3) {
-                break;
-            }
-            auto reshape_node = index_nodes[i + 2].node;
-            if (reshape_node->op_type() != "Reshape") {
                 break;
             }
             if (node->output(0) != transpose_node->input(0) || transpose_node->output(0) != reshape_node->input(0)) {

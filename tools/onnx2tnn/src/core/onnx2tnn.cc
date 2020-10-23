@@ -14,12 +14,12 @@
 
 #include "onnx2tnn.h"
 
+#include <execinfo.h>
 #include <math.h>
 #include <stdio.h>
-#include <execinfo.h>
 
-#include <set>
 #include <exception>
+#include <set>
 
 #include "onnx2tnn_prefix.h"
 
@@ -246,9 +246,10 @@ int Onnx2TNN::TNNWriteProto() {
                         proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_d
                                        << " " << shape_h << " " << shape_w << " ";
                     } else {
-                        LOGE("input_blob_shape invalid\n");
-                        assert(0);
-                        break;
+                        proto_net_info << input_blob->name() << " ";
+                        for (const auto& dim: input_blob_shape.dim()) {
+                            proto_net_info << dim.dim_value() << " ";
+                        }
                     }
 
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
@@ -516,15 +517,15 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     // onnx_op remove
     RemovePad(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveDropout(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -625,10 +626,10 @@ int Onnx2TNN::ClearEmptyNode(std::vector<IndexNode>& index_nodes) {
 std::string get_backtrack() {
     const int MAX_SIZE = 10;
     std::string backtrace_str;
-    char **strings = nullptr;
-    void *array[MAX_SIZE] = {0};
-    size_t size = backtrace(array, MAX_SIZE);
-    strings = backtrace_symbols(array, size);
+    char** strings        = nullptr;
+    void* array[MAX_SIZE] = {0};
+    size_t size           = backtrace(array, MAX_SIZE);
+    strings               = backtrace_symbols(array, size);
     for (size_t i = 0; i < size; i++)
         backtrace_str += std::string(strings[i]) + std::string("\n");
     free(strings);

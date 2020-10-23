@@ -215,6 +215,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Expand", LAYER_EXPAND},
     {"ScatterND", LAYER_SCATTER_ND},
     {"QuantizedSigmoid", LAYER_SIGMOID},
+    {"StrideSliceV2", LAYER_STRIDE_SLICE_V2},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {
