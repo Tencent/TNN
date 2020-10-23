@@ -143,8 +143,17 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
                 uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
                 WarpAffineBilinear(src_ptr, src.GetWidth(), src.GetHeight(), channel,
-                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
-                                    param.transform, param.border_val);
+                                   dst_ptr, dst.GetWidth(), dst.GetHeight(),
+                                   param.transform, param.border_val);
+            }
+        } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+            for (int batch = 0; batch < src.GetDims()[0]; batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
+                WarpAffineNearest(src_ptr, src.GetWidth(), src.GetHeight(), channel,
+                                  dst_ptr, dst.GetWidth(), dst.GetHeight(),
+                                  param.transform, param.border_val);
             }
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
