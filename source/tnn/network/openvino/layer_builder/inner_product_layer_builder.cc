@@ -27,6 +27,7 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -34,73 +35,53 @@ DECLARE_OPENVINO_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 Status InnerProductOVLayerBuilder::Build() {
 
-    auto paramlist = dynamic_cast<InnerProductLayerParam*>(param_);
+    auto paramlist = dynamic_cast<InnerProductLayerParam *>(param_);
+    auto resource  = dynamic_cast<InnerProductLayerResource *>(resource_);
     
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];
+    auto input_node = GetInputNodes()[0];\
 
-    ngraph::Shape matShape;
-    //    matShape.push_back(input_node->get_output_shape(0).at(paramlist->axis));
-    matShape.push_back(paramlist->num_output);
-    matShape.push_back(input_node->get_output_shape(0).at(paramlist->axis));
-    size_t matSize = matShape.at(0) * matShape.at(1);
+    size_t m = input_node->get_output_shape(0)[0];
+    size_t n = input_node->get_output_shape(0)[1] * input_node->get_output_shape(0)[2] * \
+            input_node->get_output_shape(0)[3];
+    size_t k = paramlist->num_output;
 
-    auto resource = dynamic_cast<InnerProductLayerResource*>(GetResource());
-    InferenceEngine::TBlob<float>::Ptr matPtr(new InferenceEngine::TBlob<float>({InferenceEngine::Precision::FP32, {matSize}, InferenceEngine::Layout::C}));
-    matPtr->allocate();
-    void* buffer = matPtr->buffer();
-    float* matBuffer = reinterpret_cast<float*>(buffer);
+    std::vector<int> matShape;
+    matShape.push_back(m);
+    matShape.push_back(n);
 
-    const float* matResource = resource->weight_handle.force_to<float*>();
-    for (size_t i = 0; i < matSize; i++) matBuffer[i] = matResource[i];
+    auto reshapeConstNode = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i32, ngraph::Shape({2}), matShape);
+    
+    auto reshapeNode = std::make_shared<ngraph::op::v1::Reshape>(
+        input_node->output(0), reshapeConstNode, true);
 
-    auto matNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, matShape, matBuffer);
-    
-    // should transpose the axis to the end
-    std::vector<int> transposeAxis;
-    for (size_t i = 0; i < input_node->get_output_shape(0).size(); i++) {
-        if (i != paramlist->axis)
-            transposeAxis.push_back(i);
-    }
-    transposeAxis.push_back(paramlist->axis);
-    ngraph::Shape transposeShape;
-    transposeShape.push_back(input_node->get_output_shape(0).size());
-    
-    auto transposeConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, transposeShape, transposeAxis);
-    
-    auto transposeNode = std::make_shared<ngraph::op::Transpose>(
-        input_node->output(0), transposeConst->output(0));
-    
-    transposeNode->validate_and_infer_types();
-    
-    // inner product
-    auto innerProductNode = std::make_shared<ngraph::op::MatMul>(
-        transposeNode->output(0), matNode->output(0), false, !paramlist->transpose);
+    ngraph::Shape weightsShape;
 
-    innerProductNode->validate_and_infer_types();
-
-    // transpose reverse
-    std::vector<int> transposeReverseAxis;
-    for (size_t i = 0; i < input_node->get_output_shape(0).size() - 1; i++) {
-        if (i == paramlist->axis) {
-            transposeReverseAxis.push_back(input_node->get_output_shape(0).size() - 1);
-        }
-        transposeReverseAxis.push_back(i);
-    }
-    auto transposeReverseConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, transposeShape, transposeReverseAxis);
+    auto weightsNode = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, ngraph::Shape({k, n}), resource->weight_handle.force_to<float *>());
     
-    auto transposeReverseNode = std::make_shared<ngraph::op::Transpose>(
-        innerProductNode->output(0), transposeReverseConst->output(0));
+    auto matMulNode  = std::make_shared<ngraph::op::MatMul>(
+        reshapeNode->output(0), weightsNode->output(0), false, !paramlist->transpose);
+
+    std::vector<int> matReshape;
+    matReshape.push_back(m);
+    matReshape.push_back(k);
+    matReshape.push_back(1);
+    matReshape.push_back(1);
+
+    auto reverseReshapeConstNode = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i32, ngraph::Shape({4}), matReshape);
+    
+    auto reverseReshapeNode      = std::make_shared<ngraph::op::v1::Reshape>(
+        matMulNode->output(0), reverseReshapeConstNode, true);
     
     if (paramlist->has_bias) {
         ngraph::Shape biasShape;
-        auto output_shape = transposeReverseNode->get_output_shape(0);
+        auto output_shape = reverseReshapeNode->get_output_shape(0);
         for (int i = 0; i < output_shape.size(); i++) {
             if (i == paramlist->axis) {
                 biasShape.push_back(output_shape.at(i));
@@ -113,7 +94,7 @@ Status InnerProductOVLayerBuilder::Build() {
             ngraph::element::Type_t::f32, biasShape, resource->bias_handle.force_to<float*>());
         
         auto addNode = std::make_shared<ngraph::op::v1::Add>(
-            transposeReverseNode->output(0), biasNode->output(0));
+            reverseReshapeNode->output(0), biasNode->output(0));
             
         addNode->set_friendly_name(paramlist->name);
         addNode->validate_and_infer_types();
@@ -123,11 +104,11 @@ Status InnerProductOVLayerBuilder::Build() {
         SetOutputTensors(outputNodes);
 
     } else {
-        transposeReverseNode->set_friendly_name(paramlist->name);
-        transposeReverseNode->validate_and_infer_types();
+        reverseReshapeNode->set_friendly_name(paramlist->name);
+        reverseReshapeNode->validate_and_infer_types();
 
         ngraph::NodeVector outputNodes;
-        outputNodes.push_back(transposeReverseNode);
+        outputNodes.push_back(reverseReshapeNode);
         SetOutputTensors(outputNodes);
     }
     return TNN_OK;
