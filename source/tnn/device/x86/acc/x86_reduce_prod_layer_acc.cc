@@ -17,26 +17,31 @@
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
 
 #include <vector>
-#include <iostream>
+#include <cmath>
 #include <immintrin.h>
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_sum_operator : x86_reduce_operator {
+typedef struct x86_reduce_prod_operator : x86_reduce_operator {
 #ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) { 
-        return _mm256_add_ps(v1_, v2_);
+    __m256 Init() {
+        return _mm256_set1_ps(1.f);
+    }
+    __m256 operator()(const __m256 v1_, const __m256 v2_) {
+        return _mm256_mul_ps(v1_, v2_);
     }
 #else
+    float Init() { return 1.0f; }
     float operator()(const float v1, const float v2) {
-        return v1 + v2;
+        return v1 * v2;
     }
+
 #endif
-} X86_REDUCE_SUM_OP;
+} X86_REDUCE_PROD_OP;
 
-DECLARE_X86_REDUCE_OP_ACC(ReduceSum, X86_REDUCE_SUM_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceProd, X86_REDUCE_PROD_OP);
 
-REGISTER_X86_ACC(ReduceSum, LAYER_REDUCE_SUM);
+REGISTER_X86_ACC(ReduceProd, LAYER_REDUCE_PROD);
 
 }   // namespace TNN_NS
 

@@ -300,43 +300,39 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, DimsVector input_dim, D
     register __m256 src_, tmp_;
     for (int b = 0; b < output_dim[0]; b++) {
         for (int index = 0; index < tail; index += 8) {
-            tmp_ = _mm256_setzero_ps();
+            tmp_ = op->Init();
             for (int c = 0; c < channel; c++) {
                 src_ = _mm256_loadu_ps(input + (b * channel + c) * channel_size + index);
                 tmp_ = (*op)(tmp_, src_);
             }
+            tmp_ = op->PostProcess(tmp_, channel);
             _mm256_storeu_ps(output + b * channel_size + index, tmp_);
         }
 
-        for (int index = tail; index < channel_size; index++) {
-            float tmp = 0.f;
-            for (int c = 0; c < channel; c++) {
-                tmp += input[(b * channel + c) * channel_size + index];
-            }
-            output[b * channel_size + index] = tmp;
-        }
-        // unsigned a[8] = {0};
-        // for (int i = 0; i < channel_size % 8; i++) a[i] = 1;
-        // for (int i = 0; i < 8; i++) std::cout << a[i] << std::endl;
-        // __m256i mask_ = _mm256_loadu_si256((__m256i*)a);
+        // build mask
+        float a[8] = {0.f};
+        for (int i = 0; i < channel_size % 8; i++) a[i] = -0.f;
+        __m256i mask_ = _mm256_loadu_si256((__m256i*)a);
         
-        // for (int index = tail; index < channel_size; index += 8) {
-        //     tmp_ = _mm256_setzero_ps();
-        //     for (int c = 0; c < channel; c++) {
-        //         src_ = _mm256_maskload_ps(input + (b * channel + c) * channel_size + index, mask_);
-        //         tmp_ = (*op)(tmp_, src_);
-        //     }
-        //     _mm256_maskstore_ps(output + b * channel_size + index, mask_, tmp_);
-        // }
+        for (int index = tail; index < channel_size; index += 8) {
+            tmp_ = op->Init();
+            for (int c = 0; c < channel; c++) {
+                src_ = _mm256_maskload_ps(input + (b * channel + c) * channel_size + index, mask_);
+                tmp_ = (*op)(tmp_, src_);
+            }
+            tmp_ = op->PostProcess(tmp_, channel);
+            _mm256_maskstore_ps(output + b * channel_size + index, mask_, tmp_);
+        }
     }
 #else
     for (int b = 0; b < output_dim[0]; b++) {
         for (int index = 0; index < channel_size; index++) {
-            op->Init();
+            float tmp = op->Init();
             for (int c = 0; c < channel; c++) {
-                (*op)(input[(b * channel + c) * channel_size + index]);
+                tmp = (*op)(tmp, input[(b * channel + c) * channel_size + index]);
             }
-            output[b * channel_size + index] = op->GetValue();
+            tmp = op->PostProcess(tmp, channel);
+            output[b * channel_size + index] = tmp;
         }
     }
 #endif

@@ -12,31 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
-#include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
-
-#include <vector>
-#include <iostream>
-#include <immintrin.h>
+#include "x86_deconv_layer_acc.h"
 
 namespace TNN_NS {
+Status X86DeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-typedef struct x86_reduce_sum_operator : x86_reduce_operator {
-#ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) { 
-        return _mm256_add_ps(v1_, v2_);
-    }
-#else
-    float operator()(const float v1, const float v2) {
-        return v1 + v2;
-    }
-#endif
-} X86_REDUCE_SUM_OP;
+Status X86DeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-DECLARE_X86_REDUCE_OP_ACC(ReduceSum, X86_REDUCE_SUM_OP);
+Status X86DeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-REGISTER_X86_ACC(ReduceSum, LAYER_REDUCE_SUM);
+REGISTER_X86_ACC(Deconv, LAYER_DECONVOLUTION);
 
-}   // namespace TNN_NS
-
+}
