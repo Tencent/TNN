@@ -27,17 +27,18 @@ Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
 }
 
 Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    auto layer_res           = CreateLayerRes<GatherLayerResource>(resource);
-    std::string layer_name   = deserializer.GetString();
-    bool data_in_resource    = deserializer.GetInt() == 1;
-    bool indices_in_resource = deserializer.GetInt() == 1;
+    auto layer_res        = CreateLayerRes<GatherLayerResource>(resource);
+    bool data_in_resource = deserializer.GetBool();
     if (data_in_resource) {
-        deserializer.GetDims(layer_res->data_dims);
-        GET_BUFFER_FOR_ATTR(layer_res, data, deserializer);
+        RawBuffer buf;
+        deserializer.GetRaw(buf);
+        layer_res->data = buf;
     }
+    bool indices_in_resource = deserializer.GetBool();
     if (indices_in_resource) {
-        deserializer.GetDims(layer_res->indices_dims);
-        GET_BUFFER_FOR_ATTR(layer_res, indices, deserializer);
+        RawBuffer buf;
+        deserializer.GetRaw(buf);
+        layer_res->indices = buf;
     }
     return TNN_OK;
 }
@@ -63,24 +64,17 @@ Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
         LOGE("Interpreter Gather: layer param or layer resource is null\n");
         return TNNERR_INVALID_MODEL;
     }
-    serializer.PutString(layer_param->name);
     if (layer_param->data_in_resource) {
-        serializer.PutInt(1);
-    } else {
-        serializer.PutInt(0);
-    }
-    if (layer_param->indices_in_resource) {
-        serializer.PutInt(1);
-    } else {
-        serializer.PutInt(0);
-    }
-    if (layer_param->data_in_resource) {
-        serializer.PutDims(layer_res->data_dims);
+        serializer.PutBool(true);
         serializer.PutRaw(layer_res->data);
+    } else {
+        serializer.PutBool(false);
     }
     if (layer_param->indices_in_resource) {
-        serializer.PutDims(layer_res->indices_dims);
+        serializer.PutBool(true);
         serializer.PutRaw(layer_res->indices);
+    } else {
+        serializer.PutBool(false);
     }
     return TNN_OK;
 }

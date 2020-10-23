@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -17,67 +17,59 @@
 
 DECLARE_OP_CONVERTER(Gather);
 
-string OnnxOpConverterGather::TNNOpType(NodeProto &node,
-                                           OnnxNetInfo &net_info) {
+string OnnxOpConverterGather::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "Gather";
 }
 
-string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
-                                               OnnxNetInfo &net_info) {
-    const std::string &onnx_op = node.op_type();
-    auto tnn_op_type = TNNOpType(node, net_info);
-
-    int axis = (int)get_node_attr_i(node, "axis");
-    auto indices = get_node_attr_ai(node, "indices", net_info, 1);
-
+string OnnxOpConverterGather::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+    const auto &weight_map = net_info.weights_map;
     ostringstream layer_param;
-    if (tnn_op_type == "StridedSlice") {
-        int dimension = 4;
-        std::vector<int64_t> all_starts, all_ends, all_steps;
-        for (int ii = 0; ii < axis; ii++) {
-            all_starts.push_back(0);
-            all_ends.push_back(0);
-            all_steps.push_back(1);
-        }
+    int axis                 = (int)get_node_attr_i(node, "axis", 0);
+    bool data_in_resource    = false;
+    bool indices_in_resource = false;
 
-        all_starts.push_back(indices[0]);
-        all_ends.push_back(indices[0] + 1);
-        all_steps.push_back(1);
-
-        for (int ii = axis + 1; ii < dimension; ii++) {
-            all_starts.push_back(0);
-            all_ends.push_back(0);
-            all_steps.push_back(1);
-        }
-
-        layer_param << all_starts.size() << " ";
-        for (int ii = 0; ii < all_starts.size(); ii++) {
-            layer_param << all_starts[ii] << " ";
-        }
-        layer_param << all_ends.size() << " ";
-        for (int ii = 0; ii < all_ends.size(); ii++) {
-            layer_param << all_ends[ii] << " ";
-        }
-        layer_param << all_steps.size() << " ";
-        for (int ii = 0; ii < all_steps.size(); ii++) {
-            layer_param << all_steps[ii] << " ";
-        }
-    } else {
-        layer_param << axis << " ";
-        layer_param << indices.size() << " ";
-        for (int ii = 0; ii < indices.size(); ii++) {
-            layer_param << indices[ii] << " ";
-        }
+    const auto &data_name = node.input(0);
+    if (weight_map.find(data_name) != weight_map.end()) {
+        data_in_resource = true;
     }
-
+    const auto &indices_name = node.input(1);
+    if (weight_map.find(indices_name) != weight_map.end()) {
+        indices_in_resource = true;
+    }
+    layer_param << axis << " ";
+    layer_param << (data_in_resource == true ? 1 : 0) << " ";
+    layer_param << (indices_in_resource == true ? 1 : 0) << " ";
     return layer_param.str();
 }
 
-int OnnxOpConverterGather::WriteTNNModel(serializer *net_writer,
-                                            NodeProto &node,
-                                            OnnxNetInfo &net_info) {
-    //有权值写入的返回1， 没有的返回0
-    return 0;
+int OnnxOpConverterGather::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+    const std::string &onnx_op        = node.op_type();
+    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
+    const std::string &tnn_layer_type = TNNOpType(node, net_info);
+    const auto &weight_map            = net_info.weights_map;
+
+    // layer header
+    net_writer->put_int(0);
+    net_writer->put_string(tnn_layer_type);
+    net_writer->put_string(name);
+
+    auto &data_name = node.input(0);
+    if (weight_map.find(data_name) != weight_map.end()) {
+        net_writer->put_bool(true);
+        const auto &data_tensor = weight_map.find(data_name)->second;
+        WriteTensorData(data_tensor, net_writer, DATA_TYPE_FLOAT);
+    } else {
+        net_writer->put_bool(false);
+    }
+    const auto &indices_name = node.input(1);
+    if (weight_map.find(indices_name) != weight_map.end()) {
+        net_writer->put_bool(true);
+        const auto &indices_tensor = weight_map.find(indices_name)->second;
+        WriteTensorData(indices_tensor, net_writer, DATA_TYPE_FLOAT);
+    } else {
+        net_writer->put_bool(false);
+    }
+    return 1;
 }
 
 REGISTER_OP_CONVERTER(Gather, Gather);

@@ -30,7 +30,7 @@ Status GatherLayer::InferOutputShape() {
     // the output blob has only one dim, the value is the size of input blob dims
     auto layer_param    = dynamic_cast<GatherLayerParam*>(param_);
     auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
-    auto indices_dims  = layer_resource->indices_dims;
+    auto indices_dims  = layer_resource->indices.GetBufferDims();
     auto axis           = layer_param->axis;
     if (indices_dims.size() > 1) {
         LOGE("Gather: no support indices dims > 1\n");
