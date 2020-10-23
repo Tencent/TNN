@@ -5,7 +5,7 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="550dp"
+        android:layout_height="518dp"
         android:id="@+id/preview_layout">
 
         <com.tencent.tnn.demo.common.component.PreviewFrameLayout
@@ -45,7 +45,7 @@
 
         <LinearLayout
             android:layout_width="380dp"
-            android:layout_height="40dp"
+            android:layout_height="45dp"
             android:orientation="horizontal">
 
             <TextView
@@ -63,34 +63,38 @@
 
                 <RadioButton
                     android:id="@+id/button_blue"
-                    android:layout_width="wrap_content"
+                    android:layout_width="45dp"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:buttonTint="#0000b9" />
+                    android:button="@drawable/blue_radio_button_bg" />
 
                 <RadioButton
                     android:id="@+id/button_cyan"
-                    android:layout_width="wrap_content"
+                    android:layout_width="45dp"
                     android:layout_height="wrap_content"
-                    android:buttonTint="#00b9b9" />
+                    android:checked="false"
+                    android:button="@drawable/cyan_radio_button_bg" />
 
                 <RadioButton
                     android:id="@+id/button_green"
-                    android:layout_width="wrap_content"
+                    android:layout_width="45dp"
                     android:layout_height="wrap_content"
-                    android:buttonTint="#00b900" />
+                    android:checked="false"
+                    android:button="@drawable/green_radio_button_bg" />
 
                 <RadioButton
                     android:id="@+id/button_purple"
-                    android:layout_width="wrap_content"
+                    android:layout_width="45dp"
                     android:layout_height="wrap_content"
-                    android:buttonTint="#b900b9" />
+                    android:checked="false"
+                    android:button="@drawable/purple_radio_button_bg" />
 
                 <RadioButton
                     android:id="@+id/button_red"
-                    android:layout_width="wrap_content"
+                    android:layout_width="45dp"
                     android:layout_height="wrap_content"
-                    android:buttonTint="#b90000" />
+                    android:checked="false"
+                    android:button="@drawable/red_radio_button_bg" />
             </RadioGroup>
         </LinearLayout>
 
@@ -129,7 +133,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="550dp"
+        android:layout_marginTop="518dp"
         android:gravity="top">
         <TextView
             android:id="@+id/result"

@@ -59,6 +59,8 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
 
+    private boolean mDeviceSwiched = false;
+
     /**********************************     Get Preview Advised    **********************************/
 
     @Override
@@ -112,7 +114,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        restartCamera();
+        mDeviceSwiched = true;
     }
 
     private void onSwichNPU(boolean b)
@@ -124,7 +126,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        restartCamera();
+        mDeviceSwiched = true;
     }
 
     private void clickBack() {
@@ -333,7 +335,26 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                             if (mIsCountFps) {
                                 mFpsCounter.begin("BlazeFaceDetect");
                             }
-                            FaceInfo[] faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mRotate);
+                            FaceInfo[] faceInfoList;
+                            // reinit
+                            if (mDeviceSwiched) {
+                                String modelPath = getActivity().getFilesDir().getAbsolutePath();
+                                int device = 0;
+                                if (mUseHuaweiNpu) {
+                                    device = 2;
+                                } else if (mUseGPU) {
+                                    device = 1;
+                                }
+                                int ret = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.975f, 0.23f, 1, device);
+                                if (ret == 0) {
+                                    mIsDetectingFace = true;
+                                } else {
+                                    mIsDetectingFace = false;
+                                    Log.e(TAG, "Face detector init failed " + ret);
+                                }
+                                mDeviceSwiched = false;
+                            }
+                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mRotate);
                             if (mIsCountFps) {
                                 mFpsCounter.end("BlazeFaceDetect");
                                 double fps = mFpsCounter.getFps("BlazeFaceDetect");
