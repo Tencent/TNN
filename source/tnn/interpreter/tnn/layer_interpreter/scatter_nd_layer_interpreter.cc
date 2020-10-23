@@ -22,7 +22,6 @@ Status ScatterNDLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
 
 Status ScatterNDLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **resource) {
     auto layer_resource = CreateLayerRes<ScatterNDLayerResource>(resource);
-    auto layer_name     = deserializer.GetString();
     bool has_indices    = deserializer.GetBool();
     if (has_indices) {
         GET_BUFFER_FOR_ATTR(layer_resource, indices, deserializer);
@@ -47,7 +46,7 @@ Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerPara
         serializer.PutBool(true);
         serializer.PutRaw(layer_resource->indices);
     } else {
-        serializer.PutBool(true);
+        serializer.PutBool(false);
     }
     const auto &update_dims = layer_resource->updates.GetBufferDims();
     bool has_update         = !update_dims.empty();
