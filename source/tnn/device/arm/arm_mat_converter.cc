@@ -158,6 +158,19 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
     return ret;
 }
 
+#define AFFINE_CHECK_RUN(func1, func2)                                                                      \
+    if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {             \
+        func1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),                     \
+                                (uint8_t*)dst.GetData(), dst_width, dst_height,                             \
+                                param.transform, param.border_val);                                         \
+    } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {     \
+        func2((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),                     \
+                            (uint8_t*)dst.GetData(), dst_width, dst_height,                                 \
+                            param.transform, param.border_val);                                             \
+    } else {                                                                                                \
+        return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");                                 \
+    }
+
 Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue) {
     Status ret = TNN_OK;
 
@@ -173,43 +186,21 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     }
 
     if (src.GetMatType() == NGRAY) {
-        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            WarpAffineBilinearC1((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
-                                 param.transform, param.border_val);
-        } else {
-            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
-        }
+        AFFINE_CHECK_RUN(WarpAffineBilinearC1, WarpAffineNearestC1);
     } else if (src.GetMatType() == N8UC3) {
-        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            WarpAffineBilinearC3((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
-                                 param.transform, param.border_val);
-        } else {
-            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
-        }
+        AFFINE_CHECK_RUN(WarpAffineBilinearC3, WarpAffineNearestC3);
     } else if (src.GetMatType() == N8UC4) {
-        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            WarpAffineBilinearC4((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                 (uint8_t*)dst.GetData(), dst_width, dst_height,
-                                 param.transform, param.border_val);
-        } else {
-            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
-        }
+        AFFINE_CHECK_RUN(WarpAffineBilinearC4, WarpAffineNearestC4);
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
-        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
-            WarpAffineBilinearYUV420sp((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                                       (uint8_t*)dst.GetData(), dst_width, dst_height,
-                                       param.transform, param.border_val);
-        } else {
-            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
-        }
+        AFFINE_CHECK_RUN(WarpAffineBilinearYUV420sp, WarpAffineNearestYUV420sp);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
     return ret;
 }
+
+#undef AFFINE_CHECK_RUN
 
 Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     Status ret = TNN_OK;

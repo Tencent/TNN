@@ -853,13 +853,7 @@ static void InitInterTab2D() {
 static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int channel, const float border_val,
                            const float (*transform)[3], int** buffer) {
     uint8_t border_ival = (uint8_t)border_val;
-    if (border_ival) {
-        for (int i = 0; i < batch * dst_h * dst_w * channel; ++i) {
-            dst[i] = border_ival;
-        }
-    } else {
-        memset(dst, 0, batch * dst_h * dst_w * channel);
-    }
+    memset(dst, border_ival, batch * dst_h * dst_w * channel);
 
     // Init LookUp Table
     InitInterTab2D();
@@ -886,6 +880,11 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
 static inline bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
     return new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
            new_y_loc >= -1 && new_y_loc <= (src_h - 1);
+}
+
+static inline bool CheckDataIsInBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+    return new_x_loc >= 0 && new_x_loc < (src_w - 1) &&
+           new_y_loc >= 0 && new_y_loc < (src_h - 1);
 }
 
 static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
@@ -1416,6 +1415,116 @@ void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int sr
         const uint8_t* srcUV = srcY + src_w * src_h;
         uint8_t* dstUV       = dstY + dst_w * dst_h;
         WarpAffineBilinearC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+    }
+}
+
+template <int schannel>
+static void WarpAffineNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                              const float (*transform)[3], const float border_val) {
+    int* buffer = nullptr;
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    int src_stride = src_w * schannel;
+    int src_plane  = src_h * src_w * schannel;
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int y_c = y / dst_h;
+        int y_r = y % dst_h;
+
+        auto src_b = src + y_c * src_plane;
+        auto dst_y = dst + y * dst_w * schannel;
+
+        for (int x = 0; x < dst_w; ++x) {
+            int new_x       = adelta[2 * x] + bdelta[2 * y_r] + 16;
+            int new_y       = adelta[2 * x + 1] + bdelta[2 * y_r + 1] + 16;
+            int new_x_loc   = new_x >> 10;
+            int new_y_loc   = new_y >> 10;
+
+            bool is_left    = ((new_x >> 5) & 31) < 16;
+            bool is_top     = ((new_y >> 5) & 31) < 16;
+
+            int src_loc     = (new_x_loc + new_y_loc * src_w) * schannel;
+            auto src_y1     = src_b + src_loc;
+            auto src_y2     = src_y1 + src_stride;
+            auto dst_x      = dst_y + x * schannel;
+
+            if (CheckDataIsInBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+                for (int c = 0; c < schannel; c++) {
+                    int dst_loc = x * schannel;
+                    int point00 = src_y1[c];
+                    int point01 = src_y1[schannel + c];
+                    int point10 = src_y2[c];
+                    int point11 = src_y2[schannel + c];
+                    if (is_top) {
+                        dst_x[c] = is_left ? point00 : point01;
+                    } else {
+                        dst_x[c] = is_left ? point10 : point11;
+                    }
+                }
+            } else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+                int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
+                int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
+                int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
+                int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
+
+                for (int c = 0; c < schannel; ++c) {
+                    int point00 = mask0 ? src_y1[c] : border_val;
+                    int point01 = mask1 ? src_y1[schannel + c] : border_val;
+                    int point10 = mask2 ? src_y2[c] : border_val;
+                    int point11 = mask3 ? src_y2[schannel + c] : border_val;
+                    if (is_top) {
+                        dst_x[c] = is_left ? point00 : point01;
+                    } else {
+                        dst_x[c] = is_left ? point10 : point11;
+                    }
+                }
+            }
+        }
+    }
+
+    free(buffer);
+}
+
+void WarpAffineNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<1>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<2>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<3>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<4>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                               const float (*transform)[3], const float border_val) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert dst_w % 2 == 0
+    // assert dst_h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = dst_w * dst_h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        WarpAffineNearestC1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + dst_w * dst_h;
+        WarpAffineNearestC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
     }
 }
 
