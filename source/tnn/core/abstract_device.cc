@@ -27,6 +27,10 @@ DeviceType AbstractDevice::GetDeviceType() {
     return device_type_;
 }
 
+std::shared_ptr<const ImplementedPrecision> AbstractDevice::GetImplementedPrecision(LayerType type) {
+    return std::make_shared<ImplementedPrecision>();
+}
+
 AbstractDevice* GetDevice(DeviceType type) {
     return GetGlobalDeviceMap()[type].get();
 }
