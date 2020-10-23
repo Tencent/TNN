@@ -62,7 +62,7 @@ __kernel void SoftmaxChannel(GLOBAL_SIZE_3_DIMS __read_only image2d_t input, __w
         float_max_value = max(float_max_value, input_data.x);
     }
 
-    float accum_result       = 0;
+    FLOAT accum_result       = 0;
     for (short i = 0; i < global_size_dim0 - 1; ++i) {
         input_data = RI_F(input, SAMPLER, (int2)(width_idx + i * global_size_dim1, batch_height_idx));
         input_data = exp(input_data - float_max_value);
