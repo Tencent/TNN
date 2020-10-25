@@ -29,6 +29,9 @@ namespace TNN_NS {
 typedef std::function<void(void)> Callback;
 
 typedef enum {
+    //auto
+    //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
+    DATA_TYPE_AUTO = -1,
     DATA_TYPE_FLOAT = 0,
     DATA_TYPE_HALF  = 1,
     DATA_TYPE_INT8  = 2,

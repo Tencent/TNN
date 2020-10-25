@@ -70,9 +70,13 @@ public:
     };
 
     int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
-                        DataType dataType);
+                        DataType dst_data_type);
+    
+    int WriteRawData(const void *raw_data, int data_count, int src_data_type, serializer *writer,
+                     DataType dst_data_type, std::vector<int32_t> dims);
+    //depreceted
     int WriteRawData(const float *raw_data, int data_count, serializer *writer,
-                     DataType dataType, std::vector<int32_t> dims);
+                     DataType dst_data_type, std::vector<int32_t> dims);
 
     int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
 

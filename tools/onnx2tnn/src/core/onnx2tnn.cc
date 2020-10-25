@@ -246,9 +246,12 @@ int Onnx2TNN::TNNWriteProto() {
                         proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_d
                                        << " " << shape_h << " " << shape_w << " ";
                     } else {
-                        LOGE("input_blob_shape invalid\n");
-                        assert(0);
-                        break;
+                        proto_net_info << input_blob->name() << " " ;
+                        for (int dim_i=0; dim_i<input_blob_shape.dim_size(); dim_i++) {
+                            int dim_v = (int)input_blob_shape.dim(dim_i).dim_value();
+                            proto_net_info << dim_v << " " ;
+                        }
+                        LOGD("input_blob_shape dim_size: %d\n", input_blob_shape.dim_size());
                     }
 
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {

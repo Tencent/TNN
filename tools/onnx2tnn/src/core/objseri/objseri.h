@@ -13,6 +13,9 @@ namespace parser{
     static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0003;
 
     typedef enum {
+        //auto
+        //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
+        DATA_TYPE_AUTO = -1,
         // float
         DATA_TYPE_FLOAT = 0,
         // half float

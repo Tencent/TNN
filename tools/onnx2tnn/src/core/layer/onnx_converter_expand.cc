@@ -33,17 +33,21 @@ string OnnxOpConverterExpand::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
         }
     }
 
-    const std::string &onnx_op = node.op_type();
-    ostringstream layer_param;
-    const onnx::TensorProto &shape_tp = net_info.weights_map[node.input(1)];
-    auto shape_data                   = (const int64_t *)get_tensor_proto_data(shape_tp);
-    int shape_dim_size                = get_tensor_proto_data_size(shape_tp);
-    layer_param << shape_dim_size << " ";
-    for (int i = 0; i < shape_dim_size; ++i) {
-        layer_param << shape_data[i] << " ";
+    //shape信息有可能是计算出来的，不是固定的
+    if (net_info.weights_map.find(node.input(1)) != net_info.weights_map.end()) {
+        ostringstream layer_param;
+        
+        const onnx::TensorProto &shape_tp = net_info.weights_map[node.input(1)];
+        auto shape_data                   = (const int64_t *)get_tensor_proto_data(shape_tp);
+        int shape_dim_size                = get_tensor_proto_data_size(shape_tp);
+        layer_param << shape_dim_size << " ";
+        for (int i = 0; i < shape_dim_size; ++i) {
+            layer_param << shape_data[i] << " ";
+        }
+        return layer_param.str();
+    } else {
+        return "";
     }
-
-    return layer_param.str();
 }
 
 int OnnxOpConverterExpand::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
