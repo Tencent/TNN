@@ -361,10 +361,10 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
         //(x+1, y+1)
         bool mask3 = x <= (parameters.width - 2) && y <= (parameters.height - 2);
         
-        float4 p00 = mask0 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0 : 0;
-        float4 p10 = mask1 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0 : 0;
-        float4 p01 = mask2 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0 : 0;
-        float4 p11 = mask3 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0 : 0;
+        float4 p00 = mask0 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p10 = mask1 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p01 = mask2 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p11 = mask3 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
         
         float x_ef0_ = (1 - xfrac) * 2048;
         float x_ef1_ = xfrac * 2048;
