@@ -13,53 +13,16 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/unit_test_common.h"
+
+#include <iostream>
+#include <sstream>
+
 #include "test/flags.h"
 #include "test/test_utils.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
-
-template <typename T>
-int InitRandom(T* host_data, size_t n, T range) {
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = (T)((rand() % 16 - 8) / 8.0f * range);
-    }
-
-    return 0;
-}
-template int InitRandom(float* host_data, size_t n, float range);
-template int InitRandom(int32_t* host_data, size_t n, int32_t range);
-template int InitRandom(int8_t* host_data, size_t n, int8_t range);
-template int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range);
-
-template <typename T>
-int InitRandom(T* host_data, size_t n, T range_min, T range_max) {
-    std::mt19937 g(42);
-    std::uniform_real_distribution<> rnd(range_min, range_max);
-
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = static_cast<T>(rnd(g));
-    }
-
-    return 0;
-}
-template int InitRandom(float* host_data, size_t n, float range_min, float range_max);
-template int InitRandom(int32_t* host_data, size_t n, int32_t range_min, int32_t range_max);
-template int InitRandom(int8_t* host_data, size_t n, int8_t range_min, int8_t range_max);
-template int InitRandom(uint8_t* host_data, size_t n, uint8_t range_min, uint8_t range_max);
-
-template <>
-int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range_min, bfp16_t range_max) {
-    std::mt19937 g(42);
-    std::uniform_real_distribution<> rnd((float)range_min, (float)range_max);
-
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = static_cast<bfp16_t>(rnd(g));
-    }
-
-    return 0;
-}
 
 IntScaleResource* CreateIntScale(int channel) {
     IntScaleResource* int8scale = new IntScaleResource();
@@ -80,8 +43,7 @@ IntScaleResource* CreateIntScale(int channel) {
     return int8scale;
 }
 
-void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
-                       Context** cpu_context, Context** device_context) {
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context) {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);
     if (FLAGS_lp.length() > 0) {
@@ -105,6 +67,19 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
 
     ret = (*device_context)->LoadLibrary(config.library_path);
     ASSERT(ret == TNN_OK);
+}
+
+std::string GenerateHeadProto(std::vector<int> input_dims) {
+    std::ostringstream ostr;
+    ostr << "\"1 124 1 4206624770,\"\n";
+    ostr << "\"input";
+    for (auto i : input_dims)
+        ostr << " " << i;
+    ostr << " ,\"\n";
+    ostr << "\" input output ,\"\n";
+    ostr << "\"output ,\"\n";
+    ostr << "\"1 ,\"\n";
+    return ostr.str();
 }
 
 }  // namespace TNN_NS

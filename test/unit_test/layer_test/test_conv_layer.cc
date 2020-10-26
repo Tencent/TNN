@@ -106,4 +106,40 @@ TEST_P(ConvLayerTest, ConvLayer) {
     Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(ConvLayerTest, ConvLayerWithProto) {
+    // get param
+    int batch             = std::get<0>(GetParam());
+    int channel_per_group = std::get<1>(GetParam());
+    int input_size        = std::get<2>(GetParam());
+    int group             = std::get<3>(GetParam());
+    int channel           = group * channel_per_group;
+    int kernel            = std::get<4>(GetParam());
+    int dilation          = std::get<5>(GetParam());
+    int stride            = std::get<6>(GetParam());
+    int pad               = std::get<7>(GetParam());
+    auto dtype            = std::get<8>(GetParam());
+
+    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
+
+    if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\"" << "Convolution conv 1 1 input output "
+        << group << " " << channel_per_group << " " << channel << " "
+        << kernel << " " << kernel << " " << stride << " " << stride << " "
+        << pad << " " << pad << " 1 -1 " << dilation << " " << dilation << " "
+        << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

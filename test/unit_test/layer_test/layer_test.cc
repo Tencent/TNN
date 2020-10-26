@@ -20,6 +20,7 @@
 #include "tnn/core/blob_int8.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -30,6 +31,10 @@ AbstractDevice* LayerTest::cpu_;
 AbstractDevice* LayerTest::device_;
 Context* LayerTest::cpu_context_;
 Context* LayerTest::device_context_;
+
+TNN_NS::TNN LayerTest::tnn_;
+std::shared_ptr<Instance> LayerTest::instance_cpu_    = nullptr;
+std::shared_ptr<Instance> LayerTest::instance_device_ = nullptr;
 
 void LayerTest::SetUpTestCase() {
     NetworkConfig config;
@@ -42,34 +47,34 @@ void LayerTest::SetUpTestCase() {
     // cpu
     cpu_ = GetDevice(DEVICE_NAIVE);
     if (!cpu_) {
-      LOGE("Error: device cpu is null\n");
-      ASSERT(0);
+        LOGE("Error: device cpu is null\n");
+        ASSERT(0);
     }
 
     cpu_context_ = cpu_->CreateContext(0);
     if (!cpu_context_) {
-      LOGE("Error: cpu context is null\n");
-      ASSERT(0);
+        LOGE("Error: cpu context is null\n");
+        ASSERT(0);
     }
 
     // device
     device_ = GetDevice(config.device_type);
     if (!device_) {
-      LOGE("Error: device of type(%d) is null\n", config.device_type);
-      ASSERT(0);
+        LOGE("Error: device of type(%d) is null\n", config.device_type);
+        ASSERT(0);
     }
 
     device_context_ = device_->CreateContext(config.device_id);
     if (!device_) {
-      LOGE("Error: device context with id(%d) is null\n", config.device_id);
-      ASSERT(0);
+        LOGE("Error: device context with id(%d) is null\n", config.device_id);
+        ASSERT(0);
     }
 
     ret = device_context_->LoadLibrary(config.library_path);
     if (ret != TNN_OK) {
-      LOGE("Error: library with path(%s) is null\n",
-            config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
-      ASSERT(0);
+        LOGE("Error: library with path(%s) is null\n",
+             config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
+        ASSERT(0);
     }
 }
 
@@ -114,6 +119,141 @@ void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, 
         EXPECT_EQ((int)status, TNN_OK);
         return;
     }
+}
+
+void LayerTest::RunWithProto(std::string proto) {
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
+
+    ret = InitWithProto(proto);
+    if (ret != TNN_OK) {
+        EXPECT_EQ((int)ret, TNN_OK);
+        DeInitWithProto();
+        return;
+    }
+
+    ret = InitInputBlobsDataRandomWithProto();
+    if (ret != TNN_OK) {
+        EXPECT_EQ((int)ret, TNN_OK);
+        DeInitWithProto();
+        return;
+    }
+
+    ret = ForwardWithProto();
+    if (ret != TNN_OK) {
+        EXPECT_EQ((int)ret, TNN_OK);
+        DeInitWithProto();
+        return;
+    }
+
+#ifndef TNN_UNIT_TEST_BENCHMARK
+    // Compare the result for both cpu and device layer
+    ret = CompareWithProto();
+    if (ret != TNN_OK) {
+        EXPECT_EQ((int)ret, TNN_OK);
+        DeInitWithProto();
+        return;
+    }
+#endif
+
+    ret = DeInitWithProto();
+    if (ret != TNN_OK) {
+        EXPECT_EQ((int)ret, TNN_OK);
+        return;
+    }
+}
+
+Status LayerTest::InitWithProto(std::string proto) {
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
+
+    ModelConfig model_config;
+    model_config.params.push_back(proto);
+    model_config.params.push_back("");
+
+    NetworkConfig config_cpu;
+    config_cpu.device_type = DEVICE_NAIVE;
+
+    NetworkConfig config_device;
+    config_device.device_type = ConvertDeviceType(FLAGS_dt);
+    if (DEVICE_HUAWEI_NPU == config_device.device_type) {
+        config_device.network_type = NETWORK_TYPE_HUAWEI_NPU;
+    }
+    if (FLAGS_lp.length() > 0) {
+        config_device.library_path = {FLAGS_lp};
+    }
+
+    ret = tnn_.Init(model_config);
+    if (ret != TNN_OK) {
+        LOGE("tnn init falied\n");
+        return ret;
+    }
+
+    instance_cpu_ = tnn_.CreateInst(config_cpu, ret);
+    if (ret != TNN_OK) {
+        LOGE("tnn create cpu instance falied\n");
+        return ret;
+    }
+
+    instance_device_ = tnn_.CreateInst(config_device, ret);
+    if (ret != TNN_OK) {
+        LOGE("tnn create device instance falied\n");
+        return ret;
+    }
+
+    return ret;
+}
+
+Status LayerTest::ForwardWithProto() {
+    TNN_NS::Status ret = TNN_NS::TNN_OK;
+
+    ret = instance_cpu_->Forward();
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    ret = instance_device_->Forward();
+    if (ret != TNN_OK) {
+        return ret;
+    }
+
+    return ret;
+}
+
+Status LayerTest::CompareWithProto() {
+    BlobMap output_blobs_cpu;
+    BlobMap output_blobs_device;
+    Status ret = TNN_OK;
+    ret        = instance_cpu_->GetAllOutputBlobs(output_blobs_cpu);
+    if (ret != TNN_OK)
+        return ret;
+    ret = instance_device_->GetAllOutputBlobs(output_blobs_device);
+    if (ret != TNN_OK)
+        return ret;
+
+    void* command_queue;
+    ret = instance_device_->GetCommandQueue(&command_queue);
+    if (ret != TNN_OK) {
+        LOGE("get device command queue failed (%s)\n", ret.description().c_str());
+        return ret;
+    }
+
+    int cmp_result = 0;
+    for (auto blob_item : output_blobs_cpu) {
+        cmp_result =
+            CompareBlob(output_blobs_cpu[blob_item.first], output_blobs_device[blob_item.first], command_queue);
+        if (cmp_result != 0) {
+            break;
+        }
+    }
+
+    EXPECT_EQ(0, cmp_result);
+    return TNN_OK;
+}
+
+Status LayerTest::DeInitWithProto() {
+    instance_cpu_.reset();
+    instance_device_.reset();
+    tnn_.DeInit();
+
+    return TNN_OK;
 }
 
 Status LayerTest::Init(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
@@ -261,62 +401,11 @@ Status LayerTest::InitInputBlobsDataRandom() {
 
     for (int index = 0; index < cpu_inputs_.size(); ++index) {
         // init cpu input blob
-        Blob* cpu_input_blob              = cpu_inputs_[index];
-        Blob* device_input_blob           = device_inputs_[index];
-        BlobDesc blob_desc                = cpu_input_blob->GetBlobDesc();
-        BlobHandle cpu_input_handle       = cpu_input_blob->GetHandle();
-        BlobMemorySizeInfo blob_size_info = cpu_->Calculate(blob_desc);
-        int input_count                   = DimsVectorUtils::Count(blob_size_info.dims);
-
-        MatType mat_type = NCHW_FLOAT;
-        if (device_input_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-            // the value is initialized as bfp16
-            mat_type = RESERVED_BFP16_TEST;
-        } else if (device_input_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-            // the value is initialized as int8
-            mat_type = RESERVED_INT8_TEST;
-        }
-        TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
-        void* input_data = source.GetData();
-        if (mat_type == NCHW_FLOAT) {
-            if (ensure_input_positive_) {
-                // some layers only supports positive data as input
-                InitRandom(static_cast<float*>(input_data), input_count, 0.0f, 1.0f + (float)index);
-            } else {
-                InitRandom(static_cast<float*>(input_data), input_count, 1.0f + (float)index);
-            }
-        } else if (mat_type == RESERVED_INT8_TEST) {
-            if (ensure_input_positive_) {
-                // some layers only supports positive values as input
-                InitRandom(static_cast<int8_t*>(input_data), input_count, (int8_t)0, (int8_t)8);
-            } else {
-                InitRandom(static_cast<int8_t*>(input_data), input_count, (int8_t)8);
-            }
-        } else if (mat_type == RESERVED_BFP16_TEST) {
-            if (ensure_input_positive_) {
-                InitRandom(static_cast<bfp16_t*>(input_data), input_count, bfp16_t(0.f), bfp16_t(1.0f + index));
-            } else {
-                InitRandom(static_cast<bfp16_t*>(input_data), input_count, bfp16_t(1.0f + index));
-            }
-        }
-
-        // default param for the blob_converter
-        MatConvertParam param;
-        param.scale = std::vector<float>(blob_desc.dims[1], 1);
-        param.bias  = std::vector<float>(blob_desc.dims[1], 0);
-
-        // CONVERT TO CPU BLOB
-        BlobConverter blob_converter_cpu(cpu_input_blob);
-        Status ret = blob_converter_cpu.ConvertFromMat(source, param, nullptr);
+        Blob* cpu_input_blob    = cpu_inputs_[index];
+        Blob* device_input_blob = device_inputs_[index];
+        Status ret              = GenerateRandomBlob(cpu_input_blob, device_input_blob, command_queue, index);
         if (ret != TNN_OK) {
-            LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
-        }
-
-        // CONVERT TO DEVICE BLOB
-        BlobConverter blob_converter(device_input_blob);
-        ret = blob_converter.ConvertFromMat(source, param, command_queue);
-        if (ret != TNN_OK) {
-            LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
+            return ret;
         }
     }
     return TNN_OK;
@@ -389,7 +478,7 @@ Status LayerTest::Forward() {
     }
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
     auto profile_result = device_context_->FinishProfile();
-    auto result_str = profile_result->GetProfilingDataInfo();
+    auto result_str     = profile_result->GetProfilingDataInfo();
     printf("%s", result_str.c_str());
 #endif
 
@@ -421,56 +510,8 @@ Status LayerTest::Compare() {
         Blob* cpu_output_blob = cpu_outputs_[index];
         // dev blob
         Blob* device_output_blob = device_outputs_[index];
-        // mat type for both
-        MatType mat_type = NCHW_FLOAT;
-        if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-            mat_type = RESERVED_BFP16_TEST;
-        } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-            mat_type = RESERVED_INT8_TEST;
-        }
-        auto dims = cpu_output_blob->GetBlobDesc().dims;
-        int count = DimsVectorUtils::Count(dims);
-        // convert cpu blob to mat
-        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims);
-        BlobConverter blob_converter_cpu(cpu_output_blob);
-        blob_converter_cpu.ConvertToMat(cpu_mat, MatConvertParam(), nullptr);
 
-        // convert dev blob to cpu mat nchw
-        TNN_NS::Mat dev_cpu_mat(DEVICE_NAIVE, mat_type, dims);
-        BlobConverter blob_converter_dev(device_output_blob);
-
-        Status ret = blob_converter_dev.ConvertToMat(dev_cpu_mat, MatConvertParam(), command_queue);
-        if (ret != TNN_OK) {
-            LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
-            return ret;
-        }
-
-        // compare data
-        if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-            cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()),
-                                      static_cast<float*>(dev_cpu_mat.GetData()), count, 0.01);
-        } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-            cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()),
-                                      static_cast<float*>(dev_cpu_mat.GetData()), count, 0.01);
-        } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-            cmp_result |= CompareData(static_cast<bfp16_t*>(cpu_mat.GetData()),
-                                      static_cast<bfp16_t*>(dev_cpu_mat.GetData()), count, 0.05);
-        } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-            cmp_result |= CompareData(static_cast<int8_t*>(cpu_mat.GetData()),
-                                      static_cast<int8_t*>(dev_cpu_mat.GetData()), count);
-        } else {
-            LOGE("UNKNOWN DATA TYPE!");
-        }
-
-        if (cmp_result != 0) {
-            LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
-                 static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
-                 static_cast<float*>(cpu_mat.GetData())[3]);
-            LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
-                 static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
-                 static_cast<float*>(dev_cpu_mat.GetData())[3]);
-        }
-
+        cmp_result = CompareBlob(cpu_output_blob, device_output_blob, command_queue);
         if (cmp_result != 0) {
             break;
         }
@@ -537,6 +578,162 @@ float LayerTest::GetCalcDramThrp(float avg_time) {
     }
 
     return rw_bytes_in_total / 1000.f / 1000.f / avg_time;
+}
+
+Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num) {
+    Status ret = TNN_OK;
+    // init cpu input blob
+    BlobDesc blob_desc                = cpu_blob->GetBlobDesc();
+    BlobMemorySizeInfo blob_size_info = Calculate1DMemorySize(blob_desc);
+    int blob_count                    = DimsVectorUtils::Count(blob_size_info.dims);
+
+    BlobDesc blob_desc_device = device_blob->GetBlobDesc();
+    MatType mat_type          = NCHW_FLOAT;
+    if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
+        // the value is initialized as bfp16
+        mat_type = RESERVED_BFP16_TEST;
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
+        // the value is initialized as int8
+        mat_type = RESERVED_INT8_TEST;
+    }
+    TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
+    void* input_data = source.GetData();
+    if (mat_type == NCHW_FLOAT) {
+        if (ensure_input_positive_) {
+            // some layers only supports positive data as input
+            InitRandom(static_cast<float*>(input_data), blob_count, 0.0f, 1.0f + (float)magic_num);
+        } else {
+            InitRandom(static_cast<float*>(input_data), blob_count, 1.0f + (float)magic_num);
+        }
+    } else if (mat_type == RESERVED_INT8_TEST) {
+        if (ensure_input_positive_) {
+            // some layers only supports positive values as input
+            InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)0, (int8_t)8);
+        } else {
+            InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)8);
+        }
+    } else if (mat_type == RESERVED_BFP16_TEST) {
+        if (ensure_input_positive_) {
+            InitRandom(static_cast<bfp16_t*>(input_data), blob_count, bfp16_t(0.f), bfp16_t(1.0f + magic_num));
+        } else {
+            InitRandom(static_cast<bfp16_t*>(input_data), blob_count, bfp16_t(1.0f + magic_num));
+        }
+    }
+
+    // default param for the blob_converter
+    MatConvertParam param;
+    param.scale = std::vector<float>(blob_desc.dims[1], 1);
+    param.bias  = std::vector<float>(blob_desc.dims[1], 0);
+
+    // CONVERT TO CPU BLOB
+    BlobConverter blob_converter_cpu(cpu_blob);
+    ret = blob_converter_cpu.ConvertFromMat(source, param, nullptr);
+    if (ret != TNN_OK) {
+        LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
+        return ret;
+    }
+
+    // CONVERT TO DEVICE BLOB
+    BlobConverter blob_converter(device_blob);
+    ret = blob_converter.ConvertFromMat(source, param, command_queue_dev);
+    if (ret != TNN_OK) {
+        LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
+        return ret;
+    }
+    return ret;
+}
+
+int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev) {
+    Status ret            = TNN_OK;
+    auto blob_desc_device = device_blob->GetBlobDesc();
+    // mat type for both
+    MatType mat_type = NCHW_FLOAT;
+    if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
+        mat_type = RESERVED_BFP16_TEST;
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
+        mat_type = RESERVED_INT8_TEST;
+    }
+    auto dims = cpu_blob->GetBlobDesc().dims;
+    int count = DimsVectorUtils::Count(dims);
+    // convert cpu blob to mat
+    TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims);
+    BlobConverter blob_converter_cpu(cpu_blob);
+    ret = blob_converter_cpu.ConvertToMat(cpu_mat, MatConvertParam(), nullptr);
+    if (ret != TNN_OK) {
+        LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
+        return -1;
+    }
+
+    // convert dev blob to cpu mat nchw
+    TNN_NS::Mat dev_cpu_mat(DEVICE_NAIVE, mat_type, dims);
+    BlobConverter blob_converter_dev(device_blob);
+    ret = blob_converter_dev.ConvertToMat(dev_cpu_mat, MatConvertParam(), command_queue_dev);
+    if (ret != TNN_OK) {
+        LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
+        return -1;
+    }
+
+    // compare data
+    int cmp_result = 0;
+    if (blob_desc_device.data_type == DATA_TYPE_FLOAT) {
+        cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()), static_cast<float*>(dev_cpu_mat.GetData()),
+                                  count, 0.01);
+    } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
+        cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()), static_cast<float*>(dev_cpu_mat.GetData()),
+                                  count, 0.01);
+    } else if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
+        cmp_result |= CompareData(static_cast<bfp16_t*>(cpu_mat.GetData()),
+                                  static_cast<bfp16_t*>(dev_cpu_mat.GetData()), count, 0.05);
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
+        cmp_result |=
+            CompareData(static_cast<int8_t*>(cpu_mat.GetData()), static_cast<int8_t*>(dev_cpu_mat.GetData()), count);
+    } else {
+        LOGE("UNKNOWN DATA TYPE!");
+    }
+
+    if (cmp_result != 0) {
+        LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
+             static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
+             static_cast<float*>(cpu_mat.GetData())[3]);
+        LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
+             static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
+             static_cast<float*>(dev_cpu_mat.GetData())[3]);
+    }
+
+    return cmp_result;
+}
+
+Status LayerTest::InitInputBlobsDataRandomWithProto() {
+    BlobMap input_blobs_cpu;
+    BlobMap input_blobs_device;
+    Status ret = TNN_OK;
+    ret        = instance_cpu_->GetAllInputBlobs(input_blobs_cpu);
+    if (ret != TNN_OK)
+        return ret;
+    ret = instance_device_->GetAllInputBlobs(input_blobs_device);
+    if (ret != TNN_OK)
+        return ret;
+
+    // CONVERT TO DEVICE BLOB
+    void* command_queue;
+    ret = instance_device_->GetCommandQueue(&command_queue);
+    if (ret != TNN_OK) {
+        LOGE("get device command queue failed (%s)\n", ret.description().c_str());
+        return ret;
+    }
+
+    int index = 0;
+    for (auto blob_item : input_blobs_cpu) {
+        ret = GenerateRandomBlob(input_blobs_cpu[blob_item.first], input_blobs_device[blob_item.first], command_queue,
+                                 index);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+
+        index++;
+    }
+
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

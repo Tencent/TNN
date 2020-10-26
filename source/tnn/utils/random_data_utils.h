@@ -12,27 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_TEST_UNIT_TEST_COMMON_H_
-#define TNN_TEST_UNIT_TEST_COMMON_H_
+#ifndef TNN_UTILS_RANDOM_DATA_UTILS_H_
+#define TNN_UTILS_RANDOM_DATA_UTILS_H_
 
 #include <chrono>
 #include <random>
 #include <string>
 #include <vector>
 
-#include "tnn/core/abstract_device.h"
-#include "tnn/core/context.h"
 #include "tnn/core/macro.h"
-#include "tnn/interpreter/layer_resource.h"
-#include "tnn/utils/random_data_utils.h"
 
 namespace TNN_NS {
 
-IntScaleResource* CreateIntScale(int channel);
-void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context);
-
-std::string GenerateHeadProto(std::vector<int> input_dims);
+template <typename T>
+int InitRandom(T* host_data, size_t n, T range);
+template <typename T>
+int InitRandom(T* host_data, size_t n, T range_min, T range_max);
 
 }  // namespace TNN_NS
 
-#endif  // TNN_TEST_UNIT_TEST_COMMON_H_
+#endif  // TNN_UTILS_RANDOM_DATA_UTILS_H_

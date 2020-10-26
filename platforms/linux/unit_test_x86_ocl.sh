@@ -10,6 +10,7 @@ DUMP_DIR=$WORK_DIR/dump_data
 
 function usage() {
     echo "-c\tClean up build folders."
+    echo "-b\tBuild only."
 }
 function die() {
     echo $1
@@ -33,6 +34,7 @@ function build_x86() {
     cd $BUILD_DIR
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=Release \
+          -DTNN_BENCHMARK_MODE:BOOL="ON" \
           -DTNN_TEST_ENABLE:BOOL="ON"  \
           -DTNN_UNIT_TEST_ENABLE:BOOL="ON"  \
           -DTNN_OPENCL_ENABLE:BOOL=$OPENCL

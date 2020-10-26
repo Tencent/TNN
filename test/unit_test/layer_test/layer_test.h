@@ -24,8 +24,10 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/common.h"
 #include "tnn/core/context.h"
+#include "tnn/core/instance.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/core/tnn.h"
 #include "tnn/layer/base_layer.h"
 
 #define EXPECT_EQ_OR_RETURN(status, target)                                                                            \
@@ -41,6 +43,8 @@ protected:
     void Run(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
              std::vector<BlobDesc>& outputs_desc);
 
+    void RunWithProto(std::string proto);
+
     static void TearDownTestCase();
 
 private:
@@ -50,6 +54,11 @@ private:
     Status Forward();
     Status Compare();
     Status DeInit();
+
+    Status InitWithProto(std::string proto);
+    Status ForwardWithProto();
+    Status CompareWithProto();
+    Status DeInitWithProto();
 
 protected:
     static AbstractDevice* cpu_;
@@ -65,6 +74,10 @@ protected:
     std::vector<Blob*> device_inputs_;
     std::vector<Blob*> device_outputs_;
     int ensure_input_positive_ = 0;
+
+    static TNN_NS::TNN tnn_;
+    static std::shared_ptr<Instance> instance_cpu_;
+    static std::shared_ptr<Instance> instance_device_;
 
 private:
     Status CreateLayers(LayerType type);
@@ -85,6 +98,11 @@ private:
         return 0.f;
     }
     virtual float GetCalcDramThrp(float avg_time);
+
+    Status GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num);
+    int CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev);
+
+    Status InitInputBlobsDataRandomWithProto();
 };
 
 }  // namespace TNN_NS
