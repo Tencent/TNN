@@ -32,7 +32,7 @@ Status CpuGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     ASSERT(cur_param->indices_in_resource == true);
     ASSERT(cur_param->data_in_resource == false);
     int axis              = cur_param->axis;
-    auto &indices_dims    = cur_resource->indices_dims;
+    auto indices_dims    = cur_resource->indices.GetBufferDims();
     int indices_count     = DimsVectorUtils::Count(indices_dims);
     auto indices_data     = new int[indices_count];
     auto indices_raw_data = cur_resource->indices.force_to<int32_t *>();

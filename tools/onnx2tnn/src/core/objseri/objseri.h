@@ -172,11 +172,11 @@ namespace parser{
             if (length <= 0) {
                 return;
             }
-            put_int(dims.size());
-            if (dims.empty()) {
-                return;
+            put_int((int)(dims.size()));
+            if (dims.size() > 0) {
+                _ostream.write(reinterpret_cast<char*>(dims.data()), static_cast<std::streamsize>(dims.size())* sizeof(int32_t));
             }
-            _ostream.write(reinterpret_cast<char*>(dims.data()), static_cast<std::streamsize>(dims.size())* sizeof(int32_t));
+            
             if (_ostream.bad()) {
                 return;
             }

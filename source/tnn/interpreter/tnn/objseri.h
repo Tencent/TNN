@@ -71,12 +71,12 @@ namespace TNN_NS {
                 return;
             }
            
-            PutInt(dims.size());
-            if (dims.empty()) {
-                return;
+            PutInt((int)(dims.size()));
+            if (dims.size() > 0) {
+                _ostream.write(reinterpret_cast<char *>(dims.data()),
+                               static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
             }
-            _ostream.write(reinterpret_cast<char *>(dims.data()),
-                           static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
+
             if (_ostream.bad())
                 return;
  
@@ -147,7 +147,7 @@ namespace TNN_NS {
         }
 
         virtual void GetRaw(TNN_NS::RawBuffer &value) {
-            auto magic_number  = GetInt();
+            auto magic_number  = static_cast<uint32_t>(GetInt());
             auto data_type = (TNN_NS::DataType)GetInt();
             int length = GetInt();
             if (length <= 0) {
@@ -157,9 +157,6 @@ namespace TNN_NS {
             DimsVector dims;
             if(magic_number == g_version_magic_number_v2) {
                 int size = GetInt();
-                if (size <= 0) {
-                    return;
-                }
                 for (int i = 0; i < size; ++i) {
                     dims.push_back(GetInt());
                 }

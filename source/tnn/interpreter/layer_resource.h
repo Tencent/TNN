@@ -117,11 +117,15 @@ struct ScatterNDLayerResource : public LayerResource {
 };
 
 struct GatherLayerResource : public LayerResource {
-    std::vector<int> data_dims;
+    //RawBuffer has dims
     RawBuffer data;
-
-    std::vector<int> indices_dims;
+    
     RawBuffer indices;
+};
+
+struct ConstantOfShapeLayerResource : public LayerResource {
+    //RawBuffer has dims
+    RawBuffer value;
 };
 
 struct SqueezeLayerResource : public LayerResource {

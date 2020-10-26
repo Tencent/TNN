@@ -19,10 +19,10 @@ DECLARE_OP_CONVERTER(Gather);
 
 string OnnxOpConverterGather::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
-    auto indices = get_node_attr_ai(node, "indices", net_info, 1);
-    if (indices.size() == 1) {
-        return "StridedSlice";
-    }
+//    auto indices = get_node_attr_ai(node, "indices", net_info, 1);
+//    if (indices.size() == 1) {
+//        return "StridedSlice";
+//    }
     return "Gather";
 }
 
@@ -31,7 +31,11 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
     const std::string &onnx_op = node.op_type();
     auto tnn_op_type = TNNOpType(node, net_info);
 
-    int axis = (int)get_node_attr_i(node, "axis");
+    int axis = INT_MAX;
+    if (node_has_attr(node, "axis")) {
+        axis = (int)get_node_attr_i(node, "axis");
+    }
+    
     auto indices = get_node_attr_ai(node, "indices", net_info, 1);
 
     ostringstream layer_param;
@@ -68,10 +72,10 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
         }
     } else {
         layer_param << axis << " ";
-        layer_param << indices.size() << " ";
-        for (int ii = 0; ii < indices.size(); ii++) {
-            layer_param << indices[ii] << " ";
-        }
+        auto data_iter = net_info.weights_map.find(node.input(0));
+        auto indices_iter = net_info.weights_map.find(node.input(1));
+        layer_param << (data_iter == net_info.weights_map.end() ? 0 : 1) << " ";
+        layer_param << (indices_iter == net_info.weights_map.end() ? 0 : 1) << " ";
     }
 
     return layer_param.str();
@@ -80,8 +84,35 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
 int OnnxOpConverterGather::WriteTNNModel(serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
-    //有权值写入的返回1， 没有的返回0
-    return 0;
+    std::string name = !node.name().empty() ? node.name() : node.output(0);
+    const std::string& tnn_layer_type = TNNOpType(node, net_info);
+    
+    //写头信息
+    net_writer->put_int(0);  //触发type from string
+    net_writer->put_string(tnn_layer_type);
+    net_writer->put_string(name);
+    
+    //写数据
+    auto data_iter = net_info.weights_map.find(node.input(0));
+    auto indices_iter = net_info.weights_map.find(node.input(1));
+    if (data_iter != net_info.weights_map.end()) {
+        net_writer->put_int(1);
+    } else {
+        net_writer->put_int(0);
+    }
+    if (indices_iter != net_info.weights_map.end()) {
+        net_writer->put_int(1);
+    } else {
+        net_writer->put_int(0);
+    }
+    
+    if (data_iter != net_info.weights_map.end()) {
+        WriteTensorData(data_iter->second, net_writer, net_info.data_type);
+    }
+    if (indices_iter != net_info.weights_map.end()) {
+        WriteTensorData(indices_iter->second, net_writer, DATA_TYPE_INT32);
+    }
+    return 1;
 }
 
 REGISTER_OP_CONVERTER(Gather, Gather);

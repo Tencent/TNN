@@ -57,7 +57,7 @@ private:
     shared_ptr<char> buff_ = nullptr;
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
-    DimsVector dims_;
+    DimsVector dims_ = {};
 };
 
 RawBuffer ConvertHalfHandle(RawBuffer &buf);

@@ -102,8 +102,9 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
         DLog("tersor (%s) data type: %d\n", tensor.name().c_str(), tensor_data_type);
         
         auto dims = GetDimsFromTensor(tensor);
-        if (dims.empty()) {
-            dims.push_back(item_size);
+        if (dims.empty() && item_size !=1) {
+            DLog("dims size is invalid\n");
+            assert(0);
         }
         if (tensor.has_raw_data()) {
             const std::string &raw_data = tensor.raw_data();

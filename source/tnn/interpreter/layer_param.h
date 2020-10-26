@@ -378,7 +378,8 @@ struct PixelShuffleLayerParam : public LayerParam {
 };
 
 struct GatherLayerParam : public LayerParam {
-    int axis                 = 0;
+    //默认INT_MAX，表明未设置axis
+    int axis                 = INT_MAX;
     bool data_in_resource    = false;
     bool indices_in_resource = true;
 };

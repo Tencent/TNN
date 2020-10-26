@@ -145,12 +145,8 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
         }
         DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
         // input_shape.set_name(input_cfg_vec[0]);
-        input_shape.push_back(atoi(input_cfg_vec[1].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[2].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[3].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[4].c_str()));
-        if (input_cfg_vec.size() > 5) {
-            input_shape.push_back(atoi(input_cfg_vec[5].c_str()));
+        for (int dim_i=1; dim_i<input_cfg_vec.size(); dim_i++) {
+            input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
         }
     }
     return TNN_OK;

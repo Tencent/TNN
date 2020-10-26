@@ -68,7 +68,8 @@ public:
                                    OnnxNetInfo &net_info) {
         return 0;
     };
-
+    
+    //write will write the shape and data of tensor
     int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
                         DataType dst_data_type);
     
