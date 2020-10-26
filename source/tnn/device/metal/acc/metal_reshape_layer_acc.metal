@@ -16,8 +16,6 @@
 #include <metal_stdlib>
 #include "tnn/device/metal/acc/metal_common.metal"
 
-#define OUT_OF_BOUND_CHECK
-
 using namespace metal;
 kernel void reshape_common_nchw(const device ftype4 *src                  [[buffer(0)]],
                                                 device ftype4 *dst                            [[buffer(1)]],
