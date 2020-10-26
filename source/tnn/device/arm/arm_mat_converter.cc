@@ -237,18 +237,18 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
-template <int channel>
-static Status CopyMakeBorderImpl(Mat& src, Mat& dst, CopyMakeBorderParam param) {
+static Status CopyMakeBorderImpl(Mat& src, Mat& dst, CopyMakeBorderParam param, int channel) {
     Status ret = TNN_OK;
 
     if (param.border_type == BORDER_TYPE_CONSTANT) {
         uint8_t border_ival = uint8_t(param.border_val);
-        memset(dst.GetData(), border_ival, DimsVectorUtils::Count(dst.GetDims()));
+        int src_stride      = src.GetWidth() * channel;
+        int dst_stride      = dst.GetWidth() * channel;
         for (int b = 0; b < src.GetBatch(); ++b) {
             auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * channel);
-            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * channel +
-                                          (param.left + param.top * dst.GetWidth()) * channel);
-            MatMemcpy2D(src_ptr, dst_ptr, src.GetWidth() * channel, src.GetHeight(), src.GetWidth() * channel, dst.GetWidth() * channel);
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * channel);
+            MatMemcpy2DWithPadding(src_ptr, dst_ptr, src.GetWidth() * channel, src.GetHeight(), src_stride, dst_stride,
+                                   param.top, param.bottom, param.left * channel, param.right * channel, border_ival);
         }
     } else {
         return Status(TNNERR_PARAM_ERR, "CopyMakeBorder border type not support yet");
@@ -266,13 +266,13 @@ Status ArmMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderPara
 
     if (src.GetMatType() == NGRAY) {
         // element size 1
-        ret = CopyMakeBorderImpl<1>(src, dst, param);
+        ret = CopyMakeBorderImpl(src, dst, param, 1);
     } else if (src.GetMatType() == N8UC3) {
         // element size 3
-        ret = CopyMakeBorderImpl<3>(src, dst, param);
+        ret = CopyMakeBorderImpl(src, dst, param, 3);
     } else if (src.GetMatType() == N8UC4) {
         // element size 4
-        ret = CopyMakeBorderImpl<4>(src, dst, param);
+        ret = CopyMakeBorderImpl(src, dst, param, 4);
     } else {
         return Status(TNNERR_PARAM_ERR, "CopyMakeBorder mat type not support yet");
     }
