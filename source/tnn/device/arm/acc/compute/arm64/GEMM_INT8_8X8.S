@@ -281,7 +281,6 @@ blo 1f
 
     lsl x2, x2, #3
     fmov d29, x2
-    sshl d24, d24, d29 //???
 
     // Load x0-a7
     ld1 {v0.8b}, [x3], #8
