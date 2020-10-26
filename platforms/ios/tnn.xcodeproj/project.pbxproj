@@ -673,8 +673,18 @@
 		ECB85AB52546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */; };
 		ECB85AB8254676C500ACAEB0 /* metal_reorg_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB7254676C500ACAEB0 /* metal_reorg_layer_acc.mm */; };
 		ECB85ABC254676F100ACAEB0 /* metal_reorg_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECB85ABB254676F100ACAEB0 /* metal_reorg_layer_acc.metal */; };
+<<<<<<< HEAD
 >>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+<<<<<<< HEAD
 >>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
+=======
+=======
+		ECB85AC32546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85ABF2546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.cc */; };
+		ECB85AC42546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = ECB85AC02546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.h */; };
+		ECB85AC52546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */; };
+		ECB85AC62546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */; };
+>>>>>>> c28fafad ([iOS] fix tnn project error on net_optimizer_insert_reformat)
+>>>>>>> 68126eb0 ([iOS] fix tnn project error on net_optimizer_insert_reformat)
 		ECEC5D6424FCDBA50044DDF1 /* arm_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */; };
 		ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */; };
 		ECEC5D6624FCDBA50044DDF1 /* arm_mat_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */; };
@@ -1356,8 +1366,18 @@
 		ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_pixel_shuffle_layer_acc.cc; sourceTree = "<group>"; };
 		ECB85AB7254676C500ACAEB0 /* metal_reorg_layer_acc.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_reorg_layer_acc.mm; sourceTree = "<group>"; };
 		ECB85ABB254676F100ACAEB0 /* metal_reorg_layer_acc.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = metal_reorg_layer_acc.metal; sourceTree = "<group>"; };
+<<<<<<< HEAD
 >>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+<<<<<<< HEAD
 >>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
+=======
+=======
+		ECB85ABF2546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_int8_reformat.cc; sourceTree = "<group>"; };
+		ECB85AC02546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_fp16_reformat.h; sourceTree = "<group>"; };
+		ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_fp16_reformat.cc; sourceTree = "<group>"; };
+		ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_int8_reformat.h; sourceTree = "<group>"; };
+>>>>>>> c28fafad ([iOS] fix tnn project error on net_optimizer_insert_reformat)
+>>>>>>> 68126eb0 ([iOS] fix tnn project error on net_optimizer_insert_reformat)
 		ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_converter.cc; sourceTree = "<group>"; };
 		ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_util.h; sourceTree = "<group>"; };
 		ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_converter.h; sourceTree = "<group>"; };
@@ -1442,16 +1462,28 @@
 			isa = PBXGroup;
 			children = (
 <<<<<<< HEAD
+<<<<<<< HEAD
 				ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */,
 				ECB85AC02546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.h */,
 				ECB85ABF2546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.cc */,
 				ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */,
 =======
+=======
+>>>>>>> 68126eb0 ([iOS] fix tnn project error on net_optimizer_insert_reformat)
 				ECD9458F254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.cc */,
 				ECD9458E254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.h */,
 				ECD9458D254ADC5900BF9214 /* net_optimizer_insert_int8_reformat.cc */,
 				ECD94590254ADC5900BF9214 /* net_optimizer_insert_int8_reformat.h */,
+<<<<<<< HEAD
 >>>>>>> c8100db9 ([iOS] fix tnn iOS&maxOS build error (#508))
+=======
+=======
+				ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */,
+				ECB85AC02546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.h */,
+				ECB85ABF2546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.cc */,
+				ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */,
+>>>>>>> c28fafad ([iOS] fix tnn project error on net_optimizer_insert_reformat)
+>>>>>>> 68126eb0 ([iOS] fix tnn project error on net_optimizer_insert_reformat)
 				9D32F95E24557EE7002DCDAB /* net_optimizer_fuse_conv_relu.cc */,
 				9D32F95F24557EE7002DCDAB /* net_optimizer_remove_layers.h */,
 				9D32F96024557EE7002DCDAB /* net_optimizer_fuse_conv_relu.h */,
