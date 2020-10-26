@@ -23,6 +23,7 @@ using namespace std;
 @interface TNNHairSegmentationViewModel ()
 @property (nonatomic, assign) vector<RGBA> colors;
 @property (nonatomic, strong) NSArray<DYFlatButton *> *colorButtons;
+@property (nonatomic, assign) RGBA active_color;
 @end
 
 @implementation TNNHairSegmentationViewModel
@@ -83,7 +84,7 @@ using namespace std;
     self.predictor = predictor;
     
     // color blue
-    [self setHairSegmentationRGBA:{0,0,185,90}];
+    [self setHairSegmentationRGBA:self.active_color];
     return status;
 }
 
@@ -129,6 +130,7 @@ using namespace std;
         //红色
         {185,0,0,64},
     };
+    self.active_color = self.colors[0];
     
     viewLayoutHeight.constant = 60;
     
@@ -180,6 +182,7 @@ using namespace std;
         color = self.colors[button.tag];
     }
     
+    self.active_color = color;
     [self setHairSegmentationRGBA:color];
 }
 
