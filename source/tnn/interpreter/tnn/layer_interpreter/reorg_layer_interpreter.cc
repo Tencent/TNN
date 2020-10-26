@@ -26,7 +26,7 @@ Status ReorgLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
     int index                    = start_index;
 
     layer_param->stride      = atoi(layer_cfg_arr[index++].c_str());
-    layer_param->reverse     = atoi(layer_cfg_arr[index++].c_str()) == 0 ? false : true;
+    layer_param->forward     = atoi(layer_cfg_arr[index++].c_str()) == 0 ? false : true;
     int run_with_output_dims = atoi(layer_cfg_arr[index++].c_str());  // unuseful for now
     layer_param->mode        = atoi(layer_cfg_arr[index++].c_str());
 
@@ -45,7 +45,7 @@ Status ReorgLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam
     }
 
     output_stream << layer_param->stride << " ";
-    if (layer_param->reverse) {
+    if (layer_param->forward) {
         output_stream << 1 << " ";
     } else {
         output_stream << 0 << " ";

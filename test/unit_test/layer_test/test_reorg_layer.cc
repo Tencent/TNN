@@ -36,14 +36,14 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
     int stride     = std::get<3>(GetParam());
-    bool reverse   = std::get<4>(GetParam());
+    bool forward   = std::get<4>(GetParam());
     int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (DEVICE_METAL == dev) {
         GTEST_SKIP();
     }
-    if (mode == 1 && reverse == 0) {
+    if (mode == 1 && forward == 0) {
         // illegal case
         GTEST_SKIP();
     }
@@ -55,7 +55,7 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     ReorgLayerParam param;
     param.name    = "Reorg";
     param.stride  = stride;
-    param.reverse = reverse;
+    param.forward = forward;
     param.mode    = mode;
 
     // resource

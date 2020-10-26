@@ -33,26 +33,26 @@ Status CpuReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     CHECK_PARAM_NULL(layer_param);
 
     int stride  = layer_param->stride;
-    int reverse = layer_param->reverse;
+    int forward = layer_param->forward;
     int mode    = layer_param->mode;
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *bottom_data = static_cast<float *>(input_blob->GetHandle().base);
         float *top_data    = static_cast<float *>(output_blob->GetHandle().base);
-        if (reverse) {
+        if (forward) {
             DimsVector input_dims = input_blob->GetBlobDesc().dims;
             int batch             = input_dims[0];
             int channel           = input_dims[1];
             int height            = input_dims[2];
             int width             = input_dims[3];
-            NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, forward, mode, top_data);
         } else {
             DimsVector output_dims = output_blob->GetBlobDesc().dims;
             int batch              = output_dims[0];
             int channel            = output_dims[1];
             int height             = output_dims[2];
             int width              = output_dims[3];
-            NaiveReorg(bottom_data, width, height, channel, batch, stride, reverse, mode, top_data);
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, forward, mode, top_data);
         }
     }
 
