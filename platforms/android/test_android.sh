@@ -16,8 +16,9 @@ ABI="armeabi-v7a"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     export HUAWEI_NPU="ON"
+else 
+    export HUAWEI_NPU="OFF"
 fi
-
 if $NEED_REBUILD
 then
     ../../scripts/build_android.sh -ic
