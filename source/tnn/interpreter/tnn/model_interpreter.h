@@ -86,7 +86,7 @@ class ModelInterpreter : public DefaultModelInterpreter {
 public:
     // @brief model interpreter load params is proto contents,
     // model contents.
-    virtual Status Interpret(std::vector<std::string> params);
+    virtual Status Interpret(std::vector<std::string> &params);
 
     static Status RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter* creator);
 
@@ -94,8 +94,8 @@ public:
     static std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
 
 protected:
-    virtual Status InterpretProto(std::string content);
-    virtual Status InterpretModel(std::string model_content);
+    virtual Status InterpretProto(std::string &content);
+    virtual Status InterpretModel(std::string &model_content);
     virtual Status InterpretInput(const std::string& inputs_content);
     virtual Status InterpretOutput(const std::string& outputs_content);
     virtual Status InterpretLayer(const std::string& layer_str);

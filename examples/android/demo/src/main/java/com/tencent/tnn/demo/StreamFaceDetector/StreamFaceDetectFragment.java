@@ -356,7 +356,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
                                 }
                                 mDeviceSwiched = false;
                             }
-                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {
                                 mFpsCounter.end("FaceDetect");
                                 double fps = mFpsCounter.getFps("FaceDetect");
@@ -377,7 +377,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
                             if (faceInfoList != null) {
                                 faceCount = faceInfoList.length;
                             }
-                            mDrawView.addFaceRect(faceInfoList, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addFaceRect(faceInfoList);
                         }
                         else {
                             Log.i(TAG,"No face");

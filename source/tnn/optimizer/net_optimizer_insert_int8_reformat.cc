@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/optimizer/net_optimizer_insert_reformat.h"
+#include "tnn/optimizer/net_optimizer_insert_int8_reformat.h"
 
 #include <algorithm>
 #include <map>
@@ -30,23 +30,22 @@ namespace TNN_NS {
 namespace optimizer {
 
     // Plast priority: reformat after all fuse
-    NetOptimizerRegister<NetOptimizerInsertReformat> g_net_optimizer_Insert_reformat(OptPriority::PLAST);
-    static const std::string reformat_name_suffix                  = "_reformat";
-    static std::map<LayerType, ActivationType> kLayerActivationMap = {{LAYER_RELU, ActivationType_ReLU},
-                                                                    {LAYER_RELU6, ActivationType_ReLU6}};
+    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_insert_int8_reformat(OptPriority::PLAST);
+    static const std::string reformat_name_suffix = "_int8_reformat";
 
-    std::string NetOptimizerInsertReformat::Strategy() {
-        return kNetOptimizerInsertReformat;
+    std::string NetOptimizerInsertInt8Reformat::Strategy() {
+        return kNetOptimizerInsertInt8Reformat;
     }
 
-    bool NetOptimizerInsertReformat::SupportDevice(DeviceType device) {
+    bool NetOptimizerInsertInt8Reformat::IsSupported(const NetworkConfig &net_config) {
+        auto device = net_config.device_type;
         return device == DEVICE_ARM || device == DEVICE_NAIVE;
     }
 
-    std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
+    static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
-        new_layer->type_str                  = "Reformat";
+        new_layer->type_str                  = "Int8Reformat";
         new_layer->name                      = name;
         ReformatLayerParam *param            = new ReformatLayerParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
@@ -56,7 +55,7 @@ namespace optimizer {
         return new_layer;
     }
 
-    Status NetOptimizerInsertReformat::Optimize(NetStructure *structure, NetResource *resource) {
+    Status NetOptimizerInsertInt8Reformat::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
             return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
@@ -69,10 +68,8 @@ namespace optimizer {
         }
 
         // only insert reformat before quantized layer now
-        auto quantize_layer = std::find_if(layers_orig.begin(), layers_orig.end(), [](std::shared_ptr<LayerInfo> iter) {
-            return iter->param->quantized == true;
-        });
-        if (quantize_layer == layers_orig.end()) {
+        auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
+        if (!is_quantized_net) {
             return TNN_OK;
         }
 
@@ -106,54 +103,67 @@ namespace optimizer {
             std::shared_ptr<LayerInfo> new_layer =
                 CreateReformat(cur_layer->name + reformat_name_suffix, cur_layer->param->quantized);
 
-            // change blobs for unquantized layer for layers to read
-            // int8resource correctly
-            // src_type int8, change dst blob
-            if (cur_layer->param->quantized) {
-                new_layer->inputs = reformat_outs;
-                for (auto cur_out : reformat_outs) {
-                    auto new_out = cur_out + reformat_name_suffix;
-                    new_layer->outputs.push_back(new_out);
-                    structure->blobs.insert(new_out);
-                    // change the inputs of successed int8 layers
-                    for (int next_id = index + 1; next_id < count; next_id++) {
-                        auto next_layer = layers_orig[next_id];
-                        for (auto &next_in : next_layer->inputs) {
-                            // only use reformat out when quantized param diff
-                            if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
-                                next_in = new_out;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // dst type int8, change src blob
-                new_layer->outputs = reformat_outs;
-                for (auto cur_out : reformat_outs) {
-                    auto new_out = cur_out + reformat_name_suffix;
-                    new_layer->inputs.push_back(new_out);
-                    structure->blobs.insert(new_out);
-                    for (auto &cur_layer_out : cur_layer->outputs) {
-                        cur_layer_out = new_out;
-                    }
-                    // change the inputs of successed float layers
-                    for (int next_id = index + 1; next_id < count; next_id++) {
-                        auto next_layer = layers_orig[next_id];
-                        for (auto &next_in : next_layer->inputs) {
-                            if (next_in == cur_out && !next_layer->param->quantized) {
-                                next_in = new_out;
-                            }
-                        }
-                    }
-                }
-            }
+            AdjustLayer(layers_orig, structure, cur_layer, new_layer,
+                        reformat_outs, reformat_name_suffix, index, count);
 
-            LOGD("Insert refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
+            LOGD("Insert int8 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
             layers_fused.push_back(new_layer);
         }
         structure->layers = layers_fused;
 
         return TNN_OK;
+    }
+
+    void NetOptimizerInsertInt8Reformat::AdjustLayer(
+            std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
+            NetStructure *structure,
+            std::shared_ptr<LayerInfo>& cur_layer,
+            std::shared_ptr<LayerInfo>& new_layer,
+            std::vector<std::string>& reformat_outs,
+            const std::string& reformat_name_suffix,
+            const int index,
+            const int count) {
+        // change blobs for unquantized layer for layers to read
+        // int8resource correctly
+        // src_type int8, change dst blob
+        if (cur_layer->param->quantized) {
+            new_layer->inputs = reformat_outs;
+            for (auto cur_out : reformat_outs) {
+                auto new_out = cur_out + reformat_name_suffix;
+                new_layer->outputs.push_back(new_out);
+                structure->blobs.insert(new_out);
+                // change the inputs of successed int8 layers
+                for (int next_id = index + 1; next_id < count; next_id++) {
+                    auto next_layer = layers_orig[next_id];
+                    for (auto &next_in : next_layer->inputs) {
+                        // only use reformat out when quantized param diff
+                        if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
+                            next_in = new_out;
+                        }
+                    }
+                }
+            }
+        } else {
+            // dst type int8, change src blob
+            new_layer->outputs = reformat_outs;
+            for (auto cur_out : reformat_outs) {
+                auto new_out = cur_out + reformat_name_suffix;
+                new_layer->inputs.push_back(new_out);
+                structure->blobs.insert(new_out);
+                for (auto &cur_layer_out : cur_layer->outputs) {
+                    cur_layer_out = new_out;
+                }
+                // change the inputs of successed float layers
+                for (int next_id = index + 1; next_id < count; next_id++) {
+                    auto next_layer = layers_orig[next_id];
+                    for (auto &next_in : next_layer->inputs) {
+                        if (next_in == cur_out && !next_layer->param->quantized) {
+                            next_in = new_out;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }  // namespace optimizer

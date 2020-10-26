@@ -136,7 +136,7 @@ function bench_android() {
 
     if [ "ON" == $PROFILING ]; then
         WARM_UP_COUNT=5
-        LOOP_COUNT=1
+        LOOP_COUNT=5
     fi
 
     if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then

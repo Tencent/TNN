@@ -359,7 +359,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                                 }
                                 mDeviceSwiched = false;
                             }
-                            objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
+                            objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {
                                 mFpsCounter.end("ObjectDetect");
                                 double fps = mFpsCounter.getFps("ObjectDetect");
@@ -380,7 +380,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  ObjectDetectorSSD.label_list, mCameraParameters.getPreviewSize().height, mCameraParameters.getPreviewSize().width);
+                            mDrawView.addObjectRect(objectInfoList,  ObjectDetectorSSD.label_list);
                         }
                         else {
                             Log.i(TAG,"No object");

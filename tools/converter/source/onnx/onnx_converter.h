@@ -12,31 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
-#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
-
-#include <string>
-
-#include "tnn/core/common.h"
+#ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_
+#include "onnx.pb.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
-#include "tnn/optimizer/net_optimizer.h"
 
-namespace TNN_NS {
+namespace TNN_CONVERTER {
+class Onnx2Tnn {
+public:
+    Onnx2Tnn(std::string model_path);
+    Onnx2Tnn() = delete;
+    ~Onnx2Tnn();
+    TNN_NS::Status Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 
-namespace optimizer {
+private:
+    bool ReadModel();
+    bool IsQuantized();
+    std::string onnx_model_path_;
+    std::unique_ptr<onnx::ModelProto> onnx_model_;
+};
 
-    //@brief net optimize: fuse relu and relu6 to convolution
-    class NetOptimizerInsertReformat : public NetOptimizer {
-    public:
-        virtual std::string Strategy();
-        virtual bool SupportDevice(DeviceType device);
-        virtual Status Optimize(NetStructure *structure, NetResource *resource);
-    };
+}  // namespace TNN_CONVERTER
 
-}  // namespace optimizer
-
-}  // namespace TNN_NS
-
-#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
+#endif  // TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_CONVERTER_H_

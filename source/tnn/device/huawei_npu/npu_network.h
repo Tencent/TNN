@@ -22,6 +22,7 @@
 #include <tnn/interpreter/net_structure.h>
 #include <tnn/layer/base_layer.h>
 
+#include <hiai_ir_build.h>
 #include <tnn/core/default_network.h>
 #include <tnn/interpreter/default_model_interpreter.h>
 #include <string>
@@ -95,8 +96,22 @@ public:
     // @brief set device affinity
     virtual Status SetDeviceAffinity(const std::vector<int> &device_list);
 
+#if TNN_PROFILE
+public:
+    virtual void StartProfile();
+    virtual std::shared_ptr<ProfileResult> FinishProfile();
+#endif
+
 private:
     // add for huawei_npu
+
+    Status InitCheck();
+
+    bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
+
+    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
+                          AbstractModelInterpreter *interpreter);
+
     Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 
     Status ConvertLayers(NetResource *net_resource);
@@ -105,12 +120,11 @@ private:
 
     Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
-    Status BuildModel(std::string model_path);
+    Status BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData &om_model_buff);
 
-    Status InitCheck();
+    Status InitBlobs(InputShapesMap &instance_input_shapes_map, InputShapesMap &cpu_input_shape);
 
-    InputShapesMap modifyInterpreterCPU();
-
+private:
     AbstractDevice *device_ = nullptr;
 
     Context *context_ = nullptr;
@@ -125,7 +139,7 @@ private:
     ge::Graph graph_ = ge::Graph("graph");
 
     // the boolean controls if build from om or build from memory
-    bool from_path_ = true;
+    bool use_path_ = true;
     // the name of the model
     std::string model_name_;
     int version_num_ = 0;
@@ -138,10 +152,11 @@ private:
     BlobMap output_blob_map_;
 
     // here to add sub network :
-    std::shared_ptr<DefaultNetwork> default_network_;
+    std::shared_ptr<DefaultNetwork> sub_network_;
+    // count how many layers have been constructed
     int cpu_count_;
     std::set<std::string> visited_;
-    bool useCPU = false;
+    bool use_subnet_ = false;
     BlobMap npu_inter_out_blobmap_;
     BlobMap cpu_inter_in_blobmap_;
 };

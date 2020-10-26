@@ -63,7 +63,7 @@ private:
     std::shared_ptr<LayerParam> group_conv_param_ = nullptr;
     std::vector<std::shared_ptr<IntScaleResource>> group_scale_res_;
 
-    int group_;
+    int group_ = 1;
 };
 
 }  // namespace TNN_NS

@@ -354,7 +354,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                                 }
                                 mDeviceSwiched = false;
                             }
-                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mRotate);
+                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {
                                 mFpsCounter.end("BlazeFaceDetect");
                                 double fps = mFpsCounter.getFps("BlazeFaceDetect");
@@ -375,7 +375,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                             if (faceInfoList != null) {
                                 faceCount = faceInfoList.length;
                             }
-                            mDrawView.addFaceRect(faceInfoList,  mCameraParameters.getPreviewSize().height,  mCameraParameters.getPreviewSize().width);
+                            mDrawView.addFaceRect(faceInfoList);
                         }
                         else {
                             Log.i(TAG,"No face");

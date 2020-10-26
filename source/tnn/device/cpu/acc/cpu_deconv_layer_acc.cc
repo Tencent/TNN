@@ -60,6 +60,18 @@ Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     return Status(TNNERR_LAYER_ERR, "data type not support in deconv");
 }
 
+void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam * param, float& sum) {
+    if (param->activation_type == ActivationType_ReLU) {
+        sum = sum > 0.0f ? sum : 0.0f;
+    } else if (param->activation_type == ActivationType_ReLU6) {
+        if (sum > 6.0f) {
+            sum = 6.0f;
+        } else if (sum < 0.0f) {
+            sum = 0.0f;
+        }
+    }
+}
+
 template <typename T>
 Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
@@ -160,15 +172,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
                             }
                         }
                         // post op : only support relu and relu6
-                        if (param->activation_type == ActivationType_ReLU) {
-                            sum = sum > 0.0f ? sum : 0.0f;
-                        } else if (param->activation_type == ActivationType_ReLU6) {
-                            if (sum > 6.0f) {
-                                sum = 6.0f;
-                            } else if (sum < 0.0f) {
-                                sum = 0.0f;
-                            }
-                        }
+                        ActiveOutput(param, sum);
                         *outout_data_ptr = sum;
                     }
                 }
