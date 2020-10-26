@@ -21,7 +21,8 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
                           InputShapesMap inputs_shape) {
     AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
 
-    atlas_config_ = atlas_interpreter->GetModelConfig();
+    atlas_config_      = atlas_interpreter->GetModelConfig();
+    model_weight_size_ = atlas_interpreter->GetModelWeightsBufferSize();
 
     // Init ACL
     Status ret = AtlasRuntime::GetInstance()->Init();
@@ -36,6 +37,13 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     if (ret != TNN_OK) {
         LOGE("acl set device falied\n");
         return ret;
+    }
+
+    // Get model weights buffer ptr
+    model_weight_ptr_  = atlas_interpreter->GetModelWeightsBufferPtr(net_config.device_id);
+    if (model_weight_ptr_ == nullptr) {
+        LOGE("get model weight buffer ptr falied\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get model weight buffer ptr falied");
     }
 
     // Create Context
@@ -233,23 +241,18 @@ Status AtlasNetwork::ForwardAsync(Callback call_back) {
 }
 
 Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
-    aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &model_weight_size_);
+    size_t temp_size;
+    aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
-        LOGE("query model failed, model file is %s\n", om_file.c_str());
+        LOGE("query model failed (ret=%d), model file is %s\n", ret, om_file.c_str());
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
-    LOGD("model mem size:  %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
+    LOGD("atlas model mem size: %d\n", model_mem_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
         LOGE("malloc buffer for mem failed, require size is %zu\n", model_mem_size_);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
-    }
-
-    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
     }
 
     ret = aclmdlLoadFromFileWithMem(om_file.c_str(), &model_id_, model_mem_ptr_, model_mem_size_, model_weight_ptr_,
@@ -276,24 +279,19 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
 }
 
 Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
+    size_t temp_size;
     aclError ret =
-        aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &model_weight_size_);
+        aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
-        LOGE("query model failed\n");
+        LOGE("query model failed (ret=%d)\n", ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
-    LOGD("model mem size: %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
+    LOGD("atlas model mem size: %d\n", model_mem_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
         LOGE("malloc buffer for mem failed, require size is %zu\n", model_mem_size_);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
-    }
-
-    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
     }
 
     ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_,
@@ -337,13 +335,6 @@ void AtlasNetwork::UnloadModel() {
         LOGD("acl free model mem ptr\n");
         model_mem_ptr_  = nullptr;
         model_mem_size_ = 0;
-    }
-
-    if (nullptr != model_weight_ptr_) {
-        aclrtFree(model_weight_ptr_);
-        LOGD("acl free model weight ptr\n");
-        model_weight_ptr_  = nullptr;
-        model_weight_size_ = 0;
     }
 }
 

@@ -40,7 +40,7 @@ TNN net_;
 int main(int argc, char* argv[]) {
     printf("Run Atlas test ...\n");
     if (argc == 1) {
-        printf("./AtlasTest <config_filename> <input_filename> <thread num> <loop num>\n");
+        printf("./AtlasTestMultiThread <om_file> <input_filename> <thread num> <loop num>\n");
         return 0;
     } else {
         if (argc < 5) {
