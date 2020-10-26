@@ -101,8 +101,6 @@ inline cl::Image &GetOpenCLImage(const OpenCLMemory *blob) {
     return (*(cl::Image *)(blob->GetData()));
 }
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
-
 std::vector<int> GetImageShape(const OpenCLMemory *image);
 
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,

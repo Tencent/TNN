@@ -36,8 +36,7 @@ namespace ncnn {
         auto& p               = param_dict;
 
         layer_param->stride = GetInt(p, 0, 0);
-        layer_param->reverse = false;
-        layer_param->mode = GetInt(p, 2, 1);
+        layer_param->forward = false;
 
 
         return TNN_OK;

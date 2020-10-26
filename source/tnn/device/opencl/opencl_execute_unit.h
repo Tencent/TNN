@@ -23,6 +23,7 @@ struct OpenCLExecuteUnit {
     std::vector<uint32_t> global_work_size = {};
     std::vector<uint32_t> local_work_size = {};
     uint32_t sub_group_size;
+    uint64_t local_mem_size;
 };
 
 #endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_EXECUTE_UNIT_H_

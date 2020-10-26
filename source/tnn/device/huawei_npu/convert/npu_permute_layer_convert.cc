@@ -1,3 +1,4 @@
+
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -12,31 +13,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_CPU_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_CPU_UTILS_H_
-
-#include <utility>
-#include <vector>
-
-#include "tnn/core/macro.h"
-#include "tnn/core/status.h"
+#include "graph/attr_value.h"
+#include "graph/op/nn_defs.h"
+#include "npu_base_layer_convert.h"
 
 namespace TNN_NS {
 
-class CpuUtils {
-public:
-    // @brief set cpu affinity
-    // @param cpu_list vector of cpuids("0,1,2,3")
-    PUBLIC static Status SetCpuAffinity(const std::vector<int>& cpu_list);
+DECLARE_NPU_LAYER(Permute, LAYER_PERMUTE)
 
-    // @brief set cpu powersave
-    // @param powersave 0:all cpus 1:little cluster 2:big cluster
-    PUBLIC static Status SetCpuPowersave(int powersave);
+Status NpuPermuteLayer::Convert() {
+    auto param = dynamic_cast<PermuteLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
 
-    // @brief get cpu fp16 capability
-    PUBLIC static bool CpuSupportFp16();
-};
+    std::vector<int64_t> orders(param->orders.begin(), param->orders.end());
+
+    auto output = std::make_shared<ge::op::Permute>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
+    output->set_attr_order(orders);
+
+    ADD_OUTPUT_OP(output)
+}
+
+//REGISTER_NPU_LAYER(Permute, LAYER_PERMUTE)
 
 }  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_CPU_UTILS_H_

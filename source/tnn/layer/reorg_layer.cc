@@ -30,10 +30,10 @@ Status ReorgLayer::InferOutputShape() {
     ReorgLayerParam* reorg_param = dynamic_cast<ReorgLayerParam*>(param_);
     CHECK_PARAM_NULL(reorg_param);
 
-    bool reverse = reorg_param->reverse;
+    bool forward = reorg_param->forward;
     int stride   = reorg_param->stride;
     int mode     = reorg_param->mode;
-    if (reverse == false && mode == 1) {
+    if (forward == false && mode == 1) {
         LOGE("Layer Reorg: do not support Reorg(SpaceToDepth) use CRD mode \n");
         return TNNERR_LAYER_ERR;
     }
@@ -45,7 +45,7 @@ Status ReorgLayer::InferOutputShape() {
     int width       = dims_input[3];
     int reorged_channels, reorged_height, reorged_width;
 
-    if (reverse) {
+    if (forward) {
         if (channels % (stride * stride) != 0) {
             return Status(TNNERR_LAYER_ERR, "Error: channel and parameter stride is not compatible");
         }
