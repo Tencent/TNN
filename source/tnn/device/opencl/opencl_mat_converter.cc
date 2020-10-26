@@ -226,7 +226,8 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, output_dims);
 
     cl_int cl_ret;
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image        = static_cast<cl::Image *>(src.GetData());
         cl::Image *output_mat_image = static_cast<cl::Image *>(dst.GetData());
@@ -244,7 +245,7 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[3]);
         CHECK_CL_SUCCESS(cl_ret);
         // channel
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[1]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, UP_DIV(input_dims[1], 4));
         CHECK_CL_SUCCESS(cl_ret);
         // input height
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[2]);
@@ -471,12 +472,23 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     }
 
     // create execute unit
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     OpenCLExecuteUnit unit;
     if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
         if (execute_map_.count(key) == 0) {
             std::string program_name = "warp_affine";
             std::string kernel_name = "WarpAffineLinear";
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[key] = unit;
+        }
+    } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        if (execute_map_.count(key) == 0) {
+            std::string program_name = "warp_affine";
+            std::string kernel_name = "WarpAffineNearest";
             ret = CreateExecuteUnit(unit, program_name, kernel_name);
             if (ret != TNN_OK) {
                 return ret;
