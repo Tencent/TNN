@@ -33,16 +33,6 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     resource_ = resource;
     k_param_  = std::make_shared<ArmKernelParam>();
 
-    for (auto blob : inputs) {
-        if (blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-    }
-
-    for (auto blob : outputs) {
-        if (blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-    }
-
     // init base k_param_
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;

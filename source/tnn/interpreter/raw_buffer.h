@@ -40,6 +40,7 @@ public:
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
 
+
     DataType GetDataType();
     int GetBytesSize();
     int GetDataCount();
@@ -60,6 +61,7 @@ private:
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
+std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
 
 }  // namespace TNN_NS
 
