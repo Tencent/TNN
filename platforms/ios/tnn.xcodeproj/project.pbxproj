@@ -634,6 +634,7 @@
 		EC2CF7822511F80500EE3899 /* metal_arg_max_or_min_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF7802511F80500EE3899 /* metal_arg_max_or_min_layer_acc.mm */; };
 		EC2CF7832511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF7812511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal */; };
 <<<<<<< HEAD
+<<<<<<< HEAD
 		ECB85AB12546765900ACAEB0 /* metal_pixel_shuffle_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */; };
 		ECB85AB22546765900ACAEB0 /* metal_pixel_shuffle_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */; };
 		ECB85AB52546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */; };
@@ -644,6 +645,8 @@
 		ECB85AC52546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */; };
 		ECB85AC62546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */; };
 =======
+=======
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 		ECD94591254ADC5900BF9214 /* net_optimizer_insert_int8_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD9458D254ADC5900BF9214 /* net_optimizer_insert_int8_reformat.cc */; };
 		ECD94592254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = ECD9458E254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.h */; };
 		ECD94593254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD9458F254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.cc */; };
@@ -661,7 +664,17 @@
 		ECD945B3254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECD945AF254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.metal */; };
 		ECD945B6254ADD8400BF9214 /* pixel_shuffle_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD945B5254ADD8400BF9214 /* pixel_shuffle_layer.cc */; };
 		ECD945B9254ADDA800BF9214 /* pixel_shuffle_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD945B8254ADDA800BF9214 /* pixel_shuffle_layer_interpreter.cc */; };
+<<<<<<< HEAD
 >>>>>>> c8100db9 ([iOS] fix tnn iOS&maxOS build error (#508))
+=======
+=======
+		ECB85AB12546765900ACAEB0 /* metal_pixel_shuffle_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */; };
+		ECB85AB22546765900ACAEB0 /* metal_pixel_shuffle_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */; };
+		ECB85AB52546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */; };
+		ECB85AB8254676C500ACAEB0 /* metal_reorg_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECB85AB7254676C500ACAEB0 /* metal_reorg_layer_acc.mm */; };
+		ECB85ABC254676F100ACAEB0 /* metal_reorg_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = ECB85ABB254676F100ACAEB0 /* metal_reorg_layer_acc.metal */; };
+>>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 		ECEC5D6424FCDBA50044DDF1 /* arm_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */; };
 		ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */; };
 		ECEC5D6624FCDBA50044DDF1 /* arm_mat_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */; };
@@ -1304,6 +1317,7 @@
 		EC2CF7802511F80500EE3899 /* metal_arg_max_or_min_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_arg_max_or_min_layer_acc.mm; sourceTree = "<group>"; };
 		EC2CF7812511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_arg_max_or_min_layer_acc.metal; sourceTree = "<group>"; };
 <<<<<<< HEAD
+<<<<<<< HEAD
 		ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_pixel_shuffle_layer_acc.metal; sourceTree = "<group>"; };
 		ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_pixel_shuffle_layer_acc.mm; sourceTree = "<group>"; };
 		ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_pixel_shuffle_layer_acc.cc; sourceTree = "<group>"; };
@@ -1314,6 +1328,8 @@
 		ECB85AC12546A1DC00ACAEB0 /* net_optimizer_insert_fp16_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_fp16_reformat.cc; sourceTree = "<group>"; };
 		ECB85AC22546A1DC00ACAEB0 /* net_optimizer_insert_int8_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_int8_reformat.h; sourceTree = "<group>"; };
 =======
+=======
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 		ECD9458D254ADC5900BF9214 /* net_optimizer_insert_int8_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_int8_reformat.cc; sourceTree = "<group>"; };
 		ECD9458E254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_fp16_reformat.h; sourceTree = "<group>"; };
 		ECD9458F254ADC5900BF9214 /* net_optimizer_insert_fp16_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_fp16_reformat.cc; sourceTree = "<group>"; };
@@ -1331,7 +1347,17 @@
 		ECD945AF254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_pixel_shuffle_layer_acc.metal; sourceTree = "<group>"; };
 		ECD945B5254ADD8400BF9214 /* pixel_shuffle_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pixel_shuffle_layer.cc; sourceTree = "<group>"; };
 		ECD945B8254ADDA800BF9214 /* pixel_shuffle_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pixel_shuffle_layer_interpreter.cc; sourceTree = "<group>"; };
+<<<<<<< HEAD
 >>>>>>> c8100db9 ([iOS] fix tnn iOS&maxOS build error (#508))
+=======
+=======
+		ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_pixel_shuffle_layer_acc.metal; sourceTree = "<group>"; };
+		ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_pixel_shuffle_layer_acc.mm; sourceTree = "<group>"; };
+		ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_pixel_shuffle_layer_acc.cc; sourceTree = "<group>"; };
+		ECB85AB7254676C500ACAEB0 /* metal_reorg_layer_acc.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_reorg_layer_acc.mm; sourceTree = "<group>"; };
+		ECB85ABB254676F100ACAEB0 /* metal_reorg_layer_acc.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = metal_reorg_layer_acc.metal; sourceTree = "<group>"; };
+>>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 		ECEC5D6024FCDBA40044DDF1 /* arm_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_mat_converter.cc; sourceTree = "<group>"; };
 		ECEC5D6124FCDBA40044DDF1 /* arm_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_util.h; sourceTree = "<group>"; };
 		ECEC5D6224FCDBA40044DDF1 /* arm_mat_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_mat_converter.h; sourceTree = "<group>"; };
@@ -1875,14 +1901,24 @@
 			isa = PBXGroup;
 			children = (
 <<<<<<< HEAD
+<<<<<<< HEAD
 				ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */,
 				ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */,
 =======
+=======
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 				ECD945AF254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.metal */,
 				ECD945AC254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.mm */,
 				ECD945AD254ADD7100BF9214 /* metal_signed_mul_layer_acc.metal */,
 				ECD945AE254ADD7100BF9214 /* metal_signed_mul_layer_acc.mm */,
+<<<<<<< HEAD
 >>>>>>> c8100db9 ([iOS] fix tnn iOS&maxOS build error (#508))
+=======
+=======
+				ECB85AAF2546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.metal */,
+				ECB85AB02546765800ACAEB0 /* metal_pixel_shuffle_layer_acc.mm */,
+>>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 				EC2CF7812511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal */,
 				EC2CF7802511F80500EE3899 /* metal_arg_max_or_min_layer_acc.mm */,
 				9DD1FB12247CE9BE00800139 /* convolution */,
@@ -2060,10 +2096,17 @@
 			isa = PBXGroup;
 			children = (
 <<<<<<< HEAD
+<<<<<<< HEAD
 				ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */,
 =======
 				ECD945A5254ADD3D00BF9214 /* arm_pixel_shuffle_layer_acc.cc */,
 >>>>>>> c8100db9 ([iOS] fix tnn iOS&maxOS build error (#508))
+=======
+				ECD945A5254ADD3D00BF9214 /* arm_pixel_shuffle_layer_acc.cc */,
+=======
+				ECB85AB42546766900ACAEB0 /* arm_pixel_shuffle_layer_acc.cc */,
+>>>>>>> 0cc5c183 ([Metal] add reorg and pixelshuffle layers in iOS project)
+>>>>>>> 6336598a ([Metal] add reorg and pixelshuffle layers in iOS project)
 				EC0BE18125144C4F009BD69A /* arm_arg_max_or_min_layer_acc.cc */,
 				EC0BE18025144C4F009BD69A /* arm_reshape_layer_acc.h */,
 				EC0BE18325144C4F009BD69A /* arm_signed_mul_layer_acc.cc */,
