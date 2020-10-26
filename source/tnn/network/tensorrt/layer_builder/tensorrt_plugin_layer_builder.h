@@ -34,9 +34,6 @@ public:
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
 
-    // @brief virtual Reshape recalculate the output tensor dims
-    virtual Status Reshape();
-
     // @brief virtual layer infer
     virtual Status Forward();
 

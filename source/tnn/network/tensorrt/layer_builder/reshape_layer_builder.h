@@ -12,27 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_
+#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_
+
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(ReLU, LAYER_RELU);
-
-ILayer* ReLUTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    bool int8 = input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_INT8;
-    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kRELU);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-    }
-
-    if (int8) {
-        layer->setPrecision(nvinfer1::DataType::kINT8);
-    }
-    return layer;
-}
-
-REGISTER_TENSORRT_LAYER_BUILDER(ReLU, LAYER_RELU);
+class ReshapeTRTLayerBuilder : public TensorRTLayerBuilder {
+public:
+    ReshapeTRTLayerBuilder(LayerType type);
+    virtual ~ReshapeTRTLayerBuilder();
+    virtual Status Reshape();
+    virtual ILayer* AddToNetwork(INetworkDefinition* network);
+};
 
 }  //  namespace TNN_NS
+
+#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_

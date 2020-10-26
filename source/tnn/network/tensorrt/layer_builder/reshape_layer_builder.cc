@@ -12,17 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/reshape_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
+ReshapeTRTLayerBuilder::ReshapeTRTLayerBuilder(LayerType type) : TensorRTLayerBuilder(type) {
+}
+
+ReshapeTRTLayerBuilder::~ReshapeTRTLayerBuilder() {
+}
+
+Status ReshapeTRTLayerBuilder::Reshape() {
+    Blob* output_blob  = output_blobs_[0];
+    Status ret = m_layer->Reshape();
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    auto output_dims = output_blob->GetBlobDesc().dims;
+    printf("%d %d %d %d\n", output_dims[0], output_dims[1], output_dims[2],
+        output_dims[3]);
+    return TNN_OK;
+}
 
 ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    ReshapeLayerParam* reshape_param = dynamic_cast<ReshapeLayerParam*>(param_);
     Blob* output_blob  = output_blobs_[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
-
     Dims reshape_dims;
     reshape_dims.nbDims = 4;
     reshape_dims.d[0] = -1;
@@ -31,7 +45,6 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     reshape_dims.d[3] = output_dims[3];
     reshape_dims.type[1] = DimensionType::kCHANNEL;
     reshape_dims.type[2] = reshape_dims.type[3] = DimensionType::kSPATIAL;
-
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
     IShuffleLayer* layer = network->addShuffle(*tensor);

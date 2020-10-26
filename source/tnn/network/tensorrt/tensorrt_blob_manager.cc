@@ -17,6 +17,7 @@
 
 #include "tnn/device/cuda/cuda_device.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
+#include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/memory_manager/blob_memory_pool_factory.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/memory_manager/memory_mode_state_factory.h"
@@ -91,6 +92,8 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         }
         BlobHandle handle;
         blobs_[node_name] = new ForeignBlob(desc, handle);
+        auto tensorrtTensor = std::make_shared<TensorRTTensor>();
+        dynamic_cast<ForeignBlob*>(blobs_[node_name])->SetForeignTensor(tensorrtTensor);
         if (std::find(names.begin(), names.end(), node_name) != names.end()) {
             output_blobs_[node_name] = blobs_[node_name];
         }

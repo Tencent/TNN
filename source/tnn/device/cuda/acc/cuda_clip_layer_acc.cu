@@ -19,16 +19,9 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(Clip, LAYER_CLIP);
 
-__global__ void clip_kernel(const int n, const float* in, float* out, float min, float max) {
-    CUDA_KERNEL_LOOP(index, n) {
-        float value = in[index] > min ? in[index] : min;
-        out[index] = value < max ? value : max;
-    }
-}
-
 Status CudaClipLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+    return TNN_OK;
 }
 
 Status CudaClipLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -36,19 +29,6 @@ Status CudaClipLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 }
 
 Status CudaClipLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto params = dynamic_cast<ClipLayerParam *>(param_);
-    if (!params) {
-        LOGE("Error: layer param is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param is nil");
-    }
-
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    clip_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        count, input_data, output_data, params->min, params->max);
     return TNN_OK;
 }
 

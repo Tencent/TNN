@@ -21,6 +21,7 @@ BinaryTRTLayerBuilder::BinaryTRTLayerBuilder(LayerType ignore) : TensorRTLayerBu
 
 ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     IElementWiseLayer* layer;
+    bool int8 = input_blobs_[0]->GetBlobDesc().data_type == DATA_TYPE_INT8;
     if (input_blobs_.size() == 2) {
         auto foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
@@ -87,6 +88,10 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
         }
+    }
+
+    if (int8) {
+        layer->setPrecision(nvinfer1::DataType::kINT8);
     }
 
     return layer;

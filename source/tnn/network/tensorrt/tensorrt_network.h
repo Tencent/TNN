@@ -84,6 +84,7 @@ private:
 
     Status CreateExecuteContext();
 
+    bool int8_mode;
     int m_max_batchsize;
     nvinfer1::IBuilder* m_trt_builder;
     nvinfer1::INetworkDefinition* m_trt_network;

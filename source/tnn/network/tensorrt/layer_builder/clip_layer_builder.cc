@@ -16,31 +16,21 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Clip, LAYER_CLIP);
+DECLARE_TENSORRT_LAYER_BUILDER(Clip, LAYER_CLIP);
 
-bool ClipTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+ILayer* ClipTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<ClipLayerParam *>(param_);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kCLIP);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+        layer->setAlpha(paramlist->min);
+        layer->setBeta(paramlist->max);
+    }
+    return layer;
 }
 
-const char* ClipTRTPluginLayerBuilder::getPluginType() const {
-    return "Clip";
-}
-
-nvinfer1::DataType ClipTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-ILayer* ClipTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-const char* ClipPluginCreator::getPluginName() const {
-    return "Clip";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Clip, LAYER_CLIP);
+REGISTER_TENSORRT_LAYER_BUILDER(Clip, LAYER_CLIP);
 
 }  //  namespace TNN_NS

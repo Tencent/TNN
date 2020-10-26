@@ -54,7 +54,7 @@ public:
                 std::vector<Blob*>& outputs, AbstractDevice* device) = 0;
 
     // @brief virtual Reshape recalculate the output tensor dims
-    virtual Status Reshape() = 0;
+    virtual Status Reshape();
 
     // @brief layer infer
     virtual Status Forward() = 0;

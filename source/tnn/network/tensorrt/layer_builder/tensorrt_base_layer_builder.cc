@@ -33,6 +33,14 @@ Status TensorRTBaseLayerBuilder::Build() {
     return TNN_OK;
 }
 
+Status TensorRTBaseLayerBuilder::Reshape() {
+    Status ret = m_layer->Reshape();
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    return TNN_OK;
+}
+
 bool TensorRTBaseLayerBuilder::IsPluginLayer() {
     return this->is_plugin;
 }

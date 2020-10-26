@@ -37,6 +37,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_engine = nullptr;
     m_trt_context = nullptr;
     m_context_memory = nullptr;
+    int8_mode = false;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
@@ -50,7 +51,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         InputShapesMap inputs_shape) {
 
     cudaSetDevice(net_config.device_id);
-
+    config_ = net_config;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
@@ -133,9 +134,13 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{64, desc.dims[1], desc.dims[2], desc.dims[3]});
             this->m_trt_config->addOptimizationProfile(profile);
-            auto tensorrtTensor = std::make_shared<TensorRTTensor>();
-            tensorrtTensor->SetTensor(in_tensor);
-            foreign_blob->SetForeignTensor(tensorrtTensor);
+            auto foreign_tensor = foreign_blob->GetForeignTensor();
+            auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+            tensorrt_tensor->SetTensor(in_tensor);
+            if (tensorrt_tensor->GetInt8Mode()) {
+                auto scale = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>();
+                in_tensor->setDynamicRange(-127 * scale[0], 127 * scale[0]);
+            }
         }
 
         for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
@@ -146,9 +151,13 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                 auto foreign_blob = dynamic_cast<ForeignBlob*>(output);
                 nvinfer1::ITensor* output_tensor = cur_trt_layer->getOutput(out_id);
                 output_tensor->setName(output->GetBlobDesc().name.c_str());
-                auto tensorrtTensor = std::make_shared<TensorRTTensor>();
-                tensorrtTensor->SetTensor(output_tensor);
-                foreign_blob->SetForeignTensor(tensorrtTensor);
+                auto foreign_tensor = foreign_blob->GetForeignTensor();
+                auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+                tensorrt_tensor->SetTensor(output_tensor);
+                if (tensorrt_tensor->GetInt8Mode()) {
+                    auto scale = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>();
+                    output_tensor->setDynamicRange(-127 * scale[0], 127 * scale[0]);
+                }
             }
         }
 
@@ -162,6 +171,12 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
         m_trt_builder->setMaxBatchSize(64);
         m_trt_config->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
+        if (config_.precision == PRECISION_LOW) {
+            m_trt_config->setFlag(BuilderFlag::kFP16);
+        }
+        if (this->int8_mode) {
+            m_trt_config->setFlag(BuilderFlag::kINT8);
+        }
         m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
@@ -230,6 +245,23 @@ Status TensorRTNetwork_::Forward() {
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     for (auto iter : inputs) {
+        Blob *blob = blob_manager_->GetBlob(iter.first);
+        if (blob == nullptr) {
+            LOGE("TensorRTNetwork reshape blob is empty\n");
+            return Status(TNNERR_PARAM_ERR, "TensorRTNetwork reshape blob is empty");
+        }
+        blob->GetBlobDesc().dims = iter.second;
+    }
+
+    Status ret = TNN_OK;
+    for (auto cur_layer : layers_) {
+        ret = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->Reshape();
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         auto dims = iter.second;
         nvinfer1::Dims4 inputDims(dims[0], dims[1], dims[2], dims[3]);
@@ -237,7 +269,7 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     }
 
     BlobMap outputs;
-    Status ret = blob_manager_->GetAllOutputBlobs(outputs);
+    ret = blob_manager_->GetAllOutputBlobs(outputs);
     if (ret != TNN_OK) {
         LOGE("ERROR: get output blobs failed");
         return ret;
@@ -284,8 +316,21 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<Blob *> inputs;
         std::vector<std::string> &input_names = layer_info->inputs;
         // get input nodes
+        bool is_int8_blob = layer_info->param->quantized;
+        if (is_int8_blob) printf("%s quantized\n", layer_name.c_str());
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (is_int8_blob) {
+                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+                if (!tensorrt_tensor->GetInt8Mode()) {
+                    std::string blob_scale_name = name + "_scale_data_";
+                    tensorrt_tensor->SetIntResource(
+                        reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
+                    tensorrt_tensor->SetInt8Mode(true);
+                }
+                this->int8_mode = true;
+            }
             inputs.push_back(blob);
         }
         std::vector<Blob *> outputs;
@@ -293,6 +338,20 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (config_.precision == PRECISION_LOW) {
+                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
+            }
+            if (is_int8_blob) {
+                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+                if (!tensorrt_tensor->GetInt8Mode()) {
+                    std::string blob_scale_name = name + "_scale_data_";
+                    tensorrt_tensor->SetIntResource(
+                        reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
+                    tensorrt_tensor->SetInt8Mode(true);
+                }
+                this->int8_mode = true;
+            }
             outputs.push_back(blob);
         }
 

@@ -18,6 +18,7 @@
 #include "NvInfer.h"
 
 #include "tnn/core/status.h"
+#include "tnn/interpreter/layer_resource.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 
 namespace TNN_NS {
@@ -40,8 +41,26 @@ public:
         return TNN_OK;
     }
 
+    IntScaleResource * GetIntResource() {
+        return resource_;
+    }
+
+    void SetIntResource(IntScaleResource * resource) {
+        resource_ = resource;
+    }
+
+    void SetInt8Mode(bool flag) {
+        int8_mode = mode;
+    }
+
+    bool GetInt8Mode() {
+        return int8_mode;
+    }
+
 private:
-    nvinfer1::ITensor* m_trt_tensor;
+    bool int8_mode = false;
+    IntScaleResource *resource_ = nullptr;
+    nvinfer1::ITensor* m_trt_tensor = nullptr;
 };
 
 }  //  namespace TNN_NS

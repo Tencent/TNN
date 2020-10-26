@@ -17,21 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(ReLU6, LAYER_RELU6);
+DECLARE_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
 
-Status CudaReLU6LayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaReLU6LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaReLU6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(ReLU6, LAYER_RELU6);
+REGISTER_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
 
 }  // namespace TNN_NS

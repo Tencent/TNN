@@ -26,7 +26,7 @@ namespace TNN_NS {
 DECLARE_CUDA_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 template<int THREAD_PER_BLOCK>
-__global__ void spatial_sum_var(const float * input, float* output, const float * gamma,
+__global__ void instance_norm_kernel(const float * input, float* output, const float * gamma,
         const float * beta, const int size, const int batch_size, const int C, const float eps) {
     __shared__ double ssum1[THREAD_PER_BLOCK/32];
     __shared__ double ssum2[THREAD_PER_BLOCK/32];
@@ -39,13 +39,10 @@ __global__ void spatial_sum_var(const float * input, float* output, const float 
     float * dst = output + block_offset;
     const int cid = blockIdx.x % C;
     
-    // x = (x - mean) / (sqrt(var) + eps) * gamma + beta
-
-    // Per-thread tile data
     double thread_sum1 = 0.f;
     double thread_sum2 = 0.f;
 
-    for(int i=threadIdx.x;i<size;i+=THREAD_PER_BLOCK) {
+    for (int i = threadIdx.x; i < size; i+=THREAD_PER_BLOCK) {
         thread_sum1 += ptr[i];
         thread_sum2 += ptr[i] * ptr[i];
     }
@@ -62,13 +59,13 @@ __global__ void spatial_sum_var(const float * input, float* output, const float 
     thread_sum2 += __shfl_down_sync(0x0000000f, thread_sum2, 2, 4);
     thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
 
-    if(threadIdx.x % 32 == 0) {
+    if (threadIdx.x % 32 == 0) {
         ssum1[threadIdx.x / 32] = thread_sum1;
         ssum2[threadIdx.x / 32] = thread_sum2;
     }
     __syncthreads();
 
-    if(threadIdx.x < blockDim.x/32) {
+    if (threadIdx.x < blockDim.x / 32) {
         thread_sum1 = ssum1[threadIdx.x];
         thread_sum2 = ssum2[threadIdx.x];
     } else {
@@ -91,8 +88,45 @@ __global__ void spatial_sum_var(const float * input, float* output, const float 
     
     __syncthreads();
     #pragma unroll(4)
-    for(int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
+    for (int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
         dst[i] = ptr[i] * k + b;
+    }
+}
+
+template<int THREAD_PER_BLOCK>
+__global__ void instance_norm_kernel_fp16(const __half * input, __half * output, const float * gamma,
+        const float * beta, const int size, const int batch_size, const int C, const float eps) {
+    int cid = blockIdx.x * THREAD_PER_BLOCK + threadIdx.x;
+    if (cid >= C) {
+        return;
+    }
+
+    const int thread_offset = blockIdx.y * size * C + cid;
+    const __half * in_ptr = input + thread_offset;
+    __half * out_ptr = output + thread_offset;
+
+    float thread_sum = 0.f;
+    #pragma unroll(4)
+    for (int i = 0; i < size; i++) {
+        thread_sum += __half2float(in_ptr[i*C]);
+    }
+
+    float mean = thread_sum / size;
+
+    thread_sum = 0.f;
+    #pragma unroll(4)
+    for (int i = 0; i < size; i++) {
+        float tmp = __half2float(in_ptr[i*C]) - mean;
+        thread_sum += tmp * tmp;
+    }
+
+    float var = thread_sum / size;
+    float k = gamma[cid] / sqrt(var + eps);
+    float b = -mean * k + beta[cid];
+
+    for (int i = 0; i < size; i++) {
+        float tmp = __half2float(in_ptr[i*C]) * k + b;
+        out_ptr[i*C] = __float2half(tmp);
     }
 }
 
@@ -135,16 +169,28 @@ Status CudaInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     int width = dims[3];
     int count = DimsVectorUtils::Count(dims);
     int hw = height * width;
-    float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        float* input_data = static_cast<float*>(input_blob->GetHandle().base);
+        float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
-    const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 4; 
-    dim3 griddim;
-    griddim.x = channels * num;
-    spatial_sum_var<THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>(input_data, output_data,
-        (const float *)tempbufs_[0].ptr, (const float *)tempbufs_[1].ptr, hw, channels * num, channels, 1e-5);
+        const int THREAD_PER_BLOCK = 128;
+        dim3 griddim;
+        griddim.x = channels * num;
+        instance_norm_kernel<THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>(input_data, output_data,
+            (const float *)tempbufs_[0].ptr, (const float *)tempbufs_[1].ptr, hw, channels * num, channels, 1e-5);
+    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        __half * input_data = static_cast<__half*>(input_blob->GetHandle().base);
+        __half * output_data = static_cast<__half*>(output_blob->GetHandle().base);
 
+        dim3 griddim;
+        griddim.x = channels / 32;
+        griddim.y = num;
+        instance_norm_kernel_fp16<32><<<griddim, 32, 0, context_->GetStream()>>>(input_data, output_data, (const float*)tempbufs_[0].ptr,
+            (const float*)tempbufs_[1].ptr, hw, num, channels, 1e-5);
+    } else {
+        LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
+    }
     return TNN_OK;
 }
 

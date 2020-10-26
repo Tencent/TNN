@@ -34,7 +34,7 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
         std::vector<Blob*>& output_blobs, AbstractDevice* device) {
     auto tmp_device = GetDevice(DEVICE_NAIVE);
     auto tmp_context = tmp_device->CreateContext(0);
-    Status ret = m_layer->Init(tmp_context, param, resource, input_blobs, output_blobs, tmp_device);
+    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_CUDA));
     if (ret != TNN_OK) {
         return ret;
     }
@@ -54,10 +54,6 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
-    return TNN_OK;
-}
-
-Status TensorRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 

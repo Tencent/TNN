@@ -20,8 +20,10 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 bool InstanceNormTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+    int channels = inOut[0].dims.d[1];
+    bool is_pad_8 = (channels % 8 == 0);
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::PluginFormat::kNCHW) ||
+        (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::PluginFormat::kNHWC8 && is_pad_8));
 }
 
 const char* InstanceNormTRTPluginLayerBuilder::getPluginType() const {

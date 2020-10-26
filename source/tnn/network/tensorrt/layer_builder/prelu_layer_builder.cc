@@ -16,31 +16,21 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PReLU, LAYER_PRELU);
+DECLARE_TENSORRT_LAYER_BUILDER(PReLU, LAYER_PRELU);
 
-bool PReLUTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+ILayer* PReLUTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto resource = dynamic_cast<PReluLayerResource*>(resource_);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kLEAKY_RELU);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+        auto scope = resource->slope_handle.force_to<float*>();
+        layer->setAlpha(*scope);
+    }
+    return layer;
 }
 
-const char* PReLUTRTPluginLayerBuilder::getPluginType() const {
-    return "PReLU";
-}
-
-nvinfer1::DataType PReLUTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-ILayer* PReLUTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-const char* PReLUPluginCreator::getPluginName() const {
-    return "PReLU";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(PReLU, LAYER_PRELU);
+REGISTER_TENSORRT_LAYER_BUILDER(PReLU, LAYER_PRELU);
 
 }  //  namespace TNN_NS
