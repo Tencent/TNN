@@ -240,7 +240,7 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
 
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config.device_type);
+    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
     if (ret != TNN_OK) {
         return ret;
     }
