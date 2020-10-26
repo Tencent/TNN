@@ -40,9 +40,6 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
     if (mode == 1 && forward == 0) {
         // illegal case
         GTEST_SKIP();
