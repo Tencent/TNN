@@ -46,9 +46,8 @@ Status MetalReorgLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
         metal_params.output_height   = dims_output[2];
         metal_params.output_width    = dims_output[3];
 
-        metal_params.mode    = layer_param->mode;
         metal_params.stride  = layer_param->stride;
-        metal_params.forward = layer_param->forward;
+        metal_params.mode    = layer_param->mode;
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalReorgParams)
@@ -67,15 +66,9 @@ Status MetalReorgLayerAcc::SetKernelEncoderParam(
 std::string MetalReorgLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param     = dynamic_cast<ReorgLayerParam *>(param_);
     if (layer_param->forward) {
-        if (layer_param->mode == 0)
-            return "reorg_dcr_forward";
-        else if (layer_param->mode == 1)
-            return "reorg_crd_forward";
+        return "reorg_forward_common";
     } else {
-        if (layer_param->mode == 0)
-            return "reorg_dcr_backward";
-        else if (layer_param->mode == 1)
-            return "reorg_crd_backward";
+        return "reorg_backward_common";
     }
     return "";
 }

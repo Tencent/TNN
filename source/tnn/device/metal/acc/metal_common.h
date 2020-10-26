@@ -556,7 +556,6 @@ struct MetalReorgParams {
     int batch;
 
     int stride;
-    bool forward;
     int mode; // DCR: 0  CRD: 1
 };
 
