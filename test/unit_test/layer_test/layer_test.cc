@@ -42,34 +42,34 @@ void LayerTest::SetUpTestCase() {
     // cpu
     cpu_ = GetDevice(DEVICE_NAIVE);
     if (!cpu_) {
-      LOGE("Error: device cpu is null\n");
-      ASSERT(0);
+        LOGE("Error: device cpu is null\n");
+        ASSERT(0);
     }
 
     cpu_context_ = cpu_->CreateContext(0);
     if (!cpu_context_) {
-      LOGE("Error: cpu context is null\n");
-      ASSERT(0);
+        LOGE("Error: cpu context is null\n");
+        ASSERT(0);
     }
 
     // device
     device_ = GetDevice(config.device_type);
     if (!device_) {
-      LOGE("Error: device of type(%d) is null\n", config.device_type);
-      ASSERT(0);
+        LOGE("Error: device of type(%d) is null\n", config.device_type);
+        ASSERT(0);
     }
 
     device_context_ = device_->CreateContext(config.device_id);
     if (!device_) {
-      LOGE("Error: device context with id(%d) is null\n", config.device_id);
-      ASSERT(0);
+        LOGE("Error: device context with id(%d) is null\n", config.device_id);
+        ASSERT(0);
     }
 
     ret = device_context_->LoadLibrary(config.library_path);
     if (ret != TNN_OK) {
-      LOGE("Error: library with path(%s) is null\n",
-            config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
-      ASSERT(0);
+        LOGE("Error: library with path(%s) is null\n",
+             config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
+        ASSERT(0);
     }
 }
 
@@ -181,7 +181,8 @@ Status LayerTest::CreateInputBlobs(std::vector<BlobDesc>& inputs_desc) {
             device_input_blob = new Blob(device_blob_desc);
         }
         // RUN FLOAT CPU FOR BF16 UNIT TESTS
-        if (cpu_input_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16)
+        if (cpu_input_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16 ||
+            cpu_input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
             cpu_input_blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
         cpu_inputs_.push_back(cpu_input_blob);
         device_inputs_.push_back(device_input_blob);
@@ -214,7 +215,8 @@ Status LayerTest::CreateOutputBlobs(std::vector<BlobDesc>& outputs_desc) {
         }
 
         // RUN FLOAT CPU FOR BF16 UNIT TESTS
-        if (cpu_output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16)
+        if (cpu_output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16 ||
+            cpu_output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
             cpu_output_blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
         cpu_outputs_.push_back(cpu_output_blob);
         device_outputs_.push_back(device_output_blob);
@@ -275,6 +277,9 @@ Status LayerTest::InitInputBlobsDataRandom() {
         } else if (device_input_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
             // the value is initialized as int8
             mat_type = RESERVED_INT8_TEST;
+        } else if (device_input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            // the value is initialized as half 
+            mat_type = RESERVED_FP16_TEST;
         }
         TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
         void* input_data = source.GetData();
@@ -285,6 +290,15 @@ Status LayerTest::InitInputBlobsDataRandom() {
             } else {
                 InitRandom(static_cast<float*>(input_data), input_count, 1.0f + (float)index);
             }
+#ifdef TNN_ARM82
+        } else if (mat_type == RESERVED_FP16_TEST) {
+            if (ensure_input_positive_) {
+                // some layers only supports positive values as input
+                InitRandom(static_cast<__fp16 *>(input_data), input_count, (__fp16)0.0f, (__fp16)(1.0f + index));
+            } else {
+                InitRandom(static_cast<__fp16 *>(input_data), input_count, (__fp16)(1.0f + index));
+            }
+#endif
         } else if (mat_type == RESERVED_INT8_TEST) {
             if (ensure_input_positive_) {
                 // some layers only supports positive values as input
@@ -389,7 +403,7 @@ Status LayerTest::Forward() {
     }
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
     auto profile_result = device_context_->FinishProfile();
-    auto result_str = profile_result->GetProfilingDataInfo();
+    auto result_str     = profile_result->GetProfilingDataInfo();
     printf("%s", result_str.c_str());
 #endif
 

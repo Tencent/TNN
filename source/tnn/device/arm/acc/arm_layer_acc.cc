@@ -18,8 +18,8 @@
 // specific language governing permissions and limitations under the License.
 //
 
-#include "tnn/core/profile.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/core/profile.h"
 #include "tnn/device/arm/arm_context.h"
 
 namespace TNN_NS {
@@ -73,9 +73,10 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
 }
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF) {
         return true;
-    } else { 
+    } else {
         return false;
     }
 }

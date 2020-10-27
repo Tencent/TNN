@@ -285,6 +285,12 @@ Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
             blob_data[n] = float(reinterpret_cast<bfp16_t *>(image.GetData())[n]);
         }
+#ifdef TNN_ARM82
+    } else if (image.GetMatType() == RESERVED_FP16_TEST) {
+        for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
+            blob_data[n] = (float)(reinterpret_cast<__fp16 *>(image.GetData())[n]);
+        }
+#endif
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }

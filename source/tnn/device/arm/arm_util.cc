@@ -182,6 +182,30 @@ template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
+int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int c, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * UP_DIV(channel, 8) * 8 * sizeof(Tout));
+    for (c = 0; c < channel; ++c) {
+        int plane      = c / 8;
+        auto *dstPlane = plane * hw * 8 + dst;
+        int offset     = c % 8;
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dstPlane[8 * cur_hw + offset] = src[idx++];
+        }
+    }
+
+    return 0;
+}
+
+template int PackC8(float *dst, const float *src, size_t hw, size_t channel);
+#ifdef TNN_ARM82
+template int PackC8(__fp16 *dst, const float *src, size_t hw, size_t channel);
+template int PackC8(float *dst, const __fp16 *src, size_t hw, size_t channel);
+template int PackC8(__fp16 *dst, const __fp16 *src, size_t hw, size_t channel);
+#endif
+
+template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 #ifdef TNN_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
@@ -249,6 +273,28 @@ template int UnpackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
+
+template <typename Tin, typename Tout>
+int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    for (c = 0; c < channel; ++c) {
+        int plane         = c / 8;
+        const auto *src_c = plane * hw * 8 + src;
+        int offset        = c % 8;
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[idx++] = src_c[8 * cur_hw + offset];
+        }
+    }
+    return 0;
+}
+
+template int UnpackC8(float *dst, const float *src, size_t hw, size_t channel);
+#ifdef TNN_ARM82
+template int UnpackC8(float *dst, const __fp16 *src, size_t hw, size_t channel);
+#endif
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {

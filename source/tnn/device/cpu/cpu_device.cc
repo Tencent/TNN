@@ -30,7 +30,8 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     BlobDesc desc;
     desc.dims        = dims;
     desc.device_type = DEVICE_NAIVE;
-    if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST) {
+    if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST ||
+        mat_type == RESERVED_FP16_TEST) {
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.data_format = DATA_FORMAT_NCHW;
         auto size_info   = Calculate(desc);
@@ -42,8 +43,8 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         return Allocate(handle, size_info);
     } else if (mat_type == N8UC4) {
         BlobMemorySizeInfo size_info;
-        int count               = desc.dims[0] * 4 * desc.dims[2] * desc.dims[3];
-        size_info.data_type     = DATA_TYPE_INT8;
+        int count           = desc.dims[0] * 4 * desc.dims[2] * desc.dims[3];
+        size_info.data_type = DATA_TYPE_INT8;
         size_info.dims.push_back(count);
         return Allocate(handle, size_info);
     } else {

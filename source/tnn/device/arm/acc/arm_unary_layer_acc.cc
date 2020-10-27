@@ -29,7 +29,7 @@ Status ArmUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 
 // SUPPORTED DATATYPES
 bool ArmUnaryLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF)
         return true;
     else
         return false;
