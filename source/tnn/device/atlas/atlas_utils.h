@@ -33,6 +33,8 @@ Status ConvertFromMatTypeToDvppPixelFormat(MatType mat_type, acldvppPixelFormat&
 
 bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name);
 
+int GetMaxBatchSize(aclmdlDesc *desc, int default_batch);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_DEVICE_ATLAS_ATLAS_UTILS_H_

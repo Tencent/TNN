@@ -45,7 +45,6 @@ private:
     Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream,
                                 bool from_mat);
     Status SetDynamicAipp(Mat& mat, MatConvertParam& param);
-    int GetMaxBatchSize(aclmdlDesc* desc);
 
     bool do_scale_bias_           = true;
     int blob_bytesize_            = 0;

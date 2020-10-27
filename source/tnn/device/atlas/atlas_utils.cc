@@ -129,4 +129,30 @@ bool IsDynamicBatch(aclmdlDesc* model_desc, std::string input_name) {
     return false;
 }
 
+int GetMaxBatchSize(aclmdlDesc *desc, int default_batch) {
+    aclmdlBatch batch_info;
+
+    aclError acl_ret = aclmdlGetDynamicBatch(desc, &batch_info);
+    if (ACL_ERROR_NONE != acl_ret) {
+        LOGE("get dynamic batch info failed\n");
+        return 0;
+    }
+
+    int max_batchsize = 0;
+    if (batch_info.batchCount > 0) {
+        // dynamic batch
+        for (int i = 0; i < batch_info.batchCount; ++i) {
+            if (batch_info.batch[i] > max_batchsize) {
+                max_batchsize = batch_info.batch[i];
+            }
+        }
+    } else {
+        // static batch
+        max_batchsize = default_batch;
+    }
+
+    LOGD("get max batch size: %d\n", max_batchsize);
+    return max_batchsize;
+}
+
 }  // namespace TNN_NS
