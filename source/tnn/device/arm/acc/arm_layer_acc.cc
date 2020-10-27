@@ -49,10 +49,13 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
-        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF)
+        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
             support_list.push_back(DATA_FORMAT_NC4HW4);
         else if (data_type == DATA_TYPE_INT8)
             support_list.push_back(DATA_FORMAT_NHWC4);
+        else if (data_type = DATA_TYPE_HALF) {
+            support_list.push_back(DATA_FORMAT_NC8HW8);
+        }
     }
     return support_list;
 }

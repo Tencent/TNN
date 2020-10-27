@@ -856,7 +856,7 @@ Status ArmBlobConverterAcc::ConvertFloatMatToBlob(
         }
 #ifdef TNN_ARM82
     } else if (desc.data_type == DATA_TYPE_HALF) {
-        auto c_r8 = UP_DIV(c_r4, 2);
+        auto c_r8 = ROUND_UP(c_r4, 8);
         for (int n = 0; n < dims[0]; n++) {
             NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
                         reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
@@ -897,8 +897,9 @@ Status ArmBlobConverterAcc::ConvertBlobToFloatMat(
                             reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
 #ifdef TNN_ARM82
         } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            auto c_r8 = ROUND_UP(c_r4, 8);
             // Todo : scale bias
-            HalfBlobToNCHW(reinterpret_cast<__fp16 *>(handle_ptr),
+            HalfBlobToNCHW(reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw,
                             reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
 #endif
         } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT8) {
@@ -1034,7 +1035,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         }
 #ifdef TNN_ARM82
     } else if (image.GetMatType() == RESERVED_FP16_TEST && desc.data_type == DATA_TYPE_HALF) {
-        auto c_r8       = ROUND_UP(dims[1], 8);
+        auto c_r8       = ROUND_UP(c_r4, 8);
         for (int n = 0; n < dims[0]; n++) {
             NCHWToBlob(reinterpret_cast<__fp16 *>(image.GetData()) + n * dims[1] * hw,
                        reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
