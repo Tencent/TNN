@@ -22,8 +22,8 @@
 #include <algorithm>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/bfp16.h"
 #include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
 
@@ -45,6 +45,25 @@ void FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, 
 #ifdef __cplusplus
 extern "C" {
 #endif
+struct Q8GemmContext {
+    int32_t k;
+    int32_t k_stride;
+    int32_t n;
+    int32_t n_stride;
+    const int8_t* a;
+    int32_t a_stride;
+    const int8_t* packed_w;
+    int8_t* c;
+    int32_t c_stride;
+    float* scales;
+    int relu;
+};
+
+typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
+                               long c_stride, const float* scales, long);
+
+void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
+
 void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
                      long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
                      const int8_t* weightPtr, const int32_t* biasPtr, const float* scalePtr, long stride, long pad,
