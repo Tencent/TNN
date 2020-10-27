@@ -16,10 +16,6 @@
 
 #include <memory>
 
-#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_1x1.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_3x3.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -70,9 +66,11 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
         local_outputs.emplace_back(group_outputs_[g].get());
         std::shared_ptr<ArmLayerAcc> tmp_acc = nullptr;
         if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-            CreateImpInt8(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
+            // CreateImpInt8(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
+            ArmConvLayerAccFactory::CreateImpInt8(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
         } else {
-            CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
+            // CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
+            ArmConvLayerAccFactory::CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
         }
         CHECK_PARAM_NULL(tmp_acc);
         RETURN_ON_NEQ(tmp_acc->Init(context_, group_conv_param_.get(), resources[g].get(), local_inputs, local_outputs),
@@ -102,39 +100,6 @@ Status ArmConvLayerGroup::Reshape(const std::vector<Blob *> &inputs, const std::
     }
 
     return TNN_OK;
-}
-
-/*
-get different impl based on conv params
-ArmConvInt8LayerCommon always as the last solution
-*/
-void ArmConvLayerGroup::CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
-    if (!dynamic_cast<ArmConvInt8LayerCommon *>(conv_acc_impl.get())) {
-        conv_acc_impl = std::make_shared<ArmConvInt8LayerCommon>();
-    }
-}
-
-/*
-get different impl based on conv params
-ArmConvLayerCommon always as the last solution
-bfp16 impl included in fp impl
-*/
-void ArmConvLayerGroup::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                    LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
-    if (ArmConvLayer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer3x3 *>(conv_acc_impl.get())) {
-            conv_acc_impl = std::make_shared<ArmConvLayer3x3>();
-        }
-    } else if (ArmConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer1x1 *>(conv_acc_impl.get())) {
-            conv_acc_impl = std::make_shared<ArmConvLayer1x1>();
-        }
-    }
-
-    if (!conv_acc_impl) {
-        conv_acc_impl = std::make_shared<ArmConvLayerCommon>();
-    }
 }
 
 Status ArmConvLayerGroup::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

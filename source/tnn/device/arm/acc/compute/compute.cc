@@ -384,7 +384,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
 }
 
 void GEMM_BFP16_N4(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu) {
+                   long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 
