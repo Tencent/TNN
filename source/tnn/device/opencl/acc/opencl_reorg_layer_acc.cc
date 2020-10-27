@@ -33,8 +33,9 @@ public:
 private:
     std::shared_ptr<cl::Buffer> input_buffer_ = nullptr;
     std::shared_ptr<cl::Buffer> output_buffer_ = nullptr;
-    int stride_  = 0;
-    int reverse_ = 0;
+    int stride_     = 0;
+    int forward_    = 0;
+    int mode_       = 0;
 };
 
 Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -52,8 +53,9 @@ Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         return Status(TNNERR_MODEL_ERR, "ReorgLayerParam is null");
     }
 
-    reverse_ = layer_param->reverse;
-    stride_  = layer_param->stride;
+    forward_    = layer_param->forward;
+    stride_     = layer_param->stride;
+    mode_       = layer_param->mode;
 
     std::string program_name, kernel_name;
     execute_units_.resize(3);
@@ -117,12 +119,14 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     unit1.ocl_kernel.setArg(idx++, unit1.global_work_size[0]);
     unit1.ocl_kernel.setArg(idx++, *input_buffer_);
     unit1.ocl_kernel.setArg(idx++, *output_buffer_);
-    unit1.ocl_kernel.setArg(idx++, input_dims[3]); // input width
-    unit1.ocl_kernel.setArg(idx++, input_dims[2]); // input height
-    unit1.ocl_kernel.setArg(idx++, input_dims[1]); // input channel
-    unit1.ocl_kernel.setArg(idx++, input_dims[0]); // batch
+    unit1.ocl_kernel.setArg(idx++, forward_ ? input_dims[3] : output_dims[3]); // input width
+    unit1.ocl_kernel.setArg(idx++, forward_ ? input_dims[2] : output_dims[2]); // input height
+    unit1.ocl_kernel.setArg(idx++, forward_ ? input_dims[1] : output_dims[1]); // input channel
+    unit1.ocl_kernel.setArg(idx++, forward_ ? input_dims[0] : output_dims[0]); // batch
     unit1.ocl_kernel.setArg(idx++, stride_);
-    unit1.ocl_kernel.setArg(idx++, reverse_);
+    unit1.ocl_kernel.setArg(idx++, stride_ * stride_);
+    unit1.ocl_kernel.setArg(idx++, forward_);
+    unit1.ocl_kernel.setArg(idx++, mode_);
 
     auto &unit2            = execute_units_[2];
     idx = SetExecuteUnit2DSizeInfoDefault(unit2, output_dims);
