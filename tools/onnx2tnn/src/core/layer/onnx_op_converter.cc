@@ -9,17 +9,18 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
-#include <mutex>
-#include "half_utils.h"
-#include "onnx_utility.h"
-#include "onnx.pb.h"
 
-string OnnxOpConverter::TNNLayerProto(NodeProto &node,
-                                           OnnxNetInfo &net_info) {
+#include <mutex>
+
+#include "half_utils.h"
+#include "onnx.pb.h"
+#include "onnx_utility.h"
+
+string OnnxOpConverter::TNNLayerProto(NodeProto &node, OnnxNetInfo &net_info) {
     ostringstream proto_layer;
 
     string tnn_layer_type = TNNOpType(node, net_info);
@@ -30,14 +31,14 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         name = node.output(0);
     }
     proto_layer << name << " ";
-
+    ProcessConstantNode(node, net_info);
     int input_size  = node.input_size();
     int output_size = node.output_size();
 
     for (int j = 0; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (net_info.weights_map.find(input_name) !=
-            net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+            net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             input_size--;
         }
     }
@@ -47,8 +48,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         std::string input_name = node.input(j);
 
         // check weight
-        if (net_info.weights_map.find(input_name) !=
-            net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+            net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             continue;
         }
 
@@ -65,7 +66,7 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     return proto_layer.str();
 }
 
-int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer) {
+int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, serializer *writer) {
     if (tensor.data_type() == onnx::TensorProto_DataType_INT64) {
         int item_size = get_tensor_proto_data_size(tensor);
         if (item_size == 0) {
@@ -74,12 +75,12 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
         }
         auto dims = GetDimsFromTensor(tensor);
         if (tensor.has_raw_data()) {
-            int64_t * raw_data = (int64_t *)tensor.raw_data().data();
-            auto tmp = new int32_t[item_size];
+            int64_t *raw_data = (int64_t *)tensor.raw_data().data();
+            auto tmp          = new int32_t[item_size];
             for (int i = 0; i < item_size; ++i) {
                 tmp[i] = raw_data[i];
             }
-            writer->put_raw(sizeof(int32_t) * item_size, (char*)tmp, dims, DATA_TYPE_INT32);
+            writer->put_raw(sizeof(int32_t) * item_size, (char *)tmp, dims, DATA_TYPE_INT32);
             delete[] tmp;
         }
         // cast from int64 to int32
@@ -87,8 +88,7 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
     return 0;
 }
 
-int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
-                                     serializer *writer, DataType dataType) {
+int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor, serializer *writer, DataType dataType) {
     int ret = 0;
     do {
         int item_size = get_tensor_proto_data_size(tensor);
@@ -105,23 +105,22 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
             const std::string &raw_data = tensor.raw_data();
             WriteRawData((float *)raw_data.data(), item_size, writer, dataType, dims);
         } else if (tensor.data_type() == 1) {
-            WriteRawData((float *)tensor.float_data().data(), item_size, writer,
-                         dataType, dims);
+            WriteRawData((float *)tensor.float_data().data(), item_size, writer, dataType, dims);
         } else if (tensor.data_type() == 6) {
             int32_t *raw_data = (int32_t *)tensor.int32_data().data();
-            float *temp = new float[item_size];
-            for (int i=0; i<item_size; i++) {
+            float *temp       = new float[item_size];
+            for (int i = 0; i < item_size; i++) {
                 temp[i] = raw_data[i];
             }
             WriteRawData(temp, item_size, writer, dataType, dims);
         } else if (tensor.data_type() == 7) {
             int64_t *raw_data = (int64_t *)tensor.int64_data().data();
-            float *temp = new float[item_size];
-            for (int i=0; i<item_size; i++) {
+            float *temp       = new float[item_size];
+            for (int i = 0; i < item_size; i++) {
                 temp[i] = raw_data[i];
             }
             WriteRawData(temp, item_size, writer, dataType, dims);
-            delete [] temp;
+            delete[] temp;
         } else {
             DLog("invalid tensor type\n");
             assert(0);
@@ -131,8 +130,8 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
     return ret;
 }
 
-int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count,
-                                  serializer *writer, DataType dataType, std::vector<int> dims) {
+int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count, serializer *writer, DataType dataType,
+                                  std::vector<int> dims) {
     int ret = 0;
     do {
         if (data_count == 0 || !raw_data) {
@@ -142,11 +141,11 @@ int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count,
         }
 
         if (dataType == DATA_TYPE_FLOAT) {
-            writer->put_raw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
+            writer->put_raw(data_count * sizeof(float), (char *)raw_data, dims, DATA_TYPE_FLOAT);
         } else if (dataType == DATA_TYPE_HALF) {
             float16 *half_data = new float16[data_count];
-            ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
-            writer->put_raw(data_count * sizeof(float16), (char *)half_data,dims , DATA_TYPE_HALF);
+            ret                = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
+            writer->put_raw(data_count * sizeof(float16), (char *)half_data, dims, DATA_TYPE_HALF);
             delete[] half_data;
         }
     } while (0);
@@ -159,17 +158,12 @@ OnnxOpConverterManager::~OnnxOpConverterManager() {}
 
 std::shared_ptr<OnnxOpConverterManager> &OnnxOpConverterManager::Shared() {
     static std::once_flag once;
-    static std::shared_ptr<OnnxOpConverterManager>
-        g_global_onnx_op_converter_manager;
-    std::call_once(once, []() {
-        g_global_onnx_op_converter_manager =
-            std::make_shared<OnnxOpConverterManager>();
-    });
+    static std::shared_ptr<OnnxOpConverterManager> g_global_onnx_op_converter_manager;
+    std::call_once(once, []() { g_global_onnx_op_converter_manager = std::make_shared<OnnxOpConverterManager>(); });
     return g_global_onnx_op_converter_manager;
 }
 
-std::shared_ptr<OnnxOpConverter> OnnxOpConverterManager::GetOnnxOpConverter(
-    string onnx_type) {
+std::shared_ptr<OnnxOpConverter> OnnxOpConverterManager::GetOnnxOpConverter(string onnx_type) {
     auto iter = converter_map_.find(onnx_type);
     if (iter != converter_map_.end()) {
         return iter->second;
@@ -177,12 +171,10 @@ std::shared_ptr<OnnxOpConverter> OnnxOpConverterManager::GetOnnxOpConverter(
     return nullptr;
 }
 
-int OnnxOpConverterManager::SetOnnxOpConverter(
-    string onnx_type, std::shared_ptr<OnnxOpConverter> converter) {
+int OnnxOpConverterManager::SetOnnxOpConverter(string onnx_type, std::shared_ptr<OnnxOpConverter> converter) {
     auto iter = converter_map_.find(onnx_type);
     if (iter != converter_map_.end()) {
-        DLog("Error: onnx_type(%s) cannot be registered twice\n",
-             onnx_type.c_str());
+        DLog("Error: onnx_type(%s) cannot be registered twice\n", onnx_type.c_str());
         assert(0);
         return 1;
     }

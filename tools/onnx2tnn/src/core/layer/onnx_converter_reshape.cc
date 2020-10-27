@@ -25,7 +25,8 @@ string OnnxOpConverterReshape::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_i
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
     const auto &weight_name = node.input(1);
-    if (net_info.weights_map.find(weight_name) != net_info.weights_map.end()) {
+    auto iter               = net_info.weights_map.find(weight_name);
+    if (iter != net_info.weights_map.end()) {
         const auto &shape_tp = net_info.weights_map[weight_name];
         auto shape_data      = (const int64_t *)get_tensor_proto_data(shape_tp);
         int data_size        = get_tensor_proto_data_size(shape_tp);

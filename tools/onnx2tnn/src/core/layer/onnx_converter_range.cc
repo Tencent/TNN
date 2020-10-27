@@ -15,20 +15,26 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Const);
+DECLARE_OP_CONVERTER(Range);
 
-string OnnxOpConverterConst::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
-    return "Const";
+//void OnnxOpConverterRange::ProcessConstantNode(NodeProto &node, OnnxNetInfo &net_info) {
+//    for (const auto &input_node_name : node.input()) {
+//        if (net_info.const_node_map.find(input_node_name) != net_info.const_node_map.end()) {
+//            net_info.used_const_node.insert(input_node_name);
+//        }
+//    }
+//}
+
+string OnnxOpConverterRange::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
+    return "Range";
 }
 
-string OnnxOpConverterConst::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+string OnnxOpConverterRange::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     return "";
 }
 
-int OnnxOpConverterConst::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
-    onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
-    WriteTensorData(tensor, net_writer, net_info.data_type);
-    return 1;
+int OnnxOpConverterRange::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+    return 0;
 }
 
-REGISTER_OP_CONVERTER(Const, Constant);
+REGISTER_OP_CONVERTER(Range, Range);
