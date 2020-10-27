@@ -71,6 +71,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_MIN, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_MEAN, &param, nullptr, inputs_desc, outputs_desc);
+    Run(LAYER_REDUCE_L1, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_L2, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_LOG_SUM, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_LOG_SUM_EXP, &param, nullptr, inputs_desc, outputs_desc);
