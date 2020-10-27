@@ -66,7 +66,7 @@ IntScaleResource* CreateIntScale(int channel) {
     // scale
     RawBuffer scale(channel * sizeof(float));
     float* k_data = scale.force_to<float*>();
-    InitRandom(k_data, channel, 1.0f);
+    InitRandom(k_data, channel, 0.f, 1.0f);
     for (int k = 0; k < channel; k++) {
         k_data[k] = std::fabs(k_data[k] - 0.f) < FLT_EPSILON ? 1.f : k_data[k];
     }
