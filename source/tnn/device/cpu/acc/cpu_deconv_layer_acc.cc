@@ -60,6 +60,18 @@ Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     return Status(TNNERR_LAYER_ERR, "data type not support in deconv");
 }
 
+void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam * param, float& sum) {
+    if (param->activation_type == ActivationType_ReLU) {
+        sum = sum > 0.0f ? sum : 0.0f;
+    } else if (param->activation_type == ActivationType_ReLU6) {
+        if (sum > 6.0f) {
+            sum = 6.0f;
+        } else if (sum < 0.0f) {
+            sum = 0.0f;
+        }
+    }
+}
+
 template <typename T>
 Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
@@ -75,7 +87,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     // NOTE: weight is format [n][i][o][h][w]
     // different form conv weight layout [n][o][i][h][w]
     void *weight_ptr   = resource->filter_handle.force_to<void *>();
-    void *bias_ptr     = resource->bias_handle.force_to<void *>();
+    void *bias_ptr     = param->bias? resource->bias_handle.force_to<void *>() : nullptr;
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
@@ -160,15 +172,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
                             }
                         }
                         // post op : only support relu and relu6
-                        if (param->activation_type == ActivationType_ReLU) {
-                            sum = sum > 0.0f ? sum : 0.0f;
-                        } else if (param->activation_type == ActivationType_ReLU6) {
-                            if (sum > 6.0f) {
-                                sum = 6.0f;
-                            } else if (sum < 0.0f) {
-                                sum = 0.0f;
-                            }
-                        }
+                        ActiveOutput(param, sum);
                         *outout_data_ptr = sum;
                     }
                 }

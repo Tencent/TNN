@@ -98,5 +98,6 @@ Status OpenCLBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM)
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_SCALE)
+REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM_EX)
 
 }  // namespace TNN_NS

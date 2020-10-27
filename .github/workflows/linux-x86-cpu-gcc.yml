@@ -1,0 +1,19 @@
+name: linux-x86-cpu-gcc
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  linux-gcc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: update
+      run: sudo apt-get update
+    - name: gcc-multilib
+      run: sudo apt-get install gcc-multilib g++-multilib libprotobuf-dev protobuf-compiler
+    - name: build
+      run: ./scripts/build_linux.sh

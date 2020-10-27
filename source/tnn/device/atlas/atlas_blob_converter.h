@@ -23,6 +23,8 @@
 
 namespace TNN_NS {
 
+typedef enum { AIPP_NONE = 0, AIPP_STATIC, AIPP_DYNAMIC } AippType;
+
 class AtlasBlobConverterAcc : public BlobConverterAcc {
 public:
     AtlasBlobConverterAcc(Blob* blob);
@@ -36,7 +38,8 @@ public:
 
 private:
     Status ConvertFromMatAsyncWithoutAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
-    Status ConvertFromMatAsyncWithAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
+    Status ConvertFromMatAsyncWithStaticAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
+    Status ConvertFromMatAsyncWithDynamicAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
 
     bool NeedDoScaleBias(MatConvertParam& param);
     Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream,
@@ -49,9 +52,9 @@ private:
     std::shared_ptr<char> buffer_ = nullptr;
 
     aclmdlAIPP* aipp_dynamic_set_ = nullptr;
-    bool use_dynamic_aipp_        = false;
+    AippType aipp_type_           = AIPP_NONE;
     int aipp_mat_batchsize_       = 0;
-    size_t input_index_           = 0;
+    size_t dynamic_aipp_index_    = 0;
     AtlasModelInfo model_info_;
 };
 

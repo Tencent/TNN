@@ -80,6 +80,19 @@ Status MetalLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
+/*
+  If an acc prefers to dispatch kernel with threadsPerGroup and threadGroups specified,
+  it should override this method to give how many threadGroups to use, and it should also
+  override the @ComputeThreadSize method to give threadsPerGroup.
+  Use this implementaion means dispatching kernels without caring about the threadGroup config.
+*/
+Status MetalLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size) {
+    size = MTLSizeMake(0, 0, 0);
+    return TNN_OK;
+}
+
 Status MetalLayerAcc::SetKernelEncoderParam(
                                             id<MTLComputeCommandEncoder> encoder,
                                             const std::vector<Blob *> &inputs,
@@ -98,6 +111,15 @@ Status MetalLayerAcc::SetKernelEncoderParam(
     return TNN_OK;
 }
 
+NSString * MetalLayerAcc::GetKernelLabel() {
+    if (kernel_label_.length > 0) {
+        return kernel_label_;
+    } else if ((!kernel_label_ || kernel_label_.length <= 0) && param_) {
+        kernel_label_ = [NSString stringWithUTF8String:param_->name.c_str()];
+    }
+    return kernel_label_;
+}
+
 Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     auto data_type_str = DataTypeUtils::GetDataTypeString(data_type);
@@ -109,12 +131,17 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     //
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
+    encoder.label = GetKernelLabel();
     
     MTLSize threads;
     auto status = ComputeThreadSize(inputs, outputs, threads);
+    if (status != TNN_OK) {
+        return status;
+    }
+    // check if perferring to launch kernel with threadGroups specified
+    MTLSize groups;
+    status = ComputeThreadgroupSize(inputs, outputs, groups);
+    bool preferDispatchingWithGroups = (groups.width!=0 && groups.height!=0 && groups.depth!=0);
     if (status != TNN_OK) {
         return status;
     }
@@ -134,8 +161,11 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         
         status = SetKernelEncoderParam(encoder, inputs, outputs);
         BREAK_IF(status != TNN_OK);
-
-        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        if (preferDispatchingWithGroups) {
+            status = [context_impl dispatchEncoder:encoder threadsPerGroup:threads groups: groups bandwidth:bandwidth];
+        } else {
+            status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        }
         BREAK_IF(status != TNN_OK);
     } while (0);
 

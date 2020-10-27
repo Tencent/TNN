@@ -16,7 +16,7 @@
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -48,6 +48,10 @@ private:
     ConcatKernelType concat_type_                           = BUFFER_COPY;
 };
 
+bool CheckIsTwoInputs(const size_t input_size, const int axis) {
+    return input_size == 2 && axis == 1;
+}
+
 Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Concat Acc\n");
@@ -75,7 +79,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     LOGD("do_image_concat: %s\n", do_image_concat_ ? "true" : "false");
 
     // choose kernel type
-    if (inputs.size() == 2 && axis_ == 1) {
+    if (CheckIsTwoInputs(inputs.size(), axis_)) {
         if (do_image_concat_) {
             if (gpu_info_.type == ADRENO) {
                 concat_type_ = TWO_INPUTS_CHANNEL_4X;

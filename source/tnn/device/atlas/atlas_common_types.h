@@ -24,7 +24,7 @@ enum ImageTypeT {
 
 struct AtlasModelConfig {
     std::string om_str = "";
-    bool is_path = false;
+    bool is_path       = false;
 };
 
 struct DimInfo {
@@ -40,9 +40,11 @@ struct AtlasCommandQueue {
 };
 
 struct AtlasModelInfo {
-    aclmdlDesc* model_desc       = nullptr;
-    uint32_t model_id            = 0;
-    aclmdlDataset* input_dataset = nullptr;
+    aclmdlDesc* model_desc               = nullptr;
+    uint32_t model_id                    = 0;
+    aclmdlDataset* input_dataset         = nullptr;
+    bool has_aipp                        = false;
+    aclAippInputFormat aipp_input_format = ACL_AIPP_RESERVED;
 };
 
 }  // namespace TNN_NS

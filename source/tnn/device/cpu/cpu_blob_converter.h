@@ -35,6 +35,8 @@ public:
 private:
     Status ConvertNCHWToNHWC(uint8_t* src, uint8_t* dst);
     Status ConvertNHWCToNCHW(uint8_t* src, uint8_t* dst);
+    Status ConvertFromMatFunc(Mat& image, float* blob_data, MatConvertParam& param, BlobDesc& desc,
+                              const DimsVector& dims, const int hw);
 };
 
 }  // namespace TNN_NS

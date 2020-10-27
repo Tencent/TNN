@@ -58,4 +58,9 @@ Status CudaBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs,
 CudaTypeLayerAccRegister<TypeLayerAccCreator<CudaBatchNormLayerAcc>>
     g_cuda_batch_norm_layer_acc_register(LAYER_BATCH_NORM);
 
+CudaTypeLayerAccRegister<TypeLayerAccCreator<CudaBatchNormLayerAcc>>
+    g_cuda_batch_norm_ex_layer_acc_register(LAYER_BATCH_NORM_EX);
+
+
+
 }  // namespace TNN_NS

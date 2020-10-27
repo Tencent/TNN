@@ -49,3 +49,8 @@ if(TNN_ATLAS_ENABLE)
         target_link_libraries(AtlasTestResizeCrop TNN)
     endif()
 endif()
+
+if(TNN_RK_NPU_ENABLE)
+    message(STATUS "Build TNN RKNPU")
+    target_link_libraries(TNN rknpu_ddk)
+endif()

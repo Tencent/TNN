@@ -37,7 +37,7 @@ int OpenCLRuntime::ref_count_              = 0;
 bool OpenCLRuntime::init_done_             = false;
 
 OpenCLRuntime *OpenCLRuntime::GetInstance() {
-    // don't use DCL, otherwise, ref_count may be wrong due to enable_increase_count_ 
+    // don't use DCL
     std::unique_lock<std::mutex> lck(g_mtx);  
     if (nullptr == opencl_runtime_singleton_.get()) {
         opencl_runtime_singleton_.reset(new OpenCLRuntime());
@@ -253,17 +253,28 @@ bool OpenCLRuntime::SetFp16Enable(bool enable) {
     return fp16_enable_ == enable;
 }
 
+void OpenCLRuntime::SetPrecision(Precision precision) {
+    precision_ = precision;
+}
+
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                                   const std::set<std::string> &build_options) {
     std::string build_options_str;
+    bool force_fp32 = false;
+    auto it         = build_options.find("-DFORCE_FP32");
+    if (it != build_options.end()) {
+        force_fp32 = true;
+    }
     //set default macro
-    if (fp16_enable_) {
+    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_) && !force_fp32) {
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
+        LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =
             "-DFLOAT=half -DFLOAT4=half4 -DRI_F=read_imageh "
             "-DWI_F=write_imageh";
     } else {
         //fp16 not enable, kernel will use float and read_imagef and write_imagef.
+        LOGD("OpenCL Caucluate Pricision is Float!\n");
         build_options_str =
             "-DFLOAT=float -DFLOAT4=float4 -DRI_F=read_imagef "
             "-DWI_F=write_imagef";

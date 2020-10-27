@@ -426,20 +426,25 @@ static inline float32x4_t sigmoid_ps(float32x4_t v)
     return y;
 }
 
+//http://ybeernet.blogspot.com/2011/03/speeding-up-sigmoid-function-by.html
 /* sigmoid() computed for 4 float at once: small error*/
 static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
 {
-    //http://ybeernet.blogspot.com/2011/03/speeding-up-sigmoid-function-by.html
-    float32x4_t const4 = vdupq_n_f32(4.0f);
-    uint32x4_t mask = vcgeq_f32(x, const4);
+    float32x4_t const16 = vdupq_n_f32(16.0f);
+    uint32x4_t mask = vcgeq_f32(x, const16);
     
     float32x4_t const1 = vdupq_n_f32(1.0f);
     float32x4_t const025 = vdupq_n_f32(0.25f*0.25f);
     
+    //y = 1-x/16
     float32x4_t temp = vmlsq_f32(const1, const025, x);
+    //y2
     temp = vmulq_f32(temp, temp);
+    //y4
     temp = vmulq_f32(temp, temp);
+    //y8
     temp = vmulq_f32(temp, temp);
+    //y16
     temp = vmulq_f32(temp, temp);
     
     temp = vaddq_f32(temp, const1);

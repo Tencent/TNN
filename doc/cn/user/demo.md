@@ -93,12 +93,31 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    sh download_model.sh
    ```
 
-   PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+   PS: 
+   
+   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载.
+   
+    想要使用NPU运行demo需要需首先下载NPU ddk。详情参考: [FAQ](../faq.md): 创建华为NPU编译环境。
 
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程。
-
+   
+   PS ：
+   
+   1).  想要使用NPU, 打开工程后，需要手动设置打开NPU：
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用华为NPU。
+   ````
+        set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
+   2). 第一次运行如果遇到 `<path_to_tnn>/examples/android/src/main/jni/thirdparty/hiai_ddk/include/graph`Permission Denied 的情况，
+   Clean Project 再重新运行。
+   
+   3). 当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持IR构建事例模型。参考：[FAQ](../faq.md): 更新到最新的ROM支持NPU。
+   
+   4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
+      
+ 
 ### 运行效果
 1. 人脸检测-图片
 
@@ -107,6 +126,11 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "50%" height = "50%"/>
+    
+    效果示例： 华为P30, 华为NPU rom 100.320.010.022 9.04ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "50%" height = "50%"/>
+    
 
 2. 人脸检测-视频
    模型来源：https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
@@ -114,6 +138,10 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 122.296ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "50%" height = "50%"/>
+    
+    效果示例： 华为P30, 华为NPU rom 100.320.010.022 28ms
+    
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "50%" height = "50%"/>
 
 3. 图像分类
 
@@ -122,7 +150,11 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    效果示例：华为P30, ARM 单线程 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "50%" height = "50%"/>
-
+    
+   效果示例： 华为P30, NPU rom 100.320.010.022 2.48ms
+    
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
+    
 ## 三、Armlinux Demo 介绍
 
 ### 功能
@@ -133,20 +165,33 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    CC=aarch64-linux-gnu-gcc
    CXX=aarch64-linux-gnu-g++
    TNN_LIB_PATH=../../scripts/build_aarch64_linux/
-* 执行build_aarch64.sh
-* 执行demo:
-   ./demo_arm_linux ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel 224 224
+* 执行build_aarch64.sh  
+* 1.执行图像分类demo:  
+   ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+* 2.执行人脸检测demo:  
+   ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
 
 ### 函数流程
-
-* 创建classifier
-      std::shared_ptr<ImageClassifier>  classifier = std::make_shared<ImageClassifier>();
-* 初始化classifier
-      CHECK_TNN_STATUS(classifier->Init(proto, model, "", TNN_NS::TNNComputeUnitsCPU));
-* 创建输入mat
-      auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw);
-* 执行classifier
-    CHECK_TNN_STATUS(classifier->Classify(input_mat, w, h, result));
+#### 图像分类函数流程
+* 创建predictor  
+   auto predictor = std::make_shared<ImageClassifier>();
+* 初始化predictor  
+   CHECK_TNN_STATUS(predictor->Init(option));
+* 创建输入mat  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+* 执行predictor  
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+#### 人脸检测函数流程
+* 创建predictor  
+   auto predictor = std::make_shared<UltraFaceDetector>();
+* 初始化predictor  
+      CHECK_TNN_STATUS(predictor->Init(option));
+* 创建输入mat  
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+* 执行predictor  
+   CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
+* 人脸标记  
+   TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2, face.y2, scale_x, scale_y);
 
 
 ## 四、NCNN 模型使用及接口介绍

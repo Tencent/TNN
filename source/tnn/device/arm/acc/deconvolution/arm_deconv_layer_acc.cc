@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_stride.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_common.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_depthwise.h"
 
@@ -54,7 +55,8 @@ Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         return ret;
     }
 
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    auto data_type = inputs[0]->GetBlobDesc().data_type;
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
         GetImpFP(inputs, outputs);
     } else {
         return Status(TNNERR_NET_ERR, "int8 deconv impl is not supported");
@@ -72,8 +74,12 @@ ArmDeconvLayerAcc::~ArmDeconvLayerAcc() {}
 void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (ArmDeconvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvLayerDepthwise *>(deconv_acc_impl_.get())) {
-            auto deconv_acc = std::make_shared<ArmDeconvLayerDepthwise>();
+            auto deconv_acc  = std::make_shared<ArmDeconvLayerDepthwise>();
             deconv_acc_impl_ = deconv_acc;
+        }
+    } else if (ArmDeconvLayerStride::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
+        if (!dynamic_cast<ArmDeconvLayerStride*>(deconv_acc_impl_.get())) {
+            deconv_acc_impl_ = std::make_shared<ArmDeconvLayerStride>();
         }
     }
     if (!deconv_acc_impl_) {

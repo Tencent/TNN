@@ -18,11 +18,16 @@
 #include "tnn/utils/omp_utils.h"
 namespace TNN_NS {
 
+static inline bool CheckInputOutputSizeSame(int input_height, int input_width,
+            int output_height, int output_width) {
+    return input_height == output_height && input_width == output_width;
+}
+
 // nearest interpolate function
 static inline int upsample_nearest2d(float *output_data, const float *input_data, int input_height, int input_width,
                                      int output_height, int output_width, int channels, bool align_corners) {
     // special case: just copy
-    if (input_height == output_height && input_width == output_width) {
+    if (CheckInputOutputSizeSame(input_height, input_width, output_height, output_width)) {
         if (output_data != input_data) {
             memcpy(output_data, input_data, channels * input_height * input_width * sizeof(float));
         }
@@ -53,7 +58,7 @@ static inline int upsample_nearest2d(float *output_data, const float *input_data
 static inline int upsample_bilinear2d(float *output_data, const float *input_data, int input_height, int input_width,
                                       int output_height, int output_width, int channels, bool align_corners) {
     // special case: just copy
-    if (input_height == output_height && input_width == output_width) {
+    if (CheckInputOutputSizeSame(input_height, input_width, output_height, output_width)) {
         if (output_data != input_data) {
             memcpy(output_data, input_data, channels * input_height * input_width * sizeof(float));
         }
@@ -150,10 +155,10 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
-    if (param->type == 1) {  // nearest
+    if (param->mode == 1) {  // nearest
         upsample_nearest2d(output_data, input_data, input_height, input_width, output_height, output_width,
                            output_channel, (bool)param->align_corners);
-    } else if (param->type == 2) {  // bilinear/linear
+    } else if (param->mode == 2) {  // bilinear/linear
         upsample_bilinear2d(output_data, input_data, input_height, input_width, output_height, output_width,
                             output_channel, (bool)param->align_corners);
 

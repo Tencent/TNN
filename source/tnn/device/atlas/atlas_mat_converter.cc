@@ -100,6 +100,57 @@ AtlasMatConverterAcc::~AtlasMatConverterAcc() {
     }
 }
 
+Status AtlasMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    aclrtMemcpyKind memcpy_type;
+    if (DEVICE_ATLAS == src.GetDeviceType() && DEVICE_ATLAS == dst.GetDeviceType()) {
+        memcpy_type = ACL_MEMCPY_DEVICE_TO_DEVICE;
+    } else if (DEVICE_ATLAS == src.GetDeviceType() &&
+               (DEVICE_NAIVE == dst.GetDeviceType() || DEVICE_ARM == dst.GetDeviceType())) {
+        memcpy_type = ACL_MEMCPY_DEVICE_TO_HOST;
+    } else if ((DEVICE_NAIVE == src.GetDeviceType() || DEVICE_ARM == src.GetDeviceType()) &&
+               DEVICE_ATLAS == dst.GetDeviceType()) {
+        memcpy_type = ACL_MEMCPY_HOST_TO_DEVICE;
+    } else {
+        return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "invalid mat device type for atlas Copy()");
+    }
+
+    Status tnn_ret = TNN_OK;
+    int src_size   = 0;
+    int dst_size   = 0;
+
+    tnn_ret = MatUtils::GetMatByteSize(src, src_size);
+    if (TNN_OK != tnn_ret) {
+        return tnn_ret;
+    }
+    tnn_ret = MatUtils::GetMatByteSize(dst, dst_size);
+    if (TNN_OK != tnn_ret) {
+        return tnn_ret;
+    }
+
+    if (dst_size != src_size) {
+        LOGE("invalid size for MatCopy\n");
+        return Status(TNNERR_PARAM_ERR, "invalid size for MatCopy");
+    }
+
+    aclError acl_ret = aclrtMemcpy(dst.GetData(), src_size, src.GetData(), src_size, memcpy_type);
+    if (ACL_ERROR_NONE != acl_ret) {
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
+    }
+
+    return TNN_OK;
+}
+
 Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue) {
     if (!init_success_) {
         LOGE("init mat converter failed!\n");
@@ -359,7 +410,22 @@ Status AtlasMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
-    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat resize not support multi batch");
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support WarpAffine");
+}
+
+Status AtlasMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support CvtColor");
 }
 
 Status AtlasMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
@@ -402,6 +468,9 @@ Status AtlasMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& 
         }
 
         tnn_ret = MatCopyAsync(dst, src, offset, atlas_cmd_queue->stream);
+        if (TNN_OK != tnn_ret) {
+            return tnn_ret;
+        }
         offset += buffer_size;
     }
 

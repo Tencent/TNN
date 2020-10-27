@@ -29,7 +29,7 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
         int index                      = start_index;
 
         // pool_type
-        layer_param->type = atoi(layer_cfg_arr[index++].c_str());
+        layer_param->mode = atoi(layer_cfg_arr[index++].c_str());
 
         // scales
         float scale_h = (float)atof(layer_cfg_arr[index++].c_str());
@@ -67,7 +67,7 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
             return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
         }
 
-        output_stream << layer_param->type << " ";
+        output_stream << layer_param->mode << " ";
 
         ASSERT(layer_param->scales.size() == 2);
         output_stream << layer_param->scales[1] << " ";

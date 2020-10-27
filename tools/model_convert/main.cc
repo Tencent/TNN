@@ -71,8 +71,9 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::stri
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_convert [-h] [-p] [-m] [-v]\n"
+        "usage:\n./model_convert [-h] [-i] [-p] <proto_path> [-m] <model_path> [-v] <version>\n"
         "\t-h, --help        \t show this message\n"
+        "\t-i, --info        \t show info of model\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"
         "\t-m, --model       \t(require) tnn model file name\n"
         "\t-v, --version      \t(optional) the model versoin to save\n"
@@ -87,14 +88,13 @@ int main(int argc, char* argv[]) {
     std::string model_file_name;
     std::string output_name;
     rapidnetv3::ModelVersion model_version = rapidnetv3::MV_RPNV3;
+    bool show_info                         = false;
 
-    struct option long_options[] = {{"proto", required_argument, 0, 'p'},
-                                    {"model", required_argument, 0, 'm'},
-                                    {"version", optional_argument, 0, 'v'},
-                                    {"help", no_argument, 0, 'h'},
-                                    {0, 0, 0, 0}};
+    struct option long_options[] = {{"proto", required_argument, 0, 'p'},   {"model", required_argument, 0, 'm'},
+                                    {"version", optional_argument, 0, 'v'}, {"help", no_argument, 0, 'h'},
+                                    {"info", no_argument, 0, 'i'},          {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:v:h";
+    const char* optstring = "p:m:v:hi";
 
     if (argc == 1) {
         PrintConfig();
@@ -119,6 +119,9 @@ int main(int argc, char* argv[]) {
                 printf("model version: %s\n", optarg);
                 model_version = (rapidnetv3::ModelVersion)atoi(optarg);
                 break;
+            case 'i':
+                show_info = true;
+                break;
             case 'h':
             case '?':
                 PrintConfig();
@@ -135,30 +138,33 @@ int main(int argc, char* argv[]) {
     if (CheckResult("init model config", ret) != true)
         return -1;
 
-    NetworkConfig net_config;
     ModelConvertor model_converter;
     model_converter.SetModelVersion(model_version);
-    Status status = model_converter.Init(net_config, model_config);
+    Status status = model_converter.Init(model_config);
     if (status != TNN_OK) {
         printf("model_converter init falied!\n");
         return -1;
     }
 
-    output_name = GetFileName(proto_file_name);
-    if (rapidnetv3::MV_RPNV1 == model_version) {
-        output_name += "_v1";
-    } else if (rapidnetv3::MV_TNN == model_version) {
-        output_name += "_tnn";
-    } else if (rapidnetv3::MV_RPNV3 == model_version) {
-        output_name += "_v3";
-    }
+    if (show_info) {
+        model_converter.DumpModelInfo();
+    } else {
+        output_name = GetFileName(proto_file_name);
+        if (rapidnetv3::MV_RPNV1 == model_version) {
+            output_name += "_v1";
+        } else if (rapidnetv3::MV_TNN == model_version) {
+            output_name += "_tnn";
+        } else if (rapidnetv3::MV_RPNV3 == model_version) {
+            output_name += "_v3";
+        }
 
-    status = model_converter.Serialize(output_name + ".rapidproto", output_name + ".rapidmodel");
-    if (status != TNN_OK) {
-        printf("model_converter serialize falied!\n");
-        return -1;
+        status = model_converter.Serialize(output_name + ".rapidproto", output_name + ".rapidmodel");
+        if (status != TNN_OK) {
+            printf("model_converter serialize falied!\n");
+            return -1;
+        }
+        printf("convert model success!\n");
     }
-    printf("convert model success!\n");
 
     return 0;
 }

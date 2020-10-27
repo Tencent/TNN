@@ -83,6 +83,13 @@ private:
     // @brief add blob into map
     Status AddBlobToMap(size_t index, void *data, bool is_input);
 
+    // @brief get input dims
+    Status GetInputInfo(size_t index, std::vector<int> &input_dims, aclFormat &input_format,
+                        aclDataType &input_data_type);
+
+    // @brief set dynmaic batch size
+    Status SetDynamicBatchSize(std::string blob_name, int batch_size);
+
     // @brief destory dataset
     void DestroyDataset(aclmdlDataset *&data_set);
 
@@ -103,6 +110,8 @@ private:
     aclmdlDataset *input_                             = nullptr;
     aclmdlDataset *output_                            = nullptr;
     std::vector<std::string> dynamic_batch_name_;
+    bool has_aipp_ = false;
+    std::map<std::string, aclAippInputFormat> aipp_input_format_map_;
 };
 
 }  // namespace TNN_NS

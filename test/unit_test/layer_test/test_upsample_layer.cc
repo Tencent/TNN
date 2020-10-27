@@ -45,7 +45,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     int batch = std::get<0>(GetParam());
     int channel = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam()); 
-    int type = std::get<3>(GetParam());
+    int mode = std::get<3>(GetParam());
     int align_corners = std::get<4>(GetParam());
     float scale_x = std::get<5>(GetParam());
     float scale_y = std::get<6>(GetParam());
@@ -64,7 +64,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     //param
     UpsampleLayerParam param;
     param.name = "Upsample";
-    param.type          = type;
+    param.mode          = mode;
     param.align_corners = align_corners;
     param.scales = {scale_x, scale_y};
     if (use_dims) {

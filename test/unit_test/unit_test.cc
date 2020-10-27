@@ -50,6 +50,7 @@ GTEST_API_ int main(int argc, char **argv) {
             result = RUN_ALL_TESTS();
         }
     } catch (std::exception e) {
+        LOGE("unit test catches an exception: %s \n", e.what());
     }
     return result;
 }

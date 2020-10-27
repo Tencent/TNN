@@ -523,115 +523,14 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveDropout(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
-
-    for (int i = 0; i < node_count; i++) {
-        onnx::NodeProto* node = mutable_graph->mutable_node(i);
-
-        std::set<std::string> op_types_to_remove = {"Squeeze", "Unsqueeze"};
-
-        // remove unused layer
-        do {
-            auto next_op_type = mutable_graph->mutable_node(i)->op_type();
-            if (op_types_to_remove.find(next_op_type) != op_types_to_remove.end() && i < node_count) {
-                if (node->input_size() != 1 || (node->output_size() != 1 && i != node_count - 1)) {
-                    LOGE("remove %s layer failed\n", next_op_type.c_str());
-                    assert(0);
-                }
-
-                std::string node_name = node->output(0);
-
-                // 删除节点
-                node->set_op_type(k_tnn_noop_type);
-                if (node_reference.find(node_name) != node_reference.end()) {
-                    node_reference.erase(node_reference.find(node_name));
-                }
-
-                // 找到输入输出节点
-                int input_node_id = node_name_to_node_id[node->input(0)];
-                LOGD("op %s[%s] input node id:%d\n", next_op_type.c_str(), node_name.c_str(), input_node_id);
-                onnx::NodeProto* node_input = mutable_graph->mutable_node(input_node_id);
-
-                std::vector<int> output_node_ids = follow_up_node_ids[node_name];
-
-                // 将Squeeze 后续节点 输入替换为Squeeze的输入
-                for (int out_id = 0; out_id < output_node_ids.size(); out_id++) {
-                    LOGD("%s[%s] out node id:%d\n", next_op_type.c_str(), node_name.c_str(), output_node_ids[out_id]);
-                    onnx::NodeProto* node_follow_up = mutable_graph->mutable_node(output_node_ids[out_id]);
-
-                    int k;
-                    for (k = 0; k < node_follow_up->input_size(); k++) {
-                        if (node_follow_up->input(k) == node_name) {
-                            node_follow_up->set_input(k, node_input->output(0));
-                            break;
-                        }
-                    }
-                    if (k == node_follow_up->input_size()) {
-                        LOGE("%s follow up nodes does not has a corresponding input\n", next_op_type.c_str());
-                        assert(0);
-                    }
-                }
-                for (int graph_output_index = 0; graph_output_index < graph.output_size(); graph_output_index++) {
-                    auto graph_output_node = graph.output(graph_output_index);
-                    if (graph_output_node.name() == node->output(0)) {
-                        for (int j = 0; j < node_input->output_size(); ++j) {
-                            if (node_input->output(j) == node->input(0)) {
-                                node_input->set_output(j, node->output(0));
-                            }
-                        }
-                    }
-                }
-            }
-        } while (0);
-
-        // remove Dropout layer, Dropout has 2 output nodes
-        do {
-            auto next_op_type = mutable_graph->mutable_node(i)->op_type();
-            if (next_op_type == "Dropout" && i + 1 < node_count) {
-                node = mutable_graph->mutable_node(i);
-                if (node->input_size() != 1) {
-                    printf("remove Dropout layer failed\n");
-                    assert(0);
-                }
-
-                std::string node_name = node->output(0);
-
-                // 删除Dropout节点
-                node->set_op_type(k_tnn_noop_type);
-                node_reference.erase(node_reference.find(node_name));
-
-                // 找到输入输出节点
-                int input_node_id           = node_name_to_node_id[node->input(0)];
-                onnx::NodeProto* node_input = mutable_graph->mutable_node(input_node_id);
-
-                std::vector<int> output_node_ids = follow_up_node_ids[node_name];
-
-                // 将后续节点 输入替换为Dropout的输入
-                for (int out_id = 0; out_id < output_node_ids.size(); out_id++) {
-                    printf("Dropout %s out node id:%d\n", node_name.c_str(), output_node_ids[out_id]);
-                    onnx::NodeProto* node_follow_up = mutable_graph->mutable_node(output_node_ids[out_id]);
-
-                    int k;
-                    for (k = 0; k < node_follow_up->input_size(); k++) {
-                        if (node_follow_up->input(k) == node_name) {
-                            node_follow_up->set_input(k, node_input->output(0));
-                            break;
-                        }
-                    }
-                    if (k == node_follow_up->input_size()) {
-                        printf("Dropout follow up nodes does not has a corresponding input\n");
-                        assert(0);
-                    }
-                }
-                //                    reduced_node_count += 1;
-            }
-        } while (0);
-    }
-
     // op transfer
     TransferReduceMax(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    TransferGlobalMaxPool(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     // onnx_op chain fusion
     FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -656,6 +555,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FusePixelShuffle(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);

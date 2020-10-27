@@ -53,7 +53,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                             InputShapesMap inputs_shape) {
-    _config                                      = net_config;
+    config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
@@ -74,6 +74,11 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     if (context_ == NULL) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+
+    ret = context_->SetPrecision(net_config.precision);
+    if (ret != TNN_OK) {
+        return ret;
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -143,26 +148,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
             // Check for int8
-            bool is_int8_blob = layer_info->param->quantized;
-            if (is_int8_blob && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
-                auto dest                   = blob->GetBlobDesc();
-                std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
-                if (net_resource->resource_map.count(blob_scale_name) == 0) {
-                    LayerResource *layer_res  = nullptr;
-                    std::vector<Blob *> blobs = {blob};
-                    GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-                    net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-                }
-#endif
-                new_blob->SetIntResource(
-                    reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
-                blob_manager_->ReplaceBlob(name, new_blob);
-                blob = new_blob;
+            bool is_int8_blob = layer_info->param->quantized && blob->GetBlobDesc().data_type != DATA_TYPE_INT8;
+            if (is_int8_blob) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             inputs.push_back(blob);
@@ -190,30 +181,16 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            // Check for int8
             bool is_int8_blob =
                 layer_info->param->quantized ||
                 (type == LAYER_REFORMAT &&
                  reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
-
+            // Check for int8
             if (is_int8_blob) {
-                auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
-                std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
-                if (net_resource->resource_map.count(blob_scale_name) == 0) {
-                    LayerResource *layer_res  = nullptr;
-                    std::vector<Blob *> blobs = {blob};
-                    GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-                    net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-                }
-#endif
-                new_blob->SetIntResource(
-                    reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
-                blob_manager_->ReplaceBlob(name, new_blob);
-                blob = new_blob;
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, &blob), TNN_OK);
             }
             // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+            if (config_.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
                 blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
             }
             outputs.push_back(blob);
@@ -233,6 +210,31 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         layers_.push_back(cur_layer);
     }
     return ret;
+}
+
+Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob) {
+    auto new_blob = new BlobInt8((*blob)->GetBlobDesc(), (*blob)->GetHandle());
+    CHECK_PARAM_NULL(new_blob);
+
+    std::string blob_scale_name = name + "_scale_data_";
+#ifdef BENCHMARK
+    if (net_resource->resource_map.count(blob_scale_name) == 0) {
+        LayerResource *layer_res  = nullptr;
+        std::vector<Blob *> blobs = {*blob};
+        GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
+        net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
+    }
+#endif
+    if (net_resource->resource_map.find(blob_scale_name) == net_resource->resource_map.end()) {
+        LOGE("Error Init layer, can not get output blob scale %s \n", blob_scale_name.c_str());
+        return TNNERR_NULL_PARAM;
+    }
+
+    new_blob->SetIntResource(reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
+    blob_manager_->ReplaceBlob(name, new_blob);
+    *blob = new_blob;
+
+    return TNN_OK;
 }
 
 Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {
@@ -337,8 +339,7 @@ Status DefaultNetwork::Forward() {
         for (int i = 0; i < inputs.size(); i++) {
             char ss[1000];
             if (g_tnn_dump_directory.length() > 0) {
-                snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(),
-                         cnt, filename.c_str(), i);
+                snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
             } else {
                 snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
             }
@@ -365,8 +366,7 @@ Status DefaultNetwork::Forward() {
         for (int i = 0; i < outputs.size(); i++) {
             char ss[1000];
             if (g_tnn_dump_directory.length() > 0) {
-                snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(),
-                         cnt, out_file_name.c_str(), i);
+                snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
             } else {
                 snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
             }

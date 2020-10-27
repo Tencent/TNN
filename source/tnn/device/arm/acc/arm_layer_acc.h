@@ -81,6 +81,9 @@ private:
     public:                                                                                                            \
         virtual ~Arm##type_string##LayerAcc(){};                                                                       \
         virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);               \
+    private:                                                                                                           \
+        template <typename T>                                                                                          \
+        Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                            \
     }
 
 #define REGISTER_ARM_ACC(type_string, layer_type)                                                                      \

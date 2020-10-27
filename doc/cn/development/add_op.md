@@ -20,7 +20,7 @@
 ```
  struct ConvLayerParam : public LayerParam {
      int pad_type = -1;
-     // input channels of blob, devide by group
+     // input channels of blob, divide by group
      int input_channel = 0;
      // the total output channels of blob, not devide by group
      int output_channel = 0;
@@ -117,6 +117,15 @@
 * `Forward()`    
 
 （4）实现Metal的kernel，在目录 `<path_to_TNN>/source/tnn/device/metal/acc` 添加对应的metal文件，以.metal为后缀。
+
+### 3.5 NPU平台  
+在文件夹`<path_to_TNN>/source/tnn/device/huawei_npu/convert`下添加对应算子的LayerConvert实现。  
+（1）声明新算子的LayerConvert实现，如果没有其他权重input，可以直接使用`DECLARE_NPU_LAYER`声明；  
+（2）`REGISTER_NPU_LAYER` 注册新算子的LayerConvert实现；  
+（3）实现以下接口：   
+* `Convert()` -- 使用ir翻译tnn模型算子；  
+
+
 
 ## 4. 添加单元测试 <span id = "4"></span>  
 在文件夹 `<path_to_TNN>/test/unit_test/layer_test` 下添加对应层的单元测试文件。

@@ -39,7 +39,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/string_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -192,6 +192,7 @@ namespace test {
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
+        printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
     }
 
     void SetCpuAffinity() {
@@ -269,7 +270,8 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
             config.params.push_back(buffer);
 
-            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
+            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_RAPIDNET || 
+                config.model_type == MODEL_TYPE_NCNN) {
                 std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
@@ -290,18 +292,21 @@ namespace test {
 
     NetworkConfig GetNetworkConfig() {
         NetworkConfig config;
-        // Precision : HIGH for float computing.
+        // Precision : AUTO for float computing.
         config.precision = ConvertPrecision(FLAGS_pr);
-        
+
         // Device Type: ARM, OPENECL, ...
         config.device_type = ConvertDeviceType(FLAGS_dt);
         
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_mt);
+        config.network_type = ConvertNetworkType(FLAGS_nt);
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
+        //add for cache; When using Huawei NPU, 
+	//it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
+        config.cache_path = "";
         return config;
     }
 

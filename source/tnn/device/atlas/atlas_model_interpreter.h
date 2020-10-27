@@ -5,6 +5,8 @@
 
 #include <memory>
 #include <vector>
+#include <map>
+#include <mutex>
 #include "atlas_common_types.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
@@ -21,12 +23,22 @@ public:
     virtual ~AtlasModelInterpreter();
 
     // @brief different interpreter has different order param
-    virtual Status Interpret(std::vector<std::string> params);
+    virtual Status Interpret(std::vector<std::string> &params);
 
+    // @brief get model config info
     AtlasModelConfig& GetModelConfig();
+
+    // @brief get buffer ptr for model weights
+    void* GetModelWeightsBufferPtr(int device_id);
+
+    // @brief get buffer size for model weights
+    size_t GetModelWeightsBufferSize();
 
 private:
     AtlasModelConfig model_config_;
+    std::map<int, void*> model_weight_ptr_map_;
+    size_t model_weight_size_ = 0;
+    std::mutex mutex_;
 };
 
 }  // namespace TNN_NS

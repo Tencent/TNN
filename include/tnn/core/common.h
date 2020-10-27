@@ -48,33 +48,50 @@ typedef enum {
 } DataFormat;
 
 typedef enum {
-    // reserved
+    // auto precision, each device choose default precision.
+    // ARM: prefer fp16
+    // OPENCL: prefer fp16
+    // METAL: prefer fp16
+    PRECISION_AUTO = -1,
+    // Normal precision
+    // ARM: run fp16 if device support fp16, else run fp32.
+    // OPNECL: run with mixed pricision
+    // METAL: run with fp16
     PRECISION_NORMAL = 0,
-    // High precision, run with fp32.
+    // High precision
+    // ARM: run with fp32
+    // OPENCL: run with fp32
+    // METAL: run with fp16
     PRECISION_HIGH = 1,
-    // Low precision, run with bfp16.
-    PRECISION_LOW = 2,
+    // Low precision
+    // ARM: run with bfp16
+    // OPENCL: run with fp16
+    // METAL: run with fp16
+    PRECISION_LOW = 2
 } Precision;
 
 typedef enum {
-    NETWORK_TYPE_DEFAULT  = 0,
-    NETWORK_TYPE_OPENVINO = 0x1000,
-    NETWORK_TYPE_COREML   = 0x2000,
-    NETWORK_TYPE_SNPE     = 0x3000,
-    NETWORK_TYPE_HIAI     = 0x4000,
-    NETWORK_TYPE_ATLAS    = 0x5000
+    NETWORK_TYPE_DEFAULT    = 0,
+    NETWORK_TYPE_OPENVINO   = 0x1000,
+    NETWORK_TYPE_COREML     = 0x2000,
+    NETWORK_TYPE_SNPE       = 0x3000,
+    NETWORK_TYPE_HIAI       = 0x4000,
+    NETWORK_TYPE_ATLAS      = 0x5000,
+    NETWORK_TYPE_HUAWEI_NPU = 0x6000,
+    NETWORK_TYPE_RK_NPU     = 0x7000
 } NetworkType;
 
 typedef enum {
-    DEVICE_NAIVE  = 0x0000,
-    DEVICE_X86    = 0x0010,
-    DEVICE_ARM    = 0x0020,
-    DEVICE_OPENCL = 0x1000,
-    DEVICE_METAL  = 0x1010,
-    DEVICE_CUDA   = 0x1020,
-    DEVICE_DSP    = 0x1030,
-    DEVICE_ATLAS  = 0x1040,
-    DEVICE_NPU    = 0x1050
+    DEVICE_NAIVE      = 0x0000,
+    DEVICE_X86        = 0x0010,
+    DEVICE_ARM        = 0x0020,
+    DEVICE_OPENCL     = 0x1000,
+    DEVICE_METAL      = 0x1010,
+    DEVICE_CUDA       = 0x1020,
+    DEVICE_DSP        = 0x1030,
+    DEVICE_ATLAS      = 0x1040,
+    DEVICE_HUAWEI_NPU = 0x1050,
+    DEVICE_RK_NPU     = 0x1060,
 } DeviceType;
 
 typedef enum {
@@ -122,7 +139,10 @@ struct PUBLIC NetworkConfig {
     std::vector<std::string> library_path = {};
 
     // compute precision
-    Precision precision = PRECISION_HIGH;
+    Precision precision = PRECISION_AUTO;
+
+    // cache path to store possible cache models
+    std::string cache_path = "";
 };
 
 struct PUBLIC ModelConfig {
@@ -136,20 +156,6 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: om file path.
     std::vector<std::string> params = {};
-    int GetConfig(int protolongth, int modellongth, const unsigned char *tnnproto_buffer,
-                  const unsigned char *tnnmodel_buffer) {
-        std::string tnnmodel;
-        std::string tnnproto;
-
-        for (int i = 0; i < protolongth; i++)
-            tnnproto += tnnproto_buffer[i];
-        for (int i = 0; i < modellongth; i++)
-            tnnmodel += tnnmodel_buffer[i];
-
-        params.push_back(tnnproto);
-        params.push_back(tnnmodel);
-        return 0;
-    }
 };
 
 }  // namespace TNN_NS

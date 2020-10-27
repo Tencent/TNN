@@ -21,7 +21,8 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
                           InputShapesMap inputs_shape) {
     AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
 
-    atlas_config_ = atlas_interpreter->GetModelConfig();
+    atlas_config_      = atlas_interpreter->GetModelConfig();
+    model_weight_size_ = atlas_interpreter->GetModelWeightsBufferSize();
 
     // Init ACL
     Status ret = AtlasRuntime::GetInstance()->Init();
@@ -29,12 +30,20 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         LOGE("acl init falied\n");
         return ret;
     }
+    AtlasRuntime::IncreaseRef();
 
     // Set Device
     ret = AtlasRuntime::GetInstance()->SetDevice(net_config.device_id);
     if (ret != TNN_OK) {
         LOGE("acl set device falied\n");
         return ret;
+    }
+
+    // Get model weights buffer ptr
+    model_weight_ptr_  = atlas_interpreter->GetModelWeightsBufferPtr(net_config.device_id);
+    if (model_weight_ptr_ == nullptr) {
+        LOGE("get model weight buffer ptr falied\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get model weight buffer ptr falied");
     }
 
     // Create Context
@@ -79,9 +88,26 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     model_info.model_desc    = model_desc_;
     model_info.model_id      = model_id_;
     model_info.input_dataset = input_;
+    model_info.has_aipp      = has_aipp_;
     for (auto item : input_blob_map_) {
+        if (aipp_input_format_map_.find(item.first) != aipp_input_format_map_.end())
+            model_info.aipp_input_format = aipp_input_format_map_[item.first];
+        else
+            model_info.aipp_input_format = ACL_AIPP_RESERVED;
         AtlasRuntime::GetInstance()->AddModelInfo(item.second, model_info);
     }
+
+    // set dynamic batch size if needed. must do if input is dynamic batch
+    for (auto item : input_blob_map_) {
+        ret = SetDynamicBatchSize(item.first, item.second->GetBlobDesc().dims[0]);
+        if (ret != TNN_OK)
+            return ret;
+    }
+
+    // reshape if needed
+    ret = Reshape(inputs_shape);
+    if (ret != TNN_OK)
+        return ret;
 
     return TNN_OK;
 }
@@ -120,30 +146,15 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
             LOGD("reshape input %s form [%d,%d,%d,%d] to [%d,%d,%d,%d]\n", item.first.c_str(), dims_org[0], dims_org[1],
                  dims_org[2], dims_org[3], dims[0], dims[1], dims[2], dims[3]);
             input_blob_map_[item.first]->GetBlobDesc().dims = dims;
-        }
-    }
 
-    for (auto item : input_blob_map_) {
-        if (IsDynamicBatch(model_desc_, item.first) && dynamic_batch_name_.size() > 0) {
-            // set dynamic batch
-            int batch        = item.second->GetBlobDesc().dims[0];
-            size_t index     = 0;
-            aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, dynamic_batch_name_[0].c_str(), &index);
-            if (acl_ret != ACL_ERROR_NONE) {
-                LOGE("get dynamic batch input index falied!\n");
-                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get dynamic batch input index falied");
+            if (dims_org[0] == dims[0] && dims_org[1] == dims[1] && dims_org[2] == dims[2] && dims_org[3] == dims[3]) {
+                LOGD("input shape is same, no need to do reshape!\n");
+                continue;
             }
-            acl_ret = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch);
-            if (acl_ret != ACL_ERROR_NONE) {
-                LOGE("set batch size (%s) in reshape failed\n", item.first.c_str());
-                return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
-            }
-            LOGD("input (%s) set dynamic batch size %d (index: %d)\n", item.first.c_str(), batch, index);
 
-            // set output batch size
-            for (auto output_item : output_blob_map_) {
-                output_item.second->GetBlobDesc().dims[0] = batch;
-            }
+            Status tnn_ret = SetDynamicBatchSize(item.first, dims[0]);
+            if (TNN_OK != tnn_ret)
+                return tnn_ret;
         }
     }
 
@@ -197,6 +208,7 @@ Status AtlasNetwork::DeInit() {
         context_ = nullptr;
     }
 
+    AtlasRuntime::DecreaseRef();
     return TNN_OK;
 }
 
@@ -229,23 +241,18 @@ Status AtlasNetwork::ForwardAsync(Callback call_back) {
 }
 
 Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
-    aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &model_weight_size_);
+    size_t temp_size;
+    aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
-        LOGE("query model failed, model file is %s\n", om_file.c_str());
+        LOGE("query model failed (ret=%d), model file is %s\n", ret, om_file.c_str());
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
-    LOGD("model mem size:  %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
+    LOGD("atlas model mem size: %d\n", model_mem_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
         LOGE("malloc buffer for mem failed, require size is %zu\n", model_mem_size_);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
-    }
-
-    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
     }
 
     ret = aclmdlLoadFromFileWithMem(om_file.c_str(), &model_id_, model_mem_ptr_, model_mem_size_, model_weight_ptr_,
@@ -272,12 +279,14 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
 }
 
 Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
-    aclError ret = aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &model_weight_size_);
+    size_t temp_size;
+    aclError ret =
+        aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
-        LOGE("query model failed\n");
+        LOGE("query model failed (ret=%d)\n", ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");
     }
-    LOGD("model mem size: %d    model weight size: %d\n", model_mem_size_, model_weight_size_);
+    LOGD("atlas model mem size: %d\n", model_mem_size_);
 
     ret = aclrtMalloc(&model_mem_ptr_, model_mem_size_, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_ERROR_NONE) {
@@ -285,14 +294,8 @@ Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for mem failed");
     }
 
-    ret = aclrtMalloc(&model_weight_ptr_, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("malloc buffer for weight failed, require size is %zu\n", model_weight_size_);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "malloc buffer for weight failed");
-    }
-
-    ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_, model_weight_ptr_,
-                                    model_weight_size_);
+    ret = aclmdlLoadFromMemWithMem(om_content.data(), om_content.length(), &model_id_, model_mem_ptr_, model_mem_size_,
+                                   model_weight_ptr_, model_weight_size_);
     if (ret != ACL_ERROR_NONE) {
         LOGE("load model from file failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "load model from file failed");
@@ -332,13 +335,6 @@ void AtlasNetwork::UnloadModel() {
         LOGD("acl free model mem ptr\n");
         model_mem_ptr_  = nullptr;
         model_mem_size_ = 0;
-    }
-
-    if (nullptr != model_weight_ptr_) {
-        aclrtFree(model_weight_ptr_);
-        LOGD("acl free model weight ptr\n");
-        model_weight_ptr_  = nullptr;
-        model_weight_size_ = 0;
     }
 }
 
@@ -406,11 +402,13 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "no model description");
     }
 
+    Status ret            = TNN_OK;
     std::string blob_name = "";
-    aclmdlIODims acl_dims;
+    std::vector<int> io_dims;
     aclDataType data_type;
     aclFormat data_format;
 
+    io_dims.clear();
     if (is_input) {
         // get blob name
         blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
@@ -425,35 +423,23 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
             dynamic_batch_name_.push_back(blob_name);
             return TNN_OK;
         }
-        // get dims info
-        aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
-        if (acl_ret != ACL_ERROR_NONE) {
-            LOGE("can't get input dims\n");
-            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input dims");
+
+        // get dims info and data format
+        ret = GetInputInfo(index, io_dims, data_format, data_type);
+        if (TNN_OK != ret) {
+            return ret;
         }
-        // get data type
-        data_type = aclmdlGetInputDataType(model_desc_, index);
-        // get data format
-        data_format = aclmdlGetInputFormat(model_desc_, index);
+
         LOGD("input data type: %d  input data format: %d\n", data_type, data_format);
-        // in dynamic batch input, reset batch
-        if (-1 == acl_dims.dims[0]) {
-            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index);
-            int chw_size     = aclDataTypeSize(data_type);
-            for (int i = 1; i < acl_dims.dimCount; ++i) {
-                chw_size *= acl_dims.dims[i];
-            }
-            acl_dims.dims[0] = buffer_size / chw_size;
-            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
-        }
         LOGD("input shape:\n");
-        for (int i = 0; i < acl_dims.dimCount; ++i) {
-            LOGD("[%d]\n", (int)acl_dims.dims[i]);
+        for (int i = 0; i < io_dims.size(); ++i) {
+            LOGD("[%d]\n", io_dims[i]);
         }
     } else {
         // get blob name
         blob_name = aclmdlGetOutputNameByIndex(model_desc_, index);
         // get dims info
+        aclmdlIODims acl_dims;
         aclError acl_ret = aclmdlGetOutputDims(model_desc_, index, &acl_dims);
         if (acl_ret != ACL_ERROR_NONE) {
             LOGE("can't get output dims\n");
@@ -466,11 +452,11 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         LOGD("output data type: %d  output data format: %d\n", data_type, data_format);
         LOGD("output shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
+            io_dims.push_back((int)acl_dims.dims[i]);
             LOGD("[%d]\n", (int)acl_dims.dims[i]);
         }
     }
 
-    Status ret = TNN_OK;
     BlobDesc blob_desc;
     blob_desc.device_type = DEVICE_ATLAS;
     ret                   = ConvertFromAclDataTypeToTnnDataType(data_type, blob_desc.data_type);
@@ -483,10 +469,10 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         LOGE("convert from acl data format to tnn data format falied\n");
         return ret;
     }
-    for (int i = 0; i < acl_dims.dimCount; ++i) {
-        blob_desc.dims.push_back((int)acl_dims.dims[i]);
+    for (int i = 0; i < io_dims.size(); ++i) {
+        blob_desc.dims.push_back((int)io_dims[i]);
     }
-    for (int i = acl_dims.dimCount; i < 4; ++i) {
+    for (int i = io_dims.size(); i < 4; ++i) {
         blob_desc.dims.push_back(1);
     }
     blob_desc.name = blob_name;
@@ -500,6 +486,109 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
         input_blob_map_[blob_name] = blob;
     } else {
         output_blob_map_[blob_name] = blob;
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int> &input_dims, aclFormat &input_format,
+                                  aclDataType &input_data_type) {
+    std::string blob_name = aclmdlGetInputNameByIndex(model_desc_, index);
+    aclAippInfo aipp_info;
+    aclError acl_ret = aclmdlGetFirstAippInfo(model_id_, index, &aipp_info);
+
+    input_dims.clear();
+    if (ACL_ERROR_NONE == acl_ret) {
+        has_aipp_ = true;
+        LOGD("shapeCount: %d   srcDimNum: %d\n", aipp_info.shapeCount, aipp_info.srcDimNum);
+        // get aipp input format
+        aipp_input_format_map_[blob_name] = aipp_info.inputFormat;
+
+        // get data format
+        input_format = aipp_info.srcFormat;
+
+        // get data type
+        input_data_type = aipp_info.srcDatatype;
+
+        if (aipp_info.shapeCount < 1) {
+            LOGE("model input is less than 1\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "model input is less than 1");
+        }
+        // get the max input dims
+        aclmdlIODims acl_dims = aipp_info.outDims[0].srcDims;
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            input_dims.push_back((int)acl_dims.dims[i]);
+        }
+
+        for (int i = 1; i < aipp_info.shapeCount; ++i) {
+            acl_dims = aipp_info.outDims[i].srcDims;
+            for (int i = 0; i < acl_dims.dimCount; ++i) {
+                input_dims[i] = std::max((int)acl_dims.dims[i], input_dims[i]);
+            }
+        }
+    } else {
+        LOGE("get aipp info failed (ret=%d), use input info directly\n", acl_ret);
+        // get aipp input format
+        aipp_input_format_map_[blob_name] = ACL_AIPP_RESERVED;
+
+        // get data format
+        input_format = aclmdlGetInputFormat(model_desc_, index);
+
+        // get data type
+        input_data_type = aclmdlGetInputDataType(model_desc_, index);
+
+        // get dims info
+        aclmdlIODims acl_dims;
+        aclError acl_ret = aclmdlGetInputDims(model_desc_, index, &acl_dims);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("can't get input dims\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get input dims");
+        }
+        // in dynamic batch input, reset batch
+        if (-1 == acl_dims.dims[0]) {
+            auto buffer_size = aclmdlGetInputSizeByIndex(model_desc_, index);
+            int chw_size     = aclDataTypeSize(input_data_type);
+            for (int i = 1; i < acl_dims.dimCount; ++i) {
+                chw_size *= acl_dims.dims[i];
+            }
+            acl_dims.dims[0] = buffer_size / chw_size;
+            LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
+        }
+        for (int i = 0; i < acl_dims.dimCount; ++i) {
+            input_dims.push_back((int)acl_dims.dims[i]);
+        }
+    }
+
+    LOGD("input shape:\n");
+    for (int i = 0; i < input_dims.size(); ++i) {
+        LOGD("[%d]\n", input_dims[i]);
+    }
+
+    return TNN_OK;
+}
+
+Status AtlasNetwork::SetDynamicBatchSize(std::string blob_name, int batch_size) {
+    if (IsDynamicBatch(model_desc_, blob_name) && dynamic_batch_name_.size() > 0) {
+        // set dynamic batch
+        size_t index     = 0;
+        aclError acl_ret = aclmdlGetInputIndexByName(model_desc_, dynamic_batch_name_[0].c_str(), &index);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("get dynamic batch input index falied!\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get dynamic batch input index falied");
+        }
+        acl_ret = aclmdlSetDynamicBatchSize(model_id_, input_, index, batch_size);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("set batch size (%s) in reshape failed\n", blob_name.c_str());
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set batch size in reshape failed");
+        }
+        LOGD("input (%s) set dynamic batch size %d (index: %d)\n", blob_name.c_str(), batch_size, index);
+
+        // set output batch size
+        for (auto output_item : output_blob_map_) {
+            output_item.second->GetBlobDesc().dims[0] = batch_size;
+        }
+    } else {
+        LOGD("not dymamic batch input, skip\n");
     }
 
     return TNN_OK;

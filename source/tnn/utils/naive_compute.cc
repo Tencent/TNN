@@ -27,7 +27,11 @@
 namespace TNN_NS {
 
 int8_t float2int8(float val) {
-    return static_cast<int8_t>(MAX(MIN(val, 127.0f), -127.0f));
+    return static_cast<int8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 127.0f), -128.0f));
+}
+
+uint8_t float2uint8(float val) {
+    return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
 }
 
 /*
@@ -158,6 +162,19 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
     }
 }
 
+template <typename Tacc>
+void FloatActivate(Tacc& result, const int activation_type) {
+    if (activation_type == ActivationType_ReLU) {
+        result = static_cast<Tacc>(result > 0.0f ? result : 0.0f);
+    } else if (activation_type == ActivationType_ReLU6) {
+        if (result > 6.0f) {
+            result = static_cast<Tacc>(6.0f);
+        } else if (result < 0.0f) {
+            result = static_cast<Tacc>(0.0f);
+        }
+    }
+}
+
 /*
  * convolution funtion
  * input & output data_format is NCHW
@@ -224,15 +241,7 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
                             result += bias_data[output_c];
                         }
                         if (sizeof(Tin) > 1) {  // float
-                            if (activation_type == ActivationType_ReLU) {
-                                result = static_cast<Tacc>(result > 0.0f ? result : 0.0f);
-                            } else if (activation_type == ActivationType_ReLU6) {
-                                if (result > 6.0f) {
-                                    result = static_cast<Tacc>(6.0f);
-                                } else if (result < 0.0f) {
-                                    result = static_cast<Tacc>(0.0f);
-                                }
-                            }
+                            FloatActivate(result, activation_type);
                             output_data[output_position] = result;
                         } else {
                             int scaleidx = scale_len == 1 ? 0 : output_c;
@@ -429,6 +438,77 @@ inline CodeType GetCodeType(const int number) {
     }
 }
 
+void DealOutput(Blob* output_blob, const int num_kept,
+                const int num, std::vector<std::map<int, std::vector<float>>>& all_conf_scores,
+                std::vector<LabelBBox>& all_decode_bboxes,
+                std::vector<std::map<int, std::vector<int>>>& all_indices,
+                DetectionOutputLayerParam *param) {
+    std::vector<int> top_shape(2, 1);
+    top_shape.push_back(num_kept);
+    top_shape.push_back(7);
+    // get all dims
+    int num_dims = 1;
+    for (int dim : output_blob->GetBlobDesc().dims) {
+        num_dims *= dim;
+    }
+    float *top_data = static_cast<float *>(output_blob->GetHandle().base);
+    // update the output shape
+    if (num_kept == 0) {
+        LOGD("%s:Couldn't find any detections.", __FUNCTION__);
+        top_shape[2] = num;
+        // top[0]->Reshape(top_shape);
+        output_blob->GetBlobDesc().dims[2] = num;
+        priorbox_set_value(num_dims, -1, top_data);
+
+        // Generate fake results per image.
+        for (int i = 0; i < num; ++i) {
+            top_data[0] = static_cast<float>(i);
+            top_data += 7;
+        }
+    } else {
+        // top[0]->Reshape(top_shape);
+        output_blob->GetBlobDesc().dims[2] = num_kept;
+    }
+
+    int count = 0;
+    for (int i = 0; i < num; ++i) {
+        const std::map<int, std::vector<float>> &conf_scores = all_conf_scores[i];
+        const LabelBBox &decode_bboxes                       = all_decode_bboxes[i];
+        for (std::map<int, std::vector<int>>::iterator it = all_indices[i].begin(); it != all_indices[i].end(); ++it) {
+            int label = it->first;
+            if (conf_scores.find(label) == conf_scores.end()) {
+                // Something bad happened if there are no predictions for
+                // current label.
+                LOGE("Could not find confidence predictions for ");
+                continue;
+            }
+            const std::vector<float> &scores = conf_scores.find(label)->second;
+            int loc_label                    = param->share_location ? -1 : label;
+            if (decode_bboxes.find(loc_label) == decode_bboxes.end()) {
+                // Something bad happened if there are no predictions for
+                // current label.
+                LOGE("Could not find location predictions for ");
+                continue;
+            }
+            const std::vector<NormalizedBBox> &bboxes = decode_bboxes.find(loc_label)->second;
+            std::vector<int> &indices                 = it->second;
+
+            for (size_t j = 0; j < indices.size(); ++j) {
+                int idx                    = indices[j];
+                top_data[count * 7]        = static_cast<float>(i);
+                top_data[count * 7 + 1]    = static_cast<float>(label);
+                top_data[count * 7 + 2]    = scores[idx];
+                const NormalizedBBox &bbox = bboxes[idx];
+                top_data[count * 7 + 3]    = bbox.xmin();
+                top_data[count * 7 + 4]    = bbox.ymin();
+                top_data[count * 7 + 5]    = bbox.xmax();
+                top_data[count * 7 + 6]    = bbox.ymax();
+                ++count;
+            }
+        }
+    }
+}
+
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param) {
     ASSERT(inputs.size() >= 3);
@@ -438,9 +518,9 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     auto loc_dims = loc_blob->GetBlobDesc().dims;
     auto conf_dims = conf_blob->GetBlobDesc().dims;
     auto prior_dims = prior_blob->GetBlobDesc().dims;
-    LOGE("the loc_lob: (%d, %d, %d, %d)\n", loc_dims[0], loc_dims[1], loc_dims[2], loc_dims[3]);
-    LOGE("the conf_lob: (%d, %d, %d, %d)\n", conf_dims[0], conf_dims[1], conf_dims[2], conf_dims[3]);
-    LOGE("the prior_lob: (%d, %d, %d, %d)\n", prior_dims[0], prior_dims[1], prior_dims[2], prior_dims[3]);
+    LOGD("the loc_lob: (%d, %d, %d, %d)\n", loc_dims[0], loc_dims[1], loc_dims[2], loc_dims[3]);
+    LOGD("the conf_lob: (%d, %d, %d, %d)\n", conf_dims[0], conf_dims[1], conf_dims[2], conf_dims[3]);
+    LOGD("the prior_lob: (%d, %d, %d, %d)\n", prior_dims[0], prior_dims[1], prior_dims[2], prior_dims[3]);
     const int num    = loc_blob->GetBlobDesc().dims[0];
     // get output blob
     Blob *output_blob = outputs[0];
@@ -569,69 +649,94 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
         }
     }
 
-    std::vector<int> top_shape(2, 1);
-    top_shape.push_back(num_kept);
-    top_shape.push_back(7);
-    // get all dims
-    int num_dims = 1;
-    for (int dim : output_blob->GetBlobDesc().dims) {
-        num_dims *= dim;
-    }
-    float *top_data = static_cast<float *>(output_blob->GetHandle().base);
-    // update the output shape
-    if (num_kept == 0) {
-        LOGD("%s:Couldn't find any detections.", __FUNCTION__);
-        top_shape[2] = num;
-        // top[0]->Reshape(top_shape);
-        output_blob->GetBlobDesc().dims[2] = num;
-        priorbox_set_value(num_dims, -1, top_data);
+    DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
+}
 
-        // Generate fake results per image.
-        for (int i = 0; i < num; ++i) {
-            top_data[0] = static_cast<float>(i);
-            top_data += 7;
+void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
+    int offset = 0;
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            unsigned b = src[offset * channel + 0];
+            unsigned g = src[offset * channel + 1];
+            unsigned r = src[offset * channel + 2];
+            float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
+            dst[offset] = gray_color;
+            offset += 1;
         }
-    } else {
-        // top[0]->Reshape(top_shape);
-        output_blob->GetBlobDesc().dims[2] = num_kept;
     }
+}
 
-    int count = 0;
-    for (int i = 0; i < num; ++i) {
-        const std::map<int, std::vector<float>> &conf_scores = all_conf_scores[i];
-        const LabelBBox &decode_bboxes                       = all_decode_bboxes[i];
-        for (std::map<int, std::vector<int>>::iterator it = all_indices[i].begin(); it != all_indices[i].end(); ++it) {
-            int label = it->first;
-            if (conf_scores.find(label) == conf_scores.end()) {
-                // Something bad happened if there are no predictions for
-                // current label.
-                LOGE("Could not find confidence predictions for ");
-                continue;
-            }
-            const std::vector<float> &scores = conf_scores.find(label)->second;
-            int loc_label                    = param->share_location ? -1 : label;
-            if (decode_bboxes.find(loc_label) == decode_bboxes.end()) {
-                // Something bad happened if there are no predictions for
-                // current label.
-                LOGE("Could not find location predictions for ");
-                continue;
-            }
-            const std::vector<NormalizedBBox> &bboxes = decode_bboxes.find(loc_label)->second;
-            std::vector<int> &indices                 = it->second;
-
-            for (size_t j = 0; j < indices.size(); ++j) {
-                int idx                    = indices[j];
-                top_data[count * 7]        = static_cast<float>(i);
-                top_data[count * 7 + 1]    = static_cast<float>(label);
-                top_data[count * 7 + 2]    = scores[idx];
-                const NormalizedBBox &bbox = bboxes[idx];
-                top_data[count * 7 + 3]    = bbox.xmin();
-                top_data[count * 7 + 4]    = bbox.ymin();
-                top_data[count * 7 + 5]    = bbox.xmax();
-                top_data[count * 7 + 6]    = bbox.ymax();
-                ++count;
-            }
+void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
+                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel) {
+    for (; remain > 0; remain -= 2) {
+        int u, v;
+        if (is_nv12) {
+            u = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            v = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
+        } else {
+            v = (vuptr[0] > 240 ? 240 : vuptr[0]) - 128;
+            u = (vuptr[1] > 240 ? 240 : vuptr[1]) - 128;
         }
+
+        int ruv = 102 * v;
+        int guv = -52 * v + -25 * u;
+        int buv = 129 * u;
+
+#define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
+
+        int y00 = yptr0[0]* 74 - 1135;
+        if (channel == 4)
+            rgb0[3] = 255;
+        rgb0[0 * channel + 2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
+        rgb0[0 * channel + 1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
+        rgb0[0 * channel + 0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
+
+        int y01 = yptr0[1]* 74 - 1135;
+        if (channel == 4)
+            rgb0[7] = 255;
+        rgb0[1 * channel + 2] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
+        rgb0[1 * channel + 1] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
+        rgb0[1 * channel + 0] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
+
+        int y10 = yptr1[0]* 74 - 1135;
+        if (channel == 4)
+            rgb1[3] = 255;
+        rgb1[0 * channel + 2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
+        rgb1[0 * channel + 1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
+        rgb1[0 * channel + 0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
+
+        int y11 = yptr1[1]* 74 - 1135;
+        if (channel == 4)
+            rgb1[7] = 255;
+        rgb1[1 * channel + 2] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
+        rgb1[1 * channel + 1] = SATURATE_CAST_UCHAR((y11 + guv) >> 6);
+        rgb1[1 * channel + 0] = SATURATE_CAST_UCHAR((y11 + buv) >> 6);
+
+#undef SATURATE_CAST_UCHAR
+
+        yptr0 += 2;
+        yptr1 += 2;
+        vuptr += 2;
+        rgb0  += 2*channel;
+        rgb1  += 2*channel;
+    }
+}
+
+void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12) {
+    const unsigned char* yptr  = yuv;
+    const unsigned char* vuptr = yuv + w * h;
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0 = bgr;
+        unsigned char* rgb1 = bgr + w * channel;
+
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, w, is_nv12, channel);
+
+        yptr  += 2*w;
+        vuptr += w;
+        bgr   += 2*channel*w;
     }
 }
 

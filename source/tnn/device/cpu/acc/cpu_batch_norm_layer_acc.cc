@@ -68,5 +68,6 @@ Status CpuBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_CPU_ACC(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_CPU_ACC(BatchNorm, LAYER_BATCH_NORM_EX);
 
 }  // namespace TNN_NS

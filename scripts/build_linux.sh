@@ -29,9 +29,16 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_UNIT_TEST_ENABLE=ON \
     -DTNN_COVERAGE=ON \
     -DTNN_BENCHMARK_MODE=ON \
-    -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
+    -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB \
+    -DTNN_CONVERTER_ENABLE=ON
 
 
 make -j4
+
+# check compile error, or ci will not stop
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
 
 ctest --output-on-failure -j 2

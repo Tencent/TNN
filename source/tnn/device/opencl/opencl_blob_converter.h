@@ -11,8 +11,9 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
+
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_
 
 #include "tnn/core/macro.h"
 #include "tnn/device/opencl/opencl_utils.h"
@@ -41,14 +42,21 @@ private:
     Status RunConvertUnit(OpenCLExecuteUnit& unit, cl::CommandQueue* command_queue, bool need_wait = false);
     Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
     Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
+    Status CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue);
+
+    Status GetConvertToMatKernelName(Mat &mat, std::string& kernel_name);
+    Status GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name);
 
     std::map<std::string, OpenCLExecuteUnit> convert_to_mat_map_ = {};
     std::map<std::string, OpenCLExecuteUnit> convert_from_mat_map_ = {};
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;
+    std::shared_ptr<cl::Buffer> scale_buffer_ = nullptr;
+    std::shared_ptr<cl::Buffer> bias_buffer_ = nullptr;
     int buffer_size_ = 0;
+    int scale_bias_buffer_size_ = 0;
     bool do_scale_bias_ = true;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_MAT_CONVERTER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_BLOB_CONVERTER_H_

@@ -6,10 +6,15 @@
 #include <memory>
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
-#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/rapidnetv3/model_interpreter.h"
 #include "tnn/interpreter/rapidnetv3/objseri.h"
 
 namespace TNN_NS {
+
+struct ModelInfo {
+    rapidnetv3::ModelVersion model_version;
+    DataType model_data_type;
+};
 
 class ModelConvertor {
 public:
@@ -20,15 +25,17 @@ public:
     virtual ~ModelConvertor();
 
 public:
-    // @brief int net with network config, net structure and net resource info
-    // @param config network config info
-    // @param inputs_shape_map modify input shape, if empty, it will use the
+    // @brief init with model config, net structure and net resource info
+    // @param model_config model config info
     // shape in proto
-    Status Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape = InputShapesMap());
+    Status Init(ModelConfig& model_config);
 
     // @brief set model version to save
     // @param ver, model version
     void SetModelVersion(rapidnetv3::ModelVersion ver);
+
+    // @brief dump model info
+    void DumpModelInfo();
 
     // @brief int net with network config, net structure and net resource info
     // @param proto_path, file path to save the quantized proto.
@@ -36,7 +43,7 @@ public:
     Status Serialize(std::string proto_path, std::string model_path);
 
 private:
-    std::shared_ptr<DefaultModelInterpreter> interpreter_;
+    std::shared_ptr<rapidnetv3::ModelInterpreter> interpreter_;
     rapidnetv3::ModelVersion model_version_;
 };
 

@@ -16,7 +16,7 @@
 #define TNN_INCLUDE_TNN_UTILS_MAT_UTILS_H_
 
 #include "tnn/core/status.h"
-#include "tnn/utils/blob_converter.h"
+#include "tnn/core/mat.h"
 
 namespace TNN_NS {
 
@@ -32,18 +32,18 @@ typedef enum {
 } PUBLIC BorderType;
 
 typedef enum {
-    PASTE_TYPE_TOP_LEFT_ALIGN = 0x00,
-    PASTE_TYPE_CENTER_ALIGN   = 0x01,
-} PUBLIC PasteType;
+    COLOR_CONVERT_NV12TOBGR  = 0x00,
+    COLOR_CONVERT_NV12TOBGRA = 0x01,
+    COLOR_CONVERT_NV21TOBGR  = 0x02,
+    COLOR_CONVERT_NV21TOBGRA = 0x03,
+    COLOR_CONVERT_BGRTOGRAY  = 0x04,
+    COLOR_CONVERT_BGRATOGRAY = 0x05,
+} PUBLIC ColorConversionType;
 
 struct PUBLIC ResizeParam {
     float scale_w = 0.0f;
     float scale_h = 0.0f;
-};
-
-struct PUBLIC PasteParam {
-    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
-    int pad_value  = 0;
+    InterpType type = INTERP_TYPE_LINEAR;
 };
 
 struct PUBLIC CropParam {
@@ -60,15 +60,34 @@ struct PUBLIC WarpAffineParam {
     float border_val       = 0.0f;
 };
 
+typedef enum {
+    PASTE_TYPE_TOP_LEFT_ALIGN = 0x00,
+    PASTE_TYPE_CENTER_ALIGN   = 0x01,
+} PUBLIC PasteType;
+
+struct PUBLIC PasteParam {
+    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
+    int pad_value  = 0;
+};
+
 class PUBLIC MatUtils {
 public:
-    // @brief mat resize
-    // @param src  src mat
-    // @param dst mat
-    // @param param  param to use for resize
-    // @param command_queue  device related command queue
-    // @return ret  return val
+    //copy cpu <-> device, cpu<->cpu, device<->device, src and dst dims must be equal.
+    static Status Copy(Mat& src, Mat& dst, void* command_queue);
+
+    //src and dst device type must be same. when param scale_w or scale_h is 0, it is computed as
+    // (double)dst.GetWidth() / src.GetWidth() or (double)dst.GetHeight() / src.GetHeight().
     static Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue);
+
+    //src and dst device type must be same. when param width or height is 0, it is equal to
+    //dst.GetWidth() or dst.GetHeight().
+    static Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
+
+    //src and dst device type must be same.
+    static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
+
+    //src and dst device type must be same.
+    static Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue);
 
     // @brief mat resize and paste to dst
     // @param src  src mat
@@ -78,22 +97,6 @@ public:
     // @param command_queue  device related command queue
     // @return ret  return val
     static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
-
-    // @brief mat resize
-    // @param src  src mat
-    // @param dst mat
-    // @param param to use for crop
-    // @param command_queue  device related command queue
-    // @return ret  return val
-    static Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue);
-
-    // @brief mat resize
-    // @param src  src mat
-    // @param dst mat
-    // @param param to use for warpaffine
-    // @param command_queue  device related command queue
-    // @return ret  return val
-    static Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue);
 
     // @brief mat concat with batch
     // @param src_vec  src mat vector
