@@ -30,14 +30,25 @@ Status CpuRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count         = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {
             output_data[index] = std::max(0.0f, input_data[index]);
             output_data[index] = std::min(6.0f, output_data[index]);
         }
-    } else {
+    }
+#ifdef TNN_ARM82
+    else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        __fp16 *input_data  = static_cast<__fp16 *>(input_blob->GetHandle().base);
+        __fp16 *output_data = static_cast<__fp16 *>(output_blob->GetHandle().base);
+        for (int index = 0; index < count; ++index) {
+            output_data[index] = std::max(0.0f, input_data[index]);
+            output_data[index] = std::min(6.0f, output_data[index]);
+        }
+    }
+#endif
+    else {
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {

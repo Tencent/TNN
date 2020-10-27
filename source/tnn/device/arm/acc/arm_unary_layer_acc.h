@@ -27,9 +27,23 @@ public:
         return TNN_OK;
     }
 
+    virtual float operator()(const float& v) {
+        return v;
+    }
+
     virtual Float4 operator()(const Float4 &v) {
         return v;
     };
+
+#ifdef TNN_ARM82
+    virtual __fp16 operator()(const __fp16 &v) {
+        return v;
+    };
+
+    virtual float16x8_t operator()(const float16x8_t &v) {
+        return v;
+    }
+#endif
 
 protected:
     LayerParam *param_ = nullptr;
