@@ -50,7 +50,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                             // pads
                             testing::Values(0, 1),
                             // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param
@@ -75,8 +75,8 @@ TEST_P(ConvLayerTest, ConvLayer) {
     }
 
     // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, dtype);
+    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
 
     // param
     ConvLayerParam param;

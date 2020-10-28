@@ -524,6 +524,52 @@ int ConvertWeightsFromOI3HWToOHW12(T *src, T *dst, int input_channel, int output
 template int ConvertWeightsFromOI3HWToOHW12(float *src, float *dst, int input_channel, int output_channel, int height,
                                             int width);
 
+// to   [g][o/8][i/8][h][w][i8][o8]
+// from [g][o][i][h][w]
+template <typename T>
+int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width) {
+    const int goc = output_channel / group;
+    const int gic = input_channel / group;
+    const int goc_r8 = ROUND_UP(goc, 8);
+    const size_t src_count = group * goc * gic * height * width;
+    const size_t ic_step = gic * height * width;
+    const size_t hw_size = height * width;
+
+    for (int g = 0; g < group; g++) {
+        auto g_src = src + g * goc * ic_step;
+        auto g_dst = dst + g * goc_r8 * ic_step;
+        for (int oc = 0; oc < goc; oc += 8) {
+            int oc_eff = MIN(goc - oc, 8);
+            auto oc_src = g_src + oc * ic_step;
+            auto oc_dst = g_dst + oc * ic_step;
+            for (int ic = 0; ic < gic; ic += 8) {
+                int ic_eff = MIN(gic - ic, 8);
+                auto ic_src = oc_src + ic * hw_size;
+                auto ic_dst = oc_dst + ic * hw_size * 8;
+                for (int k = 0; k < hw_size; k++) {
+                    auto k_src = ic_src + k;
+                    auto k_dst = ic_dst + k * ic_eff * 8;
+                    for (int ic_i = 0; ic_i < ic_eff; ic_i++) {
+                        int oc_i = 0;
+                        for (; oc_i < oc_eff; oc_i++) {
+                            k_dst[ic_i * 8 + oc_i] = k_src[oc_i * ic_step + ic_i * hw_size];
+                        }
+                        for (; oc_i < 8; oc_i++) {
+                            k_dst[ic_i * 8 + oc_i] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromGOIHWToGOIHW64(const __fp16 *src, __fp16 *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
+#endif
+
 //float
 //     r = 1.164 * (y - 16) + 1.596 * (v - 128);
 //     g = 1.164 * (y - 16) - 0.813 * (v - 128) - 0.391 * (u - 128);

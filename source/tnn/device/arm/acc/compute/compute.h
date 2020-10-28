@@ -27,9 +27,11 @@
 namespace TNN_NS {
 struct ArmKernelParam {
     long ic_r4;
+    long ic_r8;
     long ih;
     long iw;
     long oc_r4;
+    long oc_r8;
     long oh;
     long ow;
     void* fil_ptr;
@@ -119,6 +121,13 @@ void ConvDw3x3FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, 
 void ConvDw3x3Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
+
+#if TNN_ARM82
+void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, size_t src_depth,
+                           size_t dst_step, size_t dst_depth, size_t width, __fp16 *bias, size_t relu);
+void Half2Float(float* dst, const __fp16* src, const size_t length);
+void Float2Half(__fp16* dst, const float* src, const size_t length);
+#endif
 
 #ifdef __cplusplus
 }
