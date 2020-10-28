@@ -93,6 +93,11 @@ bool MatConverterTest::MetalTestFilter(const DeviceType& device_type, const MatT
     if (device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
         return true;
     }
+    // Disable interpolation-related tests on Metal
+    if (device_type == DEVICE_METAL && (mat_converter_type == MatConverterType::WarpAffine ||
+                mat_converter_type == MatConverterType::Resize)) {
+        return true;
+    }
     return false;
 }
 
