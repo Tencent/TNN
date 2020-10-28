@@ -199,11 +199,9 @@ int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 }
 
 template int PackC8(float *dst, const float *src, size_t hw, size_t channel);
-#ifdef TNN_ARM82
-template int PackC8(__fp16 *dst, const float *src, size_t hw, size_t channel);
-template int PackC8(float *dst, const __fp16 *src, size_t hw, size_t channel);
-template int PackC8(__fp16 *dst, const __fp16 *src, size_t hw, size_t channel);
-#endif
+template int PackC8(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int PackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
@@ -292,9 +290,7 @@ int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 }
 
 template int UnpackC8(float *dst, const float *src, size_t hw, size_t channel);
-#ifdef TNN_ARM82
-template int UnpackC8(float *dst, const __fp16 *src, size_t hw, size_t channel);
-#endif
+template int UnpackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {

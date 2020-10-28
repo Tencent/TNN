@@ -290,15 +290,13 @@ Status LayerTest::InitInputBlobsDataRandom() {
             } else {
                 InitRandom(static_cast<float*>(input_data), input_count, 1.0f + (float)index);
             }
-#ifdef TNN_ARM82
         } else if (mat_type == RESERVED_FP16_TEST) {
             if (ensure_input_positive_) {
                 // some layers only supports positive values as input
-                InitRandom(static_cast<__fp16 *>(input_data), input_count, (__fp16)0.0f, (__fp16)(1.0f + index));
+                InitRandom(static_cast<fp16_t *>(input_data), input_count, (fp16_t)0.0f, (fp16_t)(1.0f + index));
             } else {
-                InitRandom(static_cast<__fp16 *>(input_data), input_count, (__fp16)(1.0f + index));
+                InitRandom(static_cast<fp16_t *>(input_data), input_count, (fp16_t)(1.0f + index));
             }
-#endif
         } else if (mat_type == RESERVED_INT8_TEST) {
             if (ensure_input_positive_) {
                 // some layers only supports positive values as input

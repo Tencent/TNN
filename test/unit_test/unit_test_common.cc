@@ -32,9 +32,7 @@ template int InitRandom(float* host_data, size_t n, float range);
 template int InitRandom(int32_t* host_data, size_t n, int32_t range);
 template int InitRandom(int8_t* host_data, size_t n, int8_t range);
 template int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range);
-#ifdef TNN_ARM82
-template int InitRandom(__fp16 * host_data, size_t n, __fp16 range);
-#endif
+template int InitRandom(fp16_t * host_data, size_t n, fp16_t range);
 
 template <typename T>
 int InitRandom(T* host_data, size_t n, T range_min, T range_max) {
@@ -51,9 +49,7 @@ template int InitRandom(float* host_data, size_t n, float range_min, float range
 template int InitRandom(int32_t* host_data, size_t n, int32_t range_min, int32_t range_max);
 template int InitRandom(int8_t* host_data, size_t n, int8_t range_min, int8_t range_max);
 template int InitRandom(uint8_t* host_data, size_t n, uint8_t range_min, uint8_t range_max);
-#ifdef TNN_ARM82
-template int InitRandom(__fp16 * host_data, size_t n, __fp16 range_min, __fp16 range_max);
-#endif
+template int InitRandom(fp16_t* host_data, size_t n, fp16_t range_min, fp16_t range_max);
 
 template <>
 int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range_min, bfp16_t range_max) {

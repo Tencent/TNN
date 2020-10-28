@@ -55,9 +55,7 @@ void HalfBlobToNCHW(const Tin *src, Tout *dst, int channel, int hw) {
     UnpackC8(dst, src, hw, channel);
 }
 
-#ifdef TNN_ARM82
-template void HalfBlobToNCHW(const __fp16 *src, float *dst, int channel, int hw);
-#endif
+template void HalfBlobToNCHW(const fp16_t* src, float *dst, int channel, int hw);
 
 /*
 convert data type from int8 to float, data format from nhwc 2 nchw
@@ -398,17 +396,15 @@ void NCHWToBlob(const Tin *src, Tout *dst, int channel, int hw, float *scale) {
     PackC4(dst, src, hw, channel);
 }
 
-#ifdef TNN_ARM82
 template <>
-void NCHWToBlob(const __fp16 *src, __fp16 *dst, int channel, int hw, float *scale) {
+void NCHWToBlob(const fp16_t *src, fp16_t *dst, int channel, int hw, float *scale) {
     PackC8(dst, src, hw, channel);
 }
 
 template <>
-void NCHWToBlob(const float *src, __fp16 *dst, int channel, int hw, float *scale) {
+void NCHWToBlob(const float *src, fp16_t *dst, int channel, int hw, float *scale) {
     PackC8(dst, src, hw, channel);
 }
-#endif
 
 /*
 convert data type from float to int8, data format from nchw 2 nhwc
@@ -854,15 +850,13 @@ Status ArmBlobConverterAcc::ConvertFloatMatToBlob(
             ScaleBias(reinterpret_cast<float *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
                         param.bias.data());
         }
-#ifdef TNN_ARM82
     } else if (desc.data_type == DATA_TYPE_HALF) {
         auto c_r8 = ROUND_UP(c_r4, 8);
         for (int n = 0; n < dims[0]; n++) {
             NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                        reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
+                        reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
         }
         // Todo : scale bias
-#endif
     } else if (desc.data_type == DATA_TYPE_BFP16) {
         for (int n = 0; n < dims[0]; n++) {
             NCHWToBlob(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
@@ -895,13 +889,11 @@ Status ArmBlobConverterAcc::ConvertBlobToFloatMat(
                         param.bias.data(), scale_biased.force_to<bfp16_t *>());
             FloatBlobToNCHW(scale_biased.force_to<bfp16_t *>(),
                             reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
-#ifdef TNN_ARM82
         } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_HALF) {
             auto c_r8 = ROUND_UP(c_r4, 8);
             // Todo : scale bias
-            HalfBlobToNCHW(reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw,
+            HalfBlobToNCHW(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw,
                             reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
-#endif
         } else if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT8) {
             auto blob_int8 = reinterpret_cast<BlobInt8 *>(blob_);
             Int8BlobToNCHW(reinterpret_cast<int8_t *>(handle_ptr) + n * c_r4 * hw,
@@ -1033,15 +1025,13 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
                       param.bias.data());
         }
-#ifdef TNN_ARM82
     } else if (image.GetMatType() == RESERVED_FP16_TEST && desc.data_type == DATA_TYPE_HALF) {
         auto c_r8       = ROUND_UP(c_r4, 8);
         for (int n = 0; n < dims[0]; n++) {
-            NCHWToBlob(reinterpret_cast<__fp16 *>(image.GetData()) + n * dims[1] * hw,
-                       reinterpret_cast<__fp16 *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
+            NCHWToBlob(reinterpret_cast<fp16_t *>(image.GetData()) + n * dims[1] * hw,
+                       reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
             // Todo : scale bias
         }
-#endif
     } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
         DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
                                                         reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1],

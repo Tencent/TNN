@@ -35,11 +35,11 @@ public:
         return v;
     };
 
-#ifdef TNN_ARM82
-    virtual __fp16 operator()(const __fp16 &v) {
+    virtual fp16_t operator()(const fp16_t &v) {
         return v;
-    };
+    }
 
+#ifdef TNN_ARM82
     virtual float16x8_t operator()(const float16x8_t &v) {
         return v;
     }

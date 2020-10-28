@@ -56,9 +56,8 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
     return TNN_OK;
 }
 
-#ifdef TNN_ARM82
 template <>
-Status ArmUnaryLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmUnaryLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input  = inputs[0];
     auto output = outputs[0];
 
@@ -67,28 +66,34 @@ Status ArmUnaryLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const s
     int count      = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
     int count_div8 = UP_DIV(count, 8);
 
-    auto input_ptr  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    auto output_ptr = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
+#ifdef TNN_ARM82
     OMP_PARALLEL_FOR_
     for (int n = 0; n < count_div8; n++) {
         float16x8_t val = vld1q_f16(input_ptr + n * 8);
         vst1q_f16(output_ptr + n * 8, (*op_)(val));
     }
+#else
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < count_div8; n++) {
+        for (int c = 0; c < 8; c++) {
+            output_ptr[n*8 + c] = (*op_)(input_ptr[n*8 + c]);
+        }
+    }
+#endif
 
     return TNN_OK;
 }
-#endif
 
 Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         return Exec<float>(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
-#ifdef TNN_ARM82
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        return Exec<__fp16>(inputs, outputs);
-#endif
+        return Exec<fp16_t>(inputs, outputs);
     }
     return TNNERR_LAYER_ERR;
 }

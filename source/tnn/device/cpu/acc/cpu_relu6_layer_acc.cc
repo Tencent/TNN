@@ -37,18 +37,7 @@ Status CpuRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
             output_data[index] = std::max(0.0f, input_data[index]);
             output_data[index] = std::min(6.0f, output_data[index]);
         }
-    }
-#ifdef TNN_ARM82
-    else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        __fp16 *input_data  = static_cast<__fp16 *>(input_blob->GetHandle().base);
-        __fp16 *output_data = static_cast<__fp16 *>(output_blob->GetHandle().base);
-        for (int index = 0; index < count; ++index) {
-            output_data[index] = std::max(__fp16(0.0f), input_data[index]);
-            output_data[index] = std::min(__fp16(6.0f), output_data[index]);
-        }
-    }
-#endif
-    else {
+    } else {
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {

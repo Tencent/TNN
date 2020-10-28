@@ -17,6 +17,13 @@
 
 #include "tnn/core/macro.h"
 
+#ifdef TNN_ARM82
+typedef __fp16 fp16_t;
+#else
+#include "tnn/utils/half.hpp"
+typedef half_float::half fp16_t;
+#endif
+
 namespace TNN_NS {
 
 // @brief convert float to half
