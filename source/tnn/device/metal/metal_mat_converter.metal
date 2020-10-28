@@ -386,3 +386,54 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
     
     dst_bgra.write(half4(value), uint2(gid));
 }
+
+kernel void copymakeborder_n8uc4_constant(
+                              texture2d<half, access::read> src_bgra[[texture(0)]],
+                              texture2d<half, access::write>dst_bgra[[texture(1)]],
+                              constant MetalCopyMakeBorderParam& parameters [[buffer(0)]],
+                              ushort2 gid[[thread_position_in_grid]])
+{
+    uint2 dst_size;
+    int dst_height = parameters.height + parameters.top + parameters.bottom;
+    int dst_width  = parameters.width + parameters.left + parameters.right;
+    dst_size.x = dst_width;
+    dst_size.y = dst_height;
+    if(any(gid >= (ushort2)dst_size))
+        return;
+
+    int2 in_loc = int2(gid.x-parameters.left, gid.y-parameters.top);
+    half4 value = half4(parameters.border_val / 255.0);
+    if(in_loc.x >= 0 && in_loc.x < parameters.width && in_loc.y >= 0 && in_loc.y < parameters.height)
+        value = src_bgra.read(uint2(in_loc));
+
+    dst_bgra.write(value, uint2(gid));
+}
+
+kernel void copymakeborder_nchw_constant(
+                                device float* in                       [[buffer(0)]],
+                                device float* out                      [[buffer(1)]],
+                                constant MetalCopyMakeBorderParam& parameters   [[buffer(2)]],
+                                ushort3 gid                            [[thread_position_in_grid]])
+{
+    uint3 dst_size;
+    int dst_height = parameters.height + parameters.top + parameters.bottom;
+    int dst_width  = parameters.width + parameters.left + parameters.right;
+    int dst_slice  = parameters.batch * parameters.channel;
+    dst_size.x = dst_width;
+    dst_size.y = dst_height;
+    dst_size.z = dst_slice;
+    if(any(gid >= ushort3(dst_size)))
+        return;
+
+    auto dst_offset = gid.z * dst_height * dst_width + gid.y * dst_width + gid.x;
+
+    auto src_h = gid.y - parameters.top;
+    auto src_w = gid.x - parameters.left;
+    float value = parameters.border_val;
+    if (src_h >= 0 && src_h < parameters.height && src_w >= 0 && src_w < parameters.width) {
+        auto src_offset = gid.z * parameters.width * parameters.height + src_h * parameters.width + src_w;
+        value = in[src_offset];
+    }
+
+    out[dst_offset] = value;
+}
