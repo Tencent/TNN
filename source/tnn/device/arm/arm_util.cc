@@ -291,6 +291,8 @@ int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 
 template int UnpackC8(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int UnpackC8(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
