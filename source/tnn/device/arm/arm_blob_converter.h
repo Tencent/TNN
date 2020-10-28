@@ -25,7 +25,6 @@ namespace TNN_NS {
 typedef Status (*ArmBlobConvertFunc)(Mat& image,
                                      char* handle_ptr,
                                      const MatConvertParam& param,
-                                     const BlobDesc& desc,
                                      const DimsVector& dims,
                                      const int hw,
                                      const int c_r4,
@@ -49,23 +48,13 @@ public:
 private:
     Status ReverseInputImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
     Status ReverseOutImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
-    void ConvertYuvImageToBlob(Mat& image, char *handle_ptr,
-                               const BlobDesc& desc, const DimsVector& dims, const int hw,
-                               MatConvertParam& param,
-                               std::vector<float>& fused_int8_scale,
-                               std::vector<float>& fused_int8_bias);
-    Status ConvertFloatMatToBlob(Mat& image, char *handle_ptr,
-                                 const BlobDesc& desc, const DimsVector& dims, const int hw,
-                                 const int c_r4,
-                                 MatConvertParam& param,
-                                 std::vector<float>& fused_int8_scale,
-                                 std::vector<float>& fused_int8_bias);
     Status ConvertBlobToFloatMat(Mat& image, char *handle_ptr,
                                  const DimsVector& dims, const int hw,
                                  const int c_r4, MatConvertParam& param,
                                  std::vector<float>& fused_int8_scale);
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;
+    ArmBlobConvertFunc cvt_func_;
 
     static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
                                      ArmBlobConvertFunc& cvt_func);
