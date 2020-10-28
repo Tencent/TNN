@@ -53,7 +53,7 @@ std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int d
             support_list.push_back(DATA_FORMAT_NC4HW4);
         else if (data_type == DATA_TYPE_INT8)
             support_list.push_back(DATA_FORMAT_NHWC4);
-        else if (data_type = DATA_TYPE_HALF) {
+        else if (data_type == DATA_TYPE_HALF) {
             support_list.push_back(DATA_FORMAT_NC8HW8);
         }
     }
