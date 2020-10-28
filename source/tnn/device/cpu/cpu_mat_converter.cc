@@ -182,6 +182,37 @@ Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
+Status CpuMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    Status ret            = TNN_OK;
+
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
+
+    if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
+        if (param.border_type == BORDER_TYPE_CONSTANT) {
+            auto mat_type = src.GetMatType();
+            int channel = mat_type == NGRAY? 1 : (mat_type == N8UC3? 3 : 4);
+            for (int i = 0; i < DimsVectorUtils::Count(dst.GetDims()); ++i) {
+                ((uint8_t*)dst.GetData())[i] = int(param.border_val);
+            }
+            for (int batch = 0; batch < src.GetBatch(); batch++)
+            {
+                auto src_ptr = GET_OFFSET_PTR((uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel, 0);
+                auto dst_ptr = GET_OFFSET_PTR((uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel,
+                                              (param.left + param.top * dst.GetWidth()) * channel);
+                MatMemcpy2D(src_ptr, dst_ptr, src.GetWidth() * channel, src.GetHeight(), src.GetWidth() * channel, dst.GetWidth() * channel);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "CopyMakeBorder border type not support yet");
+        }
+    } else {
+        return Status(TNNERR_PARAM_ERR, "CopyMakeBorder mat type not support yet");
+    }
+
+    return ret;
+}
+
 void CpuMatConverterAcc::MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
     auto dst_ptr = reinterpret_cast<uint8_t*>(dst);

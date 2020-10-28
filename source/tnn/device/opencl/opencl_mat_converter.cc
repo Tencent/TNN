@@ -504,6 +504,68 @@ Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType t
     return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
 }
 
+Status OpenCLMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    Status ret            = TNN_OK;
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    }
+    const std::string key = "CopyMakeBorder";
+    OpenCLExecuteUnit unit;
+    if(execute_map_.count(key) == 0) {
+        std::string program_name = "copy";
+        std::string kernel_name = "CopyMakeBorder";
+        ret = CreateExecuteUnit(unit, program_name, kernel_name);
+        if(ret != TNN_OK) {
+            return ret;
+        }
+        execute_map_[key] = unit;
+    }
+
+    auto dims        = dst.GetDims();
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+
+    cl_int cl_ret;
+
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
+    cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
+    CHECK_CL_SUCCESS(cl_ret);
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border top
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.top);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border left
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.left);
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_w
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetWidth());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_channel_blocks
+    cl_ret = unit.ocl_kernel.setArg(idx++, UP_DIV(src.GetChannel(), 4));
+    CHECK_CL_SUCCESS(cl_ret);
+    // dst_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, dst.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // border_val
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.border_val);
+    CHECK_CL_SUCCESS(cl_ret);
+
+    ret = RunConvertUnit(unit, cl_command_queue, false);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    return TNN_OK;
+}
+
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);
 REGISTER_MAT_CONVERTER(OpenCL, DEVICE_OPENCL);
 }  // namespace TNN_NS
