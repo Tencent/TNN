@@ -22,6 +22,16 @@
 
 namespace TNN_NS {
 
+typedef Status (*ArmBlobConvertFunc)(Mat& image,
+                                     char* handle_ptr,
+                                     const MatConvertParam& param,
+                                     const BlobDesc& desc,
+                                     const DimsVector& dims,
+                                     const int hw,
+                                     const int c_r4,
+                                     std::vector<float>& fused_int8_scale,
+                                     std::vector<float>& fused_int8_bias);
+
 class ArmBlobConverterAcc : public BlobConverterAcc {
 public:
     ArmBlobConverterAcc(Blob* blob);
@@ -33,14 +43,12 @@ public:
     virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue = NULL);
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
 
+    static Status RegisterBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
+                                          ArmBlobConvertFunc cvt_func);
+
 private:
     Status ReverseInputImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
     Status ReverseOutImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
-    void ConvertImageToBlob(Mat& image, char *handle_ptr,
-                            const BlobDesc& desc, const DimsVector& dims, const int hw,
-                            MatConvertParam& param,
-                            std::vector<float>& fused_int8_scale,
-                            std::vector<float>& fused_int8_bias);
     void ConvertYuvImageToBlob(Mat& image, char *handle_ptr,
                                const BlobDesc& desc, const DimsVector& dims, const int hw,
                                MatConvertParam& param,
@@ -58,7 +66,24 @@ private:
                                  std::vector<float>& fused_int8_scale);
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;
+
+    static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
+                                     ArmBlobConvertFunc& cvt_func);
+    static std::string GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, bool cvt_from_mat);
+    static std::map<std::string, ArmBlobConvertFunc>& GetBlobConvertFuncMap();
 };
+
+class ArmBlobConvertFuncRegister {
+public:
+    explicit ArmBlobConvertFuncRegister(MatType mat_type, DataType data_type, bool cvt_from_mat,
+                                        ArmBlobConvertFunc cvt_func) {
+        ArmBlobConverterAcc::RegisterBlobConvertFunc(mat_type, data_type, cvt_from_mat, cvt_func);
+    }
+};
+
+#define REGISTER_ARM_BLOB_CONVERT_FUNC(mat_type, data_type, cvt_from_mat, cvt_func)                                 \
+    ArmBlobConvertFuncRegister g_arm_##mat_type##_##data_type##_##cvt_from_mat##_register(mat_type, data_type,      \
+                                                                                          cvt_from_mat, cvt_func);
 
 }  // namespace TNN_NS
 

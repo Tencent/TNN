@@ -22,11 +22,40 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
 ArmBlobConverterAcc::ArmBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}
 ArmBlobConverterAcc::~ArmBlobConverterAcc() {}
+
+std::string ArmBlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, bool cvt_from_mat) {
+    return ToString(mat_type) + "_" + ToString(data_type) + "_" + ToString(cvt_from_mat);
+}
+
+std::map<std::string, ArmBlobConvertFunc>& ArmBlobConverterAcc::GetBlobConvertFuncMap() {
+    static std::map<std::string, ArmBlobConvertFunc> cvt_map;
+    return cvt_map;
+}
+
+Status ArmBlobConverterAcc::RegisterBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
+                                                    ArmBlobConvertFunc cvt_func) {
+    auto& cvt_map       = GetBlobConvertFuncMap();
+    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_from_mat);
+    cvt_map[cvt_key] = cvt_func;
+    return TNN_OK;
+}
+
+Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
+                                               ArmBlobConvertFunc& cvt_func) {
+    const auto& cvt_map = GetBlobConvertFuncMap();
+    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_from_mat);
+    if (cvt_map.find(cvt_key) == cvt_map.end() || cvt_map.at(cvt_key) == nullptr) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+    cvt_func = cvt_map.at(cvt_key);
+    return TNN_OK;
+}
 
 /*
 convert data type from  Tin to Tout, data format from nc4hw4 2 nchw
@@ -69,7 +98,8 @@ static void Int8BlobToNCHW(const int8_t *src, float *dst, int channel, int hw, f
 convert data type from uint8 to float, data format from nhwc 2 nchw
 */
 template <bool reverse_channel>
-static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *bias, int hw, int channel) {
+static void BGRAToBlobImpl(const uint8_t *src, float *dst, const float *scale, const float *bias,
+                           int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -132,7 +162,8 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, float *scale, float *
 convert data type from uint8 to float, data format from nhw4 2 nc4hw4
 */
 template <bool reverse_channel>
-static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float *bias, int hw, int channel) {
+static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, const float *scale, const float *bias,
+                           int hw, int channel) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -201,7 +232,7 @@ static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float 
 if channel == 3, the fourth channel is ignored
 */
 template<typename T>
-static void BGRAToBlob(const uint8_t *src, T *dst, float *scale, float *bias, int hw,
+static void BGRAToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
                        bool reverse_channel, int channel) {
     if (reverse_channel) {
         BGRAToBlobImpl<true>(src, dst, scale, bias, hw, channel);
@@ -213,7 +244,7 @@ static void BGRAToBlob(const uint8_t *src, T *dst, float *scale, float *bias, in
 /*
 convert data type from uint8 to float, data format from nhw1 2 nc4hw4
 */
-static void GrayToBlob(const uint8_t *src, float *dst, float scale, float bias, int hw) {
+static void GrayToBlob(const uint8_t *src, float *dst, const float scale, const float bias, int hw) {
     int i = 0;
     memset(dst, 0, hw * 4 * sizeof(float));
 #ifdef TNN_USE_NEON
@@ -245,7 +276,7 @@ static void GrayToBlob(const uint8_t *src, float *dst, float scale, float bias, 
 /*
 convert data type from uint8 to int8, data format from nhw1 2 nhwc
 */
-static void GrayToBlob(const uint8_t *src, int8_t *dst, float scale, float bias, int hw) {
+static void GrayToBlob(const uint8_t *src, int8_t *dst, const float scale, const float bias, int hw) {
     int i = 0;
     memset(dst, 0, hw * 4 * sizeof(int8_t));
 #ifdef TNN_USE_NEON
@@ -281,7 +312,7 @@ static void GrayToBlob(const uint8_t *src, int8_t *dst, float scale, float bias,
 convert data type from uint8 to float, data format from nhw3 2 nc4hw4
 */
 template <bool reverse_channel>
-static void BGRToBlobImpl(const uint8_t *src, float *dst, float *scale, float *bias, int hw) {
+static void BGRToBlobImpl(const uint8_t *src, float *dst, const float *scale, const float *bias, int hw) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -328,7 +359,7 @@ static void BGRToBlobImpl(const uint8_t *src, float *dst, float *scale, float *b
 convert data type from uint8 to float, data format from nhw3 2 nc4hw4
 */
 template <bool reverse_channel>
-static void BGRToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float *bias, int hw) {
+static void BGRToBlobImpl(const uint8_t *src, int8_t *dst, const float *scale, const float *bias, int hw) {
     int i = 0;
 #ifdef TNN_USE_NEON
     float32x4_t bias_neon_b = vdupq_n_f32(bias[0]);
@@ -379,7 +410,7 @@ static void BGRToBlobImpl(const uint8_t *src, int8_t *dst, float *scale, float *
 }
 
 template<typename T>
-static void BGRToBlob(const uint8_t *src, T *dst, float *scale, float *bias, int hw,
+static void BGRToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
                        bool reverse_channel) {
     if (reverse_channel) {
         BGRToBlobImpl<true>(src, dst, scale, bias, hw);
@@ -747,49 +778,84 @@ void ScaleBias(T *src, int channel, int hw, float *scale, float *bias, T *dst = 
     }
 }
 
-void ArmBlobConverterAcc::ConvertImageToBlob(
-        Mat& image, char *handle_ptr,
-        const BlobDesc& desc, const DimsVector& dims, const int hw,
-        MatConvertParam& param,
-        std::vector<float>& fused_int8_scale,
-        std::vector<float>& fused_int8_bias) {
-    if (image.GetMatType() == N8UC4) {
-        for (int n = 0; n < dims[0]; n++) {
-            if (desc.data_type == DATA_TYPE_INT8) {
-                BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                           reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
-                           fused_int8_bias.data(), hw, param.reverse_channel, dims[1]);
-            } else {
-                BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
-                           reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
-                           hw, param.reverse_channel, dims[1]);
-            }
-        }
-    } else if (image.GetMatType() == N8UC3) {
-        for (int n = 0; n < dims[0]; n++) {
-            if (desc.data_type == DATA_TYPE_INT8) {
-                BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                          reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale.data(),
-                          fused_int8_bias.data(), hw, param.reverse_channel);
-            } else {
-                BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
-                          reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale.data(), param.bias.data(),
-                          hw, param.reverse_channel);
-            }
-        }
-    } else if (image.GetMatType() == NGRAY) {
-        for (int n = 0; n < dims[0]; n++) {
-            if (desc.data_type == DATA_TYPE_INT8) {
-                GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * hw,
-                           reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw, fused_int8_scale[0], fused_int8_bias[0],
-                           hw);
-            } else {
-                GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * hw,
-                           reinterpret_cast<float *>(handle_ptr) + n * 4 * hw, param.scale[0], param.bias[0], hw);
-            }
-        }
+static Status ConvertN8UC4ToInt8Blob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
+                   reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw,
+                   fused_int8_scale.data(), fused_int8_bias.data(), hw, param.reverse_channel, dims[1]);
     }
+    return TNN_OK;
 }
+
+static Status ConvertN8UC4ToFloatBlob(Mat& image, char* handle_ptr,
+                                      const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                      const int hw, const int c_r4,
+                                      std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        BGRAToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 4 * hw,
+                   reinterpret_cast<float *>(handle_ptr) + n * 4 * hw,
+                   param.scale.data(), param.bias.data(), hw, param.reverse_channel, dims[1]);
+    }
+    return TNN_OK;
+}
+
+static Status ConvertN8UC3ToInt8Blob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
+                  reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw,
+                  fused_int8_scale.data(), fused_int8_bias.data(), hw, param.reverse_channel);
+    }
+    return TNN_OK;
+}
+
+static Status ConvertN8UC3ToFloatBlob(Mat& image, char* handle_ptr,
+                                      const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                      const int hw, const int c_r4,
+                                      std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        BGRToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 3 * hw,
+                  reinterpret_cast<float *>(handle_ptr) + n * 4 * hw,
+                  param.scale.data(), param.bias.data(), hw, param.reverse_channel);
+    }
+    return TNN_OK;
+}
+
+static Status ConvertNGRAYToInt8Blob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 1 * hw,
+                   reinterpret_cast<int8_t *>(handle_ptr) + n * 4 * hw,
+                   fused_int8_scale[0], fused_int8_bias[0], hw);
+    }
+    return TNN_OK;
+}
+
+static Status ConvertNGRAYToFloatBlob(Mat& image, char* handle_ptr,
+                                      const MatConvertParam& param, const BlobDesc& desc, const DimsVector& dims,
+                                      const int hw, const int c_r4,
+                                      std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 1 * hw,
+                   reinterpret_cast<float *>(handle_ptr) + n * 4 * hw,
+                   param.scale[0], param.bias[0], hw);
+    }
+    return TNN_OK;
+}
+
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4, DATA_TYPE_INT8,  true, ConvertN8UC4ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4, DATA_TYPE_FLOAT, true, ConvertN8UC4ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3, DATA_TYPE_INT8,  true, ConvertN8UC3ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3, DATA_TYPE_FLOAT, true, ConvertN8UC3ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY, DATA_TYPE_INT8,  true, ConvertNGRAYToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY, DATA_TYPE_FLOAT, true, ConvertNGRAYToFloatBlob)
 
 void ArmBlobConverterAcc::ConvertYuvImageToBlob(
         Mat& image, char *handle_ptr,
@@ -1009,38 +1075,44 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         }
     }
 
-    if (image.GetMatType() == N8UC4 || image.GetMatType() == N8UC3 || image.GetMatType() == NGRAY) {
-        ConvertImageToBlob(image, handle_ptr, desc, dims, hw, param, fused_int8_scale, fused_int8_bias);
-    } else if (image.GetMatType() == NNV12 || image.GetMatType() == NNV21) {
-        ConvertYuvImageToBlob(image, handle_ptr, desc, dims, hw, param, fused_int8_scale, fused_int8_bias);
-    } else if (image.GetMatType() == NCHW_FLOAT) {
-        ret = ConvertFloatMatToBlob(image, handle_ptr, desc, dims, hw, c_r4, param, fused_int8_scale, fused_int8_bias);
-        if (ret != TNN_OK) {
-            return ret;
-        }
-    } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
-        for (int n = 0; n < dims[0]; n++) {
-            NCHWToBlob(reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw,
-                       reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
-            ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
-                      param.bias.data());
-        }
-    } else if (image.GetMatType() == RESERVED_FP16_TEST && desc.data_type == DATA_TYPE_HALF) {
-        auto c_r8       = ROUND_UP(c_r4, 8);
-        for (int n = 0; n < dims[0]; n++) {
-            NCHWToBlob(reinterpret_cast<fp16_t *>(image.GetData()) + n * dims[1] * hw,
-                       reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
-            // Todo : scale bias
-        }
-    } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
-        DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
-                                                        reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1],
-                                                        dims[2], dims[3]);
+    ArmBlobConvertFunc cvt_func;
+    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, true, cvt_func);
+    if (ret == TNN_OK) {
+        return cvt_func(image, handle_ptr, param, desc, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        if (image.GetMatType() == N8UC4 || image.GetMatType() == N8UC3 || image.GetMatType() == NGRAY) {
+            return TNN_OK;
+        } else if (image.GetMatType() == NNV12 || image.GetMatType() == NNV21) {
+            ConvertYuvImageToBlob(image, handle_ptr, desc, dims, hw, param, fused_int8_scale, fused_int8_bias);
+        } else if (image.GetMatType() == NCHW_FLOAT) {
+            ret = ConvertFloatMatToBlob(image, handle_ptr, desc, dims, hw, c_r4, param, fused_int8_scale, fused_int8_bias);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+        } else if (image.GetMatType() == RESERVED_BFP16_TEST && desc.data_type == DATA_TYPE_BFP16) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWToBlob(reinterpret_cast<bfp16_t *>(image.GetData()) + n * dims[1] * hw,
+                        reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+                ScaleBias(reinterpret_cast<bfp16_t *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, param.scale.data(),
+                        param.bias.data());
+            }
+        } else if (image.GetMatType() == RESERVED_FP16_TEST && desc.data_type == DATA_TYPE_HALF) {
+            auto c_r8       = ROUND_UP(c_r4, 8);
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWToBlob(reinterpret_cast<fp16_t *>(image.GetData()) + n * dims[1] * hw,
+                        reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
+                // Todo : scale bias
+            }
+        } else if (image.GetMatType() == RESERVED_INT8_TEST && desc.data_type == DATA_TYPE_INT8) {
+            DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
+                                                            reinterpret_cast<int8_t *>(handle_ptr), dims[0], dims[1],
+                                                            dims[2], dims[3]);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
     }
 
-    return ret;
+    return TNN_OK;
 }
 
 /*
