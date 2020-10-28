@@ -60,6 +60,29 @@ void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, in
 
 }
 
+void MatMemcpy2DWithPadding(void* src, void* dst, int width, int height, int src_stride, int dst_stride,
+                            int top, int bottom, int left, int right, uint8_t pad_val) {
+    auto src_ptr = reinterpret_cast<uint8_t*>(src);
+    auto dst_ptr = reinterpret_cast<uint8_t*>(dst);
+
+    int top_plane = top * dst_stride;
+    memset(dst_ptr, pad_val, top_plane);
+    dst_ptr += top_plane;
+
+    for (int h = 0; h < height; h++) {
+        memset(dst_ptr, pad_val, left);
+        dst_ptr += left;
+        memcpy(dst_ptr, src_ptr, width);
+        src_ptr += src_stride;
+        dst_ptr += width;
+        memset(dst_ptr, pad_val, right);
+        dst_ptr += right;
+    }
+
+    int bottom_plane = bottom * dst_stride;
+    memset(dst_ptr, pad_val, bottom_plane);
+}
+
 static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
                                   const uint8_t* src, int src_stride, int c, int w, const short* ialphap) {
     if (sy == prev_sy) {

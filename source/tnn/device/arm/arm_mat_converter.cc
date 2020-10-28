@@ -237,6 +237,48 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
+static Status CopyMakeBorderImpl(Mat& src, Mat& dst, CopyMakeBorderParam param, int channel) {
+    Status ret = TNN_OK;
+
+    if (param.border_type == BORDER_TYPE_CONSTANT) {
+        uint8_t border_ival = uint8_t(param.border_val);
+        int src_stride      = src.GetWidth() * channel;
+        int dst_stride      = dst.GetWidth() * channel;
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), b * src.GetHeight() * src.GetWidth() * channel);
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * channel);
+            MatMemcpy2DWithPadding(src_ptr, dst_ptr, src.GetWidth() * channel, src.GetHeight(), src_stride, dst_stride,
+                                   param.top, param.bottom, param.left * channel, param.right * channel, border_ival);
+        }
+    } else {
+        return Status(TNNERR_PARAM_ERR, "CopyMakeBorder border type not support yet");
+    }
+
+    return ret;
+}
+
+Status ArmMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    Status ret = TNN_OK;
+
+    ret = CheckMatConverterParams(src, dst, true);
+    if (ret != TNN_OK)
+        return ret;
+
+    if (src.GetMatType() == NGRAY) {
+        // element size 1
+        ret = CopyMakeBorderImpl(src, dst, param, 1);
+    } else if (src.GetMatType() == N8UC3) {
+        // element size 3
+        ret = CopyMakeBorderImpl(src, dst, param, 3);
+    } else if (src.GetMatType() == N8UC4) {
+        // element size 4
+        ret = CopyMakeBorderImpl(src, dst, param, 4);
+    } else {
+        return Status(TNNERR_PARAM_ERR, "CopyMakeBorder mat type not support yet");
+    }
+
+    return ret;
+}
 
 DECLARE_MAT_CONVERTER_CREATER(Arm);
 REGISTER_MAT_CONVERTER(Arm, DEVICE_ARM);
