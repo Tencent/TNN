@@ -220,7 +220,7 @@ Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
     char sdk[128] = "0";
     __system_property_get("ro.build.version.sdk", sdk);
     int sdk_version = atoi(sdk);
-    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    // Before Android 8.0, the performance of exp fp16 is poor, so use fp32 instead
     force_fp32 = (sdk_version <= 25);
 #elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
     force_fp32 = true;
