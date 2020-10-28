@@ -12,23 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <iostream>
+#include "tnn/layer/elementwise_layer.h"
 
-#include "onnx_converter_multidir_broadcast.h"
-#include "onnx_utility.h"
+namespace TNN_NS {
 
-DECLARE_MULTI_BROADCASR_OP_CONVERTER(MatMul);
+DECLARE_ELEMENTWISE_LAYER(Erf, LAYER_ERF);
 
-string OnnxOpConverterMatMul::TNNOpType(NodeProto& node, OnnxNetInfo& net_info) {
-    return "MatMul";
-}
+REGISTER_ELEMENTWISE_LAYER(Erf, LAYER_ERF);
 
-string OnnxOpConverterMatMul::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_info) {
-    return OnnxOpConverterMultiBrodcast::TNNLayerParam(node, net_info);
-}
-
-int OnnxOpConverterMatMul::WriteTNNModel(serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
-    return OnnxOpConverterMultiBrodcast::WriteTNNModel(net_writer, node, net_info);
-}
-
-REGISTER_MULTI_BROADCASR_OP_CONVERTER(MatMul, MatMul);
+}  // namespace TNN_NS

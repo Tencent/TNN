@@ -9,57 +9,55 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_converter_multidir_broadcast.h"
+
 #include "onnx_utility.h"
 
 std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexName(NodeProto &node,
-                                                      OnnxNetInfo &net_info) {
+                                                                                   OnnxNetInfo &net_info) {
     int weight_input_index = -1;
-    string weight_name = "";
-    
+    string weight_name     = "";
+
     std::map<std::string, onnx::TensorProto>::iterator it;
     for (int j = 0; j < node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        it = net_info.weights_map.find(input_name);
+        it                            = net_info.weights_map.find(input_name);
         if (it != net_info.weights_map.end()) {
             if (weight_input_index < 0) {
                 weight_input_index = j;
-                weight_name = input_name;
+                weight_name        = input_name;
             } else {
-                DLog("error::OnnxOpConverterMultiBrodcast only support one weight input index\n");
+                DLog("error::OnnxOpConverter MultiBrodcast only support one weight input index\n");
                 assert(0);
             }
         }
     }
-    
+
     return std::make_tuple(weight_input_index, weight_name);
 }
 
-string OnnxOpConverterMultiBrodcast::TNNLayerParam(NodeProto &node,
-                                                      OnnxNetInfo &net_info) {
-    auto weight_input = GetWeightInputIndexName(node, net_info);
+string OnnxOpConverterMultiBrodcast::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+    auto weight_input       = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
     if (weight_input_index >= 0) {
         ostringstream layer_param;
-        layer_param<<weight_input_index<<" ";
+        layer_param << weight_input_index << " ";
         return layer_param.str();
     }
     return "";
 }
 
-int OnnxOpConverterMultiBrodcast::WriteTNNModel(serializer *net_writer,
-                                                   NodeProto &node,
-                                                   OnnxNetInfo &net_info) {
-    const std::string &onnx_op = node.op_type();
-    std::string name = !node.name().empty() ? node.name() : node.output(0);
+int OnnxOpConverterMultiBrodcast::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+    const std::string &onnx_op        = node.op_type();
+    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
     const std::string &tnn_layer_type = TNNOpType(node, net_info);
-    
-    auto weight_input = GetWeightInputIndexName(node, net_info);
+
+    auto weight_input       = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
-    auto weight_name = get<1>(weight_input);
+    auto weight_name        = get<1>(weight_input);
     if (weight_input_index < 0) {
         return 0;
     }

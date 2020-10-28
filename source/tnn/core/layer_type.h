@@ -192,6 +192,8 @@ enum LayerType {
     LAYER_PIXEL_SHUFFLE                                     = 303,
     LAYER_EXPAND                                            = 304,
     LAYER_SCATTER_ND                                        = 305,
+    LAYER_STRIDE_SLICE_V2                                   = 306,
+    LAYER_ERF                                               = 307,
 
     LAYER_BLOB_SCALE                                        = 600,
 

@@ -44,6 +44,8 @@ struct OnnxNetInfo {
     // onnx weight node and weight reshape node
     TensorProtoMap weights_map;
     TensorShapeMap weights_shape_map;
+    std::set<std::string > used_const_node;
+    std::map<std::string, onnx::NodeProto> proxy_node_map;
     bool is_3D_model = false;
     int opset = 0;
 };
@@ -61,6 +63,10 @@ public:
     string TNNLayerProto(NodeProto &node, OnnxNetInfo &net_info);
     virtual string TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
         return "";
+    };
+    virtual void ProcessConstantNode(NodeProto &node ,OnnxNetInfo &net_info) {
+        // do nothing
+        return;
     };
 
     //有权值写入的返回1， 没有的返回0
@@ -126,6 +132,17 @@ private:
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);         \
         virtual int WriteTNNModel(serializer *, NodeProto &,              \
                                        OnnxNetInfo &);                         \
+    }
+
+#define DECLARE_OP_CONVERTER_WITH_PROCESS(onnx_type)                                                                   \
+    class OnnxOpConverter##onnx_type : public OnnxOpConverter {                                                        \
+    public:                                                                                                            \
+        OnnxOpConverter##onnx_type(string ignore) : OnnxOpConverter(ignore){};                                         \
+        virtual ~OnnxOpConverter##onnx_type(){};                                                                       \
+        virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);                                                  \
+        virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);                                                      \
+        virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);                                           \
+        virtual void ProcessConstantNode(NodeProto &node, OnnxNetInfo &net_info);                                      \
     }
 
 #define REGISTER_OP_CONVERTER(converter_suffix, onnx_type)                     \

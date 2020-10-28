@@ -30,14 +30,14 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         name = node.output(0);
     }
     proto_layer << name << " ";
-
+    ProcessConstantNode(node, net_info);
     int input_size  = node.input_size();
     int output_size = node.output_size();
 
     for (int j = 0; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (net_info.weights_map.find(input_name) !=
-            net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+            net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             input_size--;
         }
     }
@@ -47,8 +47,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         std::string input_name = node.input(j);
 
         // check weight
-        if (net_info.weights_map.find(input_name) !=
-            net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+            net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             continue;
         }
 
@@ -65,7 +65,7 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     return proto_layer.str();
 }
 
-int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer) {
+int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, serializer *writer) {
     if (tensor.data_type() == onnx::TensorProto_DataType_INT64) {
         int item_size = get_tensor_proto_data_size(tensor);
         if (item_size == 0) {
@@ -74,12 +74,12 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto& tensor, seriali
         }
         auto dims = GetDimsFromTensor(tensor);
         if (tensor.has_raw_data()) {
-            int64_t * raw_data = (int64_t *)tensor.raw_data().data();
-            auto tmp = new int32_t[item_size];
+            int64_t *raw_data = (int64_t *)tensor.raw_data().data();
+            auto tmp          = new int32_t[item_size];
             for (int i = 0; i < item_size; ++i) {
                 tmp[i] = raw_data[i];
             }
-            writer->put_raw(sizeof(int32_t) * item_size, (char*)tmp, dims, DATA_TYPE_INT32);
+            writer->put_raw(sizeof(int32_t) * item_size, (char *)tmp, dims, DATA_TYPE_INT32);
             delete[] tmp;
         }
         // cast from int64 to int32

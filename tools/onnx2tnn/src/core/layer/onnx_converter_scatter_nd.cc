@@ -35,7 +35,6 @@ int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& n
     net_writer->put_string(tnn_layer_type);
     net_writer->put_string(name);
 
-    net_writer->put_string(name);
     const auto& weights_map  = net_info.weights_map;
     const auto& indices_name = node.input(1);
     bool has_indices         = false;

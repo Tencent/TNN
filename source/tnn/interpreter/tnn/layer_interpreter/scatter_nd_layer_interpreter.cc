@@ -22,7 +22,6 @@ Status ScatterNDLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
 
 Status ScatterNDLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **resource) {
     auto layer_resource = CreateLayerRes<ScatterNDLayerResource>(resource);
-    auto layer_name     = deserializer.GetString();
     bool has_indices    = deserializer.GetBool();
     if (has_indices) {
         GET_BUFFER_FOR_ATTR(layer_resource, indices, deserializer);
@@ -41,14 +40,13 @@ Status ScatterNDLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerP
 Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
     CAST_OR_RET_ERROR(layer_param, LayerParam, "invalid layer param", param);
     CAST_OR_RET_ERROR(layer_resource, ScatterNDLayerResource, "invalid layer res to save", resource);
-    serializer.PutString(layer_param->name);
     const auto &indices_dims = layer_resource->indices.GetBufferDims();
     bool has_indices         = !indices_dims.empty();
     if (has_indices) {
         serializer.PutBool(true);
         serializer.PutRaw(layer_resource->indices);
     } else {
-        serializer.PutBool(true);
+        serializer.PutBool(false);
     }
     const auto &update_dims = layer_resource->updates.GetBufferDims();
     bool has_update         = !update_dims.empty();

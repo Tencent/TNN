@@ -249,7 +249,6 @@ std::vector<float> get_node_attr_af(const onnx::NodeProto& node,
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
         LOGD("invalid name for input: %s\n", name.c_str());
-        assert(0);
         return v;
     }
     const onnx::TensorProto& tensorProto = net_info.weights_map.at(name);
