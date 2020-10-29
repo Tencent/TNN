@@ -44,4 +44,36 @@ void UnaryLayerTest::RunUnaryTest() {
     Run(layer_type_, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+void UnaryLayerTest::RunUnaryTestWithProto(std::string type_str) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    DataType data_type = std::get<3>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    Precision precision = PRECISION_AUTO;
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    if (DATA_TYPE_INT8 == data_type) {
+        ostr << "\"" << "Quantized" << type_str << " unary 1 1 input output " << ",\"";
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        ostr << "\"" << type_str << " unary 1 1 input output " << ",\"";
+        precision = PRECISION_LOW;
+    } else {
+        ostr << "\"" << type_str << " unary 1 1 input output " << ",\"";
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
+}
+
 }  // namespace TNN_NS

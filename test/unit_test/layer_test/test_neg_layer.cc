@@ -25,12 +25,11 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, NegLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(NegLayerTest, UnaryLayerTest) {
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM == dev) {
-        GTEST_SKIP();
-    }
-
     RunUnaryTest();
+}
+
+TEST_P(NegLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Neg");
 }
 
 }  // namespace TNN_NS

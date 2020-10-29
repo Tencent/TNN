@@ -28,4 +28,8 @@ TEST_P(SignLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(SignLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Sign");
+}
+
 }  // namespace TNN_NS

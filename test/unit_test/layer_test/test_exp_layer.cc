@@ -28,4 +28,8 @@ TEST_P(ExpLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(ExpLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Exp");
+}
+
 }  // namespace TNN_NS

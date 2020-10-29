@@ -28,4 +28,8 @@ TEST_P(CeilLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(CeilLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Ceil");
+}
+
 }  // namespace TNN_NS

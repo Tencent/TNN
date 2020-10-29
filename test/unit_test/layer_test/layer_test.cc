@@ -121,10 +121,10 @@ void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, 
     }
 }
 
-void LayerTest::RunWithProto(std::string proto) {
+void LayerTest::RunWithProto(std::string proto, Precision precision) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
-    ret = InitWithProto(proto);
+    ret = InitWithProto(proto, precision);
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
         DeInitWithProto();
@@ -162,7 +162,7 @@ void LayerTest::RunWithProto(std::string proto) {
     }
 }
 
-Status LayerTest::InitWithProto(std::string proto) {
+Status LayerTest::InitWithProto(std::string proto, Precision precision) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ModelConfig model_config;
@@ -177,6 +177,7 @@ Status LayerTest::InitWithProto(std::string proto) {
     if (DEVICE_HUAWEI_NPU == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_HUAWEI_NPU;
     }
+    config_device.precision = precision;
     if (FLAGS_lp.length() > 0) {
         config_device.library_path = {FLAGS_lp};
     }

@@ -90,4 +90,46 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(ConvQuantLayerTest, ConvLayerWithProto) {
+    // get param
+    int batch             = std::get<0>(GetParam());
+    int channel_per_group = std::get<1>(GetParam());
+    int input_size        = std::get<2>(GetParam());
+    int kernel            = std::get<3>(GetParam());
+    int stride            = std::get<4>(GetParam());
+    int group             = std::get<5>(GetParam());
+    DataType data_type    = std::get<6>(GetParam());
+    int channel           = group * channel_per_group;
+    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
+    if (DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    int dilation = 1;
+    int pad      = kernel / 2;
+
+    Precision precision = PRECISION_AUTO;
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+
+    if (DATA_TYPE_INT8 == data_type) {
+        ostr << "\""
+             << "QuantizedConvolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel
+             << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
+             << dilation << " " << dilation << " "
+             << ",\"";
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        ostr << "\""
+             << "Convolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
+             << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
+             << dilation << " " << dilation << " "
+             << ",\"";
+        precision = PRECISION_LOW;
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
+}
+
 }  // namespace TNN_NS

@@ -28,4 +28,8 @@ TEST_P(TanhLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(TanhLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Tanh");
+}
+
 }  // namespace TNN_NS

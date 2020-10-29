@@ -28,4 +28,8 @@ TEST_P(SqrtLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(SqrtLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Sqrt");
+}
+
 }  // namespace TNN_NS

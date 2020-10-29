@@ -26,6 +26,7 @@ class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<st
 public:
     explicit UnaryLayerTest(LayerType type);
     void RunUnaryTest();
+    void RunUnaryTestWithProto(std::string type_str);
 
 protected:
     LayerType layer_type_;

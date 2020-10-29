@@ -94,13 +94,13 @@ function run() {
         $ADB push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/lib
         $ADB shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=${ANDROID_DIR}/lib:$ANDROID_DIR ./unit_test -dt HUAWEI_NPU  --gtest_filter=\"*${FILTER}*\"  >> $ANDROID_DIR/test_log.txt"
     elif [ "$DEVICE_TYPE" = "CPU"  ]; then
-        $ADB shell "echo 'Run ARM' >> $ANDROID_DIR/test.log"
+        $ADB shell "echo 'Run ARM' >> $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
     elif [ "$DEVICE_TYPE" = "GPU"  ]; then
-        $ADB shell "echo 'Run GPU' > $ANDROID_DIR/test.log"
+        $ADB shell "echo 'Run GPU' > $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
     else
-        $ADB shell "echo 'Run ARM & GPU' >> $ANDROID_DIR/test.log"
+        $ADB shell "echo 'Run ARM & GPU' >> $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
     fi

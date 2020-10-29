@@ -28,4 +28,8 @@ TEST_P(AtanLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(AtanLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Atan");
+}
+
 }  // namespace TNN_NS

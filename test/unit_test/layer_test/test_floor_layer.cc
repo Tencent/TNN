@@ -28,4 +28,8 @@ TEST_P(FloorLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(FloorLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Floor");
+}
+
 }  // namespace TNN_NS

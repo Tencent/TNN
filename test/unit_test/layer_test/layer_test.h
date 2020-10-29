@@ -43,7 +43,7 @@ protected:
     void Run(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
              std::vector<BlobDesc>& outputs_desc);
 
-    void RunWithProto(std::string proto);
+    void RunWithProto(std::string proto, Precision precision = PRECISION_AUTO);
 
     static void TearDownTestCase();
 
@@ -55,7 +55,7 @@ private:
     Status Compare();
     Status DeInit();
 
-    Status InitWithProto(std::string proto);
+    Status InitWithProto(std::string proto, Precision precision);
     Status ForwardWithProto();
     Status CompareWithProto();
     Status DeInitWithProto();

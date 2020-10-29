@@ -28,4 +28,8 @@ TEST_P(SoftplusLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(SoftplusLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Softplus");
+}
+
 }  // namespace TNN_NS

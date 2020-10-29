@@ -28,4 +28,8 @@ TEST_P(LogLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(LogLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Log");
+}
+
 }  // namespace TNN_NS

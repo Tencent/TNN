@@ -28,4 +28,8 @@ TEST_P(CosLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(CosLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Cos");
+}
+
 }  // namespace TNN_NS

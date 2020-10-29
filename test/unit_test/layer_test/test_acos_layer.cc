@@ -28,4 +28,8 @@ TEST_P(AcosLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(AcosLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Acos");
+}
+
 }  // namespace TNN_NS

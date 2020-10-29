@@ -28,4 +28,8 @@ TEST_P(ReciprocalLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(ReciprocalLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Reciprocal");
+}
+
 }  // namespace TNN_NS

@@ -28,4 +28,8 @@ TEST_P(LogSigmoidLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(LogSigmoidLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("LogSigmoid");
+}
+
 }  // namespace TNN_NS

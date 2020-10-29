@@ -29,4 +29,8 @@ TEST_P(ReluLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(ReluLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Relu");
+}
+
 }  // namespace TNN_NS

@@ -28,4 +28,8 @@ TEST_P(SinLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(SinLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Sin");
+}
+
 }  // namespace TNN_NS

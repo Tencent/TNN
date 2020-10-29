@@ -28,4 +28,8 @@ TEST_P(SigmoidLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(SigmoidLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Sigmoid");
+}
+
 }  // namespace TNN_NS

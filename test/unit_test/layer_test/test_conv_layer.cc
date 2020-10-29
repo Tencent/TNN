@@ -33,24 +33,24 @@ class ConvLayerTest
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
-                        ::testing::Combine(  // batch
-                            testing::Values(1),
-                            // channel
-                            testing::Values(1, 2, 3, 4, 10, 32),
-                            // hw
-                            testing::Values(9, 10, 16, 19),
-                            // group
-                            testing::Values(1, 2),
-                            // kernel
-                            testing::Values(1, 2, 3, 5),
-                            // dilation
-                            testing::Values(1, 2),
-                            // stride
-                            testing::Values(1, 2),
-                            // pads
-                            testing::Values(0, 1),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(  // batch
+                             testing::Values(1),
+                             // channel
+                             testing::Values(1, 2, 3, 4, 10, 32),
+                             // hw
+                             testing::Values(9, 10, 16, 19),
+                             // group
+                             testing::Values(1, 2),
+                             // kernel
+                             testing::Values(1, 2, 3, 5),
+                             // dilation
+                             testing::Values(1, 2),
+                             // stride
+                             testing::Values(1, 2),
+                             // pads
+                             testing::Values(0, 1),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param
@@ -119,7 +119,7 @@ TEST_P(ConvLayerTest, ConvLayerWithProto) {
     int pad               = std::get<7>(GetParam());
     auto dtype            = std::get<8>(GetParam());
 
-    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
@@ -132,11 +132,11 @@ TEST_P(ConvLayerTest, ConvLayerWithProto) {
     // generate proto string
     std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
     std::ostringstream ostr;
-    ostr << "\"" << "Convolution conv 1 1 input output "
-        << group << " " << channel_per_group << " " << channel << " "
-        << kernel << " " << kernel << " " << stride << " " << stride << " "
-        << pad << " " << pad << " 1 -1 " << dilation << " " << dilation << " "
-        << ",\"";
+    ostr << "\""
+         << "Convolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel << " " << kernel
+         << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 " << dilation << " "
+         << dilation << " "
+         << ",\"";
 
     std::string proto = head + ostr.str();
     RunWithProto(proto);

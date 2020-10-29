@@ -29,4 +29,8 @@ TEST_P(AbsLayerTest, UnaryLayerTest) {
     RunUnaryTest();
 }
 
+TEST_P(AbsLayerTest, UnaryLayerTestWithProto) {
+    RunUnaryTestWithProto("Abs");
+}
+
 }  // namespace TNN_NS
