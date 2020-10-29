@@ -29,8 +29,9 @@ namespace TNN_NS {
 ArmBlobConverterAcc::ArmBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}
 ArmBlobConverterAcc::~ArmBlobConverterAcc() {}
 
-std::string ArmBlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, bool cvt_from_mat) {
-    return ToString(mat_type) + "_" + ToString(data_type) + "_" + ToString(cvt_from_mat);
+std::string ArmBlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataType data_type,
+                                                         BlobConvertDirection cvt_dir) {
+    return ToString(mat_type) + "_" + ToString(data_type) + "_" + ToString(cvt_dir);
 }
 
 std::map<std::string, ArmBlobConvertFunc>& ArmBlobConverterAcc::GetBlobConvertFuncMap() {
@@ -38,18 +39,18 @@ std::map<std::string, ArmBlobConvertFunc>& ArmBlobConverterAcc::GetBlobConvertFu
     return cvt_map;
 }
 
-Status ArmBlobConverterAcc::RegisterBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
-                                                    ArmBlobConvertFunc cvt_func) {
+Status ArmBlobConverterAcc::RegisterBlobConvertFunc(MatType mat_type, DataType data_type,
+                                                    BlobConvertDirection cvt_dir, ArmBlobConvertFunc cvt_func) {
     auto& cvt_map       = GetBlobConvertFuncMap();
-    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_from_mat);
+    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_dir);
     cvt_map[cvt_key] = cvt_func;
     return TNN_OK;
 }
 
-Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_type, bool cvt_from_mat,
-                                               ArmBlobConvertFunc& cvt_func) {
+Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_type,
+                                               BlobConvertDirection cvt_dir, ArmBlobConvertFunc& cvt_func) {
     const auto& cvt_map = GetBlobConvertFuncMap();
-    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_from_mat);
+    const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_dir);
     if (cvt_map.find(cvt_key) == cvt_map.end() || cvt_map.at(cvt_key) == nullptr) {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -82,7 +83,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         }
     }
 
-    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, false, cvt_func_);
+    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, CVT_DIR_BLOB2MAT, cvt_func_);
     if (ret == TNN_OK) {
         return cvt_func_(image, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
     } else {
@@ -120,7 +121,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         }
     }
 
-    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, true, cvt_func_);
+    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, CVT_DIR_MAT2BLOB, cvt_func_);
     if (ret == TNN_OK) {
         return cvt_func_(image, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
     } else {
@@ -1036,23 +1037,23 @@ static Status ConvertInt8MatToInt8Blob(Mat& image, char* handle_ptr,
 }
 
 // convert from mat to blob
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  true, ConvertN8UC4ToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_FLOAT, true, ConvertN8UC4ToFloatBlob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_INT8,  true, ConvertN8UC3ToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, true, ConvertN8UC3ToFloatBlob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_INT8,  true, ConvertNGRAYToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_FLOAT, true, ConvertNGRAYToFloatBlob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_INT8,  true, ConvertNNV12ToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_FLOAT, true, ConvertNNV12ToFloatBlob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_INT8,  true, ConvertNNV21ToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_FLOAT, true, ConvertNNV21ToFloatBlob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  true, ConvertNCHWFloatToInt8Blob)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, true, (ConvertFloatMatToFloatBlob<float,float>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, true, (ConvertFloatMatToFloatBlob<float, bfp16_t>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  true, ConvertFloatMatToHalfBlob<float>)
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, true, (ConvertFloatMatToFloatBlob<bfp16_t, bfp16_t>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  true, ConvertFloatMatToHalfBlob<fp16_t>)
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  true, ConvertInt8MatToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertN8UC4ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertN8UC4ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertN8UC3ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertN8UC3ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNGRAYToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNGRAYToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV12ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV12ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV21ToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV21ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNCHWFloatToInt8Blob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float,float>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertFloatMatToHalfBlob<float>)
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<bfp16_t, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertFloatMatToHalfBlob<fp16_t>)
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertInt8MatToInt8Blob)
 
 
 static Status ConvertInt8BlobToN8UC4(Mat& image, char* handle_ptr,
@@ -1154,16 +1155,16 @@ static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr,
 }
 
 // convert from blob to mat
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  false, ConvertInt8BlobToN8UC4)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_FLOAT, false, ConvertFloatBlobToN8UC4)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_INT8,  false, ConvertInt8BlobToN8UC3)
-REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, false, ConvertFloatBlobToN8UC3)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  false, ConvertInt8BlobToNCHWFloat)
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, false, (ConvertFloatBlobToFloatMat<float,float>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, false, (ConvertFloatBlobToFloatMat<float, bfp16_t>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  false, ConvertHalfBlobToFloatMat<float>)
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, false, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  false, ConvertHalfBlobToFloatMat<fp16_t>)
-REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  false, ConvertInt8BlobToInt8Mat)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToN8UC4)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_FLOAT, CVT_DIR_BLOB2MAT, ConvertFloatBlobToN8UC4)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToN8UC3)
+REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, CVT_DIR_BLOB2MAT, ConvertFloatBlobToN8UC3)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToNCHWFloat)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<float,float>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<float, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToFloatMat<float>)
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToFloatMat<fp16_t>)
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToInt8Mat)
 
 }  // namespace TNN_NS
