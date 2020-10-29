@@ -109,19 +109,20 @@ using namespace std;
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
     Status status = TNN_OK;
     auto pose_detector = [self loadPoseDetector:units];
-    auto pose_landmark = [self loadPoseLandmark:units];
-
-    if (!pose_detector) {
-        return Status(TNNERR_MODEL_ERR, "loadPoseDetector failed: pls make sure the pose detect model is downloaded");
-    }
-
-    if (!pose_landmark) {
-        return Status(TNNERR_MODEL_ERR, "loadPoseLandmark failed: pls make sure the pose landmark model is downloaded");
-    }
+    RETURN_VALUE_ON_NEQ(!pose_detector,
+                        false,
+                        Status(TNNERR_MODEL_ERR,
+                               "loadPoseDetector failed: pls make sure the pose detect model is downloaded"));
     
+    auto pose_landmark = [self loadPoseLandmark:units];
+    RETURN_VALUE_ON_NEQ(!pose_landmark,
+                        false,
+                        Status(TNNERR_MODEL_ERR,
+                               "loadPoseLandmark failed: pls make sure the pose landmark model is downloaded"));
     
     auto predictor = std::make_shared<PoseDetectLandmark>();
     status = predictor->Init({pose_detector, pose_landmark});
+    RETURN_ON_NEQ(status, TNN_OK);
     
     self.predictor = predictor;
 
