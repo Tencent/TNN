@@ -20,10 +20,12 @@
 namespace TNN_NS {
 
 class SoftmaxLayerTest : public LayerTest,
-                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(10, 12, 10, 12), testing::Values(10),
+                         ::testing::Combine(testing::Values(1), testing::Values(10, 12, 10, 12, 512),
+                                            testing::Values(10, 512),
+                                            testing::Values(10, 512),
                                             // axis
                                             testing::Values(1, 2),
                                             // dtype
@@ -33,9 +35,10 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    DataType data_type = std::get<4>(GetParam());
+    int input_height   = std::get<2>(GetParam());
+    int input_width    = std::get<3>(GetParam());
+    int axis           = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
@@ -46,8 +49,22 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
+    if ((channel == 512 && input_height == 512) ||
+        (input_width == 512 && input_height == 512) ||
+        (channel == 512 && input_width == 512)) {
+        GTEST_SKIP();
+    }
+
     // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+    std::vector<BlobDesc> inputs_desc;
+    BlobDesc input_desc;
+    input_desc.dims.push_back(batch);
+    input_desc.dims.push_back(channel);
+    input_desc.dims.push_back(input_height);
+    input_desc.dims.push_back(input_width);
+    input_desc.device_type = DEVICE_NAIVE;
+    input_desc.data_type   = data_type;
+    inputs_desc.push_back(input_desc);
     auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
 
     // param

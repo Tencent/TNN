@@ -34,7 +34,8 @@ namespace optimizer {
         return kNetOptimizerFuseConvRelu;
     }
 
-    bool NetOptimizerFuseConvRelu::SupportDevice(DeviceType device) {
+    bool NetOptimizerFuseConvRelu::IsSupported(const NetworkConfig &net_config) {
+        auto device = net_config.device_type;
         if (device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_NAIVE) {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
             kLayerActivationMap[LAYER_RELU6] = ActivationType_ReLU6;
