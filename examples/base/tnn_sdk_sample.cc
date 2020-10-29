@@ -438,42 +438,33 @@ Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
 Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
                       std::shared_ptr<TNN_NS::Mat> dst,
                       int top, int bottom, int left, int right,
-                                    TNNBorderType border_type) {
+                                    TNNBorderType border_type, uint8_t border_value) {
     Status status = TNN_OK;
-
-    if (src->GetMatType() != dst->GetMatType()) {
-        return Status(TNNERR_PARAM_ERR, "src and dst have differnt mat types!");
+    
+    void *command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
     }
-    if (src->GetDeviceType() != DEVICE_ARM || src->GetMatType() != N8UC4) {
-        return Status(TNNERR_PARAM_ERR, "invalid device type or mat type!");
+    
+    CopyMakeBorderParam param;
+    param.border_val = border_value;
+    param.top = top;
+    param.bottom = bottom;
+    param.left = left;
+    param.right = right;
+    param.border_type = BORDER_TYPE_CONSTANT;
+    if (border_type == TNNBorderEdge)
+        param.border_type = BORDER_TYPE_EDGE;
+    else if (border_type == TNNBorderReflect)
+        param.border_type = BORDER_TYPE_REFLECT;
+    
+    status = MatUtils::CopyMakeBorder(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("copy failed with:%s\n", status.description().c_str());
     }
-    if (border_type != TNNBorderConstant) {
-        return Status(TNNERR_PARAM_ERR, "invalid border type!");
-    }
-
-    auto src_dims = src->GetDims();
-    auto dst_dims = dst->GetDims();
-
-    uint8_t *src_data = static_cast<uint8_t *>(src->GetData());
-    uint8_t *dst_data = static_cast<uint8_t *>(dst->GetData());
-    memset(dst_data, 0, sizeof(uint8_t) * DimsVectorUtils::Count(dst_dims));
-
-    for(int h=0; h<src_dims[2]; ++h) {
-        auto dst_data_row = dst_data + ((top + h) * dst_dims[3] + left)*4;
-        auto src_data_row = src_data + (h * src_dims[3])*4;
-        auto src_offset = 0;
-        auto dst_offset = 0;
-        for(int w=0; w<src_dims[3]; ++w) {
-            dst_data_row[dst_offset + 0] = src_data_row[src_offset + 0];
-            dst_data_row[dst_offset + 1] = src_data_row[src_offset + 1];
-            dst_data_row[dst_offset + 2] = src_data_row[src_offset + 2];
-            dst_data_row[dst_offset + 3] = src_data_row[src_offset + 3];
-
-            src_offset += 4;
-            dst_offset += 4;
-        }
-    }
-
+    
     return status;
 }
 

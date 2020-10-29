@@ -178,7 +178,7 @@ public:
     Status CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
                           std::shared_ptr<TNN_NS::Mat> dst,
                           int top, int bottom, int left, int right,
-                          TNNBorderType border_type);
+                          TNNBorderType border_type, uint8_t border_value = 0);
 
 protected:
     BenchOption bench_option_;
