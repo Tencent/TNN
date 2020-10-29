@@ -31,7 +31,7 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node,
     const std::string &onnx_op = node.op_type();
     auto tnn_op_type = TNNOpType(node, net_info);
 
-    int axis = INT_MAX;
+    int axis = 0;
     if (node_has_attr(node, "axis")) {
         axis = (int)get_node_attr_i(node, "axis");
     }

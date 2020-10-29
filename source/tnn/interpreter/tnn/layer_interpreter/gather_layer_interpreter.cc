@@ -20,7 +20,7 @@ DECLARE_LAYER_INTERPRETER(Gather, LAYER_GATHER);
 
 Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
     auto layer_param = CreateLayerParam<GatherLayerParam>(param);
-    GET_INT_1_OR_DEFAULT(layer_param->axis, INT_MAX);
+    GET_INT_1_OR_DEFAULT(layer_param->axis, 0);
     GET_INT_1_OR_DEFAULT(layer_param->data_in_resource, 0);
     GET_INT_1_OR_DEFAULT(layer_param->indices_in_resource, 1);
     return TNN_OK;
