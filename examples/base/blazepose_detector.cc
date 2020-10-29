@@ -47,21 +47,11 @@ Status BlazePoseDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     return status;
 }
 
-std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> mat_,
+std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> mat,
                                                                    std::string name) {
     auto target_dims   = GetInputShape(name);
     auto target_height = target_dims[2];
     auto target_width  = target_dims[3];
-
-    //TODO: eliminate copy
-    std::shared_ptr<Mat> mat = nullptr;
-    if (mat_->GetDeviceType() == DEVICE_ARM) {
-        mat = mat_;
-    } else {
-        mat = std::make_shared<Mat>(DEVICE_ARM, mat_->GetMatType(), mat_->GetDims());
-        auto status = Copy(mat_, mat);
-        RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-    }
 
     auto input_height  = mat->GetHeight();
     auto input_width   = mat->GetWidth();
@@ -90,7 +80,7 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
         DimsVector intermediate_shape = mat->GetDims();
         intermediate_shape[2] = resized_height;
         intermediate_shape[3] = resized_width;
-        auto intermediate_mat = std::make_shared<Mat>(DEVICE_ARM, N8UC4, intermediate_shape);
+        auto intermediate_mat = std::make_shared<Mat>(mat->GetDeviceType(), mat->GetMatType(), intermediate_shape);
         auto status = Resize(mat, intermediate_mat, interp_mode);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
@@ -99,20 +89,13 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
         const int left   = (target_width  - resized_width) / 2;
         const int right  = (target_width  - resized_width) - left;
 
-        auto input_mat = std::make_shared<Mat>(DEVICE_ARM, N8UC4, target_dims);
+        auto input_mat = std::make_shared<Mat>(mat->GetDeviceType(), mat->GetMatType(), target_dims);
         status = CopyMakeBorder(intermediate_mat, input_mat, top, bottom, left, right, TNNBorderConstant);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
-        if (mat_->GetDeviceType() != DEVICE_ARM){
-            auto input_mat_dev = std::make_shared<Mat>(mat_->GetDeviceType(), input_mat->GetMatType(), input_mat->GetDims());
-            auto status = Copy(input_mat, input_mat_dev);
-            RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-
-            input_mat = input_mat_dev;
-        }
         return input_mat;
     }
-    return mat_;
+    return mat;
 }
 
 MatConvertParam BlazePoseDetector::GetConvertParamForInput(std::string tag) {
@@ -137,8 +120,8 @@ Status BlazePoseDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
 
     //TODO: tnn's output shape mismatches with tflite
-    auto scores = output->GetMat("classificators"); //(1, 1, 896, 1) vs (1, 896, 1)
-    auto boxes  = output->GetMat("regressors"); //(1, 12, 896, 1) vs (1, 896, 12)
+    auto scores = output->GetMat("classificators"); //(1, 896, 1)
+    auto boxes  = output->GetMat("regressors"); //(1, 896, 12)
     RETURN_VALUE_ON_NEQ(!scores, false,
                            Status(TNNERR_PARAM_ERR, "scores mat is nil"));
     RETURN_VALUE_ON_NEQ(!boxes, false,
@@ -156,8 +139,8 @@ Status BlazePoseDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
  mediapipe ssd_anchors_calculator
  */
 void BlazePoseDetector::GenerateAnchor(std::vector<Anchor>* anchors) {
-    const int stride_size = anchor_options.strides.size();
-    const int ar_size     = anchor_options.aspect_ratios.size();
+    const int stride_size = static_cast<int>(anchor_options.strides.size());
+    const int ar_size     = static_cast<int>(anchor_options.aspect_ratios.size());
     int layer_id = 0;
     while (layer_id < anchor_options.num_layers) {
         std::vector<float> anchor_height;

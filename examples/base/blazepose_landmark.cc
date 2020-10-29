@@ -158,18 +158,8 @@ Status BlazePoseLandmark::Init(std::shared_ptr<TNNSDKOption> option_i) {
     return status;
 }
 
-std::shared_ptr<Mat> BlazePoseLandmark::ProcessSDKInputMat(std::shared_ptr<Mat> mat_,
+std::shared_ptr<Mat> BlazePoseLandmark::ProcessSDKInputMat(std::shared_ptr<Mat> mat,
                                                                    std::string name) {
-    //TODO: eliminate copy
-    std::shared_ptr<Mat> mat = nullptr;
-    if (mat_->GetDeviceType() == DEVICE_ARM) {
-        mat = mat_;
-    } else {
-        mat = std::make_shared<Mat>(DEVICE_ARM, mat_->GetMatType(), mat_->GetDims());
-        auto status = Copy(mat_, mat);
-        RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-    }
-
     // save the origianl input shape
     origin_input_shape = mat->GetDims();
     const int src_height = origin_input_shape[2];
@@ -233,7 +223,7 @@ std::shared_ptr<Mat> BlazePoseLandmark::ProcessSDKInputMat(std::shared_ptr<Mat> 
         // TODO: we should use INTER_AREA when scale<1.0, use INTER_LINEAR for now, as TNN does not support INTER_AREA
         auto interp_mode = scale < 1.0f ? TNNInterpLinear : TNNInterpLinear;
         DimsVector intermediate_shape = {1, 3, resized_height, resized_width};
-        auto intermediate_mat = std::make_shared<Mat>(DEVICE_ARM, N8UC4, intermediate_shape);
+        auto intermediate_mat = std::make_shared<Mat>(cropped_mat->GetDeviceType(), mat->GetMatType(), intermediate_shape);
         auto status = Resize(cropped_mat, intermediate_mat, interp_mode);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
@@ -242,26 +232,11 @@ std::shared_ptr<Mat> BlazePoseLandmark::ProcessSDKInputMat(std::shared_ptr<Mat> 
         const int left   = (target_width  - resized_width) / 2;
         const int right  = (target_width  - resized_width) - left;
 
-        auto input_mat = std::make_shared<Mat>(DEVICE_ARM, N8UC4, target_dims);
+        auto input_mat = std::make_shared<Mat>(cropped_mat->GetDeviceType(), mat->GetMatType(), target_dims);
         status = CopyMakeBorder(intermediate_mat, input_mat, top, bottom, left, right, TNNBorderConstant);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
-        if (mat_->GetDeviceType() != DEVICE_ARM){
-            auto input_mat_dev = std::make_shared<Mat>(mat_->GetDeviceType(), input_mat->GetMatType(), input_mat->GetDims());
-            auto status = Copy(input_mat, input_mat_dev);
-            RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-
-            input_mat = input_mat_dev;
-        }
         return input_mat;
-    } else {
-        if (mat_->GetDeviceType() != DEVICE_ARM){
-            auto cropped_mat_dev = std::make_shared<Mat>(mat_->GetDeviceType(), cropped_mat->GetMatType(), cropped_mat->GetDims());
-            auto status = Copy(cropped_mat, cropped_mat_dev);
-            RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-
-            cropped_mat = cropped_mat_dev;
-        }
     }
     return cropped_mat;
 }
@@ -298,6 +273,7 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
         // generate roi according to landmarks
         roi_from_prev_frame = true;
     } else {
+        // use pose_detection for the next frame
         roi_from_prev_frame = false;
     }
     std::vector<BlazePoseInfo> detects;
@@ -340,7 +316,9 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
         // generate roi for the next frame
         KeyPoints2RoI(detects[0].key_points_3d, this->roi_option);
     }
+    SmoothingLandmarks(detects);
     DeNormalize(detects);
+    
     output->body_list.push_back(std::move(detects[0]));
 
     return status;
@@ -413,6 +391,31 @@ void BlazePoseLandmark::DeNormalize(std::vector<BlazePoseInfo>& detects) {
     detects[0].image_width  = src_width;
 }
 
+void BlazePoseLandmark::SmoothingLandmarks(std::vector<BlazePoseInfo> &detects) {
+    constexpr float decay = 0.6f;
+    
+    using Point3D = std::tuple<float, float, float>;
+    auto weighted_sum = [](Point3D& a, Point3D& b) {
+        auto x = std::get<0>(a)*(1-decay) + std::get<0>(b)*decay;
+        auto y = std::get<1>(a)*(1-decay) + std::get<1>(b)*decay;
+        auto z = std::get<2>(a)*(1-decay) + std::get<2>(b)*decay;
+        return std::make_tuple(x, y, z);
+    };
+    
+    if (history.size() > 0) {
+        // smoothing using history
+        auto& cur_kp3d = detects[0].key_points_3d;
+        auto& his_kp3d = history[0].key_points_3d;
+        for(int i=0; i<cur_kp3d.size(); ++i) {
+            cur_kp3d[i] = weighted_sum(cur_kp3d[i], his_kp3d[i]);
+        }
+        his_kp3d = cur_kp3d;
+    } else {
+        history.push_back(detects[0]);
+    }
+    return;
+}
+
 /*
  Generate a RoI for the blazepose landmark model
  This method corredponds to AlignmentPointsRectsCalculator+RectTransformationCalculator in mediapipe.
@@ -428,5 +431,3 @@ void BlazePoseLandmark::Detection2RoI(BlazePoseInfo& detect, const RoIGenOptions
 }
 
 }
-
-

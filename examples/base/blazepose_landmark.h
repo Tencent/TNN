@@ -94,11 +94,14 @@ private:
     void ProcessLandmarks(Mat& landmark_mat, std::vector<BlazePoseInfo>& detects);
     void RemoveLetterBoxAndProjection(std::vector<BlazePoseInfo>& detects);
     void DeNormalize(std::vector<BlazePoseInfo>& detects);
+    void SmoothingLandmarks(std::vector<BlazePoseInfo>& detects);
+    
     // alias for 2d keypoints
     using Keypoints2D = std::pair<float, float>;
     using Keypoints3D = triple<float,float,float>;
     template <typename KeyPointType>
     void KeyPoints2RoI(std::vector<KeyPointType>& key_points, const RoIGenOptions& option);
+    
     // the orignal input shape
     DimsVector origin_input_shape;
     // the roi
@@ -116,10 +119,10 @@ private:
     // pads for remove latterbox from detection
     std::array<float, 4> letterbox_pads;
     int num_landmarks = 31;
+    // hostory detect results
+    std::vector<BlazePoseInfo> history;
 };
 
 }
 
 #endif // TNN_EXAMPLES_BASE_BLAZEPOSE_LANDMARK_H_
-
-
