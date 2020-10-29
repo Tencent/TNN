@@ -16,16 +16,16 @@
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
-DECLARE_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
+DECLARE_LAYER(Squeeze, LAYER_SQUEEZE);
 
-Status UnsqueezeLayer::InferOutputDataType() {
+Status SqueezeLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status UnsqueezeLayer::InferOutputShape() {
+Status SqueezeLayer::InferOutputShape() {
     //ASSERT(input_blobs_.size() == 1);
-    auto layer_param      = dynamic_cast<UnsqueezeLayerParam*>(param_);
-    auto layer_resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);
+    auto layer_param      = dynamic_cast<SqueezeLayerParam*>(param_);
+    auto layer_resource = dynamic_cast<SqueezeLayerResource*>(resource_);
     
     const auto& output_blob = output_blobs_[0];
     
@@ -46,6 +46,6 @@ Status UnsqueezeLayer::InferOutputShape() {
     return TNN_OK;
 }
 
-REGISTER_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
+REGISTER_LAYER(Squeeze, LAYER_SQUEEZE);
 
 }  // namespace TNN_NS

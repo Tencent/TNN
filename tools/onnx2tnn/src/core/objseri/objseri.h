@@ -12,6 +12,7 @@ namespace parser{
     static const uint32_t g_version_magic_number_tnn = 0x0FABC0002;
     static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0003;
 
+    //keep same with tnn/common.h
     typedef enum {
         //auto
         //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
@@ -23,7 +24,9 @@ namespace parser{
         // int8
         DATA_TYPE_INT8 = 2,
         // int32
-        DATA_TYPE_INT32 = 3
+        DATA_TYPE_INT32 = 3,
+        // brain float 16
+        DATA_TYPE_BFP16 = 4
     } DataType;
     
     static const int FLOAT_32_BIT_MASK = 0x00000000;

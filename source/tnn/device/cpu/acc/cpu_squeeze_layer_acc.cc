@@ -18,17 +18,17 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+DECLARE_CPU_ACC(Squeeze, LAYER_SQUEEZE);
 
-Status CpuUnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CpuSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CpuUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    const auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
+Status CpuSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const auto param = dynamic_cast<SqueezeLayerParam*>(param_);
     void *input_data = nullptr;
     if (param->data_in_resource) {
-        auto resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);
+        auto resource = dynamic_cast<SqueezeLayerResource*>(resource_);
         input_data = resource->data.force_to<void *>();
     } else {
         input_data = inputs[0]->GetHandle().base;
@@ -46,5 +46,5 @@ Status CpuUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-REGISTER_CPU_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+REGISTER_CPU_ACC(Squeeze, LAYER_SQUEEZE);
 }  // namespace TNN_NS
