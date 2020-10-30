@@ -146,17 +146,28 @@ Status ArmConvLayerGroup::DoForward(const std::vector<Blob *> &inputs, const std
     RawBuffer pack_input_buffer;
     RawBuffer unpack_output_buffer;
     RawBuffer pack_output_buffer;
-    if (ic_per_group % align_c != 0) {
-        RawBuffer unpack_data(group_ * input_step_per_group * element_size);
-        RawBuffer pack_data(group_ * input_step_per_group_align * element_size);
-        unpack_input_buffer = unpack_data;
-        pack_input_buffer = pack_data;
-    }
-    if (oc_per_group % align_c != 0) {
-        RawBuffer unpack_data(group_ * output_step_per_group * element_size);
-        RawBuffer pack_data(group_ * output_step_per_group_align * element_size);
-        unpack_output_buffer = unpack_data;
-        pack_output_buffer = pack_data;
+    if (data_type == DATA_TYPE_INT8) {
+        RawBuffer unpack_input_data(group_ * input_step_per_group * element_size);
+        RawBuffer pack_input_data(group_ * input_step_per_group_align * element_size);
+        RawBuffer unpack_output_data(group_ * output_step_per_group * element_size);
+        RawBuffer pack_output_data(group_ * output_step_per_group_align * element_size);
+        unpack_input_buffer = unpack_input_data;
+        pack_input_buffer = pack_input_data;
+        unpack_output_buffer = unpack_output_data;
+        pack_output_buffer = pack_output_data;
+    } else {
+        if (ic_per_group % align_c != 0) {
+            RawBuffer unpack_data(group_ * input_step_per_group * element_size);
+            RawBuffer pack_data(group_ * input_step_per_group_align * element_size);
+            unpack_input_buffer = unpack_data;
+            pack_input_buffer = pack_data;
+        }
+        if (oc_per_group % align_c != 0) {
+            RawBuffer unpack_data(group_ * output_step_per_group * element_size);
+            RawBuffer pack_data(group_ * output_step_per_group_align * element_size);
+            unpack_output_buffer = unpack_data;
+            pack_output_buffer = pack_data;
+        }
     }
 
     for (int b = 0; b < batch; b++) {
@@ -164,16 +175,25 @@ Status ArmConvLayerGroup::DoForward(const std::vector<Blob *> &inputs, const std
         auto output_batch = output_origin + b * output_step_per_batch * element_size;
         auto output_tmp = output_batch;
 
-        if (ic_per_group % align_c != 0) {
+        if (data_type == DATA_TYPE_INT8) {
             TransformInput(pack_input_buffer.force_to<char *>(),
-                           unpack_input_buffer.force_to<char *>(), input_batch,
-                           ic_per_group, input_step_per_group, input_step_per_group_align,
-                           input_dims, data_type);
+                        unpack_input_buffer.force_to<char *>(), input_batch,
+                        ic_per_group, input_step_per_group, input_step_per_group_align,
+                        input_dims, data_type);
             input_batch = pack_input_buffer.force_to<char *>();
-        }
-
-        if (oc_per_group % align_c != 0) {
             output_tmp = pack_output_buffer.force_to<char *>();
+        } else {
+            if (ic_per_group % align_c != 0) {
+                TransformInput(pack_input_buffer.force_to<char *>(),
+                            unpack_input_buffer.force_to<char *>(), input_batch,
+                            ic_per_group, input_step_per_group, input_step_per_group_align,
+                            input_dims, data_type);
+                input_batch = pack_input_buffer.force_to<char *>();
+            }
+
+            if (oc_per_group % align_c != 0) {
+                output_tmp = pack_output_buffer.force_to<char *>();
+            }
         }
 
         for (int g = 0; g < group_; g++) {
@@ -194,11 +214,18 @@ Status ArmConvLayerGroup::DoForward(const std::vector<Blob *> &inputs, const std
             RETURN_ON_NEQ(conv_acc_impls_[g]->DoForward(local_inputs, local_outputs), TNN_OK);
         }
 
-        if (oc_per_group % align_c != 0) {
+        if (data_type == DATA_TYPE_INT8) {
             TransformOutput(pack_output_buffer.force_to<char *>(),
                             unpack_output_buffer.force_to<char *>(), output_batch,
                             oc_per_group, output_step_per_group, output_step_per_group_align,
                             output_dims, data_type);
+        } else {
+            if (oc_per_group % align_c != 0) {
+                TransformOutput(pack_output_buffer.force_to<char *>(),
+                                unpack_output_buffer.force_to<char *>(), output_batch,
+                                oc_per_group, output_step_per_group, output_step_per_group_align,
+                                output_dims, data_type);
+            }
         }
     }
     return TNN_OK;
