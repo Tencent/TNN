@@ -54,7 +54,7 @@ TEST_P(PadLayerTest, PadLayer) {
         pad_h = pad_h % input_size;
     }
     // 目前 只有pad mode 为 const 时, 才支持在channel上进行pad
-    if ( (pad_type == 1 || pad_type == 2) && (pad_c != 0)){
+    if ((pad_type == 1 || pad_type == 2) && (pad_c != 0)) {
         GTEST_SKIP();
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
@@ -65,12 +65,55 @@ TEST_P(PadLayerTest, PadLayer) {
 
     // param
     PadLayerParam param;
-    param.name = "Pad";
-    param.type = pad_type;
-    param.pads = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
+    param.name  = "Pad";
+    param.type  = pad_type;
+    param.pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
     param.value = value;
 
     Run(LAYER_PAD, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(PadLayerTest, PadLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    int pad_w      = std::get<3>(GetParam());
+    int pad_h      = std::get<4>(GetParam());
+    int pad_c      = std::get<5>(GetParam());
+    int pad_type   = std::get<6>(GetParam());
+    float value    = std::get<7>(GetParam());
+
+    // insure pad is valid
+    if (pad_w >= input_size) {
+        pad_w = pad_w % input_size;
+    }
+    if (pad_h >= input_size) {
+        pad_h = pad_h % input_size;
+    }
+    // 目前 只有pad mode 为 const 时, 才支持在channel上进行pad
+    if ((pad_type == 1 || pad_type == 2) && (pad_c != 0)) {
+        GTEST_SKIP();
+    }
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // param
+    PadLayerParam param;
+    param.name  = "Pad";
+    param.type  = pad_type;
+    param.pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
+    param.value = value;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Pad layer_name 1 1 input output "
+         << "0 0 " << param.pads[2] << " " << param.pads[3] << " " << param.pads[0] << " " << param.pads[1] << " "
+         << param.pads[4] << " " << param.pads[5] << " " << param.type << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

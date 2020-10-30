@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/layer_test.h"
+#include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/unit_test_macro.h"
 
 namespace TNN_NS {
@@ -20,8 +21,7 @@ namespace TNN_NS {
 class PixelShuffleLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PixelShuffleLayerTest,
-                         ::testing::Combine(testing::Values(1, 2),
-                                            testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32, 50),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32, 50),
                                             testing::Values(9, 10, 16, 19),
                                             // upscale_factor
                                             testing::Values(1, 2, 3, 4, 5)));
@@ -46,6 +46,27 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
     param.upscale_factor = upscale_factor;
 
     Run(LAYER_PIXEL_SHUFFLE, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(PixelShuffleLayerTest, PixelShuffleLayerWithProto) {
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int upscale_factor = std::get<3>(GetParam());
+    if (channel < upscale_factor || channel % (upscale_factor * upscale_factor) != 0) {
+        GTEST_SKIP();
+    }
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "PixelShuffle layer_name 1 1 input output " << upscale_factor << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

@@ -133,9 +133,9 @@ TEST_P(ConvLayerTest, ConvLayerWithProto) {
     std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
     std::ostringstream ostr;
     ostr << "\""
-         << "Convolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel << " " << kernel
-         << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 " << dilation << " "
-         << dilation << " "
+         << "Convolution layer_name 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
+         << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
+         << dilation << " " << dilation << " "
          << ",\"";
 
     std::string proto = head + ostr.str();

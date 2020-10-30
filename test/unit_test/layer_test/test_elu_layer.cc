@@ -23,17 +23,17 @@ class EluLayerTest : public LayerTest,
                      public ::testing::WithParamInterface<std::tuple<int, int, int, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, EluLayerTest,
-                        ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 8),
-                            testing::Values(1, 4, 15),
-                            // size Values(16, 19),
-                            testing::Values(1, 6, 8, 13),
-                            // alpha
-                            testing::Values(-1.234, 2.30, 0.564),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 8),
+                             testing::Values(1, 4, 15),
+                             // size Values(16, 19),
+                             testing::Values(1, 6, 8, 13),
+                             // alpha
+                             testing::Values(-1.234, 2.30, 0.564),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(EluLayerTest, EluLayer) {
     // get param
@@ -57,6 +57,29 @@ TEST_P(EluLayerTest, EluLayer) {
     param.alpha = alpha;
 
     Run(LAYER_ELU, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(EluLayerTest, EluLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    float alpha        = std::get<3>(GetParam());
+    DataType data_type = std::get<4>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Elu layer_name 1 1 input output " << alpha << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

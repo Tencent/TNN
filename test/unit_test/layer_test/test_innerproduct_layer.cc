@@ -69,4 +69,33 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     Run(LAYER_INNER_PRODUCT, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(InnerProductLayerTest, InnerProductLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int input_channel  = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int output_channel = std::get<3>(GetParam());
+    int has_bias       = std::get<4>(GetParam());
+    DataType dtype     = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev)) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, input_channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "InnerProduct layer_name 1 1 input output " << output_channel << " " << has_bias << " 0 1"
+         << ",\"";
+
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == dtype) {
+        precision = PRECISION_LOW;
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
+}
+
 }  // namespace TNN_NS

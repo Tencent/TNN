@@ -24,18 +24,18 @@ class HardSigmoidLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSigmoidLayerTest,
                          ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 6, 8, 13),
-                            testing::Values(1, 6, 8, 13),
-                            // size Values(1, 6, 8, 13),
-                            testing::Values(6),
-                            // alpha Values(2, 1, 0.5),
-                            testing::Values(2, 1, 0.5),
-                            // beta Values(0, 2, 1.5, 3),
-                            testing::Values(0, 2, 1.5, 3),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 6, 8, 13),
+                             testing::Values(1, 6, 8, 13),
+                             // size Values(1, 6, 8, 13),
+                             testing::Values(6),
+                             // alpha Values(2, 1, 0.5),
+                             testing::Values(2, 1, 0.5),
+                             // beta Values(0, 2, 1.5, 3),
+                             testing::Values(0, 2, 1.5, 3),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     // get param
@@ -58,6 +58,27 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     param.beta  = beta;
 
     Run(LAYER_HARDSIGMOID, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(HardSigmoidLayerTest, HardSigmoidLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    float alpha    = std::get<3>(GetParam());
+    float beta     = std::get<4>(GetParam());
+
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "HardSigmoid layer_name 1 1 input output " << alpha << " " << beta << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

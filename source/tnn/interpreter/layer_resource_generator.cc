@@ -139,6 +139,11 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
 };
 
 /*
+ * Generate scale resource
+ */
+class ScaleLayerResourceGenerator : public BatchnormLayerResourceGenerator {};
+
+/*
  * Generate weights for InstanceNorm layer
  */
 class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
@@ -262,6 +267,7 @@ REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION)
 REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION)
 REGISTER_LAYER_RESOURCE(InnerProduct, LAYER_INNER_PRODUCT)
 REGISTER_LAYER_RESOURCE(Batchnorm, LAYER_BATCH_NORM)
+REGISTER_LAYER_RESOURCE(Scale, LAYER_SCALE)
 REGISTER_LAYER_RESOURCE(InstanceNorm, LAYER_INST_BATCH_NORM)
 REGISTER_LAYER_RESOURCE(PRelu, LAYER_PRELU)
 REGISTER_LAYER_RESOURCE(BlobScale, LAYER_BLOB_SCALE)

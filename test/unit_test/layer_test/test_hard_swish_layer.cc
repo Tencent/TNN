@@ -25,20 +25,20 @@ class HardSwishLayerTest
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSwishLayerTest,
                          ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 6, 8, 13),
-                            testing::Values(1, 6, 8, 13),
-                            // size Values(1, 6, 8, 13),
-                            testing::Values(6),
-                            // alpha Values(2, 1, 0.5),
-                            testing::Values(2, 1, 0.5),
-                            // beta Values(0, 2, 1.5, 3),
-                            testing::Values(0, 2, 1.5, 3),
-                            // input count
-                            testing::Values(1, 2),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 6, 8, 13),
+                             testing::Values(1, 6, 8, 13),
+                             // size Values(1, 6, 8, 13),
+                             testing::Values(6),
+                             // alpha Values(2, 1, 0.5),
+                             testing::Values(2, 1, 0.5),
+                             // beta Values(0, 2, 1.5, 3),
+                             testing::Values(0, 2, 1.5, 3),
+                             // input count
+                             testing::Values(1, 2),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(HardSwishLayerTest, HardSwishLayer) {
     // get param
@@ -77,6 +77,32 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     param.beta  = beta;
 
     Run(LAYER_HARDSWISH, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(HardSwishLayerTest, HardSwishLayerWithProto) {
+    // get param
+    int batch       = std::get<0>(GetParam());
+    int channel     = std::get<1>(GetParam());
+    int input_size  = std::get<2>(GetParam());
+    float alpha     = std::get<3>(GetParam());
+    float beta      = std::get<4>(GetParam());
+    int input_count = std::get<5>(GetParam());
+
+    DataType data_type = std::get<6>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (input_count != 1) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "HardSwish layer_name 1 1 input output " << alpha << " " << beta << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

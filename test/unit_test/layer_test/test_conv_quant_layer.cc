@@ -115,13 +115,13 @@ TEST_P(ConvQuantLayerTest, ConvLayerWithProto) {
 
     if (DATA_TYPE_INT8 == data_type) {
         ostr << "\""
-             << "QuantizedConvolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel
-             << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
-             << dilation << " " << dilation << " "
+             << "QuantizedConvolution layer_name 1 1 input output " << group << " " << channel_per_group << " "
+             << channel << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad
+             << " 1 -1 " << dilation << " " << dilation << " "
              << ",\"";
     } else if (DATA_TYPE_BFP16 == data_type) {
         ostr << "\""
-             << "Convolution conv 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
+             << "Convolution layer_name 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
              << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
              << dilation << " " << dilation << " "
              << ",\"";

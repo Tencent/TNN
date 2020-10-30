@@ -54,4 +54,21 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     Run(LAYER_INST_BATCH_NORM, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(InstanceNormLayerTest, InstanceNormLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "InstBatchNormCxx layer_name 1 1 input output"
+         << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

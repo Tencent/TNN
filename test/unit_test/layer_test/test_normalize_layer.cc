@@ -66,4 +66,41 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     Run(LAYER_NORMALIZE, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(NormalizeLayerTest, NormalizeLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int p              = std::get<3>(GetParam());
+    int axis           = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (batch > 1 || axis != 1 || channel < 2) {
+        GTEST_SKIP();
+    }
+
+    if (channel > 4 && channel % 4 != 0) {
+        GTEST_SKIP();
+    }
+
+    NormalizeLayerParam param;
+    param.p    = p;
+    param.axis = axis;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Normalize layer_name 1 1 input output " << param.across_spatial << " " << param.epsilon << " "
+         << param.channel_shared << " " << param.axis << " " << param.p << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

@@ -23,21 +23,21 @@ class PowLayerTest : public LayerTest,
                      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PowLayerTest,
-                        ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 8),
-                            testing::Values(1, 4, 15),
-                            // size Values(16, 19),
-                            testing::Values(1, 6, 8, 13),
-                            // scale
-                            testing::Values(1.234, 2.30, 0),
-                            // shift
-                            testing::Values(1.234, 1.234, 0.564),
-                            // exponent
-                            testing::Values(1.234, 2, 2.1),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 8),
+                             testing::Values(1, 4, 15),
+                             // size Values(16, 19),
+                             testing::Values(1, 6, 8, 13),
+                             // scale
+                             testing::Values(1.234, 2.30, 0),
+                             // shift
+                             testing::Values(1.234, 1.234, 0.564),
+                             // exponent
+                             testing::Values(1.234, 2, 2.1),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(PowLayerTest, PowLayer) {
     ensure_input_positive_ = 1;
@@ -68,6 +68,34 @@ TEST_P(PowLayerTest, PowLayer) {
     param.exponent = exponent;
 
     Run(LAYER_POWER, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(PowLayerTest, PowLayerWithProto) {
+    ensure_input_positive_ = 1;
+
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    float scale    = std::get<3>(GetParam());
+    float shift    = std::get<4>(GetParam());
+    float exponent = std::get<5>(GetParam());
+
+    DataType data_type = std::get<6>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Power layer_name 1 1 input output " << exponent << " " << scale << " " << shift << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

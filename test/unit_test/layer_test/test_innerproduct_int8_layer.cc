@@ -19,8 +19,7 @@
 
 namespace TNN_NS {
 
-class InnerProductInt8LayerTest : public LayerTest,
-                                  public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
+class InnerProductInt8LayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductInt8LayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(3, 4, 8, 9, 16),
@@ -70,6 +69,28 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     resource.weight_handle.SetDataType(DATA_TYPE_INT8);
     resource.scale_handle = scale;
     Run(LAYER_INNER_PRODUCT, &param, &resource, inputs_desc, outputs_desc);
+}
+
+TEST_P(InnerProductInt8LayerTest, InnerProductLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int input_channel  = std::get<1>(GetParam());
+    int output_channel = std::get<2>(GetParam());
+    int input_size     = 1;
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    if (DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, input_channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "QuantizedInnerProduct layer_name 1 1 input output " << output_channel << " 0 0 1"
+         << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

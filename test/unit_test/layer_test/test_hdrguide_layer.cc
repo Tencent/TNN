@@ -88,4 +88,30 @@ TEST_P(HdrGuideLayerTest, HdrGuideLayer) {
     Run(LAYER_HDRGUIDE, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(HdrGuideLayerTest, HdrGuideLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (channel != 3) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_METAL != dev && DEVICE_OPENCL != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "HDRGuide layer_name 1 1 input output "
+         << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

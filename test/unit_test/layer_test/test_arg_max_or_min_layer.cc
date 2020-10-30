@@ -64,4 +64,30 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     Run(LAYER_ARG_MAX_OR_MIN, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayerWithProto) {
+    // get param
+    int batch             = std::get<0>(GetParam());
+    int channel           = std::get<1>(GetParam());
+    int input_size        = std::get<2>(GetParam());
+    int mode              = std::get<3>(GetParam());
+    int axis              = std::get<4>(GetParam());
+    int keep_dims         = std::get<5>(GetParam());
+    int select_last_index = std::get<6>(GetParam());
+    DataType dtype        = std::get<7>(GetParam());
+    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
+    if (dtype != DATA_TYPE_FLOAT) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "ArgMaxOrMin layer_name 1 1 input output " << mode << " " << axis << " " << keep_dims << " "
+         << select_last_index << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

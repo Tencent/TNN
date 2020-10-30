@@ -65,4 +65,30 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     Run(LAYER_SCALE, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+
+    std::ostringstream ostr1;
+    ostr1 << "\""
+          << "BatchNormCxx layer_name 1 1 input output "
+          << ",\"";
+    std::string proto1 = head + ostr1.str();
+    RunWithProto(proto1);
+
+    std::ostringstream ostr2;
+    ostr2 << "\""
+          << "Scale layer_name 1 1 input output "
+          << ",\"";
+    std::string proto2 = head + ostr2.str();
+    RunWithProto(proto2);
+}
+
 }  // namespace TNN_NS

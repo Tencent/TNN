@@ -27,7 +27,8 @@ class DeconvLayerTest
     : public LayerTest,
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, int, DataType>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13), testing::Values(1, 2, 3, 4, 16),
+                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
+                                            testing::Values(1, 2, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
@@ -47,25 +48,26 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
 
 TEST_P(DeconvLayerTest, DeconvLayer) {
     // get param
-    int batch             = std::get<0>(GetParam());
-    int input_channel_per_group = std::get<1>(GetParam());
+    int batch                    = std::get<0>(GetParam());
+    int input_channel_per_group  = std::get<1>(GetParam());
     int output_channel_per_group = std::get<2>(GetParam());
-    int input_size        = std::get<3>(GetParam());
-    int group             = std::get<4>(GetParam());
-    int kernel            = std::get<5>(GetParam());
-    int dilation          = std::get<6>(GetParam());
-    int stride            = std::get<7>(GetParam());
-    int pad               = std::get<8>(GetParam());
-    int output_pad        = std::get<9>(GetParam());
-    auto dtype            = std::get<10>(GetParam());
+    int input_size               = std::get<3>(GetParam());
+    int group                    = std::get<4>(GetParam());
+    int kernel                   = std::get<5>(GetParam());
+    int dilation                 = std::get<6>(GetParam());
+    int stride                   = std::get<7>(GetParam());
+    int pad                      = std::get<8>(GetParam());
+    int output_pad               = std::get<9>(GetParam());
+    auto dtype                   = std::get<10>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-    
-    if ( DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) && !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) ) {
+
+    if (DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
+        !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
         GTEST_SKIP();
     }
 
@@ -75,7 +77,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         output_pad = 1;
     }
 
-    int input_channel = group * input_channel_per_group;
+    int input_channel  = group * input_channel_per_group;
     int output_channel = group * output_channel_per_group;
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, input_channel, input_size, 1, dtype);
@@ -111,6 +113,59 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     resource.bias_handle   = bias;
 
     Run(LAYER_DECONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
+}
+
+TEST_P(DeconvLayerTest, DeconvLayerWithProto) {
+    // get param
+    int batch                    = std::get<0>(GetParam());
+    int input_channel_per_group  = std::get<1>(GetParam());
+    int output_channel_per_group = std::get<2>(GetParam());
+    int input_size               = std::get<3>(GetParam());
+    int group                    = std::get<4>(GetParam());
+    int kernel                   = std::get<5>(GetParam());
+    int dilation                 = std::get<6>(GetParam());
+    int stride                   = std::get<7>(GetParam());
+    int pad                      = std::get<8>(GetParam());
+    int output_pad               = std::get<9>(GetParam());
+    auto data_type               = std::get<10>(GetParam());
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
+        !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
+        GTEST_SKIP();
+    }
+
+    if (kernel <= 1) {
+        pad = 0;
+    } else if (kernel == 2) {
+        output_pad = 1;
+    }
+
+    int input_channel  = group * input_channel_per_group;
+    int output_channel = group * output_channel_per_group;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, input_channel, input_size, input_size});
+    std::ostringstream ostr;
+
+    ostr << "\""
+         << "Deconvolution layer_name 1 1 input output " << group << " " << input_channel_per_group << " "
+         << output_channel << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " "
+         << pad << " 1 -1 " << dilation << " " << dilation << " "
+         << ",\"";
+
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
 }
 
 }  // namespace TNN_NS

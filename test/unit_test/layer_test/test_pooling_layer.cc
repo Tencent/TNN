@@ -71,4 +71,64 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(PoolingLayerTest, PoolingLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int kernel         = std::get<3>(GetParam());
+    int stride         = std::get<4>(GetParam());
+    int pool_type      = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // param
+    PoolingLayerParam param;
+    param.name           = "Pooling";
+    param.kernels_params = {kernel, kernel};
+    param.kernels        = {kernel, kernel};
+    param.strides        = {stride, stride};
+    if (kernel == 3)
+        param.pads = {1, 1, 1, 1};
+    else
+        param.pads = {0, 0, 0, 0};
+    param.pad_type  = -1;
+    param.pool_type = pool_type;
+    param.kernel_indexs.push_back(-1);
+    param.kernel_indexs.push_back(-1);
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Pooling layer_name 1 1 input output ";
+    ostr << param.pool_type << " ";
+    ostr << param.kernels_params[1] << " ";
+    ostr << param.kernels_params[0] << " ";
+    ostr << param.strides[1] << " ";
+    ostr << param.strides[0] << " ";
+    ostr << param.pads[2] << " ";
+    ostr << param.pads[0] << " ";
+    ostr << param.kernel_indexs[1] << " ";
+    ostr << param.kernel_indexs[0] << " ";
+    ostr << param.pad_type << " ";
+    ostr << param.ceil_mode << " ";
+    ostr << ",\"";
+
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
+}
+
 }  // namespace TNN_NS
