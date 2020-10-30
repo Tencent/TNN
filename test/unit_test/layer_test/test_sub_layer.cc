@@ -36,4 +36,8 @@ TEST_P(SubLayerTest, BinaryLayerTest) {
     RunBinaryTest();
 }
 
+TEST_P(SubLayerTest, BinaryLayerTestWithProto) {
+    RunBinaryTestWithProto("Sub");
+}
+
 }  // namespace TNN_NS

@@ -36,4 +36,8 @@ TEST_P(DivLayerTest, BinaryLayerTest) {
     RunBinaryTest();
 }
 
+TEST_P(DivLayerTest, BinaryLayerTestWithProto) {
+    RunBinaryTestWithProto("Div");
+}
+
 }  // namespace TNN_NS

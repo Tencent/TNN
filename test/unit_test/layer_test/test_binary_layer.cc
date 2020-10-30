@@ -130,4 +130,91 @@ void BinaryLayerTest::RunBinaryTest() {
     Run(layer_type, param.get(), resource.get(), inputs_desc, outputs_desc);
 }
 
+void BinaryLayerTest::RunBinaryTestWithProto(std::string layer_type_str) {
+    // get param
+    int batch           = std::get<0>(GetParam());
+    int channel         = std::get<1>(GetParam());
+    int input_size      = std::get<2>(GetParam());
+    int input_count     = std::get<3>(GetParam());
+    int param_size_type = std::get<4>(GetParam());
+    int weight_idx      = std::get<5>(GetParam());
+    DataType data_type  = std::get<6>(GetParam());
+    DeviceType dev      = ConvertDeviceType(FLAGS_dt);
+
+    if (InputParamCheck(data_type, dev, batch)) {
+        GTEST_SKIP();
+    }
+
+    if (1 == input_count) {
+        GTEST_SKIP();
+    }
+
+    // param
+    std::shared_ptr<MultidirBroadcastLayerParam> param;
+    if (LAYER_HARDSWISH == layer_type_) {
+        param.reset(new HardSwishLayerParam());
+    } else {
+        param.reset(new MultidirBroadcastLayerParam());
+    }
+
+    param->name               = "Binary";
+    param->weight_input_index = weight_idx;
+
+    std::vector<int> input0_dims;
+    std::vector<int> input1_dims;
+    // blob desc
+    std::vector<BlobDesc> inputs_desc;
+    if (1 == input_count) {
+        GTEST_SKIP();
+    } else if (2 == input_count) {
+        if (-1 == weight_idx) {
+            // the size of input are same
+            input0_dims = {batch, channel, input_size, input_size};
+            input1_dims = {batch, channel, input_size, input_size};
+        } else {
+            std::vector<int> weight_dims;
+            if (0 == param_size_type) {
+                weight_dims = {1, 1, 1, 1};
+            } else if (1 == param_size_type) {
+                weight_dims = {1, channel, 1, 1};
+            } else if (2 == param_size_type) {
+                weight_dims = {1, channel, input_size, input_size};
+            } else if (3 == param_size_type) {
+                weight_dims = {1, 1, input_size, input_size};
+            }
+
+            if (0 == weight_idx) {
+                input0_dims = weight_dims;
+                input1_dims = {batch, channel, input_size, input_size};
+            } else if (1 == weight_idx) {
+                input0_dims = {batch, channel, input_size, input_size};
+                input1_dims = weight_dims;
+            }
+        }
+    } else {
+        // not support yet
+        return;
+    }
+
+    std::string head = GenerateHeadProto({input0_dims, input1_dims});
+
+    Precision precision = PRECISION_AUTO;
+    std::ostringstream ostr;
+    if (DATA_TYPE_INT8 == data_type) {
+        ostr << "\"Quantized" << layer_type_str;
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        ostr << "\"" << layer_type_str;
+        precision = PRECISION_LOW;
+    } else {
+        ostr << "\"" << layer_type_str;
+    }
+    ostr << " layer_name " << input_count << " 1 ";
+    for (int i = 0; i < input_count; ++i)
+        ostr << "input" << i << " ";
+    ostr << "output " << param->weight_input_index << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
+}
+
 }  // namespace TNN_NS

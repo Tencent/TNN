@@ -36,4 +36,8 @@ TEST_P(MaxLayerTest, BinaryLayerTest) {
     RunBinaryTest();
 }
 
+TEST_P(MaxLayerTest, BinaryLayerTestWithProto) {
+    RunBinaryTestWithProto("Maximum");
+}
+
 }  // namespace TNN_NS

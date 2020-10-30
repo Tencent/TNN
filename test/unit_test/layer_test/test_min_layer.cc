@@ -36,4 +36,8 @@ TEST_P(MinLayerTest, BinaryLayerTest) {
     RunBinaryTest();
 }
 
+TEST_P(MinLayerTest, BinaryLayerTestWithProto) {
+    RunBinaryTestWithProto("Minimum");
+}
+
 }  // namespace TNN_NS

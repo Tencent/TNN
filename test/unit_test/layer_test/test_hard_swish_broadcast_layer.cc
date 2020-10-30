@@ -44,4 +44,16 @@ TEST_P(HardSwishBroadcastLayerTest, BinaryLayerTest) {
     RunBinaryTest();
 }
 
+TEST_P(HardSwishBroadcastLayerTest, BinaryLayerTestWithProto) {
+    // get param
+    int weight_idx = std::get<5>(GetParam());
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // hard swish dont support weight
+    if (weight_idx != -1) {
+        GTEST_SKIP();
+    }
+    RunBinaryTestWithProto("HardSwish");
+}
+
 }  // namespace TNN_NS

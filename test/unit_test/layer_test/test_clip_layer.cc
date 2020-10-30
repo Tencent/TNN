@@ -62,4 +62,28 @@ TEST_P(ClipLayerTest, ClipLayer) {
     Run(LAYER_CLIP, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(ClipLayerTest, ClipLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    float minV     = std::get<3>(GetParam());
+    float maxV     = std::get<4>(GetParam());
+    if (maxV < minV) {
+        maxV = minV;
+    }
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    // generate proto string
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Clip layer_name 1 1 input output " << minV << " " << maxV << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS
