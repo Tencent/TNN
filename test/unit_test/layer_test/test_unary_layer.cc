@@ -61,15 +61,20 @@ void UnaryLayerTest::RunUnaryTestWithProto(std::string type_str) {
 
     Precision precision = PRECISION_AUTO;
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     if (DATA_TYPE_INT8 == data_type) {
-        ostr << "\"" << "Quantized" << type_str << " unary 1 1 input output " << ",\"";
+        ostr << "\""
+             << "Quantized" << type_str << " unary 1 1 input output "
+             << ",\"";
     } else if (DATA_TYPE_BFP16 == data_type) {
-        ostr << "\"" << type_str << " unary 1 1 input output " << ",\"";
+        ostr << "\"" << type_str << " unary 1 1 input output "
+             << ",\"";
         precision = PRECISION_LOW;
     } else {
-        ostr << "\"" << type_str << " unary 1 1 input output " << ",\"";
+        ostr << "\"" << type_str << " unary 1 1 input output "
+             << ",\"";
     }
 
     std::string proto = head + ostr.str();

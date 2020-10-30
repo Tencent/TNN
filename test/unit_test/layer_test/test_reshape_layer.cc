@@ -64,7 +64,8 @@ TEST_P(ReshapeLayerTest, ReshapeLayerWithProto) {
     param.shape        = {0, -1, 1, 1};
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     ostr << "\""
          << "Reshape layer_name 1 1 input output ";

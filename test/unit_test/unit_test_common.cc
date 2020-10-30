@@ -69,35 +69,6 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** c
     ASSERT(ret == TNN_OK);
 }
 
-std::string GenerateHeadProto(std::vector<int> input_dims, int output_count) {
-    std::ostringstream ostr;
-    ostr << "\"1 124 1 4206624770,\"\n";
-    ostr << "\"input";
-    for (auto i : input_dims)
-        ostr << " " << i;
-    ostr << " ,\"\n";
-    ostr << "\" input ";
-    if (1 == output_count) {
-        ostr << "output ";
-    } else {
-        for (int i = 0; i < output_count; ++i) {
-            ostr << "output" << i << " ";
-        }
-    }
-    ostr << ",\"\n";
-    ostr << "\"";
-    if (1 == output_count) {
-        ostr << "output ";
-    } else {
-        for (int i = 0; i < output_count; ++i) {
-            ostr << "output" << i << " ";
-        }
-    }
-    ostr << ",\"\n";
-    ostr << "\"1 ,\"\n";
-    return ostr.str();
-}
-
 std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int output_count) {
     std::ostringstream ostr;
     ostr << "\"1 124 1 4206624770,\"\n";

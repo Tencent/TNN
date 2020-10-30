@@ -72,7 +72,8 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayerWithProto) {
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     ostr << "\""
          << "HardSigmoid layer_name 1 1 input output " << alpha << " " << beta << ",\"";

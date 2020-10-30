@@ -83,7 +83,8 @@ TEST_P(InnerProductLayerTest, InnerProductLayerWithProto) {
     }
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, input_channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     ostr << "\""
          << "InnerProduct layer_name 1 1 input output " << output_channel << " " << has_bias << " 0 1"

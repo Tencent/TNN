@@ -92,7 +92,8 @@ TEST_P(StrideSliceLayerTest, StrideSliceLayerWithProto) {
     }
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     ostr << "\""
          << "StridedSlice layer_name 1 1 input output ";

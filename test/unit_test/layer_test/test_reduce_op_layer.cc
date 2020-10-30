@@ -105,7 +105,8 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayerWithProto) {
     param.axis = {axis};
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_height, input_width});
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::string head            = GenerateHeadProto({input_dims});
 
     RunWithProto(head + GenerateReduceProto("ReduceMax", param));
     RunWithProto(head + GenerateReduceProto("ReduceMin", param));

@@ -87,7 +87,8 @@ TEST_P(SplitVLayerTest, SplitVLayerWithProto) {
     param.slices = {channel / 2, channel - channel / 2};
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size}, param.slices.size());
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims}, param.slices.size());
     std::ostringstream ostr;
     ostr << "\""
          << "SplitV layer_name 1 " << param.slices.size() << " input ";

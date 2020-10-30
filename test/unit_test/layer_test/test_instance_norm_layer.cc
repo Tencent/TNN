@@ -61,7 +61,8 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayerWithProto) {
     int input_size = std::get<2>(GetParam());
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
     ostr << "\""
          << "InstBatchNormCxx layer_name 1 1 input output"

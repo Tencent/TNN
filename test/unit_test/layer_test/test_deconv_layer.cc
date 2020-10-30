@@ -150,7 +150,8 @@ TEST_P(DeconvLayerTest, DeconvLayerWithProto) {
     int output_channel = group * output_channel_per_group;
 
     // generate proto string
-    std::string head = GenerateHeadProto({batch, input_channel, input_size, input_size});
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    std::string head            = GenerateHeadProto({input_dims});
     std::ostringstream ostr;
 
     ostr << "\""
