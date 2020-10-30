@@ -791,15 +791,19 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
         auto src_n = src + n * c_r4 * hw * 4;
         OMP_PARALLEL_FOR_GUIDED_
         for (long ci = 0; ci < c_r4; ++ci) {
-            long co    = ci / 2;
-            auto dst_c = dst_n + co * hw * 8;
-            auto src_c = src_n + ci * hw * 4;
+            long co         = ci / 2;
+            long dst_offset = (ci % 2) ? 4 : 0;
+            auto dst_c      = dst_n + co * hw * 8 + dst_offset;
+            auto src_c      = src_n + ci * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw4 to nchw8
+#ifdef TNN_ARM82
+                vst1_f16(dst_c + cnt * 8, vcvt_f16_f32(vld1q_f32(src_c + cnt * 4)));
+#else
                 for (long idx = 0; idx < 4; idx++) {
-                    long dst_offset = (ci % 2) ? 4 : 0;
-                    dst_c[cnt * 8 + dst_offset + idx] = src_c[cnt * 4 + idx];
+                    dst_c[cnt * 8 + idx] = src_c[cnt * 4 + idx];
                 }
+#endif
             }
         }
     }
@@ -813,15 +817,19 @@ void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, lo
         auto dst_n = dst + n * c_r4 * hw * 4;
         OMP_PARALLEL_FOR_GUIDED_
         for (long co = 0; co < c_r4; ++co) {
-            long ci    = co / 2;
-            auto src_c = src_n + ci * hw * 8;
-            auto dst_c = dst_n + co * hw * 4;
+            long ci         = co / 2;
+            long src_offset = (co % 2) ? 4 : 0;
+            auto src_c      = src_n + ci * hw * 8 + src_offset;
+            auto dst_c      = dst_n + co * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw8 to nchw4
+#ifdef TNN_ARM82
+                vst1q_f32(dst_c + cnt * 4, vcvt_f32_f16(vld1_f16(src_c + cnt * 8)));
+#else
                 for (long idx = 0; idx < 4; idx++) {
-                    long src_offset = (co % 2) ? 4 : 0;
-                    dst_c[cnt * 4 + idx] = src_c[cnt * 8 + src_offset + idx];
+                    dst_c[cnt * 4 + idx] = src_c[cnt * 8 + idx];
                 }
+#endif
             }
         }
     }
