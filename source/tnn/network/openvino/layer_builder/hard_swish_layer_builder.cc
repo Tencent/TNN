@@ -28,6 +28,9 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
 
+#include "tnn/network/openvino/custom_layer/custom_hard_swish.h"
+#include <iostream>
+
 namespace TNN_NS {
 
 DECLARE_OPENVINO_LAYER_BUILDER(HardSwish, LAYER_HARDSWISH);
@@ -52,24 +55,31 @@ Status HardSwishOVLayerBuilder::Build() {
     }
 
     // mul-add-clamp-mul
-    auto shape = ngraph::Shape(input_node1->get_output_shape(0).size(), 1);
+    // auto shape = ngraph::Shape(input_node1->get_output_shape(0).size(), 1);
 
-    auto mulConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, shape, std::vector<float>{paramlist->alpha});
-    auto mulNode = std::make_shared<ngraph::op::v1::Multiply>(input_node1->output(0), mulConst);
-    mulNode->validate_and_infer_types();
+    // auto mulConst = std::make_shared<ngraph::op::Constant>(
+    //     ngraph::element::Type_t::f32, shape, std::vector<float>{paramlist->alpha});
+    // auto mulNode = std::make_shared<ngraph::op::v1::Multiply>(input_node1->output(0), mulConst);
+    // mulNode->validate_and_infer_types();
 
-    auto addConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, shape, std::vector<float>{paramlist->beta});
-    auto addNode = std::make_shared<ngraph::op::v1::Add>(mulNode->output(0), addConst);
-    addNode->validate_and_infer_types();
+    // auto addConst = std::make_shared<ngraph::op::Constant>(
+    //     ngraph::element::Type_t::f32, shape, std::vector<float>{paramlist->beta});
+    // auto addNode = std::make_shared<ngraph::op::v1::Add>(mulNode->output(0), addConst);
+    // addNode->validate_and_infer_types();
 
-    auto clampNode = std::make_shared<ngraph::op::Clamp>(
-        addNode->output(0), 0.0f, 1.0f);
-    clampNode->validate_and_infer_types();
+    // auto clampNode = std::make_shared<ngraph::op::Clamp>(
+    //     addNode->output(0), 0.0f, 1.0f);
+    // clampNode->validate_and_infer_types();
 
-    auto hardSwishNode = std::make_shared<ngraph::op::v1::Multiply>(
-        input_node0->output(0), clampNode->output(0));
+    // auto hardSwishNode = std::make_shared<ngraph::op::v1::Multiply>(
+    //     input_node0->output(0), clampNode->output(0));
+    ngraph::OutputVector inputs;
+    for (auto item : input_node) {
+        inputs.push_back(item->output(0));
+    }
+    // inputs.push_back(input_node[0]);
+    auto hardSwishNode = std::make_shared<CustomHardSwishOp>(
+        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
 
     hardSwishNode->validate_and_infer_types();
     hardSwishNode->set_friendly_name(paramlist->name);

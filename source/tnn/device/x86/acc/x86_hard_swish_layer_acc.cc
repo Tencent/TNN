@@ -68,56 +68,114 @@ Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     one_   = _mm256_set1_ps(1.f);
 
     int total_size = batch * channel * channel_size;
-    int tail = total_size - total_size % 8;
-    int part_tail = tail / 4;
+    int tail = total_size - total_size % 16;
+    int part_tail = tail / 2;
     const int offset1 = part_tail, offset2 = part_tail * 2, offset3 = part_tail * 3;
 
     if (input_dim0[2] == input_dim1[2]) {
-        for (int index = 0; index < tail; index += 8) {
-            tmp00_ = _mm256_loadu_ps(input_ptr0 + index);
-            tmp10_ = _mm256_loadu_ps(input_ptr1 + index);
-            tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
-            tmp10_ = _mm256_min_ps(tmp10_, one_);
-            tmp10_ = _mm256_max_ps(tmp10_, zero_);
-            tmp10_ = _mm256_mul_ps(tmp10_, tmp00_);
-            _mm256_storeu_ps(output_ptr + index, tmp10_);
+        for (int index = 0; index < part_tail; index += 8) {
+            tmp00_ = _mm256_loadu_ps(input_ptr0 + index);       tmp01_ = _mm256_loadu_ps(input_ptr0 + index + part_tail);
+            tmp10_ = _mm256_loadu_ps(input_ptr1 + index);       tmp11_ = _mm256_loadu_ps(input_ptr1 + index + part_tail);
+            tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);    tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+            tmp10_ = _mm256_min_ps(tmp10_, one_);               tmp11_ = _mm256_min_ps(tmp11_, one_);
+            tmp10_ = _mm256_max_ps(tmp10_, zero_);              tmp11_ = _mm256_max_ps(tmp11_, zero_);
+            tmp10_ = _mm256_mul_ps(tmp10_, tmp00_);             tmp11_ = _mm256_mul_ps(tmp11_, tmp01_);
+            _mm256_storeu_ps(output_ptr + index, tmp10_);       _mm256_storeu_ps(output_ptr + index + part_tail, tmp11_);
         }
 
         // build mask
-        float mask[8] = {0.f};
-        for (int i = 0; i < total_size % 8; i++) mask[i] = -1.f;
-        __m256i mask_ = _mm256_loadu_si256((__m256i*)mask);
+        float mask[16] = {0.f};
+        for (int i = 0; i < total_size % 16; i++) mask[i] = -1.f;
+        __m256i mask0_ = _mm256_loadu_si256((__m256i*)mask);
+        __m256i mask1_ = _mm256_loadu_si256((__m256i*)(mask + 8));
 
-        tmp00_ = _mm256_maskload_ps(input_ptr0 + tail, mask_);
-        tmp10_ = _mm256_maskload_ps(input_ptr1 + tail, mask_);
+        tmp00_ = _mm256_maskload_ps(input_ptr0 + tail, mask0_); tmp01_ = _mm256_maskload_ps(input_ptr0 + tail + 8, mask1_);
+        tmp10_ = _mm256_maskload_ps(input_ptr1 + tail, mask0_); tmp11_ = _mm256_maskload_ps(input_ptr1 + tail + 8, mask1_); 
 
-        tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
-        tmp10_ = _mm256_min_ps(tmp10_, one_);
-        tmp10_ = _mm256_max_ps(tmp10_, zero_);
-        tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
-        _mm256_maskstore_ps(output_ptr + tail, mask_, tmp00_);
+        tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);        tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+        tmp10_ = _mm256_min_ps(tmp10_, one_);                   tmp11_ = _mm256_min_ps(tmp11_, one_);               
+        tmp10_ = _mm256_max_ps(tmp10_, zero_);                  tmp11_ = _mm256_max_ps(tmp11_, zero_);
+        tmp10_ = _mm256_mul_ps(tmp00_, tmp10_);                 tmp11_ = _mm256_mul_ps(tmp01_, tmp11_);
+        _mm256_maskstore_ps(output_ptr + tail, mask0_, tmp10_); _mm256_maskstore_ps(output_ptr + tail + 8, mask1_, tmp11_);
+
     } else {
         tail = channel_size - channel_size % 8;
         float mask[8] = {0.f};
         for (int i = 0; i < channel_size % 8; i++) mask[i] = -1.f;
         __m256i mask_ = _mm256_loadu_si256((__m256i*)mask);
 
-        for (int b = 0; b < batch; b++) {
-            for (int c = 0; c < channel; c++) {
-                float* input_data0 = input_ptr0 + (b * channel + c) * channel_size;
-                float* input_data1 = input_ptr1 + (b * channel + c);
-                float* output_data = output_ptr + (b * channel + c) * channel_size;
-                float tmp = (*input_data1) * alpha + beta;
-                tmp = std::max(std::min(tmp, 1.f), 0.f);
-                tmp10_ = _mm256_set1_ps(tmp);
-                for (int index = 0; index < tail; index += 8) {
-                    tmp00_ = _mm256_loadu_ps(input_data0 + index);
+        if (channel % 4 == 0) {
+            for (int b = 0; b < batch; b++) {
+                for (int c = 0; c < channel; c += 4) {
+                    float *single_data = input_ptr1 + b * channel + c;
+                    float tmp0 = single_data[0], tmp1 = single_data[1], tmp2 = single_data[2], tmp3 = single_data[3];
+                    tmp0 = std::max(std::min(tmp0 * alpha + beta, 1.f), 0.f);
+                    tmp1 = std::max(std::min(tmp1 * alpha + beta, 1.f), 0.f);
+                    tmp2 = std::max(std::min(tmp2 * alpha + beta, 1.f), 0.f);
+                    tmp3 = std::max(std::min(tmp3 * alpha + beta, 1.f), 0.f);
+                    tmp10_ = _mm256_set1_ps(tmp0);  tmp11_ = _mm256_set1_ps(tmp1);
+                    tmp12_ = _mm256_set1_ps(tmp2);  tmp13_ = _mm256_set1_ps(tmp3);
+
+                    float* input_data00 = input_ptr0 + (b * channel + c) * channel_size;
+                    float* input_data01 = input_data00 + channel_size;
+                    float* input_data02 = input_data01 + channel_size;
+                    float* input_data03 = input_data02 + channel_size;
+                    float* output_data0 = output_ptr + (b * channel + c) * channel_size;
+                    float* output_data1 = output_data0 + channel_size;
+                    float* output_data2 = output_data1 + channel_size;
+                    float* output_data3 = output_data2 + channel_size;
+
+                    for (int index = 0; index < tail; index += 8) {
+                        tmp00_ = _mm256_loadu_ps(input_data00 + index);
+                        tmp01_ = _mm256_loadu_ps(input_data01 + index);
+                        tmp02_ = _mm256_loadu_ps(input_data02 + index);
+                        tmp03_ = _mm256_loadu_ps(input_data03 + index);
+
+                        tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
+                        tmp01_ = _mm256_mul_ps(tmp01_, tmp11_);
+                        tmp02_ = _mm256_mul_ps(tmp02_, tmp12_);
+                        tmp03_ = _mm256_mul_ps(tmp03_, tmp13_);
+
+                        _mm256_storeu_ps(output_data0 + index, tmp00_);
+                        _mm256_storeu_ps(output_data1 + index, tmp01_);
+                        _mm256_storeu_ps(output_data2 + index, tmp02_);
+                        _mm256_storeu_ps(output_data3 + index, tmp03_);
+                    }
+
+                    tmp00_ = _mm256_maskload_ps(input_data00 + tail, mask_);
+                    tmp01_ = _mm256_maskload_ps(input_data01 + tail, mask_);
+                    tmp02_ = _mm256_maskload_ps(input_data02 + tail, mask_);
+                    tmp03_ = _mm256_maskload_ps(input_data03 + tail, mask_);
+
                     tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
-                    _mm256_storeu_ps(output_data + index, tmp00_);
+                    tmp01_ = _mm256_mul_ps(tmp01_, tmp11_);
+                    tmp02_ = _mm256_mul_ps(tmp02_, tmp12_);
+                    tmp03_ = _mm256_mul_ps(tmp03_, tmp13_);
+
+                    _mm256_maskstore_ps(output_data0 + tail, mask_, tmp00_);
+                    _mm256_maskstore_ps(output_data1 + tail, mask_, tmp01_);
+                    _mm256_maskstore_ps(output_data2 + tail, mask_, tmp02_);
+                    _mm256_maskstore_ps(output_data3 + tail, mask_, tmp03_);
                 }
-                tmp00_ = _mm256_maskload_ps(input_data0 + tail, mask_);
-                tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
-                _mm256_maskstore_ps(output_data + tail, mask_, tmp00_);
+            }
+        } else {
+            for (int b = 0; b < batch; b++) {
+                for (int c = 0; c < channel; c++) {
+                    float* input_data0 = input_ptr0 + (b * channel + c) * channel_size;
+                    float* input_data1 = input_ptr1 + (b * channel + c);
+                    float* output_data = output_ptr + (b * channel + c) * channel_size;
+                    float tmp = (*input_data1) * alpha + beta;
+                    tmp = std::max(std::min(tmp, 1.f), 0.f);
+                    tmp10_ = _mm256_set1_ps(tmp);
+                    for (int index = 0; index < tail; index += 8) {
+                        tmp00_ = _mm256_loadu_ps(input_data0 + index);
+                        tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
+                        _mm256_storeu_ps(output_data + index, tmp00_);
+                    }
+                    tmp00_ = _mm256_maskload_ps(input_data0 + tail, mask_);
+                    tmp00_ = _mm256_mul_ps(tmp00_, tmp10_);
+                    _mm256_maskstore_ps(output_data + tail, mask_, tmp00_);
+                }
             }
         }
     }
