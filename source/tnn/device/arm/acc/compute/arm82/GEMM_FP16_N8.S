@@ -283,6 +283,28 @@ L16MAC1CEND:
     fmax v21.8h, v21.8h, v0.8h
     fmax v22.8h, v22.8h, v0.8h
     fmax v23.8h, v23.8h, v0.8h
+
+    // if relu6
+    cmp x22, #2
+    bne Store16
+    // 6.0f
+    movi v1.8h, #0x46, lsl #8
+    fmin v8.8h,  v8.8h,  v1.8h
+    fmin v9.8h,  v9.8h,  v1.8h
+    fmin v10.8h, v10.8h, v1.8h
+    fmin v11.8h, v11.8h, v1.8h
+    fmin v12.8h, v12.8h, v1.8h
+    fmin v13.8h, v13.8h, v1.8h
+    fmin v14.8h, v14.8h, v1.8h
+    fmin v15.8h, v15.8h, v1.8h
+    fmin v16.8h, v16.8h, v1.8h
+    fmin v17.8h, v17.8h, v1.8h
+    fmin v18.8h, v18.8h, v1.8h
+    fmin v19.8h, v19.8h, v1.8h
+    fmin v20.8h, v20.8h, v1.8h
+    fmin v21.8h, v21.8h, v1.8h
+    fmin v22.8h, v22.8h, v1.8h
+    fmin v23.8h, v23.8h, v1.8h
 Store16:
     st1 {v8.8h, v9.8h, v10.8h, v11.8h}, [x0], #64
     sub x6, x6, #16
@@ -396,6 +418,20 @@ L8MAC1CEND:
     fmax v13.8h, v13.8h, v0.8h
     fmax v14.8h, v14.8h, v0.8h
     fmax v15.8h, v15.8h, v0.8h
+
+    // if relu6
+    cmp x22, #2
+    bne Store8
+    // 6.0f
+    movi v1.8h, #0x46, lsl #8
+    fmin v8.8h,  v8.8h,  v1.8h
+    fmin v9.8h,  v9.8h,  v1.8h
+    fmin v10.8h, v10.8h, v1.8h
+    fmin v11.8h, v11.8h, v1.8h
+    fmin v12.8h, v12.8h, v1.8h
+    fmin v13.8h, v13.8h, v1.8h
+    fmin v14.8h, v14.8h, v1.8h
+    fmin v15.8h, v15.8h, v1.8h
 Store8:
     st1 {v8.8h, v9.8h, v10.8h, v11.8h}, [x0], #64
     sub x6, x6, #8
@@ -496,6 +532,16 @@ L4MAC1CEND:
     fmax v9.8h,  v9.8h,  v0.8h
     fmax v10.8h, v10.8h, v0.8h
     fmax v11.8h, v11.8h, v0.8h
+
+    // if relu6
+    cmp x22, #2
+    bne Store4
+    // 6.0f
+    movi v1.8h, #0x46, lsl #8
+    fmin v8.8h,  v8.8h,  v1.8h
+    fmin v9.8h,  v9.8h,  v1.8h
+    fmin v10.8h, v10.8h, v1.8h
+    fmin v11.8h, v11.8h, v1.8h
 Store4:
     st1 {v8.8h, v9.8h, v10.8h, v11.8h}, [x0], #64
     sub x6, x6, #4
@@ -596,6 +642,16 @@ L1MAC1CEND:
     fmax v9.8h,  v9.8h,  v0.8h
     fmax v10.8h, v10.8h, v0.8h
     fmax v11.8h, v11.8h, v0.8h
+
+    // if relu6
+    cmp x22, #2
+    bne Store1_Align4
+    // 6.0f
+    movi v1.8h, #0x46, lsl #8
+    fmin v8.8h,  v8.8h,  v1.8h
+    fmin v9.8h,  v9.8h,  v1.8h
+    fmin v10.8h, v10.8h, v1.8h
+    fmin v11.8h, v11.8h, v1.8h
 Store1_Align4:
     st1 {v8.8h, v9.8h, v10.8h, v11.8h}, [x0]
     // reset ptr and counters
