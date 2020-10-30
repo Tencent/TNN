@@ -479,8 +479,8 @@ Status ArmConvFp16LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
 
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     if (!buffer_bias_.GetBytesSize()) {
+        RawBuffer temp_buffer(ROUND_UP(dims_output[1], 8) * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
         if (conv_param->bias) {
-            RawBuffer temp_buffer(ROUND_UP(dims_output[1], 8) * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             if (conv_res->bias_handle.GetDataType() == DATA_TYPE_FLOAT) {
                 RawBuffer bias_nchw(dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
                 Float2Half(bias_nchw.force_to<__fp16 *>(), conv_res->bias_handle.force_to<float *>(), dims_output[1]);
@@ -493,8 +493,8 @@ Status ArmConvFp16LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
                 LOGE("BIAS DATATYPE NOT SUPPORTED NOW\n");
                 return Status(TNNERR_PARAM_ERR, "FP16 CONV COMMON ONLY SUPPORT BIAS DATATYPE FLOAT AND HALF");
             }
-            buffer_bias_ = temp_buffer;
         }
+        buffer_bias_ = temp_buffer;
     }
 
     return TNN_OK;
