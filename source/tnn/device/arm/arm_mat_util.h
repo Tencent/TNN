@@ -56,6 +56,17 @@ void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, u
 void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
                                 const float (*transform)[3], const float border_val = 0.0);
 
+void WarpAffineNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                         const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                         const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                         const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                         const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
+                               const float (*transform)[3], const float border_val = 0.0);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_UTIL_H_
