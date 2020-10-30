@@ -175,6 +175,47 @@ int dump_nchw_float_blob(BlobDesc desc, std::string fname, float* ptr) {
     return 0;
 }
 
+// dump nc8hw8 blob to the specified file in nchw format
+int dump_nc8hw8_float_blob(BlobDesc desc, std::string fname, float* ptr) {
+    FILE* fp = fopen(fname.c_str(), "wb");
+    if (!fp) {
+        LOGE("fopen failed: %s", fname.c_str());
+        return -1;
+    }
+
+    int num     = desc.dims[0];
+    int channel = desc.dims[1];
+    int height  = desc.dims[2];
+    int width   = desc.dims[3];
+
+    // 8 channels packed togather
+    int channel_8 = UP_DIV(channel, 8);
+
+    const int count = DimsVectorUtils::Count(desc.dims);
+    LOGD("fname:%s count:%d\n", fname.c_str(), count);
+
+    float32x4* ptr_nc8hw8 = (float32x4*)ptr;
+    for (int n = 0; n < num; ++n) {
+        for (int c = 0; c < channel; ++c) {
+            int c_8      = c / 8;
+            int c_remain = c % 8;
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    int idx = n * channel_8 * height * width + c_8 * height * width + h * width + w;
+                    if (c_remain < 4) {
+                        fprintf(fp, "%.6f\n", ptr_nc8hw8[idx * 2][c_remain]);
+                    } else {
+                        fprintf(fp, "%.6f\n", ptr_nc8hw8[idx * 2 + 1][c_remain - 4]);
+                    }
+                }
+            }
+        }
+    }
+
+    fclose(fp);
+    return 0;
+}
+
 std::string BlobDescToString(BlobDesc desc) {
     char dim[1000];
     if (desc.dims.size() == 5) {
@@ -223,6 +264,8 @@ void DumpBlobData(float* cpu_data, Blob* dev_blob, char *fname, BlobDesc& dev_bl
                 ret_code = dump_nc4hw4_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
             }
         } break;
+        case DATA_FORMAT_NC8HW8:
+            ret_code = dump_nc8hw8_float_blob(dev_blob->GetBlobDesc(), std::string(fname), cpu_data);
         default:
             break;
     }
@@ -240,6 +283,9 @@ Status DumpDeviceBlob(Blob* dev_blob, Context* context, std::string fname_prefix
     if (dev_blob_desc.data_format == DATA_FORMAT_NC4HW4 || dev_blob_desc.data_format == DATA_FORMAT_NHWC4) {
         data_count = dev_blob_desc.dims[0] * ROUND_UP(dev_blob_desc.dims[1], 4) *
                      ROUND_UP(dev_blob_desc.dims[2] * dev_blob_desc.dims[3], 4);
+    } else if (dev_blob_desc.data_format == DATA_FORMAT_NC8HW8) {
+        data_count = dev_blob_desc.dims[0] * ROUND_UP(dev_blob_desc.dims[1], 8) *
+                     dev_blob_desc.dims[2] * dev_blob_desc.dims[3];
     } else {
         data_count = DimsVectorUtils::Count(dev_blob_desc.dims);
     }

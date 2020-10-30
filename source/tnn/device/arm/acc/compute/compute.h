@@ -23,6 +23,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 struct ArmKernelParam {
@@ -128,6 +129,9 @@ void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, size_t s
 void Half2Float(float* dst, const __fp16* src, const size_t length);
 void Float2Half(__fp16* dst, const float* src, const size_t length);
 #endif
+
+void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);
+void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw);
 
 #ifdef __cplusplus
 }

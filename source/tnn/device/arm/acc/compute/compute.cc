@@ -783,4 +783,48 @@ template void DepthwiseDeconv(const float* dst, float* src, const float* weight,
 template void DepthwiseDeconv(const bfp16_t* dst, bfp16_t* src, const float* weight, long width, long src_w_setup,
                               long fw, long fh, long dilate_x_step, long dilate_y_step);
 
+void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
+    long c_r4 = UP_DIV(channel, 4);
+    long c_r8 = UP_DIV(channel, 8);
+    for (long n = 0; n < batch; n++) {
+        auto dst_n = dst + n * c_r8 * hw * 8;
+        auto src_n = src + n * c_r4 * hw * 4;
+        OMP_PARALLEL_FOR_GUIDED_
+        for (long ci = 0; ci < c_r4; ++ci) {
+            long co    = ci / 2;
+            auto dst_c = dst_n + co * hw * 8;
+            auto src_c = src_n + ci * hw * 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw4 to nchw8
+                for (long idx = 0; idx < 4; idx++) {
+                    long dst_offset = (ci % 2) ? 4 : 0;
+                    dst_c[cnt * 8 + dst_offset + idx] = src_c[cnt * 4 + idx];
+                }
+            }
+        }
+    }
+}
+
+void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw) {
+    long c_r4 = UP_DIV(channel, 4);
+    long c_r8 = UP_DIV(channel, 8);
+    for (long n = 0; n < batch; n++) {
+        auto src_n = src + n * c_r8 * hw * 8;
+        auto dst_n = dst + n * c_r4 * hw * 4;
+        OMP_PARALLEL_FOR_GUIDED_
+        for (long co = 0; co < c_r4; ++co) {
+            long ci    = co / 2;
+            auto src_c = src_n + ci * hw * 8;
+            auto dst_c = dst_n + co * hw * 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw8 to nchw4
+                for (long idx = 0; idx < 4; idx++) {
+                    long src_offset = (co % 2) ? 4 : 0;
+                    dst_c[cnt * 4 + idx] = src_c[cnt * 8 + src_offset + idx];
+                }
+            }
+        }
+    }
+}
+
 }  // namespace TNN_NS
