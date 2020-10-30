@@ -152,9 +152,6 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
     warpaffine_param_.border_type = int(param.border_type);
     warpaffine_param_.border_val = param.border_val;
     
-    buffer_warpaffine_param_ = [device_ newBufferWithBytes:&warpaffine_param_
-                                                    length:sizeof(MetalWarpAffineParams)
-                                                   options:MTLResourceCPUCacheModeWriteCombined];
     // compute the inverse transformation matrix
     float d   = param.transform[0][0] * param.transform[1][1] - param.transform[0][1] * param.transform[1][0];
     d          = d != 0 ? 1. / d : 0;
@@ -517,7 +514,14 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             if (INTERP_TYPE_NEAREST == interp_type) {
-                return Status(TNNERR_PARAM_ERR, "interp type not support yet");
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = "mat_converter_texture_n8uc4_warpaffine_nearest_const";
+                if (library_cache.count(kernel_name) > 0) {
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+#endif
+                func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_warpaffine_nearest_const"];
             } else if (INTERP_TYPE_LINEAR == interp_type && BORDER_TYPE_CONSTANT == border_type) {
 #if ENABLE_PIPELINE_CACHE
                 kernel_name = "mat_converter_texture_n8uc4_warpaffine_linear_const";
