@@ -32,6 +32,7 @@ IntScaleResource* CreateIntScale(int channel);
 void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context);
 
 std::string GenerateHeadProto(std::vector<int> input_dims, int output_count = 1);
+std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int output_count = 1);
 
 }  // namespace TNN_NS
 

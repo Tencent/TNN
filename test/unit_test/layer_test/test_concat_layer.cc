@@ -23,7 +23,7 @@ class ConcatLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
-                        ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
                                             testing::Values(1, 2, 3),
                                             // input cnt
@@ -55,6 +55,36 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     param.axis = axis;
 
     Run(LAYER_CONCAT, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(ConcatLayerTest, ConcatLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int axis           = std::get<3>(GetParam());
+    int input_count    = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::vector<std::vector<int>> input_dims_vec;
+    for (int i = 0; i < input_count; ++i)
+        input_dims_vec.push_back({batch, channel, input_size, input_size});
+    std::string head = GenerateHeadProto(input_dims_vec);
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Concat layer_name " << input_count << " 1 ";
+    for (int i = 0; i < input_count; ++i)
+        ostr << "input" << i << " ";
+    ostr << "output " << axis << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS
