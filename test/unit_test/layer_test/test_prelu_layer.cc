@@ -55,4 +55,28 @@ TEST_P(PReluLayerTest, PReluLayer) {
     Run(LAYER_PRELU, &param, &resource, inputs_desc, outputs_desc);
 }
 
+TEST_P(PReluLayerTest, PReluLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    bool share_channel = std::get<3>(GetParam());
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // param
+    PReluLayerParam param;
+    param.name           = "PRelu";
+    param.channel_shared = share_channel ? 1 : 0;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "PReLU layer_name 1 1 input output " << param.channel_shared << " " << param.has_filler << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

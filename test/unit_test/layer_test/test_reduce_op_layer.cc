@@ -19,13 +19,22 @@
 
 namespace TNN_NS {
 
+static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam param) {
+    std::ostringstream ostr;
+    ostr << "\"" << op_type << " layer_name 1 1 input output " << param.keep_dims << " ";
+    for (auto axis : param.axis) {
+        ostr << axis << " ";
+    }
+    ostr << ",\"";
+    return ostr.str();
+}
+
 class ReduceOpLayerTest : public LayerTest,
                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
+                                            testing::Values(9, 10, 16, 19, 512), testing::Values(9, 10, 16, 19, 512),
                                             // axis
                                             testing::Values(0, 1, 2, 3),
                                             // dtype
@@ -41,8 +50,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
@@ -74,6 +82,41 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     Run(LAYER_REDUCE_PROD, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_SUM_SQUARE, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_SUM, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(ReduceOpLayerTest, ReduceOpLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_height   = std::get<2>(GetParam());
+    int input_width    = std::get<3>(GetParam());
+    int axis           = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
+        (channel == 512 && input_width == 512)) {
+        GTEST_SKIP();
+    }
+
+    // param
+    ReduceLayerParam param;
+    param.name = "ReduceOp";
+    param.axis = {axis};
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_height, input_width});
+
+    RunWithProto(head + GenerateReduceProto("ReduceMax", param));
+    RunWithProto(head + GenerateReduceProto("ReduceMin", param));
+    RunWithProto(head + GenerateReduceProto("ReduceMean", param));
+    RunWithProto(head + GenerateReduceProto("ReduceSum", param));
+    RunWithProto(head + GenerateReduceProto("ReduceL1", param));
+    RunWithProto(head + GenerateReduceProto("ReduceL2", param));
+    RunWithProto(head + GenerateReduceProto("ReduceLogSum", param));
+    RunWithProto(head + GenerateReduceProto("ReduceLogSumExp", param));
+    RunWithProto(head + GenerateReduceProto("ReduceProd", param));
+    RunWithProto(head + GenerateReduceProto("ReduceSumSquare", param));
 }
 
 }  // namespace TNN_NS

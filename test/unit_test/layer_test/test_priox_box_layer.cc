@@ -22,7 +22,7 @@ namespace TNN_NS {
 class PriorBoxLayerTest
     : public LayerTest,
       public ::testing::WithParamInterface<
-            std::tuple<int, int, int, float, float, bool, bool, std::vector<float>, std::vector<float>, int, float>> {};
+          std::tuple<int, int, int, float, float, bool, bool, std::vector<float>, std::vector<float>, int, float>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PriorBoxLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, ::testing::Values(1.0, 2.0),
@@ -68,6 +68,81 @@ TEST_P(PriorBoxLayerTest, PriorBoxLayer) {
     param.step_h = param.step_w = step_size;
     param.offset                = offset;
     Run(LAYER_PRIOR_BOX, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(PriorBoxLayerTest, PriorBoxLayerWithProto) {
+    // get param
+    int batch                        = std::get<0>(GetParam());
+    int channel                      = std::get<1>(GetParam());
+    int input_size                   = std::get<2>(GetParam());
+    float min_size                   = std::get<3>(GetParam());
+    float max_size                   = std::get<4>(GetParam());
+    bool clip                        = std::get<5>(GetParam());
+    bool flip                        = std::get<6>(GetParam());
+    std::vector<float> variances     = std::get<7>(GetParam());
+    std::vector<float> aspect_ratios = std::get<8>(GetParam());
+    int img_size                     = std::get<9>(GetParam());
+    int step_size                    = std::get<10>(GetParam());
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    std::vector<float> min_sizes = {min_size};
+    std::vector<float> max_sizes = {max_size};
+    float offset                 = 0.5;
+
+    PriorBoxLayerParam param;
+    param.name          = "PriorBox";
+    param.min_sizes     = min_sizes;
+    param.max_sizes     = max_sizes;
+    param.clip          = clip;
+    param.flip          = flip;
+    param.variances     = variances;
+    param.aspect_ratios = aspect_ratios;
+    param.img_w = param.img_h = img_size;
+    param.step_h = param.step_w = step_size;
+    param.offset                = offset;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "PriorBox layer_name 1 1 input output ";
+    // write min_size
+    ostr << param.min_sizes.size() << " ";
+    for (float min_size : param.min_sizes) {
+        ostr << min_size << " ";
+    }
+    // write max_size
+    ostr << param.max_sizes.size() << " ";
+    for (float max_size : param.max_sizes) {
+        ostr << max_size << " ";
+    }
+    // write clip
+    ostr << (param.clip ? 1 : 0) << " ";
+    // write flip
+    ostr << (param.flip ? 1 : 0) << " ";
+    // write variances
+    ostr << param.variances.size() << " ";
+    for (float variance : param.variances) {
+        ostr << variance << " ";
+    }
+    // write aspect_ratio
+    ostr << param.aspect_ratios.size() << " ";
+    for (float aspect_ratio : param.aspect_ratios) {
+        ostr << aspect_ratio << " ";
+    }
+    // write img_size : order img_size[img_w, img_h]
+    ostr << param.img_w << " ";
+    ostr << param.img_h << " ";
+    // write step
+    ostr << param.step_w << " ";
+    ostr << param.step_h << " ";
+    // write offset
+    ostr << param.offset << " ";
+    ostr << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS

@@ -56,4 +56,28 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     Run(LAYER_REORG, &param, NULL, inputs_desc, outputs_desc);
 }
 
+TEST_P(ReorgLayerTest, ReorgLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+    int stride     = std::get<3>(GetParam());
+    bool reverse   = std::get<4>(GetParam());
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Reorg layer_name 1 1 input output " << stride << " " << reverse << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

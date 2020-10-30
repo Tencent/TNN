@@ -41,4 +41,25 @@ TEST_P(SeluLayerTest, SeluLayer) {
     Run(LAYER_SELU, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(SeluLayerTest, SeluLayerWithProto) {
+    // get param
+    int batch      = std::get<0>(GetParam());
+    int channel    = std::get<1>(GetParam());
+    int input_size = std::get<2>(GetParam());
+
+    // param
+    SeluLayerParam param;
+    param.alpha = 1.67326;
+    param.gamma = 1.0507;
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Selu layer_name 1 1 input output " << param.alpha << " " << param.gamma << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

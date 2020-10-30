@@ -17,8 +17,9 @@
 
 namespace TNN_NS {
 
-class SignedMulLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
+class SignedMulLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -36,9 +37,9 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    float alpha          = std::get<3>(GetParam());
-    float beta           = std::get<4>(GetParam());
-    float gamma          = std::get<5>(GetParam());
+    float alpha        = std::get<3>(GetParam());
+    float beta         = std::get<4>(GetParam());
+    float gamma        = std::get<5>(GetParam());
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
@@ -57,9 +58,42 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     SignedMulLayerParam param;
     param.alpha = alpha;
     param.beta  = beta;
-    param.gamma  = gamma;
+    param.gamma = gamma;
 
     Run(LAYER_SIGNED_MUL, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(SignedMulLayerTest, SignedMulLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    float alpha        = std::get<3>(GetParam());
+    float beta         = std::get<4>(GetParam());
+    float gamma        = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "SignedMul layer_name 1 1 input output " << alpha << " " << beta << " " << gamma << ",\"";
+
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto, precision);
 }
 
 }  // namespace TNN_NS

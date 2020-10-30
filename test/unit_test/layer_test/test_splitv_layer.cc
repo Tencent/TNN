@@ -62,4 +62,47 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     Run(LAYER_SPLITV, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(SplitVLayerTest, SplitVLayerWithProto) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int axis           = std::get<3>(GetParam());
+    int output_count   = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (channel <= 1) {
+        GTEST_SKIP();
+    }
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    // param
+    SplitVLayerParam param;
+    param.name   = "SplitV";
+    param.axis   = 1;
+    param.slices = {channel / 2, channel - channel / 2};
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size}, param.slices.size());
+    std::ostringstream ostr;
+    ostr << "\""
+         << "SplitV layer_name 1 " << param.slices.size() << " input ";
+    for (int i = 0; i < param.slices.size(); ++i) {
+        ostr << "output" << i << " ";
+    }
+    ostr << param.axis << " ";
+    ostr << param.slices.size() << " ";
+    for (auto item : param.slices) {
+        ostr << item << " ";
+    }
+    ostr << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
+}
+
 }  // namespace TNN_NS

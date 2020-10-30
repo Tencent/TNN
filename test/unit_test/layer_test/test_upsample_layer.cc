@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/layer_test.h"
@@ -19,54 +19,50 @@
 
 namespace TNN_NS {
 
-class UpsampleLayerTest: public LayerTest,
-                public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, float, float, bool>>
-{
-};
+class UpsampleLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, float, float, bool>> {};
 
-INSTANTIATE_TEST_SUITE_P(LayerTest,
-                        UpsampleLayerTest,
-                        ::testing::Combine(
-                        BASIC_BATCH_CHANNEL_SIZE,
-                        //resize type 1:nearest 2:bilinear
-                        testing::Values(1, 2),
-                        //align_corners
-                        testing::Values(0, 1),
-                        //scale x Values(1.0, 1.45, 2, 2.78)
-                        testing::Values(0.3, 0.5, 1.0, 1.45, 2, 2.78),
-                        //scale y Values(1.0, 1.45, 2, 2.78)
-                        testing::Values(0.3, 0.5, 1.0, 1.45, 2, 2.78),
-                        //use dims
-                        testing::Values(true, false)
-                        ));
+INSTANTIATE_TEST_SUITE_P(LayerTest, UpsampleLayerTest,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // resize type 1:nearest 2:bilinear
+                                            testing::Values(1, 2),
+                                            // align_corners
+                                            testing::Values(0, 1),
+                                            // scale x Values(1.0, 1.45, 2, 2.78)
+                                            testing::Values(0.3, 0.5, 1.0, 1.45, 2, 2.78),
+                                            // scale y Values(1.0, 1.45, 2, 2.78)
+                                            testing::Values(0.3, 0.5, 1.0, 1.45, 2, 2.78),
+                                            // use dims
+                                            testing::Values(true, false)));
 
 TEST_P(UpsampleLayerTest, UpsampleLayer) {
-    //get param
-    int batch = std::get<0>(GetParam());
-    int channel = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam()); 
-    int mode = std::get<3>(GetParam());
+    // get param
+    int batch         = std::get<0>(GetParam());
+    int channel       = std::get<1>(GetParam());
+    int input_size    = std::get<2>(GetParam());
+    int mode          = std::get<3>(GetParam());
     int align_corners = std::get<4>(GetParam());
-    float scale_x = std::get<5>(GetParam());
-    float scale_y = std::get<6>(GetParam());
-    bool use_dims = std::get<7>(GetParam());
+    float scale_x     = std::get<5>(GetParam());
+    float scale_y     = std::get<6>(GetParam());
+    bool use_dims     = std::get<7>(GetParam());
 
-    if(batch > 1) {
+    if (batch > 1) {
         GTEST_SKIP();
     }
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    //blob desc
-    auto inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
+    // blob desc
+    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
     auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
 
-    //param
+    // param
     UpsampleLayerParam param;
-    param.name = "Upsample";
+    param.name          = "Upsample";
     param.mode          = mode;
     param.align_corners = align_corners;
-    param.scales = {scale_x, scale_y};
+    param.scales        = {scale_x, scale_y};
     if (use_dims) {
         param.dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
     }
@@ -74,4 +70,50 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     Run(LAYER_UPSAMPLE, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(UpsampleLayerTest, UpsampleLayerWithProto) {
+    // get param
+    int batch         = std::get<0>(GetParam());
+    int channel       = std::get<1>(GetParam());
+    int input_size    = std::get<2>(GetParam());
+    int mode          = std::get<3>(GetParam());
+    int align_corners = std::get<4>(GetParam());
+    float scale_x     = std::get<5>(GetParam());
+    float scale_y     = std::get<6>(GetParam());
+    bool use_dims     = std::get<7>(GetParam());
+
+    if (batch > 1) {
+        GTEST_SKIP();
+    }
+
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    // param
+    UpsampleLayerParam param;
+    param.name          = "Upsample";
+    param.mode          = mode;
+    param.align_corners = align_corners;
+    param.scales        = {scale_x, scale_y};
+    if (use_dims) {
+        param.dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
+    }
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Upsample layer_name 1 1 input output ";
+    ostr << param.mode << " ";
+    ostr << param.scales[1] << " ";
+    ostr << param.scales[0] << " ";
+    ostr << param.align_corners << " ";
+    if (param.dims.size() == 2) {
+        ostr << param.dims[1] << " ";
+        ostr << param.dims[0] << " ";
+    }
+    ostr << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
+
+}  // namespace TNN_NS

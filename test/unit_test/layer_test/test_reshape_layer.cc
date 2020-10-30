@@ -21,7 +21,8 @@ namespace TNN_NS {
 
 class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1)));
+INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1)));
 
 TEST_P(ReshapeLayerTest, ReshapeLayer) {
     // get param
@@ -44,6 +45,40 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     param.shape        = {0, -1, 1, 1};
 
     Run(LAYER_RESHAPE, &param, nullptr, inputs_desc, outputs_desc);
+}
+
+TEST_P(ReshapeLayerTest, ReshapeLayerWithProto) {
+    // get param
+    int batch        = std::get<0>(GetParam());
+    int channel      = std::get<1>(GetParam());
+    int input_size   = std::get<2>(GetParam());
+    int reshape_type = std::get<3>(GetParam());
+    DeviceType dev   = ConvertDeviceType(FLAGS_dt);
+
+    // param
+    ReshapeLayerParam param;
+    param.name         = "Reshape";
+    param.reshape_type = reshape_type;
+    param.axis         = 0;
+    param.num_axes     = 4;
+    param.shape        = {0, -1, 1, 1};
+
+    // generate proto string
+    std::string head = GenerateHeadProto({batch, channel, input_size, input_size});
+    std::ostringstream ostr;
+    ostr << "\""
+         << "Reshape layer_name 1 1 input output ";
+    ostr << param.axis << " ";
+    ostr << param.num_axes << " ";
+    ostr << param.shape.size() << " ";
+    for (auto item : param.shape) {
+        ostr << item << " ";
+    }
+    ostr << param.reshape_type << " ";
+    ostr << ",\"";
+
+    std::string proto = head + ostr.str();
+    RunWithProto(proto);
 }
 
 }  // namespace TNN_NS
