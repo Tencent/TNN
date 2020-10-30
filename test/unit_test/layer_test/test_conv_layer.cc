@@ -16,6 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -34,7 +35,7 @@ class ConvLayerTest
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                         ::testing::Combine(  // batch
-                            testing::Values(1),
+                            testing::Values(1, 2),
                             // channel
                             testing::Values(1, 2, 3, 4, 10, 32),
                             // hw
@@ -71,6 +72,10 @@ TEST_P(ConvLayerTest, ConvLayer) {
     }
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
+
+    if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
     }
 
