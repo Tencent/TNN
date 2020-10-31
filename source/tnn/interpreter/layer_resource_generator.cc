@@ -194,9 +194,13 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
         layer_res->scale_handle = RawBuffer(dims[1] * sizeof(float));
         layer_res->bias_handle  = RawBuffer(dims[1] * sizeof(int32_t));
         layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
-        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 1.0f);
+        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 0.f, 1.0f);
+        float* k_data = layer_res->scale_handle.force_to<float*>();
+        for (int k = 0; k < dims[1]; k++) {
+            k_data[k] = std::fabs(k_data[k] - 0.f) < FLT_EPSILON ? 1.f : k_data[k];
+        }
         layer_res->bias_handle.SetDataType(DATA_TYPE_INT32);
-        InitRandom(layer_res->bias_handle.force_to<int32_t*>(), dims[1], (int32_t)8);
+        InitRandom(layer_res->bias_handle.force_to<int32_t*>(), dims[1], (int32_t)32);
 
         *resource = layer_res;
         return TNN_OK;
