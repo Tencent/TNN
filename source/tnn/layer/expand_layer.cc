@@ -26,31 +26,17 @@ Status ExpandLayer::InferOutputDataType() {
 }
 
 Status ExpandLayer::InferOutputShape() {
+    if (input_blobs_.size() != 1) {
+        return TNN_OK;
+    }
+    
     auto expand_param = dynamic_cast<ExpandLayerParam*>(param_);
     CHECK_PARAM_NULL(expand_param);
     Blob* input_blob = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto shape_dims = expand_param->shape;
-    DimsVector max_dims, min_dims;
-    if(input_dims.size() >= shape_dims.size()) {
-        max_dims = input_dims;
-        min_dims = shape_dims;
-    } else {
-        max_dims = shape_dims;
-        min_dims = input_dims;
-    }
-    auto output_dims = max_dims;
-    int diff = max_dims.size() - min_dims.size();
-    for(int i = 0; i < min_dims.size(); ++i) {
-        if(min_dims[i] != 1 && min_dims[i] != max_dims[diff + i]) {
-            if(max_dims[diff + i] == 1) {
-                output_dims[diff + i] = min_dims[i];
-            } else {
-                return Status(TNNERR_PARAM_ERR, "expand param dims error"); 
-            }
-        }
-    } 
+    auto output_dims = DimsVectorUtils::Expand(input_dims, shape_dims, nullptr);
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
