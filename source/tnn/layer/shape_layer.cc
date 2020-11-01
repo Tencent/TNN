@@ -21,6 +21,10 @@ DECLARE_LAYER(Shape, LAYER_SHAPE);
 Status ShapeLayer::InferOutputDataType() {
     ASSERT(output_blobs_.size() == 1);
     output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    
+    for (auto& iter : output_blobs_) {
+        iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+    }
     return TNN_OK;
 }
 
@@ -29,7 +33,7 @@ Status ShapeLayer::InferOutputShape() {
     const auto& input_blob = input_blobs_[0];
     const auto& output_blob = output_blobs_[0];
     // the output blob has only one dim, the value is the size of input blob dims
-    output_blob->GetBlobDesc().dims = std::vector<int>(1, input_blob->GetBlobDesc().dims.size());
+    output_blob->GetBlobDesc().dims = {(int)input_blob->GetBlobDesc().dims.size()};
     return TNN_OK;
 }
 

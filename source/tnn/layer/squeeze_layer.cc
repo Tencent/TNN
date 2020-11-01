@@ -29,16 +29,26 @@ Status SqueezeLayer::InferOutputShape() {
     
     const auto& output_blob = output_blobs_[0];
     
-    DimsVector output_dims;
+    DimsVector input_dims;
     if (layer_param->data_in_resource) {
-        output_dims = layer_resource->data_dims;
+        input_dims = layer_resource->data_dims;
     } else {
-        output_dims = input_blobs_[0]->GetBlobDesc().dims;
+        input_dims = input_blobs_[0]->GetBlobDesc().dims;
     }
     
+    DimsVector output_dims = input_dims;
+    RETURN_VALUE_ON_NEQ(input_dims.size()>0, true,
+                        Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input size"));
     auto axes = layer_param->axes;
-    for (const auto& axis : axes) {
-        output_dims.insert(output_dims.begin() + axis, 1);
+    for (auto axis : axes) {
+        if (axis < 0) {
+            axis += output_dims.size();
+        }
+        if (!(axis>=0 && axis<output_dims.size()) ||
+            output_dims[axis] != 1) {
+            return Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input axes");
+        }
+        output_dims.erase(output_dims.begin() + axis);
     }
     
     output_blob->GetBlobDesc().dims = output_dims;

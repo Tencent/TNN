@@ -37,7 +37,10 @@ Status UnsqueezeLayer::InferOutputShape() {
     }
     
     auto axes = layer_param->axes;
-    for (const auto& axis : axes) {
+    for (auto axis : axes) {
+        if (axis < 0) {
+            axis += output_dims.size();
+        }
         output_dims.insert(output_dims.begin() + axis, 1);
     }
     
