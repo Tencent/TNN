@@ -506,6 +506,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveDropout(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveReshapeWhere(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // op transfer
