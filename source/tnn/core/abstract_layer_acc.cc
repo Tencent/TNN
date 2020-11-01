@@ -14,6 +14,7 @@
 
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/core/profile.h"
+#include "tnn/memory_manager/blob_memory_pool.h"
 
 #include <algorithm>
 
@@ -39,6 +40,32 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
         }
     }
     return TNN_OK;
+}
+
+Status AbstractLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    //runtime blob allocate
+    if (runtime_blob_pool_ == nullptr) {
+        return Status(TNNERR_LAYER_ERR, "ConstantOfShape has no runtime_blob_pool");
+    }
+    for (auto iter : outputs) {
+        if (!iter->NeedAllocateInForword()) {
+            continue;
+        }
+        auto info = runtime_blob_pool_->GetDevice()->Calculate(iter->GetBlobDesc());
+        auto blob_memory = runtime_blob_pool_->BorrowBlobMemory(0, info, true);
+        auto status = blob_memory->AllocateHandle();
+        RETURN_ON_NEQ(status, TNN_OK);
+        iter->SetHandle(blob_memory->GetHandle());
+    }
+    return TNN_OK;
+}
+
+Status AbstractLayerAcc::AfterForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+void AbstractLayerAcc::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool) {
+    runtime_blob_pool_ = runtime_blob_pool;
 }
 
 #if TNN_PROFILE

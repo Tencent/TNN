@@ -76,12 +76,6 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         input_dims = std::max(input_dims, dims);
     }
 
-    // only supports dims >=4 .
-    if (input_dims < 4) {
-        LOGE("invalid input shape\n");
-        return Status(TNNERR_PARAM_ERR, "invalid input shape");
-    }
-
     for (auto node_name : net_structure_->blobs) {
         BlobDesc desc;
         desc.device_type = config.device_type;

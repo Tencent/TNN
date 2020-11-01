@@ -64,7 +64,9 @@ public:
     //@brief infer shape ahead for generate resource
     virtual Status InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,
                                    LayerResource* resource);
-
+    
+    // @brief set runtime bolob pool
+    void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
 
 protected:
     LayerType type_;
@@ -79,7 +81,7 @@ protected:
 
     //@brief calculate the output tensor dims
     virtual Status InferOutputShape() = 0;
-    //@brief infer the output data type, by default it is the same as input
+    //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of output blobs
     virtual Status InferOutputDataType();
 };
 

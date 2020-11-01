@@ -73,10 +73,18 @@ public:
     //@param handle to the stored data
     void SetHandle(BlobHandle handle);
 
+    //@brief allocate blob handle in forword
+    bool NeedAllocateInForword();
+    
 private:
     BlobDesc desc_;
     BlobHandle handle_;
     bool alloc_memory_;
+public:
+    //0: data alwalys change
+    //1: data change if shape differ
+    //2: data never change
+    int flag = DATA_FLAG_CHANGE_ALWAYS;
 };
 
 // InputShapeMap input rereshape info

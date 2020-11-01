@@ -194,6 +194,8 @@ enum LayerType {
     LAYER_SCATTER_ND                                        = 305,
     LAYER_STRIDE_SLICE_V2                                   = 306,
     LAYER_ERF                                               = 307,
+    LAYER_CONSTANT_OF_SHAPE                                 = 308,
+    LAYER_NONZERO                                           = 309,
 
     LAYER_BLOB_SCALE                                        = 600,
 

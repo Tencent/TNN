@@ -15,6 +15,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
+#include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
 
@@ -75,6 +76,11 @@ void Blob::SetHandle(BlobHandle handle) {
     }
     handle_ = handle;
     alloc_memory_ = false;
+}
+
+//@brief allocate blob handle in forword
+bool Blob::NeedAllocateInForword() {
+    return DataFlagUtils::AllocateInForword(flag);
 }
 
 }  // namespace TNN_NS

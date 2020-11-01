@@ -20,8 +20,9 @@ CpuLayerAcc::~CpuLayerAcc() {}
 
 Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                          const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
     param_    = param;
     resource_ = resource;
     return Reshape(inputs, outputs);
@@ -29,7 +30,7 @@ Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 
 std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size > 0 ) {
+    if (dims_size >= 0 ) {
         support_list.push_back(DATA_FORMAT_NCHW);
     } else if(dims_size == 5) {
         support_list.push_back(DATA_FORMAT_NCDHW);

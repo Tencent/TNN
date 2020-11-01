@@ -21,6 +21,7 @@
 #include "tnn/device/cpu/acc/compute/compute_elewise.h"
 #include "tnn/device/cpu/acc/compute/compute_int8.h"
 #include "tnn/device/cpu/cpu_device.h"
+#include "tnn/memory_manager/blob_memory_pool.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 
@@ -38,6 +39,9 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
+    
+//    virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+//    virtual Status AfterForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     LayerParam *param_       = nullptr;
@@ -47,6 +51,15 @@ private:
     // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
 };
+
+#define DECLARE_CPU_ACC_WITH_FUNC(type_string, layer_type, extra_funcs)                                                                       \
+    class Cpu##type_string##LayerAcc : public CpuLayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
+        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        extra_funcs \
+    }
 
 #define DECLARE_CPU_ACC(type_string, layer_type)                                                                       \
     class Cpu##type_string##LayerAcc : public CpuLayerAcc {                                                            \

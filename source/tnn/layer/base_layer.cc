@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/base_layer.h"
-
+#include "tnn/utils/data_flag_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 #include <mutex>
@@ -49,11 +49,13 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         LOGE("InferOutputDataType failed\n");
         return status;
     }
-
-    status = InferOutputShape();
-    if (status != TNN_OK) {
-        LOGE("InferOutputShape failed\n");
-        return status;
+    
+    if (!output_blobs_[0]->NeedAllocateInForword()){
+        status = InferOutputShape();
+        if (status != TNN_OK) {
+            LOGE("InferOutputShape failed\n");
+            return status;
+        }
     }
 
     for (auto& output_blob : output_blobs) {
@@ -88,16 +90,29 @@ Status BaseLayer::InferOutputDataType() {
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     }
+    
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : input_blobs_) {
+        flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
+    }
+    
+    for (auto iter : output_blobs_) {
+        iter->flag = flag;
+    }
     return TNN_OK;
 }
 
 Status BaseLayer::Reshape() {
-    InferOutputShape();
-    auto dims = output_blobs_[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+    if (!output_blobs_[0]->NeedAllocateInForword()){
+        auto status = InferOutputShape();
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        auto dims = output_blobs_[0]->GetBlobDesc().dims;
+        for (auto item : dims) {
+            if (item <= 0) {
+                LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
+                return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+            }
         }
     }
 
@@ -111,7 +126,16 @@ Status BaseLayer::Reshape() {
 
 Status BaseLayer::Forward() {
     if (layer_acc_ != NULL) {
-        return layer_acc_->Forward(input_blobs_, output_blobs_);
+        if (output_blobs_[0]->NeedAllocateInForword()){
+            auto status = InferOutputShape();
+            RETURN_ON_NEQ(status, TNN_OK);
+        }
+        
+        auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
+        RETURN_ON_NEQ(status, TNN_OK);
+        status = layer_acc_->Forward(input_blobs_, output_blobs_);
+        RETURN_ON_NEQ(status, TNN_OK);
+        return layer_acc_->AfterForward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
@@ -145,6 +169,12 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
 
     InferOutputShape();
     return TNN_OK;
+}
+
+void BaseLayer::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool) {
+    if (layer_acc_) {
+        layer_acc_->SetRuntimeBlobMemoryPool(runtime_blob_pool);
+    }
 }
 
 std::map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {

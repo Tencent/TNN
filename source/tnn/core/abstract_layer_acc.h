@@ -25,8 +25,10 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+//#include "tnn/memory_manager/blob_memory_pool.h"
 
 namespace TNN_NS {
+class BlobMemoryPool;
 
 // @brief AbstractLayerAcc define the layer acc interface
 class AbstractLayerAcc {
@@ -49,12 +51,27 @@ public:
     // @return reshape result
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
 
-    // @brief layer forward
+    // @brief layer forward acc
     // @param inputs    input blobs
     // @param outputs   output blobs
     // @return execution result
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
 
+    // @brief before layer acc forward
+    // @param inputs    input blobs
+    // @param outputs   output blobs
+    // @return execution result
+    virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+    // @brief after layer acc forward
+    // @param inputs    input blobs
+    // @param outputs   output blobs
+    // @return execution result
+    virtual Status AfterForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+    // @brief set runtime bolob pool
+    void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
+    
 #if TNN_PROFILE
     virtual void UpdateProfilingData(ProfilingData *pdata, LayerParam *param, DimsVector input_dim,
                                      DimsVector output_dim);
@@ -68,6 +85,10 @@ private:
 
     // @brief decide Blob Data Format based on support data format list
     Status ResolveBlobDataFormat(Blob *blob);
+    
+protected:
+    BlobMemoryPool *runtime_blob_pool_ = nullptr;
+    
 };
 
 // @brief LayerAccCreator define create layer acc interface
