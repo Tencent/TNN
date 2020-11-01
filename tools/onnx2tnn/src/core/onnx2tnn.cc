@@ -250,6 +250,7 @@ int Onnx2TNN::TNNWriteProto() {
                         for (const auto& dim : input_blob_shape.dim()) {
                             proto_net_info << dim.dim_value() << " ";
                         }
+                        LOGD("input_blob_shape dim_size: %d\n", input_blob_shape.dim_size());
                     }
 
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {

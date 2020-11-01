@@ -71,7 +71,9 @@ Status CpuGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             int input_index = input_index_b + indices_data_ptr[i]*slice_size;
             int output_index = output_index_b + i*slice_size;
             
-            memcpy(output_data_ptr+output_index*ele_size, input_data_ptr + input_index*ele_size, slice_size * ele_size);
+            memcpy(output_data_ptr + output_index*ele_size,
+                   input_data_ptr + input_index*ele_size,
+                   slice_size * ele_size);
         }
     }
     return TNN_OK;

@@ -19,7 +19,26 @@ namespace TNN_NS {
 DECLARE_LAYER(Gather, LAYER_GATHER);
 
 Status GatherLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    
+    auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+    if ((layer_param->data_in_resource || layer_param->indices_in_resource) && !layer_resource) {
+        return Status(TNNERR_MODEL_ERR, "Gather resource is invalid");
+    }
+    
+    //修改输入data type
+    if (!layer_param->indices_in_resource) {
+        (*(input_blobs_.rbegin()))->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    }
+    
+    //修改输出data type
+    if (layer_param->data_in_resource) {
+        output_blobs_[0]->GetBlobDesc().data_type = layer_resource->data.GetDataType();
+    }
+    
+    return TNN_OK;
 }
 
 Status GatherLayer::InferOutputShape() {
@@ -49,19 +68,14 @@ Status GatherLayer::InferOutputShape() {
     }
     
     DimsVector output_dims;
-    //axis not set
-    if (axis == INT_MAX) {
-        output_dims = indices_dims;
-    } else {
-        if (axis > 0 && axis<data_dims.size()) {
-            output_dims.insert(output_dims.end(), data_dims.begin(), data_dims.begin()+axis);
-        }
-        
-        output_dims.insert(output_dims.end(), indices_dims.begin(), indices_dims.end());
-        
-        if (axis<data_dims.size()-1) {
-            output_dims.insert(output_dims.end(), data_dims.begin()+axis+1, data_dims.end());
-        }
+    if (axis > 0 && axis<data_dims.size()) {
+        output_dims.insert(output_dims.end(), data_dims.begin(), data_dims.begin()+axis);
+    }
+    
+    output_dims.insert(output_dims.end(), indices_dims.begin(), indices_dims.end());
+    
+    if (axis<data_dims.size()-1) {
+        output_dims.insert(output_dims.end(), data_dims.begin()+axis+1, data_dims.end());
     }
     
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
