@@ -39,9 +39,6 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
-    
-//    virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-//    virtual Status AfterForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     LayerParam *param_       = nullptr;

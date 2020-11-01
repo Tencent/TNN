@@ -19,7 +19,7 @@
 namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(NonZero, LAYER_NONZERO,
-                          virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
                           void PutDataIndex(int *dst, const DimsVector stride, const DimsVector index););
 
 Status CpuNonZeroLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -33,7 +33,7 @@ void CpuNonZeroLayerAcc::PutDataIndex(int *dst, const DimsVector stride, const D
     }
 }
 
-Status CpuNonZeroLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CpuNonZeroLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto input_count = DimsVectorUtils::Count(input_dims);
     auto ele_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
@@ -61,7 +61,7 @@ Status CpuNonZeroLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, cons
     int input_dim_size = (int)input_dims.size();
     outputs[0]->GetBlobDesc().dims = {input_dim_size, nonzero_count};
     
-    return AbstractLayerAcc::BeforeForward(inputs, outputs);
+    return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 
 Status CpuNonZeroLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

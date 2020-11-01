@@ -62,6 +62,18 @@ public:
     // @param outputs   output blobs
     // @return execution result
     virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    // @brief infer output blob shape in runtime where shape is determined by input data like constant of shape, it is different from layer::InferOutputShape where shape is determined by input shape and param.
+    // @param inputs    input blobs
+    // @param outputs   output blobs
+    // @return execution result
+    virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+    // @brief allocate output blob in runtime
+    // @param inputs    input blobs
+    // @param outputs   output blobs
+    // @return execution result
+    virtual Status AllocateRuntimeOutputBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
     // @brief after layer acc forward
     // @param inputs    input blobs

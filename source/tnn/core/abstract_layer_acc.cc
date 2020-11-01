@@ -43,13 +43,24 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 }
 
 Status AbstractLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto status = InferRuntimeOutputShape(inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+    return AllocateRuntimeOutputBlob(inputs, outputs);
+}
+
+Status AbstractLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status AbstractLayerAcc::AllocateRuntimeOutputBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     //runtime blob allocate
-    if (runtime_blob_pool_ == nullptr) {
-        return Status(TNNERR_LAYER_ERR, "ConstantOfShape has no runtime_blob_pool");
-    }
     for (auto iter : outputs) {
         if (!iter->NeedAllocateInForword()) {
             continue;
+        }
+        
+        if (runtime_blob_pool_ == nullptr) {
+            return Status(TNNERR_LAYER_ERR, "layer acc has no runtime_blob_pool_");
         }
         auto info = runtime_blob_pool_->GetDevice()->Calculate(iter->GetBlobDesc());
         auto blob_memory = runtime_blob_pool_->BorrowBlobMemory(0, info, true);

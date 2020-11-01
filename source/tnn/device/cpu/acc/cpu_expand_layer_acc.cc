@@ -19,13 +19,13 @@
 namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(Expand, LAYER_EXPAND,
-                          virtual Status BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs););
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs););
 
 Status CpuExpandLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CpuExpandLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CpuExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto expand_param = dynamic_cast<ExpandLayerParam*>(param_);
     CHECK_PARAM_NULL(expand_param);
     
@@ -44,7 +44,7 @@ Status CpuExpandLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const
         outputs[0]->GetBlobDesc().dims = output_dims;
     }
     
-    return AbstractLayerAcc::BeforeForward(inputs, outputs);
+    return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 
 Status CpuExpandLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
