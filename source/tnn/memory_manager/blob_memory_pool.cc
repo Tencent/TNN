@@ -32,6 +32,10 @@ BlobMemoryPool::~BlobMemoryPool() {
     }
 }
 
+AbstractDevice *BlobMemoryPool::GetDevice() {
+    return device_;
+}
+
 BlobMemory *BlobMemoryPool::BorrowBlobMemory(int use_count, BlobMemorySizeInfo &size_info, bool use_new_memory) {
     if (use_new_memory) {
         BlobMemory *blob_memory = CreateBlobMemory(use_count, size_info);

@@ -21,9 +21,11 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource_generator.h"
+#include "tnn/memory_manager/blob_memory_pool_factory.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
+#include "tnn/utils/data_flag_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -99,6 +101,8 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
             return ret;
         }
     }
+    
+    runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(device_);
 
     blob_manager_ = new BlobManager(device_);
 
@@ -206,6 +210,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
         }
+        cur_layer->SetRuntimeBlobMemoryPool(runtime_blob_pool_);
 
         layers_.push_back(cur_layer);
     }
@@ -296,6 +301,11 @@ Status DefaultNetwork::DeInit() {
         delete blob_manager_;
         blob_manager_ = NULL;
     }
+    
+    if (runtime_blob_pool_ != NULL) {
+        delete runtime_blob_pool_;
+        runtime_blob_pool_ = NULL;
+    }
 
     if (context_ != NULL) {
         delete context_;
@@ -325,6 +335,10 @@ Status DefaultNetwork::Forward() {
     if (result != TNN_OK) {
         return result;
     }
+    
+//    if (runtime_blob_pool_) {
+//        runtime_blob_pool_-
+//    }
 
     context_->OnInstanceForwardBegin();
     int cnt = 0;

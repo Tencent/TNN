@@ -37,7 +37,8 @@ public:
     void RefundBlobMemory(BlobMemory *blob_memory);
     int GetAllBlobMemorySize();
     Status AssignAllBlobMemory(MemoryAssignStrategy &strategy);
-
+    
+    AbstractDevice *GetDevice();
 protected:
     AbstractDevice *device_;
     void ReleaseBlobMemoryNodeList(BlobMemoryNode *list_header);

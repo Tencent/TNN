@@ -105,6 +105,7 @@ private:
     std::vector<BaseLayer *> layers_;
 
     BlobManager *blob_manager_ = nullptr;
+    BlobMemoryPool *runtime_blob_pool_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
 
