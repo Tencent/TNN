@@ -40,13 +40,6 @@ std::string g_tnn_dump_directory = "./";
 // #define DUMP_RAW_INT8
 
 std::string BlobDescToString(BlobDesc desc) {
-    char dim[1000];
-    if (desc.dims.size() == 5) {
-        snprintf(dim, 1000, "NCDHW-%d-%d-%d-%d-%d", desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3],
-                 desc.dims[4]);
-    } else {
-        snprintf(dim, 1000, "NCHW-%d-%d-%d-%d", desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]);
-    }
     std::string dims_info = "dims";
     for(int i = 0; i < desc.dims.size(); ++i) {
        dims_info += "-" + ToString(desc.dims[i]);
@@ -69,6 +62,7 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     if(blob_desc.dims.size() == 5) {
         mat_type = NCDHW_FLOAT;
     }
+    auto data_type = blob_desc.data_type;
 
 #ifdef DUMP_RAW_INT8
     if(blob_desc.data_type == DATA_TYPE_INT8) {
@@ -77,14 +71,19 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
 #endif
 
     Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims);
-
-    BlobConverter blob_converter_dev(blob);
-    Status ret = blob_converter_dev.ConvertToMat(cpu_mat, MatConvertParam(), command_queue);
-    if (ret != TNN_OK) {
-        LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
-        return ret;
+    void *data_ptr = cpu_mat.GetData();
+    
+    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
+        BlobConverter blob_converter_dev(blob);
+        Status ret = blob_converter_dev.ConvertToMat(cpu_mat, MatConvertParam(), command_queue);
+        if (ret != TNN_OK) {
+            LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
+            return ret;
+        }
+    } else {
+        data_ptr = blob->GetHandle().base;
     }
-
+    
     char fname[1000];
     snprintf(fname, 1000, "%s-%s.txt", fname_prefix.c_str(), BlobDescToString(blob_desc).c_str());
     FILE* fp = fopen(fname, "wb");
@@ -99,9 +98,18 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         fprintf(fp, "%d\n", int(ptr[n]));
     }
 #else
-    float* ptr = reinterpret_cast<float*>(cpu_mat.GetData());
-    for (int n = 0; n < count; ++n) {
-        fprintf(fp, "%.9f\n", ptr[n]);
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto ptr = (float *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%.9f\n", ptr[n]);
+        }
+    } else if (data_type == DATA_TYPE_INT32) {
+        auto ptr = (int *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
+    } else {
+        LOGE("unsupport data type to dump\n");
     }
 #endif
 
