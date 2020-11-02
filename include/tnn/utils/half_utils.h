@@ -22,6 +22,12 @@ typedef __fp16 fp16_t;
 #else
 #include "tnn/utils/half.hpp"
 typedef half_float::half fp16_t;
+// Largest finite value.
+#define HALF_MAX    std::numeric_limits<half_float::half>::max()
+// Smallest positive normal value.
+#define HALF_MIN    std::numeric_limits<half_float::half>::min()
+// Smallest finite value.
+#define HALF_LOWEST std::numeric_limits<half_float::half>::lowest()
 #endif
 
 namespace TNN_NS {

@@ -21,6 +21,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -666,6 +667,95 @@ template void AvgPooling(const float* src, long iw, long ih, float* dst, long ow
                          long stride_w, long stride_h, long pad_w, long pad_h);
 template void AvgPooling(const bfp16_t* src, long iw, long ih, bfp16_t* dst, long ow, long oh, long kw, long kh,
                          long stride_w, long stride_h, long pad_w, long pad_h);
+
+void MaxPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, long oh, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX = ox * stride_w - pad_w;
+            const long srcOriginY = oy * stride_h - pad_h;
+            const long kxs        = MAX(0, -srcOriginX);
+            const long kxe        = MIN(kw, iw - srcOriginX);
+            const long kys        = MAX(0, -srcOriginY);
+            const long kye        = MIN(kh, ih - srcOriginY);
+            const auto src_ptr    = src + (srcOriginY * iw + srcOriginX) * 8;
+            auto dst_ptr          = dst + (oy * ow + ox) * 8;
+
+#ifdef TNN_ARM82
+            float16x8_t vmax = vdupq_n_f16(HALF_LOWEST);
+#else
+            fp16_t vmax[8] = {HALF_LOWEST, HALF_LOWEST, HALF_LOWEST, HALF_LOWEST,
+                              HALF_LOWEST, HALF_LOWEST, HALF_LOWEST, HALF_LOWEST};
+#endif
+
+            for (long ky = kys; ky < kye; ++ky) {
+                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                for (long kx = kxs; kx < kxe; kx++) {
+#ifdef TNN_ARM82
+                    vmax = vmaxq_f16(vmax, vld1q_f16(src_ptr_h + kx * 8));
+#else
+                    for (long idx = 0; idx < 8; ++idx) {
+                        vmax[idx] = half_float::fmax(vmax[idx], src_ptr_h[kx * 8 + idx]);
+                    }
+#endif
+                }
+            }
+
+#ifdef TNN_ARM82
+            vst1q_f16(dst_ptr, vmax);
+#else
+            for (long idx = 0; idx < 8; ++idx) {
+                dst_ptr[idx] = vmax[idx];
+            }
+#endif
+        }
+    }
+}
+
+void AvgPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, long oh, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX    = ox * stride_w - pad_w;
+            const long srcOriginY    = oy * stride_h - pad_h;
+            const long kxs           = MAX(0, -srcOriginX);
+            const long kxe           = MIN(kw, iw - srcOriginX);
+            const long kys           = MAX(0, -srcOriginY);
+            const long kye           = MIN(kh, ih - srcOriginY);
+            const float kernel_count = 1.0 / ((kxe - kxs) * (kye - kys));
+            const auto src_ptr       = src + (srcOriginY * iw + srcOriginX) * 8;
+            auto dst_ptr             = dst + (oy * ow + ox) * 8;
+
+#ifdef TNN_ARM82
+            float16x8_t vavg = vdupq_n_f16(float16_t(0.f));
+#else
+            fp16_t vavg[8] = {fp16_t(0.f), fp16_t(0.f), fp16_t(0.f), fp16_t(0.f),
+                              fp16_t(0.f), fp16_t(0.f), fp16_t(0.f), fp16_t(0.f)};
+#endif
+
+            for (long ky = kys; ky < kye; ++ky) {
+                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                for (long kx = kxs; kx < kxe; kx++) {
+#ifdef TNN_ARM82
+                    vavg = vaddq_f16(vavg, vld1q_f16(src_ptr_h + kx * 8));
+#else
+                    for (long idx = 0; idx < 8; ++idx) {
+                        vavg[idx] += src_ptr_h[kx * 8 + idx];
+                    }
+#endif
+                }
+            }
+
+#ifdef TNN_ARM82
+            vst1q_f16(dst_ptr, vmulq_f16(vavg, vdupq_n_f16(float16_t(kernel_count))));
+#else
+            for (long idx = 0; idx < 8; ++idx) {
+                dst_ptr[idx] = vavg[idx] * kernel_count;
+            }
+#endif
+        }
+    }
+}
 
 /*
 convdw unit, used in four cornels calc

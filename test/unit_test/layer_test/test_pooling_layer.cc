@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PoolingLayerTest,
                                             // pool type
                                             testing::Values(0, 1),
                                             // datatype
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF)));
 
 TEST_P(PoolingLayerTest, PoolingLayer) {
     // get param

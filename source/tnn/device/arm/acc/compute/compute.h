@@ -83,6 +83,14 @@ void AvgPooling(const T* src, long inputWidth, long inputHeight, T* dst, long ou
                 long kernelWidth, long kernelHeight, long strideWidth, long strideHeight, long padWidth,
                 long padHeight);
 
+void MaxPoolingHalf(const fp16_t* src, long inputWidth, long inputHeight, fp16_t* dst, long outputWidth,
+                    long outputHeight, long kernelWidth, long kernelHeight, long strideWidth, long strideHeight,
+                    long padWidth, long padHeight);
+
+void AvgPoolingHalf(const fp16_t* src, long inputWidth, long inputHeight, fp16_t* dst, long outputWidth,
+                    long outputHeight, long kernelWidth, long kernelHeight, long strideWidth, long strideHeight,
+                    long padWidth, long padHeight);
+
 template <typename T>
 void ConvCommonO4(T* dst, const T* src, const float* weight, long width, long src_w_step, long src_depth_quad,
                   long src_depth_step, long fw, long fh, long dilate_x_step, long dilate_y_step);
