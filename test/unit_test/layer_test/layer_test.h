@@ -40,36 +40,19 @@ class LayerTest : public ::testing::Test {
 protected:
     static void SetUpTestCase();
 
-    void Run(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-             std::vector<BlobDesc>& outputs_desc);
     void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO);
 
     static void TearDownTestCase();
 
 private:
-    Status Init(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-                std::vector<BlobDesc>& outputs_desc);
-    Status Reshape();
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision);
     Status Forward();
     Status Compare();
     Status DeInit();
 
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision);
-    Status ForwardWithInterp();
-    Status CompareWithInterp();
-    Status DeInitWithInterp();
-
 protected:
-    static AbstractDevice* cpu_;
     static AbstractDevice* device_;
-    static Context* cpu_context_;
-    static Context* device_context_;
 
-    LayerParam* param_;
-    BaseLayer* cpu_layer_;
-    BaseLayer* device_layer_;
-    std::vector<Blob*> cpu_inputs_;
-    std::vector<Blob*> cpu_outputs_;
     std::vector<Blob*> device_inputs_;
     std::vector<Blob*> device_outputs_;
     int ensure_input_positive_ = 0;
@@ -78,20 +61,6 @@ protected:
     static std::shared_ptr<Instance> instance_device_;
 
 private:
-    Status CreateLayers(LayerType type);
-
-    Status CreateInputBlobs(std::vector<BlobDesc>& inputs_desc);
-
-    Status InitInputBlobsDataRandom();
-
-    Status InitLayers(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-                      std::vector<BlobDesc>& outputs_desc);
-
-    Status CreateOutputBlobs(std::vector<BlobDesc>& outputs_desc);
-
-    Status AllocateInputBlobs();
-    Status AllocateOutputBlobs();
-
     virtual float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
         return 0.f;
     }
