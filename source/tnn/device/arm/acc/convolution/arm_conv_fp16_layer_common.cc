@@ -554,22 +554,25 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     const int crs_r8 = k_param_->ic_r8 * conv_param->kernels[1] * conv_param->kernels[0];
     const int tile_count = UP_DIV(k_param_->oh * k_param_->ow, NEON_FP16CONV_TILE_HW);
 
-    size_t img2col_size = NEON_FP16CONV_TILE_HW * crs_r8 * sizeof(__fp16);
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    size_t img2col_size = NEON_FP16CONV_TILE_HW * crs_r8;
     size_t transform_size = img2col_size;
-    size_t out_tmp_size = k_param_->oc_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16);
+    size_t out_tmp_size = k_param_->oc_r8 * NEON_FP16CONV_TILE_HW;
+    size_t workspace_size_per_thread = img2col_size + transform_size + out_tmp_size + NEON_KERNEL_EXTRA_LOAD;
     __fp16 *work_space = reinterpret_cast<__fp16 *>(
-        context_->GetSharedWorkSpace(img2col_size + transform_size + out_tmp_size + NEON_KERNEL_EXTRA_LOAD));
+        context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
 
     for (int n = 0; n < batch; ++n) {
         const auto input_batch = input_data + n * k_param_->iw * k_param_->ih * k_param_->ic_r8;
         auto output_batch      = output_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r8;
 
-        // OMP_PARALLEL_FOR_GUIDED_
+        OMP_PARALLEL_FOR_DYNAMIC_
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
-            // int thread_id          = OMP_TID_;
+            int thread_id          = OMP_TID_;
+            auto workspace_per_thread = work_space + thread_id * workspace_size_per_thread;
             const int hw_start     = t_idx * NEON_FP16CONV_TILE_HW;
             const int real_hw_tile = MIN(k_param_->oh * k_param_->ow - hw_start, NEON_FP16CONV_TILE_HW);
-            auto img2col_buffer = work_space;
+            auto img2col_buffer = workspace_per_thread;
             auto output_kernel = output_batch + hw_start * 8;
 
             memset(img2col_buffer, 0, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
