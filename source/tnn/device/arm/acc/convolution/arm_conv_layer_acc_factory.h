@@ -28,6 +28,7 @@
 
 #if TNN_ARM82
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise.h"
 #endif
 
 namespace TNN_NS {

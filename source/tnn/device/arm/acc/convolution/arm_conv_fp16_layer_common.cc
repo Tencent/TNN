@@ -599,8 +599,6 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     return TNN_OK;
 }
 
-REGISTER_ARM_PRECISION_FP16(LAYER_CONVOLUTION)
-
 }  // namespace TNN_NS
 
 #endif

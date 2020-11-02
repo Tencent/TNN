@@ -87,5 +87,8 @@ Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Conv, LAYER_CONVOLUTION)
+#if TNN_ARM82
+REGISTER_ARM_PRECISION_FP16(LAYER_CONVOLUTION)
+#endif
 
 }  // namespace TNN_NS

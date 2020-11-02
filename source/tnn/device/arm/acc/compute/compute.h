@@ -40,26 +40,26 @@ struct ArmKernelParam {
     void* bias;
 };
 
-typedef void (*PostFunc)(void* dst, const float* bias, long area, long oc4);
+typedef void (*PostFunc)(void* dst, const void* bias, long area, long oc4);
 typedef void (*ConvDwSliceFunc)(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 
-template <typename T>
-void PostAddBias(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBias(void* dst, const void* bias, long area, long oc4);
 
-template <typename T>
-void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBiasRelu(void* dst, const void* bias, long area, long oc4);
 
-template <typename T>
-void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBiasRelu6(void* dst, const void* bias, long area, long oc4);
 
 template <typename T>
 void PostClap(void* dst, long size4, float val);
 
-template <typename T>
-void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, long weight_y_step, long dilateX_step,
+template <typename T1, typename T2 = float>
+void DepthwiseUnit(T1* dst, const T1* src, const T2* weight, long fw, long fh, long weight_y_step, long dilateX_step,
                    long dilateY_step);
-template <typename T>
-void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2 = float>
+void DepthwiseConv(T1* dst, const T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                    long dilateX_step, long dilateY_step, long height, long srcHStep, long dstHStep);
 template <typename T>
 void DepthwiseConv3x3(T* dst, const T* src, const float* weight, long width, long src_w_setup, long fw, long fh,

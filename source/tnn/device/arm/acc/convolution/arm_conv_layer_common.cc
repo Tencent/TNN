@@ -138,6 +138,17 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
             post_func_ = PostAddBias<bfp16_t>;
         }
     }
+#if TNN_ARM82
+    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        if (conv_param->activation_type == ActivationType_ReLU) {
+            post_func_ = PostAddBiasRelu<__fp16, __fp16>;
+        } else if (conv_param->activation_type == ActivationType_ReLU6) {
+            post_func_ = PostAddBiasRelu6<__fp16, __fp16>;
+        } else {
+            post_func_ = PostAddBias<__fp16, __fp16>;
+        }
+    }
+#endif
 
     return TNN_OK;
 }
