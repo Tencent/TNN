@@ -93,6 +93,8 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ModelConfig model_config;
+    model_config.params.push_back("");
+    model_config.params.push_back("");
 
     NetworkConfig config_cpu;
     config_cpu.device_type = DEVICE_NAIVE;
