@@ -16,10 +16,7 @@
 
 #include <memory>
 
-#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_1x1.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_3x3.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_layer_acc_factory.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/data_type_utils.h"
@@ -61,7 +58,7 @@ Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerReso
         std::shared_ptr<ArmLayerAcc> tmp_acc = nullptr;
         auto data_type                       = inputs[0]->GetBlobDesc().data_type;
         if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
-            CreateImpFP(inputs, local_outputs, unit.param.get(), tmp_acc);
+            ArmConvLayerAccFactory::CreateImpFP(inputs, local_outputs, unit.param.get(), tmp_acc);
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: stride conv not support data type");
         }
@@ -93,28 +90,6 @@ Status ArmDeconvLayerStride::Reshape(const std::vector<Blob *> &inputs, const st
     }
 
     return TNN_OK;
-}
-
-/*
-get different impl based on conv params
-ArmDeconvLayerCommon always as the last solution
-bfp16 impl included in fp impl
-*/
-void ArmDeconvLayerStride::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                       LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
-    if (ArmConvLayer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer3x3 *>(conv_acc_impl.get())) {
-            conv_acc_impl = std::make_shared<ArmConvLayer3x3>();
-        }
-    } else if (ArmConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer1x1 *>(conv_acc_impl.get())) {
-            conv_acc_impl = std::make_shared<ArmConvLayer1x1>();
-        }
-    }
-
-    if (!conv_acc_impl) {
-        conv_acc_impl = std::make_shared<ArmConvLayerCommon>();
-    }
 }
 
 Status ArmDeconvLayerStride::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
