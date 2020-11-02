@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, LogSigmoidLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(LogSigmoidLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(LogSigmoidLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("LogSigmoid");
+    RunUnaryTest("LogSigmoid");
 }
 
 }  // namespace TNN_NS

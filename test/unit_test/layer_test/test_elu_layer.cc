@@ -48,30 +48,6 @@ TEST_P(EluLayerTest, EluLayer) {
         GTEST_SKIP();
     }
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    EluLayerParam param;
-    param.name  = "Elu";
-    param.alpha = alpha;
-
-    Run(LAYER_ELU, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(EluLayerTest, EluLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    float alpha        = std::get<3>(GetParam());
-    DataType data_type = std::get<4>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     EluLayerParam* param = new EluLayerParam();
     param->name          = "Elu";

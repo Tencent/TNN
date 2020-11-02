@@ -48,29 +48,6 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    HardSigmoidLayerParam param;
-    param.name  = "HardSigmoid";
-    param.alpha = alpha;
-    param.beta  = beta;
-
-    Run(LAYER_HARDSIGMOID, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(HardSigmoidLayerTest, HardSigmoidLayerWithProto) {
-    // get param
-    int batch      = std::get<0>(GetParam());
-    int channel    = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam());
-    float alpha    = std::get<3>(GetParam());
-    float beta     = std::get<4>(GetParam());
-
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
     // param
     HardSigmoidLayerParam* param = new HardSigmoidLayerParam();
     param->name                  = "HardSigmoid";

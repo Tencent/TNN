@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AsinLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(AsinLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(AsinLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Asin");
+    RunUnaryTest("Asin");
 }
 
 }  // namespace TNN_NS

@@ -33,11 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SubLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(SubLayerTest, BinaryLayerTest) {
-    RunBinaryTest();
-}
-
-TEST_P(SubLayerTest, BinaryLayerTestWithProto) {
-    RunBinaryTestWithProto("Sub");
+    RunBinaryTest("Sub");
 }
 
 }  // namespace TNN_NS

@@ -26,8 +26,7 @@ class BinaryLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {
 public:
     BinaryLayerTest(LayerType type);
-    void RunBinaryTest();
-    void RunBinaryTestWithProto(std::string layer_type_str);
+    void RunBinaryTest(std::string layer_type_str);
     bool InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch);
 
 protected:

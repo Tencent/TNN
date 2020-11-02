@@ -32,29 +32,6 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     int reshape_type = std::get<3>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    ReshapeLayerParam param;
-    param.name         = "Reshape";
-    param.reshape_type = reshape_type;
-    param.axis         = 0;
-    param.num_axes     = 4;
-    param.shape        = {0, -1, 1, 1};
-
-    Run(LAYER_RESHAPE, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ReshapeLayerTest, ReshapeLayerWithProto) {
-    // get param
-    int batch        = std::get<0>(GetParam());
-    int channel      = std::get<1>(GetParam());
-    int input_size   = std::get<2>(GetParam());
-    int reshape_type = std::get<3>(GetParam());
-    DeviceType dev   = ConvertDeviceType(FLAGS_dt);
-
     // param
     ReshapeLayerParam* param = new ReshapeLayerParam();
     param->name              = "Reshape";

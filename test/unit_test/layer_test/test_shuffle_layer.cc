@@ -36,28 +36,6 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    ShuffleLayerParam param;
-    param.name  = "ShuffleChannel";
-    param.group = group;
-
-    Run(LAYER_SHUFFLE_CHANNEL, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ShuffleLayerTest, ShuffleLayerWithProto) {
-    // get param
-    int batch             = std::get<0>(GetParam());
-    int channel_per_group = std::get<1>(GetParam());
-    int input_size        = std::get<2>(GetParam());
-    int group             = std::get<3>(GetParam());
-    int channel           = channel_per_group * group;
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
     // param
     ShuffleLayerParam* param = new ShuffleLayerParam();
     param->name              = "ShuffleChannel";

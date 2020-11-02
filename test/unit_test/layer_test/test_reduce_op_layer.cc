@@ -55,50 +55,6 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    ReduceMaxLayerParam param;
-    param.name = "ReduceOp";
-    param.axis = {axis};
-
-    // all reduce different op layer run
-    Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MIN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MEAN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_L2, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM_EXP, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_PROD, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM_SQUARE, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ReduceOpLayerTest, ReduceOpLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_height   = std::get<2>(GetParam());
-    int input_width    = std::get<3>(GetParam());
-    int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
-        (channel == 512 && input_width == 512)) {
-        GTEST_SKIP();
-    }
-
     // param
     ReduceLayerParam* param = new ReduceLayerParam();
     param->name             = "ReduceOp";

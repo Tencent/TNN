@@ -50,31 +50,6 @@ TEST_P(ClipLayerTest, ClipLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    ClipLayerParam param;
-    param.name = "Clip";
-    param.min  = minV;
-    param.max  = maxV;
-
-    Run(LAYER_CLIP, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ClipLayerTest, ClipLayerWithProto) {
-    // get param
-    int batch      = std::get<0>(GetParam());
-    int channel    = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam());
-    float minV     = std::get<3>(GetParam());
-    float maxV     = std::get<4>(GetParam());
-    if (maxV < minV) {
-        maxV = minV;
-    }
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
     // param
     ClipLayerParam* param = new ClipLayerParam();
     param->name           = "Clip";

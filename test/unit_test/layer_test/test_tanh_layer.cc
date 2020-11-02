@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, TanhLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(TanhLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(TanhLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Tanh");
+    RunUnaryTest("Tanh");
 }
 
 }  // namespace TNN_NS

@@ -35,35 +35,6 @@ TEST_P(PReluLayerTest, PReluLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    PReluLayerParam param;
-    param.name           = "PRelu";
-    param.channel_shared = share_channel ? 1 : 0;
-
-    // resource
-    PReluLayerResource resource;
-    int scope_count = share_channel ? 1 : channel;
-    RawBuffer scope(scope_count * sizeof(float));
-    float* scope_data = scope.force_to<float*>();
-    InitRandom(scope_data, scope_count, 1.0f);
-    resource.slope_handle = scope;
-
-    Run(LAYER_PRELU, &param, &resource, inputs_desc, outputs_desc);
-}
-
-TEST_P(PReluLayerTest, PReluLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    bool share_channel = std::get<3>(GetParam());
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
     // param
     PReluLayerParam* param = new PReluLayerParam();
     param->name            = "PRelu";

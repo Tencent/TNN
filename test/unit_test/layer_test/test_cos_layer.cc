@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, CosLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(CosLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(CosLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Cos");
+    RunUnaryTest("Cos");
 }
 
 }  // namespace TNN_NS

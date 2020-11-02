@@ -42,61 +42,6 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int input_size        = std::get<2>(GetParam());
     int kernel            = std::get<3>(GetParam());
     int stride            = std::get<4>(GetParam());
-    DataType data_type    = std::get<6>(GetParam());
-    int group             = std::get<5>(GetParam());
-    int channel           = group * channel_per_group;
-    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    ConvLayerParam param;
-    param.name           = "Conv";
-    param.input_channel  = channel;
-    param.output_channel = channel;
-    param.group          = group;
-    param.kernels        = {kernel, kernel};
-    param.dialations     = {1, 1};
-    param.strides        = {stride, stride};
-    param.pads           = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
-    param.bias           = 1;
-
-    // resource
-    ConvLayerResource resource;
-    auto element_size = (data_type == DATA_TYPE_INT8) ? 1 : 4;
-    int filter_count  = channel * channel * kernel * kernel / group;
-    RawBuffer filter(filter_count * element_size);
-    RawBuffer bias(channel * sizeof(float));
-    if (data_type == DATA_TYPE_BFP16) {
-        InitRandom(filter.force_to<float*>(), filter_count, (float)1.0);
-        InitRandom(bias.force_to<float*>(), channel, (float)1);
-    } else {
-        RawBuffer scale(channel * sizeof(float));
-        InitRandom(filter.force_to<int8_t*>(), filter_count, (int8_t)8);
-        filter.SetDataType(data_type);
-        InitRandom(bias.force_to<int32_t*>(), channel, (int32_t)8);
-        InitRandom(scale.force_to<float*>(), channel, 0.f, 1.0f);
-        resource.scale_handle = scale;
-    }
-
-    resource.filter_handle = filter;
-    resource.bias_handle   = bias;
-
-    Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
-}
-
-TEST_P(ConvQuantLayerTest, ConvLayerWithProto) {
-    // get param
-    int batch             = std::get<0>(GetParam());
-    int channel_per_group = std::get<1>(GetParam());
-    int input_size        = std::get<2>(GetParam());
-    int kernel            = std::get<3>(GetParam());
-    int stride            = std::get<4>(GetParam());
     int group             = std::get<5>(GetParam());
     DataType data_type    = std::get<6>(GetParam());
     int channel           = group * channel_per_group;

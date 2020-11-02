@@ -52,44 +52,6 @@ TEST_P(PriorBoxLayerTest, PriorBoxLayer) {
     std::vector<float> max_sizes = {max_size};
     float offset                 = 0.5;
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    PriorBoxLayerParam param;
-    param.name          = "PriorBox";
-    param.min_sizes     = min_sizes;
-    param.max_sizes     = max_sizes;
-    param.clip          = clip;
-    param.flip          = flip;
-    param.variances     = variances;
-    param.aspect_ratios = aspect_ratios;
-    param.img_w = param.img_h = img_size;
-    param.step_h = param.step_w = step_size;
-    param.offset                = offset;
-    Run(LAYER_PRIOR_BOX, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(PriorBoxLayerTest, PriorBoxLayerWithProto) {
-    // get param
-    int batch                        = std::get<0>(GetParam());
-    int channel                      = std::get<1>(GetParam());
-    int input_size                   = std::get<2>(GetParam());
-    float min_size                   = std::get<3>(GetParam());
-    float max_size                   = std::get<4>(GetParam());
-    bool clip                        = std::get<5>(GetParam());
-    bool flip                        = std::get<6>(GetParam());
-    std::vector<float> variances     = std::get<7>(GetParam());
-    std::vector<float> aspect_ratios = std::get<8>(GetParam());
-    int img_size                     = std::get<9>(GetParam());
-    int step_size                    = std::get<10>(GetParam());
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
-    std::vector<float> min_sizes = {min_size};
-    std::vector<float> max_sizes = {max_size};
-    float offset                 = 0.5;
-
     PriorBoxLayerParam* param = new PriorBoxLayerParam();
     param->name               = "PriorBox";
     param->min_sizes          = min_sizes;

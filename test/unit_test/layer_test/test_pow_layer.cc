@@ -57,37 +57,6 @@ TEST_P(PowLayerTest, PowLayer) {
         GTEST_SKIP();
     }
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    PowLayerParam param;
-    param.name     = "Pow";
-    param.scale    = scale;
-    param.shift    = shift;
-    param.exponent = exponent;
-
-    Run(LAYER_POWER, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(PowLayerTest, PowLayerWithProto) {
-    ensure_input_positive_ = 1;
-
-    // get param
-    int batch      = std::get<0>(GetParam());
-    int channel    = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam());
-    float scale    = std::get<3>(GetParam());
-    float shift    = std::get<4>(GetParam());
-    float exponent = std::get<5>(GetParam());
-
-    DataType data_type = std::get<6>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     PowLayerParam* param = new PowLayerParam();
     param->name          = "Pow";

@@ -20,31 +20,7 @@ UnaryLayerTest::UnaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-void UnaryLayerTest::RunUnaryTest() {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    DataType data_type = std::get<3>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    LayerParam param;
-    param.name = "Unary";
-    Run(layer_type_, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-void UnaryLayerTest::RunUnaryTestWithProto(std::string type_str) {
+void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());

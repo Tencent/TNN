@@ -37,28 +37,6 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    PixelShuffleLayerParam param;
-    param.name           = "PixelShuffle";
-    param.upscale_factor = upscale_factor;
-
-    Run(LAYER_PIXEL_SHUFFLE, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(PixelShuffleLayerTest, PixelShuffleLayerWithProto) {
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int upscale_factor = std::get<3>(GetParam());
-    if (channel < upscale_factor || channel % (upscale_factor * upscale_factor) != 0) {
-        GTEST_SKIP();
-    }
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
     PixelShuffleLayerParam* param = new PixelShuffleLayerParam();
     param->name                   = "PixelShuffle";
     param->upscale_factor         = upscale_factor;

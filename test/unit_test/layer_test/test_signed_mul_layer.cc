@@ -50,37 +50,6 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    SignedMulLayerParam param;
-    param.alpha = alpha;
-    param.beta  = beta;
-    param.gamma = gamma;
-
-    Run(LAYER_SIGNED_MUL, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(SignedMulLayerTest, SignedMulLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    float alpha        = std::get<3>(GetParam());
-    float beta         = std::get<4>(GetParam());
-    float gamma        = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     SignedMulLayerParam* param = new SignedMulLayerParam();
     param->alpha               = alpha;

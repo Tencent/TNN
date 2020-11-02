@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, CeilLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(CeilLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(CeilLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Ceil");
+    RunUnaryTest("Ceil");
 }
 
 }  // namespace TNN_NS

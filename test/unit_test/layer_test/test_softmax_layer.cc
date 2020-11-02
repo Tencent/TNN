@@ -53,49 +53,6 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    SoftmaxLayerParam param;
-    param.name = "Softmax";
-    param.axis = axis;
-
-    Run(LAYER_SOFTMAX, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(SoftmaxLayerTest, SoftmaxLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_height   = std::get<2>(GetParam());
-    int input_width    = std::get<3>(GetParam());
-    int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (channel < 2) {
-        GTEST_SKIP();
-    }
-
-    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
-        (channel == 512 && input_width == 512)) {
-        GTEST_SKIP();
-    }
-
     // param
     SoftmaxLayerParam* param = new SoftmaxLayerParam();
     param->name              = "Softmax";

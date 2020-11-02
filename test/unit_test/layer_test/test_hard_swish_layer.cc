@@ -52,45 +52,6 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_size);
-    input_desc.dims.push_back(input_size);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    for (int i = 0; i < input_count; ++i)
-        inputs_desc.push_back(input_desc);
-
-    std::vector<BlobDesc> outputs_desc;
-    BlobDesc output_desc;
-    output_desc.data_type   = data_type;
-    output_desc.device_type = DEVICE_NAIVE;
-    outputs_desc.push_back(output_desc);
-
-    // param
-    HardSwishLayerParam param;
-    param.name  = "HardSwish";
-    param.alpha = alpha;
-    param.beta  = beta;
-
-    Run(LAYER_HARDSWISH, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(HardSwishLayerTest, HardSwishLayerWithProto) {
-    // get param
-    int batch       = std::get<0>(GetParam());
-    int channel     = std::get<1>(GetParam());
-    int input_size  = std::get<2>(GetParam());
-    float alpha     = std::get<3>(GetParam());
-    float beta      = std::get<4>(GetParam());
-    int input_count = std::get<5>(GetParam());
-
-    DataType data_type = std::get<6>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
     // param
     HardSwishLayerParam* param = new HardSwishLayerParam();
     param->name                = "HardSwish";

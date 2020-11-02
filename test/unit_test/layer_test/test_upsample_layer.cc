@@ -53,40 +53,6 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    UpsampleLayerParam param;
-    param.name          = "Upsample";
-    param.mode          = mode;
-    param.align_corners = align_corners;
-    param.scales        = {scale_x, scale_y};
-    if (use_dims) {
-        param.dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
-    }
-
-    Run(LAYER_UPSAMPLE, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(UpsampleLayerTest, UpsampleLayerWithProto) {
-    // get param
-    int batch         = std::get<0>(GetParam());
-    int channel       = std::get<1>(GetParam());
-    int input_size    = std::get<2>(GetParam());
-    int mode          = std::get<3>(GetParam());
-    int align_corners = std::get<4>(GetParam());
-    float scale_x     = std::get<5>(GetParam());
-    float scale_y     = std::get<6>(GetParam());
-    bool use_dims     = std::get<7>(GetParam());
-
-    if (batch > 1) {
-        GTEST_SKIP();
-    }
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
     // param
     UpsampleLayerParam* param = new UpsampleLayerParam();
     param->name               = "Upsample";

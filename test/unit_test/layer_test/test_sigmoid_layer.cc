@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SigmoidLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(SigmoidLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(SigmoidLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Sigmoid");
+    RunUnaryTest("Sigmoid");
 }
 
 }  // namespace TNN_NS

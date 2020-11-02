@@ -33,11 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, MaxLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(MaxLayerTest, BinaryLayerTest) {
-    RunBinaryTest();
-}
-
-TEST_P(MaxLayerTest, BinaryLayerTestWithProto) {
-    RunBinaryTestWithProto("Maximum");
+    RunBinaryTest("Maximum");
 }
 
 }  // namespace TNN_NS

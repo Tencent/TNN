@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, Relu6LayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(Relu6LayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(Relu6LayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Relu6");
+    RunUnaryTest("Relu6");
 }
 
 }  // namespace TNN_NS

@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReciprocalLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(ReciprocalLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(ReciprocalLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Reciprocal");
+    RunUnaryTest("Reciprocal");
 }
 
 }  // namespace TNN_NS

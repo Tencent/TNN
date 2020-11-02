@@ -45,32 +45,6 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, input_count, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    ConcatLayerParam param;
-    param.name = "Concat";
-    param.axis = axis;
-
-    Run(LAYER_CONCAT, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ConcatLayerTest, ConcatLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    int input_count    = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     ConcatLayerParam* param = new ConcatLayerParam();
     param->name             = "Concat";

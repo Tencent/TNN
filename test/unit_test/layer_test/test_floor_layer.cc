@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, FloorLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(FloorLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(FloorLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Floor");
+    RunUnaryTest("Floor");
 }
 
 }  // namespace TNN_NS

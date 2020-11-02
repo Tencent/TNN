@@ -53,41 +53,6 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    NormalizeLayerParam param;
-    param.name = "Normalize";
-    param.p    = p;
-    param.axis = axis;
-
-    Run(LAYER_NORMALIZE, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(NormalizeLayerTest, NormalizeLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int p              = std::get<3>(GetParam());
-    int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (batch > 1 || axis != 1 || channel < 2) {
-        GTEST_SKIP();
-    }
-
-    if (channel > 4 && channel % 4 != 0) {
-        GTEST_SKIP();
-    }
-
     // param
     NormalizeLayerParam* param = new NormalizeLayerParam();
     param->name                = "Normalize";

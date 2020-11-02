@@ -33,11 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, MulLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(MulLayerTest, BinaryLayerTest) {
-    RunBinaryTest();
-}
-
-TEST_P(MulLayerTest, BinaryLayerTestWithProto) {
-    RunBinaryTestWithProto("Mul");
+    RunBinaryTest("Mul");
 }
 
 }  // namespace TNN_NS

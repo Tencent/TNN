@@ -59,44 +59,6 @@ TEST_P(PadLayerTest, PadLayer) {
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    PadLayerParam param;
-    param.name  = "Pad";
-    param.type  = pad_type;
-    param.pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
-    param.value = value;
-
-    Run(LAYER_PAD, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(PadLayerTest, PadLayerWithProto) {
-    // get param
-    int batch      = std::get<0>(GetParam());
-    int channel    = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam());
-    int pad_w      = std::get<3>(GetParam());
-    int pad_h      = std::get<4>(GetParam());
-    int pad_c      = std::get<5>(GetParam());
-    int pad_type   = std::get<6>(GetParam());
-    float value    = std::get<7>(GetParam());
-
-    // insure pad is valid
-    if (pad_w >= input_size) {
-        pad_w = pad_w % input_size;
-    }
-    if (pad_h >= input_size) {
-        pad_h = pad_h % input_size;
-    }
-    // 目前 只有pad mode 为 const 时, 才支持在channel上进行pad
-    if ((pad_type == 1 || pad_type == 2) && (pad_c != 0)) {
-        GTEST_SKIP();
-    }
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
     // param
     PadLayerParam* param = new PadLayerParam();
     param->name          = "Pad";

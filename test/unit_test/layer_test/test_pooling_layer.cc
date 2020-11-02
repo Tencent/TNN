@@ -49,46 +49,6 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    PoolingLayerParam param;
-    param.name           = "Pooling";
-    param.kernels_params = {kernel, kernel};
-    param.kernels        = {kernel, kernel};
-    param.strides        = {stride, stride};
-    if (kernel == 3)
-        param.pads = {1, 1, 1, 1};
-    else
-        param.pads = {0, 0, 0, 0};
-    param.pad_type  = -1;
-    param.pool_type = pool_type;
-    param.kernel_indexs.push_back(-1);
-    param.kernel_indexs.push_back(-1);
-
-    Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(PoolingLayerTest, PoolingLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int kernel         = std::get<3>(GetParam());
-    int stride         = std::get<4>(GetParam());
-    int pool_type      = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     PoolingLayerParam* param = new PoolingLayerParam();
     param->name              = "Pooling";

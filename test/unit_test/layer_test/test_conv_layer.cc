@@ -64,60 +64,6 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
     auto dtype            = std::get<8>(GetParam());
-    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-
-    if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
-
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
-    // param
-    ConvLayerParam param;
-    param.name            = "Conv";
-    param.input_channel   = channel;
-    param.output_channel  = channel;
-    param.group           = group;
-    param.kernels         = {kernel, kernel};
-    param.dialations      = {dilation, dilation};
-    param.strides         = {stride, stride};
-    param.pads            = {pad, pad, pad, pad};
-    param.bias            = 1;
-    param.activation_type = ActivationType_ReLU;
-
-    // resource
-    ConvLayerResource resource;
-    int filter_count = channel * channel * kernel * kernel / group;
-    RawBuffer filter(filter_count * sizeof(float));
-    float* filter_data = filter.force_to<float*>();
-    RawBuffer bias(channel * sizeof(float));
-    float* bias_data = bias.force_to<float*>();
-    InitRandom(filter_data, filter_count, 1.0f);
-    InitRandom(bias_data, channel, 1.0f);
-    resource.filter_handle = filter;
-    resource.bias_handle   = bias;
-
-    Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
-}
-
-TEST_P(ConvLayerTest, ConvLayerWithProto) {
-    // get param
-    int batch             = std::get<0>(GetParam());
-    int channel_per_group = std::get<1>(GetParam());
-    int input_size        = std::get<2>(GetParam());
-    int group             = std::get<3>(GetParam());
-    int channel           = group * channel_per_group;
-    int kernel            = std::get<4>(GetParam());
-    int dilation          = std::get<5>(GetParam());
-    int stride            = std::get<6>(GetParam());
-    int pad               = std::get<7>(GetParam());
-    auto dtype            = std::get<8>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 

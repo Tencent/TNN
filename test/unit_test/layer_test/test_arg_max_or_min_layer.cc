@@ -49,36 +49,6 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, dtype);
-    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
-
-    // param
-    ArgMaxOrMinLayerParam param;
-    param.name              = "ArgMaxOrMin";
-    param.mode              = mode;
-    param.axis              = axis;
-    param.keep_dims         = keep_dims;
-    param.select_last_index = select_last_index;
-
-    Run(LAYER_ARG_MAX_OR_MIN, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayerWithProto) {
-    // get param
-    int batch             = std::get<0>(GetParam());
-    int channel           = std::get<1>(GetParam());
-    int input_size        = std::get<2>(GetParam());
-    int mode              = std::get<3>(GetParam());
-    int axis              = std::get<4>(GetParam());
-    int keep_dims         = std::get<5>(GetParam());
-    int select_last_index = std::get<6>(GetParam());
-    DataType dtype        = std::get<7>(GetParam());
-    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-    if (dtype != DATA_TYPE_FLOAT) {
-        GTEST_SKIP();
-    }
-
     // param
     ArgMaxOrMinLayerParam* param = new ArgMaxOrMinLayerParam();
     param->name                  = "ArgMaxOrMin";

@@ -49,37 +49,6 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(output_count, data_type);
-
-    // param
-    SplitVLayerParam param;
-    param.name   = "SplitV";
-    param.axis   = 1;
-    param.slices = {channel / 2, channel - channel / 2};
-
-    Run(LAYER_SPLITV, &param, nullptr, inputs_desc, outputs_desc);
-}
-
-TEST_P(SplitVLayerTest, SplitVLayerWithProto) {
-    // get param
-    int batch          = std::get<0>(GetParam());
-    int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    int output_count   = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-
-    if (channel <= 1) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     // param
     SplitVLayerParam* param = new SplitVLayerParam();
     param->name             = "SplitV";

@@ -25,11 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, LogLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(LogLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
-}
-
-TEST_P(LogLayerTest, UnaryLayerTestWithProto) {
-    RunUnaryTestWithProto("Log");
+    RunUnaryTest("Log");
 }
 
 }  // namespace TNN_NS
