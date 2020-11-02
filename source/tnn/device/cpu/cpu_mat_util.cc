@@ -144,9 +144,9 @@ bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int s
            new_y_loc >= -1 && new_y_loc <= (src_h - 1);
 }
 
-void CalculateOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
-                     int* adelta, int* bdelta, int src_h, int src_w, int channel,
-                     int x, int y, int dst_loc_base, float* _tab) {
+static void CalculateBilinearOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
+                                    int* adelta, int* bdelta, int src_h, int src_w, int channel,
+                                    int x, int y, int dst_loc_base, float* _tab, int border_val) {
     int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
     int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
     int new_x_loc   = new_x >> 10;
@@ -194,18 +194,10 @@ void CalculateOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
 
         for (int c = 0; c < channel; ++c) {
             int val_xy = 0;
-            if (mask0) {
-                val_xy += bilinearWeight[0] * src[src_loc + c];
-            }
-            if (mask1) {
-                val_xy += bilinearWeight[1] * src[src_loc + channel + c];
-            }
-            if (mask2) {
-                val_xy += bilinearWeight[2] * src2[src_loc + c];
-            }
-            if (mask3) {
-                val_xy += bilinearWeight[3] * src2[src_loc + channel + c];
-            }
+            val_xy += bilinearWeight[0] * (mask0 ? src[src_loc + c] : border_val);
+            val_xy += bilinearWeight[1] * (mask1 ? src[src_loc + channel + c] : border_val);
+            val_xy += bilinearWeight[2] * (mask2 ? src2[src_loc + c] : border_val);
+            val_xy += bilinearWeight[3] * (mask3 ? src2[src_loc + channel + c] : border_val);
             dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
         }
     }
@@ -250,14 +242,113 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
         int dst_loc_base    = y * dst_w * channel;
 
         for (int x = 0; x < dst_w; ++x) {
-            CalculateOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
-                            dst_loc_base, _tab);
+            CalculateBilinearOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
+                                    dst_loc_base, _tab, (int)border_ival);
         }
     }
 
     delete[] buf_loc;
     delete[] tab_loc;
     delete[] _tab;
+
+    free(buffer);
+}
+
+static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
+                                   int* adelta, int* bdelta, int src_h, int src_w, int channel,
+                                   int x, int y, int dst_loc_base, int border_val) {
+    int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
+    int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
+    int new_x_loc   = new_x >> 10;
+    int new_y_loc   = new_y >> 10;
+
+    short coeffs_x  = (new_x >> 5) & 31;
+    short coeffs_y  = (new_y >> 5) & 31;
+
+    int src_loc     = (new_x_loc + new_y_loc * src_w) * channel;
+
+    if (new_x_loc >= 0 && new_x_loc < (src_w - 1) && new_y_loc >= 0 && new_y_loc < (src_h - 1)) {
+        for (int c = 0; c < channel; c++)
+        {
+            int dst_loc = dst_loc_base + x * channel;
+            int point00 = src[src_loc + c];
+            int point01 = src[src_loc + channel + c];
+            int point10 = src2[src_loc + c];
+            int point11 = src2[src_loc + channel + c];
+
+            int val_xy;
+            if (coeffs_y < (1<<4)) {
+                val_xy = (coeffs_x < (1<<4)) ? point00 : point01;
+            } else {
+                val_xy = (coeffs_x < (1<<4)) ? point10 : point11;
+            }
+
+            dst[dst_loc + c] = val_xy;
+        }
+    }
+    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+        int dsc_loc = dst_loc_base + x * channel;
+
+        int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
+        int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
+        int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
+        int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
+
+        for (int c = 0; c < channel; ++c) {
+            int point00 = mask0 ? src[src_loc + c] : border_val;
+            int point01 = mask1 ? src[src_loc + channel + c] : border_val;
+            int point10 = mask2 ? src2[src_loc + c] : border_val;
+            int point11 = mask3 ? src2[src_loc + channel + c] : border_val;
+
+            int val_xy = 0;
+            if (coeffs_y < (1<<4)) {
+                val_xy = (coeffs_x < (1<<4)) ? point00 : point01;
+            } else {
+                val_xy = (coeffs_x < (1<<4)) ? point10 : point11;
+            }
+
+            dst[dsc_loc + c] = val_xy;
+        }
+    }
+}
+
+void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
+                       const float (*transform)[3], const float border_val)
+{
+    // Init
+    uint8_t border_ival = (uint8_t)border_val;
+    for (int i = 0; i < dst_h * dst_w * channel; ++i) {
+        dst[i] = border_ival;
+    }
+
+    double m[6];
+    WarpAffineMatrixInverse(transform, m);
+
+    int* buffer = (int *)malloc((dst_w + dst_h) * 2 * sizeof(int));
+
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    for (int x = 0; x < dst_w; x++) {
+        adelta[x * 2] = SATURATE_CAST_INT(m[0] * x * 1024);
+        adelta[x * 2 + 1] = SATURATE_CAST_INT(m[3] * x * 1024);
+    }
+
+    for (int y = 0; y < dst_h; y++) {
+        bdelta[y * 2] = SATURATE_CAST_INT((m[1] * y + m[2]) * 1024);
+        bdelta[y * 2 + 1] = SATURATE_CAST_INT((m[4] * y + m[5]) * 1024);
+    }
+
+    const uint8_t* src2 = src + src_w * channel;
+
+    for (int y = 0; y < dst_h; ++y) {
+        int dst_loc_base    = y * dst_w * channel;
+
+        for (int x = 0; x < dst_w; ++x) {
+            CalculateNearestOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
+                                   dst_loc_base, (int)border_ival);
+        }
+    }
 
     free(buffer);
 }

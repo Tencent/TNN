@@ -29,11 +29,12 @@ class MatConverterAcc {
 public:
     MatConverterAcc(){};
     virtual ~MatConverterAcc(){};
-    virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL)                               = 0;
-    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL)          = 0;
-    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL)              = 0;
-    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL)  = 0;
-    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) = 0;
+    virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL)                                      = 0;
+    virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL)                 = 0;
+    virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL)                     = 0;
+    virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL)         = 0;
+    virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL)        = 0;
+    virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL) = 0;
 };
 
 class MatConverterAccCreater {
