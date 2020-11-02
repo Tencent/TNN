@@ -90,46 +90,28 @@ TEST_P(PoolingLayerTest, PoolingLayerWithProto) {
     }
 
     // param
-    PoolingLayerParam param;
-    param.name           = "Pooling";
-    param.kernels_params = {kernel, kernel};
-    param.kernels        = {kernel, kernel};
-    param.strides        = {stride, stride};
+    PoolingLayerParam* param = new PoolingLayerParam();
+    param->name              = "Pooling";
+    param->kernels_params    = {kernel, kernel};
+    param->kernels           = {kernel, kernel};
+    param->strides           = {stride, stride};
     if (kernel == 3)
-        param.pads = {1, 1, 1, 1};
+        param->pads = {1, 1, 1, 1};
     else
-        param.pads = {0, 0, 0, 0};
-    param.pad_type  = -1;
-    param.pool_type = pool_type;
-    param.kernel_indexs.push_back(-1);
-    param.kernel_indexs.push_back(-1);
+        param->pads = {0, 0, 0, 0};
+    param->pad_type  = -1;
+    param->pool_type = pool_type;
+    param->kernel_indexs.push_back(-1);
+    param->kernel_indexs.push_back(-1);
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Pooling layer_name 1 1 input output ";
-    ostr << param.pool_type << " ";
-    ostr << param.kernels_params[1] << " ";
-    ostr << param.kernels_params[0] << " ";
-    ostr << param.strides[1] << " ";
-    ostr << param.strides[0] << " ";
-    ostr << param.pads[2] << " ";
-    ostr << param.pads[0] << " ";
-    ostr << param.kernel_indexs[1] << " ";
-    ostr << param.kernel_indexs[0] << " ";
-    ostr << param.pad_type << " ";
-    ostr << param.ceil_mode << " ";
-    ostr << ",\"";
-
-    Precision precision = PRECISION_AUTO;
+    auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Precision precision         = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;
     }
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto, precision);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

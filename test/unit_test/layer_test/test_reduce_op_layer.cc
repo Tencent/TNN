@@ -100,24 +100,33 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayerWithProto) {
     }
 
     // param
-    ReduceLayerParam param;
-    param.name = "ReduceOp";
-    param.axis = {axis};
+    ReduceLayerParam* param = new ReduceLayerParam();
+    param->name             = "ReduceOp";
+    param->axis             = {axis};
 
-    // generate proto string
+    auto param_share = std::shared_ptr<LayerParam>(param);
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
-    std::string head            = GenerateHeadProto({input_dims});
-
-    RunWithProto(head + GenerateReduceProto("ReduceMax", param));
-    RunWithProto(head + GenerateReduceProto("ReduceMin", param));
-    RunWithProto(head + GenerateReduceProto("ReduceMean", param));
-    RunWithProto(head + GenerateReduceProto("ReduceSum", param));
-    RunWithProto(head + GenerateReduceProto("ReduceL1", param));
-    RunWithProto(head + GenerateReduceProto("ReduceL2", param));
-    RunWithProto(head + GenerateReduceProto("ReduceLogSum", param));
-    RunWithProto(head + GenerateReduceProto("ReduceLogSumExp", param));
-    RunWithProto(head + GenerateReduceProto("ReduceProd", param));
-    RunWithProto(head + GenerateReduceProto("ReduceSumSquare", param));
+    auto interpreter1           = GenerateInterpreter("ReduceMax", {input_dims}, param_share);
+    Run(interpreter1);
+    auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param_share);
+    Run(interpreter2);
+    auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param_share);
+    Run(interpreter3);
+    auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param_share);
+    Run(interpreter4);
+    auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param_share);
+    Run(interpreter5);
+    auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param_share);
+    Run(interpreter6);
+    auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param_share);
+    Run(interpreter7);
+    auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param_share);
+    Run(interpreter8);
+    auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param_share);
+    Run(interpreter9);
+    auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param_share);
+    Run(interpreter10);
 }
 
 }  // namespace TNN_NS

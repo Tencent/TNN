@@ -255,14 +255,21 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
                 return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
         }
-    } else if (!is_input) {
-        // reformat layer cannot be the first layer
-        // only need to deal with output blob of reformat layer
-        auto dst_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type;
-        if (dst_type == DATA_TYPE_INT8) {
-            RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+    } else {
+        if (is_input) {
+            auto src_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->src_type;
+            if (src_type == DATA_TYPE_INT8) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+            } else {
+                desc.data_type = src_type;
+            }
         } else {
-            desc.data_type = dst_type;
+            auto dst_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type;
+            if (dst_type == DATA_TYPE_INT8) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+            } else {
+                desc.data_type = dst_type;
+            }
         }
     }
 

@@ -88,15 +88,17 @@ TEST_P(PowLayerTest, PowLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Power layer_name 1 1 input output " << exponent << " " << scale << " " << shift << ",\"";
+    // param
+    PowLayerParam* param = new PowLayerParam();
+    param->name          = "Pow";
+    param->scale         = scale;
+    param->shift         = shift;
+    param->exponent      = exponent;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Power", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

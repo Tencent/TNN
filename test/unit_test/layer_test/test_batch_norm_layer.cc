@@ -67,29 +67,40 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
 
 TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayerWithProto) {
     // get param
-    int batch      = std::get<0>(GetParam());
-    int channel    = std::get<1>(GetParam());
-    int input_size = std::get<2>(GetParam());
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    bool share_channel = std::get<3>(GetParam());
+    bool has_bias      = std::get<4>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // generate proto string
+    // param
+    LayerParam* param = new LayerParam();
+    param->name       = "BatchNorm";
+
+    // resource
+    BatchNormLayerResource* resource = new BatchNormLayerResource();
+    int k_count                      = share_channel ? 1 : channel;
+    RawBuffer filter_k(k_count * sizeof(float));
+    float* k_data = filter_k.force_to<float*>();
+    InitRandom(k_data, k_count, 1.0f);
+    resource->scale_handle = filter_k;
+    if (has_bias) {
+        RawBuffer bias(k_count * sizeof(float));
+        float* bias_data = bias.force_to<float*>();
+        InitRandom(bias_data, k_count, 1.0f);
+        resource->bias_handle = bias;
+    }
+
+    auto param_share    = std::shared_ptr<LayerParam>(param);
+    auto resource_share = std::shared_ptr<LayerResource>(resource);
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-
-    std::ostringstream ostr1;
-    ostr1 << "\""
-          << "BatchNormCxx layer_name 1 1 input output "
-          << ",\"";
-    std::string proto1 = head + ostr1.str();
-    RunWithProto(proto1);
-
-    std::ostringstream ostr2;
-    ostr2 << "\""
-          << "Scale layer_name 1 1 input output "
-          << ",\"";
-    std::string proto2 = head + ostr2.str();
-    RunWithProto(proto2);
+    auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param_share, resource_share);
+    auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param_share, resource_share);
+    Run(interpreter1);
+    Run(interpreter2);
 }
 
 }  // namespace TNN_NS

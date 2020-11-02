@@ -88,20 +88,16 @@ TEST_P(NormalizeLayerTest, NormalizeLayerWithProto) {
         GTEST_SKIP();
     }
 
-    NormalizeLayerParam param;
-    param.p    = p;
-    param.axis = axis;
+    // param
+    NormalizeLayerParam* param = new NormalizeLayerParam();
+    param->name                = "Normalize";
+    param->p                   = p;
+    param->axis                = axis;
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Normalize layer_name 1 1 input output " << param.across_spatial << " " << param.epsilon << " "
-         << param.channel_shared << " " << param.axis << " " << param.p << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("Normalize", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

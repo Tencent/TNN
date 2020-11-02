@@ -82,16 +82,18 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "QuantizedInnerProduct layer_name 1 1 input output " << output_channel << " 0 0 1"
-         << ",\"";
+    // param
+    InnerProductLayerParam* param = new InnerProductLayerParam();
+    param->name                   = "InnerProduct";
+    param->num_output             = output_channel;
+    param->has_bias               = 0;
+    param->axis                   = 1;
+    param->quantized              = true;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

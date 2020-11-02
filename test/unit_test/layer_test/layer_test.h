@@ -42,8 +42,7 @@ protected:
 
     void Run(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
              std::vector<BlobDesc>& outputs_desc);
-
-    void RunWithProto(std::string proto, Precision precision = PRECISION_AUTO);
+    void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO);
 
     static void TearDownTestCase();
 
@@ -55,10 +54,10 @@ private:
     Status Compare();
     Status DeInit();
 
-    Status InitWithProto(std::string proto, Precision precision);
-    Status ForwardWithProto();
-    Status CompareWithProto();
-    Status DeInitWithProto();
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision);
+    Status ForwardWithInterp();
+    Status CompareWithInterp();
+    Status DeInitWithInterp();
 
 protected:
     static AbstractDevice* cpu_;
@@ -75,7 +74,6 @@ protected:
     std::vector<Blob*> device_outputs_;
     int ensure_input_positive_ = 0;
 
-    static TNN_NS::TNN tnn_;
     static std::shared_ptr<Instance> instance_cpu_;
     static std::shared_ptr<Instance> instance_device_;
 

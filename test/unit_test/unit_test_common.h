@@ -23,6 +23,8 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/context.h"
 #include "tnn/core/macro.h"
+#include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/utils/random_data_utils.h"
 
@@ -32,6 +34,12 @@ IntScaleResource* CreateIntScale(int channel);
 void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context);
 
 std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int output_count = 1);
+
+std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_type_str,
+                                                              std::vector<std::vector<int>> input_vec,
+                                                              std::shared_ptr<LayerParam> param,
+                                                              std::shared_ptr<LayerResource> resource = nullptr,
+                                                              int output_count                        = 1);
 
 }  // namespace TNN_NS
 

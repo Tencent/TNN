@@ -145,16 +145,38 @@ void BinaryLayerTest::RunBinaryTestWithProto(std::string layer_type_str) {
         GTEST_SKIP();
     }
 
-    if (1 == input_count) {
-        GTEST_SKIP();
+    std::vector<int> param_dims;
+    int param_count = 1;
+    if (0 == param_size_type) {
+        param_count = 1;
+        param_dims  = {1, 1, 1, 1};
+    } else if (1 == param_size_type) {
+        param_count = channel;
+        param_dims  = {1, channel, 1, 1};
+    } else if (2 == param_size_type) {
+        param_count = channel * input_size * input_size;
+        param_dims  = {1, channel, input_size, input_size};
+    } else if (3 == param_size_type) {
+        param_count = input_size * input_size;
+        param_dims  = {1, 1, input_size, input_size};
+    }
+
+    EltwiseLayerResource* resource = nullptr;
+    if (input_count == 1) {
+        resource = new EltwiseLayerResource();
+        RawBuffer buffer(param_count * sizeof(float));
+        float* buffer_data = buffer.force_to<float*>();
+        InitRandom(buffer_data, param_count, 1.0f);
+        resource->element_handle = buffer;
+        resource->element_shape  = param_dims;
     }
 
     // param
-    std::shared_ptr<MultidirBroadcastLayerParam> param;
+    MultidirBroadcastLayerParam* param = nullptr;
     if (LAYER_HARDSWISH == layer_type_) {
-        param.reset(new HardSwishLayerParam());
+        param = new HardSwishLayerParam();
     } else {
-        param.reset(new MultidirBroadcastLayerParam());
+        param = new MultidirBroadcastLayerParam();
     }
 
     param->name               = "Binary";
@@ -165,7 +187,14 @@ void BinaryLayerTest::RunBinaryTestWithProto(std::string layer_type_str) {
     // blob desc
     std::vector<BlobDesc> inputs_desc;
     if (1 == input_count) {
-        GTEST_SKIP();
+        if (-1 == weight_idx) {
+            // this case doesn't exist
+            return;
+        } else if (0 == weight_idx) {
+            input0_dims = {batch, channel, input_size, input_size};
+        } else if (1 == weight_idx) {
+            input0_dims = {batch, channel, input_size, input_size};
+        }
     } else if (2 == input_count) {
         if (-1 == weight_idx) {
             // the size of input are same
@@ -196,25 +225,22 @@ void BinaryLayerTest::RunBinaryTestWithProto(std::string layer_type_str) {
         return;
     }
 
-    std::string head = GenerateHeadProto({input0_dims, input1_dims});
-
     Precision precision = PRECISION_AUTO;
-    std::ostringstream ostr;
     if (DATA_TYPE_INT8 == data_type) {
-        ostr << "\"Quantized" << layer_type_str;
+        param->quantized = true;
     } else if (DATA_TYPE_BFP16 == data_type) {
-        ostr << "\"" << layer_type_str;
         precision = PRECISION_LOW;
-    } else {
-        ostr << "\"" << layer_type_str;
     }
-    ostr << " layer_name " << input_count << " 1 ";
-    for (int i = 0; i < input_count; ++i)
-        ostr << "input" << i << " ";
-    ostr << "output " << param->weight_input_index << ",\"";
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto, precision);
+    std::shared_ptr<AbstractModelInterpreter> interpreter;
+    if (1 == input_count) {
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, std::shared_ptr<LayerParam>(param),
+                                          std::shared_ptr<LayerResource>(resource));
+    } else if (2 == input_count) {
+        interpreter =
+            GenerateInterpreter(layer_type_str, {input0_dims, input1_dims}, std::shared_ptr<LayerParam>(param));
+    }
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

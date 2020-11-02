@@ -129,18 +129,23 @@ TEST_P(ConvLayerTest, ConvLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Convolution layer_name 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
-         << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
-         << dilation << " " << dilation << " "
-         << ",\"";
+    // param
+    ConvLayerParam* param  = new ConvLayerParam();
+    param->name            = "Conv";
+    param->input_channel   = channel;
+    param->output_channel  = channel;
+    param->group           = group;
+    param->kernels         = {kernel, kernel};
+    param->dialations      = {dilation, dilation};
+    param->strides         = {stride, stride};
+    param->pads            = {pad, pad, pad, pad};
+    param->bias            = 1;
+    param->activation_type = ActivationType_ReLU;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

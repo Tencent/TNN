@@ -91,19 +91,20 @@ TEST_P(HardSwishLayerTest, HardSwishLayerWithProto) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (input_count != 1) {
-        GTEST_SKIP();
-    }
+    // param
+    HardSwishLayerParam* param = new HardSwishLayerParam();
+    param->name                = "HardSwish";
+    param->alpha               = alpha;
+    param->beta                = beta;
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "HardSwish layer_name 1 1 input output " << alpha << " " << beta << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    std::vector<std::vector<int>> input_dims_vec;
+    for (int i = 0; i < input_count; ++i) {
+        input_dims_vec.push_back(input_dims);
+    }
+    auto interpreter = GenerateInterpreter("HardSwish", input_dims_vec, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

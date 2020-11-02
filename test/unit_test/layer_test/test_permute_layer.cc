@@ -57,28 +57,20 @@ TEST_P(PermuteLayerTest, PermuteLayerWithProto) {
     int order_type = std::get<3>(GetParam());
 
     // param
-    PermuteLayerParam param;
-    param.orders = {0, 1, 2, 3};
+    PermuteLayerParam* param = new PermuteLayerParam();
+    param->orders            = {0, 1, 2, 3};
     if (1 == order_type) {
-        param.orders = {0, 2, 3, 1};
+        param->orders = {0, 2, 3, 1};
     } else if (2 == order_type) {
-        param.orders = {0, 3, 1, 2};
+        param->orders = {0, 3, 1, 2};
     } else if (3 == order_type) {
-        param.orders = {1, 2, 3, 0};
+        param->orders = {1, 2, 3, 0};
     }
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Permute layer_name 1 1 input output " << param.orders.size() << " ";
-    for (auto item : param.orders)
-        ostr << item << " ";
-    ostr << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("Permute", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

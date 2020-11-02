@@ -58,15 +58,15 @@ TEST_P(ShuffleLayerTest, ShuffleLayerWithProto) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "ShuffleChannel layer_name 1 1 input output " << group << ",\"";
+    // param
+    ShuffleLayerParam* param = new ShuffleLayerParam();
+    param->name              = "ShuffleChannel";
+    param->group             = group;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter = GenerateInterpreter("ShuffleChannel", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

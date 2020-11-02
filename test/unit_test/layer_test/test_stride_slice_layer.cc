@@ -79,49 +79,22 @@ TEST_P(StrideSliceLayerTest, StrideSliceLayerWithProto) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    StrideSliceLayerParam param;
-    param.name    = "StrideSlice";
-    param.begins  = {begin_offset, begin_offset, begin_offset, 0};
-    param.strides = {wh_stride, wh_stride, channel_stride, 1};
-    param.ends    = {input_size + end_offset, input_size + end_offset, channel + end_offset, batch};
+    StrideSliceLayerParam* param = new StrideSliceLayerParam();
+    param->name                  = "StrideSlice";
+    param->begins                = {begin_offset, begin_offset, begin_offset, 0};
+    param->strides               = {wh_stride, wh_stride, channel_stride, 1};
+    param->ends                  = {input_size + end_offset, input_size + end_offset, channel + end_offset, batch};
 
-    for (int i = 0; i < param.begins.size(); ++i) {
-        if (param.begins[i] >= param.ends[i]) {
+    for (int i = 0; i < param->begins.size(); ++i) {
+        if (param->begins[i] >= param->ends[i]) {
             GTEST_SKIP();
         }
     }
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "StridedSlice layer_name 1 1 input output ";
-
-    auto begins = param.begins;
-    std::reverse(begins.begin(), begins.end());
-    ostr << begins.size() << " ";
-    for (int i = 0; i < begins.size(); i++) {
-        ostr << begins[i] << " ";
-    }
-
-    auto ends = param.ends;
-    std::reverse(ends.begin(), ends.end());
-    ostr << ends.size() << " ";
-    for (int i = 0; i < ends.size(); i++) {
-        ostr << ends[i] << " ";
-    }
-
-    auto strides = param.strides;
-    std::reverse(strides.begin(), strides.end());
-    ostr << strides.size() << " ";
-    for (int i = 0; i < strides.size(); i++) {
-        ostr << strides[i] << " ";
-    }
-    ostr << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("StridedSlice", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

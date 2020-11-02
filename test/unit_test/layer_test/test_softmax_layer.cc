@@ -96,15 +96,15 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_height, input_width};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Softmax layer_name 1 1 input output " << axis << ",\"";
+    // param
+    SoftmaxLayerParam* param = new SoftmaxLayerParam();
+    param->name              = "Softmax";
+    param->axis              = axis;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

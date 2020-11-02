@@ -108,29 +108,30 @@ TEST_P(ConvQuantLayerTest, ConvLayerWithProto) {
     int dilation = 1;
     int pad      = kernel / 2;
 
+    // param
+    ConvLayerParam* param = new ConvLayerParam();
+    param->name           = "Conv";
+    param->input_channel  = channel;
+    param->output_channel = channel;
+    param->group          = group;
+    param->kernels        = {kernel, kernel};
+    param->dialations     = {1, 1};
+    param->strides        = {stride, stride};
+    param->pads           = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
+    param->bias           = 1;
+
     Precision precision = PRECISION_AUTO;
     // generate proto string
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
 
     if (DATA_TYPE_INT8 == data_type) {
-        ostr << "\""
-             << "QuantizedConvolution layer_name 1 1 input output " << group << " " << channel_per_group << " "
-             << channel << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad
-             << " 1 -1 " << dilation << " " << dilation << " "
-             << ",\"";
+        param->quantized = true;
     } else if (DATA_TYPE_BFP16 == data_type) {
-        ostr << "\""
-             << "Convolution layer_name 1 1 input output " << group << " " << channel_per_group << " " << channel << " "
-             << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " " << pad << " 1 -1 "
-             << dilation << " " << dilation << " "
-             << ",\"";
         precision = PRECISION_LOW;
     }
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto, precision);
+    auto interpreter = GenerateInterpreter("Convolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

@@ -71,20 +71,17 @@ TEST_P(ConcatLayerTest, ConcatLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
+    // param
+    ConcatLayerParam* param = new ConcatLayerParam();
+    param->name             = "Concat";
+    param->axis             = axis;
+
+    // generate interpreter
     std::vector<std::vector<int>> input_dims_vec;
     for (int i = 0; i < input_count; ++i)
         input_dims_vec.push_back({batch, channel, input_size, input_size});
-    std::string head = GenerateHeadProto(input_dims_vec);
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Concat layer_name " << input_count << " 1 ";
-    for (int i = 0; i < input_count; ++i)
-        ostr << "input" << i << " ";
-    ostr << "output " << axis << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter = GenerateInterpreter("Concat", input_dims_vec, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

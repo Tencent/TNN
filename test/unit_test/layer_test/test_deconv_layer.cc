@@ -149,24 +149,31 @@ TEST_P(DeconvLayerTest, DeconvLayerWithProto) {
     int input_channel  = group * input_channel_per_group;
     int output_channel = group * output_channel_per_group;
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
+    // deconv param
+    ConvLayerParam* param = new ConvLayerParam();
+    param->name           = "Deconv";
+    param->input_channel  = input_channel;
+    param->output_channel = output_channel;
+    param->group          = group;
+    param->kernels        = {kernel, kernel};
+    param->dialations     = {dilation, dilation};
+    param->strides        = {stride, stride};
 
-    ostr << "\""
-         << "Deconvolution layer_name 1 1 input output " << group << " " << input_channel_per_group << " "
-         << output_channel << " " << kernel << " " << kernel << " " << stride << " " << stride << " " << pad << " "
-         << pad << " 1 -1 " << dilation << " " << dilation << " "
-         << ",\"";
+    param->pads = {pad, pad, pad, pad};
+    param->bias = 1;
+    if (output_pad > 0) {
+        param->pad_type = 3;
+    }
 
     Precision precision = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;
     }
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto, precision);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    auto interpreter = GenerateInterpreter("Deconvolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

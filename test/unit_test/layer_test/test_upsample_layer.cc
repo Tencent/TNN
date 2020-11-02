@@ -88,33 +88,19 @@ TEST_P(UpsampleLayerTest, UpsampleLayerWithProto) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    UpsampleLayerParam param;
-    param.name          = "Upsample";
-    param.mode          = mode;
-    param.align_corners = align_corners;
-    param.scales        = {scale_x, scale_y};
+    UpsampleLayerParam* param = new UpsampleLayerParam();
+    param->name               = "Upsample";
+    param->mode               = mode;
+    param->align_corners      = align_corners;
+    param->scales             = {scale_x, scale_y};
     if (use_dims) {
-        param.dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
+        param->dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
     }
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Upsample layer_name 1 1 input output ";
-    ostr << param.mode << " ";
-    ostr << param.scales[1] << " ";
-    ostr << param.scales[0] << " ";
-    ostr << param.align_corners << " ";
-    if (param.dims.size() == 2) {
-        ostr << param.dims[1] << " ";
-        ostr << param.dims[0] << " ";
-    }
-    ostr << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("Upsample", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

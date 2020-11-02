@@ -70,15 +70,16 @@ TEST_P(ReorgLayerTest, ReorgLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Reorg layer_name 1 1 input output " << stride << " " << reverse << ",\"";
+    // param
+    ReorgLayerParam* param = new ReorgLayerParam();
+    param->name            = "Reorg";
+    param->stride          = stride;
+    param->reverse         = reverse;
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Reorg", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

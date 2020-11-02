@@ -52,4 +52,28 @@ TEST_P(ReformatLayerTest, ReformatLayer) {
     Run(LAYER_REFORMAT, &param, nullptr, inputs_desc, outputs_desc);
 }
 
+TEST_P(ReformatLayerTest, ReformatLayerWithProto) {
+    // get param
+    int batch                = std::get<0>(GetParam());
+    int channel              = std::get<1>(GetParam());
+    int input_size           = std::get<2>(GetParam());
+    DataType input_data_type = std::get<3>(GetParam());
+    DeviceType dev           = ConvertDeviceType(FLAGS_dt);
+    if (DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    DataType output_data_type = input_data_type == DATA_TYPE_INT8 ? DATA_TYPE_FLOAT : DATA_TYPE_INT8;
+
+    ReformatLayerParam* param = new ReformatLayerParam();
+    param->name               = "Reformat";
+    param->src_type           = input_data_type;
+    param->dst_type           = output_data_type;
+
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Reformat", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
+}
+
 }  // namespace TNN_NS

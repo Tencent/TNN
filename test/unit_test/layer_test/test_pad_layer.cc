@@ -98,23 +98,16 @@ TEST_P(PadLayerTest, PadLayerWithProto) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    PadLayerParam param;
-    param.name  = "Pad";
-    param.type  = pad_type;
-    param.pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
-    param.value = value;
+    PadLayerParam* param = new PadLayerParam();
+    param->name          = "Pad";
+    param->type          = pad_type;
+    param->pads          = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
+    param->value         = value;
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Pad layer_name 1 1 input output "
-         << "0 0 " << param.pads[2] << " " << param.pads[3] << " " << param.pads[0] << " " << param.pads[1] << " "
-         << param.pads[4] << " " << param.pads[5] << " " << param.type << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("Pad", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

@@ -81,29 +81,16 @@ TEST_P(SplitVLayerTest, SplitVLayerWithProto) {
     }
 
     // param
-    SplitVLayerParam param;
-    param.name   = "SplitV";
-    param.axis   = 1;
-    param.slices = {channel / 2, channel - channel / 2};
+    SplitVLayerParam* param = new SplitVLayerParam();
+    param->name             = "SplitV";
+    param->axis             = 1;
+    param->slices           = {channel / 2, channel - channel / 2};
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims}, param.slices.size());
-    std::ostringstream ostr;
-    ostr << "\""
-         << "SplitV layer_name 1 " << param.slices.size() << " input ";
-    for (int i = 0; i < param.slices.size(); ++i) {
-        ostr << "output" << i << " ";
-    }
-    ostr << param.axis << " ";
-    ostr << param.slices.size() << " ";
-    for (auto item : param.slices) {
-        ostr << item << " ";
-    }
-    ostr << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter =
+        GenerateInterpreter("SplitV", {input_dims}, std::shared_ptr<LayerParam>(param), nullptr, output_count);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

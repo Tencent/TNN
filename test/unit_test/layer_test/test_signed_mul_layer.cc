@@ -81,20 +81,21 @@ TEST_P(SignedMulLayerTest, SignedMulLayerWithProto) {
         GTEST_SKIP();
     }
 
-    // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "SignedMul layer_name 1 1 input output " << alpha << " " << beta << " " << gamma << ",\"";
+    // param
+    SignedMulLayerParam* param = new SignedMulLayerParam();
+    param->alpha               = alpha;
+    param->beta                = beta;
+    param->gamma               = gamma;
 
-    Precision precision = PRECISION_AUTO;
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("SignedMul", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Precision precision         = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;
     }
 
-    std::string proto = head + ostr.str();
-    RunWithProto(proto, precision);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

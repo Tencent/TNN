@@ -79,16 +79,18 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayerWithProto) {
         GTEST_SKIP();
     }
 
+    // param
+    ArgMaxOrMinLayerParam* param = new ArgMaxOrMinLayerParam();
+    param->name                  = "ArgMaxOrMin";
+    param->mode                  = mode;
+    param->axis                  = axis;
+    param->keep_dims             = keep_dims;
+    param->select_last_index     = select_last_index;
+
     // generate proto string
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "ArgMaxOrMin layer_name 1 1 input output " << mode << " " << axis << " " << keep_dims << " "
-         << select_last_index << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("ArgMaxOrMin", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

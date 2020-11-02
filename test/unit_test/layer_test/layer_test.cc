@@ -32,7 +32,6 @@ AbstractDevice* LayerTest::device_;
 Context* LayerTest::cpu_context_;
 Context* LayerTest::device_context_;
 
-TNN_NS::TNN LayerTest::tnn_;
 std::shared_ptr<Instance> LayerTest::instance_cpu_    = nullptr;
 std::shared_ptr<Instance> LayerTest::instance_device_ = nullptr;
 
@@ -121,53 +120,51 @@ void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, 
     }
 }
 
-void LayerTest::RunWithProto(std::string proto, Precision precision) {
+void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
-    ret = InitWithProto(proto, precision);
+    ret = Init(interp, precision);
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
-        DeInitWithProto();
+        DeInitWithInterp();
         return;
     }
 
     ret = InitInputBlobsDataRandomWithProto();
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
-        DeInitWithProto();
+        DeInitWithInterp();
         return;
     }
 
-    ret = ForwardWithProto();
+    ret = ForwardWithInterp();
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
-        DeInitWithProto();
+        DeInitWithInterp();
         return;
     }
 
 #ifndef TNN_UNIT_TEST_BENCHMARK
     // Compare the result for both cpu and device layer
-    ret = CompareWithProto();
+    ret = CompareWithInterp();
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
-        DeInitWithProto();
+        DeInitWithInterp();
         return;
     }
 #endif
 
-    ret = DeInitWithProto();
+    DeInitWithInterp();
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 }
 
-Status LayerTest::InitWithProto(std::string proto, Precision precision) {
+Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ModelConfig model_config;
-    model_config.params.push_back(proto);
-    model_config.params.push_back("");
 
     NetworkConfig config_cpu;
     config_cpu.device_type = DEVICE_NAIVE;
@@ -182,28 +179,34 @@ Status LayerTest::InitWithProto(std::string proto, Precision precision) {
         config_device.library_path = {FLAGS_lp};
     }
 
-    ret = tnn_.Init(model_config);
-    if (ret != TNN_OK) {
-        LOGE("tnn init falied\n");
-        return ret;
-    }
-
-    instance_cpu_ = tnn_.CreateInst(config_cpu, ret);
-    if (ret != TNN_OK) {
+    instance_cpu_ = std::make_shared<Instance>(config_cpu, model_config);
+    if (nullptr == instance_cpu_) {
         LOGE("tnn create cpu instance falied\n");
         return ret;
     }
 
-    instance_device_ = tnn_.CreateInst(config_device, ret);
+    instance_device_ = std::make_shared<Instance>(config_device, model_config);
+    if (nullptr == instance_cpu_) {
+        LOGE("tnn create cpu instance falied\n");
+        return ret;
+    }
+
+    InputShapesMap input_shape = InputShapesMap();
+    ret                        = instance_cpu_->Init(interp, input_shape);
     if (ret != TNN_OK) {
-        LOGE("tnn create device instance falied\n");
+        LOGE("tnn init cpu instance falied\n");
+        return ret;
+    }
+    ret = instance_device_->Init(interp, input_shape);
+    if (ret != TNN_OK) {
+        LOGE("tnn init device instance falied\n");
         return ret;
     }
 
     return ret;
 }
 
-Status LayerTest::ForwardWithProto() {
+Status LayerTest::ForwardWithInterp() {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ret = instance_cpu_->Forward();
@@ -218,7 +221,7 @@ Status LayerTest::ForwardWithProto() {
     return ret;
 }
 
-Status LayerTest::CompareWithProto() {
+Status LayerTest::CompareWithInterp() {
     BlobMap output_blobs_cpu;
     BlobMap output_blobs_device;
     Status ret = TNN_OK;
@@ -249,10 +252,9 @@ Status LayerTest::CompareWithProto() {
     return TNN_OK;
 }
 
-Status LayerTest::DeInitWithProto() {
+Status LayerTest::DeInitWithInterp() {
     instance_cpu_.reset();
     instance_device_.reset();
-    tnn_.DeInit();
 
     return TNN_OK;
 }

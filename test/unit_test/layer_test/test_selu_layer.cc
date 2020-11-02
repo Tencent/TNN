@@ -48,19 +48,14 @@ TEST_P(SeluLayerTest, SeluLayerWithProto) {
     int input_size = std::get<2>(GetParam());
 
     // param
-    SeluLayerParam param;
-    param.alpha = 1.67326;
-    param.gamma = 1.0507;
+    SeluLayerParam* param = new SeluLayerParam();
+    param->alpha          = 1.67326;
+    param->gamma          = 1.0507;
 
-    // generate proto string
+    // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    std::string head            = GenerateHeadProto({input_dims});
-    std::ostringstream ostr;
-    ostr << "\""
-         << "Selu layer_name 1 1 input output " << param.alpha << " " << param.gamma << ",\"";
-
-    std::string proto = head + ostr.str();
-    RunWithProto(proto);
+    auto interpreter            = GenerateInterpreter("Selu", {input_dims}, std::shared_ptr<LayerParam>(param));
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS
