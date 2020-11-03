@@ -18,8 +18,30 @@
 #include "tnn/core/macro.h"
 
 #ifdef TNN_ARM82
+
+#include <cstdint>
 typedef __fp16 fp16_t;
-#else
+
+typedef union {
+    uint16_t u;
+    fp16_t f;
+} cvt_16b;
+
+static fp16_t cvt_half_from_raw_uint16(uint16_t u) {
+    cvt_16b c;
+    c.u = u;
+    return c.f;
+}
+
+// Largest finite value.
+#define HALF_MAX    cvt_half_from_raw_uint16(uint16_t(0x7BFF))
+// Smallest positive normal value.
+#define HALF_MIN    cvt_half_from_raw_uint16(uint16_t(0x0400))
+// Smallest finite value.
+#define HALF_LOWEST cvt_half_from_raw_uint16(uint16_t(0xFBFF))
+
+#else // TNN_ARM82
+
 #include "tnn/utils/half.hpp"
 typedef half_float::half fp16_t;
 // Largest finite value.
@@ -28,7 +50,8 @@ typedef half_float::half fp16_t;
 #define HALF_MIN    std::numeric_limits<half_float::half>::min()
 // Smallest finite value.
 #define HALF_LOWEST std::numeric_limits<half_float::half>::lowest()
-#endif
+
+#endif // TNN_ARM82
 
 namespace TNN_NS {
 
