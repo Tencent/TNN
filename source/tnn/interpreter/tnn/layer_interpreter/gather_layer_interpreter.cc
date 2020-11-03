@@ -27,12 +27,12 @@ Status GatherLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
 }
 
 Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
-    auto layer_res           = CreateLayerRes<GatherLayerResource>(resource);
-    bool data_in_resource    = deserializer.GetInt() == 1;
-    bool indices_in_resource = deserializer.GetInt() == 1;
+    auto layer_res        = CreateLayerRes<GatherLayerResource>(resource);
+    bool data_in_resource = deserializer.GetInt() == 1;
     if (data_in_resource) {
         GET_BUFFER_FOR_ATTR(layer_res, data, deserializer);
     }
+    bool indices_in_resource = deserializer.GetInt() == 1;
     if (indices_in_resource) {
         GET_BUFFER_FOR_ATTR(layer_res, indices, deserializer);
     }
@@ -63,19 +63,15 @@ Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
     serializer.PutString(layer_param->name);
     if (layer_param->data_in_resource) {
         serializer.PutInt(1);
+        serializer.PutRaw(layer_res->data);
     } else {
         serializer.PutInt(0);
     }
     if (layer_param->indices_in_resource) {
         serializer.PutInt(1);
+        serializer.PutRaw(layer_res->indices);
     } else {
         serializer.PutInt(0);
-    }
-    if (layer_param->data_in_resource) {
-        serializer.PutRaw(layer_res->data);
-    }
-    if (layer_param->indices_in_resource) {
-        serializer.PutRaw(layer_res->indices);
     }
     return TNN_OK;
 }
