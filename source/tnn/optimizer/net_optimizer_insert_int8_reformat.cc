@@ -45,7 +45,7 @@ namespace optimizer {
     static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
-        new_layer->type_str                  = "Int8Reformat";
+        new_layer->type_str                  = "Reformat";
         new_layer->name                      = name;
         ReformatLayerParam *param            = new ReformatLayerParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);

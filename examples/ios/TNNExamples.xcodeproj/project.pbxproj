@@ -833,7 +833,7 @@
 					"-force_load",
 					"$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tnn.framework/tnn",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.TNNExmaples-devan";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.TNNExmaples-devandong-2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -862,7 +862,7 @@
 					"-force_load",
 					"$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tnn.framework/tnn",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.TNNExmaples-devan";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.TNNExmaples-devandong-2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;

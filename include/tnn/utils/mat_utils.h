@@ -60,6 +60,15 @@ struct PUBLIC WarpAffineParam {
     float border_val       = 0.0f;
 };
 
+struct PUBLIC CopyMakeBorderParam {
+    int top    = 0;
+    int bottom = 0;
+    int left   = 0;
+    int right  = 0;
+    BorderType border_type = BORDER_TYPE_CONSTANT;
+    float border_val       = 0.0f;
+};
+
 class PUBLIC MatUtils {
 public:
     //copy cpu <-> device, cpu<->cpu, device<->device, src and dst dims must be equal.
@@ -78,6 +87,9 @@ public:
 
     //src and dst device type must be same.
     static Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue);
+
+    //src and dst device type must be same. param top, bottom, left and right must be non-negative.
+    static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue);
 };
 
 }  // namespace TNN_NS
