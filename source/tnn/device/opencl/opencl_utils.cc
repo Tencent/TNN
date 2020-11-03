@@ -27,27 +27,6 @@
 
 namespace TNN_NS {
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
-    int element_size = 0;
-    DataType type    = raw_buffer.GetDataType();
-    int bytes        = raw_buffer.GetBytesSize();
-    std::shared_ptr<float> float_data;
-    if (type == DATA_TYPE_FLOAT) {
-        element_size = bytes / sizeof(float);
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
-    } else if (type == DATA_TYPE_HALF) {
-        element_size = bytes / 2;
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
-    } else if (type == DATA_TYPE_INT8) {
-        LOGE("Not support INT8 raw buffer\n");
-        return nullptr;
-    }
-
-    return float_data;
-}
-
 // get image width and height
 std::vector<int> GetImageShape(const OpenCLMemory *image) {
     std::vector<int> shape;
@@ -241,7 +220,7 @@ Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
     char sdk[128] = "0";
     __system_property_get("ro.build.version.sdk", sdk);
     int sdk_version = atoi(sdk);
-    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    // Before Android 8.0, the performance of exp fp16 is poor, so use fp32 instead
     force_fp32 = (sdk_version <= 25);
 #elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
     force_fp32 = true;
@@ -463,6 +442,8 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
     }
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
+
+    unit.local_mem_size = opencl_runtime->DeviceLocalMemerySize();
 
     return TNN_OK;
 }

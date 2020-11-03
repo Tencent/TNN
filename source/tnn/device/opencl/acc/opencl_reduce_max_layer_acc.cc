@@ -33,9 +33,10 @@ std::set<std::string> OpenCLReduceMaxLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string init    = " -DDATAINIT=-FLT_MAX ";
     std::string compute = " -DOPERATOR(r,t)=r=max(r,t); ";
-    std::string inner   = " -DINNEROPERATOR=max(max(r.x,r.y),max(r.z,r.w)) ";
-    std::string post    = " -DPOSTOPERATOR=(r) ";
-    build_options.emplace(init + compute + inner + post);
+    std::string reduce  = " -DREDUCEOPERATOR(r,t)=r=max(r,t); ";
+    std::string inner   = " -DINNEROPERATOR(r)=max(max(r.x,r.y),max(r.z,r.w)) ";
+    std::string post    = " -DPOSTOPERATOR(r)=(r) ";
+    build_options.emplace(init + compute + reduce + inner + post);
     return build_options;
 }
 

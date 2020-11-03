@@ -33,9 +33,10 @@ std::set<std::string> OpenCLReduceL2LayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string init    = " -DDATAINIT=0 ";
     std::string compute = " -DOPERATOR(r,t)=r=(r+pow(t,2)); ";
-    std::string inner   = " -DINNEROPERATOR=r.x+r.y+r.z+r.w ";
-    std::string post    = " -DPOSTOPERATOR=sqrt(r) ";
-    build_options.emplace(init + compute + inner + post);
+    std::string reduce  = " -DREDUCEOPERATOR(r,t)=r=(r+t); ";
+    std::string inner   = " -DINNEROPERATOR(r)=r.x+r.y+r.z+r.w ";
+    std::string post    = " -DPOSTOPERATOR(r)=sqrt(r) ";
+    build_options.emplace(init + compute + reduce + inner + post);
     return build_options;
 }
 
