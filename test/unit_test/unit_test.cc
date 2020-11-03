@@ -27,6 +27,7 @@ void ShowUsage() {
     printf("    -ic \"<number>\"        %s \n", iterations_count_message);
     printf("    -ub \"<bool>\"          %s \n", unit_test_benchmark_message);
     printf("    -th \"<bumber>\"        %s \n", cpu_thread_num_message);
+    printf("    -hp \"<bool>\"        %s \n", force_high_precision_message);
 }
 
 bool ParseAndCheckCommandLine(int argc, char *argv[]) {

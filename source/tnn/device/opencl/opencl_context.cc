@@ -187,25 +187,7 @@ Status OpenCLContext::Init() {
     }
 
     opencl_runtime_->SetPrecision(precision_);
-    LOGI("opencl set precision %d\n", precision_);
-
-#ifdef OPENCL_FORCE_FP32
-    // set fp32
-    bool ret = opencl_runtime_->SetFp16Enable(false);
-    if (!ret) {
-        LOGE("disable fp16 failed!\n");
-    } else {
-        LOGE("force fp32 success!\n");
-    }
-#else
-    // set fp16
-    bool ret = opencl_runtime_->SetFp16Enable(true);
-    if (!ret) {
-        LOGE("enable fp16 failed!\n");
-    } else {
-        LOGE("enable fp16 success!\n");
-    }
-#endif
+    LOGE("opencl set precision %d\n", precision_);
 
     return TNN_OK;
 }

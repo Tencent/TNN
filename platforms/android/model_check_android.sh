@@ -91,7 +91,7 @@ function run_android() {
     do
         model_name=${check_model%.*}
         #$ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d ARM -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
-        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d OPENCL -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
+        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d OPENCL -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel -z >> $ANDROID_DIR/test_log.txt"
     done
     $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     $ADB pull $ANDROID_DIR/dump_data $DUMP_DIR

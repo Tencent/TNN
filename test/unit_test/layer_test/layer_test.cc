@@ -65,6 +65,13 @@ void LayerTest::SetUpTestCase() {
       ASSERT(0);
     }
 
+    if (FLAGS_hp) {
+        ret = device_context_->SetPrecision(PRECISION_HIGH);
+        if (ret != TNN_OK) {
+            LOGE("Error: device of type(%d) not support set high precision\n", config.device_type);
+        }
+    }
+
     ret = device_context_->LoadLibrary(config.library_path);
     if (ret != TNN_OK) {
       LOGE("Error: library with path(%s) is null\n",
