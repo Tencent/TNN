@@ -16,7 +16,6 @@
 #include "tnn/device/x86/x86_device.h"
 #include "immintrin.h"
 #include <math.h>
-#include <iostream>
 
 namespace TNN_NS {
 
@@ -45,8 +44,6 @@ Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 
     const float alpha = param->alpha;
     const float beta  = param->beta;
-    const float minV  = - beta / alpha;
-    const float maxV  = (1.0f - beta) / alpha;
 
     auto input_dim0  = input_blob0->GetBlobDesc().dims;
     auto input_dim1  = input_blob1->GetBlobDesc().dims;
@@ -68,35 +65,62 @@ Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     one_   = _mm256_set1_ps(1.f);
 
     int total_size = batch * channel * channel_size;
-    int tail = total_size - total_size % 16;
-    int part_tail = tail / 2;
+    int tail = total_size - total_size % 32;
+    int part_tail = tail / 4;
     const int offset1 = part_tail, offset2 = part_tail * 2, offset3 = part_tail * 3;
-
+    
     if (input_dim0[2] == input_dim1[2]) {
         for (int index = 0; index < part_tail; index += 8) {
-            tmp00_ = _mm256_loadu_ps(input_ptr0 + index);       tmp01_ = _mm256_loadu_ps(input_ptr0 + index + part_tail);
-            tmp10_ = _mm256_loadu_ps(input_ptr1 + index);       tmp11_ = _mm256_loadu_ps(input_ptr1 + index + part_tail);
+            tmp00_ = _mm256_loadu_ps(input_ptr0 + index);           tmp01_ = _mm256_loadu_ps(input_ptr0 + index + offset1);
+            tmp02_ = _mm256_loadu_ps(input_ptr0 + index + offset2); tmp03_ = _mm256_loadu_ps(input_ptr0 + index + offset3);
+            tmp10_ = _mm256_loadu_ps(input_ptr1 + index);           tmp11_ = _mm256_loadu_ps(input_ptr1 + index + offset1);
+            tmp12_ = _mm256_loadu_ps(input_ptr1 + index + offset2); tmp13_ = _mm256_loadu_ps(input_ptr1 + index + offset3);
+
             tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);    tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+            tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);    tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+
             tmp10_ = _mm256_min_ps(tmp10_, one_);               tmp11_ = _mm256_min_ps(tmp11_, one_);
+            tmp12_ = _mm256_min_ps(tmp12_, one_);               tmp13_ = _mm256_min_ps(tmp13_, one_);
+
             tmp10_ = _mm256_max_ps(tmp10_, zero_);              tmp11_ = _mm256_max_ps(tmp11_, zero_);
+            tmp12_ = _mm256_max_ps(tmp12_, zero_);              tmp13_ = _mm256_max_ps(tmp13_, zero_);
+
             tmp10_ = _mm256_mul_ps(tmp10_, tmp00_);             tmp11_ = _mm256_mul_ps(tmp11_, tmp01_);
-            _mm256_storeu_ps(output_ptr + index, tmp10_);       _mm256_storeu_ps(output_ptr + index + part_tail, tmp11_);
+            tmp12_ = _mm256_mul_ps(tmp12_, tmp02_);             tmp13_ = _mm256_mul_ps(tmp13_, tmp03_);
+
+            _mm256_storeu_ps(output_ptr + index,           tmp10_); _mm256_storeu_ps(output_ptr + index + offset1, tmp11_);
+            _mm256_storeu_ps(output_ptr + index + offset2, tmp12_); _mm256_storeu_ps(output_ptr + index + offset3, tmp13_);
+
         }
 
         // build mask
-        float mask[16] = {0.f};
-        for (int i = 0; i < total_size % 16; i++) mask[i] = -1.f;
+        float mask[32] = {0.f};
+        for (int i = 0; i < total_size % 32; i++) mask[i] = -1.f;
         __m256i mask0_ = _mm256_loadu_si256((__m256i*)mask);
         __m256i mask1_ = _mm256_loadu_si256((__m256i*)(mask + 8));
+        __m256i mask2_ = _mm256_loadu_si256((__m256i*)(mask + 16));
+        __m256i mask3_ = _mm256_loadu_si256((__m256i*)(mask + 24));
 
-        tmp00_ = _mm256_maskload_ps(input_ptr0 + tail, mask0_); tmp01_ = _mm256_maskload_ps(input_ptr0 + tail + 8, mask1_);
-        tmp10_ = _mm256_maskload_ps(input_ptr1 + tail, mask0_); tmp11_ = _mm256_maskload_ps(input_ptr1 + tail + 8, mask1_); 
+        tmp00_ = _mm256_maskload_ps(input_ptr0 + tail,      mask0_); tmp01_ = _mm256_maskload_ps(input_ptr0 + tail + 8,  mask1_);
+        tmp02_ = _mm256_maskload_ps(input_ptr0 + tail + 16, mask2_); tmp03_ = _mm256_maskload_ps(input_ptr0 + tail + 24, mask3_);
+
+        tmp10_ = _mm256_maskload_ps(input_ptr1 + tail,      mask0_); tmp11_ = _mm256_maskload_ps(input_ptr1 + tail + 8,  mask1_); 
+        tmp12_ = _mm256_maskload_ps(input_ptr1 + tail + 16, mask2_); tmp13_ = _mm256_maskload_ps(input_ptr1 + tail + 24, mask3_); 
 
         tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);        tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+        tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);        tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+        
         tmp10_ = _mm256_min_ps(tmp10_, one_);                   tmp11_ = _mm256_min_ps(tmp11_, one_);               
+        tmp12_ = _mm256_min_ps(tmp12_, one_);                   tmp13_ = _mm256_min_ps(tmp13_, one_);               
+
         tmp10_ = _mm256_max_ps(tmp10_, zero_);                  tmp11_ = _mm256_max_ps(tmp11_, zero_);
+        tmp12_ = _mm256_max_ps(tmp12_, zero_);                  tmp13_ = _mm256_max_ps(tmp13_, zero_);
+
         tmp10_ = _mm256_mul_ps(tmp00_, tmp10_);                 tmp11_ = _mm256_mul_ps(tmp01_, tmp11_);
-        _mm256_maskstore_ps(output_ptr + tail, mask0_, tmp10_); _mm256_maskstore_ps(output_ptr + tail + 8, mask1_, tmp11_);
+        tmp12_ = _mm256_mul_ps(tmp02_, tmp12_);                 tmp13_ = _mm256_mul_ps(tmp03_, tmp13_);
+
+        _mm256_maskstore_ps(output_ptr + tail,      mask0_, tmp10_); _mm256_maskstore_ps(output_ptr + tail + 8,  mask1_, tmp11_);
+        _mm256_maskstore_ps(output_ptr + tail + 16, mask2_, tmp12_); _mm256_maskstore_ps(output_ptr + tail + 24, mask3_, tmp13_);
 
     } else {
         tail = channel_size - channel_size % 8;
@@ -105,10 +129,11 @@ Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         __m256i mask_ = _mm256_loadu_si256((__m256i*)mask);
 
         if (channel % 4 == 0) {
+            int c_offset = channel / 4;
             for (int b = 0; b < batch; b++) {
-                for (int c = 0; c < channel; c += 4) {
+                for (int c = 0; c < channel / 4; c++) {
                     float *single_data = input_ptr1 + b * channel + c;
-                    float tmp0 = single_data[0], tmp1 = single_data[1], tmp2 = single_data[2], tmp3 = single_data[3];
+                    float tmp0 = single_data[0], tmp1 = single_data[c_offset], tmp2 = single_data[c_offset*2], tmp3 = single_data[c_offset*3];
                     tmp0 = std::max(std::min(tmp0 * alpha + beta, 1.f), 0.f);
                     tmp1 = std::max(std::min(tmp1 * alpha + beta, 1.f), 0.f);
                     tmp2 = std::max(std::min(tmp2 * alpha + beta, 1.f), 0.f);
@@ -117,13 +142,13 @@ Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
                     tmp12_ = _mm256_set1_ps(tmp2);  tmp13_ = _mm256_set1_ps(tmp3);
 
                     float* input_data00 = input_ptr0 + (b * channel + c) * channel_size;
-                    float* input_data01 = input_data00 + channel_size;
-                    float* input_data02 = input_data01 + channel_size;
-                    float* input_data03 = input_data02 + channel_size;
+                    float* input_data01 = input_data00 + c_offset * channel_size;
+                    float* input_data02 = input_data01 + c_offset * channel_size;
+                    float* input_data03 = input_data02 + c_offset * channel_size;
                     float* output_data0 = output_ptr + (b * channel + c) * channel_size;
-                    float* output_data1 = output_data0 + channel_size;
-                    float* output_data2 = output_data1 + channel_size;
-                    float* output_data3 = output_data2 + channel_size;
+                    float* output_data1 = output_data0 + c_offset * channel_size;
+                    float* output_data2 = output_data1 + c_offset * channel_size;
+                    float* output_data3 = output_data2 + c_offset * channel_size;
 
                     for (int index = 0; index < tail; index += 8) {
                         tmp00_ = _mm256_loadu_ps(input_data00 + index);

@@ -18,7 +18,6 @@
 #include <cstring>
 #include <functional>
 #include <type_traits>
-#include <iostream>
 namespace TNN_NS {
 
 Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes,

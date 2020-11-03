@@ -17,7 +17,6 @@
 #include "tnn/device/x86/x86_device.h"
 
 #include "tnn/device/x86/acc/compute/x86_compute.h"
-#include <iostream>
 
 namespace TNN_NS {
 
