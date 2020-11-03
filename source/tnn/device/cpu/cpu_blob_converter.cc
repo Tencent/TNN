@@ -311,6 +311,13 @@ Status CpuBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertParam 
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }
+    } else if (desc.data_type == DATA_TYPE_INT32) {
+        if (image_src.GetMatType() == NC_INT32) {
+            memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * sizeof(int32_t));
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_INVALID_INPUT, "input data type is not int32!");
+        }
     }
 
     Mat image(image_src.GetDeviceType(), image_src.GetMatType(), image_src.GetDims(), image_src.GetData());
