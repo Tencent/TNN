@@ -76,7 +76,7 @@ function run() {
     fi
 
     $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
-    $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL -hp  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
+    $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" > $ANDROID_DIR/test_log.txt"
     $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     cat $DUMP_DIR/test_log.txt
 }

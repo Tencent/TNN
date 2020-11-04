@@ -308,11 +308,6 @@ namespace test {
         // use model type instead, may change later for same model type with
         // different network type
         config.network_type = ConvertNetworkType(FLAGS_nt);
-
-        if (FLAGS_hp) {
-            config.precision = PRECISION_HIGH;
-        }
-
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }

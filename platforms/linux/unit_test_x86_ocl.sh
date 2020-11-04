@@ -50,7 +50,7 @@ function run_x86() {
         exit 0
     fi
     mkdir -p $DUMP_DIR
-    ./test/unit_test/unit_test -dt OPENCL -hp --gtest_filter="*${FILTER}*"
+    ./test/unit_test/unit_test -dt OPENCL --gtest_filter="*${FILTER}*"
 }
 
 while [ "$1" != "" ]; do

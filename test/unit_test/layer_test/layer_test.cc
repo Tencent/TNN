@@ -65,7 +65,7 @@ void LayerTest::SetUpTestCase() {
       ASSERT(0);
     }
 
-    if (FLAGS_hp) {
+    if (!FLAGS_ub) {
         ret = device_context_->SetPrecision(PRECISION_HIGH);
         if (ret != TNN_OK) {
             LOGE("Error: device of type(%d) not support set high precision\n", config.device_type);
