@@ -318,8 +318,6 @@ Store16:
     mov x3, x13
     mov x20, x21
     bge L16
-    // L16 has no corner cases to handle
-    b END
 
 // corner case
 L8:

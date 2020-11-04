@@ -189,33 +189,36 @@ static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
     vst1_f16(dst_b + 28, v[7]);
 }
 
+static void load_repack_half_align(
+    __fp16 *dst, 
+    const __fp16 *src, 
+    int dst_cnt, 
+    int ic,
+    int kernel_size) {
+    int c = 0;
+    for (; c <= ic - 8; c += 8) {
+        for (int k = 0; k < kernel_size; k++) {
+            _repack_half_16(dst, src);
+            src += 8 * NEON_FP16CONV_TILE_HW;
+            dst += 8 * NEON_FP16CONV_TILE_HW;
+        }
+    }
+    if (c < ic) {
+        int c_eff = ic - c;
+        for (int k = 0; k < kernel_size; k++) {
+            _repack_half_16(dst, src);
+            src += 8 * NEON_FP16CONV_TILE_HW;
+            dst += c_eff * NEON_FP16CONV_TILE_HW;
+        }
+    }
+}
+
 static void load_repack_half(
     __fp16 *dst, 
     const __fp16 *src, 
     int dst_cnt, 
     int ic,
     int kernel_size) {
-
-    if (dst_cnt == NEON_FP16CONV_TILE_HW) {
-        int c = 0;
-        for (; c <= ic - 8; c += 8) {
-            for (int k = 0; k < kernel_size; k++) {
-                _repack_half_16(dst, src);
-                src += 8 * NEON_FP16CONV_TILE_HW;
-                dst += 8 * NEON_FP16CONV_TILE_HW;
-            }
-        }
-        if (c < ic) {
-            int c_eff = ic - c;
-            for (int k = 0; k < kernel_size; k++) {
-                _repack_half_16(dst, src);
-                src += 8 * NEON_FP16CONV_TILE_HW;
-                dst += c_eff * NEON_FP16CONV_TILE_HW;
-            }
-        }
-        return;
-    }
-
     int dst_i = 0;
     if (dst_cnt >= dst_i + 8) {
         auto src_p = src;
@@ -399,6 +402,8 @@ static void img2col(
     }
     // img2col memcpy normal mode
     else {
+        // memset padding 0
+        memset(dst, 0, kparam->ic_r8 * kh * kw * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
         for (int i = 0; i < dst_cnt; i++) {
             auto dst_i = dst + i * 8;
             for (int c = 0; c <= kparam->ic_r8 - 8; c += 8) {
@@ -533,6 +538,18 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
         img2col_func = img2col;
     }
 
+    // set tile blk size, which be limit to 16KB
+    // 16 * 1024 / sizeof(__fp16)
+    int tile_blk = 8192 / (k_param_->ic_r8 * kernel_x * kernel_y);
+    tile_blk = ROUND_UP(tile_blk, NEON_FP16CONV_TILE_HW);
+    if (tile_blk < NEON_FP16CONV_TILE_HW) {
+        tile_blk = NEON_FP16CONV_TILE_HW;
+    }
+    if (tile_blk > 512) {
+        tile_blk = 512;
+    }
+    tile_blk_size = tile_blk;
+
     return TNN_OK;
 }
 
@@ -552,13 +569,13 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
     const int crs = ic * conv_param->kernels[1] * conv_param->kernels[0];
     const int crs_r8 = k_param_->ic_r8 * conv_param->kernels[1] * conv_param->kernels[0];
-    const int tile_count = UP_DIV(k_param_->oh * k_param_->ow, NEON_FP16CONV_TILE_HW);
+    const int tile_count = UP_DIV(k_param_->oh * k_param_->ow, tile_blk_size);
 
     int max_num_threads = OMP_MAX_THREADS_NUM_;
-    size_t img2col_size = NEON_FP16CONV_TILE_HW * crs_r8;
-    size_t transform_size = img2col_size;
-    size_t out_tmp_size = k_param_->oc_r8 * NEON_FP16CONV_TILE_HW;
-    size_t workspace_size_per_thread = img2col_size + transform_size + out_tmp_size + NEON_KERNEL_EXTRA_LOAD;
+    size_t img2col_size = tile_blk_size * crs_r8;
+    size_t repack_size = NEON_FP16CONV_TILE_HW * crs_r8;
+    size_t out_tmp_size = k_param_->oc_r8 * tile_blk_size;
+    size_t workspace_size_per_thread = img2col_size + repack_size + out_tmp_size + NEON_KERNEL_EXTRA_LOAD;
     __fp16 *work_space = reinterpret_cast<__fp16 *>(
         context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
 
@@ -570,23 +587,35 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
             int thread_id          = OMP_TID_;
             auto workspace_per_thread = work_space + thread_id * workspace_size_per_thread;
-            const int hw_start     = t_idx * NEON_FP16CONV_TILE_HW;
-            const int real_hw_tile = MIN(k_param_->oh * k_param_->ow - hw_start, NEON_FP16CONV_TILE_HW);
+            const int hw_start     = t_idx * tile_blk_size;
+            const int real_hw_tile = MIN(k_param_->oh * k_param_->ow - hw_start, tile_blk_size);
             auto img2col_buffer = workspace_per_thread;
             auto output_kernel = output_batch + hw_start * 8;
 
-            memset(img2col_buffer, 0, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
-            img2col_func(img2col_buffer, input_batch, conv_param, hw_start, real_hw_tile, k_param_.get());
+            for (int i = 0; i < real_hw_tile; i += NEON_FP16CONV_TILE_HW) {
+                int tile_eff = MIN(real_hw_tile - i, NEON_FP16CONV_TILE_HW);
+                auto img2col_dst = img2col_buffer + i * crs_r8;
+                img2col_func(img2col_dst, input_batch, conv_param, hw_start + i, tile_eff, k_param_.get());
+            }
 
             auto repack_src = img2col_buffer;
-            auto repack_dst = img2col_buffer + crs_r8 * NEON_FP16CONV_TILE_HW;
-            auto outptr_tmp = img2col_buffer + crs_r8 * NEON_FP16CONV_TILE_HW * 2 + NEON_KERNEL_EXTRA_LOAD;
-            // if aligned with TILE, do transpose inplace
-            if (real_hw_tile == NEON_FP16CONV_TILE_HW) {
-                repack_dst = img2col_buffer;
-                outptr_tmp = img2col_buffer + crs_r8 * NEON_FP16CONV_TILE_HW + NEON_KERNEL_EXTRA_LOAD;
+            auto repack_dst = img2col_buffer;
+            auto outptr_tmp = img2col_buffer + crs_r8 * tile_blk_size + NEON_KERNEL_EXTRA_LOAD;
+            auto repack_tmp = outptr_tmp + k_param_->oc_r8 * tile_blk_size;
+
+            int i = 0;
+            for (; i <= real_hw_tile - NEON_FP16CONV_TILE_HW; i += NEON_FP16CONV_TILE_HW) {
+                int tile_eff = MIN(real_hw_tile - i, NEON_FP16CONV_TILE_HW);
+                // repack in-place if aligned
+                load_repack_half_align(repack_dst + crs * i, repack_src + crs_r8 * i,
+                                tile_eff, ic, conv_param->kernels[1] * conv_param->kernels[0]);
             }
-            load_repack_half(repack_dst, repack_src, real_hw_tile, ic, conv_param->kernels[1] * conv_param->kernels[0]);
+            if (real_hw_tile > i) {
+                int tile_eff = real_hw_tile - i;
+                memcpy(repack_tmp, repack_src + crs_r8 * i, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
+                load_repack_half(repack_dst + crs * i, repack_tmp,
+                                tile_eff, ic, conv_param->kernels[1] * conv_param->kernels[0]);
+            }
 
             GEMM_FP16_N8(outptr_tmp, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
                         crs, real_hw_tile * 8, k_param_->oc_r8, real_hw_tile, 

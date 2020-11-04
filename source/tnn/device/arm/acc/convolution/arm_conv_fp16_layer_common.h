@@ -40,6 +40,7 @@ public:
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
+    int tile_blk_size;
 
     std::function<void(__fp16 *, const __fp16 *, const ConvLayerParam *, 
                        size_t, size_t, const ArmKernelParam *kparam)> img2col_func;
