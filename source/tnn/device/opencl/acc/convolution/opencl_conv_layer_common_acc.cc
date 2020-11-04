@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_common_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -30,11 +31,15 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
                                       const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Conv Common Acc\n");
 
-    conv_type_ = CT_CONV_COMMON;
-    op_name_   = "Conv";
-
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
+
+    conv_type_ = CT_CONV_COMMON;
+    op_name_   = "Conv_" + ToString(conv_params_.kernel_x) + "x" + ToString(conv_params_.kernel_y);
+
+    if(conv_params_.kernel_x != conv_params_.kernel_y) {
+        run_3d_ndrange_ = false;
+    }
 
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
@@ -82,8 +87,13 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
         execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
                                             static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
                                             static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-        execute_units_[0].local_work_size  = Conv2dCommonLocalWS3D(
-            execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
+        if(kernel_shape[0] == 3 && kernel_shape[1] == 3) {
+            execute_units_[0].local_work_size  = Conv2dCommonLocalWS3DKernel3x3(
+                execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
+        } else {
+            execute_units_[0].local_work_size  = Conv2dCommonLocalWS3DGeneral(
+                execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
+        }
     } else {
         execute_units_[0].global_work_size = {
             static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),

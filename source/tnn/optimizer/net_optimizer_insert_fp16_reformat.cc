@@ -50,11 +50,12 @@ namespace optimizer {
     static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_fp16) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
-        new_layer->type_str                  = "Fp16Reformat";
+        new_layer->type_str                  = "Reformat";
         new_layer->name                      = name;
         ReformatLayerParam *param            = new ReformatLayerParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
-        // only define quant/dequant here, layout after layer init
+        new_layer->param->type               = new_layer->type_str;
+        new_layer->param->name               = new_layer->name;
         param->src_type = src_fp16 ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
         param->dst_type = src_fp16 ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
         return new_layer;
