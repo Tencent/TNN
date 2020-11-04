@@ -186,8 +186,12 @@ Status OpenCLContext::Init() {
         return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
     }
 
-    opencl_runtime_->SetPrecision(precision_);
-    LOGE("opencl set precision %d\n", precision_);
+    bool ret = opencl_runtime_->SetPrecision(precision_);
+    if (ret) {
+        LOGE("opencl set precision %d\n", precision_);
+    } else {
+        LOGE("opencl set fp16 precision failed, precision set: %d\n", opencl_runtime_->GetPrecision());
+    }
 
     return TNN_OK;
 }

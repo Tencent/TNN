@@ -58,7 +58,7 @@ public:
     uint64_t GetMaxWorkGroupSize(const cl::Kernel &kernel);
     uint32_t GetSubGroupSize(const cl::Kernel &kernel, const cl::NDRange &range = cl::NullRange);
     GpuInfo GetGpuInfo();
-    void SetPrecision(Precision precision);
+    bool SetPrecision(Precision precision);
     Precision GetPrecision();
 
     Status BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,

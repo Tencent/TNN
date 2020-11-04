@@ -248,8 +248,9 @@ GpuInfo OpenCLRuntime::GetGpuInfo() {
     return gpu_info_;
 }
 
-void OpenCLRuntime::SetPrecision(Precision precision) {
-    precision_ = precision;
+bool OpenCLRuntime::SetPrecision(Precision precision) {
+    precision_ = !support_fp16_ ? PRECISION_HIGH : precision;
+    return precision_ == precision;
 }
 
 Precision OpenCLRuntime::GetPrecision() {
