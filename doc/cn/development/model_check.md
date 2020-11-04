@@ -15,7 +15,7 @@
 ## 三、校验工具使用
 ### 1. 命令
 ```
-./model_check [-h] [-p] [-m] [-d] [-i] [-n] [-s] [-o] [-f] [-z] <param>
+./model_check [-h] [-p] [-m] [-d] [-i] [-n] [-s] [-o] [-f] <param>
 ```
 ### 2. 参数说明
 
@@ -30,7 +30,6 @@
 |-s, --scale        |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|  
 |-o, --output       |        |       |是否保存最终的输出。                           |  
 |-f, --ref          |        |&radic;|采用指定输出进行结果对比。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt），数据存储按照NCHW格式，以换行符分隔。|  
-|-z, --high_prec    |        |       |是否强制开启高精度模式。                           |  
 
 ## 四、执行脚本
 ### 1. Android
@@ -49,7 +48,7 @@ cd <path_to_tnn>/platforms/linux/
 ```
 #### 2.2. 执行命令
 ```
-<path_to_tnn>/platforms/linux/build/model_check -p <path_to_tnnproto> -m <path_to_tnnmodel> -d <DEVICE> -z
+<path_to_tnn>/platforms/linux/build/model_check -p <path_to_tnnproto> -m <path_to_tnnmodel> -d <DEVICE>
 ```
 
 ## 五、工具限制

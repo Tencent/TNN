@@ -15,7 +15,7 @@ To compile the model_check tool, the following macro must be set to ON:
 ## III. Usage
 ### 1. Command
 ```
-./model_check [-h] [-p] [-m] [-d] [-i] [-n] [-s] [-o] [-f] [-z] <param>
+./model_check [-h] [-p] [-m] [-d] [-i] [-n] [-s] [-o] [-f] <param>
 ```
 ### 2. Parameter Description
 |option           |mandatory|with value |description                                       |  
@@ -29,7 +29,6 @@ To compile the model_check tool, the following macro must be set to ON:
 |-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|  
 |-o, --output       |        |       |Whether to save the final output.                           |  
 |-f, --ref          |        |&radic;|Use the specified output to compare the results. The currently supported formats are:<br>&bull; Text file (file suffix is ​​.txt), data storage is in NCHW format, separated by newline.|
-|-z, --high_prec    |        |       |Whether to use the high precision mode.                           |  
 
 
 
@@ -50,7 +49,7 @@ cd <path_to_tnn>/platforms/linux/
 `` `
 #### 2.2. Execute the command
 `` `
-<path_to_tnn>/platforms/linux/build/model_check -p <path_to_tnnproto> -m <path_to_tnnmodel> -d <DEVICE> -z
+<path_to_tnn>/platforms/linux/build/model_check -p <path_to_tnnproto> -m <path_to_tnnmodel> -d <DEVICE>
 `` `
 
 ## V. Tool Restrictions

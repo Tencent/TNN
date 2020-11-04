@@ -123,7 +123,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_check [-h] [-p] [-m] [-d] [-i] [-o] [-f] [-n] [-s] [-z]\n"
+        "usage:\n./model_check [-h] [-p] [-m] [-d] [-i] [-o] [-f] [-n] [-s]\n"
         "\t-h, --help     \t show this message\n"
         "\t-p, --proto    \t(require) tnn proto file path\n"
         "\t-m, --model    \t(require) tnn model file path\n"
@@ -137,8 +137,7 @@ void PrintConfig() {
         "0.0,0.0,0.0 \n"
         "\t-s, --scale    \t(optional) scale val when preprocess image "
         "input, ie, "
-        "1.0,1.0,1.0 \n"
-        "\t-z, --high_prec\t(optional) Whether to use the high precision mode.");
+        "1.0,1.0,1.0 \n");
 }
 
 int main(int argc, char* argv[]) {
@@ -165,10 +164,9 @@ int main(int argc, char* argv[]) {
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
                                     {"help", no_argument, 0, 'h'},
-                                    {"high_prec", no_argument, 0, 'z'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:of:n:s:h:z";
+    const char* optstring = "p:m:d:i:of:n:s:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -214,10 +212,6 @@ int main(int argc, char* argv[]) {
                     model_checker_param.input_bias.push_back(atof(s.c_str()));
                 }
             } break;
-            case 'z':
-                printf("high precision\n");
-                net_config.precision = PRECISION_HIGH;
-                break;
             case 's': {
                 printf("scale: %s\n", optarg);
                 std::vector<std::string> array;
@@ -262,6 +256,7 @@ int main(int argc, char* argv[]) {
         return -1;
 
     ModelChecker model_checker;
+    net_config.precision = PRECISION_HIGH;
     Status status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed!\n");
