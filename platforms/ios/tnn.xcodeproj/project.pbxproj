@@ -2356,6 +2356,7 @@
 				9D32FC9524557EEC002DCDAB /* blob_1d_memory.h in Headers */,
 				9D32FF6724557EED002DCDAB /* default_network.h in Headers */,
 				9DD1FBBC247CE9BE00800139 /* metal_conv_layer_1x1.h in Headers */,
+				ECD9460D2552A74400BF9214 /* arm_conv_int8_layer_1x1.h in Headers */,
 				9D4C60D0246BF826006068D1 /* profile.h in Headers */,
 				9D32FF7124557EED002DCDAB /* abstract_device.h in Headers */,
 				9D32FF7724557EED002DCDAB /* layer_type.h in Headers */,

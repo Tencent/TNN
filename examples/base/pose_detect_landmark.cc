@@ -84,4 +84,3 @@ Status PoseDetectLandmark::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
 }
 
 }
-

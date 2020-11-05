@@ -25,8 +25,7 @@ float CalculateScale(float min_scale, float max_scale, int stride_index,
     if (num_strides == 1) {
         return (min_scale + max_scale) * 0.5f;
     } else {
-        return min_scale +
-        (max_scale - min_scale) * 1.0 * stride_index / (num_strides - 1.0f);
+        return min_scale + (max_scale - min_scale) * 1.0 * stride_index / (num_strides - 1.0f);
     }
 }
 
@@ -89,7 +88,7 @@ std::shared_ptr<Mat> BlazePoseDetector::ProcessSDKInputMat(std::shared_ptr<Mat> 
         const int left   = (target_width  - resized_width) / 2;
         const int right  = (target_width  - resized_width) - left;
 
-        auto input_mat = std::make_shared<Mat>(mat->GetDeviceType(), mat->GetMatType(), target_dims);
+        auto input_mat = std::make_shared<Mat>(intermediate_mat->GetDeviceType(), mat->GetMatType(), target_dims);
         status = CopyMakeBorder(intermediate_mat, input_mat, top, bottom, left, right, TNNBorderConstant);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 
@@ -102,7 +101,6 @@ MatConvertParam BlazePoseDetector::GetConvertParamForInput(std::string tag) {
     MatConvertParam param;
     param.scale = {2.0 / 255.0, 2.0 / 255.0, 2.0 / 255.0, 0.0};
     param.bias  = {-1.0,        -1.0,        -1.0,        0.0};
-    //mediapipe requires RGB input
     return param;
 }
 
@@ -129,7 +127,7 @@ Status BlazePoseDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
 
     std::vector<BlazePoseInfo> poses;
     GenerateBBox(poses, *(scores.get()), *(boxes.get()), option->min_score_threshold);
-    NMS(poses, output->body_list, option->min_suppression_threshold, TNNBlendingNMS);
+    NMS(poses, output->body_list, option->min_suppression_threshold, TNNWeightedNMS);
     RemoveLetterBox(output->body_list);
 
     return status;
@@ -252,7 +250,7 @@ void BlazePoseDetector::GenerateBBox(std::vector<BlazePoseInfo> &detects, Mat &s
         info.x2 = box_xmax;
         info.y2 = box_ymax;
 
-        // Add keypoints.
+        // add keypoints.
         int keypoint_index = box_offset + decode_options.keypoint_coord_offset;
         for (int kp_id = 0; kp_id < decode_options.num_keypoints; kp_id += 1) {
             float kpx = boxes[keypoint_index + 0];
@@ -366,4 +364,3 @@ void BlazePoseDetector::RemoveLetterBox(std::vector<BlazePoseInfo>& detects) {
 }
 
 }
-

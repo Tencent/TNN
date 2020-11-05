@@ -41,11 +41,11 @@ protected:
 private:
     DimsVector origin_input_shape;
     BlazePoseLandmark::RoIGenOptions detect2toi_option = {
-        2,
-        3,
-        90.0f,
-        1.5f,
-        1.5f
+        2,     // keypoints_start_idx
+        3,     // keypoints_end_idx
+        90.0f, // rotation_target_angle, in degree
+        1.5f,  // scale_x
+        1.5f   // scale_y
     };
 };
 

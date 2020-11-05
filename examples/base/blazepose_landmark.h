@@ -58,6 +58,9 @@ public:
     int num_thread = 1;
     // threshold for the pose presenting in landmark model
     float pose_presence_threshold = 0.5;
+    // threshold for controlling whether to show the landmark
+    // not used for now
+    float landmark_visibility_threshold = 0.1;
 };
 
 class BlazePoseLandmark : public TNNSDKSample {
@@ -90,15 +93,12 @@ public:
         this->origin_input_shape[3] = width;
     }
 private:
-    void GetCropMatrix(const ROIRect& roi, float trans_mat[2][3], std::vector<float>& target_size);
+    void GetCropMatrix(float trans_mat[2][3], std::vector<float>& target_size);
     void ProcessLandmarks(Mat& landmark_mat, std::vector<BlazePoseInfo>& detects);
     void RemoveLetterBoxAndProjection(std::vector<BlazePoseInfo>& detects);
     void DeNormalize(std::vector<BlazePoseInfo>& detects);
     void SmoothingLandmarks(std::vector<BlazePoseInfo>& detects);
     
-    // alias for 2d keypoints
-    using Keypoints2D = std::pair<float, float>;
-    using Keypoints3D = triple<float,float,float>;
     template <typename KeyPointType>
     void KeyPoints2RoI(std::vector<KeyPointType>& key_points, const RoIGenOptions& option);
     
@@ -110,11 +110,11 @@ private:
     bool roi_from_prev_frame = false;
     // option used to generate roi for the next frame
     RoIGenOptions roi_option = {
-        25,
-        26,
-        90.0f,
-        1.5f,
-        1.5f
+        25,     // keypoints_start_idx
+        26,     // keypoints_end_idx
+        90.0f,  // rotation_target_angle, in degree
+        1.5f,   // scale_x
+        1.5f    // scale_y
     };
     // pads for remove latterbox from detection
     std::array<float, 4> letterbox_pads;

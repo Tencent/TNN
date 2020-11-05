@@ -94,6 +94,7 @@ using namespace std;
         option->compute_units = units;
 
         option->pose_presence_threshold = 0.5;
+        option->landmark_visibility_threshold = 0.1;
     }
 
     predictor = std::make_shared<BlazePoseLandmark>();
