@@ -118,7 +118,7 @@ template void NaivePooling<int8_t, int32_t>(int8_t *input_ptr, int8_t *output_pt
  */
 template <typename T>
 void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    int ip_dim_in = dims_input[3] * dims_input[2] * dims_input[1];
+    int ip_dim_in = dims_input[1];
     for (int n = 0; n < dims_output[0]; ++n) {
         T *in_current_batch = input_ptr + n * ip_dim_in;
         T *ou_current_batch = output_ptr + n * dims_output[1];

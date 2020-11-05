@@ -134,6 +134,10 @@ struct SqueezeLayerResource : public LayerResource {
 
 struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 
+struct MatMulLayerResource : public LayerResource {
+    RawBuffer weight;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
