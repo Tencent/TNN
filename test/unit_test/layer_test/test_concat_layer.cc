@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
                                             // input cnt
                                             testing::Values(2, 3),
                                             // dtype
-                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(ConcatLayerTest, ConcatLayer) {
     // get param
