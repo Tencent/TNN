@@ -27,7 +27,7 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
     auto dims = output->GetBlobDesc().dims;
 
-    int count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    long count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
 
     auto &data_type = input->GetBlobDesc().data_type;
     if (data_type == DATA_TYPE_INT8) {
@@ -37,17 +37,28 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         auto dst = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
         auto src = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
         Float4 vzero(0);
-        for (int i = 0; i < count; i += 4) {
+        for (long i = 0; i < count; i += 4) {
             Float4::save(dst + i, Float4::max(Float4::load(src + i), vzero));
         }
     } else if (data_type == DATA_TYPE_BFP16) {
         auto dst = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output->GetHandle()));
         auto src = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(input->GetHandle()));
         Float4 vzero(0);
-        for (int i = 0; i < count; i += 4) {
+        for (long i = 0; i < count; i += 4) {
             Float4::save(dst + i, Float4::max(Float4::load(src + i), vzero));
         }
-    } else {
+    }
+#if TNN_ARM82
+    else if (data_type == DATA_TYPE_HALF) {
+        __fp16 *dst = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+        __fp16 *src = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
+        float16x8_t vzero = vdupq_n_f16(0.f);
+        for (long i = 0; i < count; i += 8) {
+            vst1q_f16(dst + i, vmaxq_f16(vld1q_f16(src + i), vzero));
+        }
+    }
+#endif
+    else {
         return TNNERR_LAYER_ERR;
     }
 
@@ -55,5 +66,6 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Relu, LAYER_RELU)
+REGISTER_ARM_PRECISION_FP16(LAYER_RELU)
 
 }  // namespace TNN_NS
