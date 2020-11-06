@@ -445,10 +445,18 @@ Status AtlasNetwork::AddBlobToMap(size_t index, void *data, bool is_input) {
             LOGE("can't get output dims\n");
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "can't get output dims");
         }
+        // get dims0
+        int max_batch = GetMaxBatchSize(model_desc_, 1);
+        if (0 == max_batch) {
+            LOGE("get batch size failed\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get batch size failed");
+        }
+        output_dim0_map_[blob_name] = (int)acl_dims.dims[0] / max_batch;
         // get data type
         data_type = aclmdlGetOutputDataType(model_desc_, index);
         // get data format
         data_format = aclmdlGetOutputFormat(model_desc_, index);
+
         LOGD("output data type: %d  output data format: %d\n", data_type, data_format);
         LOGD("output shape:\n");
         for (int i = 0; i < acl_dims.dimCount; ++i) {
@@ -552,16 +560,12 @@ Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int> &input_dims, ac
                 chw_size *= acl_dims.dims[i];
             }
             acl_dims.dims[0] = buffer_size / chw_size;
+
             LOGD("dynamic batch input, batch is set to %d\n", acl_dims.dims[0]);
         }
         for (int i = 0; i < acl_dims.dimCount; ++i) {
             input_dims.push_back((int)acl_dims.dims[i]);
         }
-    }
-
-    LOGD("input shape:\n");
-    for (int i = 0; i < input_dims.size(); ++i) {
-        LOGD("[%d]\n", input_dims[i]);
     }
 
     return TNN_OK;
@@ -585,7 +589,7 @@ Status AtlasNetwork::SetDynamicBatchSize(std::string blob_name, int batch_size) 
 
         // set output batch size
         for (auto output_item : output_blob_map_) {
-            output_item.second->GetBlobDesc().dims[0] = batch_size;
+            output_item.second->GetBlobDesc().dims[0] = output_dim0_map_[output_item.first] * batch_size;
         }
     } else {
         LOGD("not dymamic batch input, skip\n");

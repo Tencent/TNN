@@ -112,6 +112,7 @@ private:
     std::vector<std::string> dynamic_batch_name_;
     bool has_aipp_ = false;
     std::map<std::string, aclAippInputFormat> aipp_input_format_map_;
+    std::map<std::string, int> output_dim0_map_;
 };
 
 }  // namespace TNN_NS

@@ -368,7 +368,7 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     Status tnn_ret   = TNN_OK;
 
     if (nullptr == aipp_dynamic_set_) {
-        aipp_mat_batchsize_ = GetMaxBatchSize(model_info_.model_desc);
+        aipp_mat_batchsize_ = GetMaxBatchSize(model_info_.model_desc, blob_->GetBlobDesc().dims[0]);
         aipp_dynamic_set_   = aclmdlCreateAIPP(aipp_mat_batchsize_);
         if (nullptr == aipp_dynamic_set_) {
             LOGE("create aipp info failed\n");
@@ -471,32 +471,6 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     }
 
     return TNN_OK;
-}
-
-int AtlasBlobConverterAcc::GetMaxBatchSize(aclmdlDesc *desc) {
-    aclmdlBatch batch_info;
-
-    aclError acl_ret = aclmdlGetDynamicBatch(desc, &batch_info);
-    if (ACL_ERROR_NONE != acl_ret) {
-        LOGE("get dynamic batch info failed\n");
-        return 0;
-    }
-
-    int max_batchsize = 0;
-    if (batch_info.batchCount > 0) {
-        // dynamic batch
-        for (int i = 0; i < batch_info.batchCount; ++i) {
-            if (batch_info.batch[i] > max_batchsize) {
-                max_batchsize = batch_info.batch[i];
-            }
-        }
-    } else {
-        // static batch
-        max_batchsize = blob_->GetBlobDesc().dims[0];
-    }
-
-    LOGD("get max batch size: %d\n", max_batchsize);
-    return max_batchsize;
 }
 
 DECLARE_BLOB_CONVERTER_CREATER(Atlas);
