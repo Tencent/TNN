@@ -103,7 +103,7 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int type_size = sizeof(float);
-    if (opencl_runtime->GetFp16Enable()) {
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
         type_size = 2;
     }
 

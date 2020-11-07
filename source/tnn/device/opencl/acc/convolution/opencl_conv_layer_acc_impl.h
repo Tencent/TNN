@@ -55,7 +55,10 @@ protected:
     Status AllocateWeightsBias(LayerResource *resource);
     std::vector<uint32_t> Conv2dCommonLocalWS2D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
                                                 const uint32_t subgroup_size = 0);
-    std::vector<uint32_t> Conv2dCommonLocalWS3D(std::vector<uint32_t> &gws, const uint32_t kernel_size,
+    std::vector<uint32_t> Conv2dCommonLocalWS3DGeneral(std::vector<uint32_t> &gws, const uint32_t kernel_size,
+                                                const uint32_t max_workgroup_size);
+
+    std::vector<uint32_t> Conv2dCommonLocalWS3DKernel3x3(std::vector<uint32_t> &gws, const uint32_t kernel_size,
                                                 const uint32_t max_workgroup_size);
 
 private:

@@ -79,13 +79,13 @@ function bench_android() {
 
     if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
         $ADB shell "echo '\nbenchmark device: ARM \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt ARM --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
+        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt ARM --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
     fi
 
     if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then
         LOOP_COUNT=1
         $ADB shell "echo '\nbenchmark device: OPENCL \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" >> $OUTPUT_LOG_FILE"
+        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
     fi
 
     $ADB pull $ANDROID_DIR/$OUTPUT_LOG_FILE ../$OUTPUT_LOG_FILE
