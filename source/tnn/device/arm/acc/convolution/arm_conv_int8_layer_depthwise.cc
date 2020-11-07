@@ -144,9 +144,6 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         const auto input_batch = input_data + bIndex * src_y_step * input_height;
         auto output_batch      = output_data + bIndex * dst_y_step * output_height;
 
-        // DepthwiseConvI8(input_batch, output_batch, oc_4 * 4, src_y_step, dst_y_step, output_height, output_width,
-        //                 input_height, input_width, l, r, t, b, kernel_x, kernel_y, weight_data, bias_data,
-        //                 scale_data, stride_x, pad_x, k_param_.get());
         long src_w_step = k_param_->oc_r4 * conv_param->strides[0];
         auto dwfunc     = DepthwiseI8General;
 #ifdef TNN_USE_NEON
