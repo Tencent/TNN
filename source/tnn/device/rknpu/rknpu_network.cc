@@ -155,7 +155,7 @@ Status RknpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterp
         return ret;
     }
 
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config.device_type);
+    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -313,6 +313,11 @@ Status RknpuNetwork::DeInit() {
     }
     if (blob_manager_)
         delete blob_manager_;
+
+    if (context_ != nullptr) {
+        delete context_;
+        context_ = nullptr;
+    }
 
     return TNN_OK;
 }

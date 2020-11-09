@@ -26,6 +26,12 @@
 
 namespace TNN_NS {
 
+struct ImplementedPrecision {
+    bool fp32_implemented  = false;
+    bool fp16_implemented  = false;
+    bool bfp16_implemented = false;
+};
+
 // @brief AbstractDevice define create memory, context and layer acc interface.
 class AbstractDevice {
 public:
@@ -70,6 +76,9 @@ public:
     // @brief CreateContext create tnn instance device context
     virtual Context* CreateContext(int device_id) = 0;
 
+    // @brief get implemented precisions on the device by layer type
+    virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
+
     // @brief get factory device type
     DeviceType GetDeviceType();
 
@@ -88,7 +97,10 @@ template <typename T>
 class TypeDeviceRegister {
 public:
     explicit TypeDeviceRegister(DeviceType type) {
-        GetGlobalDeviceMap()[type] = std::shared_ptr<T>(new T(type));
+        auto &device_map = GetGlobalDeviceMap();
+        if (device_map.find(type) == device_map.end()) {
+            device_map[type] = std::shared_ptr<T>(new T(type));
+        }
     }
 };
 

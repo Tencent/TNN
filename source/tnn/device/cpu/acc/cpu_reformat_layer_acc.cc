@@ -99,10 +99,10 @@ Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     }
 
     if (param->type == DEQUANT_ONLY) {
-        CPU_DEQUANT(reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
+        NaiveDequant(reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
                     re->scale_handle.GetDataCount(), reinterpret_cast<float *>(outputs[0]->GetHandle().base), dims);
     } else if (param->type == QUANT_ONLY) {
-        CPU_QUANT(reinterpret_cast<float *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
+        NaiveQuant(reinterpret_cast<float *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
                   re->scale_handle.GetDataCount(), reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base), dims);
     }
     return TNN_OK;

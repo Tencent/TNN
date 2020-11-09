@@ -42,11 +42,11 @@ struct ProfilingData {
     double flops     = 0;
     double bandwidth = 0;
 
-    std::vector<int> input_dims = {};
-    std::vector<int> output_dims = {};
-    std::vector<int> kernel_shape = {};
-    std::vector<int> stride_shape = {};
-    std::vector<int> pad_shape = {};
+    std::vector<int> input_dims     = {};
+    std::vector<int> output_dims    = {};
+    std::vector<int> kernel_shape   = {};
+    std::vector<int> stride_shape   = {};
+    std::vector<int> pad_shape      = {};
     std::vector<int> dilation_shape = {};
 
     int count = 1;
@@ -66,15 +66,21 @@ public:
     // @brief add profiling data of each layer
     void AddProfilingData(std::shared_ptr<ProfilingData> pdata);
 
+    // @brief add profiling result
+    void AddProfileResult(std::shared_ptr<ProfileResult> result);
+
+    // @brief get profiling data
+    virtual std::vector<std::shared_ptr<ProfilingData>> GetData();
+
     // @brief This function shows the detailed timing for each layer in the model.
-    virtual std::string GetProfilingData();
+    virtual std::string GetProfilingDataInfo();
 
 protected:
     /*
      * This function shows an overview of the timings in the model.
      * the timing is grouped by the type of layer.
      */
-    virtual std::string GetProfilingDataSummary();
+    virtual std::string GetProfilingDataSummary(bool do_average);
 
     std::vector<std::shared_ptr<ProfilingData>> profiling_data_ = {};
 };

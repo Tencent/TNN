@@ -24,6 +24,10 @@ typedef struct arm_reduce_log_sum_operator : arm_reduce_operator {
     virtual float PostCalculate(const float &v, const float &t) {
         return std::log(v);
     };
+
+    virtual bool PosCalculateOnce() {
+        return true;
+    };
 } ARM_REDUCE_LOG_SUM_OP;
 
 DECLARE_ARM_REDUCE_ACC(ReduceLogSum, ARM_REDUCE_LOG_SUM_OP);

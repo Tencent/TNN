@@ -35,7 +35,8 @@ bool ArmConvInt8LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vec
     const int input_channel  = dims_input[1];
     const int output_channel = dims_output[1];
 
-    return param->group == input_channel && param->group == output_channel;
+    return param->group == input_channel && param->group == output_channel && param->dialations[0] == 1 &&
+           param->dialations[1] == 1;
 }
 
 ArmConvInt8LayerDepthwise::~ArmConvInt8LayerDepthwise() {}
@@ -116,13 +117,72 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
     for (; (b - 1) * stride_y - pad_y + kernel_y > input_height && b > t; b--)
         ;
 
+    auto RunCorner = [=](int8_t *dst_z, const int8_t *src_z, int left, int top, int right, int bottom) {
+        for (long dy = top; dy < bottom; ++dy) {
+            auto dst_y             = dst_z + dy * dst_y_step;
+            const long src_start_y = dy * stride_y - pad_y;
+            const auto src_y       = src_z + src_start_y * src_y_step;
+            const long sfy         = MAX(0, (UP_DIV(-src_start_y, 1)));
+            const long efy         = MIN(kernel_y, (UP_DIV(k_param_->ih - src_start_y, 1)));
+            for (long dx = left; dx < right; ++dx) {
+                auto dst_x             = dst_y + k_param_->oc_r4 * dx;
+                const long src_start_x = dx * stride_x - pad_x;
+                const auto src_x       = src_y + src_start_x * k_param_->oc_r4;
+                const long sfx         = MAX(0, (UP_DIV(-src_start_x, 1)));
+                const long efx         = MIN(kernel_x, (UP_DIV(k_param_->iw - src_start_x, 1)));
+                const long srcIndex    = (sfx * 1 + sfy * 1 * k_param_->iw) * k_param_->oc_r4;
+                const long weightIndex = (kernel_x * sfy + sfx) * k_param_->oc_r4;
+
+                DepthwiseI8Unit(dst_x, src_x + srcIndex, reinterpret_cast<int8_t *>(k_param_->fil_ptr) + weightIndex,
+                                reinterpret_cast<int32_t *>(k_param_->bias), efx - sfx, efy - sfy,
+                                k_param_->oc_r4 * kernel_x, src_y_step, k_param_->scale, k_param_->oc_r4);
+            }
+        }
+    };
+
     for (int bIndex = 0; bIndex < batch; ++bIndex) {
         const auto input_batch = input_data + bIndex * src_y_step * input_height;
         auto output_batch      = output_data + bIndex * dst_y_step * output_height;
 
-        DepthwiseConvI8(input_batch, output_batch, oc_4 * 4, src_y_step, dst_y_step, output_height, output_width,
-                        input_height, input_width, l, r, t, b, kernel_x, weight_data, bias_data, scale_data, stride_x,
-                        pad_x, k_param_.get());
+        long src_w_step = k_param_->oc_r4 * conv_param->strides[0];
+        auto dwfunc     = DepthwiseI8General;
+#ifdef TNN_USE_NEON
+        if (kernel_x == kernel_y && kernel_x == 3 && k_param_->oc_r4 >= 8) {
+            dwfunc = DepthwiseI8K3;
+        }
+#endif
+        OMP_PARALLEL_SECTIONS_ {
+            OMP_SECTION_ {
+                // top corner
+                RunCorner(output_batch, input_batch, 0, 0, k_param_->ow, t);
+            }
+            OMP_SECTION_ {
+                // bottom corner
+                RunCorner(output_batch, input_batch, 0, b, k_param_->ow, k_param_->oh);
+            }
+            OMP_SECTION_ {
+                // left corner
+                RunCorner(output_batch, input_batch, 0, t, l, b);
+            }
+            OMP_SECTION_ {
+                // bottom corner
+                RunCorner(output_batch, input_batch, r, t, k_param_->ow, b);
+            }
+        }
+        if (r > l && b > t) {
+            OMP_PARALLEL_FOR_GUIDED_
+            for (long dy = t; dy < b; ++dy) {
+                const long src_start_y = dy * conv_param->strides[1] - conv_param->pads[2];
+                const auto src_dy      = input_batch + src_start_y * src_y_step;
+                auto dst_y             = output_batch + dy * dst_y_step;
+                dwfunc(dst_y + l * k_param_->oc_r4,
+                       src_dy + (l * conv_param->strides[0] - conv_param->pads[0]) * k_param_->oc_r4,
+                       reinterpret_cast<int8_t *>(k_param_->fil_ptr), reinterpret_cast<int32_t *>(k_param_->bias),
+                       r - l, src_y_step, src_w_step, k_param_->oc_r4, conv_param->kernels[0], conv_param->kernels[1],
+                       k_param_->scale);
+            }
+        }
+
         if (conv_param->activation_type == ActivationType_ReLU) {
             ReluInt8(output_batch, output_batch, output_height * dst_y_step);
         }

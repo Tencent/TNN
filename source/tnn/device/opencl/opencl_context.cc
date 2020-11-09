@@ -47,21 +47,17 @@ void OpenCLContext::StartProfile() {
     profiling_result_ = std::make_shared<OpenCLProfileResult>();
 }
 
-OpenCLProfilingData::~OpenCLProfilingData() {
+OpenCLProfilingData::~OpenCLProfilingData() {}
 
-}
+OpenCLProfileResult::~OpenCLProfileResult() {}
 
-OpenCLProfileResult::~OpenCLProfileResult() {
-
-}
-
-std::string OpenCLProfileResult::GetProfilingData() {
+std::string OpenCLProfileResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",       "Op Type",   "Kernel(ms)",  "Queued(ms)",   "Submit(ms)",
-                                            "Start(ms)",  "End(ms)",   "Input(NCHW)", "Output(NCHW)", "Filter(OIHW)",
-                                            "Stride",     "Pad",       "Dilation",    "GFlops",       "BW(GB/s)",
-                                            "GWS(0,1,2)", "LWS(0,1,2)"};
+                                             "Start(ms)",  "End(ms)",   "Input(NCHW)", "Output(NCHW)", "Filter(OIHW)",
+                                             "Stride",     "Pad",       "Dilation",    "GFlops",       "BW(GB/s)",
+                                             "GWS(0,1,2)", "LWS(0,1,2)"};
 
     std::vector<std::vector<std::string>> data;
 
@@ -127,7 +123,7 @@ std::string OpenCLProfileResult::GetProfilingData() {
 
     std::string detailed_string = StringFormatter::Table(title, header, data);
 
-    std::string summary_string = GetProfilingDataSummary();
+    std::string summary_string = GetProfilingDataSummary(false);
 
     std::ostringstream ostr;
     ostr << "kernel runtime total: " << kernel_time_sum << " ms\n\n";
@@ -190,26 +186,12 @@ Status OpenCLContext::Init() {
         return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
     }
 
-    opencl_runtime_->SetPrecision(precision_);
-    LOGI("opencl set precision %d\n", precision_);
-
-#ifdef OPENCL_FORCE_FP32
-    // set fp32
-    bool ret = opencl_runtime_->SetFp16Enable(false);
-    if (!ret) {
-        LOGE("disable fp16 failed!\n");
+    bool ret = opencl_runtime_->SetPrecision(precision_);
+    if (ret) {
+        LOGE("opencl set precision %d\n", precision_);
     } else {
-        LOGE("force fp32 success!\n");
+        LOGE("opencl set fp16 precision failed, precision set: %d\n", opencl_runtime_->GetPrecision());
     }
-#else
-    // set fp16
-    bool ret = opencl_runtime_->SetFp16Enable(true);
-    if (!ret) {
-        LOGE("enable fp16 failed!\n");
-    } else {
-        LOGE("enable fp16 success!\n");
-    }
-#endif
 
     return TNN_OK;
 }
