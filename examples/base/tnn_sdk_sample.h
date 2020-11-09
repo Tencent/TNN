@@ -62,6 +62,19 @@ struct ObjectInfo {
     float IntersectionRatio(ObjectInfo *obj);
 };
 
+struct ImageInfo {
+    ImageInfo();
+    ImageInfo(std::shared_ptr<Mat>mat);
+    ImageInfo(const ImageInfo& info);
+    int image_width = 0;
+    int image_height = 0;
+    int image_channel = 0;
+    // 4-channel image data
+    std::shared_ptr<char> data;
+
+    ImageInfo FlipX();
+};
+
 struct BenchOption {
     int warm_count    = 0;
     int forward_count = 1;
@@ -96,9 +109,10 @@ typedef enum {
     TNNComputeUnitsHuaweiNPU = 2,
 } TNNComputeUnits;
 
-typedef  struct{
-    unsigned char r,g,b,a;
-}RGBA;
+struct RGBA{
+    RGBA(int r = 0, int g = 0, int b = 0, int a = 0) : r(r), g(g), b(b), a(a) {}
+    unsigned char r, g, b, a;
+};
 
 
 extern const std::string kTNNSDKDefaultName;
