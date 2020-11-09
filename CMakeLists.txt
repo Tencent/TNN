@@ -207,7 +207,7 @@ if(TNN_X86_ENABLE)
 endif()
 
 if(TNN_OPENCL_ENABLE)
-    include(FindPython REQUIRED)
+    include(FindPythonInterp REQUIRED)
     if (NOT PYTHON_EXECUTABLE)
         message (FATAL_ERROR "No Python installation found! It is required by OpenCL codegen.")
     endif ()
