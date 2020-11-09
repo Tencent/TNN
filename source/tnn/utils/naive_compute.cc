@@ -40,8 +40,8 @@ uint8_t float2uint8(float val) {
  * blob data format must be NCHW
  */
 template <typename T, typename Tacc>
-void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
-                int stride_y, int stride_x, int kernel_y, int kernel_x, int pad_y, int pad_x, int pool_type) {
+void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, int stride_y,
+                  int stride_x, int kernel_y, int kernel_x, int pad_y, int pad_x, int pool_type) {
     auto input_width = dims_input[3], input_height = dims_input[2];
     auto output_width = dims_output[3], output_height = dims_output[2], output_channel = dims_output[1];
     for (int n = 0; n < dims_output[0]; n++) {
@@ -100,13 +100,13 @@ void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector
 
 // initialize the NaivePooling FUNTION with float
 template void NaivePooling<float, float>(float *input_ptr, float *output_ptr, DimsVector dims_input,
-                                        DimsVector dims_output, int stride_y, int stride_x, int kernel_y, int kernel_x,
-                                        int pad_y, int pad_x, int pool_type);
+                                         DimsVector dims_output, int stride_y, int stride_x, int kernel_y, int kernel_x,
+                                         int pad_y, int pad_x, int pool_type);
 
 // initialize the NaivePooling FUNTION with bfp16
 template void NaivePooling<bfp16_t, float>(bfp16_t *input_ptr, bfp16_t *output_ptr, DimsVector dims_input,
-                                            DimsVector dims_output, int stride_y, int stride_x, int kernel_y,
-                                            int kernel_x, int pad_y, int pad_x, int pool_type);
+                                           DimsVector dims_output, int stride_y, int stride_x, int kernel_y,
+                                           int kernel_x, int pad_y, int pad_x, int pool_type);
 
 // initialize the NaivePooling FUNTION with int8
 template void NaivePooling<int8_t, int32_t>(int8_t *input_ptr, int8_t *output_ptr, DimsVector dims_input,
@@ -137,14 +137,14 @@ void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVecto
 }
 
 template void NaiveFC(float *input_ptr, float *output_ptr, float *weight_data, float *bias, DimsVector dims_input,
-                    DimsVector dims_output);
+                      DimsVector dims_output);
 
 template void NaiveFC(bfp16_t *input_ptr, bfp16_t *output_ptr, bfp16_t *weight_data, float *bias, DimsVector dims_input,
-                    DimsVector dims_output);
+                      DimsVector dims_output);
 
 // specialize for the case data_type=int8
 void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
-            DimsVector dims_input, DimsVector dims_output) {
+             DimsVector dims_input, DimsVector dims_output) {
     int ip_dim_in = dims_input[3] * dims_input[2] * dims_input[1];
     for (int n = 0; n < dims_output[0]; ++n) {
         int8_t *in_current_batch = static_cast<int8_t *>(input_ptr) + n * ip_dim_in;
@@ -164,7 +164,7 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
 }
 
 template <typename Tacc>
-void FloatActivate(Tacc& result, const int activation_type) {
+void FloatActivate(Tacc &result, const int activation_type) {
     if (activation_type == ActivationType_ReLU) {
         result = static_cast<Tacc>(result > 0.0f ? result : 0.0f);
     } else if (activation_type == ActivationType_ReLU6) {
@@ -183,8 +183,8 @@ void FloatActivate(Tacc& result, const int activation_type) {
  */
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
-                DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
-                    int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len) {
+               DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+               int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len) {
     Tin *input_data               = static_cast<Tin *>(input_ptr);
     Tw *weight_data               = static_cast<Tw *>(weight_ptr);
     Tout *output_data             = static_cast<Tout *>(output_ptr);
@@ -230,8 +230,11 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
                                         input_w;
                                     int weight_position = weights_start +
                                                           (((output_c - output_c_start) * input_channels_per_group +
-                                                            input_c - input_c_start) * kernel_size_y + kernel_h) *
-                                                            kernel_size_x + kernel_w;
+                                                            input_c - input_c_start) *
+                                                               kernel_size_y +
+                                                           kernel_h) *
+                                                              kernel_size_x +
+                                                          kernel_w;
                                     result += input_data[input_position] * weight_data[weight_position];
                                 }
                             }
@@ -259,31 +262,29 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
     }
 }
 
-template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                    void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                    int stride_y, int stride_x, int kernel_size_y, 
-                                                    int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                    int dilation, int activation_type, float *scale,
-                                                    int scale_len);
+template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
+                                                    DimsVector dims_input, DimsVector dims_output, int stride_y,
+                                                    int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                                                    int pad_x, int group, int dilation, int activation_type,
+                                                    float *scale, int scale_len);
 
-template void NaiveConv<int8_t, int8_t, int32_t, int8_t>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                        void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                        int stride_y, int stride_x, int kernel_size_y, 
-                                                        int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                        int dilation, int activation_type, float *scale, 
-                                                        int scale_len);
+template void NaiveConv<int8_t, int8_t, int32_t, int8_t>(void *input_ptr, void *output_ptr, void *weight_ptr,
+                                                         void *bias, DimsVector dims_input, DimsVector dims_output,
+                                                         int stride_y, int stride_x, int kernel_size_y,
+                                                         int kernel_size_x, int pad_y, int pad_x, int group,
+                                                         int dilation, int activation_type, float *scale,
+                                                         int scale_len);
 
-template void NaiveConv<bfp16_t, float, float, bfp16_t>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                        void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                        int stride_y, int stride_x, int kernel_size_y, 
-                                                        int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                        int dilation, int activation_type,
+template void NaiveConv<bfp16_t, float, float, bfp16_t>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
+                                                        DimsVector dims_input, DimsVector dims_output, int stride_y,
+                                                        int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                                                        int pad_x, int group, int dilation, int activation_type,
                                                         float *scale, int scale_len);
 
 template <typename T>
 void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
-                const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                T *top_data) {
+                  const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                  T *top_data) {
     for (int i = 0; i < count; ++i) {
         int old_idx = 0;
         int idx     = i;
@@ -296,31 +297,46 @@ void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permu
     }
 };
 template void NaivePermute(const int count, float *bottom_data, const std::vector<int> &permute_order,
-                        const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                        float *top_data);
+                           const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                           float *top_data);
 
 template void NaivePermute(const int count, int8_t *bottom_data, const std::vector<int> &permute_order,
-                        const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                        int8_t *top_data);
+                           const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                           int8_t *top_data);
 
-void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data) {
-    int b, i, j, k;
-    int out_c = c / (stride * stride);
-
-    for (b = 0; b < batch; ++b) {
-        for (k = 0; k < c; ++k) {
-            for (j = 0; j < h; ++j) {
-                for (i = 0; i < w; ++i) {
-                    int in_index  = i + w * (j + h * (k + c * b));
-                    int c2        = k % out_c;
-                    int offset    = k / out_c;
-                    int w2        = i * stride + offset % stride;
-                    int h2        = j * stride + offset / stride;
-                    int out_index = w2 + w * stride * (h2 + h * stride * (c2 + out_c * b));
-                    if (forward)
+void NaiveReorg(float *bottom_data, int width, int height, int channel, int number, int stride, int forward, int mode,
+                float *top_data) {
+    int in_index, c2, offset, h2, w2, out_index;
+    int out_c = channel / (stride * stride);
+    for (int n = 0; n < number; ++n) {
+        for (int c = 0; c < channel; ++c) {
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    if (mode == 0) {
+                        // DCR mode
+                        in_index  = w + width * (h + height * (c + channel * n));
+                        c2        = c % out_c;
+                        offset    = c / out_c;
+                        h2        = h * stride + offset / stride;
+                        w2        = w * stride + offset % stride;
+                        out_index = w2 + width * stride * (h2 + height * stride * (c2 + out_c * n));
+                    } else if (mode == 1) {
+                        // CRD mode
+                        in_index  = w + width * (h + height * (c + channel * n));
+                        c2        = c / (stride * stride);
+                        offset    = c % (stride * stride);
+                        h2        = h * stride + offset / stride;
+                        w2        = w * stride + offset % stride;
+                        out_index = w2 + width * stride * (h2 + height * stride * (c2 + out_c * n));
+                    } else {
+                        LOGE("Naive Reorg do not support mode\n");
+                        assert(-1);
+                    }
+                    if (forward) {
                         top_data[out_index] = bottom_data[in_index];
-                    else
+                    } else {
                         top_data[in_index] = bottom_data[out_index];
+                    };
                 }
             }
         }
@@ -439,10 +455,9 @@ inline CodeType GetCodeType(const int number) {
     }
 }
 
-void DealOutput(Blob* output_blob, const int num_kept,
-                const int num, std::vector<std::map<int, std::vector<float>>>& all_conf_scores,
-                std::vector<LabelBBox>& all_decode_bboxes,
-                std::vector<std::map<int, std::vector<int>>>& all_indices,
+void DealOutput(Blob *output_blob, const int num_kept, const int num,
+                std::vector<std::map<int, std::vector<float>>> &all_conf_scores,
+                std::vector<LabelBBox> &all_decode_bboxes, std::vector<std::map<int, std::vector<int>>> &all_indices,
                 DetectionOutputLayerParam *param) {
     std::vector<int> top_shape(2, 1);
     top_shape.push_back(num_kept);
@@ -516,13 +531,13 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     Blob *loc_blob   = inputs[0];
     Blob *conf_blob  = inputs[1];
     Blob *prior_blob = inputs[2];
-    auto loc_dims = loc_blob->GetBlobDesc().dims;
-    auto conf_dims = conf_blob->GetBlobDesc().dims;
-    auto prior_dims = prior_blob->GetBlobDesc().dims;
+    auto loc_dims    = loc_blob->GetBlobDesc().dims;
+    auto conf_dims   = conf_blob->GetBlobDesc().dims;
+    auto prior_dims  = prior_blob->GetBlobDesc().dims;
     LOGD("the loc_lob: (%d, %d, %d, %d)\n", loc_dims[0], loc_dims[1], loc_dims[2], loc_dims[3]);
     LOGD("the conf_lob: (%d, %d, %d, %d)\n", conf_dims[0], conf_dims[1], conf_dims[2], conf_dims[3]);
     LOGD("the prior_lob: (%d, %d, %d, %d)\n", prior_dims[0], prior_dims[1], prior_dims[2], prior_dims[3]);
-    const int num    = loc_blob->GetBlobDesc().dims[0];
+    const int num = loc_blob->GetBlobDesc().dims[0];
     // get output blob
     Blob *output_blob = outputs[0];
     // why defination objectness_score_ ?
@@ -653,22 +668,22 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
 }
 
-void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
+void NaiveBGROrBGRAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
     int offset = 0;
-    for(int y = 0; y < h; ++y) {
-        for(int x = 0; x < w; ++x) {
-            unsigned b = src[offset * channel + 0];
-            unsigned g = src[offset * channel + 1];
-            unsigned r = src[offset * channel + 2];
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            unsigned b       = src[offset * channel + 0];
+            unsigned g       = src[offset * channel + 1];
+            unsigned r       = src[offset * channel + 2];
             float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
-            dst[offset] = gray_color;
+            dst[offset]      = gray_color;
             offset += 1;
         }
     }
 }
 
 void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
-                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel) {
+                             unsigned char *rgb0, unsigned char *rgb1, int remain, bool is_nv12, int channel) {
     for (; remain > 0; remain -= 2) {
         int u, v;
         if (is_nv12) {
@@ -685,28 +700,28 @@ void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yp
 
 #define SATURATE_CAST_UCHAR(X) (unsigned char)std::min(std::max(X, 0), 255);
 
-        int y00 = yptr0[0]* 74 - 1135;
+        int y00 = yptr0[0] * 74 - 1135;
         if (channel == 4)
             rgb0[3] = 255;
         rgb0[0 * channel + 2] = SATURATE_CAST_UCHAR((y00 + ruv) >> 6);
         rgb0[0 * channel + 1] = SATURATE_CAST_UCHAR((y00 + guv) >> 6);
         rgb0[0 * channel + 0] = SATURATE_CAST_UCHAR((y00 + buv) >> 6);
 
-        int y01 = yptr0[1]* 74 - 1135;
+        int y01 = yptr0[1] * 74 - 1135;
         if (channel == 4)
             rgb0[7] = 255;
         rgb0[1 * channel + 2] = SATURATE_CAST_UCHAR((y01 + ruv) >> 6);
         rgb0[1 * channel + 1] = SATURATE_CAST_UCHAR((y01 + guv) >> 6);
         rgb0[1 * channel + 0] = SATURATE_CAST_UCHAR((y01 + buv) >> 6);
 
-        int y10 = yptr1[0]* 74 - 1135;
+        int y10 = yptr1[0] * 74 - 1135;
         if (channel == 4)
             rgb1[3] = 255;
         rgb1[0 * channel + 2] = SATURATE_CAST_UCHAR((y10 + ruv) >> 6);
         rgb1[0 * channel + 1] = SATURATE_CAST_UCHAR((y10 + guv) >> 6);
         rgb1[0 * channel + 0] = SATURATE_CAST_UCHAR((y10 + buv) >> 6);
 
-        int y11 = yptr1[1]* 74 - 1135;
+        int y11 = yptr1[1] * 74 - 1135;
         if (channel == 4)
             rgb1[7] = 255;
         rgb1[1 * channel + 2] = SATURATE_CAST_UCHAR((y11 + ruv) >> 6);
@@ -718,26 +733,27 @@ void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yp
         yptr0 += 2;
         yptr1 += 2;
         vuptr += 2;
-        rgb0  += 2*channel;
-        rgb1  += 2*channel;
+        rgb0 += 2 * channel;
+        rgb1 += 2 * channel;
     }
 }
 
-void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12) {
-    const unsigned char* yptr  = yuv;
-    const unsigned char* vuptr = yuv + w * h;
+void NaiveYUVToBGROrBGRA(const unsigned char *yuv, unsigned char *bgr, const int channel, const int h, const int w,
+                         bool is_nv12) {
+    const unsigned char *yptr  = yuv;
+    const unsigned char *vuptr = yuv + w * h;
 
     for (int y = 0; y < h; y += 2) {
-        const unsigned char* yptr0 = yptr;
-        const unsigned char* yptr1 = yptr + w;
-        unsigned char* rgb0 = bgr;
-        unsigned char* rgb1 = bgr + w * channel;
+        const unsigned char *yptr0 = yptr;
+        const unsigned char *yptr1 = yptr + w;
+        unsigned char *rgb0        = bgr;
+        unsigned char *rgb1        = bgr + w * channel;
 
         NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, w, is_nv12, channel);
 
-        yptr  += 2*w;
+        yptr += 2 * w;
         vuptr += w;
-        bgr   += 2*channel*w;
+        bgr += 2 * channel * w;
     }
 }
 
