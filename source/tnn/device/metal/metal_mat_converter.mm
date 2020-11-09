@@ -34,6 +34,7 @@ public:
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
+    virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL);
 
     ~MetalMatConverterAcc() {};
 protected:
@@ -42,6 +43,7 @@ protected:
     MetalWarpAffineParams warpaffine_param_;
     MetalCopyParams copy_param_;
     MetalBGR2GrayParams bgr2gray_param_;
+    MetalCopyMakeBorderParam copy_make_border_param_;
     
     id<MTLDevice> device_                           = nil;
     //metal params
@@ -50,6 +52,7 @@ protected:
     id<MTLBuffer> buffer_warpaffine_param_          = nil;
     id<MTLBuffer> buffer_copy_param_                = nil;
     id<MTLBuffer> buffer_bgr2gray_param_            = nil;
+    id<MTLBuffer> buffer_copymakeborder_param_      = nil;
     
     id<MTLComputePipelineState> pipeline_process_   = nil;
     //Allocate metal kernel param
@@ -58,12 +61,14 @@ protected:
     Status AllocateBufferWarpAffineParam(WarpAffineParam param, Mat& src, Mat& dst);
     Status AllocateBufferCopyParam(Mat& src, Mat& dst);
     Status AllocateBufferBGR2GrayParam(Mat& src, Mat& dst);
+    Status AllocateBufferCopyMakeBorderParam(CopyMakeBorderParam param, Mat& src, Mat& dst);
     //Find corresponding metal kernel
     Status AllocateResizeComputePipeline(ResizeParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCropComputePipeline(CropParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue);
     Status AllocateCopyComputePipeline(Mat& src, Mat& dst, void *command_queue);
     Status AllocateBGR2GrayComputePipeline(Mat& src, Mat& dst, void *command_queue);
+    Status AllocateCopyMakeBorderComputePipeline(CopyMakeBorderParam param, Mat& src, Mat& dst, void *command_queue);
 
     Status BGR2Gray(Mat& src, Mat& dst, void* command_queue = NULL);
     Status CopyInputCheck(Mat& src, Mat& dst,
@@ -147,9 +152,6 @@ Status MetalMatConverterAcc::AllocateBufferWarpAffineParam(WarpAffineParam param
     warpaffine_param_.border_type = int(param.border_type);
     warpaffine_param_.border_val = param.border_val;
     
-    buffer_warpaffine_param_ = [device_ newBufferWithBytes:&warpaffine_param_
-                                                    length:sizeof(MetalWarpAffineParams)
-                                                   options:MTLResourceCPUCacheModeWriteCombined];
     // compute the inverse transformation matrix
     float d   = param.transform[0][0] * param.transform[1][1] - param.transform[0][1] * param.transform[1][0];
     d          = d != 0 ? 1. / d : 0;
@@ -208,6 +210,29 @@ Status MetalMatConverterAcc::AllocateBufferBGR2GrayParam(Mat& src, Mat& dst) {
     
     if (!buffer_bgr2gray_param_) {
         return Status(TNNERR_INVALID_INPUT, "buffer bgr2gray param is nil!");
+    }
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::AllocateBufferCopyMakeBorderParam(CopyMakeBorderParam param, Mat &src, Mat &dst) {
+    copy_make_border_param_.batch = src.GetBatch();
+    copy_make_border_param_.channel = src.GetChannel();
+    copy_make_border_param_.height = src.GetHeight();
+    copy_make_border_param_.width = src.GetWidth();
+    copy_make_border_param_.top = param.top;
+    copy_make_border_param_.bottom = param.bottom;
+    copy_make_border_param_.left = param.left;
+    copy_make_border_param_.right = param.right;
+
+    copy_make_border_param_.border_type = int(param.border_type);
+    copy_make_border_param_.border_val = param.border_val;
+
+    buffer_copymakeborder_param_= [device_ newBufferWithBytes:&copy_make_border_param_
+                                                    length:sizeof(MetalCopyMakeBorderParam)
+                                                      options:MTLResourceCPUCacheModeWriteCombined];
+
+    if (!buffer_copymakeborder_param_) {
+        return Status(TNNERR_INVALID_INPUT, "buffer copymakeborder param is nil!");
     }
     return TNN_OK;
 }
@@ -398,6 +423,71 @@ Status MetalMatConverterAcc::AllocateCopyComputePipeline(Mat& src, Mat& dst, voi
     return TNN_OK;
 }
 
+Status MetalMatConverterAcc::AllocateCopyMakeBorderComputePipeline(CopyMakeBorderParam param, Mat &src, Mat &dst, void *command_queue) {
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+
+#if ENABLE_PIPELINE_CACHE
+    static std::map<std::string,  id <MTLComputePipelineState> > library_cache;
+#endif
+
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+    auto library = command_queue_impl.metalContextImpl.library;
+    if (!library) {
+        return Status(TNNERR_INVALID_INPUT, "metal library is nil");
+    }
+
+    if (src_mat_type != dst_mat_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+    if(BORDER_TYPE_CONSTANT != param.border_type) {
+        return Status(TNNERR_INVALID_INPUT, "border type not support yet");
+    }
+
+    id<MTLFunction> func_process = nil;
+    std::string kernel_name("");
+    if (N8UC4 == src_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+        kernel_name = string("copymakeborder_n8uc4_constant");
+        if (library_cache.count(kernel_name) != 0) {
+            // cache hit
+            pipeline_process_ = library_cache[kernel_name];
+            return TNN_OK;
+        }
+        // cache miss
+#endif
+        func_process = [library newFunctionWithName:@"copymakeborder_n8uc4_constant"];
+    } else if (NCHW_FLOAT == src_mat_type) {
+#if ENABLE_PIPELINE_CACHE
+        kernel_name = string("copymakeborder_nchw_constant");
+        if (library_cache.count(kernel_name) != 0) {
+            // cache hit
+            pipeline_process_ = library_cache[kernel_name];
+            return TNN_OK;
+        }
+        // cache miss
+#endif
+        func_process = [library newFunctionWithName:@"copymakeborder_nchw_constant"];
+    } else {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+    if (!func_process) {
+        return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
+    }
+    auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
+    if (!pipeline_process) {
+        return Status(TNNERR_INVALID_INPUT, "copymakeborder pipeline is nil");
+    }
+    pipeline_process_ = pipeline_process;
+#if ENABLE_PIPELINE_CACHE
+    library_cache[kernel_name] = pipeline_process;
+#endif
+    return TNN_OK;
+}
+
 Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam param, Mat& src, Mat& dst, void *command_queue) {
 #if ENABLE_PIPELINE_CACHE
     static std::map<std::string, id<MTLComputePipelineState>> library_cache;
@@ -424,7 +514,14 @@ Status  MetalMatConverterAcc::AllocateWarpAffineComputePipeline(WarpAffineParam 
     if (src_mat_type == dst_mat_type) {
         if (N8UC4 == src_mat_type) {
             if (INTERP_TYPE_NEAREST == interp_type) {
-                return Status(TNNERR_PARAM_ERR, "interp type not support yet");
+#if ENABLE_PIPELINE_CACHE
+                kernel_name = "mat_converter_texture_n8uc4_warpaffine_nearest_const";
+                if (library_cache.count(kernel_name) > 0) {
+                    pipeline_process_ = library_cache[kernel_name];
+                    return TNN_OK;
+                }
+#endif
+                func_process = [library newFunctionWithName:@"mat_converter_texture_n8uc4_warpaffine_nearest_const"];
             } else if (INTERP_TYPE_LINEAR == interp_type && BORDER_TYPE_CONSTANT == border_type) {
 #if ENABLE_PIPELINE_CACHE
                 kernel_name = "mat_converter_texture_n8uc4_warpaffine_linear_const";
@@ -972,6 +1069,90 @@ Status MetalMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
 #endif
     } while(0);
     
+    return TNN_OK;
+}
+
+Status MetalMatConverterAcc::CopyMakeBorder(Mat &src, Mat &dst, CopyMakeBorderParam param, void* command_queue) {
+    auto src_device_type = src.GetDeviceType();
+    auto dst_device_type = dst.GetDeviceType();
+
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+
+    if (dst_mat_type != src_mat_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst mat type must be same");
+    }
+
+    if (src_device_type != dst_device_type) {
+        return Status(TNNERR_PARAM_ERR, "src and dst device type must be same");
+    }
+
+    if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
+        return Status(TNNERR_PARAM_ERR, "mat type not support yet");
+    }
+    //Get device
+    if (device_ == nil) {
+        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
+        device_     = texture.device;
+    }
+
+    auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
+    if (!command_queue_impl) {
+        return Status(TNNERR_INST_ERR, "command queue is nil");
+    }
+
+    auto context_impl = command_queue_impl.metalContextImpl;
+
+    auto status = AllocateBufferCopyMakeBorderParam(param, src, dst);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    status = AllocateCopyMakeBorderComputePipeline(param, src, dst, command_queue);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    do {
+        auto dst_dims = dst.GetDims();
+        const int dst_height = dst_dims[2];
+        const int dst_width  = dst_dims[3];
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((dst_width + group_threads.width - 1) / group_threads.width), (NSUInteger)dst_height, (NSUInteger)1};
+        if (src_mat_type == NCHW_FLOAT) {
+            groups.depth = dst_dims[1] * dst_dims[0];
+        }
+
+        auto command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState: pipeline_process_];
+
+        if (src_mat_type == N8UC4) {
+            id<MTLTexture> input_texture = (__bridge id<MTLTexture>)(src.GetData());
+            id<MTLTexture> output_texture = (__bridge id<MTLTexture>)(dst.GetData());
+
+            [encoder setTexture:input_texture atIndex:0];
+            [encoder setTexture:output_texture atIndex:1];
+            [encoder setBuffer:buffer_copymakeborder_param_ offset:0 atIndex:0];
+        } else if (src_mat_type == NCHW_FLOAT) {
+            id<MTLBuffer> input_buffer = (__bridge id<MTLBuffer>)(src.GetData());
+            id<MTLBuffer> output_buffer = (__bridge id<MTLBuffer>)(dst.GetData());
+
+            [encoder setBuffer:input_buffer offset:0 atIndex:0];
+            [encoder setBuffer:output_buffer offset:0 atIndex:1];
+            [encoder setBuffer:buffer_copymakeborder_param_ offset:0 atIndex:2];
+        }
+
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+
+        [command_buffer commit];
+#if KERNEL_SYNC
+        //wait to complete
+        [command_buffer waitUntilCompleted];
+#endif
+    } while(0);
     return TNN_OK;
 }
 

@@ -32,45 +32,7 @@ Context* LayerTest::cpu_context_;
 Context* LayerTest::device_context_;
 
 void LayerTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // cpu
-    cpu_ = GetDevice(DEVICE_NAIVE);
-    if (!cpu_) {
-      LOGE("Error: device cpu is null\n");
-      ASSERT(0);
-    }
-
-    cpu_context_ = cpu_->CreateContext(0);
-    if (!cpu_context_) {
-      LOGE("Error: cpu context is null\n");
-      ASSERT(0);
-    }
-
-    // device
-    device_ = GetDevice(config.device_type);
-    if (!device_) {
-      LOGE("Error: device of type(%d) is null\n", config.device_type);
-      ASSERT(0);
-    }
-
-    device_context_ = device_->CreateContext(config.device_id);
-    if (!device_) {
-      LOGE("Error: device context with id(%d) is null\n", config.device_id);
-      ASSERT(0);
-    }
-
-    ret = device_context_->LoadLibrary(config.library_path);
-    if (ret != TNN_OK) {
-      LOGE("Error: library with path(%s) is null\n",
-            config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
-      ASSERT(0);
-    }
+    SetUpEnvironment(&cpu_, &device_, &cpu_context_, &device_context_);
 }
 
 void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,

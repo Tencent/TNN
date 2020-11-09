@@ -492,6 +492,19 @@ struct MetalCopyParams {
     int batch;
 };
 
+struct MetalCopyMakeBorderParam {
+    int width;
+    int height;
+    int channel;
+    int batch;
+    int top;
+    int bottom ;
+    int left;
+    int right;
+    int border_type;
+    float border_val;
+};
+
 
 struct MetalBGR2GrayParams {
     int width;

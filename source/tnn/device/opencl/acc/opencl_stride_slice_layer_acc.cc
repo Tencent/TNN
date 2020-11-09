@@ -160,7 +160,7 @@ Status OpenCLStrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     } else {
         int dims_count = DimsVectorUtils::Count(input->GetBlobDesc().dims);
         int type_size  = sizeof(float);
-        if (opencl_runtime->GetFp16Enable()) {
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
             type_size = 2;
         }
         buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, dims_count * type_size);
