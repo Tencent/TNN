@@ -67,6 +67,7 @@
 		ECD946692559295A00BF9214 /* UIColor+Utility.m in Sources */ = {isa = PBXBuildFile; fileRef = ECD946662559295A00BF9214 /* UIColor+Utility.m */; };
 		ECD9466D2559296D00BF9214 /* TNNHairSegmentationViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD9466C2559296C00BF9214 /* TNNHairSegmentationViewModel.mm */; };
 		ECD946712559298F00BF9214 /* TNNMaskImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD946702559298F00BF9214 /* TNNMaskImage.mm */; };
+		ECD9467C2559306800BF9214 /* logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ECD9467B2559306700BF9214 /* logo@2x.png */; };
 		ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */; };
@@ -193,6 +194,7 @@
 		ECD9466C2559296C00BF9214 /* TNNHairSegmentationViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNHairSegmentationViewModel.mm; sourceTree = "<group>"; };
 		ECD9466F2559298F00BF9214 /* TNNMaskImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNMaskImage.h; sourceTree = "<group>"; };
 		ECD946702559298F00BF9214 /* TNNMaskImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNMaskImage.mm; sourceTree = "<group>"; };
+		ECD9467B2559306700BF9214 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
 		ECEC5DB024FFCC6C0044DDF1 /* youtu_face_align.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = youtu_face_align.h; sourceTree = "<group>"; };
 		ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = youtu_face_align.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
@@ -325,6 +327,7 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
+				ECD9467B2559306700BF9214 /* logo@2x.png */,
 				ECD946632559295A00BF9214 /* Component */,
 				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
@@ -564,6 +567,7 @@
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
+				ECD9467C2559306800BF9214 /* logo@2x.png in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
 				9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */,
 			);
