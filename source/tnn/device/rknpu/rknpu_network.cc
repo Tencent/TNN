@@ -314,6 +314,11 @@ Status RknpuNetwork::DeInit() {
     if (blob_manager_)
         delete blob_manager_;
 
+    if (context_ != nullptr) {
+        delete context_;
+        context_ = nullptr;
+    }
+
     return TNN_OK;
 }
 

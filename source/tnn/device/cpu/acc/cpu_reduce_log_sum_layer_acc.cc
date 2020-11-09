@@ -12,14 +12,18 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/naive_compute.h"
 #include "tnn/device/cpu/acc/cpu_reduce_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
-DECLARE_CPU_REDUCE_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+DECLARE_CPU_PRE_REDUCE_POST_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+
+Status CpuReduceLogSumLayerAcc::PreCalculateReduce(float* dst, float* src, int count) {
+    return TNN_OK;
+}
 
 Status CpuReduceLogSumLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                                 int inner_dim) {
@@ -34,9 +38,11 @@ Status CpuReduceLogSumLayerAcc::CalculateReduce(float* output_data, float* input
         }
         output_data += inner_dim;
     }
-
-    for (int i = 0; i < output_size; ++i) {
-        origin_output_data[i] = std::log(origin_output_data[i]);
+    return TNN_OK;
+}
+Status CpuReduceLogSumLayerAcc::PostCalculateReduce(float* dst, float* src, int count) {
+    for (int i = 0; i < count; ++i) {
+        dst[i] = std::log(src[i]);
     }
     return TNN_OK;
 }
