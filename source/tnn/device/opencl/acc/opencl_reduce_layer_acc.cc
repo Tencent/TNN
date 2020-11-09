@@ -38,35 +38,48 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     int cw   = output_dims[3] * UP_DIV(output_dims[1], 4);
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
-    int axis = reduce_param->axis[0];
-    axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+    if (reduce_param->axis.size() == 1) {
+        int axis = reduce_param->axis[0];
+        axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
 
-    int axis_n = input_dims[axis];
+        int axis_n = input_dims[axis];
 
-    run_local_work_ = cw * hb < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
+        run_local_work_ = cw * hb < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
 
-    run_3d_ndrange_         = false;
-    std::string kernel_name;
-    if (axis == 0) {
-        kernel_name = "ReduceC0";
-    } else if (axis == 1) {
-        kernel_name = "ReduceC1";
-    } else if (axis == 2) {
-        kernel_name = "ReduceC2";
+        run_3d_ndrange_         = false;
+        std::string kernel_name;
+        if (axis == 0) {
+            kernel_name = "ReduceC0";
+        } else if (axis == 1) {
+            kernel_name = "ReduceC1";
+        } else if (axis == 2) {
+            kernel_name = "ReduceC2";
+        } else {
+            kernel_name = "ReduceC3";
+        }
+
+        if (run_local_work_) {
+            kernel_name += "Local";
+        }
+
+        std::set<std::string> build_options = CreateBuildOptions();
+
+        ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
+        if (ret != TNN_OK) {
+            LOGE("create execute unit failed!\n");
+            return ret;
+        }
     } else {
-        kernel_name = "ReduceC3";
-    }
+        run_3d_ndrange_         = false;
+        std::string kernel_name = "ReduceMultiAxis";
 
-    if (run_local_work_) {
-        kernel_name += "Local";
-    }
+        std::set<std::string> build_options = CreateBuildOptions();
 
-    std::set<std::string> build_options = CreateBuildOptions();
-
-    ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
-    if (ret != TNN_OK) {
-        LOGE("create execute unit failed!\n");
-        return ret;
+        ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
+        if (ret != TNN_OK) {
+            LOGE("create execute unit failed!\n");
+            return ret;
+        }
     }
 
     return TNN_OK;
@@ -93,57 +106,114 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     int c4_r = input_dims[1] % 4;
     int cw4  = input_dims[3] * c4_n;
 
-    int axis = reduce_param->axis[0];
-    axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+    if (reduce_param->axis.size() == 1) {
+        int axis = reduce_param->axis[0];
+        axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
 
-    int axis_n = input_dims[axis];
+        int axis_n = input_dims[axis];
 
-    auto &unit            = execute_units_[0];
-    uint32_t workgroup_size = 0;
+        auto &unit            = execute_units_[0];
+        uint32_t workgroup_size = 0;
 
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int type_size = sizeof(float);
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
-        type_size = 2;
-    }
+        OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+        int type_size = sizeof(float);
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+            type_size = 2;
+        }
 
-    if (run_local_work_) {
-        workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
-                                  unit.workgroupsize_max);
-        workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
-        int temp_size = 1;
-        while ((temp_size <<= 1) <= workgroup_size);
-        workgroup_size = temp_size >> 1;
+        if (run_local_work_) {
+            workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
+                                    unit.workgroupsize_max);
+            workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
+            int temp_size = 1;
+            while ((temp_size <<= 1) <= workgroup_size);
+            workgroup_size = temp_size >> 1;
 
-        unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(hb)};
-        unit.local_work_size  = {workgroup_size, 1};
+            unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(hb)};
+            unit.local_work_size  = {workgroup_size, 1};
+        } else {
+            unit.global_work_size = {static_cast<uint32_t>(cw), static_cast<uint32_t>(hb)};
+            unit.local_work_size  = LocalWS2DDefault(unit);
+        }
+
+        uint32_t idx = 0;
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
+
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[1]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
+        execute_units_[0].ocl_kernel.setArg(idx++, c4_n);
+        execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
+        execute_units_[0].ocl_kernel.setArg(idx++, cw4);
+        execute_units_[0].ocl_kernel.setArg(idx++, axis_n);
+
+        if (run_local_work_) {
+            if (axis == 1) {
+                execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(c4_n, workgroup_size));
+            } else {
+                execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
+            }
+            execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
+        }
     } else {
+        auto &unit              = execute_units_[0];
+        uint32_t workgroup_size = 0;
+
+        int axis_n = 1;
+        std::vector<int> axis_nhwc = {0, 0, 0, 0};
+        for (int i = 0; i < reduce_param->axis.size(); i++) {
+            int axis = reduce_param->axis[i];
+            axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+            switch(axis) {
+                case 0:
+                    if (!axis_nhwc[0]) {
+                        axis_n *= input_dims[axis];
+                        axis_nhwc[0] = 1;
+                    }
+                    break;
+                case 1:
+                    if (!axis_nhwc[3]) {
+                        axis_n *= input_dims[axis];
+                        axis_nhwc[3] = 1;
+                    }
+                    break;
+                case 2:
+                    if (!axis_nhwc[1]) {
+                        axis_n *= input_dims[axis];
+                        axis_nhwc[1] = 1;
+                    }
+                    break;
+                case 3:
+                    if (!axis_nhwc[2]) {
+                        axis_n *= input_dims[axis];
+                        axis_nhwc[2] = 1;
+                    }
+                    break;
+            }
+        }
+
         unit.global_work_size = {static_cast<uint32_t>(cw), static_cast<uint32_t>(hb)};
         unit.local_work_size  = LocalWS2DDefault(unit);
-    }
 
-    uint32_t idx = 0;
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
+        uint32_t idx = 0;
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
 
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[0]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[1]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
-    execute_units_[0].ocl_kernel.setArg(idx++, c4_n);
-    execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
-    execute_units_[0].ocl_kernel.setArg(idx++, cw4);
-    execute_units_[0].ocl_kernel.setArg(idx++, axis_n);
-
-    if (run_local_work_) {
-        if (axis == 1) {
-            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(c4_n, workgroup_size));
-        } else {
-            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
-        }
-        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[1]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
+        execute_units_[0].ocl_kernel.setArg(idx++, c4_n);
+        execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
+        execute_units_[0].ocl_kernel.setArg(idx++, cw4);
+        execute_units_[0].ocl_kernel.setArg(idx++, axis_n);
+        execute_units_[0].ocl_kernel.setArg(idx++, 4 * sizeof(int), axis_nhwc.data());
     }
 
     return TNN_OK;

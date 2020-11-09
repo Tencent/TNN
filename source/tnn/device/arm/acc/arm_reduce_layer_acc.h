@@ -31,6 +31,14 @@ public:
         return Float4(0);
     };
 
+    virtual Float4 PreCalculate(Float4 &v) {
+        return v;
+    };
+
+    virtual float PreCalculate(const float &v) {
+        return v;
+    };
+
     virtual Float4 Calculate(Float4 &v, Float4 &t) {
         return v + t;
     };
@@ -47,6 +55,14 @@ public:
         return v;
     };
 
+    virtual bool NeedPreCalculate() {
+        return false;
+    };
+
+    virtual bool PosCalculateOnce() {
+        return false;
+    };
+
 } ARM_REDUCE_OP;
 
 class ArmReduceLayerAcc : public ArmLayerAcc {
@@ -60,6 +76,9 @@ public:
 
 protected:
     std::shared_ptr<ARM_REDUCE_OP> op_;
+    template <bool post_cal>
+    void ReduceOneAxis(float* input_data, float* output_data, DimsVector& dims_in, int out_count, int axis);
+    template <bool post_cal>
     void ReduceChannel(float* input_data, float* output_data, DimsVector& dims_in,
         const int c4n, const int c4r, const Float4 axis_n, const int hw_r, const int hw_c, const int hw);
 };
