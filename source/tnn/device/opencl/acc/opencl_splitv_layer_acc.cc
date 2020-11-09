@@ -134,7 +134,7 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     if (use_buffer_) {
         // use buffer, convert to buffer.
         int type_size = sizeof(float);
-        if (opencl_runtime->GetFp16Enable()) {
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
             type_size = 2;
         }
         cl_int cl_ret;

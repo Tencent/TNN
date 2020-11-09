@@ -94,7 +94,7 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     auto output_dims = output->GetBlobDesc().dims;
 
     int type_size = sizeof(float);
-    if (opencl_runtime->GetFp16Enable()) {
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
         type_size = 2;
     }
     int dims_count = DimsVectorUtils::Count(input->GetBlobDesc().dims);

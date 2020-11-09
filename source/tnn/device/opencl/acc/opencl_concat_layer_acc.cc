@@ -177,7 +177,7 @@ Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 #if TNN_PROFILE
 double OpenCLConcatLayerAcc::GetBandwidth() {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int data_type_size            = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    int data_type_size            = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     return DimsVectorUtils::Count(output_dims_) * data_type_size / 1000.0 / 1000.0;
 }
 #endif
@@ -222,7 +222,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
     auto output_dims              = output->GetBlobDesc().dims;
 
     // allocate temp buffers
-    int blob_elem_size = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    int blob_elem_size = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     int output_size    = DimsVectorUtils::Count(output->GetBlobDesc().dims);
     output_buffer_ =
         std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, output_size * blob_elem_size);
