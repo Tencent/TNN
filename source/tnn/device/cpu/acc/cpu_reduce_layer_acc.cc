@@ -13,55 +13,96 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/acc/cpu_reduce_layer_acc.h"
-#include "tnn/utils/naive_compute.h"
+
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
 CpuReduceLayerAcc::~CpuReduceLayerAcc() {}
+
+Status CalculateReduceDims(Blob *input_blob, ReduceLayerParam *layer_param,
+                           std::vector<std::tuple<int, int, int>> &reduce_dims) {
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto axes       = layer_param->axis;
+    std::sort(axes.begin(), axes.end());
+    reduce_dims.clear();
+    for (const auto &axis : axes) {
+        int outer_count   = DimsVectorUtils::Count(input_dims, 0, axis);
+        int reducer_count = input_dims[axis];
+        int inner_count   = DimsVectorUtils::Count(input_dims, axis + 1);
+        inner_count       = inner_count == 0 ? 1 : inner_count;
+        reduce_dims.emplace_back(std::make_tuple(outer_count, reducer_count, inner_count));
+        input_dims[axis] = 1;
+    }
+    return TNN_OK;
+}
+
+Status CpuReduceLayerAcc::PreCalculateReduce(float *dst, float *src, int count) {
+    return TNN_OK;
+}
+
+Status CpuReduceLayerAcc::PostCalculateReduce(float *dst, float *src, int count) {
+    ::memcpy(dst, src, count * sizeof(float));
+    return TNN_OK;
+}
 
 Status CpuReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
 Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (inputs.size() < 1) {
+    if (inputs.empty()) {
         LOGE("Error: invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "layer's inputs size must >= 2");
     }
     auto layer_param = dynamic_cast<ReduceLayerParam *>(param_);
-    if (!layer_param || layer_param->axis.size() != 1) {
+    if (!layer_param) {
         LOGE("Error: layer param is invalid\n");
         return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
     auto input_dims   = input_blob->GetBlobDesc().dims;
-
-    int axis = layer_param->axis[0];
-    axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
-    if (axis < 0 || axis >= input_dims.size()) {
-        LOGE("Error: layer param axis is invalid\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
+    Blob *output_blob = outputs[0];
+    auto output_count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
+    // <outer count, reduce count, inner count>
+    std::vector<std::tuple<int, int, int>> reduce_dims;
+    Status status = CalculateReduceDims(input_blob, layer_param, reduce_dims);
+    if (status != TNN_OK) {
+        LOGE("CpuReduceLayerAcc: Calculate reduce dims failed\n");
+        return status;
     }
-
-    int channels  = input_dims[axis];
-    int outer_dim = DimsVectorUtils::Count(input_dims, 0, axis);
-    int inner_dim = DimsVectorUtils::Count(input_dims, axis + 1);
-    if (inner_dim == 0) {
-        inner_dim = 1;
-    }
-
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
-        int output_size = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-        memset(output_data, 0, outer_dim * inner_dim * sizeof(float));
+        int input_count = DimsVectorUtils::Count(input_dims);
+        PreCalculateReduce(input_data, input_data, input_count);
 
-        CalculateReduce(output_data, input_data, outer_dim, channels, inner_dim);
+        float *src       = input_data;
+        float *tmp_ptr   = nullptr;
+        bool release_mem = false;
+        for (int i = 0; i < reduce_dims.size(); ++i) {
+            auto reduce_dim   = reduce_dims[i];
+            auto outer_count  = std::get<0>(reduce_dim);
+            auto reduce_count = std::get<1>(reduce_dim);
+            auto inner_count  = std::get<2>(reduce_dim);
+            if (tmp_ptr != nullptr) {
+                release_mem = true;
+            }
+            tmp_ptr = new float[inner_count * outer_count]();
+            CalculateReduce(tmp_ptr, src, outer_count, reduce_count, inner_count);
+            if (release_mem) {
+                delete[] src;
+            }
+            src = tmp_ptr;
+        }
+        PostCalculateReduce(output_data, src, output_count);
+        if (release_mem) {
+            delete[] src;
+        }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
