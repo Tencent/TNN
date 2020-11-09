@@ -24,30 +24,59 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_param     = dynamic_cast<ReduceLayerParam *>(param_);
-    if (!layer_param || layer_param->axis.size() != 1) {
+    if (!layer_param) {
         LOGE("Error: layer param is invalid\n");
         return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    int axis = layer_param->axis[0];
-    axis = axis >= 0 ? axis : axis + 4;
-    axis_ = axis;
-
-    // buffer_param_
-    {
-        MetalReduceParams metal_params;
-        SetDefaultMetalParams(metal_params, dims_input, dims_output);
-        metal_params.input_batch = dims_input[0];
-        metal_params.input_channel = dims_input[1];
-        metal_params.output_batch = dims_output[0];
-        metal_params.axis  = axis;
-        metal_params.input_channel_mode_4 = dims_input[1] % 4;
-        buffer_param_                     = [device newBufferWithBytes:(const void *)(&metal_params)
-                                            length:sizeof(MetalReduceParams)
-                                           options:MTLResourceCPUCacheModeWriteCombined];
+    for (int i = 0; i < layer_param->axis.size(); ++i) {
+        int axis = layer_param->axis[i];
+        axis = axis >= 0 ? axis : axis + 4;
+        layer_param->axis[i] = axis;
     }
+
+    if (layer_param->axis.size() == 1) {
+        int axis = layer_param->axis[0];
+        multi_axis_ = false;
+        axis_ = axis;
+        // buffer_param_
+        {
+            MetalReduceParams metal_params;
+            SetDefaultMetalParams(metal_params, dims_input, dims_output);
+            metal_params.input_batch = dims_input[0];
+            metal_params.input_channel = dims_input[1];
+            metal_params.output_batch = dims_output[0];
+            metal_params.axis  = axis;
+            metal_params.input_channel_mode_4 = dims_input[1] % 4;
+            buffer_param_                     = [device newBufferWithBytes:(const void *)(&metal_params)
+                                                                    length:sizeof(MetalReduceParams)
+                                                                   options:MTLResourceCPUCacheModeWriteCombined];
+        }
+    } else {
+        multi_axis_ = true;
+        // buffer_param_
+        {
+            MetalMultiAxisReduceParams metal_params;
+            SetDefaultMetalParams(metal_params, dims_input, dims_output);
+            metal_params.input_batch = dims_input[0];
+            metal_params.input_channel = dims_input[1];
+            metal_params.output_batch = dims_output[0];
+            metal_params.input_channel_mode_4 = dims_input[1] % 4;
+
+            int reduce_length = 1;
+            for (auto axis : layer_param->axis) {
+                metal_params.reduce_flag[axis] = 1;
+                reduce_length *= dims_input[axis];
+            }
+            metal_params.reduce_length = reduce_length;
+            buffer_param_                     = [device newBufferWithBytes:(const void *)(&metal_params)
+                                                                    length:sizeof(MetalMultiAxisReduceParams)
+                                                                   options:MTLResourceCPUCacheModeWriteCombined];
+        }
+    }
+
     return TNN_OK;
 }
 
@@ -57,7 +86,7 @@ std::string MetalReduceLayerAcc::KernelName(const std::vector<Blob *> &inputs, c
 
 Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<ReduceLayerParam *>(param_);
-    if (!layer_param || layer_param->axis.size() != 1) {
+    if (!layer_param) {
         LOGE("Error: layer param is invalid\n");
         return Status(TNNERR_MODEL_ERR, "Error: layer param is invalid");
     }
@@ -72,7 +101,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto dims_output   = output->GetBlobDesc().dims;
     auto output_width  = dims_output[3];
     auto output_height = dims_output[2];
-    auto output_channel = UP_DIV(dims_output[1], 4);
+    auto output_slice = UP_DIV(dims_output[1], 4);
     auto batch         = dims_output[0];
 
     MetalBandwidth bandwidth;
@@ -93,7 +122,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                             bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
 
-        MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_channel, (NSUInteger)batch};
+        MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_slice, (NSUInteger)batch};
 
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
                     offset:(NSUInteger)(NSUInteger)input->GetHandle().bytes_offset
