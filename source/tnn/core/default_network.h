@@ -95,8 +95,11 @@ public:
     virtual std::shared_ptr<ProfileResult> FinishProfile();
 #endif
 
-private:
+protected:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status AllocateBlobMemory();
+    RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
+    
     Status GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob);
 
     AbstractDevice *device_ = nullptr;
@@ -108,6 +111,7 @@ private:
     BlobMemoryPool *runtime_blob_pool_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
+    NetResource *net_resource_ = nullptr;
 
     NetworkConfig config_;
 

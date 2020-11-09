@@ -24,6 +24,11 @@ Blob1DMemoryPool::Blob1DMemoryPool(AbstractDevice* device) : BlobMemoryPool(devi
 }
 
 Blob1DMemoryPool::~Blob1DMemoryPool() {
+}
+
+void Blob1DMemoryPool::ClearBlobMemoryPool() {
+    BlobMemoryPool::ClearBlobMemoryPool();
+    
     ReleaseBlobMemoryNodeList(blob_memory_list_header_);
     blob_memory_list_header_ = NULL;
 }

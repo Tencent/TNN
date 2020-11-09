@@ -27,9 +27,17 @@ BlobMemoryPool::BlobMemoryPool(AbstractDevice *device) {
 }
 
 BlobMemoryPool::~BlobMemoryPool() {
-    for (auto &iter : blob_memory_library_) {
+    ClearBlobMemoryPool();
+}
+
+void BlobMemoryPool::ClearBlobMemoryPool() {
+    auto blob_memory_library = blob_memory_library_;
+    for (auto &iter : blob_memory_library) {
         delete iter;
     }
+    
+    blob_memory_library_.clear();
+    all_blob_memory_size_ = 0;
 }
 
 AbstractDevice *BlobMemoryPool::GetDevice() {

@@ -39,6 +39,7 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
             return ret;
         }
     }
+    
     return TNN_OK;
 }
 
@@ -49,6 +50,10 @@ Status AbstractLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const 
 }
 
 Status AbstractLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status AbstractLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     return TNN_OK;
 }
 
@@ -77,6 +82,15 @@ Status AbstractLayerAcc::AfterForward(const std::vector<Blob *> &inputs, const s
 
 void AbstractLayerAcc::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool) {
     runtime_blob_pool_ = runtime_blob_pool;
+}
+
+void AbstractLayerAcc::SetConstantResource(ConstantResource consts) {
+    const_resource_ = consts;
+}
+
+// @brief set runtime mode
+void AbstractLayerAcc::SetRuntimeMode(RuntimeMode mode) {
+    runtime_model_ = mode;
 }
 
 #if TNN_PROFILE
@@ -142,17 +156,18 @@ double AbstractLayerAcc::GetBandwidth() {
 #endif
 
 Status AbstractLayerAcc::ResolveBlobDataFormat(Blob *blob) {
-    BlobDesc desc                        = blob->GetBlobDesc();
-    std::vector<DataFormat> support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()));
-    ASSERT(support_list.size() > 0);
+    auto desc = blob->GetBlobDesc();
+    auto support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()));
+    if (support_list.size() <= 0) {
+        return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT,
+                      "unsupported data format for device acc");
+    }
 
     /*
      * DATA_FORMAT_AUTO : first format supported by the LayerAcc
      * Others:  return error if LayerAcc not support.
      */
     if (desc.data_format == DATA_FORMAT_AUTO) {
-        std::vector<DataFormat> support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()));
-        ASSERT(support_list.size() > 0);
         desc.data_format = support_list[0];
         blob->SetBlobDesc(desc);
         return TNN_OK;

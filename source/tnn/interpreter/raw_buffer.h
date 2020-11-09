@@ -21,7 +21,6 @@
 #include <string>
 #include <typeinfo>
 #include "tnn/core/common.h"
-#include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {

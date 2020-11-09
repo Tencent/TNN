@@ -76,6 +76,8 @@ public:
     //@brief allocate blob handle in forword
     bool NeedAllocateInForword();
     
+    //@brief check if it is constant
+    bool IsConstant();
 private:
     BlobDesc desc_;
     BlobHandle handle_;

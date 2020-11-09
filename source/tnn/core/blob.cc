@@ -83,4 +83,8 @@ bool Blob::NeedAllocateInForword() {
     return DataFlagUtils::AllocateInForword(flag);
 }
 
+bool Blob::IsConstant() {
+    return DataFlagUtils::ChangeStatus(flag) > 0;
+}
+
 }  // namespace TNN_NS

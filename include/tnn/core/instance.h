@@ -96,8 +96,9 @@ public:
 #endif
 
 private:
-    std::shared_ptr<AbstractModelInterpreter> interpreter_;
-    std::shared_ptr<AbstractNetwork> network_;
+    std::shared_ptr<AbstractModelInterpreter> interpreter_ = nullptr;
+    std::shared_ptr<AbstractNetwork> network_ = nullptr;
+    std::shared_ptr<AbstractNetwork> const_folder_ = nullptr;
     NetworkConfig net_config_;
     ModelConfig model_config_;
     

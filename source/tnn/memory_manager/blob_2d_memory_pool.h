@@ -25,6 +25,7 @@ class Blob2DMemoryPool : public BlobMemoryPool {
 public:
     explicit Blob2DMemoryPool(AbstractDevice* device);
     virtual ~Blob2DMemoryPool();
+    virtual void ClearBlobMemoryPool();
 
 private:
     virtual BlobMemory* CreateBlobMemory(int use_count, BlobMemorySizeInfo& size_info) override;

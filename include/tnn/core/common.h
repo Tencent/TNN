@@ -28,6 +28,13 @@ namespace TNN_NS {
 
 typedef std::function<void(void)> Callback;
 
+typedef enum {
+    //normal runtime forword, only layers with varing output in tnn proto will be executed
+    RUNTIME_MODE_NORMAL = 0,
+    //normal runtime forword, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
+    RUNTIME_MODE_CONST_FOLD = 1,
+} RuntimeMode;
+
 typedef enum : int {
     //data alwalys change
     DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,

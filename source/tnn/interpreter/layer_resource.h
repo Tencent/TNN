@@ -15,10 +15,16 @@
 #ifndef TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
 #define TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
 
+#include <map>
+#include <memory>
+#include <string>
+
 #include "tnn/core/layer_type.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
+
+typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 
 struct LayerResource {
     std::string name = "";

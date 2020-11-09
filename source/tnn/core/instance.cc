@@ -18,6 +18,7 @@
 
 #include "tnn/core/abstract_network.h"
 #include "tnn/core/common.h"
+#include "tnn/core/const_folder.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
@@ -42,6 +43,15 @@ Instance::~Instance() {
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
     interpreter_ = interpreter;
 
+    auto const_folder = std::make_shared<ConstFolder>();
+    auto status = const_folder->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    status = const_folder->Forward();
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    const_folder_ = const_folder;
+    
     /*
      * NetworkImpl is register by each Impl.
      * TNN model runs with the default_network.
