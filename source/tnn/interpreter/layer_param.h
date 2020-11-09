@@ -394,6 +394,13 @@ struct ExpandLayerParam : public LayerParam {
     std::vector<int> shape;
 };
 
+struct MatMulLayerParam : public LayerParam {
+    int weight_position = -1;
+    DimsVector matrix_a_dims;
+    DimsVector matrix_b_dims;
+    int axis            = 0;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

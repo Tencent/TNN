@@ -41,6 +41,8 @@ typedef enum {
     NNV12      = 0x12,
     //nchw: float
     NCHW_FLOAT = 0x20,
+    // nchw: int32
+    NC_INT32 = 0x21,
     //ncdhw: float
     NCDHW_FLOAT = 0x100,
     
