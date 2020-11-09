@@ -14,7 +14,6 @@
 
 #include "x86_reduce_op_layer_acc.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
-#include <iostream>
 
 namespace TNN_NS {
 

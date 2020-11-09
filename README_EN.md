@@ -9,7 +9,6 @@ At present, TNN has been launched to support various products in Youtu Lab and G
 ## Effect Example
 |    Face Detection(blazeface)     |   Object Detection(yolov5s)       |   Face Alignment<br>(from Tencent Youtu Lab)      |
 |:---------|:-----------|:---------|
-
 |[![blazeface](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br>iOS ✅  Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface)|[![yolov5s](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5)   |[![youtu_facealign](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment)|
 
 ## Quick Start

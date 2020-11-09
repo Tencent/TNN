@@ -17,7 +17,6 @@
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
 
 #include <vector>
-#include <iostream>
 #include <immintrin.h>
 
 namespace TNN_NS {

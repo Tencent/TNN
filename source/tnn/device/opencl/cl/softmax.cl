@@ -1,26 +1,27 @@
 #include "base.inc"
 
-__kernel void SoftmaxHeight(__read_only image2d_t input, __write_only image2d_t output,
+#define CACHE_SIZE 16
+
+__kernel void SoftmaxHeight(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only image2d_t output,
                       __private const int4 shape // NCHW
                       ) {
     int wc = get_global_id(0);
     int b = get_global_id(1);
-    if (wc < shape.y*shape.w && b < shape.x) {
-        /*Compute Max */
-        FLOAT4 maxValue = RI_F(input, SAMPLER, (int2)(wc, b*shape.z));
-        for (int i=1; i<shape.z; ++i) {
-            maxValue = fmax(maxValue, RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)));
-        }
-        /*Compute Exp Sum*/
-        FLOAT4 sumValue = (FLOAT4)0;
-        for (int i=0; i<shape.z; ++i) {
-            sumValue += exp(RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)) - maxValue);
-        }
-        /*Compute Result */
-        for (int i=0; i<shape.z; ++i) {
-            FLOAT4 value = exp(RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)) - maxValue) / sumValue;
-            WI_F(output, (int2)(wc, b*shape.z+i), value);
-        }
+    DEAL_NON_UNIFORM_DIM2(wc, b);
+    /*Compute Max */
+    FLOAT4 maxValue = RI_F(input, SAMPLER, (int2)(wc, b*shape.z));
+    for (int i=1; i<shape.z; ++i) {
+        maxValue = fmax(maxValue, RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)));
+    }
+    /*Compute Exp Sum*/
+    FLOAT4 sumValue = (FLOAT4)0;
+    for (int i=0; i<shape.z; ++i) {
+        sumValue += exp(RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)) - maxValue);
+    }
+    /*Compute Result */
+    for (int i=0; i<shape.z; ++i) {
+        FLOAT4 value = exp(RI_F(input, SAMPLER, (int2)(wc, b*shape.z+i)) - maxValue) / sumValue;
+        WI_F(output, (int2)(wc, b*shape.z+i), value);
     }
 }
 
@@ -108,4 +109,85 @@ __kernel void SoftmaxChannel(GLOBAL_SIZE_3_DIMS __read_only image2d_t input, __w
     }
 
     WI_F(output, (int2)(cur_out_width_pos, batch_height_idx), input_data);
+}
+
+__kernel void SoftmaxHeightLocal(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only image2d_t output,
+                                 __private const int4 shape,
+                                 __private const int local_block_size,
+                                 __local FLOAT4* local_output) {
+    const int local_id = get_local_id(0);
+    const int group_size = get_local_size(0);
+    const int global_id = get_global_id(0);
+    const int cw = global_id / group_size;
+    const int bh = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(global_id, bh);
+
+    FLOAT4 t;
+    FLOAT4 image_cache[CACHE_SIZE];
+    int pos = local_id;
+    image_cache[0] = RI_F(input, SAMPLER, (int2)(cw, shape.z * bh + pos));
+    local_output[local_id] = image_cache[0];
+
+    for (unsigned short i = 1; i < local_block_size; i++) {
+        pos += group_size;
+        if (pos >= shape.z) break;
+        if (i < CACHE_SIZE) {
+            image_cache[i] = RI_F(input, SAMPLER, (int2)(cw, shape.z * bh + pos));
+            local_output[local_id] = fmax(local_output[local_id], image_cache[i]);
+        } else {
+            t = RI_F(input, SAMPLER, (int2)(cw, shape.z * bh + pos));
+            local_output[local_id] = fmax(local_output[local_id], t);
+        }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (unsigned short stride = (group_size >> 1); stride > 0; stride >>= 1) {
+        if (local_id < stride) {
+            local_output[local_id] = fmax(local_output[local_id], local_output[local_id + stride]);
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    FLOAT4 max_value = local_output[0];
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    pos = local_id;
+    image_cache[0] = exp(image_cache[0] - max_value);
+    local_output[local_id] = image_cache[0];
+
+    for (unsigned short i = 1; i < local_block_size; i++) {
+        pos += group_size;
+        if (pos >= shape.z) break;
+        if (i < CACHE_SIZE) {
+            image_cache[i] = exp(image_cache[i] - max_value);
+            local_output[local_id] += image_cache[i];
+        } else {
+            t = RI_F(input, SAMPLER, (int2)(cw, shape.z * bh + pos));
+            local_output[local_id] += exp(t - max_value);
+        }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (unsigned short stride = (group_size >> 1); stride > 0; stride >>= 1) {
+        if (local_id < stride) {
+            local_output[local_id] += local_output[local_id + stride];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    FLOAT4 sum_value = local_output[0];
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    pos = local_id;
+    for (unsigned short i = 0; i < local_block_size; i++) {
+        if (pos >= shape.z) break;
+        if (i < CACHE_SIZE) {
+            WI_F(output, (int2)(cw, shape.z * bh + pos), image_cache[i] / sum_value);
+        } else {
+            t = RI_F(input, SAMPLER, (int2)(cw, shape.z * bh + pos));
+            WI_F(output, (int2)(cw, shape.z * bh + pos), exp(t - max_value) / sum_value);
+        }
+        pos += group_size;
+    }
 }

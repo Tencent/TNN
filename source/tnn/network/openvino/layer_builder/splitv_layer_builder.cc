@@ -44,12 +44,15 @@ Status SplitvOVLayerBuilder::Build() {
     std::vector<int> begins, ends;
     std::vector<int64_t> begin_mask, end_mask;
     size_t input_dims = input_node->get_input_shape(0).size();
-    ngraph::Shape dims_shape(input_dims);
+    ngraph::Shape dims_shape({input_dims});
 
     for (int i = 0; i < input_dims; i++) {
         if (i == param->axis) {
             begin_mask.push_back(0);
             end_mask.push_back(0);
+        } else {
+            begin_mask.push_back(1);
+            end_mask.push_back(1);
         }
         begins.push_back(0);
         ends.push_back(0);

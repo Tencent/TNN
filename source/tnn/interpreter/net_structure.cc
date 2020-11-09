@@ -14,6 +14,8 @@
 
 #include "tnn/interpreter/net_structure.h"
 
+#include <algorithm>
+
 namespace TNN_NS {
 
 std::shared_ptr<LayerInfo> GetLayerInfoFromName(NetStructure* net_struct, std::string name) {
@@ -26,6 +28,14 @@ std::shared_ptr<LayerInfo> GetLayerInfoFromName(NetStructure* net_struct, std::s
     }
 
     return layer_info;
+}
+
+bool GetQuantizedInfoFromNetStructure(NetStructure* net_struct) {
+    std::vector<std::shared_ptr<LayerInfo>> layers = net_struct->layers;
+    auto quantize_layer = std::find_if(layers.begin(), layers.end(), [](std::shared_ptr<LayerInfo> iter) {
+        return iter->param->quantized == true;
+    });
+    return quantize_layer != layers.end();
 }
 
 }  // namespace TNN_NS
