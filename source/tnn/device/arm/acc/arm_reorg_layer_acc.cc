@@ -28,16 +28,31 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     DataType data_type = inputs[0]->GetBlobDesc().data_type;
     auto input_dims    = inputs[0]->GetBlobDesc().dims;
     auto output_dims   = outputs[0]->GetBlobDesc().dims;
-    auto in_count      = input_dims[3] * input_dims[2] * input_dims[1];
-    auto out_count     = output_dims[3] * output_dims[2] * output_dims[1];
+
+    int stride  = param->stride;
+    int forward = param->forward;
+    int mode    = param->mode;
 
     AllocConvertBuffer(inputs, outputs);
 
     UnPackInputs(inputs);
     if (data_type == DATA_TYPE_FLOAT) {
-        NaiveReorg(reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle())), input_dims[3], input_dims[2],
-                    input_dims[1], input_dims[0], param->stride, param->reverse,
-                    reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle())));
+        auto *bottom_data = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle()));
+        auto *top_data = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle()));
+
+        if (forward) {
+            int batch             = input_dims[0];
+            int channel           = input_dims[1];
+            int height            = input_dims[2];
+            int width             = input_dims[3];
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, forward, mode, top_data);
+        } else {
+            int batch              = output_dims[0];
+            int channel            = output_dims[1];
+            int height             = output_dims[2];
+            int width              = output_dims[3];
+            NaiveReorg(bottom_data, width, height, channel, batch, stride, forward, mode, top_data);
+        }
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
     }
