@@ -33,7 +33,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     }
     execute_units_.resize(1);
 
-    if (OpenCLRuntime::GetInstance()->GetFp16Enable() && context->GetPrecision() != PRECISION_HIGH) {
+    if (context->GetPrecision() != PRECISION_HIGH) {
         LOGD("OpenCL Blob Pricision is Half!\n");
         for (auto blob : inputs) {
             blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
@@ -233,7 +233,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
         // use clBuffer
         ocl_handle.reset(new OpenCLMemory(TNN_CL_BUFFER));
         size_t type_size = sizeof(float);
-        if (opencl_runtime->GetFp16Enable())
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
             type_size = 2;
         cl::Buffer *buffer =
             new cl::Buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE, handle_size * type_size, nullptr, &ret);
@@ -256,7 +256,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
         int ocl_handle_w          = UP_DIV(output_channel, 4);
         int ocl_handle_h          = 1;
         cl_channel_type data_type = CL_FLOAT;
-        if (opencl_runtime->GetFp16Enable())
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
             data_type = CL_HALF_FLOAT;
         cl::Image2D *image =
             new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),

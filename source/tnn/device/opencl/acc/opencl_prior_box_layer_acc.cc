@@ -117,7 +117,7 @@ Status OpenCLPriorBoxLayerAcc::ConvertPriorBox(std::vector<float> &priorbox, Dim
     int ocl_priorbox_w        = UP_DIV(PRIORBOX_CHANNEL, 4);
     int ocl_priorbox_h        = priorbox.size() / PRIORBOX_CHANNEL;
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
