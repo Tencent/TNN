@@ -248,18 +248,13 @@ GpuInfo OpenCLRuntime::GetGpuInfo() {
     return gpu_info_;
 }
 
-bool OpenCLRuntime::GetFp16Enable() const {
-    return fp16_enable_;
+bool OpenCLRuntime::SetPrecision(Precision precision) {
+    precision_ = !support_fp16_ ? PRECISION_HIGH : precision;
+    return precision_ == precision;
 }
 
-//if support fp16, set fp16 will success.
-bool OpenCLRuntime::SetFp16Enable(bool enable) {
-    fp16_enable_ = enable && support_fp16_;
-    return fp16_enable_ == enable;
-}
-
-void OpenCLRuntime::SetPrecision(Precision precision) {
-    precision_ = precision;
+Precision OpenCLRuntime::GetPrecision() {
+    return precision_;
 }
 
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
@@ -271,7 +266,7 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
         force_fp32 = true;
     }
     //set default macro
-    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_) && !force_fp32) {
+    if (precision_ != PRECISION_HIGH && !force_fp32) {
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
         LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =

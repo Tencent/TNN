@@ -18,6 +18,8 @@ DEVICE_PLATFORM="iPhone+Simulator"
 SDK_VERSION=0.2.0
 TARGET_NAME="tnn"
 CONFIGURATION="Release"
+XCODE_VERSION=`xcodebuild -version | awk 'NR == 1 {print $2}'`
+XCODE_MAJOR_VERSION=`echo $XCODE_VERSION | awk -F. '{print $1}'`
 
 
 echo ' '
@@ -65,7 +67,11 @@ if [ $DEVICE_PLATFORM == "iPhone+Simulator" ]; then
   echo '******************** Build Simulator SDK ********************'
   # 指定 i386
   # xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator -arch i386 build
-  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  if [ $XCODE_MAJOR_VERSION -ge 12 ]; then
+      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator EXCLUDED_ARCHS=arm64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  else
+      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  fi
   # merge lib
   lipo -create "build/$CONFIGURATION-iphonesimulator/$TARGET_NAME.framework/$TARGET_NAME" "build/$CONFIGURATION-iphoneos/$TARGET_NAME.framework/$TARGET_NAME" -output "build/$TARGET_NAME.framework/$TARGET_NAME"
   # copy metallib
