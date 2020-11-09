@@ -112,7 +112,7 @@ double OpenCLPReluLayerAcc::GetFlops() {
 
 double OpenCLPReluLayerAcc::GetBandwidth() {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int data_type_size            = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    int data_type_size            = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     return 2.0 * DimsVectorUtils::Count(output_dims_) * data_type_size / 1000.0 / 1000.0;
 }
 #endif

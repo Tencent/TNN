@@ -182,7 +182,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     int climage_w             = UP_DIV(param_dims[1], 4) * param_dims[3];
     int climage_h             = param_dims[0] * param_dims[2];
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
                                          cl::ImageFormat(CL_RGBA, data_type), climage_w, climage_h, 0, nullptr, &ret);

@@ -92,9 +92,6 @@ endif()
 
 if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
-    if (TNN_UNIT_TEST_BENCHMARK MATCHES OFF)
-        add_definitions(-DOPENCL_FORCE_FP32)
-    endif()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
@@ -109,7 +106,6 @@ if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
-    add_definitions(-DOPENCL_FORCE_FP32)
     option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
 endif()
 
