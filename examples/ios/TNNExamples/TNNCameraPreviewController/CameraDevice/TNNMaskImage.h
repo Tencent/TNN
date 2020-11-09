@@ -12,20 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#include <memory>
+#include <vector>
 
-@interface TNNExamplesController () {
-}
+@interface TNNMaskImage : NSObject
+@property (nonatomic, strong, readonly) CALayer *imageLayer;
 
+- (instancetype)init;
+
+-(void)addToLayer:(CALayer *)layer;
+-(void)removeFromSuperLayer;
+
+- (void)showImage:(UIImage *)image atFrame:(CGRect)frame;
+
+
+- (void)hide;
 @end
 
-@implementation TNNExamplesController
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    [self.viewModel setupCustomView:self.customOptionView
-                       layoutHeight:self.customOptionViewHeight];
-}
-
-@end

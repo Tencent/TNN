@@ -12,20 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
+#import <Foundation/Foundation.h>
+#import "TNNViewModel.h"
 
-@interface TNNExamplesController () {
-}
+@interface TNNHairSegmentationViewModel : TNNViewModel
 
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
+
+//Object Detection
+-(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+
+//Custom UI control
+- (void)setupCustomView:(UIView *)view
+           layoutHeight:(NSLayoutConstraint *)viewLayoutHeight;
 @end
 
-@implementation TNNExamplesController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    [self.viewModel setupCustomView:self.customOptionView
-                       layoutHeight:self.customOptionViewHeight];
-}
-
-@end
