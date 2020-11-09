@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+#include <algorithm>
 #include <cstring>
 #include <sys/time.h>
 #include <float.h>

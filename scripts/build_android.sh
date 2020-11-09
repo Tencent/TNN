@@ -9,6 +9,7 @@ SHARED_LIB="ON"
 ARM="ON"
 OPENMP="ON"
 OPENCL="ON"
+#HUAWEI_NPU="ON"
 if [ -z "$HUAWEI_NPU" ]; then
     HUAWEI_NPU="OFF"
 fi

@@ -33,6 +33,7 @@ public:
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
     virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue = NULL);
     virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL);
+    virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL);
 
 private:
     void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride);

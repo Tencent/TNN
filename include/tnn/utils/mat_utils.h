@@ -70,6 +70,15 @@ struct PUBLIC PasteParam {
     int pad_value  = 0;
 };
 
+struct PUBLIC CopyMakeBorderParam {
+    int top    = 0;
+    int bottom = 0;
+    int left   = 0;
+    int right  = 0;
+    BorderType border_type = BORDER_TYPE_CONSTANT;
+    float border_val       = 0.0f;
+};
+
 class PUBLIC MatUtils {
 public:
     //copy cpu <-> device, cpu<->cpu, device<->device, src and dst dims must be equal.
@@ -110,6 +119,9 @@ public:
     // @param byte_size  buffer byte size
     // @return ret  return val 
     static Status GetMatByteSize(Mat& src, int& byte_size);
+
+    //src and dst device type must be same. param top, bottom, left and right must be non-negative.
+    static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue);
 };
 
 }  // namespace TNN_NS

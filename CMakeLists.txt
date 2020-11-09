@@ -95,9 +95,6 @@ endif()
 
 if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
-    if (TNN_UNIT_TEST_BENCHMARK MATCHES OFF)
-        add_definitions(-DOPENCL_FORCE_FP32)
-    endif()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
@@ -112,7 +109,6 @@ if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_MODEL_CONVERT_ENABLE
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
-    add_definitions(-DOPENCL_FORCE_FP32)
     option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
 endif()
 
@@ -262,12 +258,7 @@ if(TNN_HUAWEI_NPU_ENABLE)
         )
     endif()
     add_subdirectory(source/tnn/device/huawei_npu)
-
-    if(TNN_CPU_ENABLE)
-        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
-    else()
-        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
-    endif()
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
 endif()
 
 if(TNN_ATLAS_ENABLE)
