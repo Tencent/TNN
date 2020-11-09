@@ -136,6 +136,7 @@ void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, size_t s
                            size_t dst_step, size_t dst_depth, size_t width, __fp16 *bias, size_t relu);
 void Half2Float(float* dst, const __fp16* src, const size_t length);
 void Float2Half(__fp16* dst, const float* src, const size_t length);
+void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 #endif
 
 void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);

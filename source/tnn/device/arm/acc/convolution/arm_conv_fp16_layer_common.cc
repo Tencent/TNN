@@ -24,169 +24,186 @@
 #define NEON_FP16CONV_TILE_HW (16)
 
 static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x8_t v[28];
-    v[0] =  vld1q_f16(src_b + 0);
-    v[1] =  vld1q_f16(src_b + 8);
-    v[2] =  vld1q_f16(src_b + 16);
-    v[3] =  vld1q_f16(src_b + 24);
-    v[4] =  vld1q_f16(src_b + 32);
-    v[5] =  vld1q_f16(src_b + 40);
-    v[6] =  vld1q_f16(src_b + 48);
-    v[7] =  vld1q_f16(src_b + 56);
-    v[8] =  vld1q_f16(src_b + 64);
-    v[9] =  vld1q_f16(src_b + 72);
-    v[10] = vld1q_f16(src_b + 80);
-    v[11] = vld1q_f16(src_b + 88);
-    v[12] = vld1q_f16(src_b + 96);
-    v[13] = vld1q_f16(src_b + 104);
-    v[14] = vld1q_f16(src_b + 112);
-    v[15] = vld1q_f16(src_b + 120);
+    asm volatile (
+        "ldr q0,  [%1]\n\t"
+        "ldr q1,  [%1, #16]\n\t"
+        "ldr q2,  [%1, #32]\n\t"
+        "ldr q3,  [%1, #48]\n\t"
+        "ldr q4,  [%1, #64]\n\t"
+        "ldr q5,  [%1, #80]\n\t"
+        "ldr q6,  [%1, #96]\n\t"
+        "ldr q7,  [%1, #112]\n\t"
+        "ldr q8,  [%1, #128]\n\t"
+        "ldr q9,  [%1, #144]\n\t"
+        "ldr q10, [%1, #160]\n\t"
+        "ldr q11, [%1, #176]\n\t"
+        "ldr q12, [%1, #192]\n\t"
+        "ldr q13, [%1, #208]\n\t"
+        "ldr q14, [%1, #224]\n\t"
+        "ldr q15, [%1, #240]\n\t"
+        "zip1 v16.8h, v0.8h, v4.8h\n\t"
+        "zip1 v17.8h, v2.8h, v6.8h\n\t"
+        "zip1 v18.8h, v1.8h, v5.8h\n\t"
+        "zip1 v19.8h, v3.8h, v7.8h\n\t"
+        "zip2 v20.8h, v0.8h, v4.8h\n\t"
+        "zip2 v21.8h, v2.8h, v6.8h\n\t"
+        "zip2 v22.8h, v1.8h, v5.8h\n\t"
+        "zip2 v23.8h, v3.8h, v7.8h\n\t"
+        "zip1 v24.8h, v16.8h, v17.8h\n\t"
+        "zip1 v25.8h, v18.8h, v19.8h\n\t"
+        "zip2 v26.8h, v16.8h, v17.8h\n\t"
+        "zip2 v27.8h, v18.8h, v19.8h\n\t"
+        "zip1 v0.8h, v24.8h, v25.8h\n\t"
+        "zip2 v1.8h, v24.8h, v25.8h\n\t"
+        "zip1 v2.8h, v26.8h, v27.8h\n\t"
+        "zip2 v3.8h, v26.8h, v27.8h\n\t"
+        "zip1 v24.8h, v20.8h, v21.8h\n\t"
+        "zip1 v25.8h, v22.8h, v23.8h\n\t"
+        "zip2 v26.8h, v20.8h, v21.8h\n\t"
+        "zip2 v27.8h, v22.8h, v23.8h\n\t"
+        "zip1 v4.8h, v24.8h, v25.8h\n\t"
+        "zip2 v5.8h, v24.8h, v25.8h\n\t"
+        "zip1 v6.8h, v26.8h, v27.8h\n\t"
+        "zip2 v7.8h, v26.8h, v27.8h\n\t"
 
-    v[16] = vzip1q_f16(v[0],  v[4]);
-    v[17] = vzip1q_f16(v[2],  v[6]);
-    v[18] = vzip1q_f16(v[1],  v[5]);
-    v[19] = vzip1q_f16(v[3],  v[7]);
-    v[20] = vzip2q_f16(v[0],  v[4]);
-    v[21] = vzip2q_f16(v[2],  v[6]);
-    v[22] = vzip2q_f16(v[1],  v[5]);
-    v[23] = vzip2q_f16(v[3],  v[7]);
-    v[24] = vzip1q_f16(v[16], v[17]);
-    v[25] = vzip1q_f16(v[18], v[19]);
-    v[26] = vzip2q_f16(v[16], v[17]);
-    v[27] = vzip2q_f16(v[18], v[19]);
-    v[0]  = vzip1q_f16(v[24], v[25]);
-    v[1]  = vzip2q_f16(v[24], v[25]);
-    v[2]  = vzip1q_f16(v[26], v[27]);
-    v[3]  = vzip2q_f16(v[26], v[27]);
-    v[24] = vzip1q_f16(v[20], v[21]);
-    v[25] = vzip1q_f16(v[22], v[23]);
-    v[26] = vzip2q_f16(v[20], v[21]);
-    v[27] = vzip2q_f16(v[22], v[23]);
-    v[4]  = vzip1q_f16(v[24], v[25]);
-    v[5]  = vzip2q_f16(v[24], v[25]);
-    v[6]  = vzip1q_f16(v[26], v[27]);
-    v[7]  = vzip2q_f16(v[26], v[27]);
+        "zip1 v16.8h, v8.8h, v12.8h\n\t"
+        "zip1 v17.8h, v10.8h, v14.8h\n\t"
+        "zip1 v18.8h, v9.8h, v13.8h\n\t"
+        "zip1 v19.8h, v11.8h, v15.8h\n\t"
+        "zip2 v20.8h, v8.8h, v12.8h\n\t"
+        "zip2 v21.8h, v10.8h, v14.8h\n\t"
+        "zip2 v22.8h, v9.8h, v13.8h\n\t"
+        "zip2 v23.8h, v11.8h, v15.8h\n\t"
+        "zip1 v24.8h, v16.8h, v17.8h\n\t"
+        "zip1 v25.8h, v18.8h, v19.8h\n\t"
+        "zip2 v26.8h, v16.8h, v17.8h\n\t"
+        "zip2 v27.8h, v18.8h, v19.8h\n\t"
+        "zip1 v8.8h, v24.8h, v25.8h\n\t"
+        "zip2 v9.8h, v24.8h, v25.8h\n\t"
+        "zip1 v10.8h, v26.8h, v27.8h\n\t"
+        "zip2 v11.8h, v26.8h, v27.8h\n\t"
+        "zip1 v24.8h, v20.8h, v21.8h\n\t"
+        "zip1 v25.8h, v22.8h, v23.8h\n\t"
+        "zip2 v26.8h, v20.8h, v21.8h\n\t"
+        "zip2 v27.8h, v22.8h, v23.8h\n\t"
+        "zip1 v12.8h, v24.8h, v25.8h\n\t"
+        "zip2 v13.8h, v24.8h, v25.8h\n\t"
+        "zip1 v14.8h, v26.8h, v27.8h\n\t"
+        "zip2 v15.8h, v26.8h, v27.8h\n\t"
 
-    v[16] = vzip1q_f16(v[8],  v[12]);
-    v[17] = vzip1q_f16(v[10], v[14]);
-    v[18] = vzip1q_f16(v[9],  v[13]);
-    v[19] = vzip1q_f16(v[11], v[15]);
-    v[20] = vzip2q_f16(v[8],  v[12]);
-    v[21] = vzip2q_f16(v[10], v[14]);
-    v[22] = vzip2q_f16(v[9],  v[13]);
-    v[23] = vzip2q_f16(v[11], v[15]);
-    v[24] = vzip1q_f16(v[16], v[17]);
-    v[25] = vzip1q_f16(v[18], v[19]);
-    v[26] = vzip2q_f16(v[16], v[17]);
-    v[27] = vzip2q_f16(v[18], v[19]);
-    v[8]  = vzip1q_f16(v[24], v[25]);
-    v[9]  = vzip2q_f16(v[24], v[25]);
-    v[10] = vzip1q_f16(v[26], v[27]);
-    v[11] = vzip2q_f16(v[26], v[27]);
-    v[24] = vzip1q_f16(v[20], v[21]);
-    v[25] = vzip1q_f16(v[22], v[23]);
-    v[26] = vzip2q_f16(v[20], v[21]);
-    v[27] = vzip2q_f16(v[22], v[23]);
-    v[12] = vzip1q_f16(v[24], v[25]);
-    v[13] = vzip2q_f16(v[24], v[25]);
-    v[14] = vzip1q_f16(v[26], v[27]);
-    v[15] = vzip2q_f16(v[26], v[27]);
-    vst1q_f16(dst_b + 0,  v[0]);
-    vst1q_f16(dst_b + 8,  v[8]);
-    vst1q_f16(dst_b + 16, v[1]);
-    vst1q_f16(dst_b + 24, v[9]);
-    vst1q_f16(dst_b + 32, v[2]);
-    vst1q_f16(dst_b + 40, v[10]);
-    vst1q_f16(dst_b + 48, v[3]);
-    vst1q_f16(dst_b + 56, v[11]);
-    vst1q_f16(dst_b + 64, v[4]);
-    vst1q_f16(dst_b + 72, v[12]);
-    vst1q_f16(dst_b + 80, v[5]);
-    vst1q_f16(dst_b + 88, v[13]);
-    vst1q_f16(dst_b + 96, v[6]);
-    vst1q_f16(dst_b + 104, v[14]);
-    vst1q_f16(dst_b + 112, v[7]);
-    vst1q_f16(dst_b + 120, v[15]);
+        "str q0,  [%0]\n\t"
+        "str q8,  [%0, #16]\n\t"
+        "str q1,  [%0, #32]\n\t"
+        "str q9,  [%0, #48]\n\t"
+        "str q2,  [%0, #64]\n\t"
+        "str q10, [%0, #80]\n\t"
+        "str q3,  [%0, #96]\n\t"
+        "str q11, [%0, #112]\n\t"
+        "str q4,  [%0, #128]\n\t"
+        "str q12, [%0, #144]\n\t"
+        "str q5,  [%0, #160]\n\t"
+        "str q13, [%0, #176]\n\t"
+        "str q6,  [%0, #192]\n\t"
+        "str q14, [%0, #208]\n\t"
+        "str q7,  [%0, #224]\n\t"
+        "str q15, [%0, #240]\n\t"
+        :
+        :"r"(dst_b),"r"(src_b)
+        :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
+        "v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20",
+        "v21","v22","v23","v24","v25","v26","v27"
+    );
 }
 
 static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x8_t v[16];
-    v[0] = vld1q_f16(src_b + 0);
-    v[1] = vld1q_f16(src_b + 8);
-    v[2] = vld1q_f16(src_b + 16);
-    v[3] = vld1q_f16(src_b + 24);
-    v[4] = vld1q_f16(src_b + 32);
-    v[5] = vld1q_f16(src_b + 40);
-    v[6] = vld1q_f16(src_b + 48);
-    v[7] = vld1q_f16(src_b + 56);
-    v[8]  = vzip1q_f16(v[0],  v[4]);
-    v[9]  = vzip1q_f16(v[2],  v[6]);
-    v[10] = vzip1q_f16(v[1],  v[5]);
-    v[11] = vzip1q_f16(v[3],  v[7]);
-    v[12] = vzip2q_f16(v[0],  v[4]);
-    v[13] = vzip2q_f16(v[2],  v[6]);
-    v[14] = vzip2q_f16(v[1],  v[5]);
-    v[15] = vzip2q_f16(v[3],  v[7]);
-    v[0]  = vzip1q_f16(v[8],  v[9]);
-    v[1]  = vzip1q_f16(v[10], v[11]);
-    v[2]  = vzip2q_f16(v[8],  v[9]);
-    v[3]  = vzip2q_f16(v[10], v[11]);
-    v[8]  = vzip1q_f16(v[0],  v[1]);
-    v[9]  = vzip2q_f16(v[0],  v[1]);
-    v[10] = vzip1q_f16(v[2],  v[3]);
-    v[11] = vzip2q_f16(v[2],  v[3]);
-    v[0]  = vzip1q_f16(v[12], v[13]);
-    v[1]  = vzip1q_f16(v[14], v[15]);
-    v[2]  = vzip2q_f16(v[12], v[13]);
-    v[3]  = vzip2q_f16(v[14], v[15]);
-    v[12] = vzip1q_f16(v[0],  v[1]);
-    v[13] = vzip2q_f16(v[0],  v[1]);
-    v[14] = vzip1q_f16(v[2],  v[3]);
-    v[15] = vzip2q_f16(v[2],  v[3]);
-    vst1q_f16(dst_b + 0,  v[8]);
-    vst1q_f16(dst_b + 8,  v[9]);
-    vst1q_f16(dst_b + 16, v[10]);
-    vst1q_f16(dst_b + 24, v[11]);
-    vst1q_f16(dst_b + 32, v[12]);
-    vst1q_f16(dst_b + 40, v[13]);
-    vst1q_f16(dst_b + 48, v[14]);
-    vst1q_f16(dst_b + 56, v[15]);
+    asm volatile (
+        "ldr q0,  [%1]\n\t"
+        "ldr q1,  [%1, #16]\n\t"
+        "ldr q2,  [%1, #32]\n\t"
+        "ldr q3,  [%1, #48]\n\t"
+        "ldr q4,  [%1, #64]\n\t"
+        "ldr q5,  [%1, #80]\n\t"
+        "ldr q6,  [%1, #96]\n\t"
+        "ldr q7,  [%1, #112]\n\t"
+        "zip1 v8.8h, v0.8h, v4.8h\n\t"
+        "zip1 v9.8h, v2.8h, v6.8h\n\t"
+        "zip1 v10.8h, v1.8h, v5.8h\n\t"
+        "zip1 v11.8h, v3.8h, v7.8h\n\t"
+        "zip2 v12.8h, v0.8h, v4.8h\n\t"
+        "zip2 v13.8h, v2.8h, v6.8h\n\t"
+        "zip2 v14.8h, v1.8h, v5.8h\n\t"
+        "zip2 v15.8h, v3.8h, v7.8h\n\t"
+        "zip1 v0.8h, v8.8h, v9.8h\n\t"
+        "zip1 v1.8h, v10.8h, v11.8h\n\t"
+        "zip2 v2.8h, v8.8h, v9.8h\n\t"
+        "zip2 v3.8h, v10.8h, v11.8h\n\t"
+        "zip1 v4.8h, v12.8h, v13.8h\n\t"
+        "zip1 v5.8h, v14.8h, v15.8h\n\t"
+        "zip2 v6.8h, v12.8h, v13.8h\n\t"
+        "zip2 v7.8h, v14.8h, v15.8h\n\t"
+        "zip1 v8.8h, v0.8h, v1.8h\n\t"
+        "zip2 v9.8h, v0.8h, v1.8h\n\t"
+        "zip1 v10.8h, v2.8h, v3.8h\n\t"
+        "zip2 v11.8h, v2.8h, v3.8h\n\t"
+        "zip1 v12.8h, v4.8h, v5.8h\n\t"
+        "zip2 v13.8h, v4.8h, v5.8h\n\t"
+        "zip1 v14.8h, v6.8h, v7.8h\n\t"
+        "zip2 v15.8h, v6.8h, v7.8h\n\t"
+
+        "str q8,  [%0]\n\t"
+        "str q9,  [%0, #16]\n\t"
+        "str q10,  [%0, #32]\n\t"
+        "str q11,  [%0, #48]\n\t"
+        "str q12,  [%0, #64]\n\t"
+        "str q13, [%0, #80]\n\t"
+        "str q14,  [%0, #96]\n\t"
+        "str q15, [%0, #112]\n\t"
+        :
+        :"r"(dst_b),"r"(src_b)
+        :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
+        "v10","v11","v12","v13","v14","v15"
+    );
 }
 
 static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x4_t v[16];
-    v[0] = vld1_f16(src_b + 0);
-    v[1] = vld1_f16(src_b + 4);
-    v[2] = vld1_f16(src_b + 8);
-    v[3] = vld1_f16(src_b + 12);
-    v[4] = vld1_f16(src_b + 16);
-    v[5] = vld1_f16(src_b + 20);
-    v[6] = vld1_f16(src_b + 24);
-    v[7] = vld1_f16(src_b + 28);
-    v[8]  = vzip1_f16(v[0],  v[4]);
-    v[9]  = vzip1_f16(v[2],  v[6]);
-    v[10] = vzip2_f16(v[0],  v[4]);
-    v[11] = vzip2_f16(v[2],  v[6]);
-    v[12] = vzip1_f16(v[1],  v[5]);
-    v[13] = vzip1_f16(v[3],  v[7]);
-    v[14] = vzip2_f16(v[1],  v[5]);
-    v[15] = vzip2_f16(v[3],  v[7]);
-    v[0]  = vzip1_f16(v[8],  v[9]);
-    v[1]  = vzip2_f16(v[8],  v[9]);
-    v[2]  = vzip1_f16(v[10], v[11]);
-    v[3]  = vzip2_f16(v[10], v[11]);
-    v[4]  = vzip1_f16(v[12], v[13]);
-    v[5]  = vzip2_f16(v[12], v[13]);
-    v[6]  = vzip1_f16(v[14], v[15]);
-    v[7]  = vzip2_f16(v[14], v[15]);
-    vst1_f16(dst_b + 0,  v[0]);
-    vst1_f16(dst_b + 4,  v[1]);
-    vst1_f16(dst_b + 8,  v[2]);
-    vst1_f16(dst_b + 12, v[3]);
-    vst1_f16(dst_b + 16, v[4]);
-    vst1_f16(dst_b + 20, v[5]);
-    vst1_f16(dst_b + 24, v[6]);
-    vst1_f16(dst_b + 28, v[7]);
+    asm volatile (
+        "ldr d0, [%1]\n\t"
+        "ldr d1, [%1, #8]\n\t"
+        "ldr d2, [%1, #16]\n\t"
+        "ldr d3, [%1, #24]\n\t"
+        "ldr d4, [%1, #32]\n\t"
+        "ldr d5, [%1, #40]\n\t"
+        "ldr d6, [%1, #48]\n\t"
+        "ldr d7, [%1, #56]\n\t"
+        "zip1 v8.4h, v0.4h, v4.4h\n\t"
+        "zip1 v9.4h, v2.4h, v6.4h\n\t"
+        "zip2 v10.4h, v0.4h, v4.4h\n\t"
+        "zip2 v11.4h, v2.4h, v6.4h\n\t"
+        "zip1 v12.4h, v1.4h, v5.4h\n\t"
+        "zip1 v13.4h, v3.4h, v7.4h\n\t"
+        "zip2 v14.4h, v1.4h, v5.4h\n\t"
+        "zip2 v15.4h, v3.4h, v7.4h\n\t"
+        "zip1 v0.4h, v8.4h, v9.4h\n\t"
+        "zip2 v1.4h, v8.4h, v9.4h\n\t"
+        "zip1 v2.4h, v10.4h, v11.4h\n\t"
+        "zip2 v3.4h, v10.4h, v11.4h\n\t"
+        "zip1 v4.4h, v12.4h, v13.4h\n\t"
+        "zip2 v5.4h, v12.4h, v13.4h\n\t"
+        "zip1 v6.4h, v14.4h, v15.4h\n\t"
+        "zip2 v7.4h, v14.4h, v15.4h\n\t"
+        "str d0, [%0]\n\t"
+        "str d1, [%0, #8]\n\t"
+        "str d2, [%0, #16]\n\t"
+        "str d3, [%0, #24]\n\t"
+        "str d4, [%0, #32]\n\t"
+        "str d5, [%0, #40]\n\t"
+        "str d6, [%0, #48]\n\t"
+        "str d7, [%0, #56]\n\t"
+        :
+        :"r"(dst_b),"r"(src_b)
+        :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
+        "v10","v11","v12","v13","v14","v15"
+    );
 }
 
 static void load_repack_half_align(
@@ -574,8 +591,7 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     size_t img2col_size = tile_blk_size * crs_r8;
     size_t repack_size = NEON_FP16CONV_TILE_HW * crs_r8;
-    size_t out_tmp_size = k_param_->oc_r8 * tile_blk_size;
-    size_t workspace_size_per_thread = img2col_size + repack_size + out_tmp_size + NEON_KERNEL_EXTRA_LOAD;
+    size_t workspace_size_per_thread = img2col_size + repack_size + NEON_KERNEL_EXTRA_LOAD;
     __fp16 *work_space = reinterpret_cast<__fp16 *>(
         context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
 
@@ -600,8 +616,7 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
             auto repack_src = img2col_buffer;
             auto repack_dst = img2col_buffer;
-            auto outptr_tmp = img2col_buffer + crs_r8 * tile_blk_size + NEON_KERNEL_EXTRA_LOAD;
-            auto repack_tmp = outptr_tmp + k_param_->oc_r8 * tile_blk_size;
+            auto repack_tmp = img2col_buffer + crs_r8 * tile_blk_size + NEON_KERNEL_EXTRA_LOAD;
 
             int i = 0;
             for (; i <= real_hw_tile - NEON_FP16CONV_TILE_HW; i += NEON_FP16CONV_TILE_HW) {
@@ -617,15 +632,9 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                                 tile_eff, ic, conv_param->kernels[1] * conv_param->kernels[0]);
             }
 
-            GEMM_FP16_N8(outptr_tmp, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
-                        crs, real_hw_tile * 8, k_param_->oc_r8, real_hw_tile, 
+            GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
+                        crs, 8 * k_param_->ow * k_param_->oh, k_param_->oc_r8, real_hw_tile, 
                         reinterpret_cast<__fp16 *>(k_param_->bias), conv_param->activation_type);
-
-            for (int c = 0; c <= k_param_->oc_r8 - 8; c += 8) {
-                auto src_b = outptr_tmp + c * real_hw_tile;
-                auto dst_b = output_kernel + c * k_param_->ow * k_param_->oh;
-                memcpy(dst_b, src_b, real_hw_tile * 8 * sizeof(__fp16));
-            }
         }
     }
     return TNN_OK;

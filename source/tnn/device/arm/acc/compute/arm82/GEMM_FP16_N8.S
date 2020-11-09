@@ -97,6 +97,30 @@ fmla \z2, \y, v3.h[2]
 fmla \z3, \y, v3.h[3]
 .endm
 
+.macro COMPUTE_M3_UNIT_0 z0 z1 z2 y
+fmla \z0, \y, v0.h[0]
+fmla \z1, \y, v0.h[1]
+fmla \z2, \y, v0.h[2]
+.endm
+
+.macro COMPUTE_M3_UNIT_1 z0 z1 z2 y
+fmla \z0, \y, v1.h[0]
+fmla \z1, \y, v1.h[1]
+fmla \z2, \y, v1.h[2]
+.endm
+
+.macro COMPUTE_M3_UNIT_2 z0 z1 z2 y
+fmla \z0, \y, v2.h[0]
+fmla \z1, \y, v2.h[1]
+fmla \z2, \y, v2.h[2]
+.endm
+
+.macro COMPUTE_M3_UNIT_3 z0 z1 z2 y
+fmla \z0, \y, v3.h[0]
+fmla \z1, \y, v3.h[1]
+fmla \z2, \y, v3.h[2]
+.endm
+
 //step multi by sizeof(__fp16)
 lsl x4, x4, #1
 
@@ -564,7 +588,6 @@ L1:
     mov v8.16b,  v31.16b
     mov v9.16b,  v31.16b
     mov v10.16b, v31.16b
-    mov v11.16b, v31.16b
 
     cmp x13, #7
     ble L1MAC8CEND
@@ -574,47 +597,47 @@ L1MAC8C:
     ldr d2, [x1, #16]
     ldr q5, [x2, #16]
     ldr q6, [x2, #32]
-    // oc8ic0 * [ic0m0, ic0m3]
-    COMPUTE_M4_UNIT_0 v8.8h,  v9.8h,  v10.8h, v11.8h, v4.8h
+    // oc8ic0 * [ic0m0, ic0m2]
+    COMPUTE_M3_UNIT_0 v8.8h,  v9.8h,  v10.8h, v4.8h
 
     ldr d3, [x1, #24]
     ldr d0, [x1, #32]
     ldr q7, [x2, #48]
     ldr q4, [x2, #64]
-    // oc8ic1 * [ic1m0, ic1m3]
-    COMPUTE_M4_UNIT_1 v8.8h,  v9.8h,  v10.8h, v11.8h, v5.8h
+    // oc8ic1 * [ic1m0, ic1m2]
+    COMPUTE_M3_UNIT_1 v8.8h,  v9.8h,  v10.8h, v5.8h
 
     ldr d1, [x1, #40]
     ldr q5, [x2, #80]
-    // oc8ic2 * [ic2m0, ic2m3]
-    COMPUTE_M4_UNIT_2 v8.8h,  v9.8h,  v10.8h, v11.8h, v6.8h
+    // oc8ic2 * [ic2m0, ic2m2]
+    COMPUTE_M3_UNIT_2 v8.8h,  v9.8h,  v10.8h, v6.8h
 
     ldr d2, [x1, #48]
     ldr q6, [x2, #96]
-    // oc8ic3 * [ic3m0, ic3m3]
-    COMPUTE_M4_UNIT_3 v8.8h,  v9.8h,  v10.8h, v11.8h, v7.8h
+    // oc8ic3 * [ic3m0, ic3m2]
+    COMPUTE_M3_UNIT_3 v8.8h,  v9.8h,  v10.8h, v7.8h
 
     ldr d3, [x1, #56]
     ldr q7, [x2, #112]
     // add x1, x1, x8
     add x1, x1, #64
     add x2, x2, #128
-    // oc8ic4 * [ic4m0, ic4m3]
-    COMPUTE_M4_UNIT_0 v8.8h,  v9.8h,  v10.8h, v11.8h, v4.8h
+    // oc8ic4 * [ic4m0, ic4m2]
+    COMPUTE_M3_UNIT_0 v8.8h,  v9.8h,  v10.8h, v4.8h
 
     ldr d0, [x1, #0]
     prfm pldl1keep, [x1, #256]
-    // oc8ic5 * [ic5m0, ic5m3]
-    COMPUTE_M4_UNIT_1 v8.8h,  v9.8h,  v10.8h, v11.8h, v5.8h
+    // oc8ic5 * [ic5m0, ic5m2]
+    COMPUTE_M3_UNIT_1 v8.8h,  v9.8h,  v10.8h, v5.8h
 
     ldr q4, [x2, #0]
     prfm pldl1keep, [x2, #512]
-    // oc8ic6 * [ic6m0, ic6m3]
-    COMPUTE_M4_UNIT_2 v8.8h,  v9.8h,  v10.8h, v11.8h, v6.8h
+    // oc8ic6 * [ic6m0, ic6m2]
+    COMPUTE_M3_UNIT_2 v8.8h,  v9.8h,  v10.8h, v6.8h
 
     subs x3, x3, #8
-    // oc8ic7 * [ic7m0, ic7m3]
-    COMPUTE_M4_UNIT_3 v8.8h,  v9.8h,  v10.8h, v11.8h, v7.8h
+    // oc8ic7 * [ic7m0, ic7m2]
+    COMPUTE_M3_UNIT_3 v8.8h,  v9.8h,  v10.8h, v7.8h
 
     bne L1MAC8C
 
@@ -627,31 +650,43 @@ L1MAC1C:
     add x1, x1, #8
     add x2, x2, #16
     subs x20, x20, #1
-    // oc8ic0 * [ic0m0, ic0m3]
-    COMPUTE_M4_UNIT_0 v8.8h,  v9.8h,  v10.8h, v11.8h, v4.8h
+    // oc8ic0 * [ic0m0, ic0m2]
+    COMPUTE_M3_UNIT_0 v8.8h,  v9.8h,  v10.8h, v4.8h
     ldr q0, [x1]
     ldr q4, [x2]
     bne L1MAC1C
 
 L1MAC1CEND:
-    cbz x22, Store1_Align4
+    cbz x22, Store1
     eor v0.16b, v0.16b, v0.16b
     fmax v8.8h,  v8.8h,  v0.8h
     fmax v9.8h,  v9.8h,  v0.8h
     fmax v10.8h, v10.8h, v0.8h
-    fmax v11.8h, v11.8h, v0.8h
 
     // if relu6
     cmp x22, #2
-    bne Store1_Align4
+    bne Store1
     // 6.0f
     movi v1.8h, #0x46, lsl #8
     fmin v8.8h,  v8.8h,  v1.8h
     fmin v9.8h,  v9.8h,  v1.8h
     fmin v10.8h, v10.8h, v1.8h
-    fmin v11.8h, v11.8h, v1.8h
-Store1_Align4:
-    st1 {v8.8h, v9.8h, v10.8h, v11.8h}, [x0]
+Store1:
+    cmp x6, #3
+    beq Store1_3reg
+    cmp x6, #2
+    beq Store1_2reg
+    cmp x6, #1
+    beq Store1_1reg
+Store1_3reg:
+    st1 {v8.8h, v9.8h, v10.8h}, [x0]
+    b Store1_End
+Store1_2reg:
+    st1 {v8.8h, v9.8h}, [x0]
+    b Store1_End
+Store1_1reg:
+    st1 {v8.8h}, [x0]
+Store1_End:
     // reset ptr and counters
     mov x2, x12
     mov x3, x13
