@@ -11,6 +11,18 @@
                          __private const int cw4,                                   \
                          __private const int axis_n                                 \
 
+#define REDUCE_MULTI_AXIS_INPUTS GLOBAL_SIZE_2_DIMS __read_only image2d_t input,    \
+                            __write_only image2d_t output,                          \
+                            __private const int input_n,                            \
+                            __private const int input_c,                            \
+                            __private const int input_h,                            \
+                            __private const int input_w,                            \
+                            __private const int c4_n,                               \
+                            __private const int c4_r,                               \
+                            __private const int cw4,                                \
+                            __private const int axis_n,                             \
+                            __private const int4 axis_nhwc                          \
+
 #define REDUCE_LOCAL_INPUTS GLOBAL_SIZE_2_DIMS __read_only image2d_t input,         \
                             __write_only image2d_t output,                          \
                             __private const int input_n,                            \
@@ -37,6 +49,53 @@
         local_output[local_id] = POSTOPERATOR(local_output[local_id]);              \
         WI_F(output, (int2)(cw, bh), local_output[local_id]);                       \
     }                                                                               \
+
+__kernel void ReduceMultiAxis(REDUCE_MULTI_AXIS_INPUTS) {
+    const int cw = get_global_id(0);
+    const int bh = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(cw, bh);
+
+    FLOAT4 t;
+    FLOAT4 r = (FLOAT4)(DATAINIT);
+    int n_reduce_len = select(1, input_n, axis_nhwc.x);
+    int h_reduce_len = select(1, input_h, axis_nhwc.y);
+    int w_reduce_len = select(1, input_w, axis_nhwc.z);
+
+    for (unsigned short n = 0; n < n_reduce_len; n++) {
+        for (unsigned short h = 0; h < h_reduce_len; h++) {
+            for (unsigned short w = 0; w < w_reduce_len; w++) {
+                for (unsigned short c_4 = 0; c_4 < select(1, c4_n, axis_nhwc.w); c_4++) {
+                    t = RI_F(input, SAMPLER, (int2)(input_w * c_4 + w + cw * w_reduce_len, input_h * n + h + bh * h_reduce_len));
+                    OPERATOR(r, t)
+                }
+
+                if (axis_nhwc.w) {
+                    if (c4_r == 1) {
+                        t = RI_F(input, SAMPLER, (int2)(cw4 + w + cw, input_h * n + h + bh));
+                        OPERATOR(r.x, t.x)
+                    } else if (c4_r == 2) {
+                        t = RI_F(input, SAMPLER, (int2)(cw4 + w + cw, input_h * n + h + bh));
+                        OPERATOR(r.x, t.x)
+                        OPERATOR(r.y, t.y)
+                    } else if (c4_r == 3) {
+                        t = RI_F(input, SAMPLER, (int2)(cw4 + w + cw, input_h * n + h + bh));
+                        OPERATOR(r.x, t.x)
+                        OPERATOR(r.y, t.y)
+                        OPERATOR(r.z, t.z)
+                    }
+                }
+            }
+        }
+    }
+
+    if (axis_nhwc.w) {
+        r.x = INNEROPERATOR(r);
+    }
+    r = POSTOPERATOR(r);
+
+    WI_F(output, (int2)(cw, bh), r);
+}
 
 __kernel void ReduceC0(REDUCE_INPUTS) {
     const int cw = get_global_id(0);

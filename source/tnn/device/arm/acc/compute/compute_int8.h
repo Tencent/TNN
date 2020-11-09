@@ -64,10 +64,14 @@ typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
 
-void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
-                     long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
-                     const int8_t* weightPtr, const int32_t* biasPtr, const float* scalePtr, long stride, long pad,
-                     ArmKernelParam* param);
+void DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, long fw, long fh,
+                     long weight_y_step, long src_y_step, const float* scale, long dst_depth);
+
+void DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                        long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z);
+
+void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                   long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z);
 
 void ReluInt8(int8_t* dst, const int8_t* src, long len);
 
