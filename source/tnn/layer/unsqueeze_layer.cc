@@ -23,6 +23,8 @@ Status UnsqueezeLayer::InferOutputDataType() {
 }
 
 Status UnsqueezeLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     //ASSERT(input_blobs_.size() == 1);
     auto layer_param      = dynamic_cast<UnsqueezeLayerParam*>(param_);
     auto layer_resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);

@@ -28,6 +28,8 @@ Status CastLayer::InferOutputDataType() {
 }
 
 Status CastLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 

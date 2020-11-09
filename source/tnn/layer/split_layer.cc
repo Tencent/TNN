@@ -25,6 +25,8 @@ Status SplitLayer::InferOutputDataType() {
 }
 
 Status SplitLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
 
     for (size_t i = 0; i < output_blobs_.size(); i++) {

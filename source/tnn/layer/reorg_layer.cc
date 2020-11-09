@@ -25,6 +25,8 @@ Status ReorgLayer::InferOutputDataType() {
 }
 
 Status ReorgLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
 
     ReorgLayerParam* reorg_param = dynamic_cast<ReorgLayerParam*>(param_);

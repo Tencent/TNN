@@ -29,6 +29,8 @@ Status ShapeLayer::InferOutputDataType() {
 }
 
 Status ShapeLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     ASSERT(input_blobs_.size() == 1);
     const auto& input_blob = input_blobs_[0];
     const auto& output_blob = output_blobs_[0];

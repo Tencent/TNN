@@ -19,6 +19,8 @@
 namespace TNN_NS {
 
 Status ElementwiseLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
 
     auto dims0       = input_blob->GetBlobDesc().dims;

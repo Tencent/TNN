@@ -26,6 +26,8 @@ Status PermuteLayer::InferOutputDataType() {
 }
 
 Status PermuteLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto permute_param = dynamic_cast<PermuteLayerParam*>(param_);
     CHECK_PARAM_NULL(permute_param);
 

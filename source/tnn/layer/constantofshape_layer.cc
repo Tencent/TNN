@@ -25,7 +25,12 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     CHECK_PARAM_NULL(layer_resource);
     
     for (auto& iter : output_blobs_) {
-        iter->flag = DATA_FLAG_CHANGE_ALWAYS | DATA_FLAG_ALLOCATE_IN_FORWORD;
+        int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWORD;
+        if (runtime_model_ == RUNTIME_MODE_NORMAL &&
+            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            allocate_status = 0;
+        }
+        iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | allocate_status;
         iter->GetBlobDesc().data_type = layer_resource->value.GetDataType();
     }
     
@@ -33,6 +38,8 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
 }
 
 Status ConstantOfShapeLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
     auto data_type = input_blobs_[0]->GetBlobDesc().data_type;
     if (data_type != DATA_TYPE_INT32) {

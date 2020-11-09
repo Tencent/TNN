@@ -71,6 +71,8 @@ Status Pooling3DLayer::InferOutputDataType() {
 }
 
 Status Pooling3DLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
 
     PoolingLayerParam* pool_param = dynamic_cast<PoolingLayerParam*>(param_);

@@ -74,6 +74,8 @@ bool SupportBroadcast(DimsVector dim0, DimsVector dim1) {
 }
 
 Status MultidirBroadcastLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);

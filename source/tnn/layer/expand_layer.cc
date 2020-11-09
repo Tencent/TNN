@@ -26,6 +26,8 @@ Status ExpandLayer::InferOutputDataType() {
 }
 
 Status ExpandLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     if (input_blobs_.size() != 1) {
         return TNN_OK;
     }

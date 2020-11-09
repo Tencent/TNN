@@ -23,6 +23,8 @@ Status RoiPoolingLayer::InferOutputDataType() {
 }
 
 Status RoiPoolingLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
     Blob* rpn_blob   = input_blobs_[1];  // of shape <n, num_rois, 5, 1 ,1>
 

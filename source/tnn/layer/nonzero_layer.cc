@@ -22,13 +22,20 @@ Status NonZeroLayer::InferOutputDataType() {
     BaseLayer::InferOutputDataType();
     
     for (auto& iter : output_blobs_) {
-        iter->flag = DATA_FLAG_CHANGE_ALWAYS | DATA_FLAG_ALLOCATE_IN_FORWORD;
+        int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWORD;
+        if (runtime_model_ == RUNTIME_MODE_NORMAL &&
+            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            allocate_status = 0;
+        }
+        iter->flag = iter->flag | allocate_status;
         iter->GetBlobDesc().data_type = DATA_TYPE_INT32;
     }
     return TNN_OK;
 }
 
 Status NonZeroLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto input_dims  = input_blobs_[0]->GetBlobDesc().dims;
     int input_dim_size = (int)input_dims.size();
     int count = DimsVectorUtils::Count(input_dims);

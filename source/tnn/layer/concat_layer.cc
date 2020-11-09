@@ -41,6 +41,8 @@ Status ConcatLayer::InferOutputDataType() {
 }
 
 Status ConcatLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     ConcatLayerParam* concat_param = dynamic_cast<ConcatLayerParam*>(param_);
     CHECK_PARAM_NULL(concat_param);
 

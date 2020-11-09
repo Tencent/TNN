@@ -23,7 +23,8 @@ Status SqueezeLayer::InferOutputDataType() {
 }
 
 Status SqueezeLayer::InferOutputShape() {
-    //ASSERT(input_blobs_.size() == 1);
+    BaseLayer::InferOutputShape();
+    
     auto layer_param      = dynamic_cast<SqueezeLayerParam*>(param_);
     auto layer_resource = dynamic_cast<SqueezeLayerResource*>(resource_);
     

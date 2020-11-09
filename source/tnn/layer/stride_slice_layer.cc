@@ -25,6 +25,8 @@ Status StrideSliceLayer::InferOutputDataType() {
 }
 
 Status StrideSliceLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     StrideSliceLayerParam* layer_param = dynamic_cast<StrideSliceLayerParam*>(param_);
     if (!layer_param) {
         LOGE("StrideSliceLayer param is nil\n");

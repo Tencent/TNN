@@ -24,6 +24,8 @@ Status UpsampleLayer::InferOutputDataType() {
 }
 
 Status UpsampleLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob = input_blobs_[0];
 
     UpsampleLayerParam* layer_param =

@@ -42,6 +42,8 @@ Status GatherLayer::InferOutputDataType() {
 }
 
 Status GatherLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);

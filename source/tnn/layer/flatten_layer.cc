@@ -25,6 +25,8 @@ Status FlattenLayer::InferOutputDataType() {
 }
 
 Status FlattenLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     ReshapeLayerParam* reshape_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(reshape_param);
 
