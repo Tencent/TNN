@@ -19,7 +19,8 @@
 
 namespace TNN_NS {
 
-class ReorgLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool>> {};
+class ReorgLayerTest : public LayerTest,
+                       public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReorgLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(36, 72),
@@ -27,7 +28,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReorgLayerTest,
                                             // stride
                                             testing::Values(2, 3),
                                             // reverse
-                                            testing::Values(true, false)));
+                                            testing::Values(true, false), testing::Values(0, 1)));
 
 TEST_P(ReorgLayerTest, ReorgLayer) {
     // get param
@@ -35,11 +36,12 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
     int stride     = std::get<3>(GetParam());
-    bool reverse   = std::get<4>(GetParam());
-
+    bool forward   = std::get<4>(GetParam());
+    int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_METAL == dev) {
+    if (mode == 1 && forward == 0) {
+        // illegal case
         GTEST_SKIP();
     }
     // blob desc
@@ -50,7 +52,8 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     ReorgLayerParam param;
     param.name    = "Reorg";
     param.stride  = stride;
-    param.reverse = reverse;
+    param.forward = forward;
+    param.mode    = mode;
 
     // resource
     Run(LAYER_REORG, &param, NULL, inputs_desc, outputs_desc);

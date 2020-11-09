@@ -71,7 +71,7 @@ private:
 
     Status CreateInputBlobs(std::vector<BlobDesc>& inputs_desc);
 
-    Status InitInputBlobsDataRandom();
+    Status InitInputBlobsDataRandom(LayerType type);
 
     Status InitLayers(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
                       std::vector<BlobDesc>& outputs_desc);

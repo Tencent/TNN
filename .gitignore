@@ -484,4 +484,6 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+# opencl generated code
+opencl_program.cc
 

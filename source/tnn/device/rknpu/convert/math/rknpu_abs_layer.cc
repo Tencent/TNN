@@ -12,26 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_reduce_layer_acc.h"
+#include "rknpu_unary_operator.h"
+#include "tnn/device/rknpu/convert/rknpu_base_layer.h"
+#include "tnn/device/rknpu/convert/rknpu_utils.h"
 
 namespace TNN_NS {
 
-typedef struct arm_reduce_sum_square_operator : arm_reduce_operator {
-    virtual Float4 PreCalculate(Float4 &v) {
-        return v * v;
-    };
+class RknpuAbsLayer : public RknpuUnaryLayer {
+public:
+    RknpuAbsLayer(LayerType ignore) : RknpuUnaryLayer(LAYER_ABS) {}
+    ~RknpuAbsLayer() {}
 
-    virtual float PreCalculate(const float &v) {
-        return v * v;
-    };
+protected:
+    Status Convert() {
+        return RknpuUnaryLayer::UnaryConvert(rk::nn::OperatorType::ABS);
+    }
+};
 
-    virtual bool NeedPreCalculate() {
-        return true;
-    };
-} ARM_REDUCE_SUM_SQUARE_OP;
-
-DECLARE_ARM_REDUCE_ACC(ReduceSumSquare, ARM_REDUCE_SUM_SQUARE_OP);
-
-REGISTER_ARM_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
+REGISTER_RKNPU_LAYER(Abs, LAYER_ABS);
 
 }  // namespace TNN_NS

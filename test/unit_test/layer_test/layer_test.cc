@@ -98,7 +98,7 @@ Status LayerTest::Init(LayerType type, LayerParam* param, LayerResource* resourc
     status = AllocateInputBlobs();
     EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
-    status = InitInputBlobsDataRandom();
+    status = InitInputBlobsDataRandom(type);
     EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = AllocateOutputBlobs();
@@ -217,7 +217,7 @@ Status LayerTest::AllocateInputBlobs() {
 /*
  * Init blob datas randomly
  */
-Status LayerTest::InitInputBlobsDataRandom() {
+Status LayerTest::InitInputBlobsDataRandom(LayerType type) {
     void* command_queue;
     device_context_->GetCommandQueue(&command_queue);
 
@@ -246,6 +246,11 @@ Status LayerTest::InitInputBlobsDataRandom() {
                 InitRandom(static_cast<float*>(input_data), input_count, 0.0f, 1.0f + (float)index);
             } else {
                 InitRandom(static_cast<float*>(input_data), input_count, 1.0f + (float)index);
+                if(type == LAYER_REDUCE_LOG_SUM) {
+                    for(int i = 0; i < input_count; i++) {
+                        static_cast<float*>(input_data)[i] = std::fabs(static_cast<float*>(input_data)[i]);
+                    }
+                }
             }
         } else if (mat_type == RESERVED_INT8_TEST) {
             if (ensure_input_positive_) {
