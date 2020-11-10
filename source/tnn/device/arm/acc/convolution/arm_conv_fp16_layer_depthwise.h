@@ -15,11 +15,11 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_FP16_LAYER_ACC_DEPTHWISE_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_FP16_LAYER_ACC_DEPTHWISE_H_
 
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
 
 namespace TNN_NS {
 
-class ArmConvFp16LayerDepthwise : public ArmConvLayerCommon {
+class ArmConvFp16LayerDepthwise : public ArmConvFp16LayerCommon {
 public:
     virtual ~ArmConvFp16LayerDepthwise();
 
@@ -29,7 +29,6 @@ public:
                            const std::vector<Blob *> &outputs);
 
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS

@@ -16,12 +16,12 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_FP16_LAYER_ACC_3X3_H_
 
 #include "tnn/device/arm/acc/compute/winograd_function.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
 #include "tnn/utils/wingorad_generater.h"
 
 namespace TNN_NS {
 
-class ArmConvFp16Layer3x3 : public ArmConvLayerCommon {
+class ArmConvFp16Layer3x3 : public ArmConvFp16LayerCommon {
 public:
     virtual ~ArmConvFp16Layer3x3();
 
@@ -38,9 +38,8 @@ public:
 
     static int SelectWinograd(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                               const std::vector<Blob *> &outputs);
-                              
+
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     int src_unit_;

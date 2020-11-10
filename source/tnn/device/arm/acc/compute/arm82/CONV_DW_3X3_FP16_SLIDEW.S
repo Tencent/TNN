@@ -20,7 +20,7 @@
 .align 5
 
 asm_function ConvDw3x3Fp16SlideW 
-//void ConvDw3x3FloatSlideW(__fp16 *dst_z,
+//void ConvDw3x3Fp16SlideW(__fp16 *dst_z,
 //                        __fp16 **cache_line,
 //                        const __fp16* weight_z,
 //                        int dst_width)

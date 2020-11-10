@@ -44,6 +44,11 @@ protected:
 
     std::function<void(__fp16 *, const __fp16 *, const ConvLayerParam *, 
                        size_t, size_t, const ArmKernelParam *kparam)> img2col_func;
+
+    PostFunc post_func_ = nullptr;
+
+    template <typename T>
+    void PostExec(const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS

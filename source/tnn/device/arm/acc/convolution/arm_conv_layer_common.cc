@@ -138,17 +138,6 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
             post_func_ = PostAddBias<bfp16_t>;
         }
     }
-#if TNN_ARM82
-    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        if (conv_param->activation_type == ActivationType_ReLU) {
-            post_func_ = PostAddBiasRelu<__fp16, __fp16>;
-        } else if (conv_param->activation_type == ActivationType_ReLU6) {
-            post_func_ = PostAddBiasRelu6<__fp16, __fp16>;
-        } else {
-            post_func_ = PostAddBias<__fp16, __fp16>;
-        }
-    }
-#endif
 
     return TNN_OK;
 }
@@ -342,24 +331,4 @@ void ArmConvLayerCommon::PostExec(const std::vector<Blob *> &outputs) {
 
 template void ArmConvLayerCommon::PostExec<float>(const std::vector<Blob *> &outputs);
 template void ArmConvLayerCommon::PostExec<bfp16_t>(const std::vector<Blob *> &outputs);
-
-#if TNN_ARM82
-template <>
-void ArmConvLayerCommon::PostExec<__fp16>(const std::vector<Blob *> &outputs) {
-    const int batch = outputs[0]->GetBlobDesc().dims[0];
-    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-    if (post_func_) {
-        OMP_PARALLEL_FOR_
-        for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
-            auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r8;
-            for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
-                auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
-                __fp16 *bias_z = reinterpret_cast<__fp16 *>(k_param_->bias) + dz;
-                post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
-            }
-        }
-    }
-}
-#endif
-
 }  // namespace TNN_NS

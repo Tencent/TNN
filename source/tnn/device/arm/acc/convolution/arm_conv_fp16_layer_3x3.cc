@@ -381,38 +381,9 @@ Status ArmConvFp16Layer3x3::allocateBufferWeight(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-Status ArmConvFp16Layer3x3::allocateBufferBias(const std::vector<Blob *> &inputs,
-                                                  const std::vector<Blob *> &outputs) {
-    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
-    CHECK_PARAM_NULL(conv_param);
-    ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
-    CHECK_PARAM_NULL(conv_res);
-
-    auto dims_output = outputs[0]->GetBlobDesc().dims;
-    if (!buffer_bias_.GetBytesSize()) {
-        RawBuffer temp_buffer(ROUND_UP(dims_output[1], 8) * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-        if (conv_param->bias) {
-            if (conv_res->bias_handle.GetDataType() == DATA_TYPE_FLOAT) {
-                RawBuffer bias_nchw(dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-                Float2Half(bias_nchw.force_to<__fp16 *>(), conv_res->bias_handle.force_to<float *>(), dims_output[1]);
-                memcpy(temp_buffer.force_to<__fp16 *>(), bias_nchw.force_to<__fp16 *>(),
-                       dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-            } else if (conv_res->bias_handle.GetDataType() == DATA_TYPE_HALF) {
-                memcpy(temp_buffer.force_to<__fp16 *>(), conv_res->bias_handle.force_to<__fp16 *>(),
-                       dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-            } else {
-                LOGE("BIAS DATATYPE NOT SUPPORTED NOW\n");
-                return Status(TNNERR_PARAM_ERR, "FP16 CONV 3x3 ONLY SUPPORT BIAS DATATYPE FLOAT AND HALF");
-            }
-        }
-        buffer_bias_ = temp_buffer;
-    }
-    return TNN_OK;
-}
-
 Status ArmConvFp16Layer3x3::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    RETURN_ON_NEQ(ArmConvLayerCommon::Init(context, param, resource, inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(ArmConvFp16LayerCommon::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
