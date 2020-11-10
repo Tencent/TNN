@@ -11,4 +11,5 @@
     <string name="tnn_bf_image_btn_name">人脸检测Blazeface-图片输入</string>
     <string name="tnn_bf_stream_btn_name">人脸检测Blazeface-视频输入</string>
     <string name="tnn_fa_stream_btn_name">优图人脸配准-视频输入</string>
+    <string name="tnn_hs_stream_btn_name">头发分割-视频输入</string>
 </resources>

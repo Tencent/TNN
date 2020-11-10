@@ -8,7 +8,9 @@ __kernel void Reorg(GLOBAL_SIZE_1_DIMS
                     int c,
                     int batch,
                     int stride, 
-                    int forward
+                    int stride_pow2,
+                    int forward,
+                    int mode
                     ) {
       int i = get_global_id(0);
       DEAL_NON_UNIFORM_DIM1(i);
@@ -23,8 +25,8 @@ __kernel void Reorg(GLOBAL_SIZE_1_DIMS
       int out_c = c/(stride*stride);
 
       int c2, offset;
-      c2 = in_c % out_c;
-      offset = in_c / out_c;
+      c2 = select(in_c % out_c, in_c / stride_pow2, mode);
+      offset = select(in_c / out_c, in_c % stride_pow2, mode);
       int w2 = in_w*stride + offset % stride;
       int h2 = in_h*stride + offset / stride;
       int out_index = w2 + w*stride*(h2 + h*stride*(c2 + out_c*b));
