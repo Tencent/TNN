@@ -161,11 +161,16 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 auto& new_conv_weight_tensor = weights[new_conv_weight_name];
                 node_conv->set_input(1, new_conv_weight_name);
 
+                auto new_conv_bias_name = node_conv->input(2) + "_@" + std::to_string(i);
+                weights[new_conv_bias_name] = onnx::TensorProto(weights[node_conv->input(2)]);
+                auto& new_conv_bias_tensor = weights[new_conv_bias_name];
+                node_conv->set_input(2, new_conv_bias_name);
+
                 // modeify conv weight
                 float* conv_weights =
                     get_tensor_proto_mutable_data(new_conv_weight_tensor);
                 float* conv_bias =
-                    get_tensor_proto_mutable_data(conv_bias_tensor);
+                    get_tensor_proto_mutable_data(new_conv_bias_tensor);
 
                 const int channel_input_group  = channel_input / group;
                 const int channel_output_group = channel_output / group;
