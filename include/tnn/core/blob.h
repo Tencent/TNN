@@ -73,8 +73,8 @@ public:
     //@param handle to the stored data
     void SetHandle(BlobHandle handle);
 
-    //@brief allocate blob handle in forword
-    bool NeedAllocateInForword();
+    //@brief allocate blob handle in forward
+    bool NeedAllocateInForward();
     
     //@brief check if it is constant
     bool IsConstant();

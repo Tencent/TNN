@@ -78,9 +78,9 @@ void Blob::SetHandle(BlobHandle handle) {
     alloc_memory_ = false;
 }
 
-//@brief allocate blob handle in forword
-bool Blob::NeedAllocateInForword() {
-    return DataFlagUtils::AllocateInForword(flag);
+//@brief allocate blob handle in forward
+bool Blob::NeedAllocateInForward() {
+    return DataFlagUtils::AllocateInForward(flag);
 }
 
 bool Blob::IsConstant() {

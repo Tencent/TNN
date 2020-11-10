@@ -36,15 +36,15 @@ typedef enum {
 } RuntimeMode;
 
 typedef enum : int {
-    //data alwalys change
+    //data always change
     DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
     //data change if shape differ
     DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 0x00000001,
     //data never change
     DATA_FLAG_CHANGE_NEVER   = 0x00000002,
 
-    //data allocate in forword
-    DATA_FLAG_ALLOCATE_IN_FORWORD   = 0x00010000
+    //data allocate in forward
+    DATA_FLAG_ALLOCATE_IN_FORWARD   = 0x00010000
 } DataFlag;
 
 typedef enum {

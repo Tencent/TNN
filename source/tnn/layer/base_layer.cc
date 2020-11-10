@@ -50,7 +50,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         return status;
     }
     
-    if (!output_blobs_[0]->NeedAllocateInForword()){
+    if (!output_blobs_[0]->NeedAllocateInForward()){
         status = InferOutputShape();
         if (status != TNN_OK) {
             LOGE("InferOutputShape failed\n");
@@ -128,7 +128,7 @@ Status BaseLayer::InferOutputDataType() {
 }
 
 Status BaseLayer::Reshape() {
-    if (!output_blobs_[0]->NeedAllocateInForword()){
+    if (!output_blobs_[0]->NeedAllocateInForward()){
         auto status = InferOutputShape();
         RETURN_ON_NEQ(status, TNN_OK);
         
@@ -151,7 +151,7 @@ Status BaseLayer::Reshape() {
 
 Status BaseLayer::Forward() {
     if (layer_acc_ != NULL) {
-        if (output_blobs_[0]->NeedAllocateInForword()){
+        if (output_blobs_[0]->NeedAllocateInForward()){
             auto status = InferOutputShape();
             RETURN_ON_NEQ(status, TNN_OK);
         }

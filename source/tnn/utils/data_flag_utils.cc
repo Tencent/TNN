@@ -18,8 +18,8 @@
 
 namespace TNN_NS {
 
-bool DataFlagUtils::AllocateInForword(int flag) {
-    return flag & DATA_FLAG_ALLOCATE_IN_FORWORD;
+bool DataFlagUtils::AllocateInForward(int flag) {
+    return flag & DATA_FLAG_ALLOCATE_IN_FORWARD;
 }
 
 int DataFlagUtils::ChangeStatus(int flag) {
@@ -27,11 +27,11 @@ int DataFlagUtils::ChangeStatus(int flag) {
 }
 
 int DataFlagUtils::MinChangeStatus(int flag0, int flag1) {
-    auto allocate_in_forword = DataFlagUtils::AllocateInForword(flag0) || DataFlagUtils::AllocateInForword(flag1);
+    auto allocate_in_forward = DataFlagUtils::AllocateInForward(flag0) || DataFlagUtils::AllocateInForward(flag1);
     flag0 = ChangeStatus(flag0);
     flag1 = ChangeStatus(flag1);
     flag0 = flag0 < flag1 ? flag0 : flag1;
-    return allocate_in_forword ? (flag0 | DATA_FLAG_ALLOCATE_IN_FORWORD): flag0;
+    return allocate_in_forward ? (flag0 | DATA_FLAG_ALLOCATE_IN_FORWARD): flag0;
 }
 
 }  // namespace TNN_NS

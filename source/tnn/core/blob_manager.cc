@@ -145,7 +145,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         // allocating blob memory for every out nodes of this layer
         for (auto current_blob_name : layer_info->outputs) {
             Blob *current_blob = blobs_[current_blob_name];
-            if (current_blob->NeedAllocateInForword() ||
+            if (current_blob->NeedAllocateInForward() ||
                 DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
@@ -170,7 +170,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         // refund the input blob memory
         for (auto current_blob_name : layer_info->inputs) {
             Blob *current_blob = blobs_[current_blob_name];
-            if (current_blob->NeedAllocateInForword() ||
+            if (current_blob->NeedAllocateInForward() ||
                 DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }

@@ -26,7 +26,7 @@ class PUBLIC DataFlagUtils {
 public:
     // @brief to check wether the data is allocated in forword
     // @param flag data flag
-    static bool AllocateInForword(int flag);
+    static bool AllocateInForward(int flag);
 
     // @brief to check the data change flag
     // @param flag data flag

@@ -60,7 +60,7 @@ Status AbstractLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) 
 Status AbstractLayerAcc::AllocateRuntimeOutputBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     //runtime blob allocate
     for (auto iter : outputs) {
-        if (!iter->NeedAllocateInForword()) {
+        if (!iter->NeedAllocateInForward()) {
             continue;
         }
         
