@@ -22,3 +22,11 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_CONVERTER_ENABLE=ON
 
 make -j4
+
+# check if compiling error occurs, or ci will ignore building errors
+if [ 0 -ne $? ]
+then
+    echo 'building failed.'
+    exit -1
+fi
+echo 'building completes.'
