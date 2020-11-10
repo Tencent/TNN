@@ -20,6 +20,7 @@
 #import "TNNYoloObjectDetectorViewModel.h"
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
+#import "TNNHairSegmentationViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -134,12 +135,12 @@ using namespace std;
     //人脸检测配准 - 腾讯优图
     {
         auto data = [TNNExampleData new];
-        data.title = @"人脸检测配准 - 腾讯优图";
+        data.title = @"人脸检测配准 - 腾讯优图实验室";
         data.desc = @"摄像头 - 单输入多输出";
         data.viewControllerID = @"TNNCameraPreviewController";
         {
             data.viewModel = [TNNFaceDetectAlignerViewModel new];
-            data.viewModel.title = @"人脸检测配准 - 腾讯优图";
+            data.viewModel.title = @"人脸检测配准 - 腾讯优图实验室";
             data.viewModel.preferFrontCamera = true;
         }
         [examples addObject:data];
@@ -158,7 +159,21 @@ using namespace std;
         }
         [examples addObject:data];
     }
-    
+
+    //头发分割 - HairSegmentation
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"头发分割 - 腾讯光影实验室";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNHairSegmentationViewModel new];
+            data.viewModel.title = @"头发分割 - 腾讯光影实验室";
+            data.viewModel.preferFrontCamera = true;
+        }
+        [examples addObject:data];
+    }
+
     self.examples = examples;
 }
 

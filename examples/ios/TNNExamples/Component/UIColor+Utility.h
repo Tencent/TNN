@@ -12,20 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import "TNNExamplesController.h"
+#import <UIKit/UIKit.h>
 
-@interface TNNExamplesController () {
-}
+@interface UIColor (Utility)
++ (UIColor *)colorWithHexNumber:(NSUInteger)hexColor;
++ (UIColor *)colorWithHexNumber:(NSUInteger)hexColor alpha:(CGFloat)alpha;
 
-@end
+- (BOOL)isDarkColor;
+- (BOOL)isBlackOrWhite;
+- (BOOL)isDistinct:(UIColor *)color;
+- (UIColor *)colorWithMinimumSaturation:(CGFloat)minSaturation;
+- (BOOL)isContrastingColor:(UIColor *)color;
 
-@implementation TNNExamplesController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    [self.viewModel setupCustomView:self.customOptionView
-                       layoutHeight:self.customOptionViewHeight];
-}
-
+- (UIColor *)darken;
+- (UIColor *)darken:(CGFloat)percentage;
+- (UIColor *)lighten;
+- (UIColor *)lighten:(CGFloat)percentage;
 @end

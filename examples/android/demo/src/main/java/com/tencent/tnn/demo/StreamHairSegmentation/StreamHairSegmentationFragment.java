@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.StreamFaceDetector;
+package com.tencent.tnn.demo.StreamHairSegmentation;
 
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -9,12 +9,14 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.RadioGroup;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.tencent.tnn.demo.FaceDetector;
+import com.tencent.tnn.demo.HairSegmentation;
 import com.tencent.tnn.demo.FpsCounter;
-import com.tencent.tnn.demo.FaceInfo;
+import com.tencent.tnn.demo.ImageInfo;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.R;
@@ -26,9 +28,9 @@ import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 import java.io.IOException;
 
 
-public class StreamFaceDetectFragment extends BaseFragment {
+public class StreamHairSegmentationFragment extends BaseFragment {
 
-    private final static String TAG = StreamFaceDetectFragment.class.getSimpleName();
+    private final static String TAG = StreamHairSegmentationFragment.class.getSimpleName();
 
     /**********************************     Define    **********************************/
 
@@ -46,10 +48,11 @@ public class StreamFaceDetectFragment extends BaseFragment {
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
 
-    private FaceDetector mFaceDetector = new FaceDetector();
-    private boolean mIsDetectingFace = false;
+    private HairSegmentation mHairSegmentation = new HairSegmentation();
     private FpsCounter mFpsCounter = new FpsCounter();
+    private boolean mIsSegmentingHair = false;
     private boolean mIsCountFps = false;
+    private RadioGroup color_button;
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
@@ -70,24 +73,23 @@ public class StreamFaceDetectFragment extends BaseFragment {
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
-        NpuEnable = mFaceDetector.checkNpu(modelPath);
+        NpuEnable = mHairSegmentation.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
+    private String initModel() {
 
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
-        //copy detect model to sdcard
-        String[] modelPathsDetector = {
-                "version-slim-320_simplified.tnnmodel",
-                "version-slim-320_simplified.tnnproto",
+        // copy segmentation model to sdcard
+        String[] modelPathsSegmentation = {
+                "segmentation.tnnmodel",
+                "segmentation.tnnproto",
         };
 
-        for (int i = 0; i < modelPathsDetector.length; i++) {
-            String modelFilePath = modelPathsDetector[i];
+        for (int i = 0; i < modelPathsSegmentation.length; i++) {
+            String modelFilePath = modelPathsSegmentation[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "face_detector/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "hair_segmentation/"+modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
@@ -99,14 +101,12 @@ public class StreamFaceDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-    private void restartCamera()
-    {
+    private void restartCamera() {
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
     }
-    private void onSwichGPU(boolean b)
-    {
+    private void onSwichGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -117,8 +117,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
         mDeviceSwiched = true;
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwichNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -138,7 +137,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_stream_detector);
+        setView(R.layout.fragment_stream_hair_segmentation);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -163,6 +162,64 @@ public class StreamFaceDetectFragment extends BaseFragment {
             HuaweiNpuTextView.setVisibility(View.INVISIBLE);
             mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
+
+        RadioButton initBtn = $(R.id.button_blue);
+        initBtn.setSelected(true);
+        final int[] colorList = {R.id.button_blue, R.id.button_cyan, R.id.button_green, R.id.button_purple, R.id.button_red};
+        for (int j = 0; j < colorList.length; j++) {
+            RadioButton button = $(colorList[j]);
+            button.setOnClickListener(new View.OnClickListener(){
+                @Override
+                public void onClick(View v) {
+                    RadioButton btn = $(v.getId());
+                    boolean selected = btn.isSelected();
+                    byte[] color = {(byte)0, (byte)0, (byte)0, (byte)0};
+                    if (!selected) {
+                        switch (v.getId()) {
+                            case R.id.button_blue:
+                                color[0] = (byte)0;
+                                color[1] = (byte)0;
+                                color[2] = (byte)185;
+                                color[3] = (byte)90;
+                                break;
+                            case R.id.button_cyan:
+                                color[0] = (byte)0;
+                                color[1] = (byte)185;
+                                color[2] = (byte)185;
+                                color[3] = (byte)40;
+                                break;
+                            case R.id.button_green:
+                                color[0] = (byte)0;
+                                color[1] = (byte)185;
+                                color[2] = (byte)0;
+                                color[3] = (byte)50;
+                                break;
+                            case R.id.button_purple:
+                                color[0] = (byte)185;
+                                color[1] = (byte)0;
+                                color[2] = (byte)185;
+                                color[3] = (byte)64;
+                                break;
+                            case R.id.button_red:
+                                color[0] = (byte)185;
+                                color[1] = (byte)0;
+                                color[2] = (byte)0;
+                                color[3] = (byte)64;
+                        }
+                    }
+                    mHairSegmentation.setHairColor(color);
+                    btn.setSelected(!selected);
+
+                    for (int j = 0; j < colorList.length; j++) {
+                        if (v.getId() != colorList[j]) {
+                            RadioButton tmpBtn = $(colorList[j]);
+                            tmpBtn.setSelected(false);
+                        }
+                    }
+                }
+            });
+        }
+
         init();
     }
 
@@ -185,10 +242,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
             }
         });
 
-
         mDrawView = (DrawView) $(R.id.drawView);
-
-
     }
 
     @Override
@@ -258,7 +312,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
     }
 
     private void openCamera(int cameraFacing) {
-        mIsDetectingFace = true;
+        mIsSegmentingHair = true;
         mCameraFacing = cameraFacing;
         try {
             int numberOfCameras = Camera.getNumberOfCameras();
@@ -300,12 +354,12 @@ public class StreamFaceDetectFragment extends BaseFragment {
                     } else if (mUseGPU) {
                         device = 1;
                     }
-                    int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
+                    int ret = mHairSegmentation.init(modelPath, mCameraHeight, mCameraWidth, device);
                     if (ret == 0) {
-                        mIsDetectingFace = true;
+                        mIsSegmentingHair = true;
                     } else {
-                        mIsDetectingFace = false;
-                        Log.e(TAG, "Face detector init failed " + ret);
+                        mIsSegmentingHair = false;
+                        Log.e(TAG, "Hair Segmentation init failed " + ret);
                     }
 
                     ret = mFpsCounter.init();
@@ -332,12 +386,12 @@ public class StreamFaceDetectFragment extends BaseFragment {
                 mOpenedCamera.setPreviewCallback(new Camera.PreviewCallback() {
                     @Override
                     public void onPreviewFrame(byte[] data, Camera camera) {
-                        if (mIsDetectingFace) {
+                        if (mIsSegmentingHair) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
                             if (mIsCountFps) {
-                                mFpsCounter.begin("FaceDetect");
+                                mFpsCounter.begin("HairSegmentation");
                             }
-                            FaceInfo[] faceInfoList;
+                            ImageInfo[] imageInfoList;
                             // reinit
                             if (mDeviceSwiched) {
                                 String modelPath = getActivity().getFilesDir().getAbsolutePath();
@@ -347,19 +401,19 @@ public class StreamFaceDetectFragment extends BaseFragment {
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
-                                int ret = mFaceDetector.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
+                                int ret = mHairSegmentation.init(modelPath, mCameraHeight, mCameraWidth, device);
                                 if (ret == 0) {
-                                    mIsDetectingFace = true;
+                                    mIsSegmentingHair = true;
                                 } else {
-                                    mIsDetectingFace = false;
-                                    Log.e(TAG, "Face detector init failed " + ret);
+                                    mIsSegmentingHair = false;
+                                    Log.e(TAG, "Hair Segmentation init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
                             }
-                            faceInfoList = mFaceDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+                            imageInfoList = mHairSegmentation.predictFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             if (mIsCountFps) {
-                                mFpsCounter.end("FaceDetect");
-                                double fps = mFpsCounter.getFps("FaceDetect");
+                                mFpsCounter.end("HairSegmentation");
+                                double fps = mFpsCounter.getFps("HairSegmentation");
                                 String monitorResult = "device: ";
                                 if (mUseGPU) {
                                     monitorResult += "opencl\n";
@@ -372,15 +426,11 @@ public class StreamFaceDetectFragment extends BaseFragment {
                                 TextView monitor_result_view = (TextView)$(R.id.monitor_result);
                                 monitor_result_view.setText(monitorResult);
                             }
-                            Log.i(TAG, "detect from stream ret " + faceInfoList);
-                            int faceCount = 0;
-                            if (faceInfoList != null) {
-                                faceCount = faceInfoList.length;
-                            }
-                            mDrawView.addFaceRect(faceInfoList);
+                            Log.i(TAG, "predict from stream ret " + imageInfoList);
+                            mDrawView.addImageInfo(imageInfoList[1]);
                         }
                         else {
-                            Log.i(TAG,"No face");
+                            Log.i(TAG,"No Hair Segmentating");
                         }
                     }
                 });
@@ -397,7 +447,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
 
     public void closeCamera() {
         Log.i(TAG, "closeCamera");
-        mIsDetectingFace = false;
+        mIsSegmentingHair = false;
         if (mOpenedCamera != null) {
             try {
                 mOpenedCamera.stopPreview();
@@ -417,7 +467,7 @@ public class StreamFaceDetectFragment extends BaseFragment {
                 mOpenedCamera = null;
             }
         }
-        mFaceDetector.deinit();
+        mHairSegmentation.deinit();
     }
 
 }
