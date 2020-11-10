@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.tencent.tnn.demo.ObjectDetector;
+import com.tencent.tnn.demo.FpsCounter;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
 import com.tencent.tnn.demo.ObjectInfo;
@@ -50,6 +51,8 @@ public class StreamObjectDetectFragment extends BaseFragment {
 
     private ObjectDetector mObjectDetector = new ObjectDetector();
     private boolean mIsDetectingObject = false;
+    private FpsCounter mFpsCounter = new FpsCounter();
+    private boolean mIsCountFps = false;
 
     private ToggleButton mGPUSwitch;
     private boolean mUseGPU = false;
@@ -57,6 +60,8 @@ public class StreamObjectDetectFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+
+    private boolean mDeviceSwiched = false;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -112,7 +117,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        restartCamera();
+        mDeviceSwiched = true;
     }
 
     private void onSwichNPU(boolean b)
@@ -124,7 +129,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
         mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        restartCamera();
+        mDeviceSwiched = true;
     }
 
     private void clickBack() {
@@ -305,6 +310,14 @@ public class StreamObjectDetectFragment extends BaseFragment {
                         mIsDetectingObject = false;
                         Log.e(TAG, "Face detector init failed " + ret);
                     }
+
+                    ret = mFpsCounter.init();
+                    if (ret == 0) {
+                        mIsCountFps = true;
+                    } else {
+                        mIsCountFps = false;
+                        Log.e(TAG, "Fps Counter init failed " + ret);
+                    }
                 } else {
                     Log.e(TAG, "Failed to init camera");
                 }
@@ -324,7 +337,44 @@ public class StreamObjectDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingObject) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            ObjectInfo[] objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("ObjectDetect");
+                            }
+                            ObjectInfo[] objectInfoList;
+                            // reinit
+                            if (mDeviceSwiched) {
+                                String modelPath = getActivity().getFilesDir().getAbsolutePath();
+                                int device = 0;
+                                if (mUseHuaweiNpu) {
+                                    device = 2;
+                                } else if (mUseGPU) {
+                                    device = 1;
+                                }
+                                int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+                                if (ret == 0) {
+                                    mIsDetectingObject = true;
+                                } else {
+                                    mIsDetectingObject = false;
+                                    Log.e(TAG, "Face detector init failed " + ret);
+                                }
+                                mDeviceSwiched = false;
+                            }
+                            objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+                            if (mIsCountFps) {
+                                mFpsCounter.end("ObjectDetect");
+                                double fps = mFpsCounter.getFps("ObjectDetect");
+                                String monitorResult = "device: ";
+                                if (mUseGPU) {
+                                    monitorResult += "opencl\n";
+                                } else if (mUseHuaweiNpu) {
+                                    monitorResult += "huawei_npu\n";
+                                } else {
+                                    monitorResult += "arm\n";
+                                }
+                                monitorResult += "fps: " + String.format("%.02f", fps);
+                                TextView monitor_result_view = (TextView)$(R.id.monitor_result);
+                                monitor_result_view.setText(monitorResult);
+                            }
                             Log.i(TAG, "detect from stream ret " + objectInfoList);
                             int objectCount = 0;
                             if (objectInfoList != null) {
