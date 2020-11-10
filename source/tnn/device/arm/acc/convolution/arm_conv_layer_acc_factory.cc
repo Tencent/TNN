@@ -83,7 +83,12 @@ void ArmConvLayerAccFactory::CreateImpHalf(const std::vector<Blob *> &inputs, co
                 conv_acc_impl = std::make_shared<ArmConvFp16LayerDepthwise>();
             }
         }
-    } else if (ArmConvFp16Layer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+    } else if (ArmConvFp16LayerC3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvFp16LayerC3 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvFp16LayerC3>();
+        }
+    }
+    else if (ArmConvFp16Layer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<ArmConvFp16Layer3x3 *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvFp16Layer3x3>();
         }

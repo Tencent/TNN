@@ -526,6 +526,40 @@ int ConvertWeightsFromOI3HWToOHW12(T *src, T *dst, int input_channel, int output
 template int ConvertWeightsFromOI3HWToOHW12(float *src, float *dst, int input_channel, int output_channel, int height,
                                             int width);
 
+// to   [g][o/8][h][w][24]
+// from [g][o][i][h][w]
+template <typename T>
+int ConvertWeightsFromOI3HWToOHW24(const T *src, T *dst, int input_channel, int output_channel, int height, int width) {
+    const int src_count = output_channel * input_channel * height * width;
+
+    int src_index = 0;
+
+    for (int o = 0; o < output_channel; o++) {
+        auto zo = o / 8, ro = o % 8;
+        auto o_dst = dst + zo * height * width * 24 + ro;  // o/8 x 8
+        for (int i = 0; i < input_channel; i++) {
+            auto zi = i / 3, ri = i % 3;
+            auto i_dst = o_dst + zi * height * width * 24 + ri * 8;  // i x 8
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [g][o/8][h][w][24]
+                    // from [g][o][i][h][w]
+                    if (src_index < src_count) {
+                        i_dst[(h * width + w) * 24] = src[src_index++];
+                    } else {
+                        i_dst[(h * width + w) * 24] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromOI3HWToOHW24(const __fp16 *src, __fp16 *dst, int input_channel, int output_channel, int height, int width);
+#endif
+
 // to   [g][o/8][i/8][h][w][i8][o8]
 // from [g][o][i][h][w]
 template <typename T>
