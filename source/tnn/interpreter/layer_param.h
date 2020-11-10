@@ -43,6 +43,12 @@ enum ActivationType {
     ActivationType_ReLU6 = 0x0002,
 };
 
+enum FusionType {
+    FusionType_None                = 0x0000,
+    FusionType_Conv_Add_Activation = 0x0001,
+    FusionType_Conv_Activation_Add = 0x0002,
+};
+
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 0.f;
@@ -69,6 +75,7 @@ struct ConvLayerParam : public LayerParam {
     int group           = 1;
     int bias            = 0;
     int activation_type = ActivationType_None;
+    int fusion_type     = FusionType_None;
 };
 
 struct PadLayerParam : public LayerParam {
