@@ -49,6 +49,19 @@ namespace optimizer {
         return false;
     }
 
+    static bool IsConvLayerParamSupported(ConvLayerParam *param) {
+        if (param) {
+            if (param->group != 1 || param->kernels[0] != 1 || param->kernels[1] != 1 || param->strides[0] != 1 ||
+                param->strides[1] != 1 || param->pads[0] != 0 || param->pads[1] != 0 || param->pads[2] != 0 ||
+                param->pads[3] != 0) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Status NetOptimizerFuseConvAdd::Optimize(NetStructure *structure, NetResource *resource) {
         auto ret = Status(TNN_OK);
         if (!structure) {
@@ -86,7 +99,7 @@ namespace optimizer {
             auto layer_current_type = layer_info_current->type;
 
             auto conv_param = dynamic_cast<ConvLayerParam *>(layer_info_prev->param.get());
-            if (conv_param && layer_current_type == LAYER_ADD) {
+            if (IsConvLayerParamSupported(conv_param) && layer_current_type == LAYER_ADD) {
                 auto conv_output_name   = layer_info_prev->outputs[0];
                 auto conv_inputs        = layer_info_prev->inputs;
                 // inputs of add should contain conv_outputs, and others are pushed back to conv_inputs
