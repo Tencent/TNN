@@ -212,6 +212,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"SquaredDifference", LAYER_SQUARED_DIFFERENCE},
     {"ArgMaxOrMin", LAYER_ARG_MAX_OR_MIN},
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
+    {"QuantizedSigmoid", LAYER_SIGMOID},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

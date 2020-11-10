@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::Nod
 
 TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                                const onnx::NodeProto &node,
-                                               std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                               std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                                bool &quantized_model) {
     TNN_NS::ConvLayerParam *param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
@@ -148,7 +148,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
         auto bias_value       = GetAttributeIntVector(*bias_node, "values");
         // calculate bias
         std::vector<int32_t> cal_bias_value;
-        for (const auto value : bias_value) {
+        for (const auto &value : bias_value) {
             cal_bias_value.push_back(value * bias_scale / cal_weight_scale);
         }
         assert(bias_shape.size() == 1);

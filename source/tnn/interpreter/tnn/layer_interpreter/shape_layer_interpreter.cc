@@ -12,27 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "abstract_layer_interpreter.h"
 
 namespace TNN_NS {
 
-CpuLayerAcc::~CpuLayerAcc() {}
+DECLARE_LAYER_INTERPRETER(Shape, LAYER_SHAPE);
 
-Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-
-    param_    = param;
-    resource_ = resource;
-    return Reshape(inputs, outputs);
+Status ShapeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
+    return TNN_OK;
 }
 
-std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    if (dims_size > 0) {
-        support_list.push_back(DATA_FORMAT_NCHW);
-    }
-    return support_list;
+Status ShapeLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
+    return TNN_OK;
 }
+
+Status ShapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+    return TNN_OK;
+}
+
+Status ShapeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
+    return TNN_OK;
+}
+
+REGISTER_LAYER_INTERPRETER(Shape, LAYER_SHAPE);
 
 }  // namespace TNN_NS

@@ -38,7 +38,8 @@ private:
     Status PackModel(std::string file_path);
     Status PackResource(std::map<std::string, std::shared_ptr<LayerResource>> &resource_map, std::string &layer_name,
                         std::shared_ptr<Serializer> serializer, std::ofstream &write_stream);
-
+    int GetResourceCount(NetStructure* net_structure, NetResource* net_resource);
+    
 protected:
     int model_version_ = 1;
 

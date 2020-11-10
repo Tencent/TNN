@@ -25,11 +25,51 @@ Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
+void CalculateOutputDims(DimsVector &input_dims, int reshape_type, std::vector<int> &reshape, DimsVector &output_dims) {
+    if (reshape_type == 0) {
+        output_dims.resize(reshape.size());
+        int position = -1;
+        for (int i = 0; i < reshape.size(); ++i) {
+            if (reshape[i] == 0) {
+                output_dims[i] = input_dims[i];
+                reshape[i]     = input_dims[i];
+            } else if (reshape[i] == -1) {
+                output_dims[i] = 1;
+                position       = i;
+            } else {
+                output_dims[i] = reshape[i];
+            }
+        }
+        if (position != -1) {
+            output_dims[position] = DimsVectorUtils::Count(input_dims) / DimsVectorUtils::Count(output_dims);
+            reshape[position]     = output_dims[position];
+        }
+    }
+}
+
 Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input  = inputs[0];
-    auto output = outputs[0];
-    auto param  = (ReshapeLayerParam *)param_;
+    auto &input  = inputs[0];
+    auto &output = outputs[0];
+    auto param   = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
+    if (param->shape.empty() && inputs.size() == 2 && inputs[1]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        ASSERT(inputs.size() == 2);
+        auto &input_dims  = inputs[0]->GetBlobDesc().dims;
+        auto &shape_dims  = inputs[1]->GetBlobDesc().dims;
+        auto &output_dims = output->GetBlobDesc().dims;
+        auto input_data   = static_cast<int32_t *>(inputs[1]->GetHandle().base);
+        auto count        = DimsVectorUtils::Count(shape_dims);
+        for (int i = 0; i < count; ++i) {
+            param->shape.push_back(input_data[i]);
+        }
+        while (param->shape.size() < 4) {
+            param->shape.push_back(1);
+        }
+        param->axis         = 0;
+        param->num_axes     = param->shape.size();
+        param->reshape_type = 0;
+        CalculateOutputDims(input_dims, param->reshape_type, param->shape, output_dims);
+    }
     if (param->reshape_type == 0) {
         if (output->GetHandle().base != input->GetHandle().base) {
             auto dims_input    = input->GetBlobDesc().dims;
@@ -38,9 +78,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
             memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
         }
     } else if (param->reshape_type == 1) {
-        // tensorflow 的数据格式是 nhwc, 但是 tnn 的数据格式是 nchw，所以reshape 算子进行转换的时候，需要进行特殊处理
-        // tflite: input(nhwc) -> reshape(1,-1,1,3) -> output(nhwc)
-        // tflite: input(nchw) -> transpose(0,2,3,1) -> reshape(1,-1,1,3) -> transpose(0, 3, 1, 2)->output(nchw)
+        // tensorflow reshape
         DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
         DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
     } else {

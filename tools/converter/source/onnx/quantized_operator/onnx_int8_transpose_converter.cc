@@ -27,11 +27,10 @@ TNN_NS::ActivationType OnnxInt8TransposeConverter::ActivationType(const onnx::No
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8TransposeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                                const onnx::NodeProto &node,
-                                                std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                                std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
-                                                bool &quantized_model) {
+TNN_NS::Status OnnxInt8TransposeConverter::exec(
+    TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource, const onnx::NodeProto &node,
+    std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+    std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes, bool &quantized_model) {
     TNN_NS::LayerParam *param = new TNN_NS::LayerParam;
     auto cur_layer            = net_structure.layers.back();
     cur_layer->param          = std::shared_ptr<TNN_NS::LayerParam>(param);

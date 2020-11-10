@@ -21,7 +21,7 @@
     class type_string##LayerInterpreter : public AbstractLayerInterpreter {                                            \
     public:                                                                                                            \
         virtual Status InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam **param);                     \
-        virtual Status InterpretResource(Deserializer &deserializer, LayerResource **Resource);                        \
+        virtual Status InterpretResource(Deserializer &deserializer, LayerResource **resource);                        \
         virtual Status SaveProto(std::ofstream &output_stream, LayerParam *param);                                     \
         virtual Status SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource);               \
     }
@@ -50,8 +50,8 @@
         }                                                                                                              \
     } while (0)
 
-#define GET_INT_1(var) GET_INT_1_OR_DEFAULT(var, var)
-#define GET_FLOAT_1(var) GET_FLOAT_1_OR_DEFAULT(var, var)
+#define GET_INT_1(var) GET_INT_1_OR_DEFAULT(var, 0)
+#define GET_FLOAT_1(var) GET_FLOAT_1_OR_DEFAULT(var, 0.0f)
 
 #define GET_INT_2(var1, var2)                                                                                          \
     GET_INT_1(var1);                                                                                                   \

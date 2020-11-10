@@ -18,21 +18,24 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Int8Relu);
+DECLARE_OP_CONVERTER(Int8Unary);
 
-std::string OnnxInt8ReluConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "QuantizedReLU";
+std::string OnnxInt8UnaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    if (node.op_type() == "Int8Sigmoid") {
+        return "QuantizedSigmoid";
+    }
+    return "";
 }
 
-TNN_NS::ActivationType OnnxInt8ReluConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxInt8UnaryConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                           const onnx::NodeProto &node,
-                                           std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
-                                           std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
-                                           bool &quantized_model) {
+TNN_NS::Status OnnxInt8UnaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+                                            const onnx::NodeProto &node,
+                                            std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                            bool &quantized_model) {
     auto param                = new TNN_NS::MultidirBroadcastLayerParam;
     auto cur_layer            = net_structure.layers.back();
     cur_layer->param          = std::shared_ptr<TNN_NS::LayerParam>(param);
@@ -49,6 +52,7 @@ TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, 
             auto scale                           = GetAttributeFloat(*node, "Y_scale", 1.0);
             auto zero_point                      = GetAttributeInt(*node, "Y_zero_point", 0);
             auto input_blob_scale                = new TNN_NS::IntScaleResource;
+            input_blob_scale->name               = input_blob_scale_name;
             TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
             input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
             input_blob_scale->scale_handle      = input_scale_handle;
@@ -66,6 +70,7 @@ TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, 
         auto scale                     = GetAttributeFloat(*node, "Y_scale", 1.0);
         auto zero_point                = GetAttributeInt(*node, "Y_zero_point", 0);
         auto output_blob_scale         = new TNN_NS::IntScaleResource;
+        output_blob_scale->name        = output_blob_scale_name;
         TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&scale);
         scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         output_blob_scale->scale_handle     = scale_handle;
@@ -74,9 +79,9 @@ TNN_NS::Status OnnxInt8ReluConverter::exec(TNN_NS::NetStructure &net_structure, 
         output_blob_scale->bias_handle                    = zero_point_handle;
         net_resource.resource_map[output_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Int8Relu, Int8Relu);
-
+REGISTER_CONVERTER(Int8Unary, Int8Sigmoid);
 }  // namespace TNN_CONVERTER

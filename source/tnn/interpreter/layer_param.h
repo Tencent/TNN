@@ -152,6 +152,10 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 };
 
+struct CastLayerParam : public LayerParam {
+    int to = 0;
+};
+
 struct ScaleLayerParam : public LayerParam {
     int axis      = 1;
     int num_axes  = 1;
@@ -186,6 +190,7 @@ struct InnerProductLayerParam : public LayerParam {
 
 struct ConcatLayerParam : public LayerParam {
     int axis = 1;
+    std::vector<int> extra_data = {};
 };
 
 struct PReluLayerParam : public LayerParam {
@@ -354,7 +359,10 @@ struct SignedMulLayerParam : public LayerParam {
 
 struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
+    bool data_in_resource = false;
 };
+
+struct UnsqueezeLayerParam: public SqueezeLayerParam {};
 
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
@@ -365,6 +373,13 @@ struct ArgMaxOrMinLayerParam : public LayerParam {
 
 struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
+    int axis;
+};
+
+struct GatherLayerParam : public LayerParam {
+    int axis                 = 0;
+    bool data_in_resource    = false;
+    bool indices_in_resource = true;
 };
 
 }  // namespace TNN_NS

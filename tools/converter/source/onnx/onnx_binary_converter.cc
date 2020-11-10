@@ -17,41 +17,39 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Transpose);
+DECLARE_OP_CONVERTER(Binary);
 
-std::string OnnxTransposeConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Permute";
+std::string OnnxBinaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return node.op_type();
 }
 
-TNN_NS::ActivationType OnnxTransposeConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxBinaryConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxTransposeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+TNN_NS::Status OnnxBinaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                             const onnx::NodeProto &node,
                                             std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
                                             std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::PermuteLayerParam;
+    auto param                 = new TNN_NS::MultidirBroadcastLayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
-    param->orders              = {0, 1, 2, 3};
 
-    auto perm     = GetAttributeIntVector(node, "perm");
-    int perm_size = perm.size();
-    assert(perm_size <= 4);
+    param->weight_input_index = -1;
 
-    for (int i = 0; i < perm_size; i++) {
-        param->orders[i] = perm[i];
-    }
-
+    cur_layer->inputs[0] = node.input(0);
+    cur_layer->inputs[1] = node.input(1);
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Transpose, Transpose);
+REGISTER_CONVERTER(Binary, Add);
+REGISTER_CONVERTER(Binary, Sub);
+REGISTER_CONVERTER(Binary, Mul);
+REGISTER_CONVERTER(Binary, Div);
 
 }  // namespace TNN_CONVERTER
