@@ -50,12 +50,41 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
         }
     }
 }
+
+void GemmAddInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
+                            long c_stride, const float* scales, long relu,
+                            const int8_t* add_input, const float* add_scale) {
+    union {
+        const void* as_void_ptr;
+        int8_t* as_int8_ptr;
+        int32_t* as_int32_ptr;
+    } packed = {w};
+
+    for (int m = 0; m < mr; m++) {
+        for (int n = 0; n < nr; n++) {
+            int acc          = packed.as_int32_ptr[n];
+            int8_t* packed_w = reinterpret_cast<int8_t*>(packed.as_int32_ptr + 8);
+            for (int kk = 0; kk < k; kk++) {
+                acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
+            }
+
+            c[m * c_stride + n] = float2int8(acc * scales[n] + add_input[m * c_stride + n] * add_scale[n]);
+            if (relu) {
+                c[m * c_stride + n] = MAX(0, c[m * c_stride + n]);
+            }
+        }
+    }
+}
 #else
 extern "C" {
 void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
                      const float* scales, long);
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
                      const float* scales, long);
+void GemmAddInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
+                        const float* scales, long, const int8_t* add_input, const float* add_scale);
+void GemmAddInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
+                        const float* scales, long, const int8_t* add_input, const float* add_scale);
 }
 #endif
 
@@ -90,6 +119,41 @@ void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_
     for (int32_t k = 0; k < range_k; k += tile_k) {
         for (int32_t l = 0; l < range_l; l += tile_l) {
             ComputeQ8GemmTile(context, k, l, std::min(range_k - k, tile_k), std::min(range_l - l, tile_l));
+        }
+    }
+}
+
+static void ComputeQ8GemmAddTile(const Q8GemmAddContext* context, long mr_block_start, long nr_block_start,
+                                 long mr_block_size, long nr_block_size) {
+    const long k         = context->k;
+    const long k_stride  = context->k_stride;
+    const long n         = context->n;
+    const long n_stride  = context->n_stride;
+    const int8_t* a      = context->a;
+    const long a_stride  = context->a_stride;
+    const void* packed_w = context->packed_w;
+    int8_t* c            = context->c;
+    const long c_stride  = context->c_stride;
+
+#ifndef TNN_USE_NEON
+    GemmAddInt8N8Func gemm_add_int8_func = GemmAddInt8UnitN8Naive;
+#elif defined(__aarch64__)
+    GemmAddInt8N8Func gemm_add_int8_func = GemmAddInt8Unit8x8;
+#else
+    GemmAddInt8N8Func gemm_add_int8_func = GemmAddInt8Unit4x8;
+#endif
+
+    gemm_add_int8_func(mr_block_size, nr_block_size, k, a + (mr_block_start)*a_stride, a_stride,
+                       (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
+                       c + mr_block_start * c_stride + nr_block_start, c_stride, context->scales + nr_block_start, context->relu,
+                       context->add_input + mr_block_start * c_stride + nr_block_start, context->add_scale + nr_block_start);
+}
+
+void ComputeQ8GemmAdd(const Q8GemmAddContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
+    OMP_PARALLEL_FOR_GUIDED_
+    for (int32_t k = 0; k < range_k; k += tile_k) {
+        for (int32_t l = 0; l < range_l; l += tile_l) {
+            ComputeQ8GemmAddTile(context, k, l, std::min(range_k - k, tile_k), std::min(range_l - l, tile_l));
         }
     }
 }

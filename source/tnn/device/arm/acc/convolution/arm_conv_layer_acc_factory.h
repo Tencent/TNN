@@ -17,6 +17,7 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_1x1.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_1x1_fuse_add.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_depthwise.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_1x1.h"
