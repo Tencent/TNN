@@ -12,11 +12,20 @@ namespace TNN_NS {
 AtlasModelInterpreter::AtlasModelInterpreter() {}
 
 AtlasModelInterpreter::~AtlasModelInterpreter() {
+    LOGD("~AtlasModelInterpreter()\n");
     for (auto &item : model_weight_ptr_map_) {
         if (nullptr != item.second) {
+            aclError acl_ret = aclrtSetDevice(item.first);
+            if (acl_ret != ACL_ERROR_NONE) {
+                LOGE("acl set device %d failed (acl error code: %d)\n", item.first, acl_ret);
+            }
             aclrtFree(item.second);
             LOGD("acl free model weight ptr (device: %d)\n", item.first);
             item.second  = nullptr;
+            acl_ret = aclrtResetDevice(item.first);
+            if (acl_ret != ACL_ERROR_NONE) {
+                LOGE("acl reset device %d failed (acl error code: %d)\n", item.first, acl_ret);
+            }
         }
     }
     model_weight_ptr_map_.clear();
