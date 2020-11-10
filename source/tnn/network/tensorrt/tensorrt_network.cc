@@ -49,7 +49,6 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter* interpreter,
         InputShapesMap inputs_shape) {
-
     cudaSetDevice(net_config.device_id);
     config_ = net_config;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -116,30 +115,77 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1],
-        inputs, outputs, net_config.device_id, this->m_max_batchsize);
+        inputs, outputs, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (false == file_lock->Ready()) {
         this->m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
-        this->m_trt_network = m_trt_builder->createNetworkV2(1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
+        NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+        if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);
+        this->m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
         this->m_trt_config = this->m_trt_builder->createBuilderConfig();
-
         for (auto input : inputs) {
             auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
             auto desc = input.second->GetBlobDesc();
             nvinfer1::ITensor* in_tensor = this->m_trt_network->addInput(desc.name.c_str(),
                 nvinfer1::DataType::kFLOAT, Dims4{-1, desc.dims[1], -1, -1});
             auto profile = this->m_trt_builder->createOptimizationProfile();
-            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, Dims4{1, desc.dims[1], 1, 1});
+            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{64, desc.dims[1], desc.dims[2], desc.dims[3]});
             this->m_trt_config->addOptimizationProfile(profile);
             auto foreign_tensor = foreign_blob->GetForeignTensor();
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
-            tensorrt_tensor->SetTensor(in_tensor);
-            if (tensorrt_tensor->GetInt8Mode()) {
-                auto scale = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>();
-                in_tensor->setDynamicRange(-127 * scale[0], 127 * scale[0]);
+            if (int8_mode) {
+                auto input_scale_value = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>()[0];
+
+                Weights input_quant_shift;
+                input_quant_shift.type = nvinfer1::DataType::kFLOAT;
+                input_quant_shift.values = nullptr;
+                input_quant_shift.count = 0;
+
+                Weights input_quant_scale;
+                input_quant_scale.type = nvinfer1::DataType::kFLOAT;
+                float* input_quant_scale_data = (float*)malloc(sizeof(float));
+                *input_quant_scale_data = input_scale_value;
+                input_quant_scale.values = (void*)input_quant_scale_data;
+                input_quant_scale.count = 1;
+
+                Weights input_quant_power;
+                input_quant_power.type = nvinfer1::DataType::kFLOAT;
+                input_quant_power.values = nullptr;
+                input_quant_power.count = 0;
+
+                auto input_quant_layer = this->m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM, input_quant_shift, input_quant_scale, input_quant_power);
+                std::string input_quant_layer_name = desc.name + "_input_quant_";
+                input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
+                input_quant_layer->setName(input_quant_layer_name.c_str());
+
+                Weights input_dequant_shift;
+                input_dequant_shift.type = nvinfer1::DataType::kFLOAT;
+                input_dequant_shift.values = nullptr;
+                input_dequant_shift.count = 0;
+
+                Weights input_dequant_scale;
+                input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
+                float* input_dequant_scale_data = (float*)malloc(sizeof(float));
+                *input_dequant_scale_data = 1 / input_scale_value;
+                input_dequant_scale.values = (void*)input_dequant_scale_data;
+                input_dequant_scale.count = 1;
+
+                Weights input_dequant_power;
+                input_dequant_power.type = nvinfer1::DataType::kFLOAT;
+                input_dequant_power.values = nullptr;
+                input_dequant_power.count = 0;
+
+                auto input_dequant_layer = this->m_trt_network->addScale(*(input_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
+                    input_dequant_shift, input_dequant_scale, input_dequant_power);
+                std::string input_dequant_layer_name = desc.name + "_input_dequant_";
+                input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+                input_dequant_layer->setName(input_dequant_layer_name.c_str());
+                tensorrt_tensor->SetTensor(input_dequant_layer->getOutput(0));
+            } else {
+                tensorrt_tensor->SetTensor(in_tensor);
             }
         }
 
@@ -154,10 +200,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                 auto foreign_tensor = foreign_blob->GetForeignTensor();
                 auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
                 tensorrt_tensor->SetTensor(output_tensor);
-                if (tensorrt_tensor->GetInt8Mode()) {
-                    auto scale = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>();
-                    output_tensor->setDynamicRange(-127 * scale[0], 127 * scale[0]);
-                }
             }
         }
 
@@ -171,7 +213,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
         m_trt_builder->setMaxBatchSize(64);
         m_trt_config->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
-        if (config_.precision == PRECISION_LOW) {
+        if (config_.precision == PRECISION_LOW && !this->int8_mode) {
             m_trt_config->setFlag(BuilderFlag::kFP16);
         }
         if (this->int8_mode) {
@@ -317,7 +359,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<std::string> &input_names = layer_info->inputs;
         // get input nodes
         bool is_int8_blob = layer_info->param->quantized;
-        if (is_int8_blob) printf("%s quantized\n", layer_name.c_str());
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
             if (is_int8_blob) {
@@ -388,7 +429,7 @@ Status TensorRTNetwork_::CreateExecuteContext() {
 }
 
 std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map, BlobMap output_map,
-        int device_id, int batchsize) {
+        int device_id, int batchsize, bool int8_mode, bool use_fp16) {
     std::string md5_source = md5(cfg) + md5(model);
 
     for (auto iter : input_map) {
@@ -401,7 +442,16 @@ std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string mode
         md5_source += iter.first;
     }
 
-    std::string cache_file_name = "." +  md5(md5_source) + "-"
+    std::string precision;
+    if (int8_mode) {
+        precision = "-int8";
+    } else if (use_fp16) {
+        precision = "-fp16";
+    } else {
+        precision = "";
+    }
+
+    std::string cache_file_name = "." +  md5(md5_source) + precision
         + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
         + "-" + get_gpu_type(device_id) + "-" + get_trt_version() + get_cuda_version()
         + ".cache";

@@ -23,6 +23,11 @@ TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBu
 }
 
 TensorRTBaseLayerBuilder::~TensorRTBaseLayerBuilder() {
+    for (int i = 0; i < int8_weight_data.size(); i++) {
+        if (int8_weight_data[i]) {
+            free(int8_weight_data[i]);
+        }
+    }
 }
 
 Status TensorRTBaseLayerBuilder::InferOutputShape() {

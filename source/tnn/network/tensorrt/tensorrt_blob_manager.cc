@@ -110,7 +110,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
     // output blobs
     std::set<std::string> &output_blob_names = net_structure_->outputs;
     for (auto name : output_blob_names) {
-        Blob *blob          = blobs_[name];
+        Blob *blob = blobs_[name];
         if (std::find(net_structure_->blobs.begin(), net_structure_->blobs.end(), name) != net_structure_->blobs.end()) {
             output_blobs_[name] = blob;
         }

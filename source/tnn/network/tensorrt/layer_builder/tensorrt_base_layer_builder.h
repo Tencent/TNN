@@ -76,6 +76,7 @@ protected:
     virtual Status Build();
 
     std::shared_ptr<BaseLayer> m_layer;
+    std::vector<float*> int8_weight_data;
     bool is_plugin;
     int trt_batchsize;
 };

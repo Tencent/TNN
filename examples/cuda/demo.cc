@@ -64,21 +64,17 @@ int main(int argc, char** argv) {
     }
     net_ = net;
 
-    std::vector<int> nchw = {n, c, h*2, w*2};
+    std::vector<int> nchw = {n, c, h, w};
     TNN_NS::InputShapesMap shapeMap;
     shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>(input_name, nchw));
     TNN_NS::NetworkConfig network_config;
     network_config.device_type = device_type_;
+    network_config.precision = TNN_NS::PRECISION_LOW;
     network_config.network_type = TNN_NS::NETWORK_TYPE_TENSORRT;
     auto instance = net_->CreateInst(network_config, status, shapeMap);
     instance_ = instance;
 
-    std::vector<int> nchw2 = {n, c, h, w};
-    TNN_NS::InputShapesMap newShapeMap;
-    newShapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>(input_name, nchw2));
-    status = instance_->Reshape(newShapeMap);
-
-    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::NCHW_FLOAT, nchw2);
+    auto input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::NCHW_FLOAT, nchw);
     TNN_NS::MatConvertParam input_cvt_param;
     input_cvt_param.scale = {1.0 / (255 * 0.229), 1.0 / (255 * 0.224), 1.0 / (255 * 0.225), 0.0};
     input_cvt_param.bias = {-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225, 0.0};
@@ -86,6 +82,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < input_mat->GetBatch() * input_mat->GetChannel() * input_mat->GetHeight() * input_mat->GetWidth(); i++) {
         ((float*)input_data)[i] = 0.5;
     }
+
     status = instance_->SetInputMat(input_mat, input_cvt_param);
     if (status != TNN_NS::TNN_OK) {
         printf("set input failed %d", (int)status);
@@ -95,6 +92,15 @@ int main(int argc, char** argv) {
     struct timezone zone;
     struct timeval time1;
     struct timeval time2;
+
+    // warm-up
+    for (int i = 0; i < 100; i++) {
+        status = instance_->ForwardAsync(nullptr);
+        if (status != TNN_NS::TNN_OK) {
+            printf("forward failed %d\n", (int)status);
+            exit(-1);
+        }
+    }
 
     cudaDeviceSynchronize();
     gettimeofday(&time1, &zone);
