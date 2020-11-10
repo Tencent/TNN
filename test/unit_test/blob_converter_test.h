@@ -35,6 +35,15 @@ public:
 
 protected:
     int Compare(Blob* cpu_blob, Blob* device_blob);
+    bool TestFilterCheck(const DataType& blob_data_type, const DeviceType& dev,
+                         const MatType& mat_type, const int batch, const int channel,
+                         const int input_size, const bool reverse_channel);
+    bool OpenCLMatTest(Mat& cpu_mat_in,
+                       MatConvertParam& from_mat_param, MatConvertParam& to_mat_param,
+                       const DimsVector& dims, const int in_size, const int out_size,
+                       MatType mat_type, const int mat_channel, const int channel,
+                       BlobConverter& device_converter, void* device_command_queue,
+                       void* mat_out_ref_data);
     static AbstractDevice* cpu_;
     static AbstractDevice* device_;
     static Context* cpu_context_;

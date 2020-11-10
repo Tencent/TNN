@@ -166,6 +166,7 @@ Status OpenCLRuntime::Init() {
         device_->getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, &global_memery_cachesize_);
         device_->getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &compute_units_);
         device_->getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &max_freq_);
+        device_->getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &local_memory_size_);
         cl_device_fp_config fp_config;
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
@@ -206,6 +207,10 @@ uint32_t OpenCLRuntime::DeviceComputeUnits() const {
 
 uint32_t OpenCLRuntime::DeviceMaxFreq() const {
     return max_freq_;
+}
+
+uint64_t OpenCLRuntime::DeviceLocalMemerySize() const {
+    return local_memory_size_;
 }
 
 //get kernel enqueue max work group size 
@@ -260,8 +265,13 @@ void OpenCLRuntime::SetPrecision(Precision precision) {
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                                   const std::set<std::string> &build_options) {
     std::string build_options_str;
+    bool force_fp32 = false;
+    auto it         = build_options.find("-DFORCE_FP32");
+    if (it != build_options.end()) {
+        force_fp32 = true;
+    }
     //set default macro
-    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_)) {
+    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_) && !force_fp32) {
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
         LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =

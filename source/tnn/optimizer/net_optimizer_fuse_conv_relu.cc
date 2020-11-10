@@ -30,15 +30,22 @@ namespace optimizer {
     // P1 priority: should be fuse after bn scale fuse
     NetOptimizerRegister<NetOptimizerFuseConvRelu> g_net_optimizer_fuse_conv_relu(OptPriority::P1);
 
-    static std::map<LayerType, ActivationType> kLayerActivationMap = {{LAYER_RELU, ActivationType_ReLU},
-                                                                    {LAYER_RELU6, ActivationType_ReLU6}};
-
     std::string NetOptimizerFuseConvRelu::Strategy() {
         return kNetOptimizerFuseConvRelu;
     }
 
-    bool NetOptimizerFuseConvRelu::SupportDevice(DeviceType device) {
-        return device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_NAIVE;
+    bool NetOptimizerFuseConvRelu::IsSupported(const NetworkConfig &net_config) {
+        auto device = net_config.device_type;
+        if (device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_NAIVE) {
+            kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
+            kLayerActivationMap[LAYER_RELU6] = ActivationType_ReLU6;
+            return true;
+        }
+        if (device == DEVICE_RK_NPU) {
+            kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
+            return true;
+        }
+        return false;
     }
 
     Status NetOptimizerFuseConvRelu::Optimize(NetStructure *structure, NetResource *resource) {

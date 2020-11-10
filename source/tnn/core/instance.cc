@@ -22,6 +22,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -104,17 +105,21 @@ Status Instance::SetCpuNumThreads(int num_threads) {
 }
 
 // set input Mat
-Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
-                             std::string input_name) {
-    //get input blobs
+Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param, std::string input_name) {
+    if (!mat) {
+        LOGE("input mat is empty ,please check!\n");
+        return Status(TNNERR_PARAM_ERR, "input mat is empty ,please check!");
+    }
+
+    // get input blobs
     BlobMap input_blobs;
     auto status = network_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK || input_blobs.size() <= 0) {
         LOGE("instance.GetAllInputBlobs Error: %s\n", status.description().c_str());
         return status;
     }
-    
-    //insure name is valid, take the first input name for default
+
+    // insure name is valid, take the first input name for default
     if (input_name.length() <= 0) {
         input_name = input_blobs.begin()->first;
     } else {
@@ -123,45 +128,42 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param,
             return Status(TNNERR_MODEL_ERR, "instance dont have the input with name");
         }
     }
-    
-    //check blob convert
+
+    // check blob convert
     std::shared_ptr<BlobConverter> blob_converter = nullptr;
-    if (input_converters_.size() >0 && input_converters_.find(input_name) != input_converters_.end()) {
+    if (input_converters_.size() > 0 && input_converters_.find(input_name) != input_converters_.end()) {
         blob_converter = input_converters_[input_name];
     } else {
-        auto input_blob = input_blobs[input_name];
-        blob_converter = std::make_shared<BlobConverter>(input_blob);
+        auto input_blob               = input_blobs[input_name];
+        blob_converter                = std::make_shared<BlobConverter>(input_blob);
         input_converters_[input_name] = blob_converter;
     }
-    
-    //get command queue
+
+    // get command queue
     void *command_queue = nullptr;
     network_->GetCommandQueue(&command_queue);
-    
-    status = blob_converter->ConvertFromMatAsync(*(mat.get()),
-                                                 param,
-                                                 command_queue);
+
+    status = blob_converter->ConvertFromMatAsync(*(mat.get()), param, command_queue);
     if (status != TNN_NS::TNN_OK) {
         LOGE("input_blob_convert.ConvertFromMatAsync Error: %s\n", status.description().c_str());
         return status;
     }
-    
+
     return TNN_OK;
 }
 
-//get output Mat
-Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
-                              std::string output_name,
+// get output Mat
+Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, std::string output_name,
                               DeviceType device, MatType mat_type) {
-    //get output blobs
+    // get output blobs
     BlobMap output_blobs;
     auto status = network_->GetAllOutputBlobs(output_blobs);
     if (status != TNN_OK || output_blobs.size() <= 0) {
         LOGE("instance.GetAllOutputBlobs Error: %s\n", status.description().c_str());
         return status;
     }
-    
-    //insure name is valid, take the first output name for default
+
+    // insure name is valid, take the first output name for default
     if (output_name.length() <= 0) {
         output_name = output_blobs.begin()->first;
     } else {
@@ -170,47 +172,54 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat>& mat, MatConvertParam param,
             return Status(TNNERR_MODEL_ERR, "instance dont have the output with name");
         }
     }
-    
-    //check if it has been converted
+
+    // check if it has been converted
     if (output_mats_convert_status_.find(output_name) != output_mats_convert_status_.end() &&
         output_mats_.find(output_name) != output_mats_.end()) {
         mat = output_mats_[output_name];
         return TNN_OK;
     }
-    
-    //check if it has been allocated
+
+    // check if it has been allocated or reallocated for dims change.
     // allocate output mat
-    //创建output mat，根据应用场景不同选择不同的outputmat
-    if (output_mats_.find(output_name) == output_mats_.end()) {
-        auto dims = output_blobs[output_name]->GetBlobDesc().dims;
-        auto output_mat = std::make_shared<TNN_NS::Mat>(device, mat_type, dims);
+    bool need_allocate = true;
+    if (output_mats_.find(output_name) != output_mats_.end()) {
+        auto mat_dims  = output_mats_[output_name]->GetDims();
+        auto blob_dims = output_blobs[output_name]->GetBlobDesc().dims;
+        if (DimsVectorUtils::Equal(mat_dims, blob_dims)) {
+            need_allocate = false;
+        }
+    }
+
+    if (need_allocate) {
+        auto dims                 = output_blobs[output_name]->GetBlobDesc().dims;
+        auto output_mat           = std::make_shared<TNN_NS::Mat>(device, mat_type, dims);
         output_mats_[output_name] = output_mat;
     }
+
     mat = output_mats_[output_name];
-    
-    //check blob convert
+
+    // check blob convert
     std::shared_ptr<BlobConverter> blob_converter = nullptr;
-    if (output_converters_.size() >0 && output_converters_.find(output_name) != output_converters_.end()) {
+    if (output_converters_.size() > 0 && output_converters_.find(output_name) != output_converters_.end()) {
         blob_converter = output_converters_[output_name];
     } else {
-        auto input_blob = output_blobs[output_name];
-        blob_converter = std::make_shared<BlobConverter>(input_blob);
+        auto input_blob                 = output_blobs[output_name];
+        blob_converter                  = std::make_shared<BlobConverter>(input_blob);
         output_converters_[output_name] = blob_converter;
     }
-    
-    //get command queue
+
+    // get command queue
     void *command_queue = nullptr;
     network_->GetCommandQueue(&command_queue);
-    status = blob_converter->ConvertToMat(*(mat.get()),
-                                                 param,
-                                                 command_queue);
+    status = blob_converter->ConvertToMat(*(mat.get()), param, command_queue);
     if (status == TNN_NS::TNN_OK) {
-        //set output mat convert status
+        // set output mat convert status
         output_mats_convert_status_[output_name] = 1;
     } else {
         LOGE("output_blob_convert.ConvertFromMat Error: %s\n", status.description().c_str());
     }
-    
+
     return status;
 }
 
@@ -221,9 +230,9 @@ void Instance::StartProfile() {
 
 std::string Instance::FinishProfile(bool do_print) {
     std::shared_ptr<ProfileResult> profile_result = network_->FinishProfile();
-    std::string result_str = " ";
+    std::string result_str                        = " ";
     if (profile_result) {
-        result_str = profile_result->GetProfilingData();
+        result_str = profile_result->GetProfilingDataInfo();
         if (do_print) {
             printf("%s", result_str.c_str());
         }

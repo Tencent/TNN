@@ -42,8 +42,8 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     resource_ = resource;
 
     if (_x86_map.find(type_) != _x86_map.end()) {
-        _base_layer = CreateLayer(type_);
-        _base_layer->Init(context, param, resource, input_blobs, output_blobs, device);
+        base_layer_ = CreateLayer(type_);
+        base_layer_->Init(context, param, resource, input_blobs, output_blobs, device);
     }
 
     Build();
@@ -112,7 +112,7 @@ std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetOutputNodes(
             return std::vector<std::shared_ptr<ngraph::Node>>();
         }
     }
-    // return outputNodes_;
+     return output_nodes;
 }
 
 Status OpenVINOLayerBuilder::Reshape(){

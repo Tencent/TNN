@@ -88,10 +88,9 @@ Status ConvOVLayerBuilder::Build() {
     weights_shape.push_back(paramlist->output_channel / paramlist->group);
     weights_shape.push_back(paramlist->input_channel);
     weight_size *= paramlist->output_channel * paramlist->input_channel;
-    std::reverse(paramlist->kernels.begin(), paramlist->kernels.end());
-    for (auto item : paramlist->kernels) {
-        weights_shape.push_back(item);
-        weight_size *= item;
+    for (int i = paramlist->kernels.size() - 1; i >= 0; i--) {
+        weights_shape.push_back(paramlist->kernels.at(i));
+        weight_size *= paramlist->kernels.at(i);
     }
 
     auto resource = dynamic_cast<ConvLayerResource*>(GetResource());

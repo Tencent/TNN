@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 #include "tnn/network/tensorrt/exclusive_file.h"
-#include "tnn/device/cuda/thirdparty/md5/md5.h"
+#include "thirdparty/md5/md5.h"
 
 namespace TNN_NS {
 

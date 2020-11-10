@@ -16,7 +16,9 @@
 #define TNN_SOURCE_TNN_UTILS_DATA_FORMAT_CONVERTER_H_
 
 #include <cstdint>
+#include <cstring>
 
+#include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 
 namespace TNN_NS {
@@ -49,6 +51,67 @@ public:
 
     static Status ConvertFromInt8ToFloatNHWC4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
+
+    enum CVT_DIR { NHWC2NCHW, NCHW2NHWC };
+
+    template <class T>
+    static Status ConvertBetweenNHWCAndNCHW(T *data, T *buffer, int num, int channel, int height, int width,
+                                            CVT_DIR dir) {
+        bool alloc_mem = false;
+        if (buffer == nullptr) {
+            alloc_mem = true;
+            buffer    = new T[num * channel * height * width]();
+        }
+
+        auto ptr_nchw = buffer;
+        auto ptr_nhwc = data;
+        if (NCHW2NHWC == dir)
+            std::swap(ptr_nchw, ptr_nhwc);
+
+        for (int n = 0; n < num; ++n) {
+            for (int c = 0; c < channel; ++c) {
+                for (int h = 0; h < height; ++h) {
+                    for (int w = 0; w < width; ++w) {
+                        std::swap(ptr_nchw[n * channel * height * width + c * height * width + h * width + w],
+                                  ptr_nhwc[n * height * width * channel + h * width * channel + w * channel + c]);
+                    }
+                }
+            }
+        }
+        if (alloc_mem) {
+            memcpy(data, buffer, num * channel * height * width * sizeof(T));
+            delete[] buffer;
+        }
+        return TNN_OK;
+    }
+
+    template <class T>
+    static Status ConvertFromNCHWToNHWC(Blob *src, Blob *dst) {
+        ASSERT(src != nullptr);
+        const int num     = src->GetBlobDesc().dims[0];
+        const int channel = src->GetBlobDesc().dims[1];
+        const int height  = src->GetBlobDesc().dims[2];
+        const int width   = src->GetBlobDesc().dims[3];
+        T *src_data_ptr   = (T *)src->GetHandle().base;
+        T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+
+        auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
+        return status;
+    }
+
+    template <class T>
+    static Status ConvertFromNHWCToNCHW(Blob *src, Blob *dst) {
+        ASSERT(src != nullptr);
+        const int num     = src->GetBlobDesc().dims[0];
+        const int height  = src->GetBlobDesc().dims[2];
+        const int width   = src->GetBlobDesc().dims[3];
+        const int channel = src->GetBlobDesc().dims[1];
+        T *src_data_ptr   = (T *)src->GetHandle().base;
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+
+        auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NHWC2NCHW);
+        return status;
+    }
 };
 
 }  // namespace TNN_NS

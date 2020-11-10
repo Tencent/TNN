@@ -23,7 +23,9 @@
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
 
+#include "tnn/core/mat.h"
 #include "tnn/core/blob.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
@@ -99,8 +101,6 @@ inline cl::Image &GetOpenCLImage(const OpenCLMemory *blob) {
     return (*(cl::Image *)(blob->GetData()));
 }
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
-
 std::vector<int> GetImageShape(const OpenCLMemory *image);
 
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,
@@ -112,6 +112,8 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
 std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const GpuInfo gpu_info,
                                         const uint32_t compute_units, const uint32_t max_workgroup_size,
                                         const uint32_t subgroup_size);
+
+Status AdjustBuildOptionForFp32(std::set<std::string>& build_options);
 
 std::vector<uint32_t> LocalWS3DDefault(OpenCLExecuteUnit &unit);
 
@@ -128,6 +130,12 @@ Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const c
 
 Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Image &src, const cl::Image &dst,
                         int w, int h, bool need_wait = false, OpenCLProfilingData *pdata = nullptr);
+
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue);
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue);
 
 uint32_t gcd(uint32_t number1, uint32_t number2);
 

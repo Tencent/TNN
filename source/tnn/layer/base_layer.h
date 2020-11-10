@@ -61,11 +61,10 @@ public:
     //@brief get all output blobs
     virtual std::vector<Blob*> GetOutputBlobs();
 
-#ifdef BENCHMARK
     //@brief infer shape ahead for generate resource
     virtual Status InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,
                                    LayerResource* resource);
-#endif
+
 
 protected:
     LayerType type_;

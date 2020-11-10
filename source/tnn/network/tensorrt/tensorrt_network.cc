@@ -14,7 +14,7 @@
 
 #include <memory>
 
-#include "tnn/device/cuda/thirdparty/md5/md5.h"
+#include "thirdparty/md5/md5.h"
 
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
@@ -115,7 +115,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1],
-        inputs, outputs, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision);
+        inputs, outputs, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (false == file_lock->Ready()) {

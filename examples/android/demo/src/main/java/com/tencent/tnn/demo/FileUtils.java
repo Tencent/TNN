@@ -14,10 +14,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 
-/**
- * Created by neiltian on 2017/2/23.
- */
-
 public class FileUtils {
 
     private FileUtils() {

@@ -32,9 +32,7 @@ TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
 
 Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
         std::vector<Blob*>& output_blobs, AbstractDevice* device) {
-    auto tmp_device = GetDevice(DEVICE_NAIVE);
-    auto tmp_context = tmp_device->CreateContext(0);
-    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_CUDA));
+    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, device);
     if (ret != TNN_OK) {
         return ret;
     }

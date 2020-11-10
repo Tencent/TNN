@@ -21,28 +21,11 @@
 #include "tnn/core/profile.h"
 #include "tnn/utils/half_utils.h"
 
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+#include <sys/system_properties.h>
+#endif
+
 namespace TNN_NS {
-
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
-    int element_size = 0;
-    DataType type    = raw_buffer.GetDataType();
-    int bytes        = raw_buffer.GetBytesSize();
-    std::shared_ptr<float> float_data;
-    if (type == DATA_TYPE_FLOAT) {
-        element_size = bytes / sizeof(float);
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
-    } else if (type == DATA_TYPE_HALF) {
-        element_size = bytes / 2;
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
-    } else if (type == DATA_TYPE_INT8) {
-        LOGE("Not support INT8 raw buffer\n");
-        return nullptr;
-    }
-
-    return float_data;
-}
 
 // get image width and height
 std::vector<int> GetImageShape(const OpenCLMemory *image) {
@@ -63,13 +46,13 @@ void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event
     cl_int error = CL_SUCCESS;
     error        = event->wait();
     CHECK_CL_SUCCESS(error);
-    int queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
+    unsigned long long queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
     CHECK_CL_SUCCESS(error);
-    int submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
+    unsigned long long submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
     CHECK_CL_SUCCESS(error);
-    int start_t = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
     CHECK_CL_SUCCESS(error);
-    int end_t = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
     CHECK_CL_SUCCESS(error);
     kernel_time  = (end_t - start_t) / 1000000.0;
     event_queued = (double)queued_t;
@@ -154,6 +137,12 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
     return TNN_OK;
 }
 
+bool AdrenoLocalSizeValid(const std::vector<uint32_t> &gws, std::vector<uint32_t>& lws,
+                          const uint32_t subgroup_size) {
+    return 0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
+           ((lws[0] < lws[1]) == (gws[0] < gws[1]));
+}
+
 // adreno local size calculate
 std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const GpuInfo gpu_info,
                                         const uint32_t compute_units, const uint32_t max_workgroup_size,
@@ -178,8 +167,7 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
             int min_val            = std::max<uint32_t>(min_workgroup_size / lws[1], 1);
             lws[0]                 = std::min<uint32_t>(gws[0], max_val);
             for (; lws[0] >= min_val; lws[0]--) {
-                if (0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
-                    ((lws[0] < lws[1]) == (gws[0] < gws[1]))) {
+                if (AdrenoLocalSizeValid(gws, lws, subgroup_size)) {
                     return lws;
                 }
             }
@@ -223,6 +211,26 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
     lws.clear();
 
     return lws;
+}
+
+Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
+{
+    bool force_fp32 = false;
+#if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
+    char sdk[128] = "0";
+    __system_property_get("ro.build.version.sdk", sdk);
+    int sdk_version = atoi(sdk);
+    // Before Android 8.0, the performance of exp fp16 is poor, so use fp32 instead
+    force_fp32 = (sdk_version <= 25);
+#elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
+    force_fp32 = true;
+#endif
+
+    if (force_fp32) {
+        build_options.emplace("-DFORCE_FP32");
+    }
+
+    return TNN_OK;
 }
 
 // calculate 3d local size
@@ -353,6 +361,66 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
     return TNN_OK;
 }
 
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    auto output_buffer_ptr =
+        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+    }
+    memcpy(mat.GetData(), output_buffer_ptr, size_in_bytes);
+    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+    }
+
+    return TNN_OK;
+}
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    auto output_buffer_ptr =
+        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+    }
+    memcpy(output_buffer_ptr, mat.GetData(), size_in_bytes);
+    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+    }
+
+    return TNN_OK;
+}
+
 uint32_t gcd(uint32_t number1, uint32_t number2) {
     return number2 == 0 ? number1 : gcd(number2, number1 % number2);
 }
@@ -374,6 +442,8 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
     }
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
+
+    unit.local_mem_size = opencl_runtime->DeviceLocalMemerySize();
 
     return TNN_OK;
 }

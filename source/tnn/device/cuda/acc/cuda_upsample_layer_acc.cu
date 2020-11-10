@@ -114,7 +114,7 @@ Status CudaUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    if (params->type == 2) {
+    if (params->mode == 2) {
         if (params->align_corners) {
             float rheight = (output_height > 1) ? (float)(input_height - 1) / (output_height - 1) : 0.f;
             float rwidth = (output_width > 1) ? (float)(input_width - 1) / (output_width - 1) : 0.f;
@@ -126,14 +126,14 @@ Status CudaUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
             upsample_bilinear2d_no_align_corners_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(count,
                 input_data, output_data, rheight, rwidth, output_channel, output_height, output_width, input_height, input_width);
         }
-    } else if (params->type == 1) {
+    } else if (params->mode == 1) {
         float rheight = (float)(input_height) / output_height;
         float rwidth = (float)(input_width) / output_width;
         upsample_nearest2d_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(count,
             input_data, output_data, rheight, rwidth, output_channel, output_height, output_width, input_height, input_width);
     } else {
-        LOGE("Error: Upsample dont support resize type\n");
-        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
+        LOGE("Error: Upsample dont support resize mode\n");
+        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize mode");
     }
 
     return TNN_OK;

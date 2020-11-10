@@ -11,8 +11,6 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#include "tnn/device/arm/acc/arm_softmax_layer_acc.h"
-
 #include <cmath>
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
@@ -21,6 +19,8 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+
+DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
 
 Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
@@ -136,8 +136,7 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     }
 
     if (in_data_type == DATA_TYPE_BFP16) {
-        bfp16_t *out_ptr =
-            reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output->GetHandle()));
+        bfp16_t *out_ptr = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output->GetHandle()));
         ConvertFromFloatToBFP16(output_orign, out_ptr, count);
     }
 

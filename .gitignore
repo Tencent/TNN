@@ -485,5 +485,5 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
-source/tnn/device/cuda/thirdparty/TensorRT*
-source/tnn/device/openvino/thirdparty/
+source/tnn/network/tensorrt/thirdparty/TensorRT*
+model/

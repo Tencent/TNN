@@ -50,7 +50,7 @@ public:
     }
 
     void SetInt8Mode(bool flag) {
-        int8_mode = mode;
+        int8_mode = flag;
     }
 
     bool GetInt8Mode() {

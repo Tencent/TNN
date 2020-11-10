@@ -29,6 +29,7 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/custom_layer/custom_abs.h"
 
 namespace TNN_NS {
 
@@ -43,6 +44,7 @@ Status AbsOVLayerBuilder::Build() {
     auto input_node = GetInputNodes()[0];
 
     auto absNode = std::make_shared<ngraph::op::Abs>(input_node->output(0));
+    // auto absNode = std::make_shared<CustomAbsOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
 
     absNode->set_friendly_name(param_->name);
     absNode->validate_and_infer_types();

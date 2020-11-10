@@ -47,6 +47,9 @@ Status CudaLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vecto
 
 std::vector<DataFormat> CudaLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
+    if (dims_size == 4) {
+        support_list.push_back(DATA_FORMAT_NCHW);
+    }
     return support_list;
 }
 

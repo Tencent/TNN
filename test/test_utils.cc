@@ -28,8 +28,12 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_CUDA;
     } else if ("X86" == device_type) {
         return DEVICE_X86;
-    } else if ("NAIVE" == device_type){
+    } else if ("NAIVE" == device_type) {
         return DEVICE_NAIVE;
+    } else if ("HUAWEI_NPU" == device_type) {
+        return DEVICE_HUAWEI_NPU;
+    } else if ("RKNPU" == device_type) {
+        return DEVICE_RK_NPU;
     } else {
         return DEVICE_ARM;
     }
@@ -56,6 +60,10 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_SNPE;
     } else if ("COREML" == network_type) {
         return NETWORK_TYPE_COREML;
+    } else if ("HUAWEI_NPU" == network_type) {
+        return NETWORK_TYPE_HUAWEI_NPU;
+    } else if ("RKNPU" == network_type) {
+        return NETWORK_TYPE_RK_NPU;
     } else {
         return NETWORK_TYPE_DEFAULT;
     }
@@ -100,7 +108,7 @@ int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, f
 
 int CompareData(const int8_t* ref_data, const int8_t* result_data, size_t n) {
     for (unsigned long long i = 0; i < n; i++) {
-        if (fabs(result_data[i] - ref_data[i]) > 1) {
+        if (abs(result_data[i] - ref_data[i]) > 1) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }
@@ -114,7 +122,7 @@ int CompareData(const uint8_t* ref_data, const uint8_t* result_data, int mat_cha
         int c = i % mat_channel;
         if (c >= channel)
             continue;
-        if (fabs(result_data[i] - ref_data[i]) > 1) {
+        if (abs(result_data[i] - ref_data[i]) > 1) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }

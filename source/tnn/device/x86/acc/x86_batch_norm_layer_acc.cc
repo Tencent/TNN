@@ -15,6 +15,8 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "immintrin.h"
+#include "tnn/device/x86/acc/compute/x86_compute.h"
 
 namespace TNN_NS {
 
@@ -25,6 +27,7 @@ Status X86BatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 Status X86BatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {
         return Status(TNNERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
@@ -32,37 +35,16 @@ Status X86BatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 
     auto input_blob        = inputs[0];
     auto output_blob       = outputs[0];
-    float *input_data      = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data     = static_cast<float *>(output_blob->GetHandle().base);
-    int channel            = input_blob->GetBlobDesc().dims[1];
-    int count              = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims);
+
     RawBuffer scale_handle = resource->scale_handle;
-    auto *scale_data       = resource->scale_handle.force_to<float *>();
-    bool share_channel     = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
-    auto *bias_data        = resource->bias_handle.force_to<float *>();
+    bool shared_channel     = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
+    RawBuffer bias_handle  = resource->bias_handle;
+    bool has_bias          = bias_handle.GetDataCount() > 0; 
 
-    const int channel_size = input_blob->GetBlobDesc().dims[2] * input_blob->GetBlobDesc().dims[3];
-
-    if (share_channel) {
-        for (int index = 0; index < count; ++index) {
-            float result = 0.0f;
-            result       = input_data[index] * scale_data[0];
-            if (bias_data != nullptr) {
-                result += bias_data[0];
-            }
-            output_data[index] = result;
-        }
-    } else {
-        for (int index = 0; index < count; ++index) {
-            float result      = 0.0f;
-            int channel_index = (index / channel_size) % channel;
-            result            = input_data[index] * scale_data[channel_index];
-            if (bias_data != nullptr) {
-                result += bias_data[channel_index];
-            }
-            output_data[index] = result;
-        }
-    }
+    X86_FMA(static_cast<float *>(input_blob->GetHandle().base),
+            static_cast<float *>(output_blob->GetHandle().base),
+            scale_handle.force_to<float *>(), bias_handle.force_to<float *>(),
+            shared_channel, has_bias, output_blob->GetBlobDesc().dims);
 
     return TNN_OK;
 }

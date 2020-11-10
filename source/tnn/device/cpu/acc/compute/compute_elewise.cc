@@ -136,4 +136,14 @@ void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
     CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, sub_op);
 }
 
+/*
+ * Output[i] = input0[i] - input1[i] - ... -  input..n[i]
+ * CPU_SQUARED_DIFFERENCE supports broadcast on all dimensions
+ */
+void CPU_SQUARED_DIFFERENCE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes,
+                            void *output, DimsVector shape_output) {
+    ELEWISE_OP squared_difference_op = [](float a, float b) -> float { return (a - b) * (a - b); };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, squared_difference_op);
+}
+
 }  // namespace TNN_NS

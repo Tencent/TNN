@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 enable_language(CUDA)
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cub-1.7.4)
+include_directories(thirdparty/cub-1.7.4)
 
 set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75
                  -gencode arch=compute_70,code=sm_70

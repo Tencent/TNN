@@ -71,7 +71,7 @@ jstring stoJstring(JNIEnv* env, const char* pat)
 }
 
 
-JNIEXPORT jint JNICALL Java_com_tencent_tnn_demo_TNNLib_init(JNIEnv* env, jobject thiz, jstring protoFilePath, jstring modelFilePath, jstring device) {
+JNIEXPORT jint JNICALL  Java_com_tencent_tnn_demo_TNNLib_init(JNIEnv* env, jobject thiz, jstring protoFilePath, jstring modelFilePath, jstring device) {
     TNNLib * lib = new TNNLib();
     int result = lib->Init(jstringTostring(env, protoFilePath), jstringTostring(env, modelFilePath), jstringTostring(env, device));
     setHandle(env, thiz, lib);

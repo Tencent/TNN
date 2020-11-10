@@ -33,6 +33,8 @@ std::set<std::string> OpenCLLogSigmoidLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string compute = "log((FLOAT)(1.0f)/((FLOAT)(1.0f)+exp(-in)))";
     build_options.emplace(" -DOPERATOR=" + compute);
+
+    AdjustBuildOptionForFp32(build_options);
     return build_options;
 }
 
