@@ -13,22 +13,25 @@ AtlasModelInterpreter::AtlasModelInterpreter() {}
 
 AtlasModelInterpreter::~AtlasModelInterpreter() {
     LOGD("~AtlasModelInterpreter()\n");
-    for (auto &item : model_weight_ptr_map_) {
-        if (nullptr != item.second) {
-            aclError acl_ret = aclrtSetDevice(item.first);
-            if (acl_ret != ACL_ERROR_NONE) {
-                LOGE("acl set device %d failed (acl error code: %d)\n", item.first, acl_ret);
+    for (auto &item : model_weight_map_) {
+        if (nullptr != item.second.weight_mem_ptr && nullptr != item.second.context) {
+            aclError ret = aclrtSetCurrentContext(item.second.context);
+            if (ret != ACL_ERROR_NONE) {
+                LOGE("set context failed\n");
             }
-            aclrtFree(item.second);
+
+            aclrtFree(item.second.weight_mem_ptr);
             LOGD("acl free model weight ptr (device: %d)\n", item.first);
-            item.second  = nullptr;
-            acl_ret = aclrtResetDevice(item.first);
-            if (acl_ret != ACL_ERROR_NONE) {
-                LOGE("acl reset device %d failed (acl error code: %d)\n", item.first, acl_ret);
+            item.second.weight_mem_ptr = nullptr;
+
+            ret = aclrtDestroyContext(item.second.context);
+            if (ret != ACL_ERROR_NONE) {
+                LOGE("destroy context failed\n");
             }
+            item.second.context = nullptr;
         }
     }
-    model_weight_ptr_map_.clear();
+    model_weight_map_.clear();
     model_weight_size_ = 0;
     AtlasRuntime::DecreaseRef();
 }
@@ -76,25 +79,33 @@ AtlasModelConfig& AtlasModelInterpreter::GetModelConfig() {
 
 void* AtlasModelInterpreter::GetModelWeightsBufferPtr(int device_id) {
     std::unique_lock<std::mutex> lck(mutex_);
-    if (model_weight_ptr_map_.find(device_id) == model_weight_ptr_map_.end()) {
-        void* model_weight_ptr = nullptr;
-        aclError acl_ret = aclrtMalloc(&model_weight_ptr, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (model_weight_map_.find(device_id) == model_weight_map_.end()) {
+        WeightPacket packet;
+        // create context related to device
+        aclError acl_ret = aclrtCreateContext(&packet.context, device_id);
+        if (acl_ret != ACL_ERROR_NONE) {
+            LOGE("acl create context failed (device %d) (acl error code: %d)\n", device_id, acl_ret);
+            return nullptr;
+        }
+
+        // alloc device memory
+        acl_ret = aclrtMalloc(&packet.weight_mem_ptr, model_weight_size_, ACL_MEM_MALLOC_HUGE_FIRST);
         if (acl_ret != ACL_ERROR_NONE) {
             LOGE("malloc buffer for weight failed (ret=%d), require size is %zu\n", acl_ret, model_weight_size_);
             return nullptr;
         }
         LOGD("malloc buffer for weight success (size %zu)\n", model_weight_size_);
-        model_weight_ptr_map_[device_id] = model_weight_ptr;
+
+        model_weight_map_[device_id] = packet;
     }
 
-    return model_weight_ptr_map_[device_id];
+    return model_weight_map_[device_id].weight_mem_ptr;
 }
 
 size_t AtlasModelInterpreter::GetModelWeightsBufferSize() {
     return model_weight_size_;
 }
 
-TypeModelInterpreterRegister<TypeModelInterpreterCreator<AtlasModelInterpreter>> g_atlas_model_interpreter_register(
-    MODEL_TYPE_ATLAS);
+TypeModelInterpreterRegister<TypeModelInterpreterCreator<AtlasModelInterpreter>> g_atlas_model_interpreter_register(MODEL_TYPE_ATLAS);
 
 }  // namespace TNN_NS
