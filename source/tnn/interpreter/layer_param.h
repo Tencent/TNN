@@ -223,7 +223,7 @@ struct StrideSliceLayerParam : public LayerParam {
 };
 
 struct StrideSliceV2LayerParam : public LayerParam {
-    std::vector<int> starts;
+    std::vector<int> begins;
     std::vector<int> ends;
     std::vector<int> axes;
     std::vector<int> strides;

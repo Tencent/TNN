@@ -192,7 +192,7 @@ enum LayerType {
     LAYER_PIXEL_SHUFFLE                                     = 303,
     LAYER_EXPAND                                            = 304,
     LAYER_SCATTER_ND                                        = 305,
-    LAYER_STRIDE_SLICE_V2                                   = 306,
+    LAYER_STRIDED_SLICE_V2                                   = 306,
     LAYER_ERF                                               = 307,
     LAYER_CONSTANT_OF_SHAPE                                 = 308,
     LAYER_NONZERO                                           = 309,

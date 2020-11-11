@@ -19,24 +19,24 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER_INTERPRETER(StrideSliceV2, LAYER_STRIDED_S);
+DECLARE_LAYER_INTERPRETER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
     auto layer_param = new StrideSliceV2LayerParam();
     *param           = layer_param;
     int index        = start_index;
 
-    std::vector<int> starts;
-    int start_sizes = atoi(layer_cfg_arr[index++].c_str());
-    for (int i = 0; i < start_sizes; ++i) {
+    std::vector<int> begins;
+    int begin_sizes = atoi(layer_cfg_arr[index++].c_str());
+    for (int i = 0; i < begin_sizes; ++i) {
         if (index < layer_cfg_arr.size()) {
-            starts.push_back(atoi(layer_cfg_arr[index++].c_str()));
+            begins.push_back(atoi(layer_cfg_arr[index++].c_str()));
         } else {
             LOGE("StrideSliceV2LayerInterpreter param is invalid\n");
             return TNNERR_PARAM_ERR;
         }
     }
-    layer_param->starts = starts;
+    layer_param->begins = begins;
 
     std::vector<int> ends;
     int end_size = atoi(layer_cfg_arr[index++].c_str());
@@ -86,13 +86,13 @@ Status StrideSliceV2LayerInterpreter::SaveProto(std::ofstream& output_stream, La
         LOGE("invalid layer param to save\n");
         return TNNERR_NULL_PARAM;
     }
-    const auto& starts  = layer_param->starts;
+    const auto& begins  = layer_param->begins;
     const auto& ends    = layer_param->ends;
     const auto& axes    = layer_param->axes;
     const auto& strides = layer_param->strides;
-    output_stream << starts.size() << " ";
-    for (const auto& start : starts) {
-        output_stream << start << " ";
+    output_stream << begins.size() << " ";
+    for (const auto& begin : begins) {
+        output_stream << begin << " ";
     }
     output_stream << ends.size() << " ";
     for (const auto& end : ends) {
@@ -113,6 +113,6 @@ Status StrideSliceV2LayerInterpreter::SaveResource(Serializer& serializer, Layer
     return TNN_OK;
 }
 
-REGISTER_LAYER_INTERPRETER(StrideSliceV2, LAYER_STRIDE_SLICE_V2);
+REGISTER_LAYER_INTERPRETER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 }  // namespace TNN_NS
