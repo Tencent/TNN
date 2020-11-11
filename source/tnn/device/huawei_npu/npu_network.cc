@@ -320,11 +320,11 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
          */
         ret =
             cur_layer->Init(context_, layer_info->param.get(), layer_resource, input_ops, device_, layer_info->outputs);
-        layers_.push_back(cur_layer);
         if (ret != TNN_OK) {
-            LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
+            LOGE("Error Init layer %s (%s)\n", cur_layer->GetLayerName().c_str(), ret.description().c_str());
             return ret;
         }
+        layers_.push_back(cur_layer);
 
         for (auto &op : cur_layer->GetOutputOps()) {
             visited_.insert(op->GetOperator()->GetName());
