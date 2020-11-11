@@ -59,6 +59,7 @@ protected:
 
     static std::shared_ptr<Instance> instance_cpu_;
     static std::shared_ptr<Instance> instance_device_;
+    static std::shared_ptr<Instance> instance_ocl_cache_;
 
 private:
     virtual float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {

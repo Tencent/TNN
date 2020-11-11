@@ -29,8 +29,9 @@ namespace TNN_NS {
 
 AbstractDevice* LayerTest::device_;
 
-std::shared_ptr<Instance> LayerTest::instance_cpu_    = nullptr;
-std::shared_ptr<Instance> LayerTest::instance_device_ = nullptr;
+std::shared_ptr<Instance> LayerTest::instance_cpu_       = nullptr;
+std::shared_ptr<Instance> LayerTest::instance_device_    = nullptr;
+std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 
 void LayerTest::SetUpTestCase() {
     NetworkConfig config;
@@ -112,13 +113,13 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     instance_cpu_ = std::make_shared<Instance>(config_cpu, model_config);
     if (nullptr == instance_cpu_) {
         LOGE("tnn create cpu instance falied\n");
-        return ret;
+        return Status(TNNERR_NULL_PARAM, "instance is null");
     }
 
     instance_device_ = std::make_shared<Instance>(config_device, model_config);
-    if (nullptr == instance_cpu_) {
-        LOGE("tnn create cpu instance falied\n");
-        return ret;
+    if (nullptr == instance_device_) {
+        LOGE("tnn create device instance falied\n");
+        return Status(TNNERR_NULL_PARAM, "instance is null");
     }
 
     InputShapesMap input_shape = InputShapesMap();
@@ -131,6 +132,20 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (ret != TNN_OK) {
         LOGE("tnn init device instance falied\n");
         return ret;
+    }
+
+    if (nullptr == instance_ocl_cache_ && DEVICE_OPENCL == config_device.device_type) {
+        instance_ocl_cache_ = std::make_shared<Instance>(config_device, model_config);
+        if (nullptr == instance_ocl_cache_) {
+            LOGE("tnn create ocl cache instance falied\n");
+            return Status(TNNERR_NULL_PARAM, "instance is null");
+        }
+
+        ret = instance_ocl_cache_->Init(interp, input_shape);
+        if (ret != TNN_OK) {
+            LOGE("tnn init device instance falied\n");
+            return ret;
+        }
     }
 
     return ret;
@@ -222,7 +237,11 @@ Status LayerTest::DeInit() {
     return TNN_OK;
 }
 
-void LayerTest::TearDownTestCase() {}
+void LayerTest::TearDownTestCase() {
+    instance_cpu_.reset();
+    instance_device_.reset();
+    instance_ocl_cache_.reset();
+}
 
 float LayerTest::GetCalcDramThrp(float avg_time) {
     float rw_bytes_in_total = 0.f;

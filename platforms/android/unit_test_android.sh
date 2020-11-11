@@ -101,7 +101,9 @@ function run() {
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
     else
         $ADB shell "echo 'Run ARM & GPU' >> $ANDROID_DIR/test_log.txt"
+        $ADB shell "echo '===== ARM Unit Test =====' >> $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt ARM  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
+        $ADB shell "echo '===== OPENCL Unit Test =====' >> $ANDROID_DIR/test_log.txt"
         $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./unit_test -dt OPENCL  --gtest_filter=\"*${FILTER}*\" >> $ANDROID_DIR/test_log.txt"
     fi
     $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
