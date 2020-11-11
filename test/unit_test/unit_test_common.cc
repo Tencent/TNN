@@ -84,8 +84,8 @@ std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int 
         ostr << "\"";
         for (int i = 0; i < input_dims_vec.size(); ++i) {
             ostr << "input" << i;
-            for (auto i : input_dims_vec[i])
-                ostr << " " << i;
+            for (auto dim : input_dims_vec[i])
+                ostr << " " << dim;
             if (i != input_dims_vec.size() - 1)
                 ostr << ": ";
         }
