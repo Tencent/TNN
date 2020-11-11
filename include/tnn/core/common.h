@@ -78,7 +78,8 @@ typedef enum {
     NETWORK_TYPE_HIAI       = 0x4000,
     NETWORK_TYPE_ATLAS      = 0x5000,
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
-    NETWORK_TYPE_RK_NPU     = 0x7000
+    NETWORK_TYPE_RK_NPU     = 0x7000,
+    NETWORK_TYPE_TENSORRT   = 0x8000,
 } NetworkType;
 
 typedef enum {

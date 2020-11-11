@@ -29,7 +29,7 @@ namespace TNN_NS {
 // @brief conv layer arm acc
 class ArmLayerAcc : public AbstractLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs);
 
     virtual ~ArmLayerAcc();
