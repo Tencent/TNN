@@ -19,7 +19,7 @@ DECLARE_OP_CONVERTER(Slice);
 
 string OnnxOpConverterSlice::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     // MARK:由于CPU版本slice_layer和GPU版本的slice_layer实现不一致，统一为StridedSlice，只是stride为1
-    return "StrideSliceV2";
+    return "StridedSliceV2";
 }
 
 string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
