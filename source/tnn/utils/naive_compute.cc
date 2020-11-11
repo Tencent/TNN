@@ -22,6 +22,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/utils/bbox_util.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -39,7 +40,7 @@ uint8_t float2uint8(float val) {
  * blob data format must be NCHW
  */
 template <typename T, typename Tacc>
-void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
+void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output,
                 int stride_y, int stride_x, int kernel_y, int kernel_x, int pad_y, int pad_x, int pool_type) {
     auto input_width = dims_input[3], input_height = dims_input[2];
     auto output_width = dims_output[3], output_height = dims_output[2], output_channel = dims_output[1];
@@ -118,7 +119,7 @@ template void NaivePooling<int8_t, int32_t>(int8_t *input_ptr, int8_t *output_pt
  */
 template <typename T>
 void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    int ip_dim_in = dims_input[1];
+    int ip_dim_in = DimsVectorUtils::Count(dims_input, 1);
     for (int n = 0; n < dims_output[0]; ++n) {
         T *in_current_batch = input_ptr + n * ip_dim_in;
         T *ou_current_batch = output_ptr + n * dims_output[1];
@@ -144,7 +145,7 @@ template void NaiveFC(bfp16_t *input_ptr, bfp16_t *output_ptr, bfp16_t *weight_d
 // specialize for the case data_type=int8
 void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
             DimsVector dims_input, DimsVector dims_output) {
-    int ip_dim_in = dims_input[3] * dims_input[2] * dims_input[1];
+    int ip_dim_in = DimsVectorUtils::Count(dims_input, 1);
     for (int n = 0; n < dims_output[0]; ++n) {
         int8_t *in_current_batch = static_cast<int8_t *>(input_ptr) + n * ip_dim_in;
         int8_t *ou_current_batch = static_cast<int8_t *>(output_ptr) + n * dims_output[1];
