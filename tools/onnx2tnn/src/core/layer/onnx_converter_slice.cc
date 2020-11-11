@@ -18,7 +18,6 @@
 DECLARE_OP_CONVERTER(Slice);
 
 string OnnxOpConverterSlice::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
-    // MARK:由于CPU版本slice_layer和GPU版本的slice_layer实现不一致，统一为StridedSlice，只是stride为1
     return "StridedSliceV2";
 }
 
@@ -32,8 +31,6 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
     std::vector<int64_t> steps;
     if (net_info.opset >= 10) {
         steps = get_node_attr_ai(node, "steps", net_info, 4);
-    } else {
-        steps = std::vector<int64_t>(starts.size(), 1);
     }
     layer_param << starts.size() << " ";
     for (const auto &start : starts) {
@@ -49,11 +46,21 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
             layer_param << end << " ";
         }
     }
+    // pad axes size to starts.size
+    if (axes.empty()) {
+        for (int i = 0; i < starts.size(); ++i) {
+            axes.push_back(i);
+        }
+    }
     layer_param << axes.size() << " ";
     for (const auto &axis : axes) {
         layer_param << axis << " ";
     }
-    layer_param << ends.size() << " ";
+    // Pad steps
+    if (steps.empty()) {
+        steps = std::vector<int64_t>(starts.size(), 1);
+    }
+    layer_param << steps.size() << " ";
     for (const auto &step : steps) {
         layer_param << step << " ";
     }
