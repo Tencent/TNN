@@ -478,7 +478,7 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
             auto src_trans_buf = work_buf;
             auto repack_buf    = src_trans_buf + src_trans_tmp_per_thread * max_num_threads;
-            auto dst_trans_buf = repack_buf + src_trans_size + NEON_KERNEL_EXTRA_LOAD;
+            auto dst_trans_buf = repack_buf + src_trans_size + NEON_KERNEL_EXTRA_LOAD / data_byte_size;
 
             int x_idx    = t_idx * NEON_GEMM_TILE_HW;
             int x_remain = w_unit * h_unit - x_idx;
