@@ -39,8 +39,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/string_utils.h"
-#include <iostream>
+#include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
     return TNN_NS::test::Run(argc, argv);
@@ -450,7 +449,6 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
-        std::cout << "Writing outputs" << std::endl;
         for (auto output : outputs) {
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());

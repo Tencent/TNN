@@ -22,6 +22,7 @@
 
 namespace TNN_NS {
 
+// use float data type for intermediate result
 typedef std::function<float(float, float)> INT8_OP;
 
 void CPU_INT8_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs, int scale_len,

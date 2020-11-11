@@ -16,7 +16,6 @@
 #include "tnn/interpreter/tnn/layer_interpreter/layer_interpreter_macro.h"
 
 #include <stdlib.h>
-#include <iostream>
 
 namespace TNN_NS {
 
@@ -65,8 +64,7 @@ Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     int has_bias           = deserializer.GetInt();
 
     GET_BUFFER_FOR_ATTR(layer_res, filter_handle, deserializer);
-    auto data = layer_res->filter_handle.force_to<float*>();
-    
+
     if (has_bias) {
         GET_BUFFER_FOR_ATTR(layer_res, bias_handle, deserializer);
     }

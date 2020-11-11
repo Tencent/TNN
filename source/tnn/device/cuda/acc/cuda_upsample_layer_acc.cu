@@ -32,7 +32,6 @@ __global__ void upsample_nearest2d_kernel(int count, const float* srcData,
         dstData[index] = srcData[in_index];
     }
 }
- 
 
 __global__ void upsample_bilinear2d_align_corners_kernel(int count, const float * srcData,
         float * dstData, float rheight, float rwidth, int output_c,

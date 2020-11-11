@@ -34,17 +34,6 @@ TensorRTBlobManager::~TensorRTBlobManager() {
 
 Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
                          DataType input_data_type) {
-    //TODO debug
-    int output_size;
-    std::vector<std::string> names;
-    std::ifstream fp("config");
-    fp >> output_size;
-    for (int i = 0; i < output_size; i++) {
-        std::string tmp;
-        fp >> tmp;
-        names.push_back(tmp);
-    }
-
     if (net_structure->blobs.empty()) {
         LOGE("net_structure blobs is empty\n");
         return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");
