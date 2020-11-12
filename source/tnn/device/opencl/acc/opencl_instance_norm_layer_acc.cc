@@ -158,7 +158,7 @@ Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) 
 
     int image_size            = UP_DIV(output_channel, 4);
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
 
     cl_int ret             = CL_SUCCESS;

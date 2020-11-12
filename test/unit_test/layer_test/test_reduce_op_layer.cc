@@ -30,13 +30,16 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
 }
 
 class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {
+};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
                                             testing::Values(9, 10, 16, 19, 512), testing::Values(9, 10, 16, 19, 512),
                                             // axis
-                                            testing::Values(0, 1, 2, 3),
+                                            testing::Values(std::vector<int>({1}), std::vector<int>({3}),
+                                                            std::vector<int>({1, 2}), std::vector<int>({1, -1}),
+                                                            std::vector<int>({3, -2}), std::vector<int>({1, -2, -1})),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -46,7 +49,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int channel        = std::get<1>(GetParam());
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
-    int axis           = std::get<4>(GetParam());
+    auto& axis         = std::get<4>(GetParam());
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
@@ -58,12 +61,13 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // param
     ReduceLayerParam* param = new ReduceLayerParam();
     param->name             = "ReduceOp";
-    param->axis             = {axis};
+    param->axis             = axis;
 
     auto param_share = std::shared_ptr<LayerParam>(param);
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
-    auto interpreter1           = GenerateInterpreter("ReduceMax", {input_dims}, param_share);
+
+    auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param_share);
     Run(interpreter1);
     auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param_share);
     Run(interpreter2);

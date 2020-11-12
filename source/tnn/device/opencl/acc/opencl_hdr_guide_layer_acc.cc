@@ -212,7 +212,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
     int image_w               = pixel_count;
     int image_h               = 1;
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
                                          cl::ImageFormat(CL_RGBA, data_type), image_w, image_h, 0, nullptr, &ret);
@@ -268,7 +268,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
     int img_width          = 4;
     int img_height         = 1;
     cl_channel_type data_t = CL_FLOAT;
-    if (ocl_runtime->GetFp16Enable())
+    if (ocl_runtime->GetPrecision() != PRECISION_HIGH)
         data_t = CL_HALF_FLOAT;
     cl::Image2D *img = new cl::Image2D(*ocl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_t),
                                        img_width, img_height, 0, nullptr, &ocl_ret);

@@ -66,6 +66,13 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** c
     *device_context = (*device)->CreateContext(config.device_id);
     ASSERT(*device_context != NULL);
 
+    if (!FLAGS_ub) {
+        ret = (*device_context)->SetPrecision(PRECISION_HIGH);
+        if (ret != TNN_OK) {
+            LOGE("Error: device of type(%d) not support set high precision\n", config.device_type);
+        }
+    }
+
     ret = (*device_context)->LoadLibrary(config.library_path);
     ASSERT(ret == TNN_OK);
 }

@@ -47,6 +47,9 @@ int Onnx2TNN::FusePooling(onnx::GraphProto* mutable_graph, std::vector<IndexNode
                 if (pooling_pads.size() != 4) {
                     break;
                 }
+                if ((pads[2] != pads[6]) || (pads[3] != pads[7])) {
+                    break;
+                }
                 pooling_pads[0] += pads[2];
                 pooling_pads[1] += pads[3];
                 pooling_pads[2] += pads[6];
