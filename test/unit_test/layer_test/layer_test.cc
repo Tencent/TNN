@@ -105,7 +105,11 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (DEVICE_HUAWEI_NPU == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_HUAWEI_NPU;
     }
-    config_device.precision = precision;
+    if (!FLAGS_ub && (DEVICE_OPENCL == config_device.device_type || DEVICE_METAL == config_device.device_type)) {
+        config_device.precision = PRECISION_HIGH;
+    } else {
+        config_device.precision = precision;
+    }
     if (FLAGS_lp.length() > 0) {
         config_device.library_path = {FLAGS_lp};
     }
