@@ -9,7 +9,8 @@ set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75
                  -gencode arch=compute_61,code=sm_61")
 
 message(${TARGET_ARCH})
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" "${CUDA_OPT_FLAG}" "-Xcompiler -fPIC --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg -use_fast_math" "${TARGET_ARCH}")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" "${CUDA_OPT_FLAG}" "-Xcompiler -fPIC --compiler-options -fno-strict-aliasing -lineinfo -Xptxas
+    -dlcm=cg -use_fast_math" "${TARGET_ARCH}")
 
 file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu utils/*.cu thirdparty/md5/*.cc)
 message(${CUDA_SRCS})

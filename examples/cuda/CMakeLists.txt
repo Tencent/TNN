@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.1)
 project(TNN-demo)
 message(${CMAKE_SOURCE_DIR})
 message(${TNN_LIB_PATH})
-message(${TENSORRT_ROOT})
+
+if(NOT DEFINED ENV{TENSORRT_ROOT_DIR})
+    message(FATAL_ERROR "not defined environment variable:TENSORRT_ROOT_DIR")
+endif()
+
 find_package(CUDA REQUIRED)
 
 set(CMAKE_SYSTEM_NAME Linux)
@@ -20,7 +24,7 @@ set(LINK_LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} nvinfer)
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${TNNInclude})
 link_directories(${TNN_LIB_PATH})
-link_directories(${TENSORRT_ROOT}/lib)
+link_directories($ENV{TENSORRT_ROOT_DIR}/lib)
 
 file(GLOB_RECURSE SRC "./*.cc")
 

@@ -27,13 +27,13 @@ ILayer* ReduceTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto axis = paramlist->axis;
     uint32_t reduceAxis = 0x0;
     if (std::find(axis.begin(), axis.end(), 1) != axis.end()) {
-        reduceAxis |= 0x1;
-    }
-    if (std::find(axis.begin(), axis.end(), 2) != axis.end()) {
         reduceAxis |= 0x2;
     }
-    if (std::find(axis.begin(), axis.end(), 3) != axis.end()) {
+    if (std::find(axis.begin(), axis.end(), 2) != axis.end()) {
         reduceAxis |= 0x4;
+    }
+    if (std::find(axis.begin(), axis.end(), 3) != axis.end()) {
+        reduceAxis |= 0x8;
     }
 
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
