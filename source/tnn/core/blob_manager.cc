@@ -96,10 +96,15 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     }
 
     // intput blobs
+    const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         std::string current_blob_name         = iter.first;
         Blob *current_blob                    = blobs_[current_blob_name];
-        current_blob->GetBlobDesc().data_type = input_data_type;
+        if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
+            current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
+        } else {
+            current_blob->GetBlobDesc().data_type = input_data_type;
+        }
         input_blobs_[current_blob_name]       = current_blob;
     }
 

@@ -151,7 +151,7 @@ int Onnx2TNN::TNNWriteProto() {
         ostringstream proto_net_info;
         {
             // line 1
-            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_tnn << " ,\""
+            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_tnn_v2 << " ,\""
                            << endl;
 
             // line 2, 输入blob
@@ -226,7 +226,7 @@ int Onnx2TNN::TNNWriteProto() {
                             assert(0);
                         }
 
-                        proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_h
+                        proto_net_info << input_blob->name() << " " << "4" << " " << shape_n << " " << shape_c << " " << shape_h
                                        << " " << shape_w << " ";
                     } else if (input_blob_shape.dim_size() == 5) {
                         shape_n = (int)input_blob_shape.dim(0).dim_value();
@@ -243,16 +243,17 @@ int Onnx2TNN::TNNWriteProto() {
                             input_blob_shape.dim(3).denotation().c_str(), shape_w,
                             input_blob_shape.dim(4).denotation().c_str());
 
-                        proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_d
+                        proto_net_info << input_blob->name() << " " << "5" << " " << shape_n << " " << shape_c << " " << shape_d
                                        << " " << shape_h << " " << shape_w << " ";
                     } else {
-                        proto_net_info << input_blob->name() << " ";
+                        proto_net_info << input_blob->name() << " " << input_blob_shape.dim().size() << " ";
                         for (const auto& dim : input_blob_shape.dim()) {
                             proto_net_info << dim.dim_value() << " ";
                         }
                         LOGD("input_blob_shape dim_size: %d\n", input_blob_shape.dim_size());
                     }
-
+                    DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
+                    proto_net_info << input_data_type << " ";
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
                         proto_net_info << ": ";
                     }

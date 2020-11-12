@@ -31,7 +31,7 @@ std::string ModelInterpreter::Transfer(std::string content) {
 
 // Check if the magic number is valid.
 bool ModelInterpreter::IsValidVersionNumber(uint32_t number) {
-    return number == g_version_magic_number;
+    return number == g_version_magic_number || number == g_version_magic_number_v2;
 }
 
 std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is) {
@@ -128,27 +128,56 @@ Status ModelInterpreter::InterpretProto(std::string &content) {
 Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
     NetStructure *structure = GetNetStructure();
     str_arr inputs_cfg_vec;
-    /*
-     * input list is separated by : symbol
-     * eg:
-     *  input0 1 3 384 128 : input1 1 3 64 64
-     */
     Status ret = SplitUtils::SplitStr(inputs_content.c_str(), inputs_cfg_vec, ":", true, false);
     if (ret != TNN_OK) {
         return Status(TNNERR_INVALID_NETCFG, "split input line error");
     }
-    for (int i = 0; i < inputs_cfg_vec.size(); i++) {
-        str_arr input_cfg_vec;
-        ret = SplitUtils::SplitStr(inputs_cfg_vec[i].c_str(), input_cfg_vec, " ", true, false);
-        if (ret != TNN_OK || input_cfg_vec.size() < input_layer_cfg_count) {
-            return Status(TNNERR_INVALID_NETCFG, "split input line error");
+    if (this->version_magic_number == g_version_magic_number) {
+        /*
+         * input list is separated by : symbol
+         * eg:
+         *  input0 1 3 384 128 : input1 1 3 64 64
+         */
+        for (int i = 0; i < inputs_cfg_vec.size(); i++) {
+            str_arr input_cfg_vec;
+            ret = SplitUtils::SplitStr(inputs_cfg_vec[i].c_str(), input_cfg_vec, " ", true, false);
+            if (ret != TNN_OK || input_cfg_vec.size() < input_layer_cfg_count) {
+                return Status(TNNERR_INVALID_NETCFG, "split input line error");
+            }
+            DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
+            // input_shape.set_name(input_cfg_vec[0]);
+            for (int dim_i=1; dim_i<input_cfg_vec.size(); dim_i++) {
+                input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
+            }
         }
-        DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
-        // input_shape.set_name(input_cfg_vec[0]);
-        for (int dim_i=1; dim_i<input_cfg_vec.size(); dim_i++) {
-            input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
+    } else if (this->version_magic_number == g_version_magic_number_v2) {
+        /* new tnn input format
+         * input list is separated by : symbol
+         * eg:
+         *  input_name size n c h w date_type : input_name size n c h w data_type
+         */
+        for (const auto& config: inputs_cfg_vec) {
+            str_arr input_cfg;
+            ret = SplitUtils::SplitStr(config.c_str(), input_cfg, " ", true, false);
+            if (ret != TNN_OK || input_cfg.size() < input_layer_cfg_count) {
+                return Status(TNNERR_INVALID_NETCFG, "split input line error");
+            }
+            DimsVector &input_shape = structure->inputs_shape_map[input_cfg[0]];
+            int dims_size = atoi(input_cfg[1].c_str());
+            for (int i = 2; i < dims_size + 2; ++i) {
+                if (i >= input_cfg.size()) {
+                    return Status(TNNERR_INVALID_NETCFG, "get input dims error");
+                }
+                input_shape.push_back(atoi(input_cfg[i].c_str()));
+            }
+            DataType data_type = (DataType)atoi(input_cfg[input_cfg.size()-1].c_str());
+            structure->input_data_type_map[input_cfg[0]] = data_type;
         }
+    } else {
+        LOGE("Do not support tnn proto type\n");
+        return Status(TNNERR_INVALID_MODEL, "Do not support tnn proto type");
     }
+
     return TNN_OK;
 }
 

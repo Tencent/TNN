@@ -112,4 +112,6 @@ bool set_node_attr_ai(onnx::NodeProto& node, const char* key, std::vector<int64_
 
 std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor);
 
+DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type);
+
 #endif /* onnx_utility_hpp */

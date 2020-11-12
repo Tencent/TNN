@@ -640,3 +640,29 @@ std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor) {
     }
     return dims;
 }
+
+DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
+
+    switch (onnx_type.tensor_type().elem_type()) {
+        case onnx::TensorProto_DataType_FLOAT:{
+            return DATA_TYPE_FLOAT;
+        }
+        case onnx::TensorProto_DataType_FLOAT16: {
+            return DATA_TYPE_HALF;
+        }
+        case onnx::TensorProto_DataType_INT8: {
+            return DATA_TYPE_INT8;
+        }
+        case onnx::TensorProto_DataType_INT64:
+        case onnx::TensorProto_DataType_INT32: {
+            return DATA_TYPE_INT32;
+        }
+        case onnx::TensorProto_DataType_BFLOAT16: {
+            return DATA_TYPE_BFP16;
+        }
+        default:{
+            LOGE("Not support onnx TypeProto type");
+            assert(0);
+        }
+    }
+}

@@ -89,8 +89,9 @@ public:
     int flag = DATA_FLAG_CHANGE_ALWAYS;
 };
 
-// InputShapeMap input rereshape info
-using InputShapesMap = std::map<std::string, DimsVector>;
+// InputShapeMap input reshape info
+using InputShapesMap   = std::map<std::string, DimsVector>;
+using InputDataTypeMap = std::map<std::string, DataType>;
 
 using BlobMap = std::map<std::string, Blob *>;
 

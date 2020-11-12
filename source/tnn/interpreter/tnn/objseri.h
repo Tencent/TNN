@@ -45,18 +45,6 @@ namespace TNN_NS {
         void PutString(const std::string &value) {
             return PutString_t<std::string>(value);
         }
-        void PutDims(std::vector<int> &dims) {
-            PutInt(g_version_magic_number);
-            PutInt(DATA_TYPE_INT32);
-            PutInt(dims.size());
-            if (dims.empty()) {
-                return;
-            }
-            _ostream.write(reinterpret_cast<char *>(dims.data()),
-                           static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
-            if (_ostream.bad())
-                return;
-        }
 
         virtual void PutRaw(TNN_NS::RawBuffer &value) {
             int length = value.GetBytesSize();
