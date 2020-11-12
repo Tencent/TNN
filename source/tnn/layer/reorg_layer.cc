@@ -33,10 +33,6 @@ Status ReorgLayer::InferOutputShape() {
     bool forward = reorg_param->forward;
     int stride   = reorg_param->stride;
     int mode     = reorg_param->mode;
-    if (forward == false && mode == 1) {
-        LOGE("Layer Reorg: do not support Reorg(SpaceToDepth) use CRD mode \n");
-        return TNNERR_LAYER_ERR;
-    }
 
     auto dims_input = input_blob->GetBlobDesc().dims;
     int num         = dims_input[0];
