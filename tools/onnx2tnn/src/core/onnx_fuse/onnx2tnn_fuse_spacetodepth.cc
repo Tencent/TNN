@@ -19,22 +19,25 @@
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
-int Onnx2TNN::FuseDepthToSpace(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+int Onnx2TNN::FuseSpaceToDepth(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                                std::map<std::string, onnx::TensorProto>& weights,
                                std::map<std::string, int>& node_reference, std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
 
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
-        // DepthToSpace <= Reshape - Transpose - Reshape
-        // CRD mode: Reshape - Transpose(0, 1, 4, 2, 5, 3) - Reshape
-        // DCR mode: Reshape - Transpose(0, 3, 4, 1, 5, 2) - Reshape
+        // SpaceToDepth <= Reshape - Transpose - Reshape
+        // CRD mode: Reshape - Transpose(0, 1, 3, 5, 2, 4) - Reshape
+        // DCR mode: Reshape - Transpose(0, 3, 5, 1, 2, 4) - Reshape
         do {
             if (node->op_type() != "Reshape" || i + 2 >= node_count) {
                 break;
             }
             auto shapes = get_node_attr_ai(*node, "shape", weights, 1);
             if (shapes.size() != 6) {
+                break;
+            }
+            if (shapes[3] != shapes[5]) {
                 break;
             }
             auto transpose_node = index_nodes[i + 1].node;
@@ -45,8 +48,8 @@ int Onnx2TNN::FuseDepthToSpace(onnx::GraphProto* mutable_graph, std::vector<Inde
             if (permute.size() != 6) {
                 break;
             }
-            std::vector<int64_t> CRD_mode = {0, 1, 4, 2, 5, 3};
-            std::vector<int64_t> DCR_mode = {0, 3, 4, 1, 5, 2};
+            std::vector<int64_t> CRD_mode = {0, 1, 3, 5, 2, 4};
+            std::vector<int64_t> DCR_mode = {0, 3, 5, 1, 2, 4};
             bool is_crd                   = true;
             bool is_dcr                   = true;
             for (int index = 0; index < 6; index++) {
@@ -64,12 +67,6 @@ int Onnx2TNN::FuseDepthToSpace(onnx::GraphProto* mutable_graph, std::vector<Inde
             if (!is_crd && !is_dcr) {
                 break;
             }
-            if (is_crd && shapes[2] != shapes[3]) {
-                break;
-            }
-            if (is_dcr && shapes[1] != shapes[2]) {
-                break;
-            }
 
             auto reshape_node = index_nodes[i + 2].node;
             if (reshape_node->op_type() != "Reshape") {
@@ -81,14 +78,13 @@ int Onnx2TNN::FuseDepthToSpace(onnx::GraphProto* mutable_graph, std::vector<Inde
             if (node_reference[node->output(0)] != 1 || node_reference[transpose_node->output(0)] != 1) {
                 break;
             }
-            reshape_node->set_op_type("DepthToSpace");
+            reshape_node->set_op_type("SpaceToDepth");
             // reshape_node->clear_input();
             // set input
             // reshape_node->add_input(0, node->input(0));
             reshape_node->set_input(0, node->input(0));
             onnx::AttributeProto* attr_block_size = reshape_node->add_attribute();
-            // CRD 和 DCR 中，shapes[2] 都是 block size
-            int block_size = shapes[2];
+            int block_size                        = shapes[3];
             attr_block_size->set_name("blocksize");
             attr_block_size->set_i(block_size);
 

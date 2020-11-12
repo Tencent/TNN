@@ -39,11 +39,7 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     bool forward   = std::get<4>(GetParam());
     int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-
-    if (mode == 1 && forward == 0) {
-        // illegal case
-        GTEST_SKIP();
-    }
+    
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
     auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
