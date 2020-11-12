@@ -19,9 +19,9 @@
 
 namespace TNN_NS {
 
-class ConvLayerTest
-    : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, DataType>> {
+class ConvLayerTest : public LayerTest,
+                      public ::testing::WithParamInterface<
+                          std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {
     float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
         ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param);
         auto dims_input            = inputs[0]->GetBlobDesc().dims;
@@ -49,6 +49,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                              testing::Values(1, 2),
                              // pads
                              testing::Values(0, 1),
+                             // activation
+                             testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6),
                              // data_type
                              testing::Values(DATA_TYPE_FLOAT)));
 
@@ -63,7 +65,8 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int dilation          = std::get<5>(GetParam());
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
-    auto dtype            = std::get<8>(GetParam());
+    auto activation_type  = std::get<8>(GetParam());
+    auto dtype            = std::get<9>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -72,6 +75,10 @@ TEST_P(ConvLayerTest, ConvLayer) {
     }
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
+
+    if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -86,7 +93,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param->strides         = {stride, stride};
     param->pads            = {pad, pad, pad, pad};
     param->bias            = 1;
-    param->activation_type = ActivationType_ReLU;
+    param->activation_type = activation_type;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};

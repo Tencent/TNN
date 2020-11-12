@@ -37,6 +37,10 @@ TEST_P(HardSwishBroadcastLayerTest, BinaryLayerTest) {
     int weight_idx = std::get<5>(GetParam());
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // hard swish dont support weight
     if (weight_idx != -1) {
         GTEST_SKIP();

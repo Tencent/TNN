@@ -39,7 +39,7 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_METAL == dev) {
+    if (DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 

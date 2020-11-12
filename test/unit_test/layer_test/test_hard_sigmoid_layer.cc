@@ -48,6 +48,10 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     HardSigmoidLayerParam* param = new HardSigmoidLayerParam();
     param->name                  = "HardSigmoid";

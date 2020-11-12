@@ -37,6 +37,10 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     PixelShuffleLayerParam* param = new PixelShuffleLayerParam();
     param->name                   = "PixelShuffle";
     param->upscale_factor         = upscale_factor;

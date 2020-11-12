@@ -41,6 +41,10 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (channel <= 1) {
         GTEST_SKIP();
     }

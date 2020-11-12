@@ -41,6 +41,10 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }

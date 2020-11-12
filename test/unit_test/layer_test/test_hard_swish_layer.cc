@@ -52,6 +52,10 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     HardSwishLayerParam* param = new HardSwishLayerParam();
     param->name                = "HardSwish";
