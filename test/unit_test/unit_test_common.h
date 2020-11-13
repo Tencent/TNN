@@ -33,8 +33,6 @@ namespace TNN_NS {
 IntScaleResource* CreateIntScale(int channel);
 void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context);
 
-std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int output_count = 1);
-
 std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_type_str,
                                                               std::vector<std::vector<int>> input_vec,
                                                               std::shared_ptr<LayerParam> param,

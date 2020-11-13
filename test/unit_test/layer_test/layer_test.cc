@@ -27,27 +27,11 @@
 
 namespace TNN_NS {
 
-AbstractDevice* LayerTest::device_;
-
 std::shared_ptr<Instance> LayerTest::instance_cpu_       = nullptr;
 std::shared_ptr<Instance> LayerTest::instance_device_    = nullptr;
 std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 
-void LayerTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // device
-    device_ = GetDevice(config.device_type);
-    if (!device_) {
-        LOGE("Error: device of type(%d) is null\n", config.device_type);
-        ASSERT(0);
-    }
-}
+void LayerTest::SetUpTestCase() {}
 
 void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
@@ -59,7 +43,7 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
         return;
     }
 
-    ret = InitInputBlobsDataRandomWithProto();
+    ret = InitInputBlobsDataRandom();
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
@@ -195,9 +179,8 @@ Status LayerTest::Forward() {
      */
     if (FLAGS_ub) {
         printf(
-            "device %s time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms |"
-            "  dram thrp = %g GB/s\n",
-            FLAGS_dt.c_str(), min, max, sum / (float)FLAGS_ic, GetCalcDramThrp(sum / (float)FLAGS_ic));
+            "device %s time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n",
+            FLAGS_dt.c_str(), min, max, sum / (float)FLAGS_ic);
     }
 
     return ret;
@@ -245,28 +228,6 @@ void LayerTest::TearDownTestCase() {
     instance_cpu_.reset();
     instance_device_.reset();
     instance_ocl_cache_.reset();
-}
-
-float LayerTest::GetCalcDramThrp(float avg_time) {
-    float rw_bytes_in_total = 0.f;
-    for (int index = 0; index < device_inputs_.size(); ++index) {
-        Blob* blob                        = device_inputs_[index];
-        BlobDesc blob_desc                = blob->GetBlobDesc();
-        BlobMemorySizeInfo blob_size_info = device_->Calculate(blob_desc);
-        int input_count                   = DimsVectorUtils::Count(blob_size_info.dims);
-        int ele_bytes                     = DataTypeUtils::GetBytesSize(blob_size_info.data_type);
-        rw_bytes_in_total += 1.0f * ele_bytes * input_count;
-    }
-    for (int index = 0; index < device_outputs_.size(); ++index) {
-        Blob* blob                        = device_outputs_[index];
-        BlobDesc blob_desc                = blob->GetBlobDesc();
-        BlobMemorySizeInfo blob_size_info = device_->Calculate(blob_desc);
-        int input_count                   = DimsVectorUtils::Count(blob_size_info.dims);
-        int ele_bytes                     = DataTypeUtils::GetBytesSize(blob_size_info.data_type);
-        rw_bytes_in_total += 1.0f * ele_bytes * input_count;
-    }
-
-    return rw_bytes_in_total / 1000.f / 1000.f / avg_time;
 }
 
 Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num) {
@@ -392,7 +353,7 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     return cmp_result;
 }
 
-Status LayerTest::InitInputBlobsDataRandomWithProto() {
+Status LayerTest::InitInputBlobsDataRandom() {
     BlobMap input_blobs_cpu;
     BlobMap input_blobs_device;
     Status ret = TNN_OK;

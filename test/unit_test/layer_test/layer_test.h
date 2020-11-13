@@ -51,10 +51,6 @@ private:
     Status DeInit();
 
 protected:
-    static AbstractDevice* device_;
-
-    std::vector<Blob*> device_inputs_;
-    std::vector<Blob*> device_outputs_;
     int ensure_input_positive_ = 0;
 
     static std::shared_ptr<Instance> instance_cpu_;
@@ -62,15 +58,10 @@ protected:
     static std::shared_ptr<Instance> instance_ocl_cache_;
 
 private:
-    virtual float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
-        return 0.f;
-    }
-    virtual float GetCalcDramThrp(float avg_time);
-
     Status GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num);
     int CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev);
 
-    Status InitInputBlobsDataRandomWithProto();
+    Status InitInputBlobsDataRandom();
 };
 
 }  // namespace TNN_NS

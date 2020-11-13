@@ -21,16 +21,7 @@ namespace TNN_NS {
 
 class ConvLayerTest : public LayerTest,
                       public ::testing::WithParamInterface<
-                          std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {
-    float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
-        ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param);
-        auto dims_input            = inputs[0]->GetBlobDesc().dims;
-        auto dims_output           = outputs[0]->GetBlobDesc().dims;
-        float Mflops = 2.0f * dims_output[0] * dims_output[1] * dims_input[1] * dims_output[2] * dims_output[3] *
-                       conv_param->kernels[0] * conv_param->kernels[1] / 1000.f / 1000.f;
-        return Mflops;
-    }
-};
+                          std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch

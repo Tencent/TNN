@@ -77,52 +77,6 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** c
     ASSERT(ret == TNN_OK);
 }
 
-std::string GenerateHeadProto(std::vector<std::vector<int>> input_dims_vec, int output_count) {
-    std::ostringstream ostr;
-    ostr << "\"1 124 1 4206624770,\"\n";
-
-    if (1 == input_dims_vec.size()) {
-        ostr << "\"input";
-        for (auto i : input_dims_vec[0])
-            ostr << " " << i;
-        ostr << " ,\"\n";
-        ostr << "\" input ";
-    } else {
-        ostr << "\"";
-        for (int i = 0; i < input_dims_vec.size(); ++i) {
-            ostr << "input" << i;
-            for (auto dim : input_dims_vec[i])
-                ostr << " " << dim;
-            if (i != input_dims_vec.size() - 1)
-                ostr << ": ";
-        }
-        ostr << " ,\"\n\" ";
-        for (int i = 0; i < input_dims_vec.size(); ++i) {
-            ostr << "input" << i << " ";
-        }
-    }
-
-    if (1 == output_count) {
-        ostr << "output ";
-    } else {
-        for (int i = 0; i < output_count; ++i) {
-            ostr << "output" << i << " ";
-        }
-    }
-    ostr << ",\"\n";
-    ostr << "\"";
-    if (1 == output_count) {
-        ostr << "output ";
-    } else {
-        for (int i = 0; i < output_count; ++i) {
-            ostr << "output" << i << " ";
-        }
-    }
-    ostr << ",\"\n";
-    ostr << "\"1 ,\"\n";
-    return ostr.str();
-}
-
 InputShapesMap GenerateInputShapeMap(std::vector<std::vector<int>>& input_vec) {
     InputShapesMap shape_map;
     for (int i = 0; i < input_vec.size(); ++i) {
