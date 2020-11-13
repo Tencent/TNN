@@ -251,7 +251,7 @@ namespace ncnn {
 
         const auto model_length = model_content.length();
         if (model_length <= 0) {
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
             return TNN_OK;
 #else
             return Status(TNNERR_LOAD_MODEL, "model content is invalid");

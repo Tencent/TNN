@@ -47,6 +47,10 @@ if(TNN_PROFILER_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
 
+if(TNN_BENCHMARK_MODE)
+    add_definitions(-DGENERATE_RESOURCE)
+endif()
+
 # ignore loop-vectorize warning
 if(SYSTEM.Windows)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -90,11 +94,7 @@ if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
-    set(TNN_BENCHMARK_MODE ON)
-endif()
-
-if(TNN_BENCHMARK_MODE)
-    add_definitions(-DBENCHMARK)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)

@@ -159,7 +159,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
@@ -206,7 +206,7 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
     CHECK_PARAM_NULL(new_blob);
 
     std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
     if (net_resource->resource_map.count(blob_scale_name) == 0) {
         LayerResource *layer_res  = nullptr;
         std::vector<Blob *> blobs = {*blob};

@@ -290,19 +290,19 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         std::vector<Blob *> input_blobs;
         BlobDesc blob_desc;
 #endif
         for (std::string &name : layer_info->inputs) {
             input_ops.push_back(global_operator_map_[name]);
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
             blob_desc.dims = global_operator_map_[name]->GetShape();
             Blob *blob     = new Blob(blob_desc);
             input_blobs.push_back(blob);
 #endif
         }
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
