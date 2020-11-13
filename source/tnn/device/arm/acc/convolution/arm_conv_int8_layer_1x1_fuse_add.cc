@@ -26,15 +26,10 @@ ArmConvInt8Layer1x1FuseAdd used for 1x1 conv fused with add
 */
 bool ArmConvInt8Layer1x1FuseAdd::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs) {
-    if (param->group != 1 || param->kernels[0] != 1 || param->kernels[1] != 1 || param->strides[0] != 1 ||
-        param->strides[1] != 1 || param->pads[0] != 0 || param->pads[1] != 0 || param->pads[2] != 0 ||
-        param->pads[3] != 0) {
-        return false;
-    } else if (param->fusion_type == FusionType_None) {
-        return false;
-    } else {
+    if (ArmConvInt8Layer1x1::isPrefered(param, inputs, outputs) && param->fusion_type != FusionType_None) {
         return true;
     }
+    return false;
 }
 
 ArmConvInt8Layer1x1FuseAdd::~ArmConvInt8Layer1x1FuseAdd() {}

@@ -26,6 +26,10 @@ void ArmConvLayerAccFactory::CreateImpInt8(const std::vector<Blob *> &inputs, co
         if (!dynamic_cast<ArmConvInt8Layer1x1FuseAdd *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvInt8Layer1x1FuseAdd>();
         }
+    } else if (ArmConvInt8LayerCommonFuseAdd::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvInt8LayerCommonFuseAdd *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvInt8LayerCommonFuseAdd>();
+        }
     } else if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8LayerDepthwise *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvInt8LayerDepthwise>();
