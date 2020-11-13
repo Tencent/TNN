@@ -54,13 +54,13 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     }
 
     // param
-    SoftmaxLayerParam* param = new SoftmaxLayerParam();
-    param->name              = "Softmax";
-    param->axis              = axis;
+    std::shared_ptr<SoftmaxLayerParam> param(new SoftmaxLayerParam());
+    param->name = "Softmax";
+    param->axis = axis;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
-    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
     Run(interpreter);
 }
 

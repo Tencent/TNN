@@ -62,9 +62,9 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
         param_dims  = {1, 1, input_size, input_size};
     }
 
-    EltwiseLayerResource* resource = nullptr;
+    std::shared_ptr<EltwiseLayerResource> resource = nullptr;
     if (input_count == 1) {
-        resource = new EltwiseLayerResource();
+        resource = std::shared_ptr<EltwiseLayerResource>(new EltwiseLayerResource());
         RawBuffer buffer(param_count * sizeof(float));
         float* buffer_data = buffer.force_to<float*>();
         InitRandom(buffer_data, param_count, 1.0f);
@@ -73,11 +73,11 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
     }
 
     // param
-    MultidirBroadcastLayerParam* param = nullptr;
+    std::shared_ptr<MultidirBroadcastLayerParam> param = nullptr;
     if (LAYER_HARDSWISH == layer_type_) {
-        param = new HardSwishLayerParam();
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new HardSwishLayerParam());
     } else {
-        param = new MultidirBroadcastLayerParam();
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new MultidirBroadcastLayerParam());
     }
 
     param->name               = "Binary";
@@ -135,11 +135,9 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
 
     std::shared_ptr<AbstractModelInterpreter> interpreter;
     if (1 == input_count) {
-        interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, std::shared_ptr<LayerParam>(param),
-                                          std::shared_ptr<LayerResource>(resource));
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, param, resource);
     } else if (2 == input_count) {
-        interpreter =
-            GenerateInterpreter(layer_type_str, {input0_dims, input1_dims}, std::shared_ptr<LayerParam>(param));
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims, input1_dims}, param);
     }
     Run(interpreter, precision);
 }

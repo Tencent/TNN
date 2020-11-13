@@ -62,15 +62,15 @@ TEST_P(PowLayerTest, PowLayer) {
     }
 
     // param
-    PowLayerParam* param = new PowLayerParam();
-    param->name          = "Pow";
-    param->scale         = scale;
-    param->shift         = shift;
-    param->exponent      = exponent;
+    std::shared_ptr<PowLayerParam> param(new PowLayerParam());
+    param->name     = "Pow";
+    param->scale    = scale;
+    param->shift    = shift;
+    param->exponent = exponent;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Power", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Power", {input_dims}, param);
     Run(interpreter);
 }
 

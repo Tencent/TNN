@@ -54,18 +54,18 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    UpsampleLayerParam* param = new UpsampleLayerParam();
-    param->name               = "Upsample";
-    param->mode               = mode;
-    param->align_corners      = align_corners;
-    param->scales             = {scale_x, scale_y};
+    std::shared_ptr<UpsampleLayerParam> param(new UpsampleLayerParam());
+    param->name          = "Upsample";
+    param->mode          = mode;
+    param->align_corners = align_corners;
+    param->scales        = {scale_x, scale_y};
     if (use_dims) {
         param->dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
     }
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Upsample", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Upsample", {input_dims}, param);
     Run(interpreter);
 }
 

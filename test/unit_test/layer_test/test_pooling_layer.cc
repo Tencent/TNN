@@ -50,11 +50,11 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     }
 
     // param
-    PoolingLayerParam* param = new PoolingLayerParam();
-    param->name              = "Pooling";
-    param->kernels_params    = {kernel, kernel};
-    param->kernels           = {kernel, kernel};
-    param->strides           = {stride, stride};
+    std::shared_ptr<PoolingLayerParam> param(new PoolingLayerParam());
+    param->name           = "Pooling";
+    param->kernels_params = {kernel, kernel};
+    param->kernels        = {kernel, kernel};
+    param->strides        = {stride, stride};
     if (kernel == 3)
         param->pads = {1, 1, 1, 1};
     else
@@ -66,7 +66,7 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, param);
     Precision precision         = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;

@@ -54,7 +54,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int pad      = kernel / 2;
 
     // param
-    ConvLayerParam* param = new ConvLayerParam();
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
     param->name           = "Conv";
     param->input_channel  = channel;
     param->output_channel = channel;
@@ -75,7 +75,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         precision = PRECISION_LOW;
     }
 
-    auto interpreter = GenerateInterpreter("Convolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter, precision);
 }
 

@@ -41,13 +41,13 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
         GTEST_SKIP();
     }
 
-    PixelShuffleLayerParam* param = new PixelShuffleLayerParam();
-    param->name                   = "PixelShuffle";
-    param->upscale_factor         = upscale_factor;
+    std::shared_ptr<PixelShuffleLayerParam> param(new PixelShuffleLayerParam());
+    param->name           = "PixelShuffle";
+    param->upscale_factor = upscale_factor;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("PixelShuffle", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("PixelShuffle", {input_dims}, param);
     Run(interpreter);
 }
 

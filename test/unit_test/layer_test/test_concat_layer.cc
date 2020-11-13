@@ -46,15 +46,15 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     }
 
     // param
-    ConcatLayerParam* param = new ConcatLayerParam();
-    param->name             = "Concat";
-    param->axis             = axis;
+    std::shared_ptr<ConcatLayerParam> param(new ConcatLayerParam());
+    param->name = "Concat";
+    param->axis = axis;
 
     // generate interpreter
     std::vector<std::vector<int>> input_dims_vec;
     for (int i = 0; i < input_count; ++i)
         input_dims_vec.push_back({batch, channel, input_size, input_size});
-    auto interpreter = GenerateInterpreter("Concat", input_dims_vec, std::shared_ptr<LayerParam>(param));
+    auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
     Run(interpreter);
 }
 

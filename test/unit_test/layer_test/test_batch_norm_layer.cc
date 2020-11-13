@@ -40,12 +40,12 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    LayerParam* param = new LayerParam();
-    param->name       = "BatchNorm";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "BatchNorm";
 
     // resource
-    BatchNormLayerResource* resource = new BatchNormLayerResource();
-    int k_count                      = share_channel ? 1 : channel;
+    std::shared_ptr<BatchNormLayerResource> resource(new BatchNormLayerResource());
+    int k_count = share_channel ? 1 : channel;
     RawBuffer filter_k(k_count * sizeof(float));
     float* k_data = filter_k.force_to<float*>();
     InitRandom(k_data, k_count, 1.0f);
@@ -57,12 +57,10 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
         resource->bias_handle = bias;
     }
 
-    auto param_share    = std::shared_ptr<LayerParam>(param);
-    auto resource_share = std::shared_ptr<LayerResource>(resource);
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param_share, resource_share);
-    auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param_share, resource_share);
+    auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
+    auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
     Run(interpreter1);
     Run(interpreter2);
 }

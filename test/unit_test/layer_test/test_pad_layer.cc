@@ -60,15 +60,15 @@ TEST_P(PadLayerTest, PadLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    PadLayerParam* param = new PadLayerParam();
-    param->name          = "Pad";
-    param->type          = pad_type;
-    param->pads          = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
-    param->value         = value;
+    std::shared_ptr<PadLayerParam> param(new PadLayerParam());
+    param->name  = "Pad";
+    param->type  = pad_type;
+    param->pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
+    param->value = value;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Pad", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Pad", {input_dims}, param);
     Run(interpreter);
 }
 

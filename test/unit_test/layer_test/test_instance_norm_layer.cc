@@ -32,12 +32,12 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     int input_size = std::get<2>(GetParam());
 
     // param
-    LayerParam* param = new LayerParam();
-    param->name       = "InstanceNorm";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "InstanceNorm";
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter = GenerateInterpreter("InstBatchNormCxx", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param);
     Run(interpreter);
 }
 

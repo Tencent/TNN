@@ -36,13 +36,13 @@ TEST_P(PReluLayerTest, PReluLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    PReluLayerParam* param = new PReluLayerParam();
-    param->name            = "PRelu";
-    param->channel_shared  = share_channel ? 1 : 0;
+    std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
+    param->name           = "PRelu";
+    param->channel_shared = share_channel ? 1 : 0;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("PReLU", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("PReLU", {input_dims}, param);
     Run(interpreter);
 }
 

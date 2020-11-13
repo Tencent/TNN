@@ -49,13 +49,13 @@ TEST_P(EluLayerTest, EluLayer) {
     }
 
     // param
-    EluLayerParam* param = new EluLayerParam();
-    param->name          = "Elu";
-    param->alpha         = alpha;
+    std::shared_ptr<EluLayerParam> param(new EluLayerParam());
+    param->name  = "Elu";
+    param->alpha = alpha;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Elu", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Elu", {input_dims}, param);
     Run(interpreter);
 }
 

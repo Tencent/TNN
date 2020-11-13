@@ -56,21 +56,21 @@ TEST_P(PriorBoxLayerTest, PriorBoxLayer) {
     std::vector<float> max_sizes = {max_size};
     float offset                 = 0.5;
 
-    PriorBoxLayerParam* param = new PriorBoxLayerParam();
-    param->name               = "PriorBox";
-    param->min_sizes          = min_sizes;
-    param->max_sizes          = max_sizes;
-    param->clip               = clip;
-    param->flip               = flip;
-    param->variances          = variances;
-    param->aspect_ratios      = aspect_ratios;
+    std::shared_ptr<PriorBoxLayerParam> param(new PriorBoxLayerParam());
+    param->name          = "PriorBox";
+    param->min_sizes     = min_sizes;
+    param->max_sizes     = max_sizes;
+    param->clip          = clip;
+    param->flip          = flip;
+    param->variances     = variances;
+    param->aspect_ratios = aspect_ratios;
     param->img_w = param->img_h = img_size;
     param->step_h = param->step_w = step_size;
     param->offset                 = offset;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("PriorBox", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("PriorBox", {input_dims}, param);
     Run(interpreter);
 }
 

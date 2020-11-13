@@ -30,13 +30,13 @@ TEST_P(SeluLayerTest, SeluLayer) {
     int input_size = std::get<2>(GetParam());
 
     // param
-    SeluLayerParam* param = new SeluLayerParam();
-    param->alpha          = 1.67326;
-    param->gamma          = 1.0507;
+    std::shared_ptr<SeluLayerParam> param(new SeluLayerParam());
+    param->alpha = 1.67326;
+    param->gamma = 1.0507;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Selu", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Selu", {input_dims}, param);
     Run(interpreter);
 }
 

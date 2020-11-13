@@ -50,15 +50,15 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     }
 
     // param
-    ReorgLayerParam* param = new ReorgLayerParam();
-    param->name            = "Reorg";
-    param->stride          = stride;
-    param->forward         = forward;
-    param->mode            = mode;
+    std::shared_ptr<ReorgLayerParam> param(new ReorgLayerParam());
+    param->name    = "Reorg";
+    param->stride  = stride;
+    param->forward = forward;
+    param->mode    = mode;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Reorg", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Reorg", {input_dims}, param);
     Run(interpreter);
 }
 

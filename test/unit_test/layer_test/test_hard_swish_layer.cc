@@ -57,10 +57,10 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     }
 
     // param
-    HardSwishLayerParam* param = new HardSwishLayerParam();
-    param->name                = "HardSwish";
-    param->alpha               = alpha;
-    param->beta                = beta;
+    std::shared_ptr<HardSwishLayerParam> param(new HardSwishLayerParam());
+    param->name  = "HardSwish";
+    param->alpha = alpha;
+    param->beta  = beta;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
@@ -68,7 +68,7 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     for (int i = 0; i < input_count; ++i) {
         input_dims_vec.push_back(input_dims);
     }
-    auto interpreter = GenerateInterpreter("HardSwish", input_dims_vec, std::shared_ptr<LayerParam>(param));
+    auto interpreter = GenerateInterpreter("HardSwish", input_dims_vec, param);
     Run(interpreter);
 }
 

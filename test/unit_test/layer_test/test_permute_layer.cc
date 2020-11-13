@@ -32,8 +32,8 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
     int order_type = std::get<3>(GetParam());
 
     // param
-    PermuteLayerParam* param = new PermuteLayerParam();
-    param->orders            = {0, 1, 2, 3};
+    std::shared_ptr<PermuteLayerParam> param(new PermuteLayerParam());
+    param->orders = {0, 1, 2, 3};
     if (1 == order_type) {
         param->orders = {0, 2, 3, 1};
     } else if (2 == order_type) {
@@ -44,7 +44,7 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Permute", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Permute", {input_dims}, param);
     Run(interpreter);
 }
 

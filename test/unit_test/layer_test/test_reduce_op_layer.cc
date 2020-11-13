@@ -29,9 +29,9 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
     return ostr.str();
 }
 
-class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {
-};
+class ReduceOpLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
@@ -59,33 +59,32 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     }
 
     // param
-    ReduceLayerParam* param = new ReduceLayerParam();
-    param->name             = "ReduceOp";
-    param->axis             = axis;
+    std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
+    param->name = "ReduceOp";
+    param->axis = axis;
 
-    auto param_share = std::shared_ptr<LayerParam>(param);
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
 
-    auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param_share);
+    auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
     Run(interpreter1);
-    auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param_share);
+    auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param);
     Run(interpreter2);
-    auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param_share);
+    auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
     Run(interpreter3);
-    auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param_share);
+    auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
     Run(interpreter4);
-    auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param_share);
+    auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
     Run(interpreter5);
-    auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param_share);
+    auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
     Run(interpreter6);
-    auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param_share);
+    auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
     Run(interpreter7);
-    auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param_share);
+    auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
     Run(interpreter8);
-    auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param_share);
+    auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
     Run(interpreter9);
-    auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param_share);
+    auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
     Run(interpreter10);
 }
 

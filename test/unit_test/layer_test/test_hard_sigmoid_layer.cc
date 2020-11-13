@@ -53,14 +53,14 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     }
 
     // param
-    HardSigmoidLayerParam* param = new HardSigmoidLayerParam();
-    param->name                  = "HardSigmoid";
-    param->alpha                 = alpha;
-    param->beta                  = beta;
+    std::shared_ptr<HardSigmoidLayerParam> param(new HardSigmoidLayerParam());
+    param->name  = "HardSigmoid";
+    param->alpha = alpha;
+    param->beta  = beta;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("HardSigmoid", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("HardSigmoid", {input_dims}, param);
     Run(interpreter);
 }
 

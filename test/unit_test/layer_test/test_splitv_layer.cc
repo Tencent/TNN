@@ -54,15 +54,14 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     }
 
     // param
-    SplitVLayerParam* param = new SplitVLayerParam();
-    param->name             = "SplitV";
-    param->axis             = 1;
-    param->slices           = {channel / 2, channel - channel / 2};
+    std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
+    param->name   = "SplitV";
+    param->axis   = 1;
+    param->slices = {channel / 2, channel - channel / 2};
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter =
-        GenerateInterpreter("SplitV", {input_dims}, std::shared_ptr<LayerParam>(param), nullptr, output_count);
+    auto interpreter            = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
     Run(interpreter);
 }
 

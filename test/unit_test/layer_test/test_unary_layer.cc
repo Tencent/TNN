@@ -35,8 +35,8 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
         GTEST_SKIP();
     }
 
-    LayerParam* param = new LayerParam();
-    param->name       = "Unary";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "Unary";
 
     Precision precision = PRECISION_AUTO;
     // generate proto string
@@ -47,7 +47,7 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
         precision = PRECISION_LOW;
     }
 
-    auto interpreter = GenerateInterpreter(type_str, {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);
     Run(interpreter, precision);
 }
 

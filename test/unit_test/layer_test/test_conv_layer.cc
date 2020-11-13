@@ -74,7 +74,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     }
 
     // param
-    ConvLayerParam* param  = new ConvLayerParam();
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
     param->name            = "Conv";
     param->input_channel   = channel;
     param->output_channel  = channel;
@@ -88,7 +88,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter);
 }
 

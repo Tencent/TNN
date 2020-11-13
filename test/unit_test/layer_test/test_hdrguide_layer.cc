@@ -39,12 +39,12 @@ TEST_P(HdrGuideLayerTest, HdrGuideLayer) {
     }
 
     // param
-    LayerParam* param = new LayerParam();
-    param->name       = "HDRGuide";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "HDRGuide";
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("HDRGuide", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("HDRGuide", {input_dims}, param);
     Run(interpreter);
 }
 

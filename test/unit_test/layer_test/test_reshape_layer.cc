@@ -33,16 +33,16 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
     // param
-    ReshapeLayerParam* param = new ReshapeLayerParam();
-    param->name              = "Reshape";
-    param->reshape_type      = reshape_type;
-    param->axis              = 0;
-    param->num_axes          = 4;
-    param->shape             = {0, -1, 1, 1};
+    std::shared_ptr<ReshapeLayerParam> param(new ReshapeLayerParam());
+    param->name         = "Reshape";
+    param->reshape_type = reshape_type;
+    param->axis         = 0;
+    param->num_axes     = 4;
+    param->shape        = {0, -1, 1, 1};
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Reshape", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Reshape", {input_dims}, param);
     Run(interpreter);
 }
 

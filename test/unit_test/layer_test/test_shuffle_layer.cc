@@ -37,13 +37,13 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // param
-    ShuffleLayerParam* param = new ShuffleLayerParam();
-    param->name              = "ShuffleChannel";
-    param->group             = group;
+    std::shared_ptr<ShuffleLayerParam> param(new ShuffleLayerParam());
+    param->name  = "ShuffleChannel";
+    param->group = group;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter = GenerateInterpreter("ShuffleChannel", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("ShuffleChannel", {input_dims}, param);
     Run(interpreter);
 }
 

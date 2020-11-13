@@ -58,14 +58,14 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     }
 
     // param
-    NormalizeLayerParam* param = new NormalizeLayerParam();
-    param->name                = "Normalize";
-    param->p                   = p;
-    param->axis                = axis;
+    std::shared_ptr<NormalizeLayerParam> param(new NormalizeLayerParam());
+    param->name = "Normalize";
+    param->p    = p;
+    param->axis = axis;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Normalize", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Normalize", {input_dims}, param);
     Run(interpreter);
 }
 

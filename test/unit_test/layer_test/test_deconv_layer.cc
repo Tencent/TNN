@@ -81,7 +81,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     int output_channel = group * output_channel_per_group;
 
     // deconv param
-    ConvLayerParam* param = new ConvLayerParam();
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
     param->name           = "Deconv";
     param->input_channel  = input_channel;
     param->output_channel = output_channel;
@@ -103,7 +103,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
-    auto interpreter = GenerateInterpreter("Deconvolution", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Deconvolution", {input_dims}, param);
     Run(interpreter, precision);
 }
 

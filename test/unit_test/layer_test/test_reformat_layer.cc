@@ -42,14 +42,14 @@ TEST_P(ReformatLayerTest, ReformatLayer) {
 
     DataType output_data_type = input_data_type == DATA_TYPE_INT8 ? DATA_TYPE_FLOAT : DATA_TYPE_INT8;
 
-    ReformatLayerParam* param = new ReformatLayerParam();
-    param->name               = "Reformat";
-    param->src_type           = input_data_type;
-    param->dst_type           = output_data_type;
+    std::shared_ptr<ReformatLayerParam> param(new ReformatLayerParam());
+    param->name     = "Reformat";
+    param->src_type = input_data_type;
+    param->dst_type = output_data_type;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("Reformat", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("Reformat", {input_dims}, param);
     Run(interpreter);
 }
 

@@ -55,16 +55,16 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     }
 
     // param
-    ArgMaxOrMinLayerParam* param = new ArgMaxOrMinLayerParam();
-    param->name                  = "ArgMaxOrMin";
-    param->mode                  = mode;
-    param->axis                  = axis;
-    param->keep_dims             = keep_dims;
-    param->select_last_index     = select_last_index;
+    std::shared_ptr<ArgMaxOrMinLayerParam> param(new ArgMaxOrMinLayerParam());
+    param->name              = "ArgMaxOrMin";
+    param->mode              = mode;
+    param->axis              = axis;
+    param->keep_dims         = keep_dims;
+    param->select_last_index = select_last_index;
 
     // generate proto string
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("ArgMaxOrMin", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("ArgMaxOrMin", {input_dims}, param);
     Run(interpreter);
 }
 

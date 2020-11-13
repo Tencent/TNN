@@ -51,14 +51,14 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     }
 
     // param
-    SignedMulLayerParam* param = new SignedMulLayerParam();
-    param->alpha               = alpha;
-    param->beta                = beta;
-    param->gamma               = gamma;
+    std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
+    param->alpha = alpha;
+    param->beta  = beta;
+    param->gamma = gamma;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("SignedMul", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("SignedMul", {input_dims}, param);
     Precision precision         = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;

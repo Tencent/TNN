@@ -44,15 +44,15 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     }
 
     // param
-    InnerProductLayerParam* param = new InnerProductLayerParam();
-    param->name                   = "InnerProduct";
-    param->num_output             = output_channel;
-    param->has_bias               = has_bias;
-    param->axis                   = 1;
+    std::shared_ptr<InnerProductLayerParam> param(new InnerProductLayerParam());
+    param->name       = "InnerProduct";
+    param->num_output = output_channel;
+    param->has_bias   = has_bias;
+    param->axis       = 1;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
 
     Precision precision = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == dtype) {

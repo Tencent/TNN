@@ -38,16 +38,16 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     }
 
     // param
-    InnerProductLayerParam* param = new InnerProductLayerParam();
-    param->name                   = "InnerProduct";
-    param->num_output             = output_channel;
-    param->has_bias               = 0;
-    param->axis                   = 1;
-    param->quantized              = true;
+    std::shared_ptr<InnerProductLayerParam> param(new InnerProductLayerParam());
+    param->name       = "InnerProduct";
+    param->num_output = output_channel;
+    param->has_bias   = 0;
+    param->axis       = 1;
+    param->quantized  = true;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
-    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, std::shared_ptr<LayerParam>(param));
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
     Run(interpreter);
 }
 
