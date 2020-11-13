@@ -23,6 +23,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -42,15 +43,20 @@ Instance::~Instance() {
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
     interpreter_ = interpreter;
+    
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter.get());
+    if (default_interpreter && default_interpreter->GetNetStructure() &&
+        NeedDoConstantFolding(default_interpreter->GetNetStructure())) {
+        auto const_folder = std::make_shared<ConstFolder>();
+        auto status = const_folder->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        status = const_folder->Forward();
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        const_folder_ = const_folder;
+    }
 
-    auto const_folder = std::make_shared<ConstFolder>();
-    auto status = const_folder->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
-    RETURN_ON_NEQ(status, TNN_OK);
-    
-    status = const_folder->Forward();
-    RETURN_ON_NEQ(status, TNN_OK);
-    
-    const_folder_ = const_folder;
     
     /*
      * NetworkImpl is register by each Impl.
@@ -78,22 +84,31 @@ Status Instance::SetForwardMemory(void *memory) {
 }
 
 Status Instance::Reshape(const InputShapesMap &inputs) {
-    return (Status)network_->Reshape(inputs);
+    Status status = TNN_OK;
+    if (const_folder_) {
+        status = const_folder_->Reshape(inputs);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        status = const_folder_->Forward();
+        RETURN_ON_NEQ(status, TNN_OK);
+    }
+    status = network_->Reshape(inputs);
+    return status;
 }
 
 Status Instance::GetCommandQueue(void **command_queue) {
-    return (Status)network_->GetCommandQueue(command_queue);
+    return network_->GetCommandQueue(command_queue);
 }
 
 Status Instance::Forward() {
     output_mats_convert_status_.clear();
-    return (Status)network_->Forward();
+    return network_->Forward();
 }
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
     output_mats_convert_status_.clear();
-    return (Status)network_->ForwardWithCallback(before, after);
+    return network_->ForwardWithCallback(before, after);
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 

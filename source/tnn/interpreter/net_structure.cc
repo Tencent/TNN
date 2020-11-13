@@ -28,4 +28,19 @@ std::shared_ptr<LayerInfo> GetLayerInfoFromName(NetStructure* net_struct, std::s
     return layer_info;
 }
 
+bool NeedDoConstantFolding(NetStructure* net_struct) {
+    if (!net_struct) {
+        return false;
+    }
+    
+    for (auto item : net_struct->layers) {
+        if (item != nullptr &&
+            (item->type == LAYER_SHAPE || item->type_str == "Shape")) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 }  // namespace TNN_NS
