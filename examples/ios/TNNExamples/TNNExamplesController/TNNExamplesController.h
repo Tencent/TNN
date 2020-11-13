@@ -16,5 +16,7 @@
 #import "TNNViewModel.h"
 
 @interface TNNExamplesController : UIViewController
+@property (nonatomic, weak) IBOutlet UIView *customOptionView;
+@property (nonatomic, weak) IBOutlet NSLayoutConstraint *customOptionViewHeight;
 @property (nonatomic, strong) TNNViewModel *viewModel;
 @end
