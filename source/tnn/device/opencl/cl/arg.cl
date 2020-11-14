@@ -31,10 +31,10 @@ __kernel void ArgOpN(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         int2 pos    = (int2)(out_cw_idx, b * output_height + out_height_idx);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)b, (short)(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)b, (short)(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)b, (short)(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)b, (short)(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, (FLOAT)b, (INT)(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, (FLOAT)b, (INT)(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, (FLOAT)b, (INT)(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, (FLOAT)b, (INT)(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
@@ -131,10 +131,10 @@ __kernel void ArgOpH(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         int2 pos    = (int2)(out_cw_idx, input_bh_idx + h);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)h, (short)(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)h, (short)(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)h, (short)(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)h, (short)(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, (FLOAT)h, (INT)(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, (FLOAT)h, (INT)(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, (FLOAT)h, (INT)(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, (FLOAT)h, (INT)(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
@@ -164,10 +164,10 @@ __kernel void ArgOpW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         int2 pos    = (int2)(input_cw_idx + w, out_bh_idx);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)w, (short)(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)w, (short)(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)w, (short)(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)w, (short)(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, (FLOAT)w, (INT)(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, (FLOAT)w, (INT)(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, (FLOAT)w, (INT)(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, (FLOAT)w, (INT)(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
