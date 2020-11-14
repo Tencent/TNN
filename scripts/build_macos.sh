@@ -3,10 +3,21 @@
 SHARED_LIB="ON"
 METAL="ON"
 
+CWD=$(cd `dirname $0`; pwd)
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
+    TNN_ROOT_PATH=${CWD}/..
 fi
+
+function CheckRtnAndPrintMsg()
+{
+    if [ 0 -ne $? ]
+    then
+        echo $1' failed.'
+        exit -1
+    fi
+    echo $1' completes.'
+}
 
 mkdir build_macos
 cd build_macos
@@ -24,9 +35,12 @@ cmake ${TNN_ROOT_PATH} \
 make -j4
 
 # check if compiling error occurs, or ci will ignore building errors
-if [ 0 -ne $? ]
-then
-    echo 'building failed.'
-    exit -1
-fi
-echo 'building completes.'
+CheckRtnAndPrintMsg "building"
+
+echo 'start unit_test'
+cd test/unit_test
+BUILD_PATH=${CWD}/build_macos
+./unit_test --lp ${BUILD_PATH}/tnn.metallib --dt METAL
+
+# check if unit_test error occurs, or ci will ignore building errors
+CheckRtnAndPrintMsg "unit_test"
