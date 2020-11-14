@@ -33,7 +33,7 @@ function BuildMetalLib()
    #build air files
    for file in ${TNNAllMetalFiles[@]}
    do
-      echo "\033[32m       Compile ${file}\033[0m" 
+      echo "\033[32m       Compile ${file}\033[0m"
       # echo 'TNNMetalFloat32 = '${TNNMetalFloat32}
       xcrun -sdk macosx metal -std=osx-metal1.1 -DTNN_METAL_FULL_PRECISION -dM -I ${TNNMetalInclude} -c ${file} -o ${file}.air
       TNNAllMetalAIRFiles+=(${file}.air)
@@ -41,6 +41,9 @@ function BuildMetalLib()
 
    #build metallib
    xcrun -sdk macosx metallib ${TNNAllMetalAIRFiles[@]} -o ${TNNMetallibPath}
+   echo "=============================="
+   echo ${TNNMetallibPath}
+   echo "=============================="
 
    #delete air files
    for file in ${TNNAllMetalAIRFiles[@]}
