@@ -20,12 +20,19 @@
 namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
-    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
-
+    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     tensor_ptr->SetTensorDesc(desc);
-    tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
-
+    if (raw_buffer.GetDataType() != DATA_TYPE_FLOAT) {
+        // if filter handle is half, need convert to float first.
+        std::shared_ptr<float> float_data_ptr = GetFloatFromRawBuffer(raw_buffer);
+        if (float_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+        tensor_ptr->SetData((uint8_t *)float_data_ptr.get(), raw_buffer.GetDataCount() * sizeof(float));
+    } else {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    }
     attr_value->set_attr_value(tensor_ptr);
     return TNN_OK;
 }

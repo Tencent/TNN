@@ -14,6 +14,7 @@
 
 #include "npu_network.h"
 
+#include <sys/time.h>
 #include <tnn/device/huawei_npu/convert/npu_base_layer_convert.h>
 #include <tnn/interpreter/layer_resource_generator.h>
 
@@ -132,8 +133,8 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     }
 
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
-        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
-        hiai::HIAI_MODELTYPE_ONLINE, hiai::AiModelDescription_DeviceType_NPU);
+        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE, hiai::HIAI_MODELTYPE_ONLINE,
+        hiai::AiModelDescription_DeviceType_NPU);
 
     desc->SetModelBuffer(model_mem_buffer->GetMemBufferData(), model_mem_buffer->GetMemBufferSize());
     // only load one model
@@ -239,7 +240,7 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
 
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config.device_type);
+    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -428,6 +429,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         char layer_name[name.size() + 1];
         strcpy(layer_name, name.c_str());
         BlobDesc desc;
+        desc.device_type = DEVICE_HUAWEI_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name        = layer_name;
         desc.dims.push_back(n);
@@ -475,6 +477,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             int h                      = dims.GetHeight();
             int w                      = dims.GetWidth();
             // add blob
+            desc.device_type = DEVICE_HUAWEI_NPU;
             desc.data_format = DATA_FORMAT_NCHW;
             desc.name        = layer_name;
             desc.dims.push_back(n);
@@ -576,10 +579,24 @@ Status NpuNetwork::Forward() {
     std::string value = model_name_;
     context.AddPara(key, value);
     int istamp;
+#if TNN_PROFILE
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+#endif
     hiai::AIStatus ret = client_->Process(context, input_tensor_, output_tensor_, 1000, istamp);
     if (ret != hiai::AI_SUCCESS) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "Forward failed!");
     }
+#if TNN_PROFILE
+    gettimeofday(&end, NULL);
+    float delta = (end.tv_sec - start.tv_sec) * 1000.f + (end.tv_usec - start.tv_usec) / 1000.f;
+    std::shared_ptr<ProfilingData> pdata(new ProfilingData());
+    pdata->kernel_time = delta;
+    pdata->layer_name  = "NPU Forward";
+    pdata->op_name     = "NPU Execute";
+    context_->AddProfilingData(pdata);
+#endif
+
     if (use_subnet_) {
         for (auto iterator = npu_inter_out_blobmap_.begin(); iterator != npu_inter_out_blobmap_.end(); iterator++) {
             std::string name = iterator->first;
@@ -602,4 +619,23 @@ Status NpuNetwork::Forward() {
 Status NpuNetwork::ForwardAsync(Callback call_back) {
     return NpuNetwork::Forward();
 }
+
+#if TNN_PROFILE
+void NpuNetwork::StartProfile() {
+    context_->StartProfile();
+    if (nullptr != sub_network_) {
+        sub_network_->StartProfile();
+    }
+}
+
+std::shared_ptr<ProfileResult> NpuNetwork::FinishProfile() {
+    auto result = context_->FinishProfile();
+    if (nullptr != sub_network_) {
+        auto sub_result = sub_network_->FinishProfile();
+        result->AddProfileResult(sub_result);
+    }
+    return result;
+}
+#endif
+
 }  // namespace TNN_NS

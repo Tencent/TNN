@@ -37,7 +37,7 @@ void* Mat::GetData() {
 }
 
 DimsVector Mat::GetDims() {
-    return dims_;;
+    return dims_;
 }
 
 int Mat::GetDim(int index) {

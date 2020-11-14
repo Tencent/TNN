@@ -19,6 +19,9 @@ namespace TNN_NS {
 
 DECLARE_OPENCL_ACC(Pooling);
 
+#define LowOpParallelismThre 256
+#define HighOpIntensityThre 128
+
 Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Pooling Acc\n");
@@ -43,6 +46,28 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     std::set<std::string> build_options;
     std::string kernel_name = "Pooling";
 
+    auto input  = inputs[0];
+    auto output = outputs[0];
+
+    auto input_dims  = input->GetBlobDesc().dims;
+    auto output_dims = output->GetBlobDesc().dims;
+
+    const int batch         = output_dims[0];
+    const int output_height = output_dims[2];
+    const int output_width  = output_dims[3];
+    const int channels      = output_dims[1];
+
+    const int kernel_height = pooling_param->kernels[1];
+    const int kernel_width  = pooling_param->kernels[0];
+
+    const int channel_blocks = UP_DIV(channels, 4);
+
+    bool run_local_work = batch * output_height * output_width * channel_blocks < LowOpParallelismThre &&
+                          kernel_width * kernel_height >= HighOpIntensityThre;
+    if (run_local_work) {
+        kernel_name += "Local";
+    }
+
     if (pooling_param->pool_type != 0) {  // 0:max_pooling  other:average pooling
         build_options.emplace("-DPOOL_AVG");
     }
@@ -65,6 +90,7 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     auto input  = inputs[0];
     auto output = outputs[0];
+    auto &unit  = execute_units_[0];
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
@@ -77,31 +103,88 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     const int input_height = input_dims[2];
     const int input_width  = input_dims[3];
 
-    const int channel_blocks = UP_DIV(channels, 4);
+    const int channel_blocks    = UP_DIV(channels, 4);
+    uint32_t workgroup_size     = 0;
 
-    execute_units_[0].global_work_size = {
-        static_cast<uint32_t>(channel_blocks),
-        static_cast<uint32_t>(output_width),
-        static_cast<uint32_t>(batch * output_height),
-    };
+    OpenCLRuntime * opencl_runtime = OpenCLRuntime::GetInstance();
+    int type_size = sizeof(float);
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+        type_size = 2;
+    }
 
-    int input_image_shape[2] = {input_width, input_height};
-    int padding_shape[2]     = {pooling_param->pads[0], pooling_param->pads[2]};
-    int stride_shape[2]      = {pooling_param->strides[0], pooling_param->strides[1]};
-    int kernel_shape[2]      = {pooling_param->kernels[0], pooling_param->kernels[1]};
+    int compute_intensity = pooling_param->kernels[0] * pooling_param->kernels[1];
+    bool run_local_work = batch * output_height * output_width * channel_blocks < LowOpParallelismThre &&
+                          compute_intensity >= HighOpIntensityThre;
 
-    execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
-    uint32_t idx                      = 0;
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_image_shape), input_image_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_height));
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+    if (run_local_work) {
+        workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
+                                  unit.workgroupsize_max);
+        workgroup_size = std::min(static_cast<uint32_t>(compute_intensity), workgroup_size);
+        uint32_t temp_size = 1;
+        while ((temp_size <<= 1) <= workgroup_size);
+        workgroup_size = temp_size >> 1;
+
+        int workgroup_w_size = 1, workgroup_h_size;
+        while ((workgroup_w_size <<= 1) <= pooling_param->kernels[0] && workgroup_w_size <= workgroup_size);
+        workgroup_w_size >>= 1;
+        workgroup_h_size = workgroup_size / workgroup_w_size;
+
+        execute_units_[0].global_work_size = {
+            static_cast<uint32_t>(channel_blocks * workgroup_size),
+            static_cast<uint32_t>(output_width),
+            static_cast<uint32_t>(batch * output_height),
+        };
+
+        execute_units_[0].local_work_size = {workgroup_size, 1, 1};
+
+        int input_image_shape[2]        = {input_width, input_height};
+        int padding_shape[2]            = {pooling_param->pads[0], pooling_param->pads[2]};
+        int stride_shape[2]             = {pooling_param->strides[0], pooling_param->strides[1]};
+        int kernel_shape[2]             = {pooling_param->kernels[0], pooling_param->kernels[1]};
+        int local_block_size_shape[2]   = {workgroup_w_size, workgroup_h_size};
+        int local_block_count_shape[2]  = {UP_DIV(pooling_param->kernels[0], workgroup_w_size),
+                                           UP_DIV(pooling_param->kernels[1], workgroup_h_size)};
+
+        uint32_t idx                      = 0;
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[2]);
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_image_shape), input_image_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_height));
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(workgroup_size));
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(local_block_size_shape), local_block_size_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(local_block_count_shape), local_block_count_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
+    } else {
+        execute_units_[0].global_work_size = {
+            static_cast<uint32_t>(channel_blocks),
+            static_cast<uint32_t>(output_width),
+            static_cast<uint32_t>(batch * output_height),
+        };
+
+        int input_image_shape[2] = {input_width, input_height};
+        int padding_shape[2]     = {pooling_param->pads[0], pooling_param->pads[2]};
+        int stride_shape[2]      = {pooling_param->strides[0], pooling_param->strides[1]};
+        int kernel_shape[2]      = {pooling_param->kernels[0], pooling_param->kernels[1]};
+
+        execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
+        uint32_t idx                      = 0;
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
+        execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[2]);
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_image_shape), input_image_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_height));
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+    }
 
     return TNN_OK;
 }

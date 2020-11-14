@@ -55,7 +55,7 @@ template <typename T>
 void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
                 const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes, T *top_data);
 
-void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data);
+void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int reverse, int mode, float *top_data);
 
 void NaivePriorbox(PriorBoxLayerParam *param, int output_h, int output_w, float *output_data, int layer_height,
                    int layer_width, int img_height, int img_width, float step_h, float step_w);
@@ -75,6 +75,10 @@ void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yp
                              unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel);
 
 void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
+
+void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims);
+
+void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims);
 
 }  // namespace TNN_NS
 

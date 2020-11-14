@@ -416,14 +416,13 @@ static inline float32x4_t sqrt_ps(float32x4_t v)
 
 static inline float32x4_t sigmoid_ps(float32x4_t v)
 {
-    float32x4_t y;
-    float32x4_t one = vdupq_n_f32(1.f);
-    float32x4_t zero = vdupq_n_f32(0.f);
-
-    // 1.0f/(1.0f + std::exp(-x))
-    y = div_ps(one, vaddq_f32(one, exp_ps(vsubq_f32(zero, v))));
-
-    return y;
+    float32x4_t _one = vdupq_n_f32(1.f);
+    float32x4_t _v = vnegq_f32(v);
+    _v = exp_ps(_v);
+    _v = vaddq_f32(_v, _one);
+    float32x4_t _outp = vrecpeq_f32(_v);
+    // _outp = vmulq_f32(vrecpsq_f32(_v, _outp), _outp);
+    return vmulq_f32(vrecpsq_f32(_v, _outp), _outp);
 }
 
 //http://ybeernet.blogspot.com/2011/03/speeding-up-sigmoid-function-by.html

@@ -80,7 +80,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         InitRandom(filter.force_to<int8_t*>(), filter_count, (int8_t)8);
         filter.SetDataType(data_type);
         InitRandom(bias.force_to<int32_t*>(), channel, (int32_t)8);
-        InitRandom(scale.force_to<float*>(), channel, 1.0f);
+        InitRandom(scale.force_to<float*>(), channel, 0.f, 1.0f);
         resource.scale_handle = scale;
     }
 

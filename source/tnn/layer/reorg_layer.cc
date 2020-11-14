@@ -30,18 +30,18 @@ Status ReorgLayer::InferOutputShape() {
     ReorgLayerParam* reorg_param = dynamic_cast<ReorgLayerParam*>(param_);
     CHECK_PARAM_NULL(reorg_param);
 
-    bool reverse = reorg_param->reverse;
+    bool forward = reorg_param->forward;
     int stride   = reorg_param->stride;
+    int mode     = reorg_param->mode;
 
     auto dims_input = input_blob->GetBlobDesc().dims;
     int num         = dims_input[0];
     int channels    = dims_input[1];
     int height      = dims_input[2];
     int width       = dims_input[3];
-
     int reorged_channels, reorged_height, reorged_width;
 
-    if (reverse) {
+    if (forward) {
         if (channels % (stride * stride) != 0) {
             return Status(TNNERR_LAYER_ERR, "Error: channel and parameter stride is not compatible");
         }

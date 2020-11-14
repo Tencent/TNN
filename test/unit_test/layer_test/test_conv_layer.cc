@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 class ConvLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, DataType>> {
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, DataType, int>> {
     float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
         ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param);
         auto dims_input            = inputs[0]->GetBlobDesc().dims;
@@ -50,7 +50,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                             // pads
                             testing::Values(0, 1),
                             // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                            testing::Values(DATA_TYPE_FLOAT),
+                            // activation_type
+                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param
@@ -64,6 +66,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
     auto dtype            = std::get<8>(GetParam());
+    int activation_type   = std::get<9>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
     if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
@@ -89,7 +92,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param.strides         = {stride, stride};
     param.pads            = {pad, pad, pad, pad};
     param.bias            = 1;
-    param.activation_type = ActivationType_ReLU;
+    param.activation_type = activation_type;
 
     // resource
     ConvLayerResource resource;
