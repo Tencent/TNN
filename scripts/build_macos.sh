@@ -40,6 +40,7 @@ CheckRtnAndPrintMsg "building"
 echo 'start unit_test'
 cd test/unit_test
 BUILD_PATH=${CWD}/build_macos
+echo "check ${BUILD_PATH}"
 if [ ! -f ${BUILD_PATH}/tnn.metallib ]; then
     echo "No metallib found!"
     exit -1
