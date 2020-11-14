@@ -40,6 +40,10 @@ CheckRtnAndPrintMsg "building"
 echo 'start unit_test'
 cd test/unit_test
 BUILD_PATH=${CWD}/build_macos
+if [ ! -f ${BUILD_PATH}/tnn.metallib ]; then
+    echo "No metallib found!"
+    exit -1
+fi
 ./unit_test --lp ${BUILD_PATH}/tnn.metallib --dt METAL
 
 # check if unit_test error occurs, or ci will ignore building errors
