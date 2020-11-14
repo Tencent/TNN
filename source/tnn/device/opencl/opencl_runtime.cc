@@ -270,13 +270,13 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
         LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =
-            "-DFLOAT=half -DFLOAT4=half4 -DINT=short -DRI_F=read_imageh "
+            "-DFLOAT=half -DFLOAT4=half4 -DCONVERT_INT=convert_short -DRI_F=read_imageh "
             "-DWI_F=write_imageh";
     } else {
         //fp16 not enable, kernel will use float and read_imagef and write_imagef.
         LOGD("OpenCL Caucluate Pricision is Float!\n");
         build_options_str =
-            "-DFLOAT=float -DFLOAT4=float4 -DINT=int -DRI_F=read_imagef "
+            "-DFLOAT=float -DFLOAT4=float4 -DCONVERT_INT=convert_int -DRI_F=read_imagef "
             "-DWI_F=write_imagef";
     }
     for (auto &option : build_options) {
