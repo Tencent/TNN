@@ -50,6 +50,9 @@ template <typename T>
 void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4);
 
 template <typename T>
+void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4);
+
+template <typename T>
 void PostClap(void* dst, long size4, float val);
 
 template <typename T>

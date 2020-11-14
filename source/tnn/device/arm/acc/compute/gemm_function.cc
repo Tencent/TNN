@@ -227,6 +227,8 @@ void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
     // only bias + relu6 here, bias and bias + relu has been fused to gemm kernel
     if (act_type == 2)
         PostClap<T>(dst, plane_num * oc4, 6);
+    else if (act_type == 0x0100)
+        PostAddBiasSwish<T>(dst, nullptr, plane_num, oc4);
 }
 
 template void sgemm_repack_lhs(float *dst, float *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step,
@@ -272,6 +274,8 @@ void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
     // only bias + relu6 here, bias and bias + relu has been fused to gemm kernel
     if (act_type == 2)
         PostClap<T>(dst, plane_num * oc4, 6);
+    else if (act_type == 0x0100)
+        PostAddBiasSwish<T>(dst, nullptr, plane_num, oc4);
 }
 
 template void sgemm_repack_rhs(float *dst, float *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step,
