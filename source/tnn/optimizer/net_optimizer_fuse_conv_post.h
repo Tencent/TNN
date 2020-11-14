@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_RELU_H_
-#define TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_RELU_H_
+#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_
+#define TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_
 
 #include <string>
 
@@ -27,8 +27,8 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    //@brief net optimize: fuse relu and relu6 to convolution
-    class NetOptimizerFuseConvRelu : public NetOptimizer {
+    //@brief net optimize: fuse conv post(relu, relu6 ... ) to convolution
+    class NetOptimizerFuseConvPost : public NetOptimizer {
     public:
         virtual std::string Strategy();
         virtual bool IsSupported(const NetworkConfig &net_config);
@@ -41,4 +41,4 @@ namespace optimizer {
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_RELU_H_
+#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_

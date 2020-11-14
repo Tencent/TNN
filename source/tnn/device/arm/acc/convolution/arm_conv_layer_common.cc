@@ -124,6 +124,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<float>;
+        } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+            post_func_ = PostAddBiasSwish<float>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<float>;
         } else {
@@ -132,6 +134,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<bfp16_t>;
+        } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+            post_func_ = PostAddBiasSwish<bfp16_t>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<bfp16_t>;
         } else {
