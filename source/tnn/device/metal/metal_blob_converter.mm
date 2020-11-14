@@ -48,6 +48,7 @@ protected:
     Status AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob);
     Status AllocateComputePipeline(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob,
                                    void *command_queue);
+    std::shared_ptr<Mat> buffer_mat_ = nullptr;
 };
 
 MetalBlobConverterAcc::MetalBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
@@ -71,11 +72,9 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
 
     float scale_texture_buffer = 1.0f;
     float bias_texture_buffer  = 1.0f;
-    if (mat->GetDeviceType() == DEVICE_METAL) {
-        if (mat->GetMatType() == N8UC4) {
-            scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
-            bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
-        }
+    if (mat->GetMatType() == N8UC4) {
+        scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
+        bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
 
     if (mat->GetMatType() == NCHW_FLOAT) {
@@ -403,10 +402,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             if (mat_device_type == DEVICE_METAL) {
                 input_texture = (__bridge id<MTLTexture>)(input_mat.GetData());
             } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
-                return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
-                // now this will not work, disable first
-                TNN_NS::Mat image_mat_gpu(DEVICE_METAL, TNN_NS::N8UC4, dims);
-                input_texture = (__bridge id<MTLTexture>)image_mat_gpu.GetData();
+                buffer_mat_ = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, dims);
+                input_texture = (__bridge id<MTLTexture>)buffer_mat_->GetData();
                 if (!input_texture) {
                     LOGE("Error: newTextureWithDescriptor return nil\n");
                     return Status(TNNERR_INST_ERR, "newTextureWithDescriptor return nil");
