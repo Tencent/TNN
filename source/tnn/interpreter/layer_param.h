@@ -41,6 +41,7 @@ enum ActivationType {
     ActivationType_None  = 0x0000,
     ActivationType_ReLU  = 0x0001,
     ActivationType_ReLU6 = 0x0002,
+    ActivationType_SIGMOID_MUL = 0x0100,
 };
 
 struct BatchNormLayerParam : public LayerParam {
