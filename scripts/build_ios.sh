@@ -98,3 +98,14 @@ echo '******************** step 3: add version attr ********************'
 #添加版本信息到库文件
 AddAllVersionAttr "$TNN_BUILD_PATH/$TARGET_NAME.framework/$TARGET_NAME"
 AddAllVersionAttr "$TNN_BUILD_PATH/$TARGET_NAME.bundle/$TARGET_NAME.metallib"
+
+if [ ! -f $TARGET_NAME.framework/${TARGET_NAME} ]; then
+    echo 'Error: building failed.'
+    exit -1
+fi
+
+if [ ! -f $TARGET_NAME.bundle/${TARGET_NAME}.metallib ]; then
+    echo 'Error: building metallib failed.'
+    exit -1
+fi
+echo 'building completes.'
