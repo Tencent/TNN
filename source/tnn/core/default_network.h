@@ -59,6 +59,9 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue);
+    
+    // @brief share tnn command queue to another network。
+    virtual Status ShareCommandQueue(AbstractNetwork *network);
 
     // @brief network forward
     virtual Status Forward();
@@ -103,6 +106,7 @@ private:
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;
+    Context *GetContext();
 
     std::vector<BaseLayer *> layers_;
 

@@ -75,6 +75,14 @@ Status Instance::GetCommandQueue(void **command_queue) {
     return (Status)network_->GetCommandQueue(command_queue);
 }
 
+Status Instance::ShareCommandQueue(Instance *instance) {
+    return network_->ShareCommandQueue(instance->GetNetwork());
+}
+
+AbstractNetwork *Instance::GetNetwork() {
+    return network_.get();
+}
+
 Status Instance::Forward() {
     output_mats_convert_status_.clear();
     return (Status)network_->Forward();
