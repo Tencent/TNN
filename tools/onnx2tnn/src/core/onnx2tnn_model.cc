@@ -27,8 +27,8 @@ int Onnx2TNN::TNNWriteModel() {
 
     std::ofstream file_model;
     file_model.open(tnn_model_path_, std::ios::binary);
-    file_model.write((char *)(&g_version_magic_number_tnn), sizeof(g_version_magic_number_tnn));
-    int model_pos = sizeof(g_version_magic_number_tnn);
+    file_model.write((char *)(&g_version_magic_number_tnn_v2), sizeof(g_version_magic_number_tnn));
+    int model_pos = sizeof(g_version_magic_number_tnn_v2);
 
     do {
         if (!file_model || !file_model.is_open() || !file_model.good()) {
