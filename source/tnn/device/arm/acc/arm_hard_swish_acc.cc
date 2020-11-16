@@ -41,7 +41,7 @@ Status ArmHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     auto layer_param = dynamic_cast<HardSwishLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    _Operator = [=](Float4 v1, Float4 v2, bool swap_flag) -> Float4 {
+    _Operator = [=](Float4 v1, Float4 v2) -> Float4 {
         Float4 dst = SwishElement(v1, v2, layer_param->alpha, layer_param->beta);
         return dst;
     };

@@ -173,6 +173,8 @@ void FloatActivate(Tacc &result, const int activation_type) {
         } else if (result < 0.0f) {
             result = static_cast<Tacc>(0.0f);
         }
+    } else if(activation_type == ActivationType_SIGMOID_MUL) {
+        result = 1.0f / (1.0f + exp(-result)) * result;
     }
 }
 

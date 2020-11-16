@@ -350,6 +350,22 @@ Status DefaultNetwork::GetCommandQueue(void **command_queue) {
     return context_->GetCommandQueue(command_queue);
 }
 
+Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+    
+    auto network_target = dynamic_cast<DefaultNetwork *>(network);
+    if (!network_target) {
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "inpute network is DefaultNetwork");
+    }
+    return context_->ShareCommandQueue(network_target->GetContext());
+}
+
+Context* DefaultNetwork::GetContext() {
+    return context_;
+}
+
 Status DefaultNetwork::Forward() {
     auto status = blob_manager_->CheckBlobMemoryState();
     RETURN_ON_NEQ(status, TNN_OK);

@@ -61,6 +61,8 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
         build_options.emplace("-DRELU");
     } else if (conv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name;
     if (run_3d_ndrange_) {
