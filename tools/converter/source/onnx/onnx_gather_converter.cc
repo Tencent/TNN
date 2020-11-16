@@ -54,12 +54,9 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         param->indices_in_resource = true;
         auto indices_tensor        = proxy_initializers_map[indices_name];
         auto &indices_dims         = indices_tensor->dims();
-        resource->indices_dims     = std::vector<int>(indices_dims.begin(), indices_dims.end());
-        auto indices_count         = TNN_NS::DimsVectorUtils::Count(resource->indices_dims);
-        if (resource->indices_dims.empty()) {
-            resource->indices_dims.push_back(indices_count);
-        }
-        auto indices_raw_buffer    = TNN_NS::RawBuffer(indices_count * sizeof(int32_t));
+        TNN_NS::DimsVector dims    = std::vector<int>(indices_dims.begin(), indices_dims.end());
+        auto indices_count         = TNN_NS::DimsVectorUtils::Count(dims);
+        auto indices_raw_buffer    = TNN_NS::RawBuffer(indices_count * sizeof(int32_t), dims);
         indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
         void *indices_data_ptr = GetDataFromTensor(*indices_tensor, onnx::TensorProto_DataType_INT64);
         if (indices_data_ptr == nullptr) {
@@ -78,7 +75,7 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         param->indices_in_resource            = true;
         auto indices_node                     = proxy_nodes.find(indices_name)->second->onnx_node;
         TNN_NS::RawBuffer *indices_raw_buffer = nullptr;
-        CreateRawBufferFromConstant(*indices_node, &indices_raw_buffer, resource->indices_dims);
+        CreateRawBufferFromConstant(*indices_node, &indices_raw_buffer);
         ASSERT(indices_raw_buffer != nullptr);
         resource->indices = *indices_raw_buffer;
     } else {
@@ -90,9 +87,9 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         param->data_in_resource = true;
         auto data_tensor        = proxy_initializers_map[data_name];
         auto &data_dims         = data_tensor->dims();
-        resource->data_dims     = std::vector<int>(data_dims.begin(), data_dims.end());
-        auto data_count         = TNN_NS::DimsVectorUtils::Count(resource->data_dims);
-        auto data_raw_buffer    = TNN_NS::RawBuffer(data_count * sizeof(int32_t));
+        auto dims               = std::vector<int>(data_dims.begin(), data_dims.end());
+        auto data_count         = TNN_NS::DimsVectorUtils::Count(dims);
+        auto data_raw_buffer    = TNN_NS::RawBuffer(data_count * sizeof(int32_t), dims);
         data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
         void *data_ptr = GetDataFromTensor(*data_tensor, onnx::TensorProto_DataType_FLOAT);
         if (data_ptr == nullptr) {

@@ -51,14 +51,13 @@ int GetTensorProtoDataSize(const onnx::TensorProto& tp);
 
 void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataType data_type);
 
-void CreateRawBufferFromConstant(const onnx::NodeProto& constant_node, TNN_NS::RawBuffer** raw_buffer,
-                                 std::vector<int>& data_dims);
+void CreateRawBufferFromConstant(const onnx::NodeProto& constant_node, TNN_NS::RawBuffer** raw_buffer);
+
 std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto& node, const std::string& name);
 
 const onnx::TensorProto* GetTensorFromConstantNode(const onnx::NodeProto& constant_node);
 
-void CreateRawBufferFromTensor(const onnx::TensorProto& constant_tensor, TNN_NS::RawBuffer** raw_buffer,
-                               std::vector<int>& data_dims);
+void CreateRawBufferFromTensor(const onnx::TensorProto& constant_tensor, TNN_NS::RawBuffer** raw_buffer);
 
     template <typename T>
     bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {

@@ -31,7 +31,9 @@ class RawBuffer {
 public:
     RawBuffer();
     explicit RawBuffer(int bytes_size);
+    RawBuffer(int bytes_size, DimsVector dims);
     RawBuffer(int bytes_size, char *buffer);
+    RawBuffer(int bytes_size, char* buffer, DimsVector dims);
     RawBuffer(const RawBuffer &buf);
     RawBuffer &operator=(RawBuffer buf);
     ~RawBuffer();

@@ -48,7 +48,7 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tn
         resource_map[cur_layer->name]      = resource;
         auto data_tensor_proto             = iter->second;
         TNN_NS::RawBuffer* data_raw_buffer = nullptr;
-        CreateRawBufferFromTensor(*data_tensor_proto, &data_raw_buffer, resource->data_dims);
+        CreateRawBufferFromTensor(*data_tensor_proto, &data_raw_buffer);
         resource->data = *data_raw_buffer;
         cur_layer->inputs.clear();
     } else {

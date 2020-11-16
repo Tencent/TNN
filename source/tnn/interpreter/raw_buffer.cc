@@ -39,10 +39,18 @@ RawBuffer::RawBuffer(int bytes_size) {
     bytes_size_ = bytes_size;
 }
 
+RawBuffer::RawBuffer(int bytes_size, DimsVector dims) : RawBuffer(bytes_size){
+    this->dims_ = dims;
+}
+
 RawBuffer::RawBuffer(int bytes_size, char *buffer) {
     buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
     memcpy(buff_.get(), buffer, bytes_size);
     bytes_size_ = bytes_size;
+}
+
+RawBuffer::RawBuffer(int bytes_size, char* buffer, DimsVector dims) : RawBuffer(bytes_size, buffer) {
+          this->dims_ = dims;
 }
 
 RawBuffer::RawBuffer(const RawBuffer &buf) {
