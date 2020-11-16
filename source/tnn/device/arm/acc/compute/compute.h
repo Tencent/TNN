@@ -50,6 +50,9 @@ template <typename T>
 void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4);
 
 template <typename T>
+void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4);
+
+template <typename T>
 void PostClap(void* dst, long size4, float val);
 
 template <typename T>
@@ -106,9 +109,9 @@ void GemmBfp16SlidewC3(bfp16_t* dst, const bfp16_t* src, const float* weight, lo
                        long fh, long dilateX_step, long dilateY_step);
 
 void GEMM_FLOAT_N8(float* dst, const float* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu);
+                   long dst_depth_quad, long width, float* bias, long relu);
 void GEMM_BFP16_N8(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu);
+                   long dst_depth_quad, long width, float* bias, long relu);
 
 void GEMM_FLOAT_N4(float* dst, const float* src, const float* weight, long src_depth_quad, long dst_step,
                    long dst_depth_quad, long width, float* bias, long relu);
