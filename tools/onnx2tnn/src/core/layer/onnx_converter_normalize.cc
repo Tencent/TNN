@@ -73,7 +73,7 @@ int OnnxOpConverterNormalize::WriteTNNModel(serializer* net_writer,
             k[i] = 1.0f;
         }
 
-        WriteRawData(k, channels, net_writer, net_info.data_type);
+        WriteRawData(k, channels, net_writer, net_info.data_type , {channels});
 
         delete [] k;
 

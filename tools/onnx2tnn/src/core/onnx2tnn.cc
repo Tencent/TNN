@@ -151,7 +151,7 @@ int Onnx2TNN::TNNWriteProto() {
         ostringstream proto_net_info;
         {
             // line 1
-            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_tnn << " ,\""
+            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_tnn_v2 << " ,\""
                            << endl;
 
             // line 2, 输入blob
@@ -226,7 +226,7 @@ int Onnx2TNN::TNNWriteProto() {
                             assert(0);
                         }
 
-                        proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_h
+                        proto_net_info << input_blob->name() << " " << "4" << " " << shape_n << " " << shape_c << " " << shape_h
                                        << " " << shape_w << " ";
                     } else if (input_blob_shape.dim_size() == 5) {
                         shape_n = (int)input_blob_shape.dim(0).dim_value();
@@ -243,14 +243,17 @@ int Onnx2TNN::TNNWriteProto() {
                             input_blob_shape.dim(3).denotation().c_str(), shape_w,
                             input_blob_shape.dim(4).denotation().c_str());
 
-                        proto_net_info << input_blob->name() << " " << shape_n << " " << shape_c << " " << shape_d
+                        proto_net_info << input_blob->name() << " " << "5" << " " << shape_n << " " << shape_c << " " << shape_d
                                        << " " << shape_h << " " << shape_w << " ";
                     } else {
-                        LOGE("input_blob_shape invalid\n");
-                        assert(0);
-                        break;
+                        proto_net_info << input_blob->name() << " " << input_blob_shape.dim().size() << " ";
+                        for (const auto& dim : input_blob_shape.dim()) {
+                            proto_net_info << dim.dim_value() << " ";
+                        }
+                        LOGD("input_blob_shape dim_size: %d\n", input_blob_shape.dim_size());
                     }
-
+                    DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
+                    proto_net_info << input_data_type << " ";
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
                         proto_net_info << ": ";
                     }
@@ -301,10 +304,13 @@ int Onnx2TNN::TNNWriteProto() {
                 onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
                 const std::string& onnx_op = node.op_type();
 
-                if (onnx_op == k_tnn_noop_type || onnx_op == "Constant") {
+                if (onnx_op == k_tnn_noop_type) {
                     continue;
                 }
-
+                if (onnx_op == "Constant" &&
+                    onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
+                    continue;
+                }
                 auto op_converter = OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
                 if (!op_converter) {
                     LOGE("error::op convert failed onnx:%s\n", onnx_op.c_str());
@@ -369,20 +375,36 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     for (int j = 0; j < graph.initializer_size(); j++) {
         const onnx::TensorProto& initializer = graph.initializer(j);
-
-        // fprintf(stderr, "weight = %s\n", initializer.name().c_str());
         LOGD("weight = %s\n", initializer.name().c_str());
-
         weights[initializer.name()] = initializer;
     }
 
     for (int j = 0; j < graph.value_info_size(); j++) {
         const onnx::TensorShapeProto& shape_info = graph.value_info(j).type().tensor_type().shape();
-
-        // fprintf(stderr, "value_info dim_size = %d\n", shape_info.dim_size());
         LOGD("value_info dim_size = %d\n", shape_info.dim_size());
-
         weight_shapes[graph.value_info(j).name()] = shape_info;
+    }
+    // initial proxy node
+    for (int i = 0; i < graph.node_size(); ++i) {
+        const auto& node = graph.node(i);
+        onnx_net_info_.proxy_node_map[node.output(0)] = node;
+    }
+
+    std::set<std::string> need_constant_node = {"Concat", "Expand"};
+    // process constant node
+    for (int i = 0; i < graph.node_size(); ++i) {
+        const auto& node    = graph.node(i);
+        const auto& op_type = node.op_type();
+        if (std::find(need_constant_node.begin(), need_constant_node.end(), op_type) != need_constant_node.end()) {
+            for (const auto& input_name : node.input()) {
+                if (onnx_net_info_.proxy_node_map.find(input_name) != onnx_net_info_.proxy_node_map.end()) {
+                    const auto& input_node = onnx_net_info_.proxy_node_map.find(input_name)->second;
+                    if (input_node.op_type() == "Constant") {
+                        onnx_net_info_.used_const_node.insert(input_node.output(0));
+                    }
+                }
+            }
+        }
     }
 
     // global definition line
@@ -398,56 +420,15 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             name = node.output(0);
         }
 
-        if (onnx_op == "Constant") {
+        if (onnx_op == "Constant" &&
+            onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
+            // Constant
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
             weights[node.output(0)]  = tensor;
-            LOGD("const node = %s\n", name.c_str());
+            LOGD("const node to initialize = %s\n", name.c_str());
             continue;
         } else if (onnx_op == "Cast") {
-        } else if (onnx_op == "Reshape") {
-            if (node.input_size() == 1) {
-                const std::string& input_name = node.input(0);
-
-                // check weight
-                if (weights.find(input_name) != weights.end()) {
-                    weights[node.output(0)] = weights[input_name];
-                    continue;
-                }
-            } else if (node.input_size() == 2) {
-                // opset 5
-                const std::string& input_name     = node.input(1);
-                const onnx::TensorProto& shape_tp = weights[node.input(1)];
-                const int64_t* shape_data         = shape_tp.int64_data().data();
-
-                // check weight
-                if (weights.find(input_name) != weights.end()) {
-                    /*
-                    weights[node.output(0)] = weights[input_name];
-
-                    // set weight shape directly
-                    const onnx::TensorProto& shape_tp = weights[node.input(1)];
-                    const int64_t* shape_data = shape_tp.int64_data().data();
-
-                    weights[node.output(0)].clear_dims();
-                    for (int j = 0; j < shape_tp.int64_data_size(); j++) {
-                        weights[node.output(0)].add_dims(shape_data[j]);
-                    }
-                    */
-
-                } else {
-                    assert(0);
-                    // DLog("Reshape %s can't find input 0 weights. set shape as const values\n",
-                    // node.input(1).c_str()); onnx::TensorProto tensor_shape; tensor_shape.set_data_type(7);
-                    // tensor_shape.add_int64_data(0);
-                    // tensor_shape.add_int64_data(-1);
-                    // tensor_shape.add_int64_data(1);
-                    // tensor_shape.add_int64_data(1);
-                    // weights[node.input(1)] = tensor_shape;
-                    // for(int i=0;i<4;i++) {
-                    // weights[node.output(0)].add_dims(4);
-                    // }
-                }
-            }
+            // do nothing
         }
 
         for (int j = 0; j < (int)node.input_size(); j++) {
@@ -516,16 +497,17 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     // onnx_op remove
     RemovePad(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveSqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // RemoveUnsqueeze(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveDropout(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveReshapeWhere(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveImageScaler(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHDRGuide(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // op transfer
@@ -533,7 +515,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     TransferGlobalMaxPool(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     // onnx_op chain fusion
-    FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseLogSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseSoftmax(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -546,7 +528,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     FuseSignedMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
-    FuseGEMM(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    // FuseGEMM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseDeconv(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseConv(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
@@ -625,10 +607,10 @@ int Onnx2TNN::ClearEmptyNode(std::vector<IndexNode>& index_nodes) {
 std::string get_backtrack() {
     const int MAX_SIZE = 10;
     std::string backtrace_str;
-    char **strings = nullptr;
-    void *array[MAX_SIZE] = {0};
-    size_t size = backtrace(array, MAX_SIZE);
-    strings = backtrace_symbols(array, size);
+    char** strings        = nullptr;
+    void* array[MAX_SIZE] = {0};
+    size_t size           = backtrace(array, MAX_SIZE);
+    strings               = backtrace_symbols(array, size);
     for (size_t i = 0; i < size; i++)
         backtrace_str += std::string(strings[i]) + std::string("\n");
     free(strings);

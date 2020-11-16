@@ -28,10 +28,10 @@ TNN_NS::ActivationType OnnxSigmoidConverter::ActivationType(const onnx::NodeProt
 }
 
 TNN_NS::Status OnnxSigmoidConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                          const onnx::NodeProto &node,
-                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
-                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
-                                          bool &quantized_model) {
+                                            const onnx::NodeProto &node,
+                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
+                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                            bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::ElementWiseLayerParam;
     auto cur_layer             = net_structure.layers.back();
@@ -41,7 +41,7 @@ TNN_NS::Status OnnxSigmoidConverter::exec(tnn::NetStructure &net_structure, tnn:
     param->quantized           = false;
 
     cur_layer->inputs[0] = node.input(0);
-
+    
     return TNN_NS::TNN_CONVERT_OK;
 }
 

@@ -119,7 +119,7 @@ template void NaivePooling<int8_t, int32_t>(int8_t *input_ptr, int8_t *output_pt
  */
 template <typename T>
 void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    int ip_dim_in = dims_input[3] * dims_input[2] * dims_input[1];
+    int ip_dim_in = DimsVectorUtils::Count(dims_input, 1);
     for (int n = 0; n < dims_output[0]; ++n) {
         T *in_current_batch = input_ptr + n * ip_dim_in;
         T *ou_current_batch = output_ptr + n * dims_output[1];
@@ -144,8 +144,8 @@ template void NaiveFC(bfp16_t *input_ptr, bfp16_t *output_ptr, bfp16_t *weight_d
 
 // specialize for the case data_type=int8
 void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
-             DimsVector dims_input, DimsVector dims_output) {
-    int ip_dim_in = dims_input[3] * dims_input[2] * dims_input[1];
+            DimsVector dims_input, DimsVector dims_output) {
+    int ip_dim_in = DimsVectorUtils::Count(dims_input, 1);
     for (int n = 0; n < dims_output[0]; ++n) {
         int8_t *in_current_batch = static_cast<int8_t *>(input_ptr) + n * ip_dim_in;
         int8_t *ou_current_batch = static_cast<int8_t *>(output_ptr) + n * dims_output[1];
@@ -173,6 +173,8 @@ void FloatActivate(Tacc &result, const int activation_type) {
         } else if (result < 0.0f) {
             result = static_cast<Tacc>(0.0f);
         }
+    } else if(activation_type == ActivationType_SIGMOID_MUL) {
+        result = 1.0f / (1.0f + exp(-result)) * result;
     }
 }
 

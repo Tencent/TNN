@@ -27,6 +27,10 @@ Status ArmContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status ArmContext::ShareCommandQueue(Context* context) {
+    return TNN_OK;
+}
+
 Status ArmContext::OnInstanceForwardBegin() {
     Context::OnInstanceForwardBegin();
     OMP_SET_THREADS_(GetNumThreads());

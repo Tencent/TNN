@@ -73,14 +73,25 @@ public:
     //@param handle to the stored data
     void SetHandle(BlobHandle handle);
 
+    //@brief allocate blob handle in forward
+    bool NeedAllocateInForward();
+    
+    //@brief check if it is constant
+    bool IsConstant();
 private:
     BlobDesc desc_;
     BlobHandle handle_;
     bool alloc_memory_;
+public:
+    //0: data alwalys change
+    //1: data change if shape differ
+    //2: data never change
+    int flag = DATA_FLAG_CHANGE_ALWAYS;
 };
 
-// InputShapeMap input rereshape info
-using InputShapesMap = std::map<std::string, DimsVector>;
+// InputShapeMap input reshape info
+using InputShapesMap   = std::map<std::string, DimsVector>;
+using InputDataTypeMap = std::map<std::string, DataType>;
 
 using BlobMap = std::map<std::string, Blob *>;
 

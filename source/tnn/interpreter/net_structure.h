@@ -44,6 +44,7 @@ struct LayerInfo {
 // @brief NetStruture describes network build info
 struct NetStructure {
     InputShapesMap inputs_shape_map;
+    InputDataTypeMap  input_data_type_map;
     std::set<std::string> outputs;
     std::vector<std::shared_ptr<LayerInfo>> layers;
     std::set<std::string> blobs;
@@ -54,6 +55,7 @@ std::shared_ptr<LayerInfo> GetLayerInfoFromName(NetStructure* net_struct, std::s
 
 bool GetQuantizedInfoFromNetStructure(NetStructure* net_struct);
 
+bool NeedDoConstantFolding(NetStructure* net_struct);
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_NET_STRUCTURE_H_

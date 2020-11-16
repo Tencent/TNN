@@ -25,7 +25,7 @@ Status ArmMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
         return status;
     }
 
-    _Operator = [=](Float4 v1, Float4 v2, bool swap_flag) -> Float4 { return v1 * v2; };
+    _Operator = [=](Float4 v1, Float4 v2) -> Float4 { return v1 * v2; };
 
     return TNN_OK;
 }

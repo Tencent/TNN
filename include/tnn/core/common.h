@@ -29,10 +29,37 @@ namespace TNN_NS {
 typedef std::function<void(void)> Callback;
 
 typedef enum {
+    //normal runtime forword, only layers with varing output in tnn proto will be executed
+    RUNTIME_MODE_NORMAL = 0,
+    //normal runtime forword, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
+    RUNTIME_MODE_CONST_FOLD = 1,
+} RuntimeMode;
+
+typedef enum : int {
+    //data always change
+    DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
+    //data change if shape differ
+    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 0x00000001,
+    //data never change
+    DATA_FLAG_CHANGE_NEVER   = 0x00000002,
+
+    //data allocate in forward
+    DATA_FLAG_ALLOCATE_IN_FORWARD   = 0x00010000
+} DataFlag;
+
+typedef enum {
+    //auto
+    //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
+    DATA_TYPE_AUTO = -1,
+    // float
     DATA_TYPE_FLOAT = 0,
-    DATA_TYPE_HALF  = 1,
-    DATA_TYPE_INT8  = 2,
+    // half float
+    DATA_TYPE_HALF = 1,
+    // int8
+    DATA_TYPE_INT8 = 2,
+    // int32
     DATA_TYPE_INT32 = 3,
+    // brain float 16
     DATA_TYPE_BFP16 = 4
 } DataType;
 

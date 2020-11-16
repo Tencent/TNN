@@ -25,6 +25,8 @@ Status StrideSliceLayer::InferOutputDataType() {
 }
 
 Status StrideSliceLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     StrideSliceLayerParam* layer_param = dynamic_cast<StrideSliceLayerParam*>(param_);
     if (!layer_param) {
         LOGE("StrideSliceLayer param is nil\n");
@@ -39,7 +41,7 @@ Status StrideSliceLayer::InferOutputShape() {
 
     if (layer_param->begins.size() != input_dims.size() || layer_param->ends.size() != input_dims.size() ||
         layer_param->strides.size() != input_dims.size()) {
-        LOGE("StrideSliceLayer param got wrong size\n");
+        LOGE("StrideSliceLayer param got wrong size: input dims size: %ld\n", input_dims.size());
         return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param got wrong size");
     }
 

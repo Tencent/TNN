@@ -136,7 +136,7 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
                     }
                 }
 
-                WriteRawData(permuted_data, (int)(h * w), net_writer, net_info.data_type);
+                WriteRawData(permuted_data, (int)(h * w), net_writer, net_info.data_type, {int(h), int(w)});
                 delete [] permuted_data;
             }
 

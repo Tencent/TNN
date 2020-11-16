@@ -25,6 +25,8 @@ Status PadLayer::InferOutputDataType() {
 }
 
 Status PadLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto layer_param = dynamic_cast<PadLayerParam*>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");

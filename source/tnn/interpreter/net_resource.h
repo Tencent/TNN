@@ -22,6 +22,7 @@ namespace TNN_NS {
 
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
+    ConstantResource constant_map;
 };
 
 DataType GetNetResourceDataType(NetResource *resource);

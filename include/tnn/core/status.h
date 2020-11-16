@@ -71,6 +71,7 @@ enum StatusCode {
     TNNERR_LOAD_MODEL       = 0x6005,
     TNNERR_PACK_MODEL       = 0x6006,
     TNNERR_SET_CPU_AFFINITY = 0x6007,
+    TNNERR_OPEN_FILE        = 0x6008,
 
     // forward memory error
     TNNERR_NOT_SUPPORT_SET_FORWARD_MEM           = 0x8000,

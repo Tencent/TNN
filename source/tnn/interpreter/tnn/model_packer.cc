@@ -94,10 +94,19 @@ Status ModelPacker::PackProto(std::string file_path) {
     int idx         = 0;
     for (auto input_shape : net_struc->inputs_shape_map) {
         write_stream << input_shape.first << " ";
+        const auto& input_dims = input_shape.second;
+        if (magic_number == g_version_magic_number_v2){
+            write_stream << input_dims.size() << " ";
+        }
         for (auto item : input_shape.second) {
             write_stream << item << " ";
         }
-
+        if (magic_number == g_version_magic_number_v2) {
+            const auto& input_data_type_map = net_struc->input_data_type_map;
+            if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
+                write_stream << input_data_type_map.find(input_shape.first)->second << " ";
+            }
+        }
         if (input_count > 1 && idx < (input_count - 1)) {
             write_stream << ": ";
         }

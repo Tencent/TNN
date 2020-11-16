@@ -24,6 +24,7 @@
 #include "tnn/memory_manager/memory_seperate_assign_strategy.h"
 #include "tnn/memory_manager/memory_unify_assign_strategy.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
 
@@ -76,12 +77,6 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         input_dims = std::max(input_dims, dims);
     }
 
-    // only supports dims >=4 .
-    if (input_dims < 4) {
-        LOGE("invalid input shape\n");
-        return Status(TNNERR_PARAM_ERR, "invalid input shape");
-    }
-
     for (auto node_name : net_structure_->blobs) {
         BlobDesc desc;
         desc.device_type = config.device_type;
@@ -101,10 +96,15 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     }
 
     // intput blobs
+    const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         std::string current_blob_name         = iter.first;
         Blob *current_blob                    = blobs_[current_blob_name];
-        current_blob->GetBlobDesc().data_type = input_data_type;
+        if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
+            current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
+        } else {
+            current_blob->GetBlobDesc().data_type = input_data_type;
+        }
         input_blobs_[current_blob_name]       = current_blob;
     }
 
@@ -124,7 +124,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
  *  and data format.
  *  The size may be different for different devices.
  */
-Status BlobManager::AllocateBlobMemory() {
+Status BlobManager::AllocateBlobMemory(int flag) {
     const auto &input_shapes_map = net_structure_->inputs_shape_map;
 
     for (auto iter : input_shapes_map) {
@@ -150,6 +150,11 @@ Status BlobManager::AllocateBlobMemory() {
         // allocating blob memory for every out nodes of this layer
         for (auto current_blob_name : layer_info->outputs) {
             Blob *current_blob = blobs_[current_blob_name];
+            if (current_blob->NeedAllocateInForward() ||
+                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                continue;
+            }
+            
             // ASSERT(current_blob->count() > 0);
             if (DimsVectorUtils::Count(current_blob->GetBlobDesc().dims) <= 0) {
                 LOGE("Got empty blob, name:%s\n", current_blob_name.c_str());
@@ -170,6 +175,11 @@ Status BlobManager::AllocateBlobMemory() {
         // refund the input blob memory
         for (auto current_blob_name : layer_info->inputs) {
             Blob *current_blob = blobs_[current_blob_name];
+            if (current_blob->NeedAllocateInForward() ||
+                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                continue;
+            }
+            
             if (input_shapes_map.count(current_blob_name) == 0) {
                 std::map<Blob *, BlobMemory *>::const_iterator blob_memory_iter =
                     blob_memory_mapping_.find(current_blob);

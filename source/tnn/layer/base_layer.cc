@@ -13,8 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/base_layer.h"
+#include "tnn/utils/data_flag_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 #include <mutex>
+#include <sstream>
 
 #include "tnn/core/macro.h"
 
@@ -43,17 +46,26 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
 
     auto status = InferOutputDataType();
     if (status != TNN_OK) {
+        LOGE("InferOutputDataType failed\n");
         return status;
+    }
+    
+    if (!output_blobs_[0]->NeedAllocateInForward()){
+        status = InferOutputShape();
+        if (status != TNN_OK) {
+            LOGE("InferOutputShape failed\n");
+            return status;
+        }
     }
 
-    status = InferOutputShape();
-    if (status != TNN_OK) {
-        return status;
-    }
     for (auto& output_blob : output_blobs) {
-        LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", output_blob->GetBlobDesc().name.c_str(),
-             output_blob->GetBlobDesc().dims[0], output_blob->GetBlobDesc().dims[1], output_blob->GetBlobDesc().dims[2],
-             output_blob->GetBlobDesc().dims[3]);
+        BlobDesc desc = output_blob->GetBlobDesc();
+        std::string log_info = "";
+        for(int i = 0; i < desc.dims.size(); ++i) {
+            log_info = log_info + ToString(desc.dims[i]);
+            log_info = log_info + " ";
+        }
+        LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
     }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {
@@ -62,14 +74,35 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
             return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
         }
     }
-
-    layer_acc_ = device->CreateLayerAcc(type_);
-    if (layer_acc_ != NULL) {
-        return layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
-    } else {
-        LOGE("layer acc of type(%d) is nil\n", type_);
-        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
+    
+    if (device->GetDeviceType() == DEVICE_NAIVE || !IsOutputConstant()) {
+        layer_acc_ = device->CreateLayerAcc(type_);
+        if (layer_acc_ != NULL) {
+            layer_acc_->SetRuntimeMode(runtime_model_);
+            layer_acc_->SetConstantResource(const_resource_);
+            return layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
+        } else {
+            LOGE("layer acc of type(%d) is nil\n", type_);
+            return Status(TNNERR_LAYER_ERR, "layer acc is nil");
+        }
     }
+    return TNN_OK;
+}
+
+
+Status BaseLayer::InferOutputShape() {
+    //从const中获取常量的dims
+    auto const_resource = const_resource_;
+    for (auto iter : input_blobs_) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource.find(name) == const_resource.end()) {
+            continue;
+        }
+        
+        iter->GetBlobDesc().dims = const_resource[name]->GetBufferDims();
+        iter->GetBlobDesc().data_type = const_resource[name]->GetDataType();
+    }
+    return TNN_OK;
 }
 
 Status BaseLayer::InferOutputDataType() {
@@ -78,16 +111,33 @@ Status BaseLayer::InferOutputDataType() {
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     }
+    
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : input_blobs_) {
+        flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
+    }
+    
+    for (auto iter : output_blobs_) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL &&
+            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            flag = flag & 0x0000FFFF;
+        }
+        iter->flag = flag;
+    }
     return TNN_OK;
 }
 
 Status BaseLayer::Reshape() {
-    InferOutputShape();
-    auto dims = output_blobs_[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+    if (!output_blobs_[0]->NeedAllocateInForward()){
+        auto status = InferOutputShape();
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        auto dims = output_blobs_[0]->GetBlobDesc().dims;
+        for (auto item : dims) {
+            if (item <= 0) {
+                LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
+                return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+            }
         }
     }
 
@@ -101,7 +151,16 @@ Status BaseLayer::Reshape() {
 
 Status BaseLayer::Forward() {
     if (layer_acc_ != NULL) {
-        return layer_acc_->Forward(input_blobs_, output_blobs_);
+        if (output_blobs_[0]->NeedAllocateInForward()){
+            auto status = InferOutputShape();
+            RETURN_ON_NEQ(status, TNN_OK);
+        }
+        
+        auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
+        RETURN_ON_NEQ(status, TNN_OK);
+        status = layer_acc_->Forward(input_blobs_, output_blobs_);
+        RETURN_ON_NEQ(status, TNN_OK);
+        return layer_acc_->AfterForward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
@@ -135,6 +194,30 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
 
     InferOutputShape();
     return TNN_OK;
+}
+
+void BaseLayer::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool) {
+    if (layer_acc_) {
+        layer_acc_->SetRuntimeBlobMemoryPool(runtime_blob_pool);
+    }
+}
+
+bool BaseLayer::IsOutputConstant() {
+    for (auto iter : output_blobs_) {
+        if (!iter->IsConstant()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void BaseLayer::SetConstantResource(ConstantResource consts) {
+    const_resource_ = consts;
+}
+
+// @brief set runtime mode
+void BaseLayer::SetRuntimeMode(RuntimeMode mode) {
+    runtime_model_ = mode;
 }
 
 std::map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {

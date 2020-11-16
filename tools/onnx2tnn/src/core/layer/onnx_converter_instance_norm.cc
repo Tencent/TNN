@@ -61,8 +61,8 @@ int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
     const float* scale_data = get_tensor_proto_data(scale);
     const float* b_data = get_tensor_proto_data(b);
 
-    WriteRawData(scale_data, channels, net_writer, net_info.data_type);
-    WriteRawData(b_data, channels, net_writer, net_info.data_type);
+    WriteRawData(scale_data, channels, net_writer, net_info.data_type, {channels});
+    WriteRawData(b_data, channels, net_writer, net_info.data_type, {channels});
 
 
     //有权值写入的返回1， 没有的返回0

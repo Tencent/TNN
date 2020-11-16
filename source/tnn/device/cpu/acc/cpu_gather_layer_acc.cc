@@ -13,7 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "cpu_layer_acc.h"
+#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+
 namespace TNN_NS {
 
 DECLARE_CPU_ACC(Gather, LAYER_GATHER);
@@ -23,33 +25,57 @@ Status CpuGatherLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 }
 
 Status CpuGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input_blob   = inputs[0];
-    auto &input_dims  = input_blob->GetBlobDesc().dims;
-    auto output_blob  = outputs[0];
-    auto &output_dims = output_blob->GetBlobDesc().dims;
-    auto cur_param    = dynamic_cast<GatherLayerParam *>(param_);
-    auto cur_resource = dynamic_cast<GatherLayerResource *>(resource_);
-    ASSERT(cur_param->indices_in_resource == true);
-    ASSERT(cur_param->data_in_resource == false);
-    int axis              = cur_param->axis;
-    auto &indices_dims    = cur_resource->indices_dims;
-    int indices_count     = DimsVectorUtils::Count(indices_dims);
-    auto indices_data     = new int[indices_count];
-    auto indices_raw_data = cur_resource->indices.force_to<int32_t *>();
-    for (int i = 0; i < indices_count; ++i) {
-        indices_data[i] = indices_raw_data[i];
+    auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    int axis = layer_param->axis;
+    
+    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+    if ((layer_param->data_in_resource || layer_param->indices_in_resource) && !layer_resource) {
+        return Status(TNNERR_MODEL_ERR, "Gather resource is invalid");
     }
-    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        auto input_data_ptr  = (int32_t *)input_blob->GetHandle().base;
-        auto output_data_ptr = (int32_t *)output_blob->GetHandle().base;
-        int steps            = DimsVectorUtils::Count(indices_dims, axis, indices_dims.size());
-        for (int i = 0; i < indices_count; ++i) {
-            output_data_ptr += i * steps;
-            input_data_ptr += indices_data[i] * steps;
-            memcpy(output_data_ptr, input_data_ptr, steps * sizeof(int32_t));
+    
+    DimsVector input_data_dims;
+    char *input_data_ptr = nullptr;
+    if (layer_param->data_in_resource) {
+        input_data_dims = layer_resource->data.GetBufferDims();
+        input_data_ptr = layer_resource->data.force_to<char*>();
+    } else {
+        input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
+        input_data_ptr = (char*)(*(inputs.begin()))->GetHandle().base;
+    }
+    
+    DimsVector indices_dims;
+    int *indices_data_ptr = nullptr;
+    if (layer_param->indices_in_resource) {
+        indices_dims = layer_resource->indices.GetBufferDims();
+        indices_data_ptr = layer_resource->indices.force_to<int*>();
+    } else {
+        indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
+        indices_data_ptr = (int *)(*(inputs.rbegin()))->GetHandle().base;
+    }
+    
+    const int slice_size = DimsVectorUtils::Count(input_data_dims, axis+1);
+    const int input_slice_count = DimsVectorUtils::Count(input_data_dims, axis, axis+1);
+    const int batch = DimsVectorUtils::Count(input_data_dims, 0, axis);
+    
+    const auto output_dims = outputs[0]->GetBlobDesc().dims;
+    const int output_slice_count = DimsVectorUtils::Count(indices_dims);
+    
+    const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+    auto output_data_ptr = (char*)outputs[0]->GetHandle().base;
+    
+    for (int b=0; b<batch; b++) {
+        int input_index_b = b*input_slice_count*slice_size;
+        int output_index_b = b*output_slice_count*slice_size;
+        for (int i=0; i<output_slice_count; i++) {
+            int input_index = input_index_b + indices_data_ptr[i]*slice_size;
+            int output_index = output_index_b + i*slice_size;
+            
+            memcpy(output_data_ptr + output_index*ele_size,
+                   input_data_ptr + input_index*ele_size,
+                   slice_size * ele_size);
         }
     }
-    delete[] indices_data;
     return TNN_OK;
 }
 

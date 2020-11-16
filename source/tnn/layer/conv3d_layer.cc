@@ -25,6 +25,8 @@ Status Conv3DLayer::InferOutputDataType() {
 }
 
 Status Conv3DLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     if (input_blob->GetBlobDesc().data_format != DATA_FORMAT_NCDHW) {

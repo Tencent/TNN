@@ -25,7 +25,7 @@ namespace TNN_NS {
 
 class DeconvLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, int, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13), testing::Values(1, 2, 3, 4, 16),
                                             // input_size
@@ -43,7 +43,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             // output_pads
                                             testing::Values(0),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16),
+                                            // activation_type
+                                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
 
 TEST_P(DeconvLayerTest, DeconvLayer) {
     // get param
@@ -58,6 +60,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     int pad               = std::get<8>(GetParam());
     int output_pad        = std::get<9>(GetParam());
     auto dtype            = std::get<10>(GetParam());
+    int activation_type   = std::get<11>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -90,6 +93,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     param.kernels        = {kernel, kernel};
     param.dialations     = {dilation, dilation};
     param.strides        = {stride, stride};
+    param.activation_type = activation_type;
 
     param.pads = {pad, pad, pad, pad};
     param.bias = 1;

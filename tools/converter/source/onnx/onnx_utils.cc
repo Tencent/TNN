@@ -303,15 +303,13 @@ const onnx::TensorProto *GetTensorFromConstantNode(const onnx::NodeProto &consta
     return nullptr;
 }
 
-void CreateRawBufferFromTensor(const onnx::TensorProto &constant_tensor, TNN_NS::RawBuffer **raw_buffer,
-                               std::vector<int> &data_dims) {
+void CreateRawBufferFromTensor(const onnx::TensorProto &constant_tensor, TNN_NS::RawBuffer **raw_buffer) {
     switch (constant_tensor.data_type()) {
         case onnx::TensorProto_DataType_INT64: {
-            data_dims.push_back(1);
             auto data_count             = 1;
             const void *tensor_data_ptr = constant_tensor.raw_data().data();
             // raw_buffer = std::make_shared<TNN_NS::RawBuffer>(data_count * sizeof(int32_t)).get();
-            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t));
+            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), TNN_NS::DimsVector{1});
             (*raw_buffer)->SetDataType(TNN_NS::DATA_TYPE_INT32);
             int value = *((int64_t *)tensor_data_ptr);
             memcpy((*raw_buffer)->force_to<int32_t *>(), &value, data_count * sizeof(int32_t));
@@ -323,8 +321,7 @@ void CreateRawBufferFromTensor(const onnx::TensorProto &constant_tensor, TNN_NS:
     }
 }
 
-void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::RawBuffer **raw_buffer,
-                                 std::vector<int> &data_dims) {
+void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::RawBuffer **raw_buffer) {
     ASSERT(constant_node.op_type() == "Constant");
     onnx::TensorProto constant_tensor;
     for (int i = 0; i < constant_node.attribute_size(); ++i) {
@@ -337,11 +334,10 @@ void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::R
     }
     switch (constant_tensor.data_type()) {
         case onnx::TensorProto_DataType_INT64: {
-            data_dims.push_back(1);
             auto data_count             = 1;
             const void *tensor_data_ptr = constant_tensor.raw_data().data();
             // raw_buffer = std::make_shared<TNN_NS::RawBuffer>(data_count * sizeof(int32_t)).get();
-            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t));
+            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), TNN_NS::DimsVector({1}));
             (*raw_buffer)->SetDataType(TNN_NS::DATA_TYPE_INT32);
             int value = *((int64_t *)tensor_data_ptr);
             memcpy((*raw_buffer)->force_to<int32_t *>(), &value, data_count * sizeof(int32_t));

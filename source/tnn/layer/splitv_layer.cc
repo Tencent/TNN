@@ -25,6 +25,8 @@ Status SplitVLayer::InferOutputDataType() {
 }
 
 Status SplitVLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto layer_param = dynamic_cast<SplitVLayerParam*>(param_);
     if (!layer_param) {
         return Status(TNNERR_PARAM_ERR, "SplitVLayer do not have valid param, please check node: " + layer_name_);

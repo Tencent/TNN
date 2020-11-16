@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 namespace TNN_NS {
 
@@ -20,17 +21,55 @@ CpuLayerAcc::~CpuLayerAcc() {}
 
 Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                          const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-
     param_    = param;
     resource_ = resource;
+    
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        status = ReloadConstantBlobs(inputs);
+    }
+    
+    RETURN_ON_NEQ(status, TNN_OK);
+
     return Reshape(inputs, outputs);
+}
+
+Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
+        return TNN_OK;
+    }
+    
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource.find(name) == const_resource.end()) {
+            continue;
+        }
+        
+        auto buffer = const_resource[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size > 0) {
+    if (dims_size >= 0 ) {
         support_list.push_back(DATA_FORMAT_NCHW);
+    } else if(dims_size == 5) {
+        support_list.push_back(DATA_FORMAT_NCDHW);
     }
     return support_list;
 }

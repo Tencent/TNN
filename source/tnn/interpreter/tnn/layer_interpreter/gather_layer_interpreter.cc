@@ -60,6 +60,7 @@ Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
         LOGE("Interpreter Gather: layer param or layer resource is null\n");
         return TNNERR_INVALID_MODEL;
     }
+    serializer.PutString(layer_param->name);
     if (layer_param->data_in_resource) {
         serializer.PutInt(1);
         serializer.PutRaw(layer_res->data);

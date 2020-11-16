@@ -41,6 +41,7 @@ enum ActivationType {
     ActivationType_None  = 0x0000,
     ActivationType_ReLU  = 0x0001,
     ActivationType_ReLU6 = 0x0002,
+    ActivationType_SIGMOID_MUL = 0x0100,
 };
 
 struct BatchNormLayerParam : public LayerParam {
@@ -222,6 +223,13 @@ struct StrideSliceLayerParam : public LayerParam {
     std::vector<int> strides;
 };
 
+struct StrideSliceV2LayerParam : public LayerParam {
+    std::vector<int> begins;
+    std::vector<int> ends;
+    std::vector<int> axes;
+    std::vector<int> strides;
+};
+
 struct SliceLayerParam : public LayerParam {
     // size of each slice
     std::vector<int> slices;
@@ -244,7 +252,9 @@ typedef enum {
     // broadcast height x width
     BroadcastTypeHeightWidth = 4,
     // broadcast width
-    BroadcastTypeWidth = 5
+    BroadcastTypeWidth = 5,
+    // broadcast for any dim
+    BroadcastTypeGeneral = 6
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
@@ -377,9 +387,20 @@ struct PixelShuffleLayerParam : public LayerParam {
 };
 
 struct GatherLayerParam : public LayerParam {
-    int axis                 = 0;
-    bool data_in_resource    = false;
-    bool indices_in_resource = true;
+    int axis                              = 0;
+    bool data_in_resource      = false;
+    bool indices_in_resource  = true;
+};
+
+struct ExpandLayerParam : public LayerParam {
+    std::vector<int> shape;
+};
+
+struct MatMulLayerParam : public LayerParam {
+    int weight_position = -1;
+    DimsVector matrix_a_dims;
+    DimsVector matrix_b_dims;
+    int axis            = 0;
 };
 
 }  // namespace TNN_NS

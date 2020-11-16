@@ -19,6 +19,8 @@
 namespace TNN_NS {
 
 Status ReduceLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
     if (!layer_param) {
         LOGE("Error: Reduce may not support axes != 1, depend on device\n");
