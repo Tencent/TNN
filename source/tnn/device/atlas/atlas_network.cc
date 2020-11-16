@@ -21,7 +21,6 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
                           InputShapesMap inputs_shape) {
     AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
 
-    atlas_config_      = atlas_interpreter->GetModelConfig();
     model_weight_size_ = atlas_interpreter->GetModelWeightsBufferSize();
 
     // Init ACL
@@ -65,12 +64,12 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     command_queue_->stream  = stream_;
 
     // Load model
-    if (atlas_config_.is_path) {
+    if (atlas_interpreter->GetModelConfig().is_path) {
         LOGD("load model form file\n");
-        ret = LoadModelFromFile(atlas_config_.om_str);
+        ret = LoadModelFromFile(atlas_interpreter->GetModelConfig().om_str);
     } else {
         LOGD("load model form memory\n");
-        ret = LoadModelFromMemory(atlas_config_.om_str);
+        ret = LoadModelFromMemory(atlas_interpreter->GetModelConfig().om_str);
     }
     if (ret != TNN_OK)
         return ret;
@@ -240,7 +239,7 @@ Status AtlasNetwork::ForwardAsync(Callback call_back) {
     return Forward();
 }
 
-Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
+Status AtlasNetwork::LoadModelFromFile(const std::string& om_file) {
     size_t temp_size;
     aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
@@ -278,7 +277,7 @@ Status AtlasNetwork::LoadModelFromFile(std::string om_file) {
     return TNN_OK;
 }
 
-Status AtlasNetwork::LoadModelFromMemory(std::string om_content) {
+Status AtlasNetwork::LoadModelFromMemory(const std::string& om_content) {
     size_t temp_size;
     aclError ret =
         aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &temp_size);
