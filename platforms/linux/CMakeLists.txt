@@ -37,14 +37,13 @@ if(TNN_OPENVINO_ENABLE)
 endif()
 
 if(TNN_CUDA_ENABLE)
-    set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-10.0")
-    find_package(CUDA REQUIRED)
-    include(FindCUDA)
-    include_directories("${CUDA_INCLUDE_DIRS}")
-    target_link_libraries(TNN ${CUDNN_LIBS} ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
+    enable_language(CUDA)
+    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    #target_link_libraries(TNN ${CUDNN_LIBS} ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 endif()
 
 if(TNN_RK_NPU_ENABLE)
     message(STATUS "Build TNN RKNPU")
     target_link_libraries(TNN rknpu_ddk)
 endif()
+

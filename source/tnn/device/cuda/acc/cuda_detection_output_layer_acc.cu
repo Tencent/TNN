@@ -15,9 +15,25 @@
 #include "tnn/device/cuda/acc/cuda_detection_output_layer_acc.h"
 #include "tnn/device/cuda/acc/cuda_detection_output_layer_acc_kernel.cuh"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/naive_compute.h"
+#include "tnn/utils/bbox_util.h"
 
 namespace TNN_NS {
+
+inline CodeType GetCodeType(const int number) {
+    ASSERT(number > 0 && number < 4);
+
+    switch (number) {
+        case 1: {
+            return PriorBoxParameter_CodeType_CORNER;
+        }
+        case 2: {
+            return PriorBoxParameter_CodeType_CENTER_SIZE;
+        }
+        default: {
+            return PriorBoxParameter_CodeType_CORNER_SIZE;
+        }
+    }
+}
 
 Status CudaDetectionOutputLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

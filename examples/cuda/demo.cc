@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     shapeMap.insert(std::pair<std::string, TNN_NS::DimsVector>(input_name, nchw));
     TNN_NS::NetworkConfig network_config;
     network_config.device_type = device_type_;
-    network_config.precision = TNN_NS::PRECISION_LOW;
+    //network_config.precision = TNN_NS::PRECISION_LOW;
     network_config.network_type = TNN_NS::NETWORK_TYPE_TENSORRT;
     auto instance = net_->CreateInst(network_config, status, shapeMap);
     instance_ = instance;

@@ -31,7 +31,7 @@ ILayer* ConcatTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     IConcatenationLayer* layer = network->addConcatenation(input_tensors, nbInputs);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        layer->setAxis(paramlist->axis - 1);
+        layer->setAxis(paramlist->axis);
     }
 
     return layer;
