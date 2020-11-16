@@ -488,6 +488,41 @@ void GEMM_FLOAT_N4(float* dst, const float* src, const float* weight, long src_d
                    long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
+
+#if TNN_ARM82
+/*
+general deconv micro kernel __fp16
+*/
+void DeconvFp16O8(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+                   long src_depth_step, long fw, long fh, long dilate_x_step, long dilate_y_step) {
+    long dx, sz, fx, fy;
+    for (dx = 0; dx < width; ++dx) {
+        auto dst_dx = dst + dx * dst_w_step;
+        for (fy = 0; fy < fh; ++fy) {
+            auto dst_y    = dst_dx + fy * dilate_y_step;
+            auto weight_y = weight + fy * fw * src_depth_quad * 64;
+            for (fx = 0; fx < fw; ++fx) {
+                auto dst_x    = dst_y + fx * dilate_x_step;
+                auto weight_x = weight_y + fx * src_depth_quad * 64;
+                __fp16 temp[8] = {0};
+                for (sz = 0; sz < src_depth_quad; ++sz) {
+                    auto weight_z = weight_x + sz * 64;
+                    auto src_z    = src + dx * 8 + sz * src_depth_step;
+                    for (long i = 0; i < 8; ++i) {
+                        for (long j = 0; j < 8; ++j) {
+                            temp[j] = temp[j] + src_z[i] * weight_z[8 * i + j];
+                        }
+                    }
+                }
+                for (long j = 0; j < 8; ++j) {
+                    dst_x[j] = dst_x[j] + temp[j];
+                }
+            }
+        }
+    }
+}
+#endif
+
 #endif
 
 #ifdef TNN_USE_NEON

@@ -139,6 +139,8 @@ void Float2Half(__fp16* dst, const float* src, const size_t length);
 void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void GemmFp16SlidewC3(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long src_w_setup, long fw,
                        long fh, long dilateX_step, long dilateY_step);
+void DeconvFp16O8(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+                   long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
 #endif
 
 void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);

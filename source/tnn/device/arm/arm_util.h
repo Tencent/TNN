@@ -80,6 +80,10 @@ int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channe
                                      int width);
 
 template <typename T>
+int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
+
+template <typename T>
 int ConvertWeightsFromOI3HWToOHW12(T *src, T *dst, int input_channel, int output_channel, int height, int width);
 
 template <typename T>

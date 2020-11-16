@@ -431,6 +431,46 @@ int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channe
 template int ConvertWeightsFromGIOHWToGOHWI16(float *src, float *dst, int group, int input_channel, int output_channel,
                                               int height, int width);
 
+// to   [g][o/8][h][w][i/8][64]
+// from [g][i][o][h][w]
+template <typename T>
+int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width) {
+    const int goc       = output_channel / group;
+    const int gic       = input_channel / group;
+    const int goc_8     = (goc + 7) / 8;
+    const int gic_8     = (gic + 7) / 8;
+    const int src_count = group * goc * gic * height * width;
+    int src_index = 0;
+
+    for (int g = 0; g < group; g++) {
+        auto g_dst = dst + g * goc_8 * gic_8 * height * width * 64;  // g
+        for (int i = 0; i < gic; i++) {
+            auto zi = i / 8, ri = i % 8;
+            auto i_dst = g_dst + zi * 64 + ri * 8;
+            for (int o = 0; o < goc; o++) {
+                auto zo = o / 8, ro = o % 8;
+                auto o_dst = i_dst + zo * height * width * gic_8 * 64 + ro;
+                for (int h = 0; h < height; h++) {
+                    for (int w = 0; w < width; w++) {
+                        if (src_index < src_count) {
+                            o_dst[(h * width + w) * gic_8 * 64] = src[src_index++];
+                        } else {
+                            o_dst[(h * width + w) * gic_8 * 64] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromGIOHWToGOHWI64(const __fp16 *src, __fp16 *dst, int group, int input_channel, int output_channel,
+                                              int height, int width);
+#endif
+
 template <typename T>
 int ConvertWeightsC4ToC8(T *weight, int ic, int oc) {
     int ic4 = UP_DIV(ic, 4), oc4 = UP_DIV(oc, 4);
