@@ -58,15 +58,14 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     }
 
     if (fusion_type != FusionType_None) {
-        // only conv 1x1, stride 1, int8 data type support conv add fusion
-        if (kernel != 1 || group != 1 || stride != 1 || data_type != DATA_TYPE_INT8) {
+        // only conv 1x1, int8 data type support conv add fusion
+        if (kernel != 1 || group != 1 || data_type != DATA_TYPE_INT8) {
             GTEST_SKIP();
         }
     }
 
     // blob desc
-    auto input_count  = (fusion_type == FusionType_None) ? 1 : 2;
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, input_count, data_type);
+    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
     auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
 
     // param
@@ -82,6 +81,23 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     param.bias            = 1;
     param.activation_type = activation_type;
     param.fusion_type     = fusion_type;
+
+    if (fusion_type != FusionType_None) {
+        Blob conv_input_blob   = Blob(inputs_desc[0]);
+        std::vector<Blob*> conv_input = {&conv_input_blob};
+
+        BlobDesc conv_output_desc;
+        conv_output_desc.data_type   = data_type;
+        conv_output_desc.device_type = DEVICE_NAIVE;
+        Blob conv_output_blob  = Blob(conv_output_desc);
+        std::vector<Blob*> conv_output = {&conv_output_blob};
+
+        auto layer_creator_map = GetGlobalLayerCreatorMap();
+        auto conv_layer        = layer_creator_map[LAYER_CONVOLUTION]->CreateLayer();
+
+        conv_layer->InferShapeAhead(conv_input, conv_output, &param, nullptr);
+        inputs_desc.push_back(conv_output[0]->GetBlobDesc());
+    }
 
     // resource
     ConvLayerResource resource;
