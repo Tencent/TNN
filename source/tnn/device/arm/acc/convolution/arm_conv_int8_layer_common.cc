@@ -301,10 +301,16 @@ Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     CHECK_PARAM_NULL(conv_param);
 
     // fused add input
-    if (conv_param->fusion_type == FusionType_Conv_Add_Activation) {
+    if (conv_param->fusion_type != FusionType_None) {
         RETURN_ON_NEQ(allocateBufferAddScale(inputs, outputs), TNN_OK);
-    } else if (conv_param->fusion_type == FusionType_Conv_Activation_Add) {
-        return Status(TNNERR_PARAM_ERR, "Conv_Activation_Add fusion not supported yet");
+    }
+
+    // only support relu activation
+    if (conv_param->activation_type == ActivationType_ReLU) {
+        relu_ = 1;
+        if (conv_param->fusion_type == FusionType_Conv_Activation_Add) {
+            relu_ = -1;
+        }
     }
 
     auto dims_input = inputs[0]->GetBlobDesc().dims;
@@ -379,7 +385,7 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             if (real_hw_tile == NEON_INT8CONV_TILE_HW) {
                 GemmInt8(output_kernel, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4, add_input_kernel, buffer_add_scale_.force_to<float *>());
+                         k_param_->oc_r4, relu_, add_input_kernel, buffer_add_scale_.force_to<float *>());
             } else {
                 int8_t *outptr_tmp =
                     buffer_tmpout_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
@@ -390,13 +396,9 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                 }
                 GemmInt8(outptr_tmp, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4, add_input_ptr_tmp, buffer_add_scale_.force_to<float *>());
+                         k_param_->oc_r4, relu_, add_input_ptr_tmp, buffer_add_scale_.force_to<float *>());
                 memcpy(output_kernel, outptr_tmp, real_hw_tile * k_param_->oc_r4);
             }
-        }
-        // only support relu activation
-        if (conv_param->activation_type == ActivationType_ReLU) {
-            ReluInt8(output_batch, output_batch, k_param_->ow * k_param_->oh * k_param_->oc_r4);
         }
     }
     return TNN_OK;

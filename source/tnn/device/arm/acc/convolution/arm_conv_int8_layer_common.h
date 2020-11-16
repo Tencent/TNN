@@ -53,6 +53,8 @@ protected:
     RawBuffer buffer_add_scale_;
     RawBuffer buffer_add_tmpin_;
 
+    long relu_ = 0;
+
     std::function<void(int8_t *, const int8_t *, const ConvLayerParam *, size_t, size_t, int,
                        const ArmKernelParam *kparam)>
         im_col_func_;

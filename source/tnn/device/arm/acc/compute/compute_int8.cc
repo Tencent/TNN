@@ -164,7 +164,7 @@ kernel func used in linux debug mode
 conv int8 fuse with add common micro kernel
 */
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale) {
+                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input, const float* add_scale) {
     for (long w = 0; w < 4; ++w) {
         const auto src_x   = src + w * src_w_step;
         auto dst_x         = dst + w * dst_depth;
@@ -194,11 +194,19 @@ void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long 
             }
         }
         for (long j = 0; j < 4; ++j) {
-            if (add_input_x) {
-                dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j] + add_input_x[j] * add_scale[j]);
-            } else {
-                dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j]);
+            auto res = static_cast<float>(dstTemp[j] + bias[j]) * scale[j];
+            // Conv-Relu-Add
+            if (relu < 0) {
+                res = MAX(0, res);
             }
+            if (add_input_x) {
+                res += add_input_x[j] * add_scale[j];
+            }
+            // Conv-Add-Relu
+            if (relu > 0) {
+                res = MAX(0, res);
+            }
+            dst_x[j] = float2int8(res);
         }
     }
 }
@@ -503,7 +511,7 @@ assemble kernel used int gemm int8 func
 */
 extern "C" {
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale);
+                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input, const float* add_scale);
 }
 #endif
 
@@ -511,7 +519,7 @@ void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long 
 gemm int8 fuse with add func used in linux debug mode
 */
 void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-              const float* scale, long src_depth_d8, long src_w_step, long dst_depth,
+              const float* scale, long src_depth_d8, long src_w_step, long dst_depth, long relu,
               const int8_t* add_input, const float* add_scale) {
     const long src_depth_d16 = UP_DIV(src_depth_d8, 2);
 #if !defined(__aarch64__) && defined(TNN_USE_NEON)
@@ -519,7 +527,7 @@ void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* 
     src = work_space;
 #endif
     for (long j = 0; j < dst_depth; j += 4) {
-        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, add_input, add_scale);
+        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, relu, add_input, add_scale);
         dst += 4;
         weight += 4 * src_depth_d16 * 16;
         if (add_input) {
