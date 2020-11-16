@@ -101,6 +101,8 @@ protected:
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
     
     Status GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob);
+    Status UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
+                               const std::string &name, NetResource *net_resource, Blob **blob);
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;

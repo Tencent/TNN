@@ -128,7 +128,10 @@ namespace test {
                 for(auto element : input_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
-                    blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                    ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                    if (!CheckResult("ConvertFromMat", ret)) {
+                        return 0;
+                    }
                 }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
                 ret = instance->Forward();
@@ -140,7 +143,10 @@ namespace test {
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
-                    blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+                    ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+                    if (!CheckResult("ConvertToMat", ret)) {
+                        return 0;
+                    }
                 }
                 timer.Stop();
             }

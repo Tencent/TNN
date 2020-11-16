@@ -14,12 +14,11 @@
 
 #include "tnn/utils/npu_common_utils.h"
 
-#include <sstream>
-
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/layer/base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -55,7 +54,7 @@ std::string NpuCommonUtils::GetFileHash(ModelConfig &model_config) {
     int hash                 = 0;
     for (size_t i = 0; i < file_content.length(); ++i)
         hash = 65599 * hash + file_content.at(i);
-    return std::to_string(hash ^ (hash >> 16));
+    return ToString(hash ^ (hash >> 16));
 }
 
 bool NpuCommonUtils::FileExits(std::string model_path) {

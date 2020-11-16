@@ -108,7 +108,7 @@ int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, f
 
 int CompareData(const int8_t* ref_data, const int8_t* result_data, size_t n) {
     for (unsigned long long i = 0; i < n; i++) {
-        if (fabs(result_data[i] - ref_data[i]) > 1) {
+        if (abs(result_data[i] - ref_data[i]) > 1) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }
@@ -122,7 +122,7 @@ int CompareData(const uint8_t* ref_data, const uint8_t* result_data, int mat_cha
         int c = i % mat_channel;
         if (c >= channel)
             continue;
-        if (fabs(result_data[i] - ref_data[i]) > 1) {
+        if (abs(result_data[i] - ref_data[i]) > 1) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }

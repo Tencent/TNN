@@ -240,7 +240,7 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
 
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config.device_type);
+    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -429,6 +429,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         char layer_name[name.size() + 1];
         strcpy(layer_name, name.c_str());
         BlobDesc desc;
+        desc.device_type = DEVICE_HUAWEI_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name        = layer_name;
         desc.dims.push_back(n);
@@ -476,6 +477,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             int h                      = dims.GetHeight();
             int w                      = dims.GetWidth();
             // add blob
+            desc.device_type = DEVICE_HUAWEI_NPU;
             desc.data_format = DATA_FORMAT_NCHW;
             desc.name        = layer_name;
             desc.dims.push_back(n);

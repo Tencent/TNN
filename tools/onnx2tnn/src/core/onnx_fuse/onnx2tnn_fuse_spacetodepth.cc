@@ -19,33 +19,57 @@
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
-int Onnx2TNN::FusePixelShuffle(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+int Onnx2TNN::FuseSpaceToDepth(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                                std::map<std::string, onnx::TensorProto>& weights,
                                std::map<std::string, int>& node_reference, std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
 
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
-        // PixelShuffle =
+        // SpaceToDepth <= Reshape - Transpose - Reshape
+        // CRD mode: Reshape - Transpose(0, 1, 3, 5, 2, 4) - Reshape
+        // DCR mode: Reshape - Transpose(0, 3, 5, 1, 2, 4) - Reshape
         do {
             if (node->op_type() != "Reshape" || i + 2 >= node_count) {
-                break;
-            }
-            auto transpose_node = index_nodes[i + 1].node;
-            if (transpose_node->op_type() != "Transpose") {
-                break;
-            }
-            auto reshape_node = index_nodes[i + 2].node;
-            if (reshape_node->op_type() != "Reshape") {
                 break;
             }
             auto shapes = get_node_attr_ai(*node, "shape", weights, 1);
             if (shapes.size() != 6) {
                 break;
             }
+            if (shapes[3] != shapes[5]) {
+                break;
+            }
+            auto transpose_node = index_nodes[i + 1].node;
+            if (transpose_node->op_type() != "Transpose") {
+                break;
+            }
             auto permute = get_node_attr_ai(*transpose_node, "perm");
-            if (permute.size() != 6 || permute[0] != 0 || permute[1] != 1 || permute[2] != 4 || permute[3] != 2 ||
-                permute[4] != 5 || permute[5] != 3) {
+            if (permute.size() != 6) {
+                break;
+            }
+            std::vector<int64_t> CRD_mode = {0, 1, 3, 5, 2, 4};
+            std::vector<int64_t> DCR_mode = {0, 3, 5, 1, 2, 4};
+            bool is_crd                   = true;
+            bool is_dcr                   = true;
+            for (int index = 0; index < 6; index++) {
+                if (CRD_mode[index] != permute[index]) {
+                    is_crd = false;
+                    break;
+                }
+            }
+            for (int index = 0; index < 6; index++) {
+                if (DCR_mode[index] != permute[index]) {
+                    is_dcr = false;
+                    break;
+                }
+            }
+            if (!is_crd && !is_dcr) {
+                break;
+            }
+
+            auto reshape_node = index_nodes[i + 2].node;
+            if (reshape_node->op_type() != "Reshape") {
                 break;
             }
             if (node->output(0) != transpose_node->input(0) || transpose_node->output(0) != reshape_node->input(0)) {
@@ -54,15 +78,19 @@ int Onnx2TNN::FusePixelShuffle(onnx::GraphProto* mutable_graph, std::vector<Inde
             if (node_reference[node->output(0)] != 1 || node_reference[transpose_node->output(0)] != 1) {
                 break;
             }
-            reshape_node->set_op_type("PixelShuffle");
+            reshape_node->set_op_type("SpaceToDepth");
             // reshape_node->clear_input();
             // set input
             // reshape_node->add_input(0, node->input(0));
             reshape_node->set_input(0, node->input(0));
-            onnx::AttributeProto* attribute = reshape_node->add_attribute();
-            int upscale_factor              = shapes[2];
-            attribute->set_name("upscale_factor");
-            attribute->set_i(upscale_factor);
+            onnx::AttributeProto* attr_block_size = reshape_node->add_attribute();
+            int block_size                        = shapes[3];
+            attr_block_size->set_name("blocksize");
+            attr_block_size->set_i(block_size);
+
+            onnx::AttributeProto* attr_mode = reshape_node->add_attribute();
+            std::string mode                = is_crd ? "CRD" : "DCR";
+            attr_mode->set_s(mode);
 
             node->set_op_type(k_tnn_noop_type);
             transpose_node->set_op_type(k_tnn_noop_type);

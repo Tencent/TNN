@@ -27,6 +27,74 @@
 namespace TNN_NS {
 
 #ifndef TNN_USE_NEON
+void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
+                         long c_stride, const float* scales, long relu) {
+    union {
+        const void* as_void_ptr;
+        int8_t* as_int8_ptr;
+        int32_t* as_int32_ptr;
+    } packed = {w};
+
+    for (int m = 0; m < mr; m++) {
+        for (int n = 0; n < nr; n++) {
+            int acc          = packed.as_int32_ptr[n];
+            int8_t* packed_w = reinterpret_cast<int8_t*>(packed.as_int32_ptr + 8);
+            for (int kk = 0; kk < k; kk++) {
+                acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
+            }
+
+            c[m * c_stride + n] = float2int8(acc * scales[n]);
+            if (relu) {
+                c[m * c_stride + n] = MAX(0, c[m * c_stride + n]);
+            }
+        }
+    }
+}
+#else
+extern "C" {
+void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
+                     const float* scales, long);
+void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
+                     const float* scales, long);
+}
+#endif
+
+static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start, long nr_block_start,
+                              long mr_block_size, long nr_block_size) {
+    const long k         = context->k;
+    const long k_stride  = context->k_stride;
+    const long n         = context->n;
+    const long n_stride  = context->n_stride;
+    const int8_t* a      = context->a;
+    const long a_stride  = context->a_stride;
+    const void* packed_w = context->packed_w;
+    int8_t* c            = context->c;
+    const long c_stride  = context->c_stride;
+
+#ifndef TNN_USE_NEON
+    GemmInt8N8Func gemm_int8_func = GemmInt8UnitN8Naive;
+#elif defined(__aarch64__)
+    GemmInt8N8Func gemm_int8_func = GemmInt8Unit8x8;
+#else
+    GemmInt8N8Func gemm_int8_func = GemmInt8Unit4x8;
+#endif
+
+    gemm_int8_func(mr_block_size, nr_block_size, k, a + (mr_block_start)*a_stride, a_stride,
+                   (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
+                   c + mr_block_start * c_stride + nr_block_start, c_stride, context->scales + nr_block_start,
+                   context->relu);
+}
+
+void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
+    OMP_PARALLEL_FOR_GUIDED_
+    for (int32_t k = 0; k < range_k; k += tile_k) {
+        for (int32_t l = 0; l < range_l; l += tile_l) {
+            ComputeQ8GemmTile(context, k, l, std::min(range_k - k, tile_k), std::min(range_l - l, tile_l));
+        }
+    }
+}
+
+#ifndef TNN_USE_NEON
 /*
 kernel func used in linux debug mode
 conv int8 common micro kernel
@@ -583,6 +651,86 @@ void DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, co
 /*
 convdw 3x3 int8 func
 */
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                           long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z,
+                           long dx, long dc) {
+    auto dst_x       = dst + dx * dst_depth + dc;
+    const auto src_z = src + dx * src_w_step + dc;
+    int32x4_t acc[4][2];
+    int16x8_t a[6], b[3];
+    acc[0][0] = vld1q_s32(bias_z + dc);
+    acc[0][1] = vld1q_s32(bias_z + dc + 4);
+    acc[1][0] = acc[0][0];
+    acc[1][1] = acc[0][1];
+    acc[2][0] = acc[0][0];
+    acc[2][1] = acc[0][1];
+    acc[3][0] = acc[0][0];
+    acc[3][1] = acc[0][1];
+
+    for (long fy = 0; fy < 3; ++fy) {
+        const auto src_y    = src_z + fy * src_y_step;
+        const auto weight_y = weight + fy * 3 * dst_depth + dc;
+        // unroll loops
+        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
+        a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
+        a[5] = vmovl_s8(vld1_s8(src_y + 5 * dst_depth));
+        for (long fx = 0; fx < 3; fx++) {
+            acc[0][0] = vmlal_s16(acc[0][0], vget_low_s16(a[fx + 0]), vget_low_s16(b[fx]));
+            acc[0][1] = vmlal_s16(acc[0][1], vget_high_s16(a[fx + 0]), vget_high_s16(b[fx]));
+            acc[1][0] = vmlal_s16(acc[1][0], vget_low_s16(a[fx + 1]), vget_low_s16(b[fx]));
+            acc[1][1] = vmlal_s16(acc[1][1], vget_high_s16(a[fx + 1]), vget_high_s16(b[fx]));
+            acc[2][0] = vmlal_s16(acc[2][0], vget_low_s16(a[fx + 2]), vget_low_s16(b[fx]));
+            acc[2][1] = vmlal_s16(acc[2][1], vget_high_s16(a[fx + 2]), vget_high_s16(b[fx]));
+            acc[3][0] = vmlal_s16(acc[3][0], vget_low_s16(a[fx + 3]), vget_low_s16(b[fx]));
+            acc[3][1] = vmlal_s16(acc[3][1], vget_high_s16(a[fx + 3]), vget_high_s16(b[fx]));
+        }
+    }
+    float32x4_t scale0 = vld1q_f32(scale_z + dc);
+    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
+    for (long ww = 0; ww < 4; ww++) {
+        int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc[ww][0]), vcvtq_f32_s32(acc[ww][1]), scale0, scale1);
+        vst1_s8(dst_x + ww * dst_depth, acc_s8);
+    }
+}
+
+void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                         long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z,
+                         long dx, long dc) {
+    auto dst_x       = dst + dx * dst_depth + dc;
+    const auto src_z = src + dx * src_w_step + dc;
+    int32x4_t acc0   = vld1q_s32(bias_z + dc);
+    int32x4_t acc1   = vld1q_s32(bias_z + dc + 4);
+
+    for (long fy = 0; fy < 3; ++fy) {
+        const auto src_y    = src_z + fy * src_y_step;
+        const auto weight_y = weight + fy * 3 * dst_depth + dc;
+        int16x8_t a[3], b[3];
+        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[0]), vget_low_s16(b[0]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[0]), vget_high_s16(b[0]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[1]), vget_low_s16(b[1]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[1]), vget_high_s16(b[1]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[2]), vget_low_s16(b[2]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[2]), vget_high_s16(b[2]));
+    }
+    float32x4_t scale0 = vld1q_f32(scale_z + dc);
+    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
+
+    int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc0), vcvtq_f32_s32(acc1), scale0, scale1);
+    vst1_s8(dst_x, acc_s8);
+}
+
 void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
                    long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z) {
     long dx = 0;
@@ -590,161 +738,36 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
     // stride == 1, fully use arm registers
     if (src_w_step == dst_depth) {
         for (dx = 0; dx < width - 3; dx += 4) {
-            for (long dc = 0; dc < dst_depth; dc += 8) {
-                auto dst_x       = dst + dx * dst_depth + dc;
-                const auto src_z = src + dx * src_w_step + dc;
-                int32x4_t acc[4][2];
-                int16x8_t a[6], b[3];
-                acc[0][0] = vld1q_s32(bias_z + dc);
-                acc[0][1] = vld1q_s32(bias_z + dc + 4);
-                acc[1][0] = acc[0][0];
-                acc[1][1] = acc[0][1];
-                acc[2][0] = acc[0][0];
-                acc[2][1] = acc[0][1];
-                acc[3][0] = acc[0][0];
-                acc[3][1] = acc[0][1];
+            long dc = 0;
+            for (; dc < dst_depth - 7; dc += 8) {
+                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh,
+                                      scale_z, dx, dc);
+            }
 
-                for (long fy = 0; fy < 3; ++fy) {
-                    const auto src_y    = src_z + fy * src_y_step;
-                    const auto weight_y = weight + fy * 3 * dst_depth + dc;
-                    // unroll loops
-                    a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
-                    b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
-                    a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
-                    b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
-                    a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
-                    b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
-                    a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
-                    a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
-                    a[5] = vmovl_s8(vld1_s8(src_y + 5 * dst_depth));
-                    for (long fx = 0; fx < 3; fx++) {
-                        acc[0][0] = vmlal_s16(acc[0][0], vget_low_s16(a[fx + 0]), vget_low_s16(b[fx]));
-                        acc[0][1] = vmlal_s16(acc[0][1], vget_high_s16(a[fx + 0]), vget_high_s16(b[fx]));
-                        acc[1][0] = vmlal_s16(acc[1][0], vget_low_s16(a[fx + 1]), vget_low_s16(b[fx]));
-                        acc[1][1] = vmlal_s16(acc[1][1], vget_high_s16(a[fx + 1]), vget_high_s16(b[fx]));
-                        acc[2][0] = vmlal_s16(acc[2][0], vget_low_s16(a[fx + 2]), vget_low_s16(b[fx]));
-                        acc[2][1] = vmlal_s16(acc[2][1], vget_high_s16(a[fx + 2]), vget_high_s16(b[fx]));
-                        acc[3][0] = vmlal_s16(acc[3][0], vget_low_s16(a[fx + 3]), vget_low_s16(b[fx]));
-                        acc[3][1] = vmlal_s16(acc[3][1], vget_high_s16(a[fx + 3]), vget_high_s16(b[fx]));
-                    }
-                }
-                float32x4_t scale0 = vld1q_f32(scale_z + dc);
-                float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
-                for (long ww = 0; ww < 4; ww++) {
-                    int8x8_t acc_s8 =
-                        Float4x2ScaleTos8(vcvtq_f32_s32(acc[ww][0]), vcvtq_f32_s32(acc[ww][1]), scale0, scale1);
-                    vst1_s8(dst_x + ww * dst_depth, acc_s8);
-                }
+            if (dc < dst_depth) {
+                dc = dst_depth - 8;
+                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh,
+                                      scale_z, dx, dc);
             }
         }
     }
 
     // general k3 process, calc left dx
     for (; dx < width; dx++) {
-        for (long dc = 0; dc < dst_depth; dc += 8) {
-            auto dst_x       = dst + dx * dst_depth + dc;
-            const auto src_z = src + dx * src_w_step + dc;
-            int32x4_t acc0   = vld1q_s32(bias_z + dc);
-            int32x4_t acc1   = vld1q_s32(bias_z + dc + 4);
+        long dc = 0;
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K3Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh, scale_z, dx,
+                                dc);
+        }
 
-            for (long fy = 0; fy < 3; ++fy) {
-                const auto src_y    = src_z + fy * src_y_step;
-                const auto weight_y = weight + fy * 3 * dst_depth + dc;
-                int16x8_t a[3], b[3];
-                a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
-                b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
-                a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
-                b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
-                a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
-                b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
-                acc0 = vmlal_s16(acc0, vget_low_s16(a[0]), vget_low_s16(b[0]));
-                acc1 = vmlal_s16(acc1, vget_high_s16(a[0]), vget_high_s16(b[0]));
-                acc0 = vmlal_s16(acc0, vget_low_s16(a[1]), vget_low_s16(b[1]));
-                acc1 = vmlal_s16(acc1, vget_high_s16(a[1]), vget_high_s16(b[1]));
-                acc0 = vmlal_s16(acc0, vget_low_s16(a[2]), vget_low_s16(b[2]));
-                acc1 = vmlal_s16(acc1, vget_high_s16(a[2]), vget_high_s16(b[2]));
-            }
-            float32x4_t scale0 = vld1q_f32(scale_z + dc);
-            float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
-
-            int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc0), vcvtq_f32_s32(acc1), scale0, scale1);
-            vst1_s8(dst_x, acc_s8);
+        if (dc < dst_depth) {
+            dc = dst_depth - 8;
+            DepthwiseI8K3Kernel(dst, src, weight, bias_z, width, src_y_step, src_w_step, dst_depth, fw, fh, scale_z, dx,
+                                dc);
         }
     }
 }
 #endif
-
-/*
-convdw int8 corner process
-*/
-void DwInt8Corner(int8_t* dst_z, const int8_t* src_z, long L, long T, long R, long B, long pad, long stride,
-                  long kernel, long dst_y_step, long src_y_step, ArmKernelParam* param) {
-    for (long dy = T; dy < B; ++dy) {
-        auto dst_y             = dst_z + dy * dst_y_step;
-        const long src_start_y = dy * stride - pad;
-        const auto src_y       = src_z + src_start_y * src_y_step;
-        const long sfy         = MAX(0, (UP_DIV(-src_start_y, 1)));
-        const long efy         = MIN(kernel, (UP_DIV(param->ih - src_start_y, 1)));
-        for (long dx = L; dx < R; ++dx) {
-            auto dst_x             = dst_y + param->oc_r4 * dx;
-            const long src_start_x = dx * stride - pad;
-            const auto src_x       = src_y + src_start_x * param->oc_r4;
-            const long sfx         = MAX(0, (UP_DIV(-src_start_x, 1)));
-            const long efx         = MIN(kernel, (UP_DIV(param->iw - src_start_x, 1)));
-            const long srcIndex    = (sfx * 1 + sfy * 1 * param->iw) * param->oc_r4;
-            const long weightIndex = (kernel * sfy + sfx) * param->oc_r4;
-
-            DepthwiseI8Unit(dst_x, src_x + srcIndex, reinterpret_cast<int8_t*>(param->fil_ptr) + weightIndex,
-                            reinterpret_cast<int32_t*>(param->bias), efx - sfx, efy - sfy, param->oc_r4 * kernel,
-                            src_y_step, param->scale, param->oc_r4);
-        }
-    }
-};
-
-/*
-conv dw int8 func
-*/
-void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
-                     long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
-                     const int8_t* weightPtr, const int32_t* biasPtr, const float* scalePtr, long stride, long pad,
-                     ArmKernelParam* param) {
-    long src_w_step = param->oc_r4 * stride;
-    auto dwfunc     = DepthwiseI8General;
-#ifdef TNN_USE_NEON
-    if (kernel == 3 && param->oc_r4 % 8 == 0) {
-        dwfunc = DepthwiseI8K3;
-    }
-#endif
-    OMP_PARALLEL_SECTIONS_ {
-        OMP_SECTION_ {
-            // top corner
-            DwInt8Corner(dst, src, 0, 0, param->ow, t, pad, stride, kernel, dst_y_step, src_y_step, param);
-        }
-        OMP_SECTION_ {
-            // bottom corner
-            DwInt8Corner(dst, src, 0, b, param->ow, param->oh, pad, stride, kernel, dst_y_step, src_y_step, param);
-        }
-        OMP_SECTION_ {
-            // left corner
-            DwInt8Corner(dst, src, 0, t, l, b, pad, stride, kernel, dst_y_step, src_y_step, param);
-        }
-        OMP_SECTION_ {
-            // bottom corner
-            DwInt8Corner(dst, src, r, t, param->ow, b, pad, stride, kernel, dst_y_step, src_y_step, param);
-        }
-    }
-    if (r > l) {
-        OMP_PARALLEL_FOR_GUIDED_
-        for (long dy = t; dy < b; ++dy) {
-            const long src_start_y = dy * stride - pad;
-            const auto src_dy      = src + src_start_y * src_y_step;
-            auto dst_y             = dst + dy * dst_y_step;
-            dwfunc(dst_y + l * param->oc_r4, src_dy + (l * stride - pad) * param->oc_r4,
-                   reinterpret_cast<int8_t*>(param->fil_ptr), reinterpret_cast<int32_t*>(param->bias), r - l,
-                   src_y_step, src_w_step, param->oc_r4, kernel, kernel, param->scale);
-        }
-    }
-}
 
 void ReluInt8(int8_t* dst, const int8_t* src, long len) {
     long idx = 0;

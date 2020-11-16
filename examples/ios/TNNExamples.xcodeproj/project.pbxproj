@@ -62,6 +62,12 @@
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
+		ECD9465B2559266D00BF9214 /* hair_segmentation.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD9465A2559266D00BF9214 /* hair_segmentation.cc */; };
+		ECD946682559295A00BF9214 /* DYFlatButton.m in Sources */ = {isa = PBXBuildFile; fileRef = ECD946642559295A00BF9214 /* DYFlatButton.m */; };
+		ECD946692559295A00BF9214 /* UIColor+Utility.m in Sources */ = {isa = PBXBuildFile; fileRef = ECD946662559295A00BF9214 /* UIColor+Utility.m */; };
+		ECD9466D2559296D00BF9214 /* TNNHairSegmentationViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD9466C2559296C00BF9214 /* TNNHairSegmentationViewModel.mm */; };
+		ECD946712559298F00BF9214 /* TNNMaskImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD946702559298F00BF9214 /* TNNMaskImage.mm */; };
+		ECD9467C2559306800BF9214 /* logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ECD9467B2559306700BF9214 /* logo@2x.png */; };
 		ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */; };
 		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */; };
@@ -178,6 +184,17 @@
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
 		ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectMeshViewModel.mm; sourceTree = "<group>"; };
 		ECD14A052505FE3100271443 /* TNNFaceDetectMeshViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TNNFaceDetectMeshViewModel.h; sourceTree = "<group>"; };
+		ECD946592559266D00BF9214 /* hair_segmentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hair_segmentation.h; sourceTree = "<group>"; };
+		ECD9465A2559266D00BF9214 /* hair_segmentation.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hair_segmentation.cc; sourceTree = "<group>"; };
+		ECD946642559295A00BF9214 /* DYFlatButton.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DYFlatButton.m; sourceTree = "<group>"; };
+		ECD946652559295A00BF9214 /* UIColor+Utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIColor+Utility.h"; sourceTree = "<group>"; };
+		ECD946662559295A00BF9214 /* UIColor+Utility.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIColor+Utility.m"; sourceTree = "<group>"; };
+		ECD946672559295A00BF9214 /* DYFlatButton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DYFlatButton.h; sourceTree = "<group>"; };
+		ECD9466B2559296C00BF9214 /* TNNHairSegmentationViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNHairSegmentationViewModel.h; sourceTree = "<group>"; };
+		ECD9466C2559296C00BF9214 /* TNNHairSegmentationViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNHairSegmentationViewModel.mm; sourceTree = "<group>"; };
+		ECD9466F2559298F00BF9214 /* TNNMaskImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNMaskImage.h; sourceTree = "<group>"; };
+		ECD946702559298F00BF9214 /* TNNMaskImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNMaskImage.mm; sourceTree = "<group>"; };
+		ECD9467B2559306700BF9214 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
 		ECEC5DB024FFCC6C0044DDF1 /* youtu_face_align.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = youtu_face_align.h; sourceTree = "<group>"; };
 		ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = youtu_face_align.cc; sourceTree = "<group>"; };
 		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
@@ -247,6 +264,8 @@
 		9D71E7C024C5BE1200074C1A /* TNNViewModel */ = {
 			isa = PBXGroup;
 			children = (
+				ECD9466B2559296C00BF9214 /* TNNHairSegmentationViewModel.h */,
+				ECD9466C2559296C00BF9214 /* TNNHairSegmentationViewModel.mm */,
 				9D49E7A02504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.h */,
 				9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */,
 				9DC7116124D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.h */,
@@ -308,6 +327,8 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
+				ECD9467B2559306700BF9214 /* logo@2x.png */,
+				ECD946632559295A00BF9214 /* Component */,
 				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
 				9DDED30B2429A839000C09EA /* base */,
@@ -362,6 +383,8 @@
 		9DDED30B2429A839000C09EA /* base */ = {
 			isa = PBXGroup;
 			children = (
+				ECD9465A2559266D00BF9214 /* hair_segmentation.cc */,
+				ECD946592559266D00BF9214 /* hair_segmentation.h */,
 				EC2CF72B250797C800EE3899 /* image_classifier.cc */,
 				EC2CF730250797C800EE3899 /* image_classifier.h */,
 				EC2CF72E250797C800EE3899 /* sample_timer.cc */,
@@ -407,6 +430,8 @@
 		D1330F49244AC4FA00CEBF29 /* CameraDevice */ = {
 			isa = PBXGroup;
 			children = (
+				ECD9466F2559298F00BF9214 /* TNNMaskImage.h */,
+				ECD946702559298F00BF9214 /* TNNMaskImage.mm */,
 				D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */,
 				D1330F4B244AC4FA00CEBF29 /* TNNCameraVideoDevice.h */,
 				D1330F4A244AC4FA00CEBF29 /* TNNCameraVideoDevice.mm */,
@@ -434,6 +459,17 @@
 				ECAD84FA24D7F0400074EA95 /* TNNFacemeshController.h */,
 			);
 			path = TNNFacemeshController;
+			sourceTree = "<group>";
+		};
+		ECD946632559295A00BF9214 /* Component */ = {
+			isa = PBXGroup;
+			children = (
+				ECD946642559295A00BF9214 /* DYFlatButton.m */,
+				ECD946652559295A00BF9214 /* UIColor+Utility.h */,
+				ECD946662559295A00BF9214 /* UIColor+Utility.m */,
+				ECD946672559295A00BF9214 /* DYFlatButton.h */,
+			);
+			path = Component;
 			sourceTree = "<group>";
 		};
 		ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */ = {
@@ -531,6 +567,7 @@
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
+				ECD9467C2559306800BF9214 /* logo@2x.png in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
 				9DD579F823B5A20500A96E63 /* Main.storyboard in Resources */,
 			);
@@ -572,6 +609,8 @@
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
 				9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */,
+				ECD9465B2559266D00BF9214 /* hair_segmentation.cc in Sources */,
+				ECD946682559295A00BF9214 /* DYFlatButton.m in Sources */,
 				ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
@@ -583,6 +622,7 @@
 				9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */,
 				ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
+				ECD946692559295A00BF9214 /* UIColor+Utility.m in Sources */,
 				ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
@@ -594,6 +634,8 @@
 				9D8493C92510B52C00869EEF /* TNNExamplesListCell.m in Sources */,
 				9D71E78B24C0AF4200074C1A /* TNNBoundingBox.mm in Sources */,
 				9D961FED24116548009B3FB1 /* RootNavController.mm in Sources */,
+				ECD946712559298F00BF9214 /* TNNMaskImage.mm in Sources */,
+				ECD9466D2559296D00BF9214 /* TNNHairSegmentationViewModel.mm in Sources */,
 				EC2CF734250797C800EE3899 /* ultra_face_detector.cc in Sources */,
 				EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */,
 				D1330F47244AC2D900CEBF29 /* TNNCameraPreviewController.mm in Sources */,

@@ -226,7 +226,8 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, output_dims);
 
     cl_int cl_ret;
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image        = static_cast<cl::Image *>(src.GetData());
         cl::Image *output_mat_image = static_cast<cl::Image *>(dst.GetData());
@@ -244,7 +245,7 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[3]);
         CHECK_CL_SUCCESS(cl_ret);
         // channel
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[1]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, UP_DIV(input_dims[1], 4));
         CHECK_CL_SUCCESS(cl_ret);
         // input height
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[2]);
@@ -471,12 +472,23 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     }
 
     // create execute unit
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     OpenCLExecuteUnit unit;
     if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
         if (execute_map_.count(key) == 0) {
             std::string program_name = "warp_affine";
             std::string kernel_name = "WarpAffineLinear";
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[key] = unit;
+        }
+    } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        if (execute_map_.count(key) == 0) {
+            std::string program_name = "warp_affine";
+            std::string kernel_name = "WarpAffineNearest";
             ret = CreateExecuteUnit(unit, program_name, kernel_name);
             if (ret != TNN_OK) {
                 return ret;
@@ -502,6 +514,68 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
 
 Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
+}
+
+Status OpenCLMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    Status ret            = TNN_OK;
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    }
+    const std::string key = "CopyMakeBorder";
+    OpenCLExecuteUnit unit;
+    if(execute_map_.count(key) == 0) {
+        std::string program_name = "copy";
+        std::string kernel_name = "CopyMakeBorder";
+        ret = CreateExecuteUnit(unit, program_name, kernel_name);
+        if(ret != TNN_OK) {
+            return ret;
+        }
+        execute_map_[key] = unit;
+    }
+
+    auto dims        = dst.GetDims();
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+
+    cl_int cl_ret;
+
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
+    cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
+    CHECK_CL_SUCCESS(cl_ret);
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border top
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.top);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border left
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.left);
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_w
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetWidth());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_channel_blocks
+    cl_ret = unit.ocl_kernel.setArg(idx++, UP_DIV(src.GetChannel(), 4));
+    CHECK_CL_SUCCESS(cl_ret);
+    // dst_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, dst.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // border_val
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.border_val);
+    CHECK_CL_SUCCESS(cl_ret);
+
+    ret = RunConvertUnit(unit, cl_command_queue, false);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    return TNN_OK;
 }
 
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);

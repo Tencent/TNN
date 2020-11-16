@@ -52,6 +52,9 @@ struct NetStructure {
 };
 
 std::shared_ptr<LayerInfo> GetLayerInfoFromName(NetStructure* net_struct, std::string name);
+
+bool GetQuantizedInfoFromNetStructure(NetStructure* net_struct);
+
 bool NeedDoConstantFolding(NetStructure* net_struct);
 }  // namespace TNN_NS
 

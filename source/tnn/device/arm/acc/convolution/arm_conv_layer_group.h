@@ -15,7 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_LAYER_GROUP_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_LAYER_GROUP_H_
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_layer_acc_factory.h"
 #include "tnn/device/arm/arm_device.h"
 #include "tnn/interpreter/layer_resource.h"
 
@@ -36,12 +36,6 @@ private:
     Status SetGroupParam(std::shared_ptr<LayerParam> &group_param);
 
     Status SplitResource(std::vector<std::shared_ptr<LayerResource>> &resources);
-
-    void CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
-                       std::shared_ptr<ArmLayerAcc> &conv_acc_impl);
-
-    void CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
-                     std::shared_ptr<ArmLayerAcc> &conv_acc_impl);
 
     Status SetSplitBlobDesc(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs);
     Status SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> &blobs, RawBuffer &buf);
