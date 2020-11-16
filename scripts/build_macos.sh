@@ -3,11 +3,12 @@
 SHARED_LIB="ON"
 METAL="ON"
 
-CWD=$(cd `dirname $0`; pwd)
+SD=$(cd `dirname $0`; pwd)
 if [ -z $TNN_ROOT_PATH ]
 then
-    TNN_ROOT_PATH=${CWD}/..
+    TNN_ROOT_PATH=${SD}/..
 fi
+CWD=$(pwd)
 
 function CheckRtnAndPrintMsg()
 {
@@ -43,7 +44,7 @@ BUILD_PATH=${CWD}/build_macos
 echo "check ${BUILD_PATH}"
 if [ ! -f ${BUILD_PATH}/tnn.metallib ]; then
     echo "No metallib found!"
-    exit 0
+    exit -1
 fi
 ./unit_test --lp ${BUILD_PATH}/tnn.metallib --dt METAL
 

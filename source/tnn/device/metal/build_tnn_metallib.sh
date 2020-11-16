@@ -41,9 +41,6 @@ function BuildMetalLib()
 
    #build metallib
    xcrun -sdk macosx metallib ${TNNAllMetalAIRFiles[@]} -o ${TNNMetallibPath}
-   echo "=============================="
-   echo ${TNNMetallibPath}
-   echo "=============================="
 
    #delete air files
    for file in ${TNNAllMetalAIRFiles[@]}
