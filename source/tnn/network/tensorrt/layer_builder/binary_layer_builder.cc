@@ -102,37 +102,37 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         int w = input_blobs_[0]->GetBlobDesc().dims[3];
         if (weight.count == 1) {
             // broadcast on chw
-            dims = Dims4(n, 1, 1, 1);
+            dims = Dims4(1, 1, 1, 1);
         } else if (weight.count == h * w) {
             // broadcast on channel  
-            dims = Dims4(n, 1, h, w);
+            dims = Dims4(1, 1, h, w);
         } else if (weight.count == c) {
             // broadcast on hw
-            dims = Dims4(n, c, 1, 1);
+            dims = Dims4(1, c, 1, 1);
         } else if (weight.count == c * h * w) {
             // no broadcast
-            dims = Dims4(n, c, h, w);
+            dims = Dims4(1, c, h, w);
         } else if (weight.count == c * w) {
             // broadcast on h
-            dims = Dims4(n, c, 1, w);
+            dims = Dims4(1, c, 1, w);
         } else if (weight.count == c * h) {
             // broadcast on w
-            dims = Dims4(n, c, h, 1);
+            dims = Dims4(1, c, h, 1);
         }  else if (w!= 1 && h==1 && weight.count % w == 0) {
             // for weights shape: {1, 1, h, w}
             //     input   shape: {1, c, 1, w}
             h = weight.count / w;
-            dims = Dims4(n, 1, h, w);
+            dims = Dims4(1, 1, h, w);
         } else if (h!= 1 && c==1 && weight.count % h == 0) {
             // for weights shape: {1, c, h, 1}
             //     input   shape: {1, 1, h, w}
             c = weight.count / h;
-            dims = Dims4(n, c, h, 1);
+            dims = Dims4(1, c, h, 1);
         } else if (c!= 1 && h==1 && weight.count % c == 0) {
             // for weights shape: {1, c, h, 1}
             //     input   shape: {1, c, 1, w}
             h = weight.count / c;
-            dims = Dims4(n, c, h, 1);
+            dims = Dims4(1, c, h, 1);
         }
         ILayer* const_layer = network->addConstant(dims, weight);
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();

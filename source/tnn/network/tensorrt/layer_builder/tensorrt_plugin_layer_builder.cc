@@ -65,7 +65,12 @@ int TensorRTPluginLayerBuilder::getNbOutputs() const {
 
 DimsExprs TensorRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
         nvinfer1::IExprBuilder& exprBuilder) {
-    nvinfer1::DimsExprs output(inputs[0]);
+    nvinfer1::DimsExprs output;
+    output.nbDims = 4;
+    output.d[0] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[0]);
+    output.d[1] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[1]);
+    output.d[2] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[2]);
+    output.d[3] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[3]);
     return output;
 }
 
