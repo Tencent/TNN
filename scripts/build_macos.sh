@@ -43,7 +43,7 @@ BUILD_PATH=${CWD}/build_macos
 echo "check ${BUILD_PATH}"
 if [ ! -f ${BUILD_PATH}/tnn.metallib ]; then
     echo "No metallib found!"
-    exit -1
+    exit 0
 fi
 ./unit_test --lp ${BUILD_PATH}/tnn.metallib --dt METAL
 
