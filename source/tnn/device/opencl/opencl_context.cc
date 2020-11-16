@@ -206,4 +206,9 @@ Status OpenCLContext::Init() {
     return TNN_OK;
 }
 
+//Todo: refactor later
+std::shared_ptr<cl::CommandQueue> OpenCLContext::GetCommandQueue() {
+    return command_queue_; 
+}
+
 }  // namespace TNN_NS
