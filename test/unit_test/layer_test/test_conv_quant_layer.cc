@@ -21,10 +21,11 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType,
+                                                                           ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32),
+                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
                                             testing::Values(9, 10, 16, 19),
                                             // kernel
                                             testing::Values(1, 3),
@@ -33,7 +34,11 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // group
                                             testing::Values(1, 2, 3, 8),
                                             // data_type
-                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
+                                            // activation_type
+                                            testing::Values(ActivationType_None, ActivationType_ReLU),
+                                            // fusion_type
+                                            testing::Values(FusionType_None, FusionType_Conv_Add_Activation)));
 
 TEST_P(ConvQuantLayerTest, ConvLayer) {
     // get param
@@ -44,27 +49,39 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int stride            = std::get<4>(GetParam());
     DataType data_type    = std::get<6>(GetParam());
     int group             = std::get<5>(GetParam());
+    auto activation_type  = std::get<7>(GetParam());
+    auto fusion_type      = std::get<8>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
 
+    if (fusion_type != FusionType_None) {
+        // only conv 1x1, stride 1, int8 data type support conv add fusion
+        if (kernel != 1 || group != 1 || stride != 1 || data_type != DATA_TYPE_INT8) {
+            GTEST_SKIP();
+        }
+    }
+
     // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+    auto input_count  = (fusion_type == FusionType_None) ? 1 : 2;
+    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, input_count, data_type);
     auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
 
     // param
     ConvLayerParam param;
-    param.name           = "Conv";
-    param.input_channel  = channel;
-    param.output_channel = channel;
-    param.group          = group;
-    param.kernels        = {kernel, kernel};
-    param.dialations     = {1, 1};
-    param.strides        = {stride, stride};
-    param.pads           = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
-    param.bias           = 1;
+    param.name            = "Conv";
+    param.input_channel   = channel;
+    param.output_channel  = channel;
+    param.group           = group;
+    param.kernels         = {kernel, kernel};
+    param.dialations      = {1, 1};
+    param.strides         = {stride, stride};
+    param.pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
+    param.bias            = 1;
+    param.activation_type = activation_type;
+    param.fusion_type     = fusion_type;
 
     // resource
     ConvLayerResource resource;
