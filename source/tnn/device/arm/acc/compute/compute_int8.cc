@@ -161,53 +161,14 @@ void ComputeQ8GemmAdd(const Q8GemmAddContext* context, int32_t range_k, int32_t 
 #ifndef TNN_USE_NEON
 /*
 kernel func used in linux debug mode
-conv int8 common micro kernel
-*/
-void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias) {
-    for (long w = 0; w < 4; ++w) {
-        const auto src_x   = src + w * src_w_step;
-        auto dst_x         = dst + w * dst_depth;
-        int32_t dstTemp[4] = {0, 0, 0, 0};
-        long sz            = 0;
-        for (; sz < cdiv8 / 2; ++sz) {
-            const auto weight_sz = weight + (4 * 16) * sz;
-            const auto src_z     = src_x + sz * 16;
-
-            for (long j = 0; j < 4; ++j) {
-                const auto weight_j = weight_sz + j * 16;
-                for (long i = 0; i < 16; ++i) {
-                    dstTemp[j] += (int32_t)src_z[i] * (int32_t)weight_j[i];
-                }
-            }
-        }
-        for (; sz < cdiv8 / 2 + cdiv8 % 2; ++sz) {
-            const auto weight_sz = weight + (4 * 16) * sz;
-            const auto src_z     = src_x + sz * 16;
-
-            for (long j = 0; j < 4; ++j) {
-                const auto weight_j = weight_sz + j * 16;
-                for (long i = 0; i < 8; ++i) {
-                    dstTemp[j] += (int32_t)src_z[i] * (int32_t)weight_j[i];
-                }
-            }
-        }
-        for (long j = 0; j < 4; ++j) {
-            dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j]);
-        }
-    }
-}
-
-/*
-kernel func used in linux debug mode
 conv int8 fuse with add common micro kernel
 */
-void GemmAddInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                        const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale) {
+void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
+                     const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale) {
     for (long w = 0; w < 4; ++w) {
         const auto src_x   = src + w * src_w_step;
         auto dst_x         = dst + w * dst_depth;
-        auto add_input_x   = add_input + w * dst_depth;
+        auto add_input_x   = add_input ? add_input + w * dst_depth : nullptr;
         int32_t dstTemp[4] = {0, 0, 0, 0};
         long sz            = 0;
         for (; sz < cdiv8 / 2; ++sz) {
@@ -233,7 +194,11 @@ void GemmAddInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, lo
             }
         }
         for (long j = 0; j < 4; ++j) {
-            dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j] + add_input_x[j] * add_scale[j]);
+            if (add_input_x) {
+                dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j] + add_input_x[j] * add_scale[j]);
+            } else {
+                dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j]);
+            }
         }
     }
 }
@@ -538,45 +503,29 @@ assemble kernel used int gemm int8 func
 */
 extern "C" {
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias);
-void GemmAddInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                        const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale);
+                     const float* scale, const int32_t* bias, const int8_t* add_input, const float* add_scale);
 }
 #endif
-
-/*
-gemm int8 func used in linux debug mode
-*/
-void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-              const float* scale, long src_depth_d8, long src_w_step, long dst_depth) {
-    const long src_depth_d16 = UP_DIV(src_depth_d8, 2);
-#if !defined(__aarch64__) && defined(TNN_USE_NEON)
-    PackLineV7(src_depth_d8 * 8, reinterpret_cast<const int32_t*>(src), reinterpret_cast<int32_t*>(work_space));
-    src = work_space;
-#endif
-    for (long j = 0; j < dst_depth; j += 4) {
-        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j);
-        dst += 4;
-        weight += 4 * src_depth_d16 * 16;
-    }
-}
 
 /*
 gemm int8 fuse with add func used in linux debug mode
 */
-void GemmAddInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-                 const float* scale, long src_depth_d8, long src_w_step, long dst_depth,
-                 const int8_t* add_input, const float* add_scale) {
+void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
+              const float* scale, long src_depth_d8, long src_w_step, long dst_depth,
+              const int8_t* add_input, const float* add_scale) {
     const long src_depth_d16 = UP_DIV(src_depth_d8, 2);
 #if !defined(__aarch64__) && defined(TNN_USE_NEON)
     PackLineV7(src_depth_d8 * 8, reinterpret_cast<const int32_t*>(src), reinterpret_cast<int32_t*>(work_space));
     src = work_space;
 #endif
     for (long j = 0; j < dst_depth; j += 4) {
-        GemmAddInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, add_input, add_scale + j);
+        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, add_input, add_scale);
         dst += 4;
-        add_input += 4;
         weight += 4 * src_depth_d16 * 16;
+        if (add_input) {
+            add_input += 4;
+            add_scale += 4;
+        }
     }
 }
 

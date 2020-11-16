@@ -41,6 +41,8 @@ public:
 
     virtual Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    virtual Status allocateBufferAddScale(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_im2col_;
@@ -48,6 +50,8 @@ protected:
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
     RawBuffer buffer_gemm_work_space_;
+    RawBuffer buffer_add_scale_;
+    RawBuffer buffer_add_tmpin_;
 
     std::function<void(int8_t *, const int8_t *, const ConvLayerParam *, size_t, size_t, int,
                        const ArmKernelParam *kparam)>
