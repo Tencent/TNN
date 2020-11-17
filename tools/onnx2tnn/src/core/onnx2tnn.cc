@@ -390,7 +390,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         onnx_net_info_.proxy_node_map[node.output(0)] = node;
     }
 
-    std::set<std::string> need_constant_node = {"Concat", "Expand"};
+    std::set<std::string> need_constant_node = {"Concat"};
     // process constant node
     for (int i = 0; i < graph.node_size(); ++i) {
         const auto& node    = graph.node(i);

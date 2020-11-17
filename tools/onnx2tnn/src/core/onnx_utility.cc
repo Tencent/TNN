@@ -666,3 +666,15 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
         }
     }
 }
+
+std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
+    std::vector<int> dims = {};
+    const auto& tensor_dims = tensor.dims();
+    if (tensor_dims.empty()) {
+        return dims;
+    }
+    for (int i = 0; i < tensor_dims.size(); i++) {
+        dims.push_back((int)tensor_dims.at(i));
+    }
+    return dims;
+}
