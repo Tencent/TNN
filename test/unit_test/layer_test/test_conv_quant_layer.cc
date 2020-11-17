@@ -38,7 +38,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // activation_type
                                             testing::Values(ActivationType_None, ActivationType_ReLU),
                                             // fusion_type
-                                            testing::Values(FusionType_None, FusionType_Conv_Add_Activation)));
+                                            testing::Values(FusionType_None, FusionType_Conv_Add_Activation,
+                                                            FusionType_Conv_Activation_Add)));
 
 TEST_P(ConvQuantLayerTest, ConvLayer) {
     // get param
@@ -58,8 +59,8 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     }
 
     if (fusion_type != FusionType_None) {
-        // only conv 1x1, int8 data type support conv add fusion
-        if (kernel != 1 || group != 1 || data_type != DATA_TYPE_INT8) {
+        // only int8 data type support conv add fusion
+        if (group != 1 || data_type != DATA_TYPE_INT8) {
             GTEST_SKIP();
         }
     }

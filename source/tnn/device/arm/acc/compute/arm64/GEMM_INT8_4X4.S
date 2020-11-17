@@ -301,10 +301,10 @@ LoopEnd:
      cmp x9, #0
      bge Add
      movi v3.16b, #0
-     smax v12.4s, v12.4s, v3.4s
-     smax v13.4s, v13.4s, v3.4s
-     smax v14.4s, v14.4s, v3.4s
-     smax v15.4s, v15.4s, v3.4s
+     fmax v12.4s, v12.4s, v3.4s
+     fmax v13.4s, v13.4s, v3.4s
+     fmax v14.4s, v14.4s, v3.4s
+     fmax v15.4s, v15.4s, v3.4s
 
 Add:
      cbz x7, Relu
@@ -344,7 +344,8 @@ Relu:
      sqxtn v2.8b, v0.8h 
      sqxtn v4.8b, v1.8h
 
-     cbz x9, Store
+     cmp x9, #0
+     ble Store
      movi v3.8b, #0
      smax v2.8b, v2.8b, v3.8b
      smax v4.8b, v4.8b, v3.8b
