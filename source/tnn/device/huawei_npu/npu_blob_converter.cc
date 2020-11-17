@@ -11,22 +11,19 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_BLOB_CONVERTER_CC_
-#define TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_BLOB_CONVERTER_CC_
+
 #include "tnn/core/macro.h"
-#include "tnn/device/cpu/cpu_blob_converter.h"
+#include "tnn/utils/blob_converter_default.h"
 #include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
 
-class NpuBlobConverterAcc : public CpuBlobConverterAcc {
+class NpuBlobConverterAcc : public DefaultBlobConverterAcc {
 public:
-    NpuBlobConverterAcc(Blob *blob) : CpuBlobConverterAcc(blob) {}
+    NpuBlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
     ~NpuBlobConverterAcc() {}
 };
 
 DECLARE_BLOB_CONVERTER_CREATER(Npu);
 REGISTER_BLOB_CONVERTER(Npu, DEVICE_HUAWEI_NPU);
 }  // namespace TNN_NS
-
-#endif  // TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_NPU_BLOB_CONVERTER_CC_

@@ -66,7 +66,7 @@ IntScaleResource* CreateIntScale(int channel) {
     // scale
     RawBuffer scale(channel * sizeof(float));
     float* k_data = scale.force_to<float*>();
-    InitRandom(k_data, channel, 1.0f);
+    InitRandom(k_data, channel, 0.f, 1.0f);
     for (int k = 0; k < channel; k++) {
         k_data[k] = std::fabs(k_data[k] - 0.f) < FLT_EPSILON ? 1.f : k_data[k];
     }
@@ -102,6 +102,13 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
 
     *device_context = (*device)->CreateContext(config.device_id);
     ASSERT(*device_context != NULL);
+
+    if (!FLAGS_ub) {
+        ret = (*device_context)->SetPrecision(PRECISION_HIGH);
+        if (ret != TNN_OK) {
+            LOGE("Error: device of type(%d) not support set high precision\n", config.device_type);
+        }
+    }
 
     ret = (*device_context)->LoadLibrary(config.library_path);
     ASSERT(ret == TNN_OK);

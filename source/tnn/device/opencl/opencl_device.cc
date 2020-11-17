@@ -64,7 +64,7 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     cl_mem_flags mem_flag     = CL_MEM_READ_WRITE;
     cl_channel_type data_type = CL_FLOAT;
 
-    if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetFp16Enable()) {
+    if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
         data_type = CL_HALF_FLOAT;
     }
     int w = desc.dims[0];
@@ -74,7 +74,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
                               nullptr, &error);
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL Allocate Image falied");
+        char error_str[128];
+        sprintf(error_str, "OpenCL Allocate Image Failed (w=%d, h=%d)", w, h);
+        return Status(TNNERR_OPENCL_API_ERROR, error_str);
     }
     return TNN_OK;
 }
@@ -169,7 +171,7 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     }
 }
 
-Context* OpenCLDevice::CreateContext(int) {
+Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
 }
 

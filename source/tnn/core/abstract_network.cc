@@ -24,6 +24,11 @@ Status AbstractNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobSt
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
+Status AbstractNetwork::ShareCommandQueue(AbstractNetwork *network) {
+    LOGE("Subclass of AbstractNetwork must implement this func ShareCommandQueue\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareCommandQueue");
+}
+
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
     return TNN_OK;
 }

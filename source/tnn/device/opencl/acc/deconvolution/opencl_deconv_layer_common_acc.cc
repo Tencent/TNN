@@ -44,6 +44,8 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
         build_options.emplace("-DRELU");
     } else if (deconv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (deconv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "Deconv2D";
     if (deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&

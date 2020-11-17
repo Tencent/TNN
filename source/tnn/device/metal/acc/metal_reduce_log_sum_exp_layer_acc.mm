@@ -19,6 +19,8 @@ namespace TNN_NS {
 DECLARE_METAL_REDUCE_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
 
 std::string MetalReduceLogSumExpLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (multi_axis_)
+        return "reduce_log_sum_exp_multi_axis_common";
     if (axis_ == 0) {
         return "reduce_log_sum_exp_axis_0_common";
     } else if (axis_ == 1) {

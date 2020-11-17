@@ -99,6 +99,32 @@ void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
 template void PostAddBiasRelu6<float>(void* dst, const float* bias, long area, long oc4);
 template void PostAddBiasRelu6<bfp16_t>(void* dst, const float* bias, long area, long oc4);
 
+template <typename T>
+void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
+    if (!bias) {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p);
+                Float4::save(dst_p, val * Float4::sigmoid(val));
+            }
+        }
+    } else {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            Float4 vbias = Float4::load(bias + 4 * z);
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p) + vbias;
+                Float4::save(dst_p, val * Float4::sigmoid(val));
+            }
+        }
+    }
+}
+template void PostAddBiasSwish<float>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+
 /*
 min(x, clap)
 */
@@ -384,7 +410,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
 }
 
 void GEMM_BFP16_N4(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu) {
+                   long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 
