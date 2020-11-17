@@ -57,21 +57,23 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
             return status;
         }
     }
-
-    for (auto& output_blob : output_blobs) {
-        BlobDesc desc = output_blob->GetBlobDesc();
-        std::string log_info = "";
-        for(int i = 0; i < desc.dims.size(); ++i) {
-            log_info = log_info + ToString(desc.dims[i]);
-            log_info = log_info + " ";
+    
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        for (auto& output_blob : output_blobs) {
+            BlobDesc desc = output_blob->GetBlobDesc();
+            std::string log_info = "";
+            for(int i = 0; i < desc.dims.size(); ++i) {
+                log_info = log_info + ToString(desc.dims[i]);
+                log_info = log_info + " ";
+            }
+            LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
         }
-        LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
-    }
-    auto dims = output_blobs[0]->GetBlobDesc().dims;
-    for (auto item : dims) {
-        if (item <= 0) {
-            LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-            return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+        auto dims = output_blobs[0]->GetBlobDesc().dims;
+        for (auto item : dims) {
+            if (item <= 0) {
+                LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
+                return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
+            }
         }
     }
     

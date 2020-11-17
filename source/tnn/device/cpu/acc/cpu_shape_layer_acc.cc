@@ -33,6 +33,9 @@ Status CpuShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         for (int i = 0; i < input_dims.size(); ++i) {
             output_data[i] = input_dims[i];
         }
+    } else {
+        LOGE("output blob of Shape Layer has wrong data type \n");
+        return Status(TNNERR_COMMON_ERROR, "output blob has wrong data type");
     }
     return TNN_OK;
 }

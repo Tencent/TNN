@@ -28,7 +28,7 @@ Status GatherLayer::InferOutputDataType() {
         return Status(TNNERR_MODEL_ERR, "Gather resource is invalid");
     }
     
-    //修改输入data type
+    //修改indices输入 data type
     if (!layer_param->indices_in_resource) {
         (*(input_blobs_.rbegin()))->GetBlobDesc().data_type = DATA_TYPE_INT32;
     }

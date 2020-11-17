@@ -165,7 +165,7 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         LOGD("name :%s\n", name.c_str());
         if (weights_map.find(name) == weights_map.end()) {
             LOGD("input %d name:%s is not weight\n", number, name.c_str());
-            assert(0);
+            return array_i;
         }
 
         const onnx::TensorProto& tensorProto = weights_map.at(name);

@@ -20,10 +20,12 @@ DECLARE_LAYER(Shape, LAYER_SHAPE);
 
 Status ShapeLayer::InferOutputDataType() {
     ASSERT(output_blobs_.size() == 1);
+    BaseLayer::InferOutputDataType();
+    
     output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
     
     for (auto& iter : output_blobs_) {
-        iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+        iter->flag = iter->flag | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
     }
     return TNN_OK;
 }

@@ -21,7 +21,19 @@ namespace TNN_NS {
 DECLARE_LAYER(Reshape, LAYER_RESHAPE);
 
 Status ReshapeLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    
+    auto layer_param = dynamic_cast<ReshapeLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        for (auto& iter : output_blobs_) {
+            int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
+            iter->flag = iter->flag | allocate_status;
+        }
+    }
+    
+    return TNN_OK;
 }
 
 Status ReshapeLayer::InferOutputShape() {
@@ -29,6 +41,22 @@ Status ReshapeLayer::InferOutputShape() {
     
     auto reshape_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(reshape_param);
+    
+    //根据const resource更新维度信息
+    if (runtime_model_ == RUNTIME_MODE_NORMAL && input_blobs_.size() >=2) {
+        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_.find(shape_blob_name) != const_resource_.end()) {
+            auto shape_buffer =  const_resource_[shape_blob_name];
+            auto dim_count = shape_buffer->GetDataCount();
+            auto dim_data = (int *)shape_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            reshape_param->shape = dims;
+            reshape_param->num_axes = dim_count;
+        }
+    }
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
@@ -80,8 +108,8 @@ Status ReshapeLayer::InferOutputShape() {
         return TNN_OK;
     } else {
         // shape is empty
-        output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
-        return TNN_OK;
+        LOGE("Reshape has no shape param\n");
+        return Status(TNNERR_PARAM_ERR, "Reshape has no shape param");
     }
 }
 
