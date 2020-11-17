@@ -285,18 +285,8 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     }
 }
 
-Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
-                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
-    RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
-    RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
-
-    // init base k_param_
-    k_param_->scale   = buffer_scale_.force_to<float *>();
-    k_param_->bias    = buffer_bias_.force_to<void *>();
-    k_param_->fil_ptr = buffer_weight_.force_to<void *>();
-
+Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
+                                              const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
 
@@ -312,6 +302,25 @@ Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
             relu_ = -1;
         }
     }
+
+    return TNN_OK;
+}
+
+Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(setFusionParam(inputs, outputs), TNN_OK);
+
+    // init base k_param_
+    k_param_->scale   = buffer_scale_.force_to<float *>();
+    k_param_->bias    = buffer_bias_.force_to<void *>();
+    k_param_->fil_ptr = buffer_weight_.force_to<void *>();
+
+    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
+    CHECK_PARAM_NULL(conv_param);
 
     auto dims_input = inputs[0]->GetBlobDesc().dims;
     int kernel_x    = conv_param->kernels[0];

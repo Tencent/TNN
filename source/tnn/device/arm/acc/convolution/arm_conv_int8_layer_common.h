@@ -43,6 +43,8 @@ public:
 
     virtual Status allocateBufferAddScale(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    virtual Status setFusionParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_im2col_;
