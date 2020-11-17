@@ -17,6 +17,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -146,6 +147,11 @@ Status ArmConvInt8LayerCommon::allocateBufferAddScale(const std::vector<Blob *> 
                                                       const std::vector<Blob *> &outputs) {
     ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
     CHECK_PARAM_NULL(conv_res);
+
+    if (DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims) !=
+        DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims)) {
+        return Status(TNNERR_LAYER_ERR, "Conv-Add fusion does not support broadcast-add");
+    }
 
     // alloc add scale buffer
     if (!buffer_add_scale_.GetBytesSize()) {
