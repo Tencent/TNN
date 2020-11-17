@@ -75,7 +75,7 @@ bool SupportBroadcast(DimsVector dim0, DimsVector dim1) {
 
 Status MultidirBroadcastLayer::InferOutputShape() {
     BaseLayer::InferOutputShape();
-    
+
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
@@ -105,10 +105,10 @@ Status MultidirBroadcastLayer::InferOutputShape() {
                 weight_shape[1] = input_shape[1];
                 weight_shape[2] = input_shape[2];
                 weight_shape[3] = input_shape[3];
-            } else if (layer_res_size == input_shape[3]){
+            } else if (layer_res_size == input_shape[3]) {
                 weight_shape[3] = input_shape[3];
-            } else if(layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
-                for(int i = 2; i < input_shape.size(); ++i) {
+            } else if (layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
+                for (int i = 2; i < input_shape.size(); ++i) {
                     weight_shape[i] = input_shape[i];
                 }
             } else {
@@ -147,8 +147,6 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         if (input_blobs_.size() > 1) {
             dim1 = input_blobs_[1]->GetBlobDesc().dims;
         }
-        LOGD("dim0: %d %d %d %d\n", dim0[0], dim0[1], dim0[2], dim0[3]);
-        LOGD("dim1: %d %d %d %d\n", dim1[0], dim1[1], dim1[2], dim1[3]);
 
         if (!SupportBroadcast(dim0, dim1)) {
             LOGE(

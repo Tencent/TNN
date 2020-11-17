@@ -59,21 +59,20 @@ TNN_NS::Status TnnRuntime::run(std::shared_ptr<TNN_NS::AbstractModelInterpreter>
     InitInputMatMap(input_mat_map);
     auto input_converters_map = CreateBlobConverterMap(input_blob_map);
     auto input_params_map     = CreateConvertParamMap(input_mat_map);
-    // mat format NCHW_FLOAT
-    TNN_NS::MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
-    auto output_converters_map    = CreateBlobConverterMap(output_blob_map);
-    auto output_params_map        = CreateConvertParamMap(output_mat_map);
-
     for (const auto& iter : input_converters_map) {
         auto name           = iter.first;
         auto blob_converter = iter.second;
-        blob_converter->ConvertFromMatAsync(*input_mat_map[name], output_params_map[name], command_queue);
+        blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
     }
     status = instance->Forward();
     if (status != TNN_NS::TNN_OK) {
         LOGE("Converter Runtime: instance forward failed\n");
         return status;
     }
+    // mat format NCHW_FLOAT
+    TNN_NS::MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
+    auto output_converters_map    = CreateBlobConverterMap(output_blob_map);
+    auto output_params_map        = CreateConvertParamMap(output_mat_map);
 
     return TNN_NS::TNN_OK;
 }

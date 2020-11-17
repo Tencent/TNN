@@ -57,7 +57,9 @@ std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto& node, const 
 
 const onnx::TensorProto* GetTensorFromConstantNode(const onnx::NodeProto& constant_node);
 
-void CreateRawBufferFromTensor(const onnx::TensorProto& constant_tensor, TNN_NS::RawBuffer** raw_buffer);
+void CreateRawBufferFromTensor(const onnx::TensorProto& tensor, TNN_NS::RawBuffer** raw_buffer);
+
+TNN_NS::DimsVector CreateDimsVectorFromTensor(const onnx::TensorProto &tensor);
 
     template <typename T>
     bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {

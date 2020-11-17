@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include <cmath>
@@ -20,7 +20,13 @@ namespace TNN_NS {
 DECLARE_LAYER(Upsample, LAYER_UPSAMPLE);
 
 Status UpsampleLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    auto layer_param = dynamic_cast<UpsampleLayerParam*>(param_);
+    if (layer_param->scales.empty()) {
+        auto& output_blob = output_blobs_[0];
+        output_blob->flag |= DATA_FLAG_ALLOCATE_IN_FORWARD;
+    }
+    return TNN_OK;
 }
 
 Status UpsampleLayer::InferOutputShape() {

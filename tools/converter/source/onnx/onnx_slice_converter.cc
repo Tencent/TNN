@@ -20,7 +20,7 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Slice);
 
 std::string OnnxSliceConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Slice";
+    return "StridedSliceV2";
 }
 
 TNN_NS::ActivationType OnnxSliceConverter::ActivationType(const onnx::NodeProto &node) {
@@ -28,37 +28,50 @@ TNN_NS::ActivationType OnnxSliceConverter::ActivationType(const onnx::NodeProto 
 }
 
 TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
-                                            bool &quantized_model) {
+                                        const onnx::NodeProto &node,
+                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                        bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::StrideSliceLayerParam;
+    auto param                 = new TNN_NS::StrideSliceV2LayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
 
-    auto axis     = GetAttributeInt64Vector(node, "axes");
-    int axis_size = axis.size();
-
-    for (int i = 0; i < axis_size; i++) {
-        param->strides.push_back(axis[i]);
+    auto starts = GetAttributeInt64Vector(node, "starts");
+    for (const auto &start : starts) {
+        param->begins.push_back(start);
     }
 
-    auto starts     = GetAttributeInt64Vector(node, "starts");
-    int starts_size = starts.size();
-
-    for (int i = 0; i < starts_size; i++) {
-        param->begins.push_back(starts[i]);
+    auto ends = GetAttributeInt64Vector(node, "ends");
+    for (const auto end : ends) {
+        if (end == LLONG_MAX) {
+            param->ends.push_back(INT_MAX);
+        } else if (end == LLONG_MIN) {
+            param->ends.push_back(INT_MIN);
+        } else {
+            param->ends.push_back(end);
+        }
     }
 
-    auto ends     = GetAttributeInt64Vector(node, "ends");
-    int ends_size = ends.size();
-
-    for (int i = 0; i < ends_size; i++) {
-        param->ends.push_back(ends[i]);
+    auto axes = GetAttributeInt64Vector(node, "axes");
+    if (axes.empty()) {
+        for (int i = 0; i < starts.size(); i++) {
+            axes.push_back(i);
+        }
+    }
+    for (const auto &axis : axes) {
+        param->axes.push_back(axis);
+    }
+    auto steps = GetAttributeIntVector(node, "steps");
+    if (steps.empty()) {
+        param->strides = std::vector<int>(starts.size(), 1);
+    } else {
+        for (const auto &step : steps) {
+            param->strides.push_back(step);
+        }
     }
 
     cur_layer->inputs[0] = node.input(0);

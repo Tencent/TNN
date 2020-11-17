@@ -65,7 +65,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
             log_info = log_info + ToString(desc.dims[i]);
             log_info = log_info + " ";
         }
-        LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
+        LOGD("InferOutputShape: name: %s, shape(%ld): %s \n", desc.name.c_str(), desc.dims.size() ,log_info.c_str());
     }
     auto dims = output_blobs[0]->GetBlobDesc().dims;
     for (auto item : dims) {
