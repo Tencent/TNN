@@ -65,12 +65,12 @@ template <typename T>
 void DepthwiseConv3x3(T* dst, const T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
                       long dilateX_step, long dilateY_step, long height, long srcHStep, long dstHStep);
 
-template <typename T>
-void DepthwiseUnitDeconv(const T* dst, T* src, const float* weight, long fw, long fh, long weight_y_step,
+template <typename T1, typename T2 = float>
+void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilateX_step, long dilateY_step);
 
-template <typename T>
-void DepthwiseDeconv(const T* dst, T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2 = float>
+void DepthwiseDeconv(const T1* dst, T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                      long dilateX_step, long dilateY_step);
 
 template <typename T>

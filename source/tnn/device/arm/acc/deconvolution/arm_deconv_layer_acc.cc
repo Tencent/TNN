@@ -24,6 +24,7 @@
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_depthwise.h"
 #if TNN_ARM82
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_common.h"
+#include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_depthwise.h"
 #endif
 
 namespace TNN_NS {
@@ -98,8 +99,15 @@ void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::v
 
 #if TNN_ARM82
 void ArmDeconvLayerAcc::GetImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (!deconv_acc_impl_) {
-        deconv_acc_impl_ = std::make_shared<ArmDeconvFp16LayerCommon>();
+    if (ArmDeconvFp16LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
+        if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvFp16LayerDepthwise *>(deconv_acc_impl_.get())) {
+            auto deconv_acc  = std::make_shared<ArmDeconvFp16LayerDepthwise>();
+            deconv_acc_impl_ = deconv_acc;
+        }
+    } else {
+        if (!deconv_acc_impl_) {
+            deconv_acc_impl_ = std::make_shared<ArmDeconvFp16LayerCommon>();
+        }
     }
 }
 #endif

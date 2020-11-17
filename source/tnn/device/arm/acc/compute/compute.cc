@@ -1035,15 +1035,15 @@ template void FloatConvert(const bfp16_t* src, float* dst, long area_quad);
 /*
 deconv dw unit
 */
-template <typename T>
-void DepthwiseUnitDeconv(const T* dst, T* src, const float* weight, long fw, long fh, long weight_y_step,
+template <typename T1, typename T2>
+void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilate_x_step, long dilate_y_step) {
     long fx, fy;
-    T* src_z              = src;
+    T1* src_z              = src;
     const float* weight_z = weight;
     Float4 dstV           = Float4::load(dst);
     for (fy = 0; fy < fh; ++fy) {
-        T* src_y              = src_z + fy * dilate_y_step;
+        T1* src_y              = src_z + fy * dilate_y_step;
         const float* weight_y = weight_z + fy * weight_y_step;
         for (fx = 0; fx < fw; ++fx) {
             Float4 weight_x = Float4::load(weight_y + 4 * fx);
@@ -1061,13 +1061,13 @@ template void DepthwiseUnitDeconv(const bfp16_t* dst, bfp16_t* src, const float*
 /*
 general deconv dw func
 */
-template <typename T>
-void DepthwiseDeconv(const T* dst, T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2>
+void DepthwiseDeconv(const T1* dst, T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                      long dilate_x_step, long dilate_y_step) {
     long dx;
     for (dx = 0; dx < width; ++dx) {
-        const T* dst_x = dst + dx * 4;
-        T* src_dx      = src + src_w_setup * dx;
+        const T1* dst_x = dst + dx * 4;
+        T1* src_dx      = src + src_w_setup * dx;
         DepthwiseUnitDeconv(dst_x, src_dx, weight, fw, fh, fw * 4, dilate_x_step, dilate_y_step);
     }
 }
@@ -1076,6 +1076,40 @@ template void DepthwiseDeconv(const float* dst, float* src, const float* weight,
                               long fh, long dilate_x_step, long dilate_y_step);
 template void DepthwiseDeconv(const bfp16_t* dst, bfp16_t* src, const float* weight, long width, long src_w_setup,
                               long fw, long fh, long dilate_x_step, long dilate_y_step);
+
+#if TNN_ARM82
+
+template <>
+void DepthwiseUnitDeconv<__fp16, __fp16>(const __fp16* dst, __fp16* src, const __fp16* weight, long fw, long fh, long weight_y_step,
+                         long dilate_x_step, long dilate_y_step) {
+    long fx, fy;
+    __fp16* src_z              = src;
+    const __fp16* weight_z = weight;
+    float16x8_t dstV = vld1q_f16(dst);
+    for (fy = 0; fy < fh; ++fy) {
+        __fp16* src_y = src_z + fy * dilate_y_step;
+        const __fp16* weight_y = weight_z + fy * weight_y_step;
+        for (fx = 0; fx < fw; ++fx) {
+            float16x8_t weight_x = vld1q_f16(weight_y + 8 * fx);
+            float16x8_t src_x    = vld1q_f16(src_y + fx * dilate_x_step);
+            src_x = vfmaq_f16(src_x, weight_x, dstV);
+            vst1q_f16(src_y + fx * dilate_x_step, src_x);
+        }
+    }
+}
+
+template <>
+void DepthwiseDeconv<__fp16, __fp16>(const __fp16* dst, __fp16* src, const __fp16* weight, long width, long src_w_setup, long fw, long fh,
+                     long dilate_x_step, long dilate_y_step) {
+    long dx;
+    for (dx = 0; dx < width; ++dx) {
+        const __fp16* dst_x = dst + dx * 8;
+        __fp16* src_dx      = src + src_w_setup * dx;
+        DepthwiseUnitDeconv(dst_x, src_dx, weight, fw, fh, fw * 8, dilate_x_step, dilate_y_step);
+    }
+}
+
+#endif
 
 void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
     long c_r4 = UP_DIV(channel, 4);
