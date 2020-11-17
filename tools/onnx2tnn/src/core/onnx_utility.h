@@ -114,4 +114,6 @@ std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor);
 
 DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type);
 
+std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor);
+
 #endif /* onnx_utility_hpp */

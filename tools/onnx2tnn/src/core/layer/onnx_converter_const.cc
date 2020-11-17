@@ -22,10 +22,25 @@ string OnnxOpConverterConst::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
 }
 
 string OnnxOpConverterConst::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
-    return "";
+    onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
+    std::vector<int> dims = CreateDimsVectorFromTensor(tensor);
+    ostringstream layer_param;
+    layer_param << dims.size() << " ";
+    for (const auto& dim: dims) {
+        layer_param << dim << " ";
+    }
+    return layer_param.str();
 }
 
 int OnnxOpConverterConst::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+    const std::string &onnx_op        = node.op_type();
+    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
+    const std::string &tnn_layer_type = TNNOpType(node, net_info);
+
+    net_writer->put_int(0);  //触发type from string
+    net_writer->put_string(tnn_layer_type);
+    net_writer->put_string(name);
+
     onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
     WriteTensorData(tensor, net_writer, net_info.data_type);
     return 1;
