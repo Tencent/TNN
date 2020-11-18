@@ -114,7 +114,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_tyep accordingly.
+ *  2. Set data_type accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
