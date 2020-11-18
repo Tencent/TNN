@@ -55,6 +55,15 @@ namespace optimizer {
         }
     }
 
+    std::shared_ptr<NetOptimizer> NetOptimizerManager::GetNetOptimizerByName(const std::string &k_net_optimizer) {
+        auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
+        if (optimizer_map.find(k_net_optimizer) != optimizer_map.end()) {
+            return optimizer_map[k_net_optimizer];
+        } else {
+            return nullptr;
+        }
+    }
+
 }  // namespace optimizer
 
 }  // namespace TNN_NS

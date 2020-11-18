@@ -104,6 +104,7 @@ Status ArmConvInt8Layer1x1::Init(Context *context, LayerParam *param, LayerResou
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferWeightBias(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(setFusionParam(inputs, outputs), TNN_OK);
 
     // init base k_param_
     k_param_->scale   = buffer_scale_.force_to<float *>();
@@ -117,6 +118,7 @@ Status ArmConvInt8Layer1x1::DoForward(const std::vector<Blob *> &inputs, const s
     CHECK_PARAM_NULL(conv_param);
     auto input  = inputs[0];
     auto output = outputs[0];
+    auto add_input = (conv_param->fusion_type == FusionType_None) ? nullptr : inputs[1];
 
     DataType data_type = output->GetBlobDesc().data_type;
     int data_byte_size = DataTypeUtils::GetBytesSize(data_type);
@@ -135,18 +137,21 @@ Status ArmConvInt8Layer1x1::DoForward(const std::vector<Blob *> &inputs, const s
     int oc              = dims_output[1];
     int8_t *input_data  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
     int8_t *output_data = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+    int8_t *add_input_data = add_input ? reinterpret_cast<int8_t *>(GetBlobHandlePtr(add_input->GetHandle())) : nullptr;
 
-    struct Q8GemmContext context = {.k        = ic,
-                                    .k_stride = ic,
-                                    .n        = oc,
-                                    .n_stride = ROUND_UP(oc, 8),
-                                    .a        = input_data,
-                                    .a_stride = ROUND_UP(ic, 4),  // input_pixel_stride
-                                    .packed_w = reinterpret_cast<int8_t *>(k_param_->fil_ptr),
-                                    .c        = output_data,
-                                    .c_stride = ROUND_UP(oc, 4),
-                                    .scales   = reinterpret_cast<float *>(k_param_->scale),
-                                    .relu     = conv_param->activation_type == ActivationType_ReLU};
+    struct Q8GemmContext context = {.k         = ic,
+                                    .k_stride  = ic,
+                                    .n         = oc,
+                                    .n_stride  = ROUND_UP(oc, 8),
+                                    .a         = input_data,
+                                    .a_stride  = ROUND_UP(ic, 4),  // input_pixel_stride
+                                    .packed_w  = reinterpret_cast<int8_t *>(k_param_->fil_ptr),
+                                    .c         = output_data,
+                                    .c_stride  = ROUND_UP(oc, 4),
+                                    .scales    = reinterpret_cast<float *>(k_param_->scale),
+                                    .relu      = relu_,
+                                    .add_input = add_input_data,
+                                    .add_scale = buffer_add_scale_.force_to<float *>()};
     size_t output_size           = k_param_->ow * k_param_->oh * k_param_->oc_r4;
     ComputeQ8Gemm(&context, dims_output[2] * dims_output[3], oc, mr, nr);
 
