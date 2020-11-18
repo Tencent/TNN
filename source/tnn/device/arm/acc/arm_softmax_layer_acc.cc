@@ -22,17 +22,6 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
 
-Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-    if (in_data_type == DATA_TYPE_FLOAT) {
-        return Exec<float>(inputs, outputs);
-    } else if (in_data_type == DATA_TYPE_BFP16) {
-        return Exec<bfp16_t>(inputs, outputs);
-    } else {
-        return TNNERR_LAYER_ERR;
-    }
-}
-
 template <typename T>
 Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
@@ -143,6 +132,155 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
+#if TNN_ARM82
+template <>
+Status ArmSoftmaxLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
+
+    auto axis = layer_param->axis;
+
+    auto input  = inputs[0];
+    auto output = outputs[0];
+
+    int data_byte_size = sizeof(__fp16);
+    auto dims = output->GetBlobDesc().dims;
+
+    auto width   = dims[3];
+    auto height  = dims[2];
+    auto batch   = dims[0];
+    size_t count = width * height * batch * dims[1];
+
+    int inside  = 1;
+    int outside = 1;
+    int channel = 1;
+
+    for (int i = 1; i < axis; i++) {
+        outside *= dims[i];
+    }
+    channel = dims[axis];
+    for (int i = axis + 1; i < dims.size(); i++) {
+        inside *= dims[i];
+    }
+    auto step_y = channel * inside;
+
+    size_t reorder_size   = dims[1] * dims[2] * dims[3];
+    size_t max_value_size = inside;
+    size_t sum_value_size = inside;
+
+    __fp16 *work_space = reinterpret_cast<__fp16 *>(
+        context_->GetSharedWorkSpace((reorder_size + max_value_size + sum_value_size) * data_byte_size));
+
+    __fp16 *reorder_buffer_ptr = work_space;
+    __fp16 *max_value_ptr      = reorder_buffer_ptr + reorder_size;
+    __fp16 *sum_value_ptr      = max_value_ptr + max_value_size;
+
+    __fp16 *input_origin  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
+    __fp16 *output_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+
+    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+        auto input_ptr  = input_origin + batch_idx * width * height * ROUND_UP(dims[1], 8);
+        auto output_ptr = output_origin + batch_idx * width * height * ROUND_UP(dims[1], 8);
+
+        UnpackC8(output_ptr, input_ptr, width * height, dims[1]);
+
+        for (int y = 0; y < outside; y++) {
+            auto src_y = output_ptr + y * step_y;
+            auto dst_y = reorder_buffer_ptr + y * step_y;
+            memcpy(max_value_ptr, src_y, sizeof(__fp16) * inside);
+
+            auto src = src_y + inside;
+            for (int c = 1; c < channel; ++c, src += inside) {
+                int x = 0;
+                for (; x <= inside - 8; x += 8) {
+                    float16x8_t src_v = vld1q_f16(src + x);
+                    float16x8_t max_v = vld1q_f16(max_value_ptr + x);
+                    max_v = vmaxq_f16(src_v, max_v);
+                    vst1q_f16(max_value_ptr + x, max_v);
+                }
+                for (; x < inside; ++x) {
+                    max_value_ptr[x] = src[x] > max_value_ptr[x] ? src[x] : max_value_ptr[x];
+                }
+            }
+
+            memset(sum_value_ptr, 0, sizeof(__fp16) * inside);
+            src        = src_y;
+            __fp16 *dst = dst_y;
+            for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
+                int x = 0;
+                for (; x <= inside - 8; x += 8) {
+                    float16x8_t src_v    = vld1q_f16(src + x);
+                    float16x8_t max_v    = vld1q_f16(max_value_ptr + x);
+                    float16x8_t sum_v    = vld1q_f16(sum_value_ptr + x);
+                    float16x8_t dst_v    = vsubq_f16(src_v, max_v);
+                    float32x4_t dst_low  = vcvt_f32_f16(vget_low_f16(dst_v));
+                    float32x4_t dst_high = vcvt_f32_f16(vget_high_f16(dst_v));
+                    dst_low  = exp_ps(dst_low);
+                    dst_high = exp_ps(dst_high);
+                    dst_v = vcombine_f16(vcvt_f16_f32(dst_low), vcvt_f16_f32(dst_high));
+                    sum_v = vaddq_f16(sum_v, dst_v);
+                    vst1q_f16(dst + x, dst_v);
+                    vst1q_f16(sum_value_ptr + x, sum_v);
+                }
+                for (; x < inside; ++x) {
+                    dst[x] = std::exp(src[x] - max_value_ptr[x]);
+                    sum_value_ptr[x] += dst[x];
+                }
+            }
+
+            for (int x = 0; x < inside; ++x) {
+                sum_value_ptr[x] = 1 / sum_value_ptr[x];
+            }
+
+            dst = dst_y;
+            for (int c = 0; c < channel; ++c, dst += inside) {
+                int x = 0;
+                for (; x < inside - 8; x += 8) {
+                    float16x8_t dst_v = vld1q_f16(dst + x);
+                    float16x8_t sum_v = vld1q_f16(sum_value_ptr + x);
+                    dst_v = vmulq_f16(dst_v, sum_v);
+                    vst1q_f16(dst + x, dst_v);
+                }
+                for (; x < inside; ++x) {
+                    dst[x] *= sum_value_ptr[x];
+                }
+            }
+        }
+
+        PackC8(output_ptr, reorder_buffer_ptr, width * height, dims[1]);
+    }
+    return TNN_OK;
+}
+#endif
+
+Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
+    SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    auto axis = layer_param->axis;
+    if (axis == 0) {
+        LOGE("ARM Softmax not support axis = 0\n");
+        return Status(TNNERR_LAYER_ERR, "ARM Softmax not support axis = 0");
+    }
+
+    if (in_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (in_data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    } 
+#if TNN_ARM82
+    else if (in_data_type == DATA_TYPE_HALF) {
+        return Exec<__fp16>(inputs, outputs);
+    }
+#endif
+    else {
+        return TNNERR_LAYER_ERR;
+    }
+}
+
 REGISTER_ARM_ACC(Softmax, LAYER_SOFTMAX)
+REGISTER_ARM_PRECISION_FP16(LAYER_SOFTMAX)
 
 }  // namespace TNN_NS
