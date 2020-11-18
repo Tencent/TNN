@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define VMRSS_LINE 22
 #define VMSIZE_LINE 18
@@ -40,7 +41,9 @@ typedef struct {
 }ProcCpuOccupy;
  
 
-static unsigned int g_pid=0;
+static unsigned int g_pid = 0;
+static long long print_count = 0;
+static struct timeval time_begin;
  
 //获取第N项开始的指针
 const char* GetItems(const char*buffer ,unsigned int item){
@@ -184,7 +187,7 @@ unsigned int GetProcessMemory(unsigned int pid) {
  
  
 // get virtual memory useage in procee (KB)
-unsigned int GetProcessVirtualMem(unsigned int pid){
+unsigned int GetProcessVirtualMem(unsigned int pid) {
     
     char file_name[64]={0};
     FILE *fd;
@@ -222,8 +225,7 @@ unsigned int GetProcessVirtualMem(unsigned int pid){
 }
  
  
-int GetPid(const char* process_name = nullptr, const char* user = nullptr)
-{
+int GetPid(const char* process_name = nullptr, const char* user = nullptr) {
     if (nullptr == user){
         user = getlogin();  
     }
@@ -255,12 +257,22 @@ int GetPid(const char* process_name = nullptr, const char* user = nullptr)
     return atoi(buff);
 }
  
-void PrintMemInfo(const char* process_name, const char* user)
-{
-    if (g_pid == 0)
+void PrintMemInfo(const char* process_name, const char* user) {
+    if (0 == g_pid)
         g_pid = GetPid(process_name, user);
 
+    struct timezone zone;
+    struct timeval time_end;
+    if (0 == print_count) {
+        gettimeofday(&time_begin, NULL);
+    }
+    gettimeofday(&time_end, NULL);
+    float time_cost = (time_end.tv_sec - time_begin.tv_sec) +
+                    (time_end.tv_usec - time_begin.tv_usec) / 1000000.0;
+
+    print_count++;
     printf("[Memory] ******* Memory Usage ********\n");
+    printf("[Memory] count: %d   time: %.2f sec (%.2f h)\n", print_count, time_cost, time_cost / 3600);
     printf("[Memory] process name = %s\n", process_name);
     printf("[Memory] pid = %d\n", g_pid);
     printf("[Memory] procmem = %d KB\n", GetProcessMemory(g_pid));
