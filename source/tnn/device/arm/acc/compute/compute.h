@@ -131,11 +131,12 @@ void ConvDw3x3Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, 
 void ConvDw5x5FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 
+void Half2Float(float* dst, const fp16_t* src, const size_t length);
+void Float2Half(fp16_t* dst, const float* src, const size_t length);
+
 #if TNN_ARM82
 void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, size_t src_depth,
                            size_t dst_step, size_t dst_depth, size_t width, __fp16 *bias, size_t relu);
-void Half2Float(float* dst, const __fp16* src, const size_t length);
-void Float2Half(__fp16* dst, const float* src, const size_t length);
 void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void GemmFp16SlidewC3(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long src_w_setup, long fw,
                        long fh, long dilateX_step, long dilateY_step);

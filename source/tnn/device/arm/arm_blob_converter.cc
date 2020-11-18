@@ -883,6 +883,37 @@ void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bia
     }
 }
 
+template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
+    if (dst == nullptr) {
+        dst = src;
+    }
+
+    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
+    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
+    auto local_scale = scale_buffer.force_to<fp16_t *>();
+    auto local_bias  = bias_buffer.force_to<fp16_t *>();
+
+    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
+        auto src_z   = src + z * hw * 8;
+        auto dst_z   = dst + z * hw * 8;
+#ifdef TNN_ARM82
+        auto v_scale = vld1q_f16(local_scale + z * 8);
+        auto v_bias = vld1q_f16(local_bias + z * 8);
+        for (int s = 0; s < hw; ++s) {
+            vst1q_f16(dst_z + s * 8, vfmaq_f16(v_bias, vld1q_f16(src_z + s * 8), v_scale));
+        }
+#else
+        for (int s = 0; s < hw; ++s) {
+            for (int i = 0; i < 8; i++) {
+                dst_z[s * 8 + i] = src_z[s * 8 + i] * local_scale[z * 8 + i] + local_bias[z * 8 + i];
+            }
+        }
+#endif
+    }
+}
+
 static Status ConvertN8UC4ToInt8Blob(Mat& image, char* handle_ptr,
                                      const MatConvertParam& param, const DimsVector& dims,
                                      const int hw, const int c_r4,
@@ -1023,6 +1054,8 @@ static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr,
         NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
                    reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
         // Todo : scale bias
+        ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
+                  param.scale.data(), param.bias.data());
     }
     return TNN_OK;
 }
@@ -1139,6 +1172,9 @@ static Status ConvertHalfBlobToFloatMat(Mat& image, char* handle_ptr,
     auto c_r8 = ROUND_UP(c_r4, 8);
     for (int n = 0; n < dims[0]; n++) {
         // Todo : scale bias
+        RawBuffer scale_biased(c_r8 * hw * sizeof(fp16_t));
+        ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
+                  param.scale.data(), param.bias.data(), scale_biased.force_to<fp16_t *>());
         HalfBlobToNCHW(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw,
                        reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
     }
@@ -1152,6 +1188,7 @@ static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr,
     return DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(reinterpret_cast<int8_t *>(handle_ptr),
                                                            reinterpret_cast<int8_t *>(image.GetData()),
                                                            dims[0], dims[1], dims[2], dims[3]);
+
 }
 
 // convert from blob to mat

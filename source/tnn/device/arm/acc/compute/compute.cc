@@ -1111,6 +1111,19 @@ void DepthwiseDeconv<__fp16, __fp16>(const __fp16* dst, __fp16* src, const __fp1
 
 #endif
 
+#ifndef TNN_ARM82
+void Half2Float(float* dst, const fp16_t* src, const size_t length) {
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+}
+void Float2Half(fp16_t* dst, const float* src, const size_t length) {
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+}
+#endif
+
 void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
     long c_r4 = UP_DIV(channel, 4);
     long c_r8 = UP_DIV(channel, 8);
