@@ -17,4 +17,4 @@
 
 void PrintMemInfo(const char* process_name = nullptr, const char* user = nullptr);
 
-#endif // end of TNN_PLATFORM_LINUX_SRC_MEMORYUSAGE_H_
+#endif  // end of TNN_PLATFORM_LINUX_SRC_MEMORYUSAGE_H_
