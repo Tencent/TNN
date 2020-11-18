@@ -914,6 +914,21 @@ template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale,
     }
 }
 
+bool NeedDoScaleBias(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static Status ConvertN8UC4ToInt8Blob(Mat& image, char* handle_ptr,
                                      const MatConvertParam& param, const DimsVector& dims,
                                      const int hw, const int c_r4,
@@ -1035,11 +1050,18 @@ static Status ConvertFloatMatToFloatBlob(Mat& image, char* handle_ptr,
                                          const MatConvertParam& param, const DimsVector& dims,
                                          const int hw, const int c_r4,
                                          std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
-    for (int n = 0; n < dims[0]; n++) {
-        NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
-                   reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
-        ScaleBias(reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw,
-                  param.scale.data(), param.bias.data());
+    if (NeedDoScaleBias(param)) {
+        for (int n = 0; n < dims[0]; n++) {
+            NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
+                    reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+            ScaleBias(reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw,
+                    param.scale.data(), param.bias.data());
+        }
+    } else {
+        for (int n = 0; n < dims[0]; n++) {
+            NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
+                    reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw, nullptr);
+        }
     }
     return TNN_OK;
 }
@@ -1050,12 +1072,18 @@ static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr,
                                         const int hw, const int c_r4,
                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     auto c_r8 = ROUND_UP(c_r4, 8);
-    for (int n = 0; n < dims[0]; n++) {
-        NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
-                   reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
-        // Todo : scale bias
-        ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
-                  param.scale.data(), param.bias.data());
+    if (NeedDoScaleBias(param)) {
+        for (int n = 0; n < dims[0]; n++) {
+            NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
+                    reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
+            ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
+                    param.scale.data(), param.bias.data());
+        }
+    } else {
+        for (int n = 0; n < dims[0]; n++) {
+            NCHWToBlob(reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw,
+                    reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw, nullptr);
+        }
     }
     return TNN_OK;
 }
@@ -1154,12 +1182,19 @@ static Status ConvertFloatBlobToFloatMat(Mat& image, char* handle_ptr,
                                          const MatConvertParam& param, const DimsVector& dims,
                                          const int hw, const int c_r4,
                                          std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
-    for (int n = 0; n < dims[0]; n++) {
-        RawBuffer scale_biased(c_r4 * hw * sizeof(float));
-        ScaleBias(reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw,
-                  param.scale.data(), param.bias.data(), scale_biased.force_to<T_blob *>());
-        FloatBlobToNCHW(scale_biased.force_to<T_blob *>(),
-                        reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+    if (NeedDoScaleBias(param)) {
+        for (int n = 0; n < dims[0]; n++) {
+            RawBuffer scale_biased(c_r4 * hw * sizeof(float));
+            ScaleBias(reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw, dims[1], hw,
+                    param.scale.data(), param.bias.data(), scale_biased.force_to<T_blob *>());
+            FloatBlobToNCHW(scale_biased.force_to<T_blob *>(),
+                            reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+        }
+    } else {
+        for (int n = 0; n < dims[0]; n++) {
+            FloatBlobToNCHW(reinterpret_cast<T_blob *>(handle_ptr) + n * c_r4 * hw,
+                            reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+        }
     }
     return TNN_OK;
 }
@@ -1170,13 +1205,19 @@ static Status ConvertHalfBlobToFloatMat(Mat& image, char* handle_ptr,
                                         const int hw, const int c_r4,
                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     auto c_r8 = ROUND_UP(c_r4, 8);
-    for (int n = 0; n < dims[0]; n++) {
-        // Todo : scale bias
-        RawBuffer scale_biased(c_r8 * hw * sizeof(fp16_t));
-        ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
-                  param.scale.data(), param.bias.data(), scale_biased.force_to<fp16_t *>());
-        HalfBlobToNCHW(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw,
-                       reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+    if (NeedDoScaleBias(param)) {
+        for (int n = 0; n < dims[0]; n++) {
+            RawBuffer scale_biased(c_r8 * hw * sizeof(fp16_t));
+            ScaleBias(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw, dims[1], hw,
+                    param.scale.data(), param.bias.data(), scale_biased.force_to<fp16_t *>());
+            HalfBlobToNCHW(scale_biased.force_to<fp16_t *>(),
+                        reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+        }
+    } else {
+        for (int n = 0; n < dims[0]; n++) {
+            HalfBlobToNCHW(reinterpret_cast<fp16_t *>(handle_ptr) + n * c_r8 * hw,
+                        reinterpret_cast<T_mat *>(image.GetData()) + n * dims[1] * hw, dims[1], hw);
+        }
     }
     return TNN_OK;
 }
