@@ -36,6 +36,7 @@ namespace optimizer {
     }
 
     bool NetOptimizerFuseConvAdd::IsSupported(const NetworkConfig &net_config) {
+        //return false;
         auto device = net_config.device_type;
         if (device == DEVICE_ARM) {
             auto conv_relu_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvRelu);
@@ -49,17 +50,27 @@ namespace optimizer {
         return false;
     }
 
-    static bool IsConvLayerParamSupported(ConvLayerParam *param) {
+    static bool IsPreviousLayerSupportFusion(std::shared_ptr<LayerInfo> layer_info) {
+        auto param = dynamic_cast<ConvLayerParam *>(layer_info->param.get());
         if (param) {
+            // only fuse conv 1x1 now
             if (param->group != 1 || param->kernels[0] != 1 || param->kernels[1] != 1 || param->strides[0] != 1 ||
                 param->strides[1] != 1 || param->pads[0] != 0 || param->pads[1] != 0 || param->pads[2] != 0 ||
                 param->pads[3] != 0) {
                 return false;
             } else {
-                return true;
+                return param->quantized;
             }
         }
         return false;
+    }
+
+    static bool IsCurrentLayerSupportFusion(std::shared_ptr<LayerInfo> layer_info) {
+        return (layer_info->type == LAYER_ADD && layer_info->param->quantized);
+    }
+
+    static bool NeedConvAddFusion(std::shared_ptr<LayerInfo> prev, std::shared_ptr<LayerInfo> current) {
+        return (IsPreviousLayerSupportFusion(prev) && IsCurrentLayerSupportFusion(current));
     }
 
     Status NetOptimizerFuseConvAdd::Optimize(NetStructure *structure, NetResource *resource) {
@@ -96,10 +107,8 @@ namespace optimizer {
         for (int index = 1; index < count; index++) {
             auto layer_info_current = layers_orig[index];
             auto layer_info_prev    = layers_orig[index - 1];
-            auto layer_current_type = layer_info_current->type;
-
             auto conv_param = dynamic_cast<ConvLayerParam *>(layer_info_prev->param.get());
-            if (IsConvLayerParamSupported(conv_param) && layer_current_type == LAYER_ADD) {
+            if (NeedConvAddFusion(layer_info_prev, layer_info_current)) {
                 auto conv_output_name   = layer_info_prev->outputs[0];
                 auto conv_inputs        = layer_info_prev->inputs;
                 // inputs of add should contain conv_outputs, and others are pushed back to conv_inputs
@@ -127,13 +136,12 @@ namespace optimizer {
                 }
 
                 if (is_add_after_conv && !is_input_of_others) {
+                    layer_info_prev->outputs = layer_info_current->outputs;
+                    layer_info_prev->inputs  = conv_inputs;
                     if (conv_param->activation_type == ActivationType_None) {
                         conv_param->fusion_type  = FusionType_Conv_Add_Activation;
-                        layer_info_prev->outputs = layer_info_current->outputs;
-                        layer_info_prev->inputs  = conv_inputs;
                     } else {
-                        // Not support fusion of Conv_Activation_Add now
-                        layers_fused.push_back(layer_info_current);
+                        conv_param->fusion_type  = FusionType_Conv_Activation_Add;
                     }
                 } else {
                     layers_fused.push_back(layer_info_current);
