@@ -34,7 +34,7 @@ namespace optimizer {
         virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
     private:
-        std::shared_ptr<NetOptimizer> conv_relu_opt_ = nullptr;
+        std::shared_ptr<NetOptimizer> conv_post_opt_ = nullptr;
     };
 
 }  // namespace optimizer

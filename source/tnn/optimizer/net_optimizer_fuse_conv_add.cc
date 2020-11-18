@@ -20,7 +20,7 @@
 
 #include "tnn/core/layer_type.h"
 #include "tnn/interpreter/layer_param.h"
-#include "tnn/optimizer/net_optimizer_fuse_conv_relu.h"
+#include "tnn/optimizer/net_optimizer_fuse_conv_post.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/optimizer/optimizer_const.h"
 
@@ -39,11 +39,11 @@ namespace optimizer {
         //return false;
         auto device = net_config.device_type;
         if (device == DEVICE_ARM) {
-            auto conv_relu_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvRelu);
-            if (conv_relu_optimizer && conv_relu_optimizer->IsSupported(net_config)) {
-                conv_relu_opt_ = conv_relu_optimizer;
+            auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvPost);
+            if (conv_post_optimizer && conv_post_optimizer->IsSupported(net_config)) {
+                conv_post_opt_ = conv_post_optimizer;
             } else {
-                conv_relu_opt_ = nullptr;
+                conv_post_opt_ = nullptr;
             }
             return true;
         }
@@ -92,9 +92,9 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        // step1: do conv_relu fusion before conv_add fusion
-        if (conv_relu_opt_) {
-            ret = conv_relu_opt_->Optimize(structure, resource);
+        // step1: do conv_post fusion before conv_add fusion
+        if (conv_post_opt_) {
+            ret = conv_post_opt_->Optimize(structure, resource);
             if (ret != TNN_OK) {
                 return ret;
             }
@@ -152,9 +152,9 @@ namespace optimizer {
         }
         structure->layers = layers_fused;
 
-        // step3: do conv_relu fusion after conv_add fusion
-        if (conv_relu_opt_) {
-            ret = conv_relu_opt_->Optimize(structure, resource);
+        // step3: do conv_post fusion after conv_add fusion
+        if (conv_post_opt_) {
+            ret = conv_post_opt_->Optimize(structure, resource);
         }
 
         return ret;

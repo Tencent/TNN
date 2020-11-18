@@ -164,10 +164,21 @@ bool CheckNumberString(std::string num_str) {
     return true;
 }
 
+bool CheckFileName(std::string name) {
+    std::ofstream write_stream;
+    write_stream.open(name);
+    if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
+        write_stream.close();
+        return false;
+    }
+    write_stream.close();
+    return true;
+}
+
 void PrintConfig() {
     printf(
-        "usage:\n./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] "
-        "[-c]\n"
+        "usage:\n./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> "
+        "[-n] <val> [-s] <val> [-c] [-o] <output_name>\n"
         "\t-h, --help        \t show this message\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"
         "\t-m, --model       \t(require) tnn model file name\n"
@@ -185,8 +196,8 @@ void PrintConfig() {
         "input, ie, "
         "1.0,1.0,1.0 \n"
         "\t\tformula: y = (x - bias) * scale\n"
-        "\t-c, --merge_channel\t(optional) merge blob channel when quantize "
-        "blob\n");
+        "\t-c, --merge_channel\t(optional) merge blob channel when quantize blob\n"
+        "\t-o, --output       \t(optional) specify the name of output\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -194,6 +205,7 @@ int main(int argc, char* argv[]) {
     std::string proto_file_name;
     std::string model_file_name;
     std::string input_path;
+    std::string output_name = "model";
 
     CalibrationParam cali_params;
     cali_params.blob_quantize_method    = MIN_MAX;
@@ -210,10 +222,11 @@ int main(int argc, char* argv[]) {
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
                                     {"merge_channel", no_argument, 0, 'c'},
+                                    {"output", required_argument, 0, 'o'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:i:b:w:n:s:ch";
+    const char* optstring = "p:m:i:b:w:n:s:co:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -276,6 +289,14 @@ int main(int argc, char* argv[]) {
                 printf("merge channel: true\n");
                 cali_params.merge_blob_channel = true;
                 break;
+            case 'o':
+                printf("output name: %s\n", optarg);
+                output_name = optarg;
+                if (!CheckFileName(output_name)) {
+                    printf("invaild output name!\n");
+                    return 0;
+                }
+                break;
             case 'h':
             case '?':
                 PrintConfig();
@@ -316,9 +337,9 @@ int main(int argc, char* argv[]) {
         printf("calibration run falied!\n");
         return -1;
     }
-    status = calibration.Serialize("model_quantized.tnnproto", "model_quantized.tnnmodel");
+    status = calibration.Serialize(output_name + ".quantized.tnnproto", output_name + ".quantized.tnnmodel");
     if (status != TNN_OK) {
-        printf("calibration serialize falied!\n");
+        printf("calibration serialize falied! (%s)\n", status.description().c_str());
         return -1;
     }
     printf("quantize model success!\n");

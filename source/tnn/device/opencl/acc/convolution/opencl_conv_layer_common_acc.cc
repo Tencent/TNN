@@ -50,6 +50,8 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         build_options.emplace("-DRELU");
     } else if (conv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "Conv2D";
     if (run_3d_ndrange_)
