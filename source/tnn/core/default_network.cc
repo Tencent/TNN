@@ -240,11 +240,17 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
             bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
+                    desc.data_type == DATA_TYPE_BFP16) {
+                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                }
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
             } else if (config_.precision == PRECISION_HIGH) {
-                desc.data_type = DATA_TYPE_FLOAT;
+                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
+                    desc.data_type == DATA_TYPE_BFP16) {
+                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                }
             } else {
                 return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
