@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <fstream>
 
 #define VMRSS_LINE 22
 #define VMSIZE_LINE 18
@@ -40,10 +41,11 @@ typedef struct {
 } ProcCpuOccupy;
 
 static unsigned int g_pid    = 0;
-static long long print_count = 0;
+static long long g_print_count = 0;
+static long long g_file_count  = 0;
 static struct timeval time_begin;
 
-//获取第N项开始的指针
+// get pointer of item
 const char* GetItems(const char* buffer, unsigned int item) {
     const char* p = buffer;
 
@@ -64,7 +66,7 @@ const char* GetItems(const char* buffer, unsigned int item) {
     return p;
 }
 
-//获取总的CPU时间
+// get cpu total cpu time
 unsigned long GetCpuTotalOccypy() {
     FILE* fd;
     char buff[1024] = {0};
@@ -87,7 +89,7 @@ unsigned long GetCpuTotalOccypy() {
     return (t.user + t.nice + t.system + t.idle);
 }
 
-//获取进程的CPU时间
+// get cpu time of process
 unsigned long GetCpuProcessOccypy(unsigned int pid) {
     char file_name[64] = {0};
     ProcCpuOccupy t;
@@ -241,20 +243,44 @@ void PrintMemInfo(const char* process_name, const char* user) {
     if (0 == g_pid)
         g_pid = GetPid(process_name, user);
 
-    struct timezone zone;
     struct timeval time_end;
-    if (0 == print_count) {
+    if (0 == g_print_count) {
         gettimeofday(&time_begin, NULL);
     }
+
+    char file_name[128];
+    memset(file_name, 0, 128);
+
+    std::ofstream ofs;
+    if (0 == g_print_count % 1000) {
+        g_file_count++;
+        sprintf(file_name, "memory_info_%d.txt", g_file_count);
+        ofs.open(file_name, std::ofstream::out);
+    } else {
+        sprintf(file_name, "memory_info_%d.txt", g_file_count);
+        ofs.open(file_name, std::ofstream::out | std::ofstream::app);
+    }
+    g_print_count++;
+
     gettimeofday(&time_end, NULL);
     float time_cost = (time_end.tv_sec - time_begin.tv_sec) + (time_end.tv_usec - time_begin.tv_usec) / 1000000.0;
 
-    print_count++;
-    printf("[Memory] ******* Memory Usage ********\n");
-    printf("[Memory] count: %d   time: %.2f sec (%.2f h)\n", print_count, time_cost, time_cost / 3600);
-    printf("[Memory] process name = %s\n", process_name);
-    printf("[Memory] pid = %d\n", g_pid);
-    printf("[Memory] procmem = %d KB\n", GetProcessMemory(g_pid));
-    printf("[Memory] virtualmem = %d KB\n", GetProcessVirtualMem(g_pid));
-    printf("[Memory] *******     END      ********\n");
+    char info[512];
+    memset(info, 0, 512);
+
+
+    ofs << "[Memory] ******* Memory Usage ********\n";
+    sprintf(info, "[Memory] count: %d   time: %.2f sec (%.2f h)\n", g_print_count, time_cost, time_cost / 3600);
+    ofs << info;
+    sprintf(info, "[Memory] process name = %s\n", process_name);
+    ofs << info;
+    sprintf(info, "[Memory] pid = %d\n", g_pid);
+    ofs << info;
+    sprintf(info, "[Memory] procmem = %d KB\n", GetProcessMemory(g_pid));
+    ofs << info;
+    sprintf(info, "[Memory] virtualmem = %d KB\n", GetProcessVirtualMem(g_pid));
+    ofs << info;
+    ofs << "[Memory] *******     END      ********\n\n";
+
+    ofs.close();
 }
