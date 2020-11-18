@@ -51,7 +51,13 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
-    return network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    auto ret = network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    // release string, this will not be used
+    model_config_.params.clear();
+
+    return TNN_OK;
 }
 
 Status Instance::DeInit() {
