@@ -28,6 +28,7 @@
 
 #include "atlas_common.h"
 #include "test_common.h"
+#include "memory_usage.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -65,7 +66,7 @@ int main(int argc, char* argv[]) {
     }
 
     int thread_num = atoi(argv[3]);
-    int loop_count = atoi(argv[4]);
+    long long loop_count = atoi(argv[4]);
     printf("thread num: %d  loop count %d\n", thread_num, loop_count);
     do {
         TNNParam thread_param[THREAD_NUM];
@@ -89,6 +90,7 @@ int main(int argc, char* argv[]) {
         }
 
         loop_count--;
+        PrintMemInfo();
     } while (loop_count > 0);
 
     net_.DeInit();
