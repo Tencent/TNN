@@ -156,6 +156,9 @@ typedef enum {
     TNNBorderConstant = 0,
     TNNBorderReflect  = 1,
     TNNBorderEdge     = 2,
+    TNNBorderReplicate = 3,
+    TNNBorderReflect101 = 4,
+    TNNBorderWrap = 5,
     
 } TNNBorderType;
 
