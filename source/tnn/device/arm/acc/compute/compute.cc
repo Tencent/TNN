@@ -125,6 +125,32 @@ void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
 template void PostAddBiasSwish<float>(void* dst, const float* bias, long area, long oc4);
 template void PostAddBiasSwish<bfp16_t>(void* dst, const float* bias, long area, long oc4);
 
+template <typename T>
+void PostAddBiasSwishFast(void* dst, const float* bias, long area, long oc4) {
+    if (!bias) {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p);
+                Float4::save(dst_p, val * Float4::fast_sigmoid(val));
+            }
+        }
+    } else {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            Float4 vbias = Float4::load(bias + 4 * z);
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p) + vbias;
+                Float4::save(dst_p, val * Float4::fast_sigmoid(val));
+            }
+        }
+    }
+}
+template void PostAddBiasSwishFast<float>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwishFast<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+
 /*
 min(x, clap)
 */

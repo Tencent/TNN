@@ -35,10 +35,10 @@ void set_block_size(int &a_block, int &b_block, int l2_size, const int plane_num
                     int byte_size);
 template <typename T>
 void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 
 }  // namespace TNN_NS
 

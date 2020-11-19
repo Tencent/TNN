@@ -258,6 +258,11 @@ struct Float4 {
         dst.value = sigmoid_ps(v.value);
         return dst;
     }
+    static Float4 fast_sigmoid(const Float4& v) {
+        Float4 dst;
+        dst.value = fast_sigmoid_ps(v.value);
+        return dst;
+    }
     static Float4 log(const Float4& v) {
         Float4 dst;
         dst.value = log_ps(v.value);
@@ -687,6 +692,13 @@ struct Float4 {
         return dst;
     }
     static Float4 sigmoid(const Float4& v) {
+        Float4 dst;
+        for (int i = 0; i < 4; ++i) {
+            dst.value[i] = 1.0f / (1.0f + std::exp(-v.value[i]));
+        }
+        return dst;
+    }
+    static Float4 fast_sigmoid(const Float4& v) {
         Float4 dst;
         for (int i = 0; i < 4; ++i) {
             dst.value[i] = 1.0f / (1.0f + std::exp(-v.value[i]));
