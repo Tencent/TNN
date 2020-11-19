@@ -504,6 +504,10 @@ int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channe
 template int ConvertWeightsFromGIOHWToGOHWI16(float *src, float *dst, int group, int input_channel, int output_channel,
                                               int height, int width);
 
+// if gic < 8
+// to   [g][o/8][h][w][i][8]
+// from [g][i][o][h][w]
+//else
 // to   [g][o/8][h][w][i/8][64]
 // from [g][i][o][h][w]
 template <typename T>
@@ -515,6 +519,29 @@ int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_
     const int gic_8     = (gic + 7) / 8;
     const int src_count = group * goc * gic * height * width;
     int src_index = 0;
+
+    if (gic < 8) {
+        for (int g = 0; g < group; g++) {
+            auto g_dst = dst + g * goc_8 * gic * height * width * 8;  // g
+            for (int i = 0; i < gic; i++) {
+                auto i_dst = g_dst + i * 8;
+                for (int o = 0; o < goc; o++) {
+                    auto zo = o / 8, ro = o % 8;
+                    auto o_dst = i_dst + zo * height * width * gic * 8 + ro;
+                    for (int h = 0; h < height; h++) {
+                        for (int w = 0; w < width; w++) {
+                            if (src_index < src_count) {
+                                o_dst[(h * width + w) * gic * 8] = src[src_index++];
+                            } else {
+                                o_dst[(h * width + w) * gic * 8] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
 
     for (int g = 0; g < group; g++) {
         auto g_dst = dst + g * goc_8 * gic_8 * height * width * 64;  // g

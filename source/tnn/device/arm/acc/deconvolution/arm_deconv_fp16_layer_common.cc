@@ -21,8 +21,6 @@
 
 #include "tnn/utils/omp_utils.h"
 
-#define CONVOLUTION_TILED_NUMBER (14)
-
 namespace TNN_NS {
 /*
 ArmDeconvFp16LayerCommon as the last solution, always return true
@@ -128,8 +126,28 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     auto t_buffer = o_buffer + o_buf_size;
     auto p_buffer = t_buffer + trans_buf_size;
 
-    int weight_z_step  = kernel_y * kernel_x * gic_8 * 64;
-    int src_z_step     = k_param_->iw * k_param_->ih * 8;
+    int weight_z_step;
+    int src_z_step;
+    int ic_step;
+    int ic_counter;
+    int w_step;
+    auto DeconvFunc = DeconvFp16O8;
+    int CONVOLUTION_TILED_NUMBER = 14;
+    if (gic < 8) {
+        weight_z_step  = kernel_y * kernel_x * gic * 8;
+        src_z_step     = k_param_->iw * k_param_->ih * 1;
+        ic_step = gic;
+        ic_counter = gic;
+        w_step = 1;
+        DeconvFunc = DeconvFp16O8C1;
+        CONVOLUTION_TILED_NUMBER = 16;
+    } else {
+        weight_z_step  = kernel_y * kernel_x * gic_8 * 64;
+        src_z_step     = k_param_->iw * k_param_->ih * 8;
+        ic_step = gic_8 * 8;
+        ic_counter = gic_8;
+        w_step = 8;
+    }
     int dst_z_step     = k_param_->ow * k_param_->oh * 8;
     int dst_z_step_pad = dst_w_pad * dst_h_pad * 8;
 
@@ -146,9 +164,14 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
 
         /*
         first unpack input tensor to nchw data format
-        pack data to make sure every group channel algin8
+        if gic < 8, use nchw as input
+        if gic > 8, pack data to make sure every group channel algin8
         */
-        if (gic_8 != (gic / 8) && group != 1) {
+        if (gic < 8) {
+            UnpackC8(t_buffer, input_fp16 + batch_idx * input_width * input_height * k_param_->ic_r8,
+                        input_width * input_height, ic);
+            input_ptr = t_buffer;
+        } else if (gic_8 != (gic / 8) && group != 1) {
             UnpackC8(t_buffer, input_fp16 + batch_idx * input_width * input_height * k_param_->ic_r8,
                      input_width * input_height, ic);
             for (int g = 0; g < group; g++) {
@@ -167,7 +190,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
         }
 
         for (int g = 0; g < group; g++) {
-            auto input_g_ptr  = input_ptr + g * input_width * input_height * gic_8 * 8;
+            auto input_g_ptr  = input_ptr + g * input_width * input_height * ic_step;
             auto output_g_ptr = output_ptr + g * output_width * output_height * goc_8 * 8;
             auto weight_ptr   = buffer_weight_.force_to<__fp16 *>() + g * goc_8 * weight_z_step;
 
@@ -179,14 +202,14 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
                 auto weight_z = weight_ptr + z * weight_z_step;
                 auto dst_z    = p_buffer + z * dst_z_step_pad;
                 for (int dy = 0; dy < k_param_->ih; dy++) {
-                    auto src_y = input_g_ptr + dy * k_param_->iw * 8;
+                    auto src_y = input_g_ptr + dy * k_param_->iw * w_step;
                     auto dst_y = dst_z + dy * conv_param->strides[1] * dst_w_pad * 8;
                     for (int dx = 0; dx <= loop; dx++) {
                         auto x_idx   = dx * CONVOLUTION_TILED_NUMBER;
                         auto x_count = MIN(CONVOLUTION_TILED_NUMBER, k_param_->iw - x_idx);
-                        auto src_x   = input_g_ptr + dy * k_param_->iw * 8 + x_idx * 8;
+                        auto src_x   = input_g_ptr + dy * k_param_->iw * w_step + x_idx * w_step;
                         auto dst_x   = dst_y + x_idx * conv_param->strides[0] * 8;
-                        DeconvFp16O8(dst_x, src_x, weight_z, x_count, dst_w_step, gic_8, src_z_step,
+                        DeconvFunc(dst_x, src_x, weight_z, x_count, dst_w_step, ic_counter, src_z_step,
                                      conv_param->kernels[0], conv_param->kernels[1], dilate_x_step, dilate_y_step);
                     }
                 }
