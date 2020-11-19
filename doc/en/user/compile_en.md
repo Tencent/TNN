@@ -122,14 +122,34 @@ cd <path_to_tnn>/scripts
 ./build_x86_linux.sh
 ```
 
-## V. Compile(x86 Windows)
+## V. Compile(Linux CUDA)
+### 1. Enviromnment requirements
+#### Dependency
+  - cmake（version 3.8 or higher）
+  - CUDA (version 10.2 or higher)
+
+#### TensorRT configuration
+  - Download TensorRT (version>=7.1)  <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - Configure the TensorRT path in env `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+### 2. Compilation Steps
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+./build_cuda_linux.sh
+```
+
+## VI. Compile(x86 Windows)
 ### 1. Environment requirements
 #### Dependencies
-  - Visual Studio(version 2015 or higher)
+  - Visual Studio (version 2015 or higher)
   - cmake (vsrsion 3.7.2 or higher; Or use build-in cmake in Visual Studio)
 
 ### 2. Compilation Steps
-1) switch to 'scripts` directory
+1) switch to 'scripts' directory
 ```
 cd <path_to_tnn>/scripts
 ```

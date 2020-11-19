@@ -64,9 +64,8 @@ __global__ void bgr_to_blob_kernel(int CHW, int HW, const unsigned char* __restr
         int channels, float *scale, float *bias) {
     const int offset = ELEMENT_PER_THREAD * THREAD_PER_BLOCK * blockIdx.x + threadIdx.x;
 
-    src += offset + blockIdx.y * CHW;
-    dst += offset * channels + blockIdx.y * CHW;
-    int channels_coef = channels - 1;
+    src += offset * channels + blockIdx.y * CHW;
+    dst += offset + blockIdx.y * CHW;
 
     #pragma unroll
     for (int c = 0; c < channels; ++c) {
@@ -74,9 +73,7 @@ __global__ void bgr_to_blob_kernel(int CHW, int HW, const unsigned char* __restr
         #pragma unroll
         for (int i = 0; i < ELEMENT_PER_THREAD; ++i) {
             if (i * THREAD_PER_BLOCK + offset < HW) {
-                data_ld[i] = (src[i * THREAD_PER_BLOCK * channels + channels_coef - c]
-                                * scale[channels_coef - c]
-                                + bias[channels_coef - c]);
+                data_ld[i] = (src[i * THREAD_PER_BLOCK * channels + c] * scale[c] + bias[c]);
             }
         }
         #pragma unroll

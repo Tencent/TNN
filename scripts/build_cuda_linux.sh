@@ -15,7 +15,7 @@ cd build_cuda_linux
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux \
-    -DTNN_TEST_ENABLE=OFF \
+    -DTNN_TEST_ENABLE=ON \
     -DTNN_CPU_ENABLE=ON \
     -DTNN_CUDA_ENABLE=ON \
     -DTNN_TENSORRT_ENABLE=ON \

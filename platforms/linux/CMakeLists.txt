@@ -39,7 +39,6 @@ endif()
 if(TNN_CUDA_ENABLE)
     enable_language(CUDA)
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-    #target_link_libraries(TNN ${CUDNN_LIBS} ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 endif()
 
 if(TNN_RK_NPU_ENABLE)

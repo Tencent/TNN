@@ -113,7 +113,7 @@ cd <path_to_tnn>/scripts
 ## 四、Linux 环境编译
 ### 1.环境要求
 依赖库
-  - cmake(使用3.7.2版本及以上)
+  - cmake (使用3.7.2版本及以上)
 
 ### 2.编译步骤
 1）切换到脚本目录
@@ -125,11 +125,31 @@ cd <path_to_tnn>/scripts
 ./build_x86_linux.sh
 ```
 
-## 五、Windows 环境编译
+## 五、Linux CUDA库编译
+### 1.环境要求
+#### 依赖库
+  - cmake (使用3.8及以上版本）
+  - CUDA (使用10.2及以上版本)
+
+#### TensorRT配置
+  - 下载TensorRT版本(>=7.1)  <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - 配置环境变量 `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2) 执行编译脚本
+```
+./build_cuda_linux.sh
+```
+
+## 六、Windows 环境编译
 ### 1.环境要求
 依赖库
-  - Visual Studio(2015 及更高版本)
-  - cmake(把3.7.2及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+  - Visual Studio (2015 及更高版本)
+  - cmake (把3.7.2及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
 
 ### 2.编译步骤
 1）切换到脚本目录
@@ -152,7 +172,7 @@ cd <path_to_tnn>/scripts
 |TNN_ARM_ENABLE| OFF | 代码source/device/arm编译开关，代码包含neon加速指令, 且部分实现了int8加速。|
 |TNN_METAL_ENABLE| OFF | 代码source/device/metal编译开关，代码包含metal加速指令。|
 |TNN_OPENCL_ENABLE| OFF | 代码source/device/opencl编译开关，代码包含opencl加速指令。|
-|TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，代码包含cuda加速指令, 当前仅迁移了小部分实现。|
+|TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，当前适配TensorRT实现，后续会迁入更多加速代码实现。|
 |TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
 |TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/huawei_npu编译开关，当前适配HiAI加速框架。|
