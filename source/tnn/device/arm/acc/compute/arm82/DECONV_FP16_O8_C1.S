@@ -39,7 +39,7 @@ src          .req x1
 weight       .req x2
 width        .req x3
 dst_w_step   .req x4
-ic          .req x5
+input_c      .req x5
 fw           .req x7
 fh           .req x8
 dilate_x_step .req x9
@@ -83,7 +83,7 @@ L16Loop:
     L16LoopFY:
         mov x20, fw
         L16LoopFX:
-            mov x13, ic
+            mov x13, input_c
             ld1 {v4.8h}, [weight], #16
             ld1 {v0.8h, v1.8h}, [src], x6
 
@@ -104,13 +104,13 @@ L16Loop:
             fmul v30.8h, v4.8h, v1.h[6]
             fmul v31.8h, v4.8h, v1.h[7]
 
-            subs ic, ic, #1
+            subs input_c, input_c, #1
             beq L16LoopZEnd
             L16LoopZ:
                 ld1 {v4.8h}, [weight], #16
                 ld1 {v0.8h, v1.8h}, [src], x6
 
-                subs ic, ic, #1
+                subs input_c, input_c, #1
                 fmla v16.8h, v4.8h, v0.h[0]
                 fmla v17.8h, v4.8h, v0.h[1]
                 fmla v18.8h, v4.8h, v0.h[2]
@@ -189,7 +189,7 @@ L16Loop:
             sub dst, dst, x14
             add dst, dst, dilate_x_step
 
-            mov ic, x13
+            mov input_c, x13
             subs fw, fw, #1
             sub x1, x1, x14
             mov src, x11
@@ -226,7 +226,7 @@ L4Loop:
     L4LoopFY:
         mov x20, fw
         L4LoopFX:
-            mov x13, ic
+            mov x13, input_c
             ld1 {v4.8h}, [weight], #16
             ld1 {v0.4h}, [src], x6
             fmul v16.8h, v4.8h, v0.h[0]
@@ -234,12 +234,12 @@ L4Loop:
             fmul v18.8h, v4.8h, v0.h[2]
             fmul v19.8h, v4.8h, v0.h[3]
 
-            subs ic, ic, #1
+            subs input_c, input_c, #1
             beq L4LoopZEnd
             L4LoopZ:
                 ld1 {v0.4h}, [src], x6
                 ld1 {v4.8h}, [weight], #16
-                subs ic, ic, #1
+                subs input_c, input_c, #1
                 fmla v16.8h, v4.8h, v0.h[0]
                 fmla v17.8h, v4.8h, v0.h[1]
                 fmla v18.8h, v4.8h, v0.h[2]
@@ -268,7 +268,7 @@ L4Loop:
             sub dst, dst, x14
             add dst, dst, dilate_x_step
 
-            mov ic, x13
+            mov input_c, x13
             subs fw, fw, #1
             sub x1, x1, x14
             mov src, x11
@@ -305,7 +305,7 @@ L1Loop:
     L1LoopFY:
         mov x20, fw
         L1LoopFX:
-            mov x13, ic
+            mov x13, input_c
             eor v16.16b, v16.16b, v16.16b
             L1LoopZ:
                 ld1 {v4.8h}, [weight], #16
@@ -313,7 +313,7 @@ L1Loop:
 
                 fmla v16.8h, v4.8h, v0.h[0]
 
-                subs ic, ic, #1
+                subs input_c, input_c, #1
                 bne L1LoopZ
 
             L1LoopZEnd:
@@ -325,7 +325,7 @@ L1Loop:
             sub dst, dst, x14
             add dst, dst, dilate_x_step
 
-            mov ic, x13
+            mov input_c, x13
             subs fw, fw, #1
             sub x1, x1, x14
             mov src, x11
