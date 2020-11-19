@@ -80,7 +80,8 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     param->fusion_type     = fusion_type;
 
     std::vector<int> conv_input_dims = {batch, channel, input_size, input_size};
-    std::vector<int> add_input_dims;
+    std::vector<std::vector<int>> input_vec;
+    input_vec.push_back(conv_input_dims);
 
     // get add input dim
     if (fusion_type != FusionType_None) {
@@ -98,16 +99,12 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         auto conv_layer        = layer_creator_map[LAYER_CONVOLUTION]->CreateLayer();
 
         conv_layer->InferShapeAhead(conv_input, conv_output, param.get(), nullptr);
-
-        add_input_dims = conv_output[0]->GetBlobDesc().dims;
+        input_vec.push_back(conv_output[0]->GetBlobDesc().dims);
+        delete conv_layer;
     }
 
-    Precision precision = PRECISION_AUTO;
     // generate proto string
-    std::vector<std::vector<int>> input_vec;
-    input_vec.push_back(conv_input_dims);
-    input_vec.push_back(add_input_dims);
-
+    Precision precision = PRECISION_AUTO;
     if (DATA_TYPE_INT8 == data_type) {
         param->quantized = true;
     } else if (DATA_TYPE_BFP16 == data_type) {

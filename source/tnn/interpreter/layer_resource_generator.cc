@@ -57,7 +57,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->bias_handle.SetDataType(DATA_TYPE_INT32);
             InitRandom(layer_res->bias_handle.force_to<int32_t*>(), layer_param->output_channel, (int32_t)8);
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
-            InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->output_channel, 1.0f);
+            InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->output_channel, 0.0f, 1.0f);
 
         } else {
             layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(float));
@@ -102,7 +102,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->bias_handle.SetDataType(DATA_TYPE_INT32);
             InitRandom(layer_res->bias_handle.force_to<int32_t*>(), layer_param->num_output, (int32_t)8);
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
-            InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->num_output, 1.0f);
+            InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->num_output, 0.0f, 1.0f);
         } else {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(float));
             InitRandom(layer_res->weight_handle.force_to<float*>(), weight_handle_size, 1.0f);
@@ -129,7 +129,7 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
         auto dims = inputs[0]->GetBlobDesc().dims;
 
         layer_res->scale_handle = RawBuffer(dims[1] * sizeof(float));
-        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 1.0f);
+        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 0.0f, 1.0f);
         layer_res->bias_handle = RawBuffer(dims[1] * sizeof(float));
         InitRandom(layer_res->bias_handle.force_to<float*>(), dims[1], 1.0f);
 
@@ -154,7 +154,7 @@ class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
         auto dims = inputs[0]->GetBlobDesc().dims;
 
         layer_res->scale_handle = RawBuffer(dims[1] * sizeof(float));
-        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 1.0f);
+        InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 0.0f, 1.0f);
         layer_res->bias_handle = RawBuffer(dims[1] * sizeof(float));
         InitRandom(layer_res->bias_handle.force_to<float*>(), dims[1], 1.0f);
 
