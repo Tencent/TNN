@@ -41,7 +41,7 @@ TNN_NS::Status OnnxCastConverter::exec(tnn::NetStructure &net_structure, tnn::Ne
     param->quantized           = false;
 
     auto to_type = GetAttributeInt(node, "to", 0);
-    param->to    = to_type;
+    param->to    = TensorProtoDataType2TnnDataType(to_type);
 
     cur_layer->inputs[0] = node.input(0);
 

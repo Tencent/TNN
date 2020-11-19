@@ -27,20 +27,15 @@ Status CpuLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-        status = ReloadConstantBlobs(inputs);
-    }
-    
+    status = ReloadConstantBlobs(inputs);
+
     RETURN_ON_NEQ(status, TNN_OK);
 
     return Reshape(inputs, outputs);
 }
 
 Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
-    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
-        return TNN_OK;
-    }
-    
+
     auto const_resource = const_resource_;
     auto const_blob_map = const_blob_map_;
     for (auto iter : inputs) {
@@ -56,9 +51,10 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         }
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        
+
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
+        LOGD("Reload constant blob: %s\n", name.c_str());
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;

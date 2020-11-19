@@ -18,12 +18,49 @@
 #include <float.h>
 #include <stdint.h>
 #include <stdlib.h>
+
 #include <algorithm>
 #include <cmath>
 
 #include "tnn/core/common.h"
+#include "tnn/utils/dims_offset_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+
+/*
+ * Output[i] = input0[i] op input1[i] op ... op  input..n[i]
+ * CPU_ELEMENT_WISE supports broadcast on all dimensions
+ */
+template <typename T>
+void CPU_ELEMENT_WISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+                      const DimsVector& shape_output, std::function<T(T, T)> op) {
+    const int count = DimsVectorUtils::Count(shape_output);
+    T *output_data  = static_cast<T *>(output);
+
+    OMP_PARALLEL_FOR_
+    for (int offset = 0; offset < count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+        T result;
+        for (int i = 0; i < input_ptrs.size(); i++) {
+            T *input_data = static_cast<T *>(input_ptrs[i]);
+            auto input_shape  = input_shapes[i];
+            DimsVector input_index;
+            auto diff = shape_output.size() - input_shape.size();
+            for (int i = 0; i < input_shape.size(); ++i) {
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
+            }
+            int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);
+            if (i == 0) {
+                result = input_data[input_offset];
+            } else {
+                result = op(result, input_data[input_offset]);
+            }
+        }
+        output_data[offset] = result;
+    }
+}
 
 // float add
 void CPU_MIN(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,

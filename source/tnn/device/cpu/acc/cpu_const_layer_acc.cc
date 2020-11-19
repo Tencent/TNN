@@ -38,5 +38,5 @@ Status CpuConstLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     return TNN_OK;
 }
 
-REGISTER_CPU_ACC(Const, LAYER_CONST);
+//REGISTER_CPU_ACC(Const, LAYER_CONST);
 }  // namespace TNN_NS

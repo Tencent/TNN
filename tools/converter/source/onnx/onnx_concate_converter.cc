@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxConcatConverter::ActivationType(const onnx::NodeProto
 
 TNN_NS::Status OnnxConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
                                          const onnx::NodeProto &node,
-                                         std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                          bool &quantized_model) {
     auto param       = new TNN_NS::ConcatLayerParam;
     auto cur_layer   = net_structure.layers.back();
@@ -39,7 +39,15 @@ TNN_NS::Status OnnxConcatConverter::exec(tnn::NetStructure &net_structure, tnn::
     param->name      = cur_layer->name;
     param->quantized = false;
     param->axis      = GetAttributeInt(node, "axis", 1);
-    ASSERT(node.input_size() == 2);
+
+    for (const auto &input : node.input()) {
+        if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
+            auto const_tensor                   = proxy_initializers_map[input];
+            TNN_NS::RawBuffer *const_raw_buffer = nullptr;
+            CreateRawBufferFromTensor(*const_tensor, &const_raw_buffer);
+            net_resource.constant_map[input] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
+        }
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 

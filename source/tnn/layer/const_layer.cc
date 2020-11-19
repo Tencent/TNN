@@ -25,6 +25,7 @@ DECLARE_LAYER(Const, LAYER_CONST);
 Status ConstLayer::InferOutputDataType() {
     output_blobs_[0]->GetBlobDesc().data_type =
         dynamic_cast<ConstLayerResource*>(resource_)->weight_handle.GetDataType();
+    output_blobs_[0]->flag = DATA_FLAG_CHANGE_NEVER;
     return TNN_OK;
 }
 
@@ -39,6 +40,6 @@ Status ConstLayer::InferOutputShape() {
     return TNN_OK;
 }
 
-REGISTER_LAYER(Const, LAYER_CONST);
+//REGISTER_LAYER(Const, LAYER_CONST);
 
 }  // namespace TNN_NS

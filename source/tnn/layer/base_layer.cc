@@ -61,10 +61,9 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         for (auto& output_blob : output_blobs) {
             BlobDesc desc = output_blob->GetBlobDesc();
-            std::string log_info = "";
-            for(int i = 0; i < desc.dims.size(); ++i) {
-                log_info = log_info + ToString(desc.dims[i]);
-                log_info = log_info + " ";
+            std::string log_info;
+            for(const auto& dim: desc.dims) {
+                log_info += ToString(dim) + " ";
             }
             LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
         }
@@ -116,6 +115,9 @@ Status BaseLayer::InferOutputDataType() {
     
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
+        if (const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            iter->flag |= DATA_FLAG_CHANGE_NEVER;
+        }
         flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
     }
     
@@ -136,7 +138,7 @@ Status BaseLayer::Reshape() {
         
         auto dims = output_blobs_[0]->GetBlobDesc().dims;
         for (auto item : dims) {
-            if (item <= 0) {
+            if (item < 0) {
                 LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
                 return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
             }
@@ -153,15 +155,18 @@ Status BaseLayer::Reshape() {
 
 Status BaseLayer::Forward() {
     if (layer_acc_ != NULL) {
-        if (output_blobs_[0]->NeedAllocateInForward()){
-            auto status = InferOutputShape();
-            RETURN_ON_NEQ(status, TNN_OK);
-        }
-        
         auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
         RETURN_ON_NEQ(status, TNN_OK);
-        status = layer_acc_->Forward(input_blobs_, output_blobs_);
-        RETURN_ON_NEQ(status, TNN_OK);
+
+        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !IsOutputConstant()) ||
+            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && IsOutputConstant())) {
+            if (output_blobs_[0]->NeedAllocateInForward()) {
+                auto status = InferOutputShape();
+                RETURN_ON_NEQ(status, TNN_OK);
+            }
+            status = layer_acc_->Forward(input_blobs_, output_blobs_);
+            RETURN_ON_NEQ(status, TNN_OK);
+        }
         return layer_acc_->AfterForward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");

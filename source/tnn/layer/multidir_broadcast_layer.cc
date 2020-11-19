@@ -178,8 +178,8 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         layer_param->input1_broadcast_type = input1_broadcast_type;
     }
 
-    LOGD("broadcast_type: input0(%d) input1(%d)\n", layer_param->input0_broadcast_type,
-         layer_param->input1_broadcast_type);
+//    LOGD("broadcast_type: input0(%d) input1(%d)\n", layer_param->input0_broadcast_type,
+//         layer_param->input1_broadcast_type);
 
     return TNN_OK;
 }

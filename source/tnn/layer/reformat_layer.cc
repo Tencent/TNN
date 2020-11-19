@@ -20,6 +20,7 @@ namespace TNN_NS {
 DECLARE_LAYER(Reformat, LAYER_REFORMAT);
 
 Status ReformatLayer::InferOutputDataType() {
+    BaseLayer::InferOutputDataType();
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = reinterpret_cast<ReformatLayerParam*>(param_)->dst_type;
     }

@@ -92,6 +92,10 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill") {
             continue;
         }
+        
+        if (node_op_type == "Constant") {
+            continue;
+        }
 
         auto converter = OnnxConverterManager::get()->search(node_op_type);
         if (converter == nullptr) {

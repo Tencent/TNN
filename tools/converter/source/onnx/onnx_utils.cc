@@ -372,4 +372,22 @@ void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::R
         }
     }
 }
+
+/**
+ * onnx::TensorProto_DataType data_type
+ * */
+int TensorProtoDataType2TnnDataType(int data_type) {
+    if (onnx::TensorProto_DataType_FLOAT == data_type) {
+        return TNN_NS::DATA_TYPE_FLOAT;
+    } else if (onnx::TensorProto_DataType_FLOAT16 == data_type) {
+        return TNN_NS::DATA_TYPE_HALF;
+    } else if (onnx::TensorProto_DataType_INT8 == data_type) {
+        return TNN_NS::DATA_TYPE_INT8;
+    } else if (onnx::TensorProto_DataType_INT32 == data_type || onnx::TensorProto_DataType_INT64 == data_type) {
+        return TNN_NS::DATA_TYPE_INT32;
+    } else {
+        LOGE("Converter: TensorProtoDataType2TnnDataType do not support type\n");
+        assert(0);
+    }
+}
 }  // namespace TNN_CONVERTER

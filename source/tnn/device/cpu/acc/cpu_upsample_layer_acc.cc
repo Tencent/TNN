@@ -12,14 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <tnn/utils/string_utils_inner.h>
+
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 namespace TNN_NS {
 
-static inline bool CheckInputOutputSizeSame(int input_height, int input_width,
-            int output_height, int output_width) {
+static inline bool CheckInputOutputSizeSame(int input_height, int input_width, int output_height, int output_width) {
     return input_height == output_height && input_width == output_width;
 }
 
@@ -132,10 +133,61 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
-DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
+// DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
+DECLARE_CPU_ACC_WITH_FUNC(Upsample, LAYER_UPSAMPLE,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
+}
+
+Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                    const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    if (inputs.size() == 2) {
+        Blob *input_blob  = inputs[0];
+        Blob *scale_blob = inputs[1];
+        auto scale_data = (float *)scale_blob->GetHandle().base;
+        auto scale_count = DimsVectorUtils::Count(scale_blob->GetBlobDesc().dims);
+        for (int i = 0; i < scale_count; ++i) {
+            layer_param->scales.push_back(scale_data[i]);
+        }
+        int num        = input_blob->GetBlobDesc().dims[0];
+        int channels   = input_blob->GetBlobDesc().dims[1];
+        int height     = input_blob->GetBlobDesc().dims[2];
+        int width      = input_blob->GetBlobDesc().dims[3];
+        int width_out  = 0;
+        int height_out = 0;
+
+        if (layer_param->mode == 1 || layer_param->mode == 2) {
+            // floor is wrong for some model
+            width_out  = int(round(width * layer_param->scales[3]));
+            height_out = int(round(height * layer_param->scales[2]));
+        } else {
+            LOGE("Error: unsupport upsample type:%d", layer_param->mode);
+            return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
+        }
+
+        if (layer_param->dims.size() >= 2) {
+            width_out  = (int)layer_param->dims[0];
+            height_out = (int)layer_param->dims[1];
+        }
+
+        if (width_out <= 0 || height_out <= 0) {
+            LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
+            return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+        }
+
+        DimsVector output_dims;
+        output_dims.push_back(num);
+        output_dims.push_back(channels);
+        output_dims.push_back(height_out);
+        output_dims.push_back(width_out);
+        outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+    return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 
 Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

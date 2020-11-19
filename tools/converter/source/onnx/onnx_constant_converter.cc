@@ -48,8 +48,8 @@ TNN_NS::Status OnnxConstantConverter::exec(tnn::NetStructure &net_structure, tnn
     auto const_layer_resource           = new TNN_NS::ConstLayerResource;
     const_layer_resource->weight_handle = *const_raw_buffer;
     const_layer_resource->name          = cur_layer->name;
-    // net_resource.constant_map[node.output(0)] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
-    net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(const_layer_resource);
+    net_resource.constant_map[node.output(0)] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
+    //net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(const_layer_resource);
 
     return TNN_NS::TNN_CONVERT_OK;
 }

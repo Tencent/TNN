@@ -61,6 +61,8 @@ void CreateRawBufferFromTensor(const onnx::TensorProto& tensor, TNN_NS::RawBuffe
 
 TNN_NS::DimsVector CreateDimsVectorFromTensor(const onnx::TensorProto &tensor);
 
+int TensorProtoDataType2TnnDataType(int data_type);
+
     template <typename T>
     bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
     ASSERT(CO > 0);

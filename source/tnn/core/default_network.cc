@@ -389,8 +389,10 @@ Status DefaultNetwork::Forward() {
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
 
-        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !layer->IsOutputConstant()) ||
-            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer->IsOutputConstant())) {
+//        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !layer->IsOutputConstant()) ||
+//            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer->IsOutputConstant()))
+
+        {
             
 #if DUMP_INPUT_BLOB
             // InputBlob data in dumped into files in NCHW_FLOAT format as default
