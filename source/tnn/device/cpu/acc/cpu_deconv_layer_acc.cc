@@ -69,6 +69,8 @@ void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam * param, float& sum) {
         } else if (sum < 0.0f) {
             sum = 0.0f;
         }
+    } else if(param->activation_type == ActivationType_SIGMOID_MUL) {
+        sum = 1.0f / (1.0f + exp(-sum)) * sum;
     }
 }
 

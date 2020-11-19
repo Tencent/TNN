@@ -37,6 +37,16 @@ Status OpenCLContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status OpenCLContext::ShareCommandQueue(Context* context) {
+    auto context_target = dynamic_cast<OpenCLContext *>(context);
+    if (!context_target) {
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "inpute context is not OpenCLContext");
+    }
+
+    command_queue_ = context_target->GetCommandQueue();
+    return TNN_OK;
+}
+
 cl::CommandQueue* OpenCLContext::CommandQueue() {
     return command_queue_.get();
 }
@@ -194,6 +204,11 @@ Status OpenCLContext::Init() {
     }
 
     return TNN_OK;
+}
+
+//Todo: refactor later
+std::shared_ptr<cl::CommandQueue> OpenCLContext::GetCommandQueue() {
+    return command_queue_; 
 }
 
 }  // namespace TNN_NS

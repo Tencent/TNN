@@ -23,6 +23,11 @@ Status Context::OnInstanceForwardBegin() {
     return TNN_OK;
 }
 
+Status Context::ShareCommandQueue(Context* context) {
+    LOGE("Subclass of Context must implement this func SetCommandQueue\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of Context must implement this func SetCommandQueue");
+}
+
 /*
  * Implement by the actual context such as ArmContext etc.
  * Not implemented for this default context.

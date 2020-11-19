@@ -127,7 +127,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_tyep accordingly.
+ *  2. Set data_type accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
@@ -193,6 +193,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
+            // release layer if Init failed
+            delete cur_layer;
             return ret;
         }
 
@@ -356,6 +358,22 @@ Status DefaultNetwork::GetCommandQueue(void **command_queue) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
     return context_->GetCommandQueue(command_queue);
+}
+
+Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+    
+    auto network_target = dynamic_cast<DefaultNetwork *>(network);
+    if (!network_target) {
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "inpute network is DefaultNetwork");
+    }
+    return context_->ShareCommandQueue(network_target->GetContext());
+}
+
+Context* DefaultNetwork::GetContext() {
+    return context_;
 }
 
 Status DefaultNetwork::Forward() {

@@ -24,26 +24,26 @@ class ConvLayerTest : public LayerTest,
                           std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
-                         ::testing::Combine(  // batch
-                             testing::Values(1),
-                             // channel
-                             testing::Values(1, 2, 3, 4, 10, 32),
-                             // hw
-                             testing::Values(9, 10, 16, 19),
-                             // group
-                             testing::Values(1, 2),
-                             // kernel
-                             testing::Values(1, 2, 3, 5),
-                             // dilation
-                             testing::Values(1, 2),
-                             // stride
-                             testing::Values(1, 2),
-                             // pads
-                             testing::Values(0, 1),
-                             // activation
-                             testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6),
-                             // data_type
-                             testing::Values(DATA_TYPE_FLOAT)));
+                        ::testing::Combine(  // batch
+                            testing::Values(1),
+                            // channel
+                            testing::Values(1, 2, 3, 4, 10, 32),
+                            // hw
+                            testing::Values(9, 10, 16, 19),
+                            // group
+                            testing::Values(1, 2),
+                            // kernel
+                            testing::Values(1, 2, 3, 5),
+                            // dilation
+                            testing::Values(1, 2),
+                            // stride
+                            testing::Values(1, 2),
+                            // pads
+                            testing::Values(0, 1),
+                            // data_type
+                            testing::Values(DATA_TYPE_FLOAT),
+                            // activation_type
+                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param
@@ -56,10 +56,9 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int dilation          = std::get<5>(GetParam());
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
-    auto activation_type  = std::get<8>(GetParam());
-    auto dtype            = std::get<9>(GetParam());
-
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+    auto dtype            = std::get<8>(GetParam());
+    int activation_type   = std::get<9>(GetParam());
+    DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
     if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
