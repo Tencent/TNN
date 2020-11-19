@@ -36,7 +36,7 @@ int PackNeon(float *dst, const float *src, size_t hw, size_t channel) {
         auto src3 = src + c * hw + hw * 3;
         auto dst_c = dst + c * hw;
         int cur_hw = 0;
-        for (; cur_hw <= hw - 4; cur_hw += 4) {
+        for (; cur_hw + 3 < hw; cur_hw += 4) {
             float32x4x4_t v;
             v.val[0] = vld1q_f32(src0 + cur_hw);
             v.val[1] = vld1q_f32(src1 + cur_hw);
@@ -59,7 +59,7 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     auto src1 = src + hw;
     auto src2 = src + hw * 2;
     int cur_hw = 0;
-    for (; cur_hw <= hw - 4; cur_hw += 4) {
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
         float32x4x4_t v;
         v.val[0] = vld1q_f32(src0 + cur_hw);
         v.val[1] = vld1q_f32(src1 + cur_hw);
@@ -101,7 +101,7 @@ int PackNeonC3(__fp16 *dst, const float *src, size_t hw, size_t channel) {
     int cur_hw = 0;
     float32x4_t v_zero_f32 = vdupq_n_f32(0.f);
     float16x4_t v_zero_f16 = vdup_n_f16(0.f);
-    for (; cur_hw <= hw - 4; cur_hw += 4) {
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
         float32x4_t v0 = vld1q_f32(src0 + cur_hw);
         float32x4_t v1 = vld1q_f32(src1 + cur_hw);
         float32x4_t v2 = vld1q_f32(src2 + cur_hw);
