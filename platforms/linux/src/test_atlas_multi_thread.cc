@@ -57,7 +57,19 @@ int main(int argc, char* argv[]) {
     int ret;
     ModelConfig config;
     config.model_type = MODEL_TYPE_ATLAS;
+    // use om file path
     config.params.push_back(argv[1]);
+    // use om file content
+    //{
+    //    std::ifstream model_stream(argv[1], std::ios::binary);
+    //    if (!model_stream.is_open() || !model_stream.good()) {
+    //        printf("invalid argv[1]: %s\n", argv[1]);
+    //        return -1;
+    //    }
+    //    auto model_content =
+    //        std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
+    //    config.params.push_back(model_content);
+    //}
 
     error = net_.Init(config);  // init the net
     if (TNN_OK != error) {
@@ -65,19 +77,19 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    TNNParam thread_param[THREAD_NUM];
+    pthread_t thread[THREAD_NUM];
+
     int thread_num = atoi(argv[3]);
     long long loop_count = atoi(argv[4]);
     printf("thread num: %d  loop count %d\n", thread_num, loop_count);
     do {
-        TNNParam thread_param[THREAD_NUM];
         for (int i = 0; i < thread_num; ++i) {
             thread_param[i].input_file = argv[2];
             thread_param[i].device_id  = 0;
             thread_param[i].thread_id  = i;
             thread_param[i].tnn_net    = &net_;
         }
-
-        pthread_t thread[THREAD_NUM];
 
         for (int t = 0; t < thread_num; ++t) {
             if (pthread_create(&thread[t], NULL, &RunTNN, (void*)&thread_param[t]) != 0) {
