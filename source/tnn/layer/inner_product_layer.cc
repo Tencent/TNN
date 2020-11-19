@@ -25,6 +25,8 @@ Status InnerProductLayer::InferOutputDataType() {
 }
 
 Status InnerProductLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     InnerProductLayerParam* ip_param = dynamic_cast<InnerProductLayerParam*>(param_);
     CHECK_PARAM_NULL(ip_param);
 

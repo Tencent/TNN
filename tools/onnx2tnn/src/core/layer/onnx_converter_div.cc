@@ -61,7 +61,8 @@ int OnnxOpConverterDiv::WriteTNNModel(serializer* net_writer,
        for (int j = 0; j < size; j++) {
            div[j] = 1.0f / mul[j];
        }
-       WriteRawData(div, size, net_writer, net_info.data_type);
+       auto dims = GetDimsFromTensor(weight);
+       WriteRawData(div, size, net_writer, net_info.data_type, dims);
        delete[] div;
        
        return 1;

@@ -21,10 +21,12 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource_generator.h"
+#include "tnn/memory_manager/blob_memory_pool_factory.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/data_flag_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -68,24 +70,16 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     }
 
     device_ = GetDevice(net_config.device_type);
-    if (device_ == NULL) {
-        return TNNERR_DEVICE_NOT_SUPPORT;
-    }
+    RETURN_VALUE_ON_NEQ(device_ != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
 
     context_ = device_->CreateContext(net_config.device_id);
-    if (context_ == NULL) {
-        return TNNERR_DEVICE_CONTEXT_CREATE;
-    }
+    RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
     ret = context_->SetPrecision(net_config.precision);
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = context_->LoadLibrary(net_config.library_path);
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     /*
      * The NetOptimizeManager holds a list of network optimization processes.
@@ -96,30 +90,23 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
-        if (ret != TNN_OK) {
-            return ret;
-        }
+        RETURN_ON_NEQ(ret, TNN_OK);
     }
 
     blob_manager_ = new BlobManager(device_);
 
     ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = InitLayers(net_structure, net_resource);
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    RETURN_ON_NEQ(ret, TNN_OK);
 
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    ret = AllocateBlobMemory();
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     net_structure_ = net_structure;
-
+    net_resource_ = net_resource;
+    
     InputShapesMap input_shape_map;
     return Reshape(input_shape_map);
 }
@@ -189,16 +176,23 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         if (net_resource->resource_map.count(layer_name) != 0) {
             layer_resource = net_resource->resource_map[layer_name].get();
         }
-
+        
+        cur_layer->SetRuntimeMode(runtime_model_);
+        cur_layer->SetConstantResource(net_resource->constant_map);
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
         }
+        cur_layer->SetRuntimeBlobMemoryPool(runtime_blob_pool_);
 
         layers_.push_back(cur_layer);
     }
     return ret;
+}
+
+Status DefaultNetwork::AllocateBlobMemory() {
+    return blob_manager_->AllocateBlobMemory(DATA_FLAG_CHANGE_ALWAYS);
 }
 
 Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob) {
@@ -246,11 +240,17 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
             bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
+                    desc.data_type == DATA_TYPE_BFP16) {
+                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                }
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
             } else if (config_.precision == PRECISION_HIGH) {
-                desc.data_type = DATA_TYPE_FLOAT;
+                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
+                    desc.data_type == DATA_TYPE_BFP16) {
+                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                }
             } else {
                 return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
@@ -328,6 +328,11 @@ Status DefaultNetwork::DeInit() {
         delete blob_manager_;
         blob_manager_ = NULL;
     }
+    
+    if (runtime_blob_pool_ != nullptr) {
+        delete runtime_blob_pool_;
+        runtime_blob_pool_ = nullptr;
+    }
 
     if (context_ != NULL) {
         delete context_;
@@ -351,71 +356,96 @@ Status DefaultNetwork::GetCommandQueue(void **command_queue) {
     return context_->GetCommandQueue(command_queue);
 }
 
-Status DefaultNetwork::Forward() {
-    Status result = TNN_OK;
-    result        = blob_manager_->CheckBlobMemoryState();
-    if (result != TNN_OK) {
-        return result;
+Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
     }
+    
+    auto network_target = dynamic_cast<DefaultNetwork *>(network);
+    if (!network_target) {
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "inpute network is DefaultNetwork");
+    }
+    return context_->ShareCommandQueue(network_target->GetContext());
+}
 
-    context_->OnInstanceForwardBegin();
+Context* DefaultNetwork::GetContext() {
+    return context_;
+}
+
+Status DefaultNetwork::Forward() {
+    auto status = blob_manager_->CheckBlobMemoryState();
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    if (runtime_blob_pool_) {
+        //当前acc在运行时每次都allocate blob，所以每次forward前清空避免内存泄漏
+        runtime_blob_pool_->ClearBlobMemoryPool();
+    }
+    
+    status = context_->OnInstanceForwardBegin();
+    RETURN_ON_NEQ(status, TNN_OK);
+    
     int cnt = 0;
     for (auto layer : layers_) {
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
 
+        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !layer->IsOutputConstant()) ||
+            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer->IsOutputConstant())) {
+            
 #if DUMP_INPUT_BLOB
-        // InputBlob data in dumped into files in NCHW_FLOAT format as default
-        std::string filename = layer->GetLayerName();
-        std::replace(filename.begin(), filename.end(), '/', '_');
-        for (int i = 0; i < inputs.size(); i++) {
-            char ss[1000];
-            if (g_tnn_dump_directory.length() > 0) {
-                snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
-            } else {
-                snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
-            }
+            // InputBlob data in dumped into files in NCHW_FLOAT format as default
+            std::string filename = layer->GetLayerName();
+            std::replace(filename.begin(), filename.end(), '/', '_');
+            for (int i = 0; i < inputs.size(); i++) {
+                char ss[1000];
+                if (g_tnn_dump_directory.length() > 0) {
+                    snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
+                } else {
+                    snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
+                }
 
-            auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
-            if (ret != TNN_OK) {
-                LOGE("dump blob failed\n");
-                return ret;
+                auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
+                if (ret != TNN_OK) {
+                    LOGE("dump blob failed\n");
+                    return ret;
+                }
             }
-        }
 #endif  // DUMP_INPUT_BLOB
-
-        result = layer->Forward();
-        LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)result);
-        if (result != TNN_OK) {
-            LOGE("Forward error %s, exit\n", result.description().c_str());
-            return result;
-        }
+            
+            status = layer->Forward();
+            
+            LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
+            if (status != TNN_OK) {
+                LOGE("Forward error %s, exit\n", status.description().c_str());
+                return status;
+            }
 
 #if DUMP_OUTPUT_BLOB
-        // OutBlob data in dumped into files in NCHW_FLOAT format as default
-        std::string out_file_name = layer->GetLayerName();
-        std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
-        for (int i = 0; i < outputs.size(); i++) {
-            char ss[1000];
-            if (g_tnn_dump_directory.length() > 0) {
-                snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
-            } else {
-                snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
-            }
+            // OutBlob data in dumped into files in NCHW_FLOAT format as default
+            std::string out_file_name = layer->GetLayerName();
+            std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
+            for (int i = 0; i < outputs.size(); i++) {
+                char ss[1000];
+                if (g_tnn_dump_directory.length() > 0) {
+                    snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
+                } else {
+                    snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
+                }
 
-            auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
-            if (ret != TNN_OK) {
-                LOGE("dump blob failed\n");
-                return ret;
+                auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
+                if (ret != TNN_OK) {
+                    LOGE("dump blob failed\n");
+                    return ret;
+                }
             }
-        }
 #endif  // DUMP_OUTPUT_BLOB
-
+        }
+        
         cnt++;
     }
     context_->OnInstanceForwardEnd();
     context_->Synchronize();
-    return result;
+    return status;
 }
 
 #ifdef FORWARD_CALLBACK_ENABLE

@@ -25,6 +25,8 @@ Status ConvLayer::InferOutputDataType() {
 }
 
 Status ConvLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     Blob* input_blob           = input_blobs_[0];
     Blob* output_blob          = output_blobs_[0];
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);

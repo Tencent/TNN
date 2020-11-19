@@ -59,6 +59,9 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue);
+    
+    // @brief share tnn command queue to another network。
+    virtual Status ShareCommandQueue(AbstractNetwork *network);
 
     // @brief network forward
     virtual Status Forward();
@@ -97,18 +100,24 @@ public:
 
 protected:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status AllocateBlobMemory();
+    RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
+    
     Status GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob);
     Status UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                const std::string &name, NetResource *net_resource, Blob **blob);
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;
+    Context *GetContext();
 
     std::vector<BaseLayer *> layers_;
 
     BlobManager *blob_manager_ = nullptr;
+    BlobMemoryPool *runtime_blob_pool_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
+    NetResource *net_resource_ = nullptr;
 
     NetworkConfig config_;
 

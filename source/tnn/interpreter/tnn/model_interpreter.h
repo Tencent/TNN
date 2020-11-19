@@ -26,7 +26,7 @@ class AbstractLayerInterpreter;
 
 static const int layer_cfg_start_id    = 5;
 static const int layer_param_start_id  = 4;
-static const int input_layer_cfg_count = 5;
+static const int input_layer_cfg_count = 2;
 
 // refactor later
 struct res_header : public Serializable {

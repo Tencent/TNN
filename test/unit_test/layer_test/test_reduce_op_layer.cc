@@ -20,14 +20,17 @@
 namespace TNN_NS {
 
 class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {
+};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
                                             testing::Values(9, 10, 16, 19, 512),
                                             testing::Values(9, 10, 16, 19, 512),
                                             // axis
-                                            testing::Values(0, 1, 2, 3),
+                                            testing::Values(std::vector<int>({1}), std::vector<int>({3}),
+                                                            std::vector<int>({1, 2}), std::vector<int>({1, -1}),
+                                                            std::vector<int>({3, -2}), std::vector<int>({1, -2, -1})),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -37,7 +40,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int channel        = std::get<1>(GetParam());
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
-    int axis           = std::get<4>(GetParam());
+    auto& axes         = std::get<4>(GetParam());
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
@@ -62,12 +65,13 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // param
     ReduceMaxLayerParam param;
     param.name = "ReduceOp";
-    param.axis = {axis};
+    param.axis = axes;
 
     // all reduce different op layer run
     Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_MIN, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_MEAN, &param, nullptr, inputs_desc, outputs_desc);
+    Run(LAYER_REDUCE_L1, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_L2, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_LOG_SUM, &param, nullptr, inputs_desc, outputs_desc);
     Run(LAYER_REDUCE_LOG_SUM_EXP, &param, nullptr, inputs_desc, outputs_desc);

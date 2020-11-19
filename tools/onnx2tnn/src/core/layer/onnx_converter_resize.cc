@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -17,24 +17,21 @@
 
 DECLARE_OP_CONVERTER(Resize);
 
-string OnnxOpConverterResize::TNNOpType(NodeProto &node,
-                                             OnnxNetInfo &net_info) {
+string OnnxOpConverterResize::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "Upsample";
 }
 
-string OnnxOpConverterResize::TNNLayerParam(NodeProto &node,
-                                                 OnnxNetInfo &net_info) {
+string OnnxOpConverterResize::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     ostringstream layer_param;
 
-    std::string coordinate_transformation_mode =
-        get_node_attr_s(node, "coordinate_transformation_mode", "half_pexel");
-    std::string mode  = get_node_attr_s(node, "mode");
+    std::string coordinate_transformation_mode = get_node_attr_s(node, "coordinate_transformation_mode", "half_pexel");
+    std::string mode                           = get_node_attr_s(node, "mode");
 
     std::vector<float> scales;
     std::vector<int64_t> sizes;
     if (net_info.opset >= 11) {
         scales = get_node_attr_af(node, "scales", net_info, 2);
-        sizes = get_node_attr_ai(node, "sizes", net_info, 3);
+        sizes  = get_node_attr_ai(node, "sizes", net_info, 3);
     } else {
         scales = get_node_attr_af(node, "scales", net_info, 1);
     }
@@ -50,16 +47,17 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node,
         DLog("not implement\n");
         assert(0);
     }
-    
+
     int align_corners = 0;
     if (coordinate_transformation_mode == "half_pixel") {
         align_corners = 0;
     } else if (coordinate_transformation_mode == "align_corners") {
         align_corners = 1;
     } else {
-        DLog("resize: coordinate_transformation_mode(%s) is not supported, result may be different.\n", coordinate_transformation_mode.c_str());
+        DLog("resize: coordinate_transformation_mode(%s) is not supported, result may be different.\n",
+             coordinate_transformation_mode.c_str());
     }
-    
+
     if (sizes.size() <= 0) {
         if (scales.size() == 2) {
             w_scale = scales[1];
@@ -77,46 +75,43 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node,
         } else {
             h_scale = get_node_attr_f(node, "height_scale", -1.0f);
             w_scale = get_node_attr_f(node, "width_scale", -1.0f);
-            
+
             if (h_scale <= 0 || w_scale <= 0) {
                 DLog("resize invalid scale\n");
                 assert(0);
             }
         }
 
-//        if (h_scale <= 1.f || w_scale <= 1.f) {
-//            DLog("resize to smaller hw not implemented.\n");
-//            assert(0);
-//        }
-        
-        layer_param << resize_type << " " << h_scale << " " << w_scale << " "
-                    << align_corners << " ";
+        //        if (h_scale <= 1.f || w_scale <= 1.f) {
+        //            DLog("resize to smaller hw not implemented.\n");
+        //            assert(0);
+        //        }
+
+        layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " ";
     } else {
         h_scale = 0.0;
         w_scale = 0.0;
-        
+
         int target_height = 0;
-        int target_width = 0;
-        
+        int target_width  = 0;
+
         if (sizes.size() == 4) {
-            target_height =  (int)sizes[2];
-            target_width =  (int)sizes[3];
+            target_height = (int)sizes[2];
+            target_width  = (int)sizes[3];
         }
-        
+
         if (target_height <= 0 || target_width <= 0) {
             DLog("resize to smaller hw not implemented.\n");
             assert(0);
         }
-        layer_param << resize_type << " " << h_scale << " " << w_scale << " "
-                    << align_corners << " "<<target_height<<" "<<target_width<<" ";
+        layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " " << target_height
+                    << " " << target_width << " ";
     }
-    
+
     return layer_param.str();
 }
 
-int OnnxOpConverterResize::WriteTNNModel(serializer *net_writer,
-                                              NodeProto &node,
-                                              OnnxNetInfo &net_info) {
+int OnnxOpConverterResize::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

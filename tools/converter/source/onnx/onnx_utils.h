@@ -19,6 +19,8 @@
 
 #include "onnx.pb.h"
 #include "tnn/core/common.h"
+#include "tnn/interpreter/raw_buffer.h"
+
 namespace TNN_CONVERTER {
 
 TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto tensor_shape_proto);
@@ -47,8 +49,18 @@ const float* GetTensorProtoData(const onnx::TensorProto& tp);
 
 int GetTensorProtoDataSize(const onnx::TensorProto& tp);
 
-template <typename T>
-bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
+void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataType data_type);
+
+void CreateRawBufferFromConstant(const onnx::NodeProto& constant_node, TNN_NS::RawBuffer** raw_buffer);
+
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto& node, const std::string& name);
+
+const onnx::TensorProto* GetTensorFromConstantNode(const onnx::NodeProto& constant_node);
+
+void CreateRawBufferFromTensor(const onnx::TensorProto& constant_tensor, TNN_NS::RawBuffer** raw_buffer);
+
+    template <typename T>
+    bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
     ASSERT(CO > 0);
     ASSERT(KH > 0);
     ASSERT(KW > 0);

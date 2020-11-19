@@ -105,7 +105,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
     return TNN_OK;
 }
 
-Status TensorRTBlobManager::AllocateBlobMemory() {
+Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
     // input
     for (auto iter : input_blobs_) {
         Blob *current_blob = iter.second;

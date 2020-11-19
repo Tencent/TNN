@@ -22,6 +22,8 @@ Status DetectionPostProcessLayer::InferOutputDataType() {
 }
 
 Status DetectionPostProcessLayer::InferOutputShape() {
+    BaseLayer::InferOutputShape();
+    
     assert(input_blobs_.size() == 2);
     assert(output_blobs_.size() == 4);
     auto param                   = dynamic_cast<DetectionPostProcessLayerParam*>(param_);

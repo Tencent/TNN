@@ -23,7 +23,13 @@ Blob2DMemoryPool::Blob2DMemoryPool(AbstractDevice *device) : BlobMemoryPool(devi
 }
 
 Blob2DMemoryPool::~Blob2DMemoryPool() {
-    for (auto iter : blob_memory_list_header_map_) {
+}
+
+void Blob2DMemoryPool::ClearBlobMemoryPool() {
+    BlobMemoryPool::ClearBlobMemoryPool();
+    
+    auto blob_memory_list_header_map = blob_memory_list_header_map_;
+    for (auto iter : blob_memory_list_header_map) {
         auto list_header = iter.second;
         ReleaseBlobMemoryNodeList(list_header);
     }

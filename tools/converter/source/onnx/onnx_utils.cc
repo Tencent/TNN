@@ -16,6 +16,8 @@
 
 #include <algorithm>
 
+#include "tnn/utils/dims_vector_utils.h"
+
 namespace TNN_CONVERTER {
 
 TNN_NS::DimsVector ConvertTensorShapeProtoToDimsVector(onnx::TensorShapeProto tensor_shape_proto) {
@@ -66,6 +68,20 @@ int GetAttributeInt(const onnx::NodeProto &node, const std::string &name, int de
 
 std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto &node, const std::string &name) {
     std::vector<int32_t> attributes;
+    for (const auto &iter : node.attribute()) {
+        if (iter.name() != name) {
+            continue;
+        }
+        assert(iter.type() == onnx::AttributeProto_AttributeType_INTS);
+        for (const auto &value : iter.ints()) {
+            attributes.push_back(value);
+        }
+    }
+    return attributes;
+}
+
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto &node, const std::string &name) {
+    std::vector<int64_t> attributes;
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
             continue;
@@ -182,43 +198,154 @@ const float *GetTensorProtoData(const onnx::TensorProto &tp) {
 }
 
 int GetTensorProtoDataSize(const onnx::TensorProto &tp) {
+    int size = 0;
     if (tp.has_raw_data()) {
         const std::string &raw_data = tp.raw_data();
-        if (tp.data_type() == 1) {
-            return (int)raw_data.size() / 4;
-        } else if (tp.data_type() == 2) {
-            return (int)raw_data.size() / 1;
-        } else if (tp.data_type() == 3) {
-            return (int)raw_data.size() / 1;
-        } else if (tp.data_type() == 4) {
-            return (int)raw_data.size() / 2;
-        } else if (tp.data_type() == 5) {
-            return (int)raw_data.size() / 2;
-        } else if (tp.data_type() == 6) {
-            return (int)raw_data.size() / 4;
-        } else if (tp.data_type() == 7) {
-            return (int)raw_data.size() / 8;
-        } else if (tp.data_type() == 11) {
-            return (int)raw_data.size() / 8;
-        } else {
-            LOGD("unsupport data type: %d\n", tp.data_type());
-            assert(0);
+        switch (tp.data_type()) {
+            case onnx::TensorProto_DataType_FLOAT: {
+                size = int(raw_data.size() / sizeof(float));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT8: {
+                size = int(raw_data.size() / sizeof(uint8_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT8: {
+                size = int(raw_data.size() / sizeof(int8_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT16: {
+                size = int(raw_data.size() / sizeof(uint16_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT16: {
+                size = int(raw_data.size() / sizeof(int16_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT32: {
+                size = int(raw_data.size() / sizeof(int32_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_INT64: {
+                size = int(raw_data.size() / sizeof(int64_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_BOOL: {
+                size = int(raw_data.size() / sizeof(bool));
+                break;
+            }
+            case onnx::TensorProto_DataType_FLOAT16: {
+                size = int(raw_data.size() / (sizeof(float) / 2));
+                break;
+            }
+            case onnx::TensorProto_DataType_DOUBLE: {
+                size = int(raw_data.size() / sizeof(double));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT32: {
+                size = int(raw_data.size() / sizeof(uint32_t));
+                break;
+            }
+            case onnx::TensorProto_DataType_UINT64: {
+                size = int(raw_data.size() / sizeof(uint64_t));
+                break;
+            }
+            default: {
+                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                size = -1;
+            }
         }
     } else {
-        if (tp.data_type() == 1) {
-            return tp.float_data_size();
-        } else if (tp.data_type() == 6) {
-            return tp.int32_data_size();
-        } else if (tp.data_type() == 7) {
-            return tp.int64_data_size();
-        } else if (tp.data_type() == 11) {
-            return tp.double_data_size();
-        } else {
-            LOGD("unsupport data type: %d\n", tp.data_type());
-            assert(0);
+        switch (tp.data_type()) {
+            case onnx::TensorProto_DataType_FLOAT: {
+                size = tp.float_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_INT32: {
+                size = tp.int32_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_INT64: {
+                size = tp.int64_data_size();
+                break;
+            }
+            case onnx::TensorProto_DataType_DOUBLE: {
+                size = tp.double_data_size();
+                break;
+            }
+            default: {
+                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                size = -1;
+            }
         }
     }
-    return 0;
+    return size;
 }
 
+void *GetDataFromTensor(const onnx::TensorProto &tensor, onnx::TensorProto_DataType data_type) {
+    void *data_ptr = nullptr;
+    if (tensor.data_type() == data_type) {
+        if (tensor.has_raw_data()) {
+            data_ptr = (void *)tensor.raw_data().data();
+        }
+    }
+    return data_ptr;
+}
+
+const onnx::TensorProto *GetTensorFromConstantNode(const onnx::NodeProto &constant_node) {
+    for (int i = 0; i < constant_node.attribute_size(); ++i) {
+        const auto &attribute_proto = constant_node.attribute(i);
+        const auto &attribute_name  = attribute_proto.name();
+        if (attribute_name == "value") {
+            return &attribute_proto.t();
+        }
+    }
+    return nullptr;
+}
+
+void CreateRawBufferFromTensor(const onnx::TensorProto &constant_tensor, TNN_NS::RawBuffer **raw_buffer) {
+    switch (constant_tensor.data_type()) {
+        case onnx::TensorProto_DataType_INT64: {
+            auto data_count             = 1;
+            const void *tensor_data_ptr = constant_tensor.raw_data().data();
+            // raw_buffer = std::make_shared<TNN_NS::RawBuffer>(data_count * sizeof(int32_t)).get();
+            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), TNN_NS::DimsVector{1});
+            (*raw_buffer)->SetDataType(TNN_NS::DATA_TYPE_INT32);
+            int value = *((int64_t *)tensor_data_ptr);
+            memcpy((*raw_buffer)->force_to<int32_t *>(), &value, data_count * sizeof(int32_t));
+            break;
+        }
+        default: {
+            LOGE("Converter: do not support onnx tensor type\n");
+        }
+    }
+}
+
+void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::RawBuffer **raw_buffer) {
+    ASSERT(constant_node.op_type() == "Constant");
+    onnx::TensorProto constant_tensor;
+    for (int i = 0; i < constant_node.attribute_size(); ++i) {
+        const auto &attribute_proto = constant_node.attribute(i);
+        const auto &attribute_name  = attribute_proto.name();
+        if (attribute_name == "value") {
+            constant_tensor = attribute_proto.t();
+            break;
+        }
+    }
+    switch (constant_tensor.data_type()) {
+        case onnx::TensorProto_DataType_INT64: {
+            auto data_count             = 1;
+            const void *tensor_data_ptr = constant_tensor.raw_data().data();
+            // raw_buffer = std::make_shared<TNN_NS::RawBuffer>(data_count * sizeof(int32_t)).get();
+            *raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), TNN_NS::DimsVector({1}));
+            (*raw_buffer)->SetDataType(TNN_NS::DATA_TYPE_INT32);
+            int value = *((int64_t *)tensor_data_ptr);
+            memcpy((*raw_buffer)->force_to<int32_t *>(), &value, data_count * sizeof(int32_t));
+            break;
+        }
+        default: {
+            LOGE("Converter: do not support onnx tensor type\n");
+        }
+    }
+}
 }  // namespace TNN_CONVERTER

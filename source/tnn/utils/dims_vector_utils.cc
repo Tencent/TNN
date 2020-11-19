@@ -79,6 +79,32 @@ bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index,
     return true;
 }
 
+DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *status) {
+    DimsVector max_dims;
+    DimsVector min_dims;
+    if (dims0.size() >= dims1.size()) {
+        max_dims   = dims0;
+        min_dims = dims1;
+    } else {
+        max_dims   = dims1;
+        min_dims = dims0;
+    }
+    
+    auto output_dims = max_dims;
+    const int offset = (int)(max_dims.size() - min_dims.size());
+    for(int i = 0; i < min_dims.size(); ++i) {
+        if(max_dims[offset + i] == 1) {
+            output_dims[offset + i] = min_dims[i];
+        } else if (max_dims[offset + i] != min_dims[i]) {
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "expand param dims error");
+            }
+        }
+    }
+
+    return output_dims;
+}
+
 DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
@@ -98,4 +124,38 @@ DimsVector DimsVectorUtils::NHWC2NCHW(DimsVector dims) {
     std::vector<int> nhwc = {n, c, h, w};
     return nhwc;
 }
+
+DimsVector DimsVectorUtils::IncreaseIndex(DimsVector index, const DimsVector shape, int offset) {
+    if (index.size() <= 0) {
+        return index;
+    }
+    
+    int value = offset;
+    for (int i=(int)index.size()-1; i>=0; i--) {
+        value += index[i];
+        int next_offset = 0;
+        while (value >= shape[i]) {
+            value -= shape[i];
+            next_offset++;
+        }
+        index[i] = value;
+        
+        value = next_offset;
+    }
+    
+    return index;
+}
+
+DimsVector DimsVectorUtils::StrideOfShape(DimsVector shape) {
+    if (shape.size() <= 0) {
+        return shape;
+    }
+    
+    DimsVector stride(shape.size());
+    for (int i=0; i<stride.size(); i++) {
+        stride[i] = Count(shape, i+1);
+    }
+    return stride;
+}
+
 }  // namespace TNN_NS

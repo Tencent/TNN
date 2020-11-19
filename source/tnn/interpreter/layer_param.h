@@ -41,6 +41,7 @@ enum ActivationType {
     ActivationType_None  = 0x0000,
     ActivationType_ReLU  = 0x0001,
     ActivationType_ReLU6 = 0x0002,
+    ActivationType_SIGMOID_MUL = 0x0100,
 };
 
 struct BatchNormLayerParam : public LayerParam {
@@ -152,6 +153,10 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 };
 
+struct CastLayerParam : public LayerParam {
+    int to = 0;
+};
+
 struct ScaleLayerParam : public LayerParam {
     int axis      = 1;
     int num_axes  = 1;
@@ -186,6 +191,7 @@ struct InnerProductLayerParam : public LayerParam {
 
 struct ConcatLayerParam : public LayerParam {
     int axis = 1;
+    std::vector<int> extra_data = {};
 };
 
 struct PReluLayerParam : public LayerParam {
@@ -217,6 +223,13 @@ struct StrideSliceLayerParam : public LayerParam {
     std::vector<int> strides;
 };
 
+struct StrideSliceV2LayerParam : public LayerParam {
+    std::vector<int> begins;
+    std::vector<int> ends;
+    std::vector<int> axes;
+    std::vector<int> strides;
+};
+
 struct SliceLayerParam : public LayerParam {
     // size of each slice
     std::vector<int> slices;
@@ -240,10 +253,12 @@ typedef enum {
     BroadcastTypeHeightWidth = 4,
     // broadcast width
     BroadcastTypeWidth = 5,
+    // broadcast for any dim
+    BroadcastTypeGeneral = 6,
     // broadcast channel x height
-    BroadcastTypeChannelHeight = 6,
+    BroadcastTypeChannelHeight = 7,
     // broadcast channel x width
-    BroadcastTypeChannelWidth = 7
+    BroadcastTypeChannelWidth = 8
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
@@ -342,7 +357,8 @@ struct LRNLayerParam : public LayerParam {
 
 struct ReorgLayerParam : public LayerParam {
     int stride;
-    bool reverse;
+    bool forward;
+    int mode; // DCR: 0  CRD: 1
 };
 
 struct ConstLayerParam : public LayerParam {
@@ -357,7 +373,10 @@ struct SignedMulLayerParam : public LayerParam {
 
 struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
+    bool data_in_resource = false;
 };
+
+struct UnsqueezeLayerParam: public SqueezeLayerParam {};
 
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
@@ -368,6 +387,24 @@ struct ArgMaxOrMinLayerParam : public LayerParam {
 
 struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
+    int axis;
+};
+
+struct GatherLayerParam : public LayerParam {
+    int axis                              = 0;
+    bool data_in_resource      = false;
+    bool indices_in_resource  = true;
+};
+
+struct ExpandLayerParam : public LayerParam {
+    std::vector<int> shape;
+};
+
+struct MatMulLayerParam : public LayerParam {
+    int weight_position = -1;
+    DimsVector matrix_a_dims;
+    DimsVector matrix_b_dims;
+    int axis            = 0;
 };
 
 }  // namespace TNN_NS

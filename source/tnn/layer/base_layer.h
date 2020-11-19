@@ -64,8 +64,18 @@ public:
     //@brief infer shape ahead for generate resource
     virtual Status InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,
                                    LayerResource* resource);
-
-
+    
+    // @brief set runtime bolob pool
+    void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
+    
+    // @brief check if the layer's output is constant
+    bool IsOutputConstant();
+    
+    // @brief set constant resource
+    void SetConstantResource(ConstantResource consts);
+    
+    // @brief set runtime mode
+    void SetRuntimeMode(RuntimeMode mode);
 protected:
     LayerType type_;
 
@@ -76,10 +86,12 @@ protected:
 
     LayerParam* param_;
     LayerResource* resource_;
+    ConstantResource const_resource_;
+    RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 
     //@brief calculate the output tensor dims
-    virtual Status InferOutputShape() = 0;
-    //@brief infer the output data type, by default it is the same as input
+    virtual Status InferOutputShape();
+    //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of output blobs
     virtual Status InferOutputDataType();
 };
 

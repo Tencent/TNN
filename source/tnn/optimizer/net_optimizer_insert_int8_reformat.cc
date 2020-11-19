@@ -49,6 +49,8 @@ namespace optimizer {
         new_layer->name                      = name;
         ReformatLayerParam *param            = new ReformatLayerParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
+        new_layer->param->type               = new_layer->type_str;
+        new_layer->param->name               = new_layer->name;
         // only define quant/dequant here, layout after layer init
         param->src_type = src_quantized ? DATA_TYPE_INT8 : DATA_TYPE_FLOAT;
         param->dst_type = src_quantized ? DATA_TYPE_FLOAT : DATA_TYPE_INT8;

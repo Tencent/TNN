@@ -38,4 +38,19 @@ bool GetQuantizedInfoFromNetStructure(NetStructure* net_struct) {
     return quantize_layer != layers.end();
 }
 
+bool NeedDoConstantFolding(NetStructure* net_struct) {
+    if (!net_struct) {
+        return false;
+    }
+    
+    for (auto item : net_struct->layers) {
+        if (item != nullptr &&
+            (item->type == LAYER_SHAPE || item->type_str == "Shape")) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 }  // namespace TNN_NS

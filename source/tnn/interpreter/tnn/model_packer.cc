@@ -75,6 +75,7 @@ Status ModelPacker::PackProto(std::string file_path) {
     write_stream.open(file_path);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
+        LOGE("invalid proto file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
     }
 
@@ -93,10 +94,19 @@ Status ModelPacker::PackProto(std::string file_path) {
     int idx         = 0;
     for (auto input_shape : net_struc->inputs_shape_map) {
         write_stream << input_shape.first << " ";
+        const auto& input_dims = input_shape.second;
+        if (magic_number == g_version_magic_number_v2){
+            write_stream << input_dims.size() << " ";
+        }
         for (auto item : input_shape.second) {
             write_stream << item << " ";
         }
-
+        if (magic_number == g_version_magic_number_v2) {
+            const auto& input_data_type_map = net_struc->input_data_type_map;
+            if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
+                write_stream << input_data_type_map.find(input_shape.first)->second << " ";
+            }
+        }
         if (input_count > 1 && idx < (input_count - 1)) {
             write_stream << ": ";
         }
@@ -176,6 +186,7 @@ Status ModelPacker::PackModel(std::string file_path) {
     write_stream.open(file_path, std::ios::binary);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
+        LOGE("invalid model file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "model file cannot be written");
     }
     auto magic_number = GetMagicNumber();
@@ -183,12 +194,7 @@ Status ModelPacker::PackModel(std::string file_path) {
         write_stream.write(reinterpret_cast<char *>(&magic_number), sizeof(uint32_t));
     }
     res_header header;
-    header.layer_cnt_ = 0;
-    for (const auto &item : net_resource->resource_map) {
-        if (item.second != nullptr) {
-            header.layer_cnt_++;
-        }
-    }
+    header.layer_cnt_ = GetResourceCount(net_struct, net_resource);
     if (header.layer_cnt_ <= 0) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
@@ -240,7 +246,6 @@ Status ModelPacker::PackModel(std::string file_path) {
                     resource_map.find(blob_scale_name)->second == nullptr) {
                     continue;
                 }
-                blob_scale_set.insert(blob_scale_name);
                 result = PackResource(resource_map, blob_scale_name, serializer, write_stream);
                 if (result != TNN_OK) {
                     write_stream.close();
@@ -285,6 +290,52 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
         return Status(TNNERR_PACK_MODEL, "unsupport layer resource type");
     }
     return TNN_OK;
+}
+
+int ModelPacker::GetResourceCount(NetStructure *net_structure, NetResource *net_resource) {
+    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
+    auto layers                 = net_structure->layers;
+    auto resource_map           = net_resource->resource_map;
+    std::set<std::string> blob_scale_set;
+    int resource_count = 0;
+    for (const auto &layer_info : layers) {
+        // save input blobs scale
+        std::string layer_name = layer_info->name;
+        if (layer_info->param->quantized) {
+            for (auto &input_name : layer_info->inputs) {
+                auto blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
+                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
+                    continue;
+                }
+                if (resource_map.find(blob_scale_name) == resource_map.end() ||
+                    resource_map.find(blob_scale_name)->second == nullptr) {
+                    continue;
+                }
+                resource_count++;
+                blob_scale_set.insert(blob_scale_name);
+            }
+        }
+        // save layer resource
+        if (resource_map.find(layer_name) != resource_map.end() && resource_map.find(layer_name)->second != nullptr) {
+            resource_count++;
+        }
+        // save output blob scale
+        if (layer_info->param->quantized) {
+            for (auto &output_name : layer_info->outputs) {
+                auto blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
+                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
+                    continue;
+                }
+                if (resource_map.find(blob_scale_name) == resource_map.end() ||
+                    resource_map.find(blob_scale_name)->second == nullptr) {
+                    continue;
+                }
+                resource_count++;
+                blob_scale_set.insert(blob_scale_name);
+            }
+        }
+    }
+    return resource_count;
 }
 
 }  // namespace TNN_NS

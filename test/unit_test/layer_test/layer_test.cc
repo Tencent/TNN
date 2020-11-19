@@ -32,45 +32,7 @@ Context* LayerTest::cpu_context_;
 Context* LayerTest::device_context_;
 
 void LayerTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // cpu
-    cpu_ = GetDevice(DEVICE_NAIVE);
-    if (!cpu_) {
-      LOGE("Error: device cpu is null\n");
-      ASSERT(0);
-    }
-
-    cpu_context_ = cpu_->CreateContext(0);
-    if (!cpu_context_) {
-      LOGE("Error: cpu context is null\n");
-      ASSERT(0);
-    }
-
-    // device
-    device_ = GetDevice(config.device_type);
-    if (!device_) {
-      LOGE("Error: device of type(%d) is null\n", config.device_type);
-      ASSERT(0);
-    }
-
-    device_context_ = device_->CreateContext(config.device_id);
-    if (!device_) {
-      LOGE("Error: device context with id(%d) is null\n", config.device_id);
-      ASSERT(0);
-    }
-
-    ret = device_context_->LoadLibrary(config.library_path);
-    if (ret != TNN_OK) {
-      LOGE("Error: library with path(%s) is null\n",
-            config.library_path.size() > 0 ? config.library_path[0].c_str() : "");
-      ASSERT(0);
-    }
+    SetUpEnvironment(&cpu_, &device_, &cpu_context_, &device_context_);
 }
 
 void LayerTest::Run(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
@@ -136,7 +98,7 @@ Status LayerTest::Init(LayerType type, LayerParam* param, LayerResource* resourc
     status = AllocateInputBlobs();
     EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
-    status = InitInputBlobsDataRandom();
+    status = InitInputBlobsDataRandom(type);
     EXPECT_EQ_OR_RETURN(status, TNN_OK);
 
     status = AllocateOutputBlobs();
@@ -255,7 +217,7 @@ Status LayerTest::AllocateInputBlobs() {
 /*
  * Init blob datas randomly
  */
-Status LayerTest::InitInputBlobsDataRandom() {
+Status LayerTest::InitInputBlobsDataRandom(LayerType type) {
     void* command_queue;
     device_context_->GetCommandQueue(&command_queue);
 
@@ -284,6 +246,11 @@ Status LayerTest::InitInputBlobsDataRandom() {
                 InitRandom(static_cast<float*>(input_data), input_count, 0.0f, 1.0f + (float)index);
             } else {
                 InitRandom(static_cast<float*>(input_data), input_count, 1.0f + (float)index);
+                if(type == LAYER_REDUCE_LOG_SUM) {
+                    for(int i = 0; i < input_count; i++) {
+                        static_cast<float*>(input_data)[i] = std::fabs(static_cast<float*>(input_data)[i]);
+                    }
+                }
             }
         } else if (mat_type == RESERVED_INT8_TEST) {
             if (ensure_input_positive_) {

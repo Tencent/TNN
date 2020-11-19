@@ -67,8 +67,8 @@ public:
     // @param blobs blob map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
-    // @brief AllocateBlobMemory
-    virtual Status AllocateBlobMemory();
+    // @brief AllocateBlobMemory for blob with flag
+    virtual Status AllocateBlobMemory(int flag = DATA_FLAG_CHANGE_ALWAYS);
 
     // @brief OnSharedForwardMemoryChanged for share memory change observer
     virtual void OnSharedForwardMemoryChanged(void *memory);

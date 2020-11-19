@@ -64,7 +64,7 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     cl_mem_flags mem_flag     = CL_MEM_READ_WRITE;
     cl_channel_type data_type = CL_FLOAT;
 
-    if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetFp16Enable()) {
+    if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
         data_type = CL_HALF_FLOAT;
     }
     int w = desc.dims[0];

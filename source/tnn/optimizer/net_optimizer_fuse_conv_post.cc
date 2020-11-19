@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/optimizer/net_optimizer_fuse_conv_relu.h"
+#include "tnn/optimizer/net_optimizer_fuse_conv_post.h"
 
 #include <map>
 #include <memory>
@@ -28,17 +28,18 @@ namespace TNN_NS {
 namespace optimizer {
 
     // P1 priority: should be fuse after bn scale fuse
-    NetOptimizerRegister<NetOptimizerFuseConvRelu> g_net_optimizer_fuse_conv_relu(OptPriority::P1);
+    NetOptimizerRegister<NetOptimizerFuseConvPost> g_net_optimizer_fuse_conv_post(OptPriority::P1);
 
-    std::string NetOptimizerFuseConvRelu::Strategy() {
-        return kNetOptimizerFuseConvRelu;
+    std::string NetOptimizerFuseConvPost::Strategy() {
+        return kNetOptimizerFuseConvPost;
     }
 
-    bool NetOptimizerFuseConvRelu::IsSupported(const NetworkConfig &net_config) {
+    bool NetOptimizerFuseConvPost::IsSupported(const NetworkConfig &net_config) {
         auto device = net_config.device_type;
         if (device == DEVICE_METAL || device == DEVICE_OPENCL || device == DEVICE_ARM || device == DEVICE_NAIVE) {
-            kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
-            kLayerActivationMap[LAYER_RELU6] = ActivationType_ReLU6;
+            kLayerActivationMap[LAYER_RELU]    = ActivationType_ReLU;
+            kLayerActivationMap[LAYER_RELU6]   = ActivationType_ReLU6;
+            kLayerActivationMap[LAYER_SIGMOID] = ActivationType_SIGMOID_MUL;
             return true;
         }
         if (device == DEVICE_RK_NPU) {
@@ -48,7 +49,7 @@ namespace optimizer {
         return false;
     }
 
-    Status NetOptimizerFuseConvRelu::Optimize(NetStructure *structure, NetResource *resource) {
+    Status NetOptimizerFuseConvPost::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
             return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
@@ -71,25 +72,48 @@ namespace optimizer {
             auto conv_param = dynamic_cast<ConvLayerParam *>(layer_info_prev->param.get());
             auto activation = kLayerActivationMap.find(layer_current_type);
             if (conv_param && activation != kLayerActivationMap.end()) {
-                // outputs of conv cannot be inputs of other layeres except relu
-                auto conv_output_name   = layer_info_prev->outputs[0];
-                bool is_input_of_others = false;
-                for (int next = index + 1; next < count; next++) {
-                    auto layer_info_next = layers_orig[next];
-                    for (auto input_next : layer_info_next->inputs) {
-                        if (conv_output_name == input_next) {
-                            is_input_of_others = true;
+                auto conv_output_name       = layer_info_prev->outputs[0];
+                auto activation_type        = activation->second;
+                bool conv_output_name_check = false;
+                if (activation_type == ActivationType_SIGMOID_MUL) {
+                    auto sigmoid_output_name = layer_info_current->outputs[0];
+                    if (index + 1 < count) {
+                        auto layer_info_next = layers_orig[index + 1];
+                        auto layer_next_type = layer_info_next->type;
+                        auto next_inputs     = layer_info_next->inputs;
+                        if (layer_next_type == LAYER_MUL && next_inputs.size() == 2 &&
+                            next_inputs[0] == conv_output_name && next_inputs[1] == sigmoid_output_name) {
+                            ++index;
+                            layer_info_current     = layer_info_next;
+                            conv_output_name_check = true;
+                        }
+                    }
+                } else {
+                    conv_output_name_check = true;
+                }
+
+                if (conv_output_name_check) {
+                    // outputs of conv cannot be inputs of other layeres from index + 1
+                    bool is_input_of_others = false;
+                    for (int next = index + 1; next < count; next++) {
+                        auto layer_info_next = layers_orig[next];
+                        for (auto input_next : layer_info_next->inputs) {
+                            if (conv_output_name == input_next) {
+                                is_input_of_others = true;
+                                break;
+                            }
+                        }
+                        if (is_input_of_others) {
                             break;
                         }
                     }
-                    if (is_input_of_others) {
-                        break;
-                    }
-                }
 
-                if (!is_input_of_others) {
-                    conv_param->activation_type = activation->second;
-                    layer_info_prev->outputs    = layer_info_current->outputs;
+                    if (!is_input_of_others) {
+                        conv_param->activation_type = activation_type;
+                        layer_info_prev->outputs    = layer_info_current->outputs;
+                    } else {
+                        layers_fused.push_back(layer_info_current);
+                    }
                 } else {
                     layers_fused.push_back(layer_info_current);
                 }

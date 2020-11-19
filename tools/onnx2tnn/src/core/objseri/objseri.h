@@ -6,11 +6,17 @@
 #include <string>
 #include <string.h>
 #include <typeinfo>
+#include <vector>
 
 namespace parser{
     static const uint32_t g_version_magic_number_tnn = 0x0FABC0002;
+    static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0003;
 
+    //keep same with tnn/common.h
     typedef enum {
+        //auto
+        //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
+        DATA_TYPE_AUTO = -1,
         // float
         DATA_TYPE_FLOAT = 0,
         // half float
@@ -18,7 +24,9 @@ namespace parser{
         // int8
         DATA_TYPE_INT8 = 2,
         // int32
-        DATA_TYPE_INT32 = 3
+        DATA_TYPE_INT32 = 3,
+        // brain float 16
+        DATA_TYPE_BFP16 = 4
     } DataType;
     
     static const int FLOAT_32_BIT_MASK = 0x00000000;
@@ -143,6 +151,7 @@ namespace parser{
     private:
         char* buff_;
         int len_;
+        std::vector<int> dims_;
         MODEL_DATA_BITS data_bits_;
         int _effective_data_bits;
     };
@@ -158,12 +167,20 @@ namespace parser{
         void put_int(int value) { return put_basic_t<int>(value); }
         void put_string(const std::string& value) { return put_string_t<std::string>(value); }
         
-        void put_raw(int length, char* buff, DataType data_type = DATA_TYPE_FLOAT)
+        void put_raw(int length, char* buff, std::vector<int> dims, DataType data_type = DATA_TYPE_FLOAT)
         {
-            put_int(g_version_magic_number_tnn);
+            put_int(g_version_magic_number_tnn_v2);
             put_int(static_cast<int>(data_type));
             put_int(static_cast<int>(length));
             if (length <= 0) {
+                return;
+            }
+            put_int((int)(dims.size()));
+            if (dims.size() > 0) {
+                _ostream.write(reinterpret_cast<char*>(dims.data()), static_cast<std::streamsize>(dims.size())* sizeof(int32_t));
+            }
+            
+            if (_ostream.bad()) {
                 return;
             }
             _ostream.write(reinterpret_cast<char*>(buff),
@@ -171,8 +188,7 @@ namespace parser{
             if (_ostream.bad())
                 return;
         }
-        
-        
+
     protected:
         template<typename T> void put_basic_t(T value);
         template<typename T> void put_string_t(const T& value);
@@ -203,7 +219,7 @@ namespace parser{
         else
             return;
     }
-    
+
     class deserializer
     {
     public:
