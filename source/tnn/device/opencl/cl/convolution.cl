@@ -491,6 +491,578 @@ __kernel void Conv2DGS3D(
                                output_bh_idx, remain);
 }
 
+__kernel void Conv2D1x1GS3D_S1_CB2(
+    GLOBAL_SIZE_3_DIMS __read_only image2d_t input, /* [w,h] [c%4 * w * c/4, h * b] */
+    __read_only image2d_t weights,                  /* [w,h] [cout%4 * cin, cout/4] */
+    __read_only image2d_t bias,                     /* [w,h] [cout%4 * cout/4, 1]   */
+    __write_only image2d_t output, __private const int2 wh,
+    __private const int in_channel_block_length, __private const int out_channel_block_length,
+    __private const int out_width_blocks) {
+    // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
+    const int out_channel_slice_idx = get_global_id(0);
+    const int out_width_block_idx   = get_global_id(1);
+    const int output_bh_idx         = get_global_id(2);
+    DEAL_NON_UNIFORM_DIM3(out_channel_slice_idx, out_width_block_idx, output_bh_idx);
+    const int out_channel_block_idx = out_channel_slice_idx << 1;
+
+    FLOAT4 out_w0_s0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
+    FLOAT4 out_w1_s0 = out_w0_s0;
+    FLOAT4 out_w2_s0 = out_w0_s0;
+    FLOAT4 out_w3_s0 = out_w0_s0;
+
+    FLOAT4 out_w0_s1 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx + 1, 0));
+    FLOAT4 out_w1_s1 = out_w0_s1;
+    FLOAT4 out_w2_s1 = out_w0_s1;
+    FLOAT4 out_w3_s1 = out_w0_s1;
+
+    int in_width0 = out_width_block_idx << 2;
+    int in_width1 = in_width0 + 1;
+    int in_width2 = in_width0 + 2;
+    int in_width3 = in_width0 + 3;
+    int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+    int4 is_w_in_boundary = in_width < wh.x;
+    int4 weights_x_idx = {0, 1, 2, 3};
+    int out_channel_block_idx_s1 = out_channel_block_idx + 1;
+
+    FLOAT4 in0, in1, in2, in3;
+    FLOAT4 weights_c0_s0, weights_c1_s0, weights_c2_s0, weights_c3_s0;
+    FLOAT4 weights_c0_s1, weights_c1_s1, weights_c2_s1, weights_c3_s1;
+    for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block_length; ++input_c_block_idx) {
+        in0 = RI_F(input, SAMPLER, (int2)(in_width.x, output_bh_idx));
+        in1 = RI_F(input, SAMPLER, (int2)(in_width.y, output_bh_idx));
+        in2 = RI_F(input, SAMPLER, (int2)(in_width.z, output_bh_idx));
+        in3 = RI_F(input, SAMPLER, (int2)(in_width.w, output_bh_idx));
+
+        weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, out_channel_block_idx));
+        weights_c1_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, out_channel_block_idx));
+        weights_c2_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, out_channel_block_idx));
+        weights_c3_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, out_channel_block_idx));
+
+        weights_c0_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, out_channel_block_idx_s1));
+        weights_c1_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, out_channel_block_idx_s1));
+        weights_c2_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, out_channel_block_idx_s1));
+        weights_c3_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, out_channel_block_idx_s1));
+
+        out_w0_s0 += weights_c0_s0 * in0.x;
+        out_w1_s0 += weights_c0_s0 * in1.x;
+        out_w2_s0 += weights_c0_s0 * in2.x;
+        out_w3_s0 += weights_c0_s0 * in3.x;
+        out_w0_s0 += weights_c1_s0 * in0.y;
+        out_w1_s0 += weights_c1_s0 * in1.y;
+        out_w2_s0 += weights_c1_s0 * in2.y;
+        out_w3_s0 += weights_c1_s0 * in3.y;
+        out_w0_s0 += weights_c2_s0 * in0.z;
+        out_w1_s0 += weights_c2_s0 * in1.z;
+        out_w2_s0 += weights_c2_s0 * in2.z;
+        out_w3_s0 += weights_c2_s0 * in3.z;
+        out_w0_s0 += weights_c3_s0 * in0.w;
+        out_w1_s0 += weights_c3_s0 * in1.w;
+        out_w2_s0 += weights_c3_s0 * in2.w;
+        out_w3_s0 += weights_c3_s0 * in3.w;
+        out_w0_s1 += weights_c0_s1 * in0.x;
+        out_w1_s1 += weights_c0_s1 * in1.x;
+        out_w2_s1 += weights_c0_s1 * in2.x;
+        out_w3_s1 += weights_c0_s1 * in3.x;
+        out_w0_s1 += weights_c1_s1 * in0.y;
+        out_w1_s1 += weights_c1_s1 * in1.y;
+        out_w2_s1 += weights_c1_s1 * in2.y;
+        out_w3_s1 += weights_c1_s1 * in3.y;
+        out_w0_s1 += weights_c2_s1 * in0.z;
+        out_w1_s1 += weights_c2_s1 * in1.z;
+        out_w2_s1 += weights_c2_s1 * in2.z;
+        out_w3_s1 += weights_c2_s1 * in3.z;
+        out_w0_s1 += weights_c3_s1 * in0.w;
+        out_w1_s1 += weights_c3_s1 * in1.w;
+        out_w2_s1 += weights_c3_s1 * in2.w;
+        out_w3_s1 += weights_c3_s1 * in3.w;
+
+        weights_x_idx += 4;
+        in_width += wh.x;
+    }
+
+    out_w0_s0 = ActivationProcess(out_w0_s0);
+    out_w1_s0 = ActivationProcess(out_w1_s0);
+    out_w2_s0 = ActivationProcess(out_w2_s0);
+    out_w3_s0 = ActivationProcess(out_w3_s0);
+
+    out_w0_s1 = ActivationProcess(out_w0_s1);
+    out_w1_s1 = ActivationProcess(out_w1_s1);
+    out_w2_s1 = ActivationProcess(out_w2_s1);
+    out_w3_s1 = ActivationProcess(out_w3_s1);
+
+    const int out_x_base = mul24(out_channel_block_idx, wh.x);
+    int out_x_idx        = out_width_block_idx << 2;
+
+    const int remain = wh.x - out_x_idx;
+    int output_w_idx_s0 = out_x_base + out_x_idx;
+    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
+    }
+
+    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
+    if (!is_s1_in_boundary) return;
+    int output_w_idx_s1 = output_w_idx_s0 + wh.x;
+    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
+    }
+}
+
+__kernel void Conv2D1x1GS3D_CB2(
+    GLOBAL_SIZE_3_DIMS __read_only image2d_t input, /* [w,h] [c%4 * w * c/4, h * b] */
+    __read_only image2d_t weights,                  /* [w,h] [cout%4 * cin, cout/4] */
+    __read_only image2d_t bias,                     /* [w,h] [cout%4 * cout/4, 1]   */
+    __write_only image2d_t output, __private const int2 input_wh,
+    __private const int in_channel_block_length, __private const int out_channel_block_length,
+    __private const int2 output_wh,
+    __private const int2 stride_wh, __private const int out_width_blocks) {
+    // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
+    const int out_channel_slice_idx = get_global_id(0);
+    const int out_width_block_idx   = get_global_id(1);
+    const int output_bh_idx         = get_global_id(2);
+    DEAL_NON_UNIFORM_DIM3(out_channel_slice_idx, out_width_block_idx, output_bh_idx);
+    const int out_channel_block_idx = out_channel_slice_idx << 1;
+
+    FLOAT4 out_w0_s0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
+    FLOAT4 out_w1_s0 = out_w0_s0;
+    FLOAT4 out_w2_s0 = out_w0_s0;
+    FLOAT4 out_w3_s0 = out_w0_s0;
+
+    FLOAT4 out_w0_s1 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx + 1, 0));
+    FLOAT4 out_w1_s1 = out_w0_s1;
+    FLOAT4 out_w2_s1 = out_w0_s1;
+    FLOAT4 out_w3_s1 = out_w0_s1;
+
+    int in_width0 = mul24(out_width_block_idx, stride_wh.x << 2);
+    int in_width1 = in_width0 + stride_wh.x;
+    int in_width2 = in_width1 + stride_wh.x;
+    int in_width3 = in_width2 + stride_wh.x;
+    int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+    int4 is_w_in_boundary = in_width < input_wh.x;
+    int4 weights_x_idx = {0, 1, 2, 3};
+
+    const int batch_idx     = mul24((output_bh_idx / output_wh.y), input_wh.y);
+    const int in_hb_value   = mad24(output_bh_idx % output_wh.y, stride_wh.y, batch_idx);
+    int out_channel_block_idx_s1 = out_channel_block_idx + 1;
+
+    FLOAT4 in0, in1, in2, in3;
+    FLOAT4 weights_c0_s0, weights_c1_s0, weights_c2_s0, weights_c3_s0;
+    FLOAT4 weights_c0_s1, weights_c1_s1, weights_c2_s1, weights_c3_s1;
+    for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block_length; ++input_c_block_idx) {
+        in0 = RI_F(input, SAMPLER, (int2)(in_width.x, in_hb_value));
+        in1 = RI_F(input, SAMPLER, (int2)(in_width.y, in_hb_value));
+        in2 = RI_F(input, SAMPLER, (int2)(in_width.z, in_hb_value));
+        in3 = RI_F(input, SAMPLER, (int2)(in_width.w, in_hb_value));
+
+        weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, out_channel_block_idx));
+        weights_c1_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, out_channel_block_idx));
+        weights_c2_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, out_channel_block_idx));
+        weights_c3_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, out_channel_block_idx));
+
+        weights_c0_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, out_channel_block_idx_s1));
+        weights_c1_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, out_channel_block_idx_s1));
+        weights_c2_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, out_channel_block_idx_s1));
+        weights_c3_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, out_channel_block_idx_s1));
+
+        out_w0_s0 += weights_c0_s0 * in0.x;
+        out_w1_s0 += weights_c0_s0 * in1.x;
+        out_w2_s0 += weights_c0_s0 * in2.x;
+        out_w3_s0 += weights_c0_s0 * in3.x;
+        out_w0_s0 += weights_c1_s0 * in0.y;
+        out_w1_s0 += weights_c1_s0 * in1.y;
+        out_w2_s0 += weights_c1_s0 * in2.y;
+        out_w3_s0 += weights_c1_s0 * in3.y;
+        out_w0_s0 += weights_c2_s0 * in0.z;
+        out_w1_s0 += weights_c2_s0 * in1.z;
+        out_w2_s0 += weights_c2_s0 * in2.z;
+        out_w3_s0 += weights_c2_s0 * in3.z;
+        out_w0_s0 += weights_c3_s0 * in0.w;
+        out_w1_s0 += weights_c3_s0 * in1.w;
+        out_w2_s0 += weights_c3_s0 * in2.w;
+        out_w3_s0 += weights_c3_s0 * in3.w;
+        out_w0_s1 += weights_c0_s1 * in0.x;
+        out_w1_s1 += weights_c0_s1 * in1.x;
+        out_w2_s1 += weights_c0_s1 * in2.x;
+        out_w3_s1 += weights_c0_s1 * in3.x;
+        out_w0_s1 += weights_c1_s1 * in0.y;
+        out_w1_s1 += weights_c1_s1 * in1.y;
+        out_w2_s1 += weights_c1_s1 * in2.y;
+        out_w3_s1 += weights_c1_s1 * in3.y;
+        out_w0_s1 += weights_c2_s1 * in0.z;
+        out_w1_s1 += weights_c2_s1 * in1.z;
+        out_w2_s1 += weights_c2_s1 * in2.z;
+        out_w3_s1 += weights_c2_s1 * in3.z;
+        out_w0_s1 += weights_c3_s1 * in0.w;
+        out_w1_s1 += weights_c3_s1 * in1.w;
+        out_w2_s1 += weights_c3_s1 * in2.w;
+        out_w3_s1 += weights_c3_s1 * in3.w;
+
+        weights_x_idx += 4;
+        in_width += input_wh.x;
+    }
+
+    out_w0_s0 = ActivationProcess(out_w0_s0);
+    out_w1_s0 = ActivationProcess(out_w1_s0);
+    out_w2_s0 = ActivationProcess(out_w2_s0);
+    out_w3_s0 = ActivationProcess(out_w3_s0);
+
+    out_w0_s1 = ActivationProcess(out_w0_s1);
+    out_w1_s1 = ActivationProcess(out_w1_s1);
+    out_w2_s1 = ActivationProcess(out_w2_s1);
+    out_w3_s1 = ActivationProcess(out_w3_s1);
+
+    const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
+    int out_x_idx        = out_width_block_idx << 2;
+
+    const int remain = output_wh.x - out_x_idx;
+    int output_w_idx_s0 = out_x_base + out_x_idx;
+    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
+    }
+
+    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
+    if (!is_s1_in_boundary) return;
+    int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
+    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
+    }
+}
+
+__kernel void Conv2DGS3D_CB2(
+    GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
+    __read_only image2d_t weights, __read_only image2d_t bias,
+    __write_only image2d_t output, __private const int2 input_wh,
+    __private const int in_channel_block_length, __private const int out_channel_block_length,
+    __private const int2 output_wh,
+    __private const int2 kernel_wh, __private const int2 stride_wh,
+    __private const int2 padding_wh, __private const int2 dilation_wh,
+    __private const int kernel_size,
+    __private const int out_width_blocks) {
+    // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
+    const int out_channel_slice_idx = get_global_id(0);
+    const int out_width_block_idx   = get_global_id(1);
+    const int output_bh_idx         = get_global_id(2);
+    DEAL_NON_UNIFORM_DIM3(out_channel_slice_idx, out_width_block_idx, output_bh_idx);
+    const int out_channel_block_idx = out_channel_slice_idx << 1;
+
+    FLOAT4 out_w0_s0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
+    FLOAT4 out_w1_s0 = out_w0_s0;
+    FLOAT4 out_w2_s0 = out_w0_s0;
+    FLOAT4 out_w3_s0 = out_w0_s0;
+
+    FLOAT4 out_w0_s1 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx + 1, 0));
+    FLOAT4 out_w1_s1 = out_w0_s1;
+    FLOAT4 out_w2_s1 = out_w0_s1;
+    FLOAT4 out_w3_s1 = out_w0_s1;
+
+    int in_width0 = mad24(out_width_block_idx, stride_wh.x << 2, -padding_wh.x);
+    int in_width1 = in_width0 + stride_wh.x;
+    int in_width2 = in_width1 + stride_wh.x;
+    int in_width3 = in_width2 + stride_wh.x;
+    int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+
+    const int height_start = mad24((output_bh_idx % output_wh.y), stride_wh.y, -padding_wh.y);
+    int in_height_start = mad24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0),
+                                dilation_wh.y, height_start);
+    int in_height_end = min(mad24(kernel_wh.y, dilation_wh.y, height_start), input_wh.y);
+
+    const int batch_idx = mul24((output_bh_idx / output_wh.y), input_wh.y);
+    int weights_y_idx_s0 = mad24(out_channel_block_idx, kernel_size,
+                                 mul24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0), kernel_wh.x));
+    int weights_y_idx_s1 = weights_y_idx_s0 + kernel_size;
+    int2 weights_y_idx = {weights_y_idx_s0, weights_y_idx_s1};
+
+    FLOAT4 in0, in1, in2, in3;
+    FLOAT4 weights_c0_s0, weights_c1_s0, weights_c2_s0, weights_c3_s0;
+    FLOAT4 weights_c0_s1, weights_c1_s1, weights_c2_s1, weights_c3_s1;
+    for (int iy = in_height_start; iy < in_height_end; iy += dilation_wh.y) {
+        int in_hb_value = iy + batch_idx;
+        int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+        for (int w = 0; w < kernel_wh.x; w++) {
+            int4 weights_x_idx = {0, 1, 2, 3};
+            for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block_length; ++input_c_block_idx) {
+                const int in_idx  = mul24(input_c_block_idx, input_wh.x);
+                int4 is_w_in_boundary = (in_width >= 0 && in_width < input_wh.x);
+                int4 in_cw_value = in_width + in_idx;
+        
+                in0 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.x, is_w_in_boundary.x), in_hb_value));
+                in1 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.y, is_w_in_boundary.y), in_hb_value));
+                in2 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.z, is_w_in_boundary.z), in_hb_value));
+                in3 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.w, is_w_in_boundary.w), in_hb_value));
+
+                weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.x));
+                weights_c1_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, weights_y_idx.x));
+                weights_c2_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, weights_y_idx.x));
+                weights_c3_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, weights_y_idx.x));
+
+                weights_c0_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.y));
+                weights_c1_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, weights_y_idx.y));
+                weights_c2_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, weights_y_idx.y));
+                weights_c3_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, weights_y_idx.y));
+
+                out_w0_s0 += weights_c0_s0 * in0.x;
+                out_w1_s0 += weights_c0_s0 * in1.x;
+                out_w2_s0 += weights_c0_s0 * in2.x;
+                out_w3_s0 += weights_c0_s0 * in3.x;
+                out_w0_s0 += weights_c1_s0 * in0.y;
+                out_w1_s0 += weights_c1_s0 * in1.y;
+                out_w2_s0 += weights_c1_s0 * in2.y;
+                out_w3_s0 += weights_c1_s0 * in3.y;
+                out_w0_s0 += weights_c2_s0 * in0.z;
+                out_w1_s0 += weights_c2_s0 * in1.z;
+                out_w2_s0 += weights_c2_s0 * in2.z;
+                out_w3_s0 += weights_c2_s0 * in3.z;
+                out_w0_s0 += weights_c3_s0 * in0.w;
+                out_w1_s0 += weights_c3_s0 * in1.w;
+                out_w2_s0 += weights_c3_s0 * in2.w;
+                out_w3_s0 += weights_c3_s0 * in3.w;
+                out_w0_s1 += weights_c0_s1 * in0.x;
+                out_w1_s1 += weights_c0_s1 * in1.x;
+                out_w2_s1 += weights_c0_s1 * in2.x;
+                out_w3_s1 += weights_c0_s1 * in3.x;
+                out_w0_s1 += weights_c1_s1 * in0.y;
+                out_w1_s1 += weights_c1_s1 * in1.y;
+                out_w2_s1 += weights_c1_s1 * in2.y;
+                out_w3_s1 += weights_c1_s1 * in3.y;
+                out_w0_s1 += weights_c2_s1 * in0.z;
+                out_w1_s1 += weights_c2_s1 * in1.z;
+                out_w2_s1 += weights_c2_s1 * in2.z;
+                out_w3_s1 += weights_c2_s1 * in3.z;
+                out_w0_s1 += weights_c3_s1 * in0.w;
+                out_w1_s1 += weights_c3_s1 * in1.w;
+                out_w2_s1 += weights_c3_s1 * in2.w;
+                out_w3_s1 += weights_c3_s1 * in3.w;
+
+                weights_x_idx += 4;
+            }
+            weights_y_idx++;
+            in_width += dilation_wh.x;
+        }
+    }
+
+    out_w0_s0 = ActivationProcess(out_w0_s0);
+    out_w1_s0 = ActivationProcess(out_w1_s0);
+    out_w2_s0 = ActivationProcess(out_w2_s0);
+    out_w3_s0 = ActivationProcess(out_w3_s0);
+
+    out_w0_s1 = ActivationProcess(out_w0_s1);
+    out_w1_s1 = ActivationProcess(out_w1_s1);
+    out_w2_s1 = ActivationProcess(out_w2_s1);
+    out_w3_s1 = ActivationProcess(out_w3_s1);
+
+    const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
+    int out_x_idx        = out_width_block_idx << 2;
+
+    const int remain = output_wh.x - out_x_idx;
+    int output_w_idx_s0 = out_x_base + out_x_idx;
+    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
+    }
+
+    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
+    if (!is_s1_in_boundary) return;
+    int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
+    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
+    }
+}
+
+__kernel void Conv2D_CB2(
+    GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
+    __read_only image2d_t weights, __read_only image2d_t bias,
+    __write_only image2d_t output, __private const int2 input_wh,
+    __private const int in_channel_block_length, __private const int out_channel_block_length,
+    __private const int2 output_wh,
+    __private const int2 kernel_wh, __private const int2 stride_wh,
+    __private const int2 padding_wh, __private const int2 dilation_wh,
+    __private const int kernel_size,
+    __private const int out_width_blocks) {
+    // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
+    const int output_channel_slice_w_idx = get_global_id(0);
+    const int output_bh_idx = get_global_id(1);
+    DEAL_NON_UNIFORM_DIM2(output_channel_slice_w_idx, output_bh_idx);
+
+    const int out_channel_slice_idx = output_channel_slice_w_idx / out_width_blocks;
+    const int out_channel_block_idx = out_channel_slice_idx << 1;
+    const int out_width_block_idx   = output_channel_slice_w_idx % out_width_blocks;
+
+    FLOAT4 out_w0_s0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
+    FLOAT4 out_w1_s0 = out_w0_s0;
+    FLOAT4 out_w2_s0 = out_w0_s0;
+    FLOAT4 out_w3_s0 = out_w0_s0;
+
+    FLOAT4 out_w0_s1 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx + 1, 0));
+    FLOAT4 out_w1_s1 = out_w0_s1;
+    FLOAT4 out_w2_s1 = out_w0_s1;
+    FLOAT4 out_w3_s1 = out_w0_s1;
+
+    int in_width0 = mad24(out_width_block_idx, stride_wh.x << 2, -padding_wh.x);
+    int in_width1 = in_width0 + stride_wh.x;
+    int in_width2 = in_width1 + stride_wh.x;
+    int in_width3 = in_width2 + stride_wh.x;
+    int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+
+    const int height_start = mad24((output_bh_idx % output_wh.y), stride_wh.y, -padding_wh.y);
+    int in_height_start = mad24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0),
+                                dilation_wh.y, height_start);
+    int in_height_end = min(mad24(kernel_wh.y, dilation_wh.y, height_start), input_wh.y);
+
+    const int batch_idx = mul24((output_bh_idx / output_wh.y), input_wh.y);
+    int weights_y_idx_s0 = mad24(out_channel_block_idx, kernel_size,
+                                 mul24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0), kernel_wh.x));
+    int weights_y_idx_s1 = weights_y_idx_s0 + kernel_size;
+    int2 weights_y_idx = {weights_y_idx_s0, weights_y_idx_s1};
+
+    FLOAT4 in0, in1, in2, in3;
+    FLOAT4 weights_c0_s0, weights_c1_s0, weights_c2_s0, weights_c3_s0;
+    FLOAT4 weights_c0_s1, weights_c1_s1, weights_c2_s1, weights_c3_s1;
+    for (int iy = in_height_start; iy < in_height_end; iy += dilation_wh.y) {
+        int in_hb_value = iy + batch_idx;
+        int4 in_width = {in_width0, in_width1, in_width2, in_width3};
+        for (int w = 0; w < kernel_wh.x; w++) {
+            int4 weights_x_idx = {0, 1, 2, 3};
+            for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block_length; ++input_c_block_idx) {
+                const int in_idx  = mul24(input_c_block_idx, input_wh.x);
+                int4 is_w_in_boundary = (in_width >= 0 && in_width < input_wh.x);
+                int4 in_cw_value = in_width + in_idx;
+        
+                in0 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.x, is_w_in_boundary.x), in_hb_value));
+                in1 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.y, is_w_in_boundary.y), in_hb_value));
+                in2 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.z, is_w_in_boundary.z), in_hb_value));
+                in3 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.w, is_w_in_boundary.w), in_hb_value));
+
+                weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.x));
+                weights_c1_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, weights_y_idx.x));
+                weights_c2_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, weights_y_idx.x));
+                weights_c3_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, weights_y_idx.x));
+
+                weights_c0_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.y));
+                weights_c1_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, weights_y_idx.y));
+                weights_c2_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.z, weights_y_idx.y));
+                weights_c3_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.w, weights_y_idx.y));
+
+                out_w0_s0 += weights_c0_s0 * in0.x;
+                out_w1_s0 += weights_c0_s0 * in1.x;
+                out_w2_s0 += weights_c0_s0 * in2.x;
+                out_w3_s0 += weights_c0_s0 * in3.x;
+                out_w0_s0 += weights_c1_s0 * in0.y;
+                out_w1_s0 += weights_c1_s0 * in1.y;
+                out_w2_s0 += weights_c1_s0 * in2.y;
+                out_w3_s0 += weights_c1_s0 * in3.y;
+                out_w0_s0 += weights_c2_s0 * in0.z;
+                out_w1_s0 += weights_c2_s0 * in1.z;
+                out_w2_s0 += weights_c2_s0 * in2.z;
+                out_w3_s0 += weights_c2_s0 * in3.z;
+                out_w0_s0 += weights_c3_s0 * in0.w;
+                out_w1_s0 += weights_c3_s0 * in1.w;
+                out_w2_s0 += weights_c3_s0 * in2.w;
+                out_w3_s0 += weights_c3_s0 * in3.w;
+                out_w0_s1 += weights_c0_s1 * in0.x;
+                out_w1_s1 += weights_c0_s1 * in1.x;
+                out_w2_s1 += weights_c0_s1 * in2.x;
+                out_w3_s1 += weights_c0_s1 * in3.x;
+                out_w0_s1 += weights_c1_s1 * in0.y;
+                out_w1_s1 += weights_c1_s1 * in1.y;
+                out_w2_s1 += weights_c1_s1 * in2.y;
+                out_w3_s1 += weights_c1_s1 * in3.y;
+                out_w0_s1 += weights_c2_s1 * in0.z;
+                out_w1_s1 += weights_c2_s1 * in1.z;
+                out_w2_s1 += weights_c2_s1 * in2.z;
+                out_w3_s1 += weights_c2_s1 * in3.z;
+                out_w0_s1 += weights_c3_s1 * in0.w;
+                out_w1_s1 += weights_c3_s1 * in1.w;
+                out_w2_s1 += weights_c3_s1 * in2.w;
+                out_w3_s1 += weights_c3_s1 * in3.w;
+
+                weights_x_idx += 4;
+            }
+            weights_y_idx++;
+            in_width += dilation_wh.x;
+        }
+    }
+
+    out_w0_s0 = ActivationProcess(out_w0_s0);
+    out_w1_s0 = ActivationProcess(out_w1_s0);
+    out_w2_s0 = ActivationProcess(out_w2_s0);
+    out_w3_s0 = ActivationProcess(out_w3_s0);
+
+    out_w0_s1 = ActivationProcess(out_w0_s1);
+    out_w1_s1 = ActivationProcess(out_w1_s1);
+    out_w2_s1 = ActivationProcess(out_w2_s1);
+    out_w3_s1 = ActivationProcess(out_w3_s1);
+
+    const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
+    int out_x_idx        = out_width_block_idx << 2;
+
+    const int remain = output_wh.x - out_x_idx;
+    int output_w_idx_s0 = out_x_base + out_x_idx;
+    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
+    }
+
+    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
+    if (!is_s1_in_boundary) return;
+    int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
+    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
+    }
+}
+
 __kernel void DepthwiseConv2DS1(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                                 __read_only image2d_t filter,
                                 __read_only image2d_t bias,

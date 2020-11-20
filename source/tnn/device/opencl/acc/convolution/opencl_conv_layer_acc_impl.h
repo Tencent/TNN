@@ -69,6 +69,7 @@ protected:
     shared_ptr<OpenCLMemory> ocl_weights_;
     shared_ptr<OpenCLMemory> ocl_bias_;
     ConvType conv_type_;
+    bool is_channel_blocking_ = false;
 };
 
 }  // namespace TNN_NS

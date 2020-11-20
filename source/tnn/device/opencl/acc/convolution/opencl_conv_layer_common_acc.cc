@@ -37,12 +37,11 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     conv_type_ = CT_CONV_COMMON;
     op_name_   = "Conv_" + ToString(conv_params_.kernel_x) + "x" + ToString(conv_params_.kernel_y);
 
-    if(conv_params_.kernel_x != conv_params_.kernel_y) {
-        run_3d_ndrange_ = false;
-    }
-
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
+
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    const int output_channel = output_dims[1];
 
     // create kernel
     std::set<std::string> build_options;
@@ -54,8 +53,14 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "Conv2D";
-    if (run_3d_ndrange_)
+    if (run_3d_ndrange_) {
         kernel_name = "Conv2DGS3D";
+        if (output_channel > 4) {
+            is_channel_blocking_ = true;
+            kernel_name += "_CB2";
+        }
+    }
+
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
@@ -86,9 +91,16 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     int dilation_shape[2]    = {conv_params_.dilation_x, conv_params_.dilation_y};
 
     if (run_3d_ndrange_) {
-        execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                            static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
-                                            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        if (is_channel_blocking_) {
+            execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 8)),
+                                                  static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
+                                                  static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        } else {
+            execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
+                                                  static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
+                                                  static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        }
+
         if(kernel_shape[0] == 3 && kernel_shape[1] == 3) {
             execute_units_[0].local_work_size  = Conv2dCommonLocalWS3DKernel3x3(
                 execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
@@ -97,15 +109,24 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
                 execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
         }
     } else {
-        execute_units_[0].global_work_size = {
-            static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
-            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        if (is_channel_blocking_) {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 8) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        } else {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        }
         execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
     }
 
 
     const int input_channels = input_dims[1];
     const int input_channel_blocks = UP_DIV(input_channels, 4);
+
+    const int output_channels = output_dims[1];
+    const int output_channel_blocks = UP_DIV(output_channels, 4);
 
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
@@ -119,11 +140,17 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     
     execute_units_[0].ocl_kernel.setArg(idx++, input_channel_blocks);
+    if (is_channel_blocking_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, output_channel_blocks);
+    }
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
+    if (is_channel_blocking_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, kernel_shape[0] * kernel_shape[1]);
+    }
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
 
     return TNN_OK;
