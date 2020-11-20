@@ -21,6 +21,7 @@
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
+#import "TNNSkeletonDetectorViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -170,6 +171,20 @@ using namespace std;
             data.viewModel = [TNNHairSegmentationViewModel new];
             data.viewModel.title = @"头发分割 - 腾讯光影实验室";
             data.viewModel.preferFrontCamera = true;
+        }
+        [examples addObject:data];
+    }
+
+    //人体关键点 - SkeletonDetector
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"人体关键点 - 腾讯微视";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNSkeletonDetectorViewModel new];
+            data.viewModel.title = @"人体分割 - 腾讯微视";
+            data.viewModel.preferFrontCamera = false;
         }
         [examples addObject:data];
     }
