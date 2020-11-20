@@ -169,7 +169,8 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
-    auto hw        = dims[2] * dims[3];
+    auto hw        = DimsVectorUtils::Count(dims, 2);
+    hw             = hw == 0 ? 1 : hw;
 
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
@@ -309,6 +310,11 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
     } else if (desc.data_type == DATA_TYPE_BFP16) {
         if (image_src.GetMatType() == RESERVED_BFP16_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
+            return TNN_OK;
+        }
+    } else if (desc.data_type == DATA_TYPE_INT32) {
+        if (image_src.GetMatType() == NC_INT32) {
+            memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * sizeof(int32_t));
             return TNN_OK;
         }
     }
