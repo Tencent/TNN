@@ -53,6 +53,10 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev && (mode == 2 || ((int)scale_x != scale_x || (int)scale_y != scale_y))) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<UpsampleLayerParam> param(new UpsampleLayerParam());
     param->name          = "Upsample";
