@@ -19,7 +19,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/half_utils.h"
-#include "tnn/utils/wingorad_generater.h"
+#include "tnn/utils/winograd_generator.h"
 
 namespace TNN_NS {
 bool MetalConvLayerWinograd::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -82,9 +82,9 @@ Status MetalConvLayerWinograd::AllocateBufferWeight(const std::vector<Blob *> &i
         }
 
         //预处理
-        WinogradGenerater generater(dst_unit, kh, 1.0f);
-        auto pack_weight_fp32 = generater.allocTransformWeight(output_channel, input_channel, kh, kw, 4, 4);
-        generater.transformWeight(pack_weight_fp32, weight_fp32, output_channel, input_channel, kh, kw);
+        WinogradGenerator generator(dst_unit, kh, 1.0f);
+        auto pack_weight_fp32 = generator.allocTransformWeight(output_channel, input_channel, kh, kw, 4, 4);
+        generator.transformWeight(pack_weight_fp32, weight_fp32, output_channel, input_channel, kh, kw);
 
         auto pack_weight_fp32_data = get<0>(pack_weight_fp32).get();
         auto pack_weight_fp32_dims = get<1>(pack_weight_fp32);

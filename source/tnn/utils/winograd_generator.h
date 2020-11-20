@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_WINOGRAD_GENERATER_H_
-#define TNN_SOURCE_TNN_WINOGRAD_GENERATER_H_
+#ifndef TNN_SOURCE_TNN_WINOGRAD_GENERATOR_H_
+#define TNN_SOURCE_TNN_WINOGRAD_GENERATOR_H_
 
 #include <memory>
 #include <tuple>
@@ -28,10 +28,10 @@ CMatrix CMatrixCreate(int w, int h);
 CMatrix CMatrixCreate(DimsVector dims);
 DimsVector CMatrixGetStrides(CMatrix &matrix);
 
-class WinogradGenerater {
+class WinogradGenerator {
 public:
-    WinogradGenerater(int computeUnit, int kernelSize, float interp = 0.5f);
-    ~WinogradGenerater() = default;
+    WinogradGenerator(int computeUnit, int kernelSize, float interp = 0.5f);
+    ~WinogradGenerator() = default;
 
     CMatrix A() const {
         return A_;
@@ -56,4 +56,4 @@ private:
 
 } // namespace TNN_NS
 
-#endif //TNN_SOURCE_TNN_WINOGRAD_GENERATER_H_
+#endif //TNN_SOURCE_TNN_WINOGRAD_GENERATOR_H_

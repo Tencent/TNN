@@ -44,19 +44,10 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
-    // create kernel
-    std::set<std::string> build_options;
-    if (conv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
-        build_options.emplace("-DSIGMOID_MUL");
-    }
     std::string kernel_name = "Conv2D";
     if (run_3d_ndrange_)
         kernel_name = "Conv2DGS3D";
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

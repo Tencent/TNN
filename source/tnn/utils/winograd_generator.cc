@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/wingorad_generater.h"
+#include "tnn/utils/winograd_generator.h"
 
 #include <math.h>
 #include <memory.h>
@@ -347,7 +347,7 @@ static CMatrix computeFDiag(const float* a, int alpha) {
 2D: AT*((G*g*GT)(BT*d*B))*A
 https://github.com/andravin/wincnn
 */
-WinogradGenerater::WinogradGenerater(int computeUnit, int kernelSize, float interp) {
+WinogradGenerator::WinogradGenerator(int computeUnit, int kernelSize, float interp) {
     ASSERT(computeUnit > 0 && kernelSize > 0);
     unit_        = computeUnit;
     kernel_size_ = kernelSize;
@@ -390,7 +390,7 @@ WinogradGenerater::WinogradGenerater(int computeUnit, int kernelSize, float inte
 /*
 transform weight size: unit*unit*ROUND_UP(oc, 4)*ROUND_UP(ic, 4)
 */
-CMatrix WinogradGenerater::allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo) {
+CMatrix WinogradGenerator::allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo) {
     int ci = channel;
     int co = batch;
     ASSERT(width == height && width == std::get<1>(G_)[0]);
@@ -402,7 +402,7 @@ CMatrix WinogradGenerater::allocTransformWeight(int batch, int channel, int heig
 /*
 transform weight from [oc][ic][kh][kw] to [unit][unit][co4][ci4][16]
 */
-void WinogradGenerater::transformWeight(CMatrix& weightDest, const float* source, int batch, int channel, int height,
+void WinogradGenerator::transformWeight(CMatrix& weightDest, const float* source, int batch, int channel, int height,
                                         int width) {
     auto GT = CMatrixCreate(std::get<1>(G_)[1], std::get<1>(G_)[0]);
     transpose(GT, G_);

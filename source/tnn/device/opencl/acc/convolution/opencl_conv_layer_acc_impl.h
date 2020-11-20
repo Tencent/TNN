@@ -37,7 +37,7 @@ struct OpenCLConvParam {
     int activation_type;
 };
 
-enum ConvType { CT_CONV_COMMON = 0, CT_CONV_1x1, CT_CONV_DEPTHWISE };
+enum ConvType { CT_CONV_COMMON = 0, CT_CONV_1x1, CT_CONV_DEPTHWISE, CT_CONV_WINOGRAD };
 
 class OpenCLConvLayerAccImpl : public OpenCLLayerAcc {
 public:
@@ -69,6 +69,8 @@ protected:
     shared_ptr<OpenCLMemory> ocl_weights_;
     shared_ptr<OpenCLMemory> ocl_bias_;
     ConvType conv_type_;
+    std::set<std::string> build_options_;
+    
 };
 
 }  // namespace TNN_NS

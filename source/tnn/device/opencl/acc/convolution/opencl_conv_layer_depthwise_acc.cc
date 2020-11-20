@@ -39,21 +39,12 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
-    // create kernel
-    std::set<std::string> build_options;
-    if (conv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
-        build_options.emplace("-DSIGMOID_MUL");
-    }
     std::string kernel_name = "DepthwiseConv2D";
     if (conv_params_.stride_x == 1 && conv_params_.stride_y == 1 && conv_params_.dilation_x == 1 &&
         conv_params_.dilation_y == 1) {
         kernel_name = "DepthwiseConv2DS1";
     }
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
