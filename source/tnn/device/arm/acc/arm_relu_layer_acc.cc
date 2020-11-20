@@ -50,6 +50,7 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
+        count = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
         __fp16 *dst = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
         __fp16 *src = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
         float16x8_t vzero = vdupq_n_f16(0.f);
