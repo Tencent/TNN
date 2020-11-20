@@ -56,11 +56,13 @@ struct Q8GemmContext {
     int8_t* c;
     int32_t c_stride;
     float* scales;
-    int relu;
+    long relu;
+    const int8_t* add_input;
+    float* add_scale;
 };
 
 typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
-                               long c_stride, const float* scales, long);
+                               long c_stride, const float* scales, long relu, const int8_t* add_input, const float* add_scale);
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
 
@@ -76,7 +78,8 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
 void ReluInt8(int8_t* dst, const int8_t* src, long len);
 
 void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-              const float* scale, long src_depth_d8, long src_w_step, long dst_depth);
+              const float* scale, long src_depth_d8, long src_w_step, long dst_depth, long relu,
+              const int8_t* add_input = nullptr, const float* add_scale = nullptr);
 
 void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r8,
               long oc_r4);

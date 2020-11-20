@@ -156,3 +156,5 @@ TNN currently support main-stream CNN networks：
 | OpenCL | Yes     |
 | Metal  | Yes     |
 | HuaweiNPU | Yes     |
+
+1. HuaweiNPU is DaVinci NPU of Huawei, as follows: Kirin810, Kirin820, Kirin985, Kirin990, Kirin990 5G, Kirin990E, Kirin9000, Kirin9000E etc.

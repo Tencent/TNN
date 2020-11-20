@@ -61,6 +61,34 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             }
             buffer_scale_ = temp_buffer;
         }
+
+        if (conv_param->fusion_type != FusionType_None && !buffer_add_scale_.GetBytesSize()) {
+            auto dims_output = outputs[0]->GetBlobDesc().dims;
+            int total_byte_size = dims_output[1] * sizeof(float);
+
+            auto add_input_resource  = reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource();
+            auto add_output_resource = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+
+            const float *i_scale = add_input_resource->scale_handle.force_to<float *>();
+
+            const float *o_scale = add_output_resource->scale_handle.force_to<float *>();
+
+            int scale_len_i = add_input_resource->scale_handle.GetDataCount();
+            int scale_len_o = add_output_resource->scale_handle.GetDataCount();
+            RawBuffer temp_buffer(total_byte_size);
+            float *temp_ptr = temp_buffer.force_to<float *>();
+            for (int i = 0; i < dims_output[1]; i++) {
+                int scale_idx_i = scale_len_i == 1 ? 0 : i;
+                int scale_idx_o = scale_len_o == 1 ? 0 : i;
+
+                if (o_scale[scale_idx_o] >= FLT_MIN)
+                    temp_ptr[i] = i_scale[scale_idx_i] / o_scale[scale_idx_o];
+                else
+                    temp_ptr[i] = 0.0;
+            }
+            buffer_add_scale_ = temp_buffer;
+        }
+
     }
     return TNN_OK;
 }
@@ -101,10 +129,12 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                                                 param->dialations[1], param->activation_type, NULL, 0);
     } else if (data_type == DATA_TYPE_INT8) {
         float *scale_ptr = buffer_scale_.force_to<float *>();
+        void *add_input  = (param->fusion_type == FusionType_None) ? nullptr : inputs[1]->GetHandle().base;
         NaiveConv<int8_t, int8_t, int32_t, int8_t>(
             input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1], param->strides[0],
             param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
-            param->activation_type, scale_ptr, buffer_scale_.GetDataCount());
+            param->activation_type, scale_ptr, buffer_scale_.GetDataCount(), param->fusion_type,
+            add_input, buffer_add_scale_.force_to<float *>());
     } else {
         return Status(TNNERR_LAYER_ERR, "data type not support in conv");
     }
