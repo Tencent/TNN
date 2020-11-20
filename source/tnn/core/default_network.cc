@@ -114,14 +114,21 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_type accordingly.
+ *  2. Set data_tyep accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
 Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
     bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
+    
+    auto const_layers = net_resource->constant_layers;
+    
     for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+        
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         if (cur_layer == NULL) {

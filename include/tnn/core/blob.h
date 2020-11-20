@@ -39,6 +39,8 @@ struct PUBLIC BlobDesc {
     DimsVector dims;
     // name describes the blob name
     std::string name = "";
+    
+    std::string description(bool all_messgae = false);
 };
 
 struct PUBLIC BlobHandle {
