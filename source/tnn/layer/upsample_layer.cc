@@ -42,15 +42,22 @@ Status UpsampleLayer::InferOutputShape() {
     CHECK_PARAM_NULL(layer_param);
     if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer_param->scales.empty()) {
         ASSERT(input_blobs_.size() > 1);
-        const auto scale_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_.find(scale_name) != const_resource_.end()) {
-            auto scale_buffer = const_resource_[scale_name];
-            auto scale_date   = scale_buffer->force_to<int *>();
-            auto scale_count  = scale_buffer->GetDataCount();
-            for (int i = 0; i < scale_count; ++i) {
-                layer_param->scales.push_back(scale_date[i]);
+        const auto scales_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_.find(scales_name) != const_resource_.end()) {
+            auto scales_buffer = const_resource_[scales_name];
+            auto scales_date   = scales_buffer->force_to<int *>();
+            auto scales_count  = scales_buffer->GetDataCount();
+            std::vector<float> scales;
+            for (int i = 0; i < scales_count; ++i) {
+                scales.push_back(scales_date[i]);
             }
+            // width height
+            layer_param->scales.push_back(scales.back());
+            layer_param->scales.push_back(scales.back());
         }
+    }
+    if (layer_param->scales.empty()) {
+        return Status(TNNERR_PARAM_ERR,"param scales is empty\n");
     }
     Blob *input_blob = input_blobs_[0];
     int num          = input_blob->GetBlobDesc().dims[0];

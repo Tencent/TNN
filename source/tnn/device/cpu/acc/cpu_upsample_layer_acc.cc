@@ -148,12 +148,17 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
     CHECK_PARAM_NULL(layer_param);
     if (inputs.size() == 2) {
         Blob *input_blob  = inputs[0];
-        Blob *scale_blob = inputs[1];
-        auto scale_data = (float *)scale_blob->GetHandle().base;
-        auto scale_count = DimsVectorUtils::Count(scale_blob->GetBlobDesc().dims);
-        for (int i = 0; i < scale_count; ++i) {
-            layer_param->scales.push_back(scale_data[i]);
+        Blob *scales_blob = inputs[1];
+        auto scales_data  = (float *)scales_blob->GetHandle().base;
+        auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
+        std::vector<float> scales;
+        for (int i = 0; i < scales_count; ++i) {
+            scales.push_back(scales_data[i]);
         }
+        // width height
+        layer_param->scales.push_back(scales.back());
+        layer_param->scales.push_back(scales.back());
+
         int num        = input_blob->GetBlobDesc().dims[0];
         int channels   = input_blob->GetBlobDesc().dims[1];
         int height     = input_blob->GetBlobDesc().dims[2];
@@ -163,8 +168,8 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
 
         if (layer_param->mode == 1 || layer_param->mode == 2) {
             // floor is wrong for some model
-            width_out  = int(round(width * layer_param->scales[3]));
-            height_out = int(round(height * layer_param->scales[2]));
+            width_out  = int(round(width * layer_param->scales[0]));
+            height_out = int(round(height * layer_param->scales[1]));
         } else {
             LOGE("Error: unsupport upsample type:%d", layer_param->mode);
             return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
