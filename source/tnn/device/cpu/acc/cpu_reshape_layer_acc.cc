@@ -44,6 +44,8 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         }
         layer_param->shape = dims;
         layer_param->num_axes = dim_count;
+        
+        outputs[0]->GetBlobDesc().dims = dims;
     }
     
     return TNN_OK;

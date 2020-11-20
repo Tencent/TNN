@@ -159,10 +159,10 @@ Status BaseLayer::Forward() {
                 RETURN_ON_NEQ(status, TNN_OK);
             }
         } else {
-            auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
-            RETURN_ON_NEQ(status, TNN_OK);
+            //dont check the status of InferOutputShape in constant folding
+            auto status = InferOutputShape();
             
-             status = InferOutputShape();
+            status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
             
             if (IsOutputConstant()) {
