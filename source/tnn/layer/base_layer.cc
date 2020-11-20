@@ -60,13 +60,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         for (auto& output_blob : output_blobs) {
-            BlobDesc desc = output_blob->GetBlobDesc();
-            std::string log_info = "";
-            for(int i = 0; i < desc.dims.size(); ++i) {
-                log_info = log_info + ToString(desc.dims[i]);
-                log_info = log_info + " ";
-            }
-            LOGD("InferOutputShape: name: %s, shape: %s \n", desc.name.c_str(), log_info.c_str());
+            LOGD("InferOutputShape: %s\n", output_blob->GetBlobDesc().description().c_str());
         }
         auto dims = output_blobs[0]->GetBlobDesc().dims;
         for (auto item : dims) {
@@ -110,22 +104,15 @@ Status BaseLayer::InferOutputShape() {
 Status BaseLayer::InferOutputDataType() {
     // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
-    
-    //find first blob which is not const
-    auto input_blob_not_const = input_blobs_[0];
-    for (auto input_blob : input_blobs_) {
-        if (const_resource_.find(input_blob->GetBlobDesc().name) == const_resource_.end()) {
-            input_blob_not_const = input_blob;
-            break;
-        }
-    }
-    
     for (auto output_blob : output_blobs_) {
-        output_blob->GetBlobDesc().data_type = input_blob_not_const->GetBlobDesc().data_type;
+        output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     }
     
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
+        if (const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            iter->flag |= DATA_FLAG_CHANGE_NEVER;
+        }
         flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
     }
     
@@ -146,7 +133,7 @@ Status BaseLayer::Reshape() {
         
         auto dims = output_blobs_[0]->GetBlobDesc().dims;
         for (auto item : dims) {
-            if (item <= 0) {
+            if (item < 0) {
                 LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
                 return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
             }
@@ -163,15 +150,27 @@ Status BaseLayer::Reshape() {
 
 Status BaseLayer::Forward() {
     if (layer_acc_ != NULL) {
-        if (output_blobs_[0]->NeedAllocateInForward()){
+        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
+            RETURN_ON_NEQ(status, TNN_OK);
+            
+            if (!IsOutputConstant()) {
+                status = layer_acc_->Forward(input_blobs_, output_blobs_);
+                RETURN_ON_NEQ(status, TNN_OK);
+            }
+        } else {
             auto status = InferOutputShape();
             RETURN_ON_NEQ(status, TNN_OK);
+            
+            status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
+            RETURN_ON_NEQ(status, TNN_OK);
+            
+            if (IsOutputConstant()) {
+                status = layer_acc_->Forward(input_blobs_, output_blobs_);
+                RETURN_ON_NEQ(status, TNN_OK);
+            }
         }
         
-        auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
-        RETURN_ON_NEQ(status, TNN_OK);
-        status = layer_acc_->Forward(input_blobs_, output_blobs_);
-        RETURN_ON_NEQ(status, TNN_OK);
         return layer_acc_->AfterForward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");

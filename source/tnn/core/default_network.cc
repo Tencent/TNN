@@ -130,6 +130,8 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret            = TNN_OK;
     bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
+    
+    auto const_layers = net_resource->constant_layers;
 
     // update blob precision, alloc new blob required
     for (auto layer_info : net_structure->layers) {
@@ -191,6 +193,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
     // init layer
     for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+        
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         if (cur_layer == NULL) {
@@ -429,7 +435,7 @@ Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return context_->ShareCommandQueue(network_target->GetContext());
 }
 
-Context *DefaultNetwork::GetContext() {
+Context* DefaultNetwork::GetContext() {
     return context_;
 }
 

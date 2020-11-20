@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_INTERPRETER_NET_RESOURCE_H_
 
 #include <map>
+#include <set>
 #include "tnn/interpreter/layer_resource.h"
 
 namespace TNN_NS {
@@ -23,6 +24,8 @@ namespace TNN_NS {
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
     ConstantResource constant_map;
+    //constant layer names
+    std::set<std::string> constant_layers;
 };
 
 DataType GetNetResourceDataType(NetResource *resource);

@@ -69,10 +69,12 @@ Status ConstFolder::Forward() {
     auto status = DefaultNetwork::Forward();
     RETURN_ON_NEQ(status, TNN_OK);
     
+    std::set<std::string> constant_layers;
+    //将计算好的常量放入NetResource中，保留模型原有的常量
     ConstantResource constant_map = net_resource_->constant_map;
-    //将计算好的常量放入NetResource中
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {
+            constant_layers.insert(layer->GetLayerName());
             continue;
         }
         
@@ -92,6 +94,7 @@ Status ConstFolder::Forward() {
             constant_map[blob->GetBlobDesc().name] = buffer;
         }
     }
+    net_resource_->constant_layers = constant_layers;
     net_resource_->constant_map = constant_map;
     
     return TNN_OK;

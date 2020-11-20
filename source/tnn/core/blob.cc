@@ -12,12 +12,33 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <iomanip>
+#include <sstream>
+
 #include "tnn/core/blob.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
+
+std::string BlobDesc::description(bool all_messgae) {
+    std::ostringstream os;
+    //name
+    os << "name: " <<name;
+
+    //data type
+    os << " data type: " << data_type;
+    
+    //shape
+    os << " shape: [ " ;
+    for (auto iter : dims) {
+        os << iter << " " ;
+    }
+    os << "]";
+    
+    return os.str();
+}
 
 Blob::Blob(BlobDesc desc) {
     desc_ = desc;
