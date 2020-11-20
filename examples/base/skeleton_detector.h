@@ -63,10 +63,9 @@ public:
 private:
     void GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, Mat &heatmap,
                          int image_w, int image_h, float threshold);
-    void GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
+    TNN_NS::Status GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
                       int kernel_h, int kernel_w,
                       float sigma_x, float sigma_y);
-    void GetGaussianKernel(int length, float sigma, std::vector<float>& kernels);
     // the input mat size
     int orig_input_width;
     int orig_input_height;

@@ -69,7 +69,7 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     RETURN_VALUE_ON_NEQ(!output, false,
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
     
-    auto heatmap = output->GetMat("stage1_L2_22kps");
+    auto heatmap = output->GetMat("heatmap");
     RETURN_VALUE_ON_NEQ(!heatmap, false,
                            Status(TNNERR_PARAM_ERR, "heatmap mat is nil"));
     
@@ -82,17 +82,15 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     return status;
 }
 
-void GetGaussianKernel(int length, float sigma, std::vector<float>& kernels) {
+static void GetGaussianKernel(int length, float sigma, std::vector<float>& kernels) {
     kernels.resize(length);
-    if (sigma <=0 )
+    if (sigma <= 0)
         return;
     if (length %2 != 1)
         return;
     
     const double sd_minus_0_125 = -0.125;
-
-    double sigma_x = sigma;
-    double scale_2x = sd_minus_0_125 / (sigma_x * sigma_x);
+    double scale_2x = sd_minus_0_125 / (sigma * sigma);
     
     int length_half = (length - 1) / 2;
     std::vector<double> values(length_half +  1);
@@ -143,7 +141,62 @@ static int GetBorderLocation(int x, int len, TNNBorderType border_type) {
     return p;
 }
 
-void SkeletonDetector::GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
+// apply filter on the Mat
+static TNN_NS::Status ApplyFilter(TNN_NS::Mat& src, TNN_NS::Mat& dst, std::vector<float> filter, TNNBorderType border_type, int direction) {
+    const int kernel_size = filter.size();
+    const int anchor = (kernel_size - 1) / 2;
+    if (direction !=0 && direction != 1) {
+        // error, invlaid direction
+        return TNN_NS::Status(TNN_NS::TNNERR_PARAM_ERR, "invalid direction.");;
+    }
+    
+    // only for nchw float mat
+    auto src_mat_type = src.GetMatType();
+    auto dst_mat_type = dst.GetMatType();
+    if (src_mat_type != dst_mat_type || src_mat_type != TNN_NS::NCHW_FLOAT)
+        return TNN_NS::Status(TNN_NS::TNNERR_PARAM_ERR, "invalid mat type.");
+    
+    // only for cpu mat
+    auto src_dev_type = src.GetDeviceType();
+    auto dst_dev_type = dst.GetDeviceType();
+    if (src_dev_type != dst_dev_type || (src_dev_type != TNN_NS::DEVICE_ARM && src_dev_type != TNN_NS::DEVICE_NAIVE))
+        return TNN_NS::Status(TNN_NS::TNNERR_PARAM_ERR, "invalid mat device type.");
+    
+    int width   = dst.GetWidth();
+    int height  = dst.GetHeight();
+    int channel = dst.GetChannel();
+    
+    const float* src_ptr = static_cast<float *>(src.GetData());
+    float* dst_ptr = static_cast<float *>(dst.GetData());
+    for(int c=0; c<channel; ++c) {
+        const float* src_channel_ptr = src_ptr + c * width * height;
+        float* dst_channel_ptr = dst_ptr + c * width * height;
+        for(int h=0; h<height; ++h) {
+            for(int w=0; w<width; ++w) {
+                float val = 0;
+                for(int k=0; k<kernel_size; ++k) {
+                    int src_h = h;
+                    int src_w = w;
+                    if (direction == 0) {
+                        src_w = (k - anchor) + w;
+                    } else if (direction == 1) {
+                        src_h = (k - anchor) + h;
+                    }
+                    src_h = GetBorderLocation(src_h, height, TNNBorderReflect101);
+                    src_w = GetBorderLocation(src_w, width,  TNNBorderReflect101);
+                    // TODO: use border_val instead of 0
+                    float src_val = (src_h < 0 || src_w < 0) ? 0 : src_channel_ptr[src_h * width + src_w];
+                    val += filter[k] * src_val;
+                }
+                dst_channel_ptr[h * width + w] = val;
+            }
+        }
+    }
+    return TNN_OK;
+}
+
+
+TNN_NS::Status SkeletonDetector::GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat> dst,
                   int kernel_h, int kernel_w,
                   float sigma_x, float sigma_y) {
     std::vector<float> weights_x;
@@ -154,7 +207,14 @@ void SkeletonDetector::GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared
     else
         GetGaussianKernel(kernel_h, sigma_y, weights_y);
     
-    
+    Mat tmp(src->GetDeviceType(), src->GetMatType(), src->GetDims());
+    // apply row filter
+    auto status = ApplyFilter(*(src.get()), tmp, weights_x, TNNBorderReflect101, 0);
+    if (status != TNN_OK)
+        return status;
+    // apply column filter
+    status = ApplyFilter(tmp, *(dst.get()), weights_y, TNNBorderReflect101, 1);
+    return status;
 }
 
 void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, Mat &heatmap, int image_w, int image_h, float threshold) {
@@ -164,10 +224,11 @@ void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, Mat
     const int heatmap_width    = heatmap.GetWidth();
     
     //float scale = static_cast<float>(this->orig_input_width) / static_cast<float>(image_w) / 2.0f;
+    // gaussian blur kernel setting
     const int kernel_size = 5;
     const float sigma = 3.0f;
     
-    TNN_NS::DimsVector dim_chanel = {1, 1, heatmap_height, heatmap_width};
+    TNN_NS::DimsVector dim_chanel  = {1, 1, heatmap_height, heatmap_width};
     TNN_NS::DimsVector dim_resized = {1, 1, this->orig_input_height, this->orig_input_width};
     auto heatmap_resized = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, dim_resized);
     auto heatmap_blur = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, dim_resized);
