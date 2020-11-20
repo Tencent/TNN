@@ -30,6 +30,9 @@ public:
     virtual Float4 operator()(const Float4 &v) {
         return v;
     };
+    virtual Float4 fast_op(const Float4 &v) {
+        return operator()(v); 
+    };
 
 protected:
     LayerParam *param_ = nullptr;

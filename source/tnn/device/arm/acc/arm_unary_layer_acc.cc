@@ -57,9 +57,16 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
     auto input_ptr  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
     auto output_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
 
-    OMP_PARALLEL_FOR_
-    for (int n = 0; n < count_quad; n++) {
-        Float4::save(output_ptr + n * 4, (*op_)(Float4::load(input_ptr + n * 4)));
+    if (context_->GetPrecision() == PRECISION_HIGH) {
+        OMP_PARALLEL_FOR_
+        for (int n = 0; n < count_quad; n++) {
+            Float4::save(output_ptr + n * 4, (*op_)(Float4::load(input_ptr + n * 4)));
+        }
+    } else {
+        OMP_PARALLEL_FOR_
+        for (int n = 0; n < count_quad; n++) {
+            Float4::save(output_ptr + n * 4, op_->fast_op(Float4::load(input_ptr + n * 4)));
+        }
     }
 
     return TNN_OK;
