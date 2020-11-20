@@ -103,6 +103,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     Precision precision = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {
         precision = PRECISION_LOW;
+    } else if (DATA_TYPE_FLOAT == data_type) {
+        precision = PRECISION_HIGH;
     }
 
     // generate interpreter

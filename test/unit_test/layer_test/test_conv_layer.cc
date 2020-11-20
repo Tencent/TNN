@@ -60,8 +60,9 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int activation_type   = std::get<9>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
+    auto precision = PRECISION_AUTO;
+    if (DATA_TYPE_FLOAT == dtype) {
+        precision = PRECISION_HIGH;
     }
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
@@ -88,7 +89,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS
