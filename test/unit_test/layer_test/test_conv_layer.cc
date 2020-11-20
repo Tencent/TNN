@@ -61,8 +61,12 @@ TEST_P(ConvLayerTest, ConvLayer) {
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
     auto precision = PRECISION_AUTO;
-    if (DATA_TYPE_FLOAT == dtype) {
-        precision = PRECISION_HIGH;
+    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
+        if (DATA_TYPE_FLOAT == dtype) {
+            precision = PRECISION_HIGH;
+        } else {
+            GTEST_SKIP();
+        }
     }
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
