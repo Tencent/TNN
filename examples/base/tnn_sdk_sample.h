@@ -150,6 +150,7 @@ public:
 typedef enum {
     TNNInterpNearest = 0,
     TNNInterpLinear  = 1,
+    TNNInterpCubic   = 2,
 } TNNInterpType;
 
 typedef enum {
