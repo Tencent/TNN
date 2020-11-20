@@ -125,8 +125,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<float>;
         } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
-            post_func_ =
-                context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<float> : PostAddBiasSwishFast<float>;
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<float, false>
+                                                                    : PostAddBiasSwish<float, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<float>;
         } else {
@@ -136,8 +136,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<bfp16_t>;
         } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
-            post_func_ =
-                context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<bfp16_t> : PostAddBiasSwishFast<bfp16_t>;
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<bfp16_t, false>
+                                                                    : PostAddBiasSwish<bfp16_t, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<bfp16_t>;
         } else {

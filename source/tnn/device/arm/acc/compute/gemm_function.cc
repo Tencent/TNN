@@ -230,9 +230,9 @@ void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
         PostClap<T>(dst, plane_num * oc4, 6);
     else if (act_type == 0x0100) {
         if (fast_post)
-            PostAddBiasSwishFast<T>(dst, nullptr, plane_num, oc4);
+            PostAddBiasSwish<T, true>(dst, nullptr, plane_num, oc4);
         else
-            PostAddBiasSwish<T>(dst, nullptr, plane_num, oc4);
+            PostAddBiasSwish<T, false>(dst, nullptr, plane_num, oc4);
     }
 }
 
@@ -283,9 +283,9 @@ void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
         PostClap<T>(dst, plane_num * oc4, 6);
     else if (act_type == 0x0100) {
         if (fast_post)
-            PostAddBiasSwishFast<T>(dst, nullptr, plane_num, oc4);
+            PostAddBiasSwish<T, true>(dst, nullptr, plane_num, oc4);
         else
-            PostAddBiasSwish<T>(dst, nullptr, plane_num, oc4);
+            PostAddBiasSwish<T, false>(dst, nullptr, plane_num, oc4);
     }
 }
 
