@@ -19,9 +19,33 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Reshape, LAYER_RESHAPE);
+DECLARE_CPU_ACC_WITH_FUNC(Reshape, LAYER_RESHAPE,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (inputs.size() >= 2) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "Reshape input(shape) has invalid data type");
+        }
+        
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        DimsVector dims;
+        for (int i=0; i<dim_count; i++) {
+            dims.push_back(dim_data[i]);
+        }
+        layer_param->shape = dims;
+        layer_param->num_axes = dim_count;
+    }
+    
     return TNN_OK;
 }
 
