@@ -44,9 +44,12 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 }
 
 Status AbstractLayerAcc::BeforeForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = InferRuntimeOutputShape(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
-    return AllocateRuntimeOutputBlob(inputs, outputs);
+    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        auto status = InferRuntimeOutputShape(inputs, outputs);
+        RETURN_ON_NEQ(status, TNN_OK);
+        return AllocateRuntimeOutputBlob(inputs, outputs);
+    }
+    return TNN_OK;
 }
 
 Status AbstractLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
