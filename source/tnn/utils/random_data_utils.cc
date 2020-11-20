@@ -33,7 +33,7 @@ template int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range);
 
 template <typename T>
 int InitRandom(T* host_data, size_t n, T range_min, T range_max) {
-    std::mt19937 g(42);
+    static std::mt19937 g(42);
     std::uniform_real_distribution<> rnd(range_min, range_max);
 
     for (unsigned long long i = 0; i < n; i++) {
@@ -49,7 +49,7 @@ template int InitRandom(uint8_t* host_data, size_t n, uint8_t range_min, uint8_t
 
 template <>
 int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range_min, bfp16_t range_max) {
-    std::mt19937 g(42);
+    static std::mt19937 g(42);
     std::uniform_real_distribution<> rnd((float)range_min, (float)range_max);
 
     for (unsigned long long i = 0; i < n; i++) {
