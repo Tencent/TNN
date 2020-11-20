@@ -169,7 +169,8 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
-    auto hw        = dims[2] * dims[3];
+    auto hw        = DimsVectorUtils::Count(dims, 2);
+    hw             = hw == 0 ? 1 : hw;
 
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image.GetMatType() == RESERVED_INT8_TEST) {
