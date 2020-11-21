@@ -371,23 +371,20 @@ Status TNNSDKSample::GetCommandQueue(void **command_queue) {
 }
 
 template <typename WT>
-static void GetCubicWeights(float coor, float a, std::vector<WT>& w) {
-    int base = std::floor(coor);
-    float e = coor - static_cast<float>(base);
-    std::vector<float> tmp(4);
-    
-    tmp[0] = 1.0 + e;
-    tmp[1] = e;
-    tmp[2] = 1.0 - e;
-    tmp[3] = 2.0 - e;
-    
-    w[1] = (a + 2.0) * std::abs(std::pow(tmp[1], 3)) - (a + 3.0) * std::abs(std::pow(tmp[1], 2)) + 1;
-    w[2] = (a + 2.0) * std::abs(std::pow(tmp[2], 3)) - (a + 3.0) * std::abs(std::pow(tmp[2], 2)) + 1;
-    w[0] = a * std::abs(std::pow(tmp[0], 3)) - 5.0 * a * std::abs(std::pow(tmp[0], 2)) + 8.0*a*std::abs(tmp[0]) - 4.0*a;
-    w[3] = a * std::abs(std::pow(tmp[3], 3)) - 5.0 * a * std::abs(std::pow(tmp[3], 2)) + 8.0*a*std::abs(tmp[3]) - 4.0*a;
+static void GetCubicWeights(float coor, std::vector<WT>& coeffs) {
+    // opencv uses -0.75
+    static const float A = -0.75f;
+    float x = coor - std::floor(coor);
+    // bicubic 1d has 4 weights
+    coeffs.resize(4);
+
+    coeffs[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
+    // devandong: should there be a std::abs() around x^3?
+    coeffs[1] = ((A + 2)*x - (A + 3))*x*x + 1;
+    coeffs[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
+    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
 }
 
-#define GetValueAt(m, h, w, width) (m[(h)*(width)+(w)])
 static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst) {
     const float h_scale = static_cast<float>(src->GetHeight()) / dst->GetHeight();
     const float w_scale = static_cast<float>(src->GetWidth())  / dst->GetWidth();
@@ -398,51 +395,49 @@ static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
     
     auto sw = src->GetWidth();
     auto dw = dst->GetWidth();
+    auto sh = src->GetHeight();
+#define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
+#define SrcValueAt(h, w) (src_data[(Clip(h,sh))*sw+(Clip(w,sw))])
+
     for(int c=0; c<channel; ++c) {
         for(int i = 0; i < dst->GetHeight(); ++i) {
-            for (int j = 0; j < dst->GetWidth(); ++j)
-            {
-                float h = static_cast<float>((i + 0.5) *  h_scale - 0.5);
+            float h = static_cast<float>((i + 0.5) *  h_scale - 0.5);
+            // get interp weights
+            std::vector<float> weights_h;
+            GetCubicWeights(h, weights_h);
+            int hh = std::floor(h);
+            hh = std::min(std::max(hh, 0), sh-1);
+            for (int j = 0; j < dst->GetWidth(); ++j) {
                 float w = static_cast<float>((j + 0.5) *  w_scale - 0.5);
-                
-                if (h < 1.0) h += 1.0;
-                if (w < 1.0) w += 1.0;
-                
-                
-                std::vector<float> weights_h;
+                // get interp weights
                 std::vector<float> weights_w;
-                // opencv uses -0.75
-                GetCubicWeights(h, -0.75, weights_h);
-                GetCubicWeights(w, -0.75, weights_w);
+                GetCubicWeights(w, weights_w);
                 
-                int ww = static_cast<int>(w);
-                int hh = static_cast<int>(h);
+                int ww = std::floor(w);
+                ww = std::min(std::max(ww, 0), sw-1);
                 
-                if (ww > src->GetWidth() - 3) ww = src->GetWidth() - 3;
-                if (hh > src->GetWidth() - 3) hh = src->GetHeight() - 3;
-                
-                assert(0 <= (hh - 1) && 0 <= (ww - 1) && (hh + 2) < src->GetHeight() && (ww + 2) < src->GetWidth());
-                
-                float src_arr[4*4] = {
-                    GetValueAt(src_data, hh-1, ww-1, sw), GetValueAt(src_data, hh-1, ww, sw), GetValueAt(src_data, hh-1, ww+1, sw), GetValueAt(src_data, hh-1, ww+2, sw),
-                    GetValueAt(src_data, hh, ww-1, sw), GetValueAt(src_data, hh, ww, sw), GetValueAt(src_data, hh, ww+1, sw), GetValueAt(src_data, hh, ww+2, sw),
-                    GetValueAt(src_data, hh+1, ww-1, sw), GetValueAt(src_data, hh+1, ww, sw), GetValueAt(src_data, hh+1, ww+1, sw), GetValueAt(src_data, hh+1, ww+2, sw),
-                    GetValueAt(src_data, hh+2, ww-1, sw), GetValueAt(src_data, hh+2, ww, sw), GetValueAt(src_data, hh+2, ww+1, sw), GetValueAt(src_data, hh+2, ww+2, sw)
+                float src_arr[4][4] = {
+                    {SrcValueAt(hh-1, ww-1), SrcValueAt(hh-1, ww), SrcValueAt(hh-1, ww+1), SrcValueAt(hh-1, ww+2)},
+                    {SrcValueAt(hh+0, ww-1), SrcValueAt(hh+0, ww), SrcValueAt(hh+0, ww+1), SrcValueAt(hh+0, ww+2)},
+                    {SrcValueAt(hh+1, ww-1), SrcValueAt(hh+1, ww), SrcValueAt(hh+1, ww+1), SrcValueAt(hh+1, ww+2)},
+                    {SrcValueAt(hh+2, ww-1), SrcValueAt(hh+2, ww), SrcValueAt(hh+2, ww+1), SrcValueAt(hh+2, ww+2)}
                 };
                 
-                float val = 0;
-                for(int p = 0; p < 3; ++p) {
-                    for (int q = 0; q < 3; ++q) {
-                        //val(p, q) = w(p,q) * src(p, q)
-                        val += weights_h[p] * weights_w[q] * src_arr[p*4+q];
-                    }
-                }
-                dst_data[i * dw + j] = val;
+                float vals[4];
+                vals[0] = weights_w[0]*src_arr[0][0] + weights_w[1]*src_arr[0][1] + weights_w[2]*src_arr[0][2] + weights_w[3]*src_arr[0][3];
+                vals[1] = weights_w[0]*src_arr[1][0] + weights_w[1]*src_arr[1][1] + weights_w[2]*src_arr[1][2] + weights_w[3]*src_arr[1][3];
+                vals[2] = weights_w[0]*src_arr[2][0] + weights_w[1]*src_arr[2][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[2][3];
+                vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[3][3];
+                
+                float sum = weights_h[0]*vals[0] + weights_h[1]*vals[1] + weights_h[2]*vals[2] + weights_h[3]*vals[3];
+                
+                dst_data[i * dw + j] = sum;
             }
         }
     }
+#undef Clip
+#undef SrcValueAt
 }
-#undef GetValueAt
 
 static Status ResizeFloatMat(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type) {
     Status status = TNN_OK;
@@ -454,7 +449,7 @@ static Status ResizeFloatMat(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<T
     
     auto src_dev_type = src->GetDeviceType();
     auto dst_dev_type = dst->GetDeviceType();
-    if (src_dev_type != dst_dev_type ||( src_dev_type != DEVICE_ARM && src_dev_type != DEVICE_NAIVE)) {
+    if (src_dev_type != dst_dev_type || ( src_dev_type != DEVICE_ARM && src_dev_type != DEVICE_NAIVE)) {
         return Status(TNNERR_PARAM_ERR, "invalid device type");
     }
     
