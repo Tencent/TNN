@@ -61,7 +61,7 @@ public:
                                                             std::string name = kTNNSDKDefaultName);
     
 private:
-    void GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, Mat &heatmap,
+    void GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, std::shared_ptr<TNN_NS::Mat> heatmap,
                          int image_w, int image_h, float threshold);
     TNN_NS::Status GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
                       int kernel_h, int kernel_w,

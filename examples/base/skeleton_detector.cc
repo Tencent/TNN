@@ -75,9 +75,8 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     
     std::vector<SkeletonInfo> keypoints;
     //decode keypoints
-    GenerateSkeleton(keypoints, *(heatmap.get()), option->input_width, option->input_height, option->min_threshold);
-    
-    output->keypoint_list = keypoints;
+    //GenerateSkeleton(keypoints, heatmap, option->input_width, option->input_height, option->min_threshold);
+    //output->keypoint_list = keypoints;
     
     return status;
 }
@@ -217,33 +216,32 @@ TNN_NS::Status SkeletonDetector::GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, s
     return status;
 }
 
-void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, Mat &heatmap, int image_w, int image_h, float threshold) {
-    float *heatmap_data = static_cast<float *>(heatmap.GetData());
-    const int heatmap_channels = heatmap.GetChannel();
-    const int heatmap_height   = heatmap.GetHeight();
-    const int heatmap_width    = heatmap.GetWidth();
+void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, std::shared_ptr<TNN_NS::Mat> heatmap,
+                                        int image_w, int image_h, float threshold) {
+    const int heatmap_channels = heatmap->GetChannel();
+    const int heatmap_height   = heatmap->GetHeight();
+    const int heatmap_width    = heatmap->GetWidth();
     
     //float scale = static_cast<float>(this->orig_input_width) / static_cast<float>(image_w) / 2.0f;
     // gaussian blur kernel setting
     const int kernel_size = 5;
     const float sigma = 3.0f;
     
-    TNN_NS::DimsVector dim_chanel  = {1, 1, heatmap_height, heatmap_width};
-    TNN_NS::DimsVector dim_resized = {1, 1, this->orig_input_height, this->orig_input_width};
+    TNN_NS::DimsVector dim_heatmap = {1, heatmap_channels, heatmap_height, heatmap_width};
+    TNN_NS::DimsVector dim_resized = {1, heatmap_channels, this->orig_input_height, this->orig_input_width};
     auto heatmap_resized = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, dim_resized);
     auto heatmap_blur = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, dim_resized);
-    
+
+    Resize(heatmap, heatmap_resized, TNNInterpCubic);
+    GaussianBlur(heatmap_resized, heatmap_blur, kernel_size, kernel_size, sigma, sigma);
+    float* heatmap_data = static_cast<float *>(heatmap_blur->GetData());
+
     for(int c=0; c<heatmap_channels; ++c) {
-        float* data_channel_ptr = heatmap_data + c * heatmap_height * heatmap_width;
-        auto heatmap_channel = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::NCHW_FLOAT, dim_chanel, data_channel_ptr);
-        // TODO: use cubic interp to align with weishi
-        Resize(heatmap_channel, heatmap_resized, TNNInterpLinear);
-        GaussianBlur(heatmap_resized, heatmap_blur, kernel_size, kernel_size, sigma, sigma);
+        float* blurred_data_ptr = heatmap_data + c * heatmap_height * heatmap_width;
         // locate the max value inside a channel
         float max_pos_h = -1;
         float max_pos_w = -1;
         float max_val = -FLT_MAX;
-        float* blurred_data_ptr = static_cast<float *>(heatmap_blur->GetData());
         for(int h=0; h<dim_resized[2]; ++h) {
             for(int w=0; w<dim_resized[3]; ++w) {
                 auto val = blurred_data_ptr[h * dim_resized[3] + w];
