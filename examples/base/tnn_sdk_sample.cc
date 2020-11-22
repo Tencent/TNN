@@ -407,15 +407,12 @@ static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
             std::vector<float> weights_h;
             GetCubicWeights(h, weights_h);
             int hh = std::floor(h);
-            hh = std::min(std::max(hh, 0), sh-1);
             for (int j = 0; j < dw; ++j) {
                 float w = static_cast<float>((j + 0.5) *  w_scale - 0.5);
                 // get interp weights
                 std::vector<float> weights_w;
                 GetCubicWeights(w, weights_w);
-                
                 int ww = std::floor(w);
-                ww = std::min(std::max(ww, 0), sw-1);
                 
                 float src_arr[4][4] = {
                     {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
