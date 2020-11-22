@@ -396,18 +396,19 @@ static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
     auto sw = src->GetWidth();
     auto dw = dst->GetWidth();
     auto sh = src->GetHeight();
+    auto dh = dst->GetHeight();
 #define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
-#define SrcValueAt(h, w) (src_data[(Clip(h,sh))*sw+(Clip(w,sw))])
-
+#define SrcValueAt(c, h, w) (src_data[c*sh*sw+(Clip(h,sh))*sw+(Clip(w,sw))])
+    
     for(int c=0; c<channel; ++c) {
-        for(int i = 0; i < dst->GetHeight(); ++i) {
+        for(int i = 0; i < dh; ++i) {
             float h = static_cast<float>((i + 0.5) *  h_scale - 0.5);
             // get interp weights
             std::vector<float> weights_h;
             GetCubicWeights(h, weights_h);
             int hh = std::floor(h);
             hh = std::min(std::max(hh, 0), sh-1);
-            for (int j = 0; j < dst->GetWidth(); ++j) {
+            for (int j = 0; j < dw; ++j) {
                 float w = static_cast<float>((j + 0.5) *  w_scale - 0.5);
                 // get interp weights
                 std::vector<float> weights_w;
@@ -417,21 +418,21 @@ static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
                 ww = std::min(std::max(ww, 0), sw-1);
                 
                 float src_arr[4][4] = {
-                    {SrcValueAt(hh-1, ww-1), SrcValueAt(hh-1, ww), SrcValueAt(hh-1, ww+1), SrcValueAt(hh-1, ww+2)},
-                    {SrcValueAt(hh+0, ww-1), SrcValueAt(hh+0, ww), SrcValueAt(hh+0, ww+1), SrcValueAt(hh+0, ww+2)},
-                    {SrcValueAt(hh+1, ww-1), SrcValueAt(hh+1, ww), SrcValueAt(hh+1, ww+1), SrcValueAt(hh+1, ww+2)},
-                    {SrcValueAt(hh+2, ww-1), SrcValueAt(hh+2, ww), SrcValueAt(hh+2, ww+1), SrcValueAt(hh+2, ww+2)}
+                    {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
+                    {SrcValueAt(c, hh+0, ww-1), SrcValueAt(c, hh+0, ww), SrcValueAt(c, hh+0, ww+1), SrcValueAt(c, hh+0, ww+2)},
+                    {SrcValueAt(c, hh+1, ww-1), SrcValueAt(c, hh+1, ww), SrcValueAt(c, hh+1, ww+1), SrcValueAt(c, hh+1, ww+2)},
+                    {SrcValueAt(c, hh+2, ww-1), SrcValueAt(c, hh+2, ww), SrcValueAt(c, hh+2, ww+1), SrcValueAt(c, hh+2, ww+2)}
                 };
                 
                 float vals[4];
                 vals[0] = weights_w[0]*src_arr[0][0] + weights_w[1]*src_arr[0][1] + weights_w[2]*src_arr[0][2] + weights_w[3]*src_arr[0][3];
                 vals[1] = weights_w[0]*src_arr[1][0] + weights_w[1]*src_arr[1][1] + weights_w[2]*src_arr[1][2] + weights_w[3]*src_arr[1][3];
                 vals[2] = weights_w[0]*src_arr[2][0] + weights_w[1]*src_arr[2][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[2][3];
-                vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[3][3];
+                vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[3][2] + weights_w[3]*src_arr[3][3];
                 
                 float sum = weights_h[0]*vals[0] + weights_h[1]*vals[1] + weights_h[2]*vals[2] + weights_h[3]*vals[3];
                 
-                dst_data[i * dw + j] = sum;
+                dst_data[(c * dh + i) * dw + j] = sum;
             }
         }
     }

@@ -75,8 +75,8 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     
     std::vector<SkeletonInfo> keypoints;
     //decode keypoints
-    //GenerateSkeleton(keypoints, heatmap, option->input_width, option->input_height, option->min_threshold);
-    //output->keypoint_list = keypoints;
+    GenerateSkeleton(keypoints, heatmap, option->input_width, option->input_height, option->min_threshold);
+    output->keypoint_list = keypoints;
     
     return status;
 }
