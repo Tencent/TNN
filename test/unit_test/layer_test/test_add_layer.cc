@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_binary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -40,6 +41,10 @@ TEST_P(AddLayerTest, BinaryLayerTest) {
     int param_size_type     = std::get<4>(GetParam());
     int weight_index        = std::get<5>(GetParam());
     DataType blob_data_type = std::get<6>(GetParam());
+
+    if (blob_data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
 
     if (blob_data_type == DATA_TYPE_INT8) {
         // currently only single batch and non-broadcasting add is implemented

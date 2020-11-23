@@ -16,6 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                                             // axis
                                             testing::Values(1, 2),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     // get param
@@ -41,6 +42,9 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
