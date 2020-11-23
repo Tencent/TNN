@@ -49,7 +49,7 @@ void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4);
 template <typename T>
 void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4);
 
-template <typename T>
+template <typename T, bool Fast>
 void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4);
 
 template <typename T>
