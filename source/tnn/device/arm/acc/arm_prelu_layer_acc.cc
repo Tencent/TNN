@@ -137,13 +137,19 @@ Status ArmPReluLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const s
 
     fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
     fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
-    float16x8_t v_zero  = vdupq_n_f16(0.f);
     if (layer_param->channel_shared) {
         float16x8_t v_slope = vdupq_n_f16(slope_data[0]);
-        for (int n = 0; n < UP_DIV(count, 8); n++) {
-            float16x8_t v_data = vld1q_f16(input_data + n * 8);
-            float16x8_t v_res  = vbslq_f16(vcltq_f16(v_data, v_zero), vmulq_f16(v_data, v_slope), v_data);
-            vst1q_f16(output_data + n * 8, v_res);
+        for (int n = 0; n < count; n += 8) {
+            asm volatile (
+                "ld1 {v0.8h}, [%0]\n\t"
+                "fmul v1.8h, v0.8h, %2.8h\n\t"
+                "fcmlt v2.8h, v0.8h, #0.0\n\t"
+                "bsl v2.16b, v1.16b, v0.16b\n\t"
+                "st1 {v2.8h}, [%1]\n\t"
+                :
+                :"r"(input_data + n), "r"(output_data + n), "w"(v_slope)
+                :"cc","memory","v0","v1","v2"
+            );
         }
     } else {
         for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
@@ -154,9 +160,16 @@ Status ArmPReluLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const s
                 auto *dst_z         = output_ptr + dz * width * height * 8;
                 float16x8_t v_slope = vld1q_f16(slope_data + dz * 8);
                 for (int p = 0; p < width * height; p++) {
-                    float16x8_t v_data = vld1q_f16(src_z + p * 8);
-                    float16x8_t v_res  = vbslq_f16(vcltq_f16(v_data, v_zero), vmulq_f16(v_data, v_slope), v_data);
-                    vst1q_f16(dst_z + p * 8, v_res);
+                    asm volatile (
+                        "ld1 {v0.8h}, [%0]\n\t"
+                        "fmul v1.8h, v0.8h, %2.8h\n\t"
+                        "fcmlt v2.8h, v0.8h, #0.0\n\t"
+                        "bsl v2.16b, v1.16b, v0.16b\n\t"
+                        "st1 {v2.8h}, [%1]\n\t"
+                        :
+                        :"r"(src_z + p * 8), "r"(dst_z + p * 8), "w"(v_slope)
+                        :"cc","memory","v0","v1","v2"
+                    );
                 }
             }
         }
