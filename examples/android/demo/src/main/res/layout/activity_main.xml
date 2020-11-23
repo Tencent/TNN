@@ -138,5 +138,17 @@
             android:text="@string/tnn_fa_stream_btn_name"
             android:textColor="@color/white"/>
 
+        <TextView
+            android:id="@+id/stream_hairsegmentation_btn"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:text="@string/tnn_hs_stream_btn_name"
+            android:textColor="@color/white"/>
+
     </LinearLayout>
 </ScrollView>

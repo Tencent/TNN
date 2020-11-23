@@ -69,10 +69,10 @@ public:
 
 private:
     // @brief load model from om file
-    Status LoadModelFromFile(std::string om_file);
+    Status LoadModelFromFile(const std::string& om_file);
 
     // @brief load model from memory
-    Status LoadModelFromMemory(std::string om_file);
+    Status LoadModelFromMemory(const std::string& om_file);
 
     // @brief unload model
     void UnloadModel();
@@ -92,8 +92,6 @@ private:
 
     // @brief destory dataset
     void DestroyDataset(aclmdlDataset *&data_set);
-
-    AtlasModelConfig atlas_config_;
 
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;

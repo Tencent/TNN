@@ -14,6 +14,11 @@
 
 namespace TNN_NS {
 
+struct WeightPacket {
+    void* weight_mem_ptr = nullptr;
+    aclrtContext context = nullptr;
+};
+
 // @brief Atlas model interpreter interpret Atlas model
 class AtlasModelInterpreter : public AbstractModelInterpreter {
 public:
@@ -36,7 +41,7 @@ public:
 
 private:
     AtlasModelConfig model_config_;
-    std::map<int, void*> model_weight_ptr_map_;
+    std::map<int, WeightPacket> model_weight_map_;
     size_t model_weight_size_ = 0;
     std::mutex mutex_;
 };

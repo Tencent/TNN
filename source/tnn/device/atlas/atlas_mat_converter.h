@@ -35,6 +35,7 @@ public:
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) override;
     virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL) override;
+    virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL) override;
 
 private:
     Status PrepareInput(Mat& mat);

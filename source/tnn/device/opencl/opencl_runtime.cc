@@ -166,6 +166,7 @@ Status OpenCLRuntime::Init() {
         device_->getInfo(CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, &global_memery_cachesize_);
         device_->getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &compute_units_);
         device_->getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &max_freq_);
+        device_->getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &local_memory_size_);
         cl_device_fp_config fp_config;
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
@@ -208,6 +209,10 @@ uint32_t OpenCLRuntime::DeviceMaxFreq() const {
     return max_freq_;
 }
 
+uint64_t OpenCLRuntime::DeviceLocalMemerySize() const {
+    return local_memory_size_;
+}
+
 //get kernel enqueue max work group size 
 uint64_t OpenCLRuntime::GetMaxWorkGroupSize(const cl::Kernel &kernel) {
     uint64_t max_workgroup_size = 0;
@@ -243,18 +248,13 @@ GpuInfo OpenCLRuntime::GetGpuInfo() {
     return gpu_info_;
 }
 
-bool OpenCLRuntime::GetFp16Enable() const {
-    return fp16_enable_;
+bool OpenCLRuntime::SetPrecision(Precision precision) {
+    precision_ = !support_fp16_ ? PRECISION_HIGH : precision;
+    return precision_ == precision;
 }
 
-//if support fp16, set fp16 will success.
-bool OpenCLRuntime::SetFp16Enable(bool enable) {
-    fp16_enable_ = enable && support_fp16_;
-    return fp16_enable_ == enable;
-}
-
-void OpenCLRuntime::SetPrecision(Precision precision) {
-    precision_ = precision;
+Precision OpenCLRuntime::GetPrecision() {
+    return precision_;
 }
 
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
@@ -266,17 +266,17 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
         force_fp32 = true;
     }
     //set default macro
-    if (fp16_enable_ && (PRECISION_LOW == precision_ || PRECISION_AUTO == precision_) && !force_fp32) {
+    if (precision_ != PRECISION_HIGH && !force_fp32) {
         //fp16 enable, kernel will use half and read_imageh and write_imageh.
         LOGD("OpenCL Caucluate Pricision is Half!\n");
         build_options_str =
-            "-DFLOAT=half -DFLOAT4=half4 -DRI_F=read_imageh "
+            "-DFLOAT=half -DFLOAT4=half4 -DCONVERT_INT=convert_short -DCONVERT_FLOAT4=convert_half4 -DRI_F=read_imageh "
             "-DWI_F=write_imageh";
     } else {
         //fp16 not enable, kernel will use float and read_imagef and write_imagef.
         LOGD("OpenCL Caucluate Pricision is Float!\n");
         build_options_str =
-            "-DFLOAT=float -DFLOAT4=float4 -DRI_F=read_imagef "
+            "-DFLOAT=float -DFLOAT4=float4  -DCONVERT_INT=convert_int -DCONVERT_FLOAT4=convert_float4 -DRI_F=read_imagef "
             "-DWI_F=write_imagef";
     }
     for (auto &option : build_options) {

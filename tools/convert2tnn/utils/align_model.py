@@ -118,8 +118,13 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
            output_name = item["name"]
            index = item["index"]
            output_data = interpreter.get_tensor(index)
-           if len(output_data.shape) == 4:
-               output_data = np.transpose(output_data, (0, 3, 1, 2)) # transpose result from nhwc to nchw
+
+           shape = list(output_data.shape)
+           while len(shape) < 4:
+               shape.insert(-1, 1)
+               output_data = output_data.reshape(*shape)
+
+           output_data = np.transpose(output_data, (0, 3, 1, 2)) # transpose result from nhwc to nchw
            output_shape = output_data.shape
            description = "{} {} " .format(output_name, len(output_shape))
            for dim in output_shape:
@@ -152,6 +157,7 @@ def get_input_shape_from_tflite(tflite_path)->dict:
        n,c,h,w = item["shape"]
        input_info.update({name: [int(n), int(c), int(h), int(w)]})
     return input_info
+
 def get_input_shape_from_tnn(tnn_proto_path):
     input_info: dict = {}
     line = linecache.getline(tnn_proto_path, 2).strip(
@@ -200,7 +206,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
 
 def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
-        print_not_align_message("onnx input size != tnn input size")
+        print_not_align_message("tflite input size != tnn input size")
     for name, onnx_shape in onnx_input_info.items():
         tnn_name = convert_name.onnx_name2tnn_name(name)
         tnn_shape = tnn_input_info[tnn_name]

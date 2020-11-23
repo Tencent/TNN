@@ -164,10 +164,21 @@ bool CheckNumberString(std::string num_str) {
     return true;
 }
 
+bool CheckFileName(std::string name) {
+    std::ofstream write_stream;
+    write_stream.open(name);
+    if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
+        write_stream.close();
+        return false;
+    }
+    write_stream.close();
+    return true;
+}
+
 void PrintConfig() {
     printf(
-        "usage:\n./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] "
-        "[-c] [-v]\n"
+        "usage:\n./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> "
+        "[-n] <val> [-s] <val> [-c] [-o] <output_name> [-v]\n"
         "\t-h, --help        \t show this message\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"
         "\t-m, --model       \t(require) tnn model file name\n"
@@ -185,12 +196,12 @@ void PrintConfig() {
         "input, ie, "
         "1.0,1.0,1.0 \n"
         "\t\tformula: y = (x - bias) * scale\n"
-        "\t-c, --merge_channel\t(optional) merge blob channel when quantize "
-        "blob\n"
+        "\t-c, --merge_channel\t(optional) merge blob channel when quantize blob\n"
         "\t-v, --version      \t(optional) the model versoin to save\n"
         "\t\t0: RapidnetV1\n"
         "\t\t1: TNN\n"
         "\t\t0: RapidnetV3 (default)\n");
+        "\t-o, --output       \t(optional) specify the name of output\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -199,6 +210,7 @@ int main(int argc, char* argv[]) {
     std::string model_file_name;
     std::string input_path;
     rapidnetv3::ModelVersion model_version = rapidnetv3::MV_RPNV3;
+    std::string output_name = "model";
 
     CalibrationParam cali_params;
     cali_params.blob_quantize_method    = MIN_MAX;
@@ -216,10 +228,11 @@ int main(int argc, char* argv[]) {
                                     {"scale", required_argument, 0, 's'},
                                     {"merge_channel", no_argument, 0, 'c'},
                                     {"version", optional_argument, 0, 'v'},
+                                    {"output", required_argument, 0, 'o'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:i:b:w:n:s:cv:h";
+    const char* optstring = "p:m:i:b:w:n:s:c:v:o:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -286,6 +299,14 @@ int main(int argc, char* argv[]) {
                 printf("model version: %s\n", optarg);
                 model_version = (rapidnetv3::ModelVersion)atoi(optarg);
                 break;
+            case 'o':
+                printf("output name: %s\n", optarg);
+                output_name = optarg;
+                if (!CheckFileName(output_name)) {
+                    printf("invaild output name!\n");
+                    return 0;
+                }
+                break;
             case 'h':
             case '?':
                 PrintConfig();
@@ -328,9 +349,9 @@ int main(int argc, char* argv[]) {
         printf("calibration run falied!\n");
         return -1;
     }
-    status = calibration.Serialize("model_quantized.tnnproto", "model_quantized.tnnmodel");
+    status = calibration.Serialize(output_name + ".quantized.tnnproto", output_name + ".quantized.tnnmodel");
     if (status != TNN_OK) {
-        printf("calibration serialize falied!\n");
+        printf("calibration serialize falied! (%s)\n", status.description().c_str());
         return -1;
     }
     printf("quantize model success!\n");

@@ -484,6 +484,21 @@ Status AtlasMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& 
     return TNN_OK;
 }
 
+Status AtlasMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    if (!init_success_) {
+        LOGE("init mat converter failed!\n");
+        return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
+    }
+
+    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    if (atlas_cmd_queue == nullptr) {
+        LOGE("get atlas command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    }
+
+    return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support CopyMakeBorder");
+}
+
 Status AtlasMatConverterAcc::PrepareInput(Mat& mat) {
     int batch = mat.GetBatch();
     if (1 != batch) {

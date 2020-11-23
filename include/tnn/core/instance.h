@@ -66,6 +66,10 @@ public:
 
     // get tnn command queue
     Status GetCommandQueue(void** command_queue);
+    
+    // @brief share command queue with another instance
+    // @param instance to share command queue
+    Status ShareCommandQueue(Instance *instance);
 
     // @brief tnn instance network infer, it will wait until all layer infer complete.
     Status Forward();
@@ -100,6 +104,8 @@ private:
     std::shared_ptr<AbstractNetwork> network_;
     NetworkConfig net_config_;
     ModelConfig model_config_;
+    
+    AbstractNetwork *GetNetwork();
     
     //Mat interface for simple use
 public:

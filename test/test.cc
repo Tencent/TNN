@@ -103,7 +103,7 @@ namespace test {
                     auto blob_converter = element.second;
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
-                ret = instance->ForwardAsync(nullptr);
+                instance->ForwardAsync(nullptr);
                  
                 for(auto element : output_converters_map) {
                     auto name = element.first;
@@ -127,13 +127,22 @@ namespace test {
                 for(auto element : input_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
-                    blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                    ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                    if (!CheckResult("ConvertFromMat", ret)) {
+                        return 0;
+                    }
                 }
                 ret = instance->ForwardAsync(nullptr);
+                if (!CheckResult("Forward", ret)) {
+                    return 0;
+                }
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
-                    blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+                    ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+                    if (!CheckResult("ConvertToMat", ret)) {
+                        return 0;
+                    }
                 }
                 timer.Stop();
             }

@@ -22,24 +22,10 @@ namespace TNN_NS {
 
 DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM)
 
-Status NpuBatchNormLayer::Convert() {
-    auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
-    if (!resource) {
-        return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
-    }
-
-    // channel is the 1 element of NCHW
-    int channel = input_ops_[0]->GetShape()[1];
-    bool share_channel =
-        resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
-    auto *scale_data = resource->scale_handle.force_to<float *>();
-    auto *bias_data  = resource->bias_handle.force_to<float *>();
-
-    std::vector<float> mean_data;
-    std::vector<float> variance_data;
-    std::vector<float> share_scale_data;
-    std::vector<float> share_bias_data;
-
+void InitVectorData(std::vector<float> &mean_data, std::vector<float> &variance_data,
+                            std::vector<float> &share_scale_data, std::vector<float> &share_bias_data,
+                            float *scale_data, float *bias_data,
+                            int channel, bool share_channel) {
     for (int i = 0; i < channel; i++) {
         mean_data.push_back(0.0f);
         variance_data.push_back(1.0f);
@@ -47,6 +33,40 @@ Status NpuBatchNormLayer::Convert() {
             share_scale_data.push_back(scale_data[0]);
             share_bias_data.push_back(bias_data[0]);
         }
+    }
+}
+
+Status NpuBatchNormLayer::Convert() {
+    auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
+    if (!resource) {
+        return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
+    }
+
+    // channel is the second element of NCHW
+    int channel = input_ops_[0]->GetShape()[1];
+    bool share_channel =
+        resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
+    //fixed - set to be 0 and 1
+    std::vector<float> mean_data;
+    std::vector<float> variance_data;
+    //here needs to consider float 16
+    std::vector<float> share_scale_data;
+    std::vector<float> share_bias_data;
+
+    if (resource->scale_handle.GetDataType() != DATA_TYPE_FLOAT) {
+        // if filter handle is half,it needs to be converted to float first.
+        auto scale_data = GetFloatFromRawBuffer(resource->scale_handle);
+        auto bias_data = GetFloatFromRawBuffer(resource->bias_handle);
+
+        if (scale_data == nullptr || bias_data == nullptr) {
+            return Status(TNNERR_NPU_LOAD_ERROR, "In NPU, when convert to 16, pointer is null");
+        }
+        InitVectorData(mean_data, variance_data, share_scale_data, share_bias_data, scale_data.get(), bias_data.get(),
+                       channel, share_channel);
+    } else {
+        InitVectorData(mean_data, variance_data, share_scale_data, share_bias_data,
+                       resource->scale_handle.force_to<float *>(), resource->bias_handle.force_to<float *>(), channel,
+                       share_channel);
     }
 
     ge::Shape shape({channel});

@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
-#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
+#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_
+#define TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_
 
 #include <string>
 
@@ -27,25 +27,18 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    //@brief net optimize: fuse relu and relu6 to convolution
-    class NetOptimizerInsertReformat : public NetOptimizer {
+    //@brief net optimize: fuse conv post(relu, relu6 ... ) to convolution
+    class NetOptimizerFuseConvPost : public NetOptimizer {
     public:
         virtual std::string Strategy();
-        virtual bool SupportDevice(DeviceType device);
+        virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
-
-        void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
-                         NetStructure *structure,
-                         std::shared_ptr<LayerInfo>& cur_layer,
-                         std::shared_ptr<LayerInfo>& new_layer,
-                         std::vector<std::string>& reformat_outs,
-                         const std::string& reformat_name_suffix,
-                         const int index,
-                         const int count);
+    private:
+        std::map<LayerType, ActivationType> kLayerActivationMap;
     };
 
 }  // namespace optimizer
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_REFORMAT_H_
+#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_FUSE_CONV_SIGMOID_MUL_H_

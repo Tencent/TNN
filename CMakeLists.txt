@@ -95,9 +95,6 @@ endif()
 
 if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
-    if (TNN_UNIT_TEST_BENCHMARK MATCHES OFF)
-        add_definitions(-DOPENCL_FORCE_FP32)
-    endif()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
@@ -112,7 +109,6 @@ if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_MODEL_CONVERT_ENABLE
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
-    add_definitions(-DOPENCL_FORCE_FP32)
     option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
 endif()
 
@@ -217,6 +213,11 @@ if(TNN_X86_ENABLE)
 endif()
 
 if(TNN_OPENCL_ENABLE)
+    include(FindPythonInterp REQUIRED)
+    if (NOT PYTHON_EXECUTABLE)
+        message (FATAL_ERROR "No Python installation found! It is required by OpenCL codegen.")
+    endif ()
+
     if(SHARING_MEM_WITH_OPENGL)
         add_definitions(-DSHARING_MEM_WITH_OPENGL)
         add_definitions(-DCL_HPP_TARGET_OPENCL_VERSION=120)
@@ -262,12 +263,7 @@ if(TNN_HUAWEI_NPU_ENABLE)
         )
     endif()
     add_subdirectory(source/tnn/device/huawei_npu)
-
-    if(TNN_CPU_ENABLE)
-        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
-    else()
-        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>" "$<TARGET_OBJECTS:TNNBLOB>")
-    endif()
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
 endif()
 
 if(TNN_ATLAS_ENABLE)
