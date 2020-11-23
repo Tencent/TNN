@@ -23,28 +23,58 @@ namespace TNN_NS {
 ArmNchwLayerAcc::~ArmNchwLayerAcc(){};
 
 Status ArmNchwLayerAcc::UnPackInputs(const std::vector<Blob *> &inputs) {
-    for (int i = 0; i < inputs.size(); i++) {
-        auto input_dims = inputs[i]->GetBlobDesc().dims;
-        for (int n = 0; n < input_dims[0]; ++n) {
-            auto in_count     = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], 4);
-            auto out_count    = input_dims[3] * input_dims[2] * input_dims[1];
-            float *src  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
-            float *dst = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
-            UnpackC4(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        for (int i = 0; i < inputs.size(); i++) {
+            auto input_dims = inputs[i]->GetBlobDesc().dims;
+            for (int n = 0; n < input_dims[0]; ++n) {
+                auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], 4);
+                auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
+                float *src     = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
+                float *dst = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
+                UnpackC4(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
+            }
+        }
+    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        for (int i = 0; i < inputs.size(); i++) {
+            auto input_dims = inputs[i]->GetBlobDesc().dims;
+            for (int n = 0; n < input_dims[0]; ++n) {
+                auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], 8);
+                auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
+                fp16_t *src    = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
+                fp16_t *dst =
+                    reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
+                UnpackC8(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
+            }
         }
     }
     return TNN_OK;
 }
+
 Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
-    for (int i = 0; i < outputs.size(); i++) {
-        auto out_dims = nchw_blob_out[i]->GetBlobDesc().dims;
-        outputs[i]->GetBlobDesc().dims = out_dims;
-        for (int n = 0; n < out_dims[0]; ++n) {
-            auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
-            auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 4);
-            float *src     = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
-            float *dst     = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
-            PackC4(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
+    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        for (int i = 0; i < outputs.size(); i++) {
+            auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
+            outputs[i]->GetBlobDesc().dims = out_dims;
+            for (int n = 0; n < out_dims[0]; ++n) {
+                auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
+                auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 4);
+                float *src = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
+                float *dst = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
+                PackC4(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
+            }
+        }
+    } else if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        for (int i = 0; i < outputs.size(); i++) {
+            auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
+            outputs[i]->GetBlobDesc().dims = out_dims;
+            for (int n = 0; n < out_dims[0]; ++n) {
+                auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
+                auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 8);
+                fp16_t *src =
+                    reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
+                fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
+                PackC8(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
+            }
         }
     }
     return TNN_OK;
@@ -70,7 +100,7 @@ Status ArmNchwLayerAcc::AllocConvertBuffer(const std::vector<Blob *> &inputs, co
         nchw_blob_out.push_back(std::make_shared<Blob>(desc, handle));
     }
 
-    return TNN_OK; 
+    return TNN_OK;
 }
 
 Status ArmNchwLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

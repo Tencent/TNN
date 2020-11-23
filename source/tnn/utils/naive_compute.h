@@ -52,7 +52,7 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
  * @brief Permute the input blob by changing the memory order of the data.
  **/
 template <typename T>
-void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
+void NaivePermute(const int count, DimsVector dims, T *bottom_data, const std::vector<int> &permute_order,
                 const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes, T *top_data);
 
 void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data);

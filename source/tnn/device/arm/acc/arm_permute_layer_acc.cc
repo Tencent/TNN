@@ -42,13 +42,22 @@ Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle()));
-        NaivePermute<float>(output_count, input_data, permute_param->orders, input_step, output_step, num_dims,
+        NaivePermute<float>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step, num_dims,
                             output_data);
     }
+#if TNN_ARM82
+    else if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle()));
+        fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle()));
+        NaivePermute<fp16_t>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step, num_dims,
+                            output_data);
+    }
+#endif
     PackOutputs(outputs);
     return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Permute, LAYER_PERMUTE);
+REGISTER_ARM_PRECISION_FP16(LAYER_PERMUTE)
 
 }  // namespace TNN_NS
