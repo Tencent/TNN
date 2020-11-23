@@ -66,26 +66,28 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
 
-    auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
-    Run(interpreter1);
-    auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param);
-    Run(interpreter2);
-    auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
-    Run(interpreter3);
+    if (DEVICE_HUAWEI_NPU != dev) {
+        auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
+        Run(interpreter1);
+        auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param);
+        Run(interpreter2);
+        auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
+        Run(interpreter3);
+        auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+        Run(interpreter5);
+        auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+        Run(interpreter6);
+        auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+        Run(interpreter7);
+        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+        Run(interpreter8);
+        auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+        Run(interpreter10);
+    }
     auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
     Run(interpreter4);
-    auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
-    Run(interpreter5);
-    auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
-    Run(interpreter6);
-    auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
-    Run(interpreter7);
-    auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-    Run(interpreter8);
     auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
     Run(interpreter9);
-    auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
-    Run(interpreter10);
 }
 
 }  // namespace TNN_NS

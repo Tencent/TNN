@@ -23,9 +23,9 @@
 
 namespace TNN_NS {
 
-class DeconvLayerTest
-    : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
+class DeconvLayerTest : public LayerTest,
+                        public ::testing::WithParamInterface<
+                            std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
                                             testing::Values(1, 2, 3, 4, 16),
@@ -46,7 +46,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             // data_type
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16),
                                             // activation_type
-                                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
+                                            testing::Values(ActivationType_None, ActivationType_ReLU,
+                                                            ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
 
 TEST_P(DeconvLayerTest, DeconvLayer) {
     // get param
@@ -74,6 +75,10 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
+        GTEST_SKIP();
+    }
+
     if (kernel <= 1) {
         pad = 0;
     } else if (kernel == 2) {
@@ -96,8 +101,17 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     param->pads = {pad, pad, pad, pad};
     param->bias = 1;
+
+    if (DEVICE_HUAWEI_NPU == dev) {
+        param->bias = 0;
+    }
+
     if (output_pad > 0) {
         param->pad_type = 3;
+    }
+
+    if (param->pad_type != 0 && param->pad_type != 1 && param->pad_type != -1 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
     }
 
     Precision precision = PRECISION_AUTO;

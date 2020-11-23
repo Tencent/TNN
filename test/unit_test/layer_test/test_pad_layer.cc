@@ -59,6 +59,10 @@ TEST_P(PadLayerTest, PadLayer) {
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if ((-FLT_MAX == value || FLT_MAX == value) && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PadLayerParam> param(new PadLayerParam());
     param->name  = "Pad";

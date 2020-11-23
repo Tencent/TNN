@@ -24,26 +24,27 @@ class ConvLayerTest : public LayerTest,
                           std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
-                        ::testing::Combine(  // batch
-                            testing::Values(1),
-                            // channel
-                            testing::Values(1, 2, 3, 4, 10, 32),
-                            // hw
-                            testing::Values(9, 10, 16, 19),
-                            // group
-                            testing::Values(1, 2),
-                            // kernel
-                            testing::Values(1, 2, 3, 5),
-                            // dilation
-                            testing::Values(1, 2),
-                            // stride
-                            testing::Values(1, 2),
-                            // pads
-                            testing::Values(0, 1),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT),
-                            // activation_type
-                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
+                         ::testing::Combine(  // batch
+                             testing::Values(1),
+                             // channel
+                             testing::Values(1, 2, 3, 4, 10, 32),
+                             // hw
+                             testing::Values(9, 10, 16, 19),
+                             // group
+                             testing::Values(1, 2),
+                             // kernel
+                             testing::Values(1, 2, 3, 5),
+                             // dilation
+                             testing::Values(1, 2),
+                             // stride
+                             testing::Values(1, 2),
+                             // pads
+                             testing::Values(0, 1),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT),
+                             // activation_type
+                             testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6,
+                                             ActivationType_SIGMOID_MUL)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param

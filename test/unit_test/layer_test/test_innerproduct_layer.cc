@@ -39,7 +39,7 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     int has_bias       = std::get<4>(GetParam());
     DataType dtype     = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev)) {
+    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev || DEVICE_HUAWEI_NPU == dev)) {
         GTEST_SKIP();
     }
 

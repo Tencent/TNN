@@ -178,9 +178,8 @@ Status LayerTest::Forward() {
      * Used for benchmarking.
      */
     if (FLAGS_ub) {
-        printf(
-            "device %s time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n",
-            FLAGS_dt.c_str(), min, max, sum / (float)FLAGS_ic);
+        printf("device %s time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n", FLAGS_dt.c_str(), min, max,
+               sum / (float)FLAGS_ic);
     }
 
     return ret;
@@ -251,7 +250,7 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     if (mat_type == NCHW_FLOAT) {
         if (ensure_input_positive_) {
             // some layers only supports positive data as input
-            InitRandom(static_cast<float*>(input_data), blob_count, 0.0f, 1.0f + (float)magic_num);
+            InitRandom(static_cast<float*>(input_data), blob_count, 0.0001f, 1.0f + (float)magic_num);
         } else {
             InitRandom(static_cast<float*>(input_data), blob_count, 1.0f + (float)magic_num);
         }

@@ -35,6 +35,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (!share_channel && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
     param->name           = "PRelu";

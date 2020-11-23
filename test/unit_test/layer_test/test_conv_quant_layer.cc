@@ -21,8 +21,8 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType,
-                                                                           ActivationType, FusionType>> {};
+                           public ::testing::WithParamInterface<
+                               std::tuple<int, int, int, int, int, int, DataType, ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
@@ -85,14 +85,14 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
 
     // get add input dim
     if (fusion_type != FusionType_None) {
-        auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-        Blob conv_input_blob   = Blob(inputs_desc[0]);
+        auto inputs_desc              = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+        Blob conv_input_blob          = Blob(inputs_desc[0]);
         std::vector<Blob*> conv_input = {&conv_input_blob};
 
         BlobDesc conv_output_desc;
-        conv_output_desc.data_type   = data_type;
-        conv_output_desc.device_type = DEVICE_NAIVE;
-        Blob conv_output_blob  = Blob(conv_output_desc);
+        conv_output_desc.data_type     = data_type;
+        conv_output_desc.device_type   = DEVICE_NAIVE;
+        Blob conv_output_blob          = Blob(conv_output_desc);
         std::vector<Blob*> conv_output = {&conv_output_blob};
 
         auto layer_creator_map = GetGlobalLayerCreatorMap();
