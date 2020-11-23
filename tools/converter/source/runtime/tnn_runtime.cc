@@ -16,8 +16,10 @@
 
 #include "include/tnn/core/common.h"
 #include "include/tnn/core/instance.h"
+#include "tnn/utils/blob_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "utils/flags.h"
 
 namespace TNN_CONVERTER {
 
@@ -69,10 +71,42 @@ TNN_NS::Status TnnRuntime::run(std::shared_ptr<TNN_NS::AbstractModelInterpreter>
         LOGE("Converter Runtime: instance forward failed\n");
         return status;
     }
-    // mat format NCHW_FLOAT
-    TNN_NS::MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
-    auto output_converters_map    = CreateBlobConverterMap(output_blob_map);
-    auto output_params_map        = CreateConvertParamMap(output_mat_map);
+
+    if (!FLAGS_sp.empty()) {
+        // mat format NCHW_FLOAT
+        TNN_NS::MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
+        auto output_converters_map    = CreateBlobConverterMap(output_blob_map);
+        auto output_params_map        = CreateConvertParamMap(output_mat_map);
+        for (const auto& iter : output_converters_map) {
+            auto& name           = iter.first;
+            auto& blob_converter = iter.second;
+            status = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+            if (status != TNN_NS::TNN_OK) {
+                LOGE("Converter: convert from mat to blob failed\n");
+                return status;
+            }
+        }
+        std::ofstream output_file(FLAGS_sp);
+        LOGD("The save path of the results after TNN inference: %s\n", FLAGS_sp.c_str());
+        for (const auto& output : output_mat_map) {
+            auto& name              = output.first;
+            auto& mat               = output.second;
+            TNN_NS::DimsVector dims = mat->GetDims();
+            std::string message     = name + "(";
+            for (const auto& dim : dims) {
+                message += std::to_string(dim);
+                message += " ";
+            }
+            message += ")";
+            LOGD("the output message: %s\n", message.c_str());
+            auto count = TNN_NS::DimsVectorUtils::Count(dims);
+            auto* data = reinterpret_cast<float*>(mat->GetData());
+            for (int i = 0; i < count; ++i) {
+                output_file << std::fixed << std::setprecision(6) << data[i] << std::endl;
+            }
+        }
+        output_file.close();
+    }
 
     return TNN_NS::TNN_OK;
 }
