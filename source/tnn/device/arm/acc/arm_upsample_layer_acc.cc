@@ -12,15 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_upsample_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-
 #include "tnn/utils/omp_utils.h"
-namespace TNN_NS {
 
-DECLARE_ARM_ACC(Upsample, LAYER_UPSAMPLE);
+namespace TNN_NS {
 
 static inline int upsample_nearest2d(float *output_data, const float *input_data, int ih, int iw, int oh, int ow,
                                      int c_4) {
@@ -98,10 +97,10 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
             float *Ydata         = &(output_data[h2 * ow * 4 + w2 * 4]);
             for (int z = 0; z < c_4; z++) {
                 Float4::save(Ydata,
-                            (Float4::load(Xdata) * w0lambda + Float4::load(Xdata + w1p * 4) * w1lambda) * h0lambda +
-                                (Float4::load(Xdata + h1p * src_y_step) * w0lambda +
-                                Float4::load(Xdata + h1p * src_y_step + w1p * 4) * w1lambda) *
-                                    h1lambda);
+                             (Float4::load(Xdata) * w0lambda + Float4::load(Xdata + w1p * 4) * w1lambda) * h0lambda +
+                                 (Float4::load(Xdata + h1p * src_y_step) * w0lambda +
+                                  Float4::load(Xdata + h1p * src_y_step + w1p * 4) * w1lambda) *
+                                     h1lambda);
 
                 Xdata += src_z_step;
                 Ydata += dst_z_step;
@@ -112,7 +111,70 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
-// ArmUpsampleLayerAcc now only support nearest bilinear interpolation
+ArmUpsampleLayerAcc::~ArmUpsampleLayerAcc() {}
+
+Status ArmUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
+
+    DataType data_type = outputs[0]->GetBlobDesc().data_type;
+
+    if (data_type == DATA_TYPE_INT8 && !buffer_scale_.GetBytesSize()) {
+        auto dims_output    = outputs[0]->GetBlobDesc().dims;
+        int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
+
+        auto input_resource  = reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource();
+        auto output_resource = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+        const float *i_scale = input_resource->scale_handle.force_to<float *>();
+        const float *o_scale = output_resource->scale_handle.force_to<float *>();
+        int scale_len_i      = input_resource->scale_handle.GetDataCount();
+        int scale_len_o      = output_resource->scale_handle.GetDataCount();
+
+        RawBuffer temp_buffer(total_byte_size);
+        float *temp_ptr = temp_buffer.force_to<float *>();
+        for (int i = 0; i < dims_output[1]; i++) {
+            int scale_idx_i = scale_len_i == 1 ? 0 : i;
+            int scale_idx_o = scale_len_o == 1 ? 0 : i;
+            if (o_scale[scale_idx_o] >= FLT_MIN)
+                temp_ptr[i] = i_scale[scale_idx_i] / o_scale[scale_idx_o];
+            else
+                temp_ptr[i] = 0.0;
+        }
+        buffer_scale_ = temp_buffer;
+    }
+
+    if (data_type == DATA_TYPE_INT8 && !buffer_ones_.GetBytesSize()) {
+        auto dims_output    = outputs[0]->GetBlobDesc().dims;
+        int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
+
+        RawBuffer temp_buffer(total_byte_size);
+        float *temp_ptr = temp_buffer.force_to<float *>();
+        for (int i = 0; i < dims_output[1]; i++) {
+            temp_ptr[i] = 1.0;
+        }
+        buffer_ones_ = temp_buffer;
+    }
+
+    return TNN_OK;
+}
+
+Status ArmUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        auto dims_input = inputs[0]->GetBlobDesc().dims;
+        int workspace_byte_size =
+            dims_input[0] * ROUND_UP(dims_input[1], 4) * dims_input[2] * dims_input[3] * sizeof(float);
+        if (buffer_input_fp32_.GetBytesSize() < workspace_byte_size) {
+            buffer_input_fp32_ = RawBuffer(workspace_byte_size);
+        }
+        auto dims_output = outputs[0]->GetBlobDesc().dims;
+        workspace_byte_size =
+            dims_output[0] * ROUND_UP(dims_output[1], 4) * dims_output[2] * dims_output[3] * sizeof(float);
+        if (buffer_output_fp32_.GetBytesSize() < workspace_byte_size) {
+            buffer_output_fp32_ = RawBuffer(workspace_byte_size);
+        }
+    }
+    return TNN_OK;
+}
 
 Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
@@ -121,10 +183,21 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
 
+    DataType data_type = outputs[0]->GetBlobDesc().data_type;
+
     float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     auto oc_4 = UP_DIV(dims_output[1], 4);
+
+    if (data_type == DATA_TYPE_INT8) {
+        const float *scale = buffer_scale_.force_to<float *>();
+        auto workspace     = buffer_input_fp32_.force_to<float *>();
+        Int8ToFloat(workspace, reinterpret_cast<int8_t *>(input_data), scale, dims_input[0], dims_input[1],
+                    dims_input[2] * dims_input[3]);
+        input_data  = workspace;
+        output_data = buffer_output_fp32_.force_to<float *>();
+    }
 
     if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3]) {
         if (output_data != input_data) {
@@ -135,10 +208,17 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     } else if (param->mode == 2) {  // bilinear/linear
         upsample_bilinear2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3], oc_4,
                             (bool)param->align_corners);
-
     } else {
         LOGE("Error: Upsample dont support resize mode\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize mode");
+    }
+
+    if (data_type == DATA_TYPE_INT8) {
+        const float *scale = buffer_ones_.force_to<float *>();
+        auto workspace     = output_data;
+        output_data        = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+        FloatToInt8(reinterpret_cast<int8_t *>(output_data), workspace, scale, dims_output[0], dims_output[1],
+                    dims_output[2] * dims_output[3]);
     }
 
     return TNN_OK;

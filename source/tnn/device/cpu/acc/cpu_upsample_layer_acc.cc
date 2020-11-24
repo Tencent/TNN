@@ -196,7 +196,8 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         const float *scale = resource->scale_handle.force_to<float *>();
         int scale_len      = resource->scale_handle.GetDataCount();
         auto workspace     = output_data;
-        NaiveQuant(workspace, scale, scale_len, reinterpret_cast<int8_t *>(output_data), dims_input);
+        output_data        = static_cast<float *>(output_blob->GetHandle().base);
+        NaiveQuant(workspace, scale, scale_len, reinterpret_cast<int8_t *>(output_data), dims_output);
     }
 
     return TNN_OK;
