@@ -137,15 +137,6 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
     // update blob precision, alloc new blob required
     for (auto layer_info : net_structure->layers) {
-        LayerType type       = layer_info->type;
-        BaseLayer *cur_layer = CreateLayer(type);
-        if (cur_layer == NULL) {
-            LOGE("Error: CreateLayer failed, type:%d\n", type);
-            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
-        }
-        std::string layer_name = layer_info->name;
-        cur_layer->SetLayerName(layer_name);
-
         // set layer nodes
         std::vector<std::string> &input_names  = layer_info->inputs;
         std::vector<std::string> &output_names = layer_info->outputs;
@@ -157,6 +148,15 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
 
 #ifdef BENCHMARK
+        LayerType type       = layer_info->type;
+        BaseLayer *cur_layer = CreateLayer(type);
+        if (cur_layer == NULL) {
+            LOGE("Error: CreateLayer failed, type:%d\n", type);
+            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+        }
+        std::string layer_name = layer_info->name;
+        cur_layer->SetLayerName(layer_name);
+
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
         for (auto name : input_names) {
@@ -177,6 +177,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
                                    net_resource->resource_map[layer_name].get());
+
+        delete cur_layer;
 #endif
 
         for (auto name : output_names) {
