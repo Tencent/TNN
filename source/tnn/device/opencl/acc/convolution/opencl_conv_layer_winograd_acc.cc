@@ -64,7 +64,7 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     std::string program_name = "winograd";
     std::string kernel_name;
     //kernel WinogradTransformSource
-    kernel_name = "WinogradTransformSource";
+    kernel_name = "TransformToMatrixV";
     ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);    
     CHECK_TNN_OK(ret)
     //kernel MatrixInnerProduct
@@ -72,7 +72,7 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);    
     CHECK_TNN_OK(ret)
     //kernel WinogradTransformDest 
-    kernel_name = "WinogradTransformDest";
+    kernel_name = "TransformFromMatrixM";
     ret         = CreateExecuteUnit(execute_units_[2], program_name, kernel_name);
     CHECK_TNN_OK(ret)
 
@@ -82,6 +82,81 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
 OpenCLConvLayerWinogradAcc::~OpenCLConvLayerWinogradAcc() {}
 
 Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+
+    const int batch         = output_dims[0];
+    const int output_channel = output_dims[1];
+    const int output_height = output_dims[2];
+    const int output_width  = output_dims[3];
+
+    const int input_channel = input_dims[1];
+    const int input_height   = input_dims[2];
+    const int input_width    = input_dims[3];
+
+
+    const int round_up_ouptut_width = UP_DIV(output_width, 2);
+    const int round_up_output_height = UP_DIV(output_height, 2);
+    const int batch_round_h = batch * round_up_output_height;
+    const int output_channel_blocks = UP_DIV(output_channel, 4);
+    const int input_channel_blocks = UP_DIV(input_channel, 4);
+
+    int padding_shape[2]     = {conv_params_.pad_x, conv_params_.pad_y};
+
+
+
+    execute_units_[0].global_work_size = {static_cast<uint32_t>(input_channel_blocks * round_up_ouptut_width),
+                                        static_cast<uint32_t>(batch_round_h)};
+
+    
+    execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
+                                        static_cast<uint32_t>(16 * batch_round_h)};
+
+    execute_units_[2].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
+                                        static_cast<uint32_t>(batch_round_h)};
+
+
+    //kernel WinogradTransformSource
+    int idx = 0;
+    for (auto gws : execute_units_[0].global_work_size) {
+        execute_units_[0].ocl_kernel.setArg(idx++, gws);
+    }
+    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
+    execute_units_[0].ocl_kernel.setArg(idx++, input_height);
+    execute_units_[0].ocl_kernel.setArg(idx++, input_width);
+    execute_units_[0].ocl_kernel.setArg(idx++, input_channel);
+    execute_units_[0].ocl_kernel.setArg(idx++, round_up_output_height);
+    execute_units_[0].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+    
+
+    //kernel MatrixInnerProduct
+    idx = 0;
+    for (auto gws : execute_units_[1].global_work_size) {
+        execute_units_[1].ocl_kernel.setArg(idx++, gws);
+    }
+    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
+    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
+    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
+    execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+    execute_units_[1].ocl_kernel.setArg(idx++, batch_round_h);
+    execute_units_[1].ocl_kernel.setArg(idx++, output_channel_blocks);
+    execute_units_[1].ocl_kernel.setArg(idx++, input_channel_blocks);
+
+    //kernel TransformFromMatrixM
+    idx = 0;
+    for (auto gws : execute_units_[2].global_work_size) {
+        execute_units_[2].ocl_kernel.setArg(idx++, gws);
+    }
+    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
+    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
+    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+    execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+    execute_units_[1].ocl_kernel.setArg(idx++, round_up_output_height);
+    execute_units_[1].ocl_kernel.setArg(idx++, output_width);
+    execute_units_[1].ocl_kernel.setArg(idx++, output_height);
+
     return TNN_OK;
 }
 
@@ -147,13 +222,33 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl_int ret = CL_SUCCESS;
-    return TNN_OK;
-}
 
-std::vector<uint32_t> OpenCLConvLayerWinogradAcc::Conv2dWinogradLocalWS2D(std::vector<uint32_t> &gws,
-                                                                const uint32_t max_workgroup_size) {
-    std::vector<uint32_t> lws(2, 1);
-    return lws;
+    cl::Image2D *image =
+        new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
+                        UP_DIV(input_dims[1], 4) * UP_DIV(output_dims[3], 2), 16 * input_dims[0] * UP_DIV(output_dims[2], 2), 0, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        if (nullptr != image)
+            delete image;
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+    }
+    ocl_v_.reset(new OpenCLMemory(TNN_CL_IMAGE));
+    ocl_v_->SetData(image, true);
+
+
+    image =
+        new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
+                        UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 2), 16 * output_dims[0] * UP_DIV(output_dims[2], 2), 0, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        if (nullptr != image)
+            delete image;
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+    }
+    ocl_m_.reset(new OpenCLMemory(TNN_CL_IMAGE));
+    ocl_m_->SetData(image, true);
+    
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS
