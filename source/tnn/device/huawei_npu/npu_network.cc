@@ -180,7 +180,7 @@ Status NpuNetwork::InitCheck() {
     const char *version = client_->GetVersion();
     if (version == nullptr) {
         return Status(TNNERR_NPU_LOAD_ERROR,
-                      "ERROR: GetRomVersion(ROM): huawei_npu is not installed or rom version is too low");
+                      "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
     }
     // check if NPU version is greater than 300
     version_num_ = NpuUtils::checkNpuVersion(version);
