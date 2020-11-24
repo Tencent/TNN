@@ -172,15 +172,15 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 * 环境要求  
    - Cmake (>=3.7.2)
 * 编译  
-   进入 `examples/x86` 目录，执行 `build_x86_linux.sh`:
+   进入 `examples/x86` 目录，执行 `build_linux.sh`:
    ```
    cd <path_to_tnn>/examples/x86
-   ./build_x86_linux
+   ./build_linux.sh
    ```
 * 执行  
-   进入 `examples/x86/build_x86_linux` 目录，执行文件：
+   进入 `examples/x86/build_linux` 目录，执行文件：
    ```
-   cd build_x86_linux
+   cd build_linux
 
    图形分类 demo
    ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
@@ -194,16 +194,16 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    - Visual Studio (>=2015)
    - Cmake (>=3.7.2 或使用 Visual Studio Prompt 运行脚本)
 * 编译  
-   进入 `examples\x86` 目录，执行 `build_x86_msvc.bat`:
+   进入 `examples\x86` 目录，执行 `build_msvc.bat`:
    ```
    cd <path_to_tnn>\examples\x86
-   .\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+   .\build_msvc.bat [VS2015/VS2017/VS2019]
    ```
    如果找不到 Visual Studio 请手动指定版本
 * 执行  
-   进入 `examples\x86\build_x86_windows\Release` 目录，执行文件：
+   进入 `examples\x86\build_windows\Release` 目录，执行文件：
    ```
-   cd build_x86_windows\Release
+   cd build_windows\Release
    
    图形分类 demo
    .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel

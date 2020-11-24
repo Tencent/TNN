@@ -172,15 +172,15 @@
 * Environment Requirements  
    - Cmake (>=3.7.2)
 * Compile  
-   Move to `examples/x86` directory and execute `build_x86_linux.sh`:
+   Move to `examples/x86` directory and execute `build_linux.sh`:
    ```
    cd <path_to_tnn>/examples/x86
-   ./build_x86_linux
+   ./build_linux.sh
    ```
 * Execute  
-   Move to `examples/x86/build_x86_linux` directory and execute:
+   Move to `examples/x86/build_linux` directory and execute:
    ```
-   cd build_x86_linux
+   cd build_linux
    
    image-classification demo
    ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
@@ -194,16 +194,16 @@
    - Visual Studio (>=2015)
    - Cmake (>=3.7.2; Or run scripts with Visual Studio Prompt)
 * Comiple  
-   Move to `examples\x86` directory and execute `build_x86_msvc.bat`:
+   Move to `examples\x86` directory and execute `build_msvc.bat`:
    ```
    cd <path_to_tnn>\examples\x86
-   .\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+   .\build_msvc.bat [VS2015/VS2017/VS2019]
    ```
    If Visual Studio not found, please refer to Visual Studio Version manually
 * Execute  
-   Move to `examples\x86\build_x86_windows\Release` directory and execute：
+   Move to `examples\x86\build_windows\Release` directory and execute：
    ```
-   cd build_x86_windows\Release
+   cd build_windows\Release
 
    image-classification demo
    .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel

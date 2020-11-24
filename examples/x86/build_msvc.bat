@@ -2,17 +2,17 @@
 SETLOCAL EnableDelayedExpansion
 
 set "ROOT_DIR=%~dp0"
-set "TNN_LIB_PATH=!ROOT_DIR!\..\..\scripts\build_x86\Release\"
+set "TNN_LIB_PATH=!ROOT_DIR!\..\..\scripts\build_msvc\Release\"
 set "TNN_OPENVINO_LIB_PATH=!ROOT_DIR!\..\..\source\tnn\network\openvino\thirdparty\openvino\lib"
 
 cd ..\..\scripts
-call build_x86_msvc.bat
+call build_msvc.bat
 echo !cd!
 cd ..\examples\x86\
 
-rmdir /s /q build_x86_windows
-mkdir build_x86_windows
-cd build_x86_windows
+rmdir /s /q build_windows
+mkdir build_windows
+cd build_windows
 
 set VS_FLAG=
 set VS_VERSION=

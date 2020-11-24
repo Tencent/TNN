@@ -122,7 +122,7 @@ cd <path_to_tnn>/scripts
 ```
 2）执行编译脚本
 ```
-./build_x86_linux.sh
+./build_linux.sh
 ```
 
 ## 五、Linux CUDA库编译
@@ -158,7 +158,7 @@ cd <path_to_tnn>/scripts
 ```
 2）执行编译脚本
 ```
-.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc.bat [VS2015/VS2017/VS2019]
 ```
 如遇不能识别 Visual Studio 请手动指定版本
 更多编译问题请参考 [FAQ](openvino.md)

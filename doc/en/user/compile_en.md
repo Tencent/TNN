@@ -119,7 +119,7 @@ cd <path_to_tnn>/scripts
 ```
 2) execute the building scripts
 ```
-./build_x86_linux.sh
+./build_linux.sh
 ```
 
 ## V. Compile(Linux CUDA)
@@ -155,7 +155,7 @@ cd <path_to_tnn>/scripts
 ```
 2) execute the building scripts
 ```
-.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc.bat [VS2015/VS2017/VS2019]
 ```
 If Visual Studio cannot be recognized, please refer to a version manually
 More problems refer to [FAQ](openvino_en.md)
