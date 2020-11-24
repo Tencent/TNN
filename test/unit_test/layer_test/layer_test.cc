@@ -34,8 +34,8 @@ std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 void LayerTest::SetUpTestCase() {}
 
 void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
-#if defined(__OBJC__) and defined(__APPLE__)
-  @autoreleasepool{
+#if defined(__OBJC__) && defined(__APPLE__)
+    @autoreleasepool{
 #endif
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
@@ -75,8 +75,8 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
         EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
-#ifdef __OBJC__
-  }
+#if defined(__OBJC__) && defined(__APPLE__)
+    }
 #endif
 }
 
