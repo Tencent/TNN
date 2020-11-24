@@ -152,10 +152,10 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
     execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
     execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
-    execute_units_[1].ocl_kernel.setArg(idx++, round_up_output_height);
-    execute_units_[1].ocl_kernel.setArg(idx++, output_width);
-    execute_units_[1].ocl_kernel.setArg(idx++, output_height);
+    execute_units_[2].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+    execute_units_[2].ocl_kernel.setArg(idx++, round_up_output_height);
+    execute_units_[2].ocl_kernel.setArg(idx++, output_width);
+    execute_units_[2].ocl_kernel.setArg(idx++, output_height);
 
     return TNN_OK;
 }
