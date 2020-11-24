@@ -33,15 +33,15 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
 
     AllocConvertBuffer(inputs, outputs);
 
-    UnPackInputs(inputs);
     if (data_type == DATA_TYPE_FLOAT) {
+        UnPackInputs<float>(inputs);
         NaiveReorg(reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle())), input_dims[3], input_dims[2],
                     input_dims[1], input_dims[0], param->stride, param->reverse,
                     reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle())));
+        PackOutputs<float>(outputs);
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
     }
-    PackOutputs(outputs);
 
     return TNN_OK;
 }

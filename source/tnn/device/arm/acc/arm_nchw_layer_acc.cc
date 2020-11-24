@@ -22,63 +22,56 @@ namespace TNN_NS {
 
 ArmNchwLayerAcc::~ArmNchwLayerAcc(){};
 
+template <typename T>
 Status ArmNchwLayerAcc::UnPackInputs(const std::vector<Blob *> &inputs) {
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        for (int i = 0; i < inputs.size(); i++) {
-            auto input_dims = inputs[i]->GetBlobDesc().dims;
-            for (int n = 0; n < input_dims[0]; ++n) {
-                auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], 4);
-                auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
-                float *src     = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
-                float *dst = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
-                UnpackC4(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
-            }
-        }
-    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        for (int i = 0; i < inputs.size(); i++) {
-            auto input_dims = inputs[i]->GetBlobDesc().dims;
-            for (int n = 0; n < input_dims[0]; ++n) {
-                auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], 8);
-                auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
-                fp16_t *src    = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
-                fp16_t *dst =
-                    reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
-                UnpackC8(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
-            }
+    int ic_round_up = 4;
+    if (std::is_same<T, float>::value) {
+        ic_round_up = 4;
+    } else if (std::is_same<T, fp16_t>::value) {
+        ic_round_up = 8;
+    }
+
+    for (int i = 0; i < inputs.size(); i++) {
+        auto input_dims = inputs[i]->GetBlobDesc().dims;
+        for (int n = 0; n < input_dims[0]; ++n) {
+            auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], ic_round_up);
+            auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
+            T *src = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
+            T *dst = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
+            UnpackCX(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
         }
     }
     return TNN_OK;
 }
 
+template Status ArmNchwLayerAcc::UnPackInputs<float>(const std::vector<Blob *> &inputs);
+template Status ArmNchwLayerAcc::UnPackInputs<fp16_t>(const std::vector<Blob *> &inputs);
+
+template <typename T>
 Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
-    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        for (int i = 0; i < outputs.size(); i++) {
-            auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
-            outputs[i]->GetBlobDesc().dims = out_dims;
-            for (int n = 0; n < out_dims[0]; ++n) {
-                auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
-                auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 4);
-                float *src = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
-                float *dst = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
-                PackC4(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
-            }
-        }
-    } else if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        for (int i = 0; i < outputs.size(); i++) {
-            auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
-            outputs[i]->GetBlobDesc().dims = out_dims;
-            for (int n = 0; n < out_dims[0]; ++n) {
-                auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
-                auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], 8);
-                fp16_t *src =
-                    reinterpret_cast<fp16_t *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
-                fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
-                PackC8(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
-            }
+    int oc_round_up = 4;
+    if (std::is_same<T, float>::value) {
+        oc_round_up = 4;
+    } else if (std::is_same<T, fp16_t>::value) {
+        oc_round_up = 8;
+    }
+
+    for (int i = 0; i < outputs.size(); i++) {
+        auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
+        outputs[i]->GetBlobDesc().dims = out_dims;
+        for (int n = 0; n < out_dims[0]; ++n) {
+            auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
+            auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], oc_round_up);
+            T *src = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
+            T *dst = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
+            PackCX(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
         }
     }
     return TNN_OK;
 }
+
+template Status ArmNchwLayerAcc::PackOutputs<float>(const std::vector<Blob *> &outputs);
+template Status ArmNchwLayerAcc::PackOutputs<fp16_t>(const std::vector<Blob *> &outputs);
 
 Status ArmNchwLayerAcc::AllocConvertBuffer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     int space_id = 0;

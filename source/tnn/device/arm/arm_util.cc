@@ -277,6 +277,35 @@ template int PackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
 template int PackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
+int PackCX(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, bfp16_t>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, float>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, bfp16_t>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, float>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else {
+        return 0;
+    }
+}
+
+template int PackCX(float *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackCX(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackCX(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int PackCX(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 #ifdef TNN_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
@@ -366,6 +395,35 @@ template int UnpackC8(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
 template int UnpackC8(fp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackCX(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, bfp16_t>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, float>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, bfp16_t>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, float>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else {
+        return 0;
+    }
+}
+
+template int UnpackCX(float *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {

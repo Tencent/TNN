@@ -51,6 +51,9 @@ template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
+int PackCX(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, float *scale);
@@ -60,6 +63,9 @@ int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackCX(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
