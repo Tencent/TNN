@@ -38,6 +38,17 @@ struct ArmKernelParam {
     void* fil_ptr;
     float* scale;
     void* bias;
+    void set_dims(long ic_r4_, long ic_r8_, long ih_, long iw_,
+                  long oc_r4_, long oc_r8_, long oh_, long ow_) {
+                       this->ic_r4 = ic_r4_;
+                       this->ic_r8 = ic_r8_;
+                       this->ih    = ih_;
+                       this->iw    = iw_;
+                       this->oc_r4 = oc_r4_;
+                       this->oc_r8 = oc_r8_;
+                       this->oh    = oh_;
+                       this->ow    = ow_;
+                   }
 };
 
 typedef void (*PostFunc)(void* dst, const void* bias, long area, long oc4);

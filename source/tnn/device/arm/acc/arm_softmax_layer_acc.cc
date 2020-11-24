@@ -22,38 +22,34 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
 
+#define SoftmaxPreparation()                                   \
+    auto in_data_type = inputs[0]->GetBlobDesc().data_type;    \
+    auto axis = layer_param->axis;                             \
+    auto input  = inputs[0];                                   \
+    auto output = outputs[0];                                  \
+    auto dims    = output->GetBlobDesc().dims;                 \
+    auto width   = dims[3];                                    \
+    auto height  = dims[2];                                    \
+    auto batch   = dims[0];                                    \
+    size_t count = width * height * batch * dims[1];           \
+    int inside  = 1;                                           \
+    int outside = 1;                                           \
+    int channel = 1;                                           \
+    for (int i = 1; i < axis; i++) {                           \
+        outside *= dims[i];                                    \
+    }                                                          \
+    channel = dims[axis];                                      \
+    for (int i = axis + 1; i < dims.size(); i++) {             \
+        inside *= dims[i];                                     \
+    }                                                          \
+    auto step_y = channel * inside;
+
 template <typename T>
 Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-
-    auto axis = layer_param->axis;
-
-    auto input  = inputs[0];
-    auto output = outputs[0];
-
     int data_byte_size = sizeof(float);
-
-    auto dims    = output->GetBlobDesc().dims;
-    auto width   = dims[3];
-    auto height  = dims[2];
-    auto batch   = dims[0];
-    size_t count = width * height * batch * dims[1];
-
-    int inside  = 1;
-    int outside = 1;
-    int channel = 1;
-
-    for (int i = 1; i < axis; i++) {
-        outside *= dims[i];
-    }
-    channel = dims[axis];
-    for (int i = axis + 1; i < dims.size(); i++) {
-        inside *= dims[i];
-    }
-    auto step_y = channel * inside;
+    SoftmaxPreparation();
 
     RawBuffer reorder_buffer(dims[1] * dims[2] * dims[3] * data_byte_size);
     RawBuffer max_value_buffer(inside * data_byte_size);
@@ -137,34 +133,8 @@ template <>
 Status ArmSoftmaxLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-
-    auto axis = layer_param->axis;
-
-    auto input  = inputs[0];
-    auto output = outputs[0];
-
     int data_byte_size = sizeof(__fp16);
-    auto dims = output->GetBlobDesc().dims;
-
-    auto width   = dims[3];
-    auto height  = dims[2];
-    auto batch   = dims[0];
-    size_t count = width * height * batch * dims[1];
-
-    int inside  = 1;
-    int outside = 1;
-    int channel = 1;
-
-    for (int i = 1; i < axis; i++) {
-        outside *= dims[i];
-    }
-    channel = dims[axis];
-    for (int i = axis + 1; i < dims.size(); i++) {
-        inside *= dims[i];
-    }
-    auto step_y = channel * inside;
+    SoftmaxPreparation();
 
     size_t reorder_size   = dims[1] * dims[2] * dims[3];
     size_t max_value_size = inside;

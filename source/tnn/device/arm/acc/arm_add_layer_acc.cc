@@ -24,29 +24,30 @@ namespace TNN_NS {
 
 enum AddOpType { ADD_SINGLE = 1, ADD_CHANNEL = 2, ADD_ELEMENT = 3 };
 
+#define OperatorAddPreparation()                                      \
+    DimsVector dims_broadcast;                                        \
+    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {                    \
+        dims_broadcast.clear();                                       \
+        type = ADD_ELEMENT;                                           \
+        if (dims0[0] != dims[0] || dims0[1] != dims[1])               \
+            std::swap(_input0, _input1);                              \
+    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {              \
+        dims_broadcast = dims1;                                       \
+    } else {                                                          \
+        dims_broadcast = dims0;                                       \
+        std::swap(_input0, _input1);                                  \
+    }                                                                 \
+    if (dims_broadcast.size()) {                                      \
+        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;   \
+    }
+
 template <typename T>
 static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVector &dims0, DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
-    DimsVector dims_broadcast;
     AddOpType type = ADD_ELEMENT;
     auto _input0   = input0_ptr;
     auto _input1   = input1_ptr;
-
-    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {
-        dims_broadcast.clear();
-        type = ADD_ELEMENT;
-        if (dims0[0] != dims[0] || dims0[1] != dims[1])
-            std::swap(_input0, _input1);
-    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {
-        dims_broadcast = dims1;
-    } else {
-        dims_broadcast = dims0;
-        std::swap(_input0, _input1);
-    }
-
-    if (dims_broadcast.size()) {
-        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;
-    }
+    OperatorAddPreparation();
 
     int count      = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
     int count_quad = UP_DIV(count, 4);
@@ -105,26 +106,10 @@ template <>
 void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input1_ptr, DimsVector &dims0,
                                   DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
-    DimsVector dims_broadcast;
     AddOpType type = ADD_ELEMENT;
     auto _input0   = input0_ptr;
     auto _input1   = input1_ptr;
-
-    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {
-        dims_broadcast.clear();
-        type = ADD_ELEMENT;
-        if (dims0[0] != dims[0] || dims0[1] != dims[1])
-            std::swap(_input0, _input1);
-    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {
-        dims_broadcast = dims1;
-    } else {
-        dims_broadcast = dims0;
-        std::swap(_input0, _input1);
-    }
-
-    if (dims_broadcast.size()) {
-        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;
-    }
+    OperatorAddPreparation();
 
     int count      = ROUND_UP(dims[1], 8) * dims[2] * dims[3];
     int count_div8 = UP_DIV(count, 8);

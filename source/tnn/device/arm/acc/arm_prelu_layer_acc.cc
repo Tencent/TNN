@@ -73,23 +73,16 @@ template <typename T>
 Status ArmPReluLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    auto layer_res = dynamic_cast<PReluLayerResource *>(resource_);
-    CHECK_PARAM_NULL(layer_res);
-
-    Blob *input_blob       = inputs[0];
-    Blob *output_blob      = outputs[0];
-    auto dims              = input_blob->GetBlobDesc().dims;
+    auto dims              = inputs[0]->GetBlobDesc().dims;
     const int channel      = dims[1];
     const int height       = dims[2];
     const int width        = dims[3];
     const int count        = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
-    const int channel_size = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
 
     const float *slope_data = buffer_slope_.force_to<float *>();
 
-    T *input_data  = reinterpret_cast<T *>(GetBlobHandlePtr(input_blob->GetHandle()));
-    T *output_data = reinterpret_cast<T *>(GetBlobHandlePtr(output_blob->GetHandle()));
+    T *input_data  = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    T *output_data = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     if (layer_param->channel_shared) {
         for (int n = 0; n < UP_DIV(count, 4); n++) {
             Float4 v_data = Float4::load(input_data + n * 4);
@@ -121,13 +114,7 @@ template <>
 Status ArmPReluLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    auto layer_res = dynamic_cast<PReluLayerResource *>(resource_);
-    CHECK_PARAM_NULL(layer_res);
-
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto dims         = input_blob->GetBlobDesc().dims;
+    auto dims         = inputs[0]->GetBlobDesc().dims;
     const int channel = dims[1];
     const int height  = dims[2];
     const int width   = dims[3];
@@ -135,8 +122,8 @@ Status ArmPReluLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const s
 
     const fp16_t *slope_data = buffer_slope_.force_to<fp16_t *>();
 
-    fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
-    fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
+    fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     if (layer_param->channel_shared) {
         float16x8_t v_slope = vdupq_n_f16(slope_data[0]);
         for (int n = 0; n < count; n += 8) {
