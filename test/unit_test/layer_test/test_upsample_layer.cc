@@ -28,8 +28,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest,
                         UpsampleLayerTest,
                         ::testing::Combine(
                         BASIC_BATCH_CHANNEL_SIZE,
-                        //resize type 1:nearest 2:bilinear
-                        testing::Values(1, 2),
+                        //resize type 1:nearest 2:bilinear 3:cubic
+                        testing::Values(1, 2, 3),
                         //align_corners
                         testing::Values(0, 1),
                         //scale x Values(1.0, 1.45, 2, 2.78)
@@ -51,7 +51,12 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     float scale_y = std::get<6>(GetParam());
     bool use_dims = std::get<7>(GetParam());
 
-    if(batch > 1) {
+    if (batch > 1) {
+        GTEST_SKIP();
+    }
+
+    if (mode == 3) {
+        // skip cubic upsample for now
         GTEST_SKIP();
     }
 

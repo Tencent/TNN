@@ -132,6 +132,105 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
+// cubic interpolate weights
+template <typename T>
+static void GetCubicWeights(float coor, T coeffs[4]) {
+    // opencv uses -0.75
+    static const float A = -0.75f;
+    float x = coor - std::floor(coor);
+
+    coeffs[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
+    coeffs[1] = ((A + 2)*x - (A + 3))*x*x + 1;
+    coeffs[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
+    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
+}
+
+// cubic interpolate function
+static inline int upsample_cubic2d(float *output_data, const float *input_data, int input_height, int input_width,
+                                      int output_height, int output_width, int channels, bool align_corners) {
+    // special case: just copy
+    if (CheckInputOutputSizeSame(input_height, input_width, output_height, output_width)) {
+        if (output_data != input_data) {
+            memcpy(output_data, input_data, channels * input_height * input_width * sizeof(float));
+        }
+        return 0;
+    }
+#define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
+#define SrcValueAt(c, h, w) (input_data[c*input_height*input_width+(Clip(h,input_height))*input_width+(Clip(w,input_width))])
+
+    // align corners option from pytorch
+    if (align_corners) {
+        const float h_scale = (output_height > 1) ? (float)(input_height - 1) / (output_height - 1) : 0.f;
+        const float w_scale = (output_width  > 1) ? (float)(input_width  - 1) / (output_width  - 1) : 0.f;
+        float weights_h[4];
+        float weights_w[4];
+
+        OMP_PARALLEL_FOR_
+        for (int h2 = 0; h2 < output_height; ++h2) {
+            float h1     = static_cast<float>(h_scale * h2);
+            int hh  = std::floor(h1);
+            GetCubicWeights(h1, weights_h);
+            for (int w2 = 0; w2 < output_width; ++w2) {
+                float w1 = static_cast<float>(w_scale * w2);
+                int ww           = std::floor(w1);
+                GetCubicWeights(h1, weights_h);
+                for (int c = 0; c < channels; ++c) {
+                    float src_arr[4][4] = {
+                        {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
+                        {SrcValueAt(c, hh+0, ww-1), SrcValueAt(c, hh+0, ww), SrcValueAt(c, hh+0, ww+1), SrcValueAt(c, hh+0, ww+2)},
+                        {SrcValueAt(c, hh+1, ww-1), SrcValueAt(c, hh+1, ww), SrcValueAt(c, hh+1, ww+1), SrcValueAt(c, hh+1, ww+2)},
+                        {SrcValueAt(c, hh+2, ww-1), SrcValueAt(c, hh+2, ww), SrcValueAt(c, hh+2, ww+1), SrcValueAt(c, hh+2, ww+2)}
+                    };
+                    float vals[4];
+                    vals[0] = weights_w[0]*src_arr[0][0] + weights_w[1]*src_arr[0][1] + weights_w[2]*src_arr[0][2] + weights_w[3]*src_arr[0][3];
+                    vals[1] = weights_w[0]*src_arr[1][0] + weights_w[1]*src_arr[1][1] + weights_w[2]*src_arr[1][2] + weights_w[3]*src_arr[1][3];
+                    vals[2] = weights_w[0]*src_arr[2][0] + weights_w[1]*src_arr[2][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[2][3];
+                    vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[3][2] + weights_w[3]*src_arr[3][3];
+
+                    float sum = weights_h[0]*vals[0] + weights_h[1]*vals[1] + weights_h[2]*vals[2] + weights_h[3]*vals[3];
+                    output_data[(c * output_height + h2) * output_width + w2] = sum;
+                }
+            }
+        }
+    } else {
+        const float h_scale = (output_height > 1) ? (float)(input_height) / (output_height) : 0.f;
+        const float w_scale = (output_width  > 1) ? (float)(input_width)  / (output_width)  : 0.f;
+        float weights_h[4];
+        float weights_w[4];
+
+        OMP_PARALLEL_FOR_
+        for (int h2 = 0; h2 < output_height; ++h2) {
+            float h1     = static_cast<float>(h_scale * (h2 + 0.5) - 0.5);
+            int hh  = std::floor(h1);
+            GetCubicWeights(h1, weights_h);
+            for (int w2 = 0; w2 < output_width; ++w2) {
+                float w1 = static_cast<float>(w_scale * (w2 + 0.5) - 0.5);
+                int ww           = std::floor(w1);
+                GetCubicWeights(h1, weights_h);
+                for (int c = 0; c < channels; ++c) {
+                    float src_arr[4][4] = {
+                        {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
+                        {SrcValueAt(c, hh+0, ww-1), SrcValueAt(c, hh+0, ww), SrcValueAt(c, hh+0, ww+1), SrcValueAt(c, hh+0, ww+2)},
+                        {SrcValueAt(c, hh+1, ww-1), SrcValueAt(c, hh+1, ww), SrcValueAt(c, hh+1, ww+1), SrcValueAt(c, hh+1, ww+2)},
+                        {SrcValueAt(c, hh+2, ww-1), SrcValueAt(c, hh+2, ww), SrcValueAt(c, hh+2, ww+1), SrcValueAt(c, hh+2, ww+2)}
+                    };
+                    float vals[4];
+                    vals[0] = weights_w[0]*src_arr[0][0] + weights_w[1]*src_arr[0][1] + weights_w[2]*src_arr[0][2] + weights_w[3]*src_arr[0][3];
+                    vals[1] = weights_w[0]*src_arr[1][0] + weights_w[1]*src_arr[1][1] + weights_w[2]*src_arr[1][2] + weights_w[3]*src_arr[1][3];
+                    vals[2] = weights_w[0]*src_arr[2][0] + weights_w[1]*src_arr[2][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[2][3];
+                    vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[3][2] + weights_w[3]*src_arr[3][3];
+
+                    float sum = weights_h[0]*vals[0] + weights_h[1]*vals[1] + weights_h[2]*vals[2] + weights_h[3]*vals[3];
+                    output_data[(c * output_height + h2) * output_width + w2] = sum;
+                }
+            }
+        }
+    }
+#undef Clip
+#undef SrcValueAt
+    return 0;
+}
+
 DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -162,7 +261,10 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         upsample_bilinear2d(output_data, input_data, input_height, input_width, output_height, output_width,
                             output_channel, (bool)param->align_corners);
 
-    } else {
+    } else if (param->mode == 3) { // cubic
+        upsample_cubic2d(output_data, input_data, input_height, input_width, output_height, output_width,
+                            output_channel, (bool)param->align_corners);
+    }else {
         LOGE("Error: Upsample dont support resize type\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
