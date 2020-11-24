@@ -21,10 +21,11 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType,
+                                                                           ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32),
+                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
                                             testing::Values(9, 10, 16, 19),
                                             // kernel
                                             testing::Values(1, 3),
@@ -33,7 +34,12 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // group
                                             testing::Values(1, 2, 3, 8),
                                             // data_type
-                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
+                                            // activation_type
+                                            testing::Values(ActivationType_None, ActivationType_ReLU),
+                                            // fusion_type
+                                            testing::Values(FusionType_None, FusionType_Conv_Add_Activation,
+                                                            FusionType_Conv_Activation_Add)));
 
 TEST_P(ConvQuantLayerTest, ConvLayer) {
     // get param
@@ -44,10 +50,19 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int stride            = std::get<4>(GetParam());
     DataType data_type    = std::get<6>(GetParam());
     int group             = std::get<5>(GetParam());
+    auto activation_type  = std::get<7>(GetParam());
+    auto fusion_type      = std::get<8>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
         GTEST_SKIP();
+    }
+
+    if (fusion_type != FusionType_None) {
+        // only int8 data type support conv add fusion
+        if (group != 1 || data_type != DATA_TYPE_INT8) {
+            GTEST_SKIP();
+        }
     }
 
     // blob desc
@@ -56,15 +71,34 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
 
     // param
     ConvLayerParam param;
-    param.name           = "Conv";
-    param.input_channel  = channel;
-    param.output_channel = channel;
-    param.group          = group;
-    param.kernels        = {kernel, kernel};
-    param.dialations     = {1, 1};
-    param.strides        = {stride, stride};
-    param.pads           = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
-    param.bias           = 1;
+    param.name            = "Conv";
+    param.input_channel   = channel;
+    param.output_channel  = channel;
+    param.group           = group;
+    param.kernels         = {kernel, kernel};
+    param.dialations      = {1, 1};
+    param.strides         = {stride, stride};
+    param.pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
+    param.bias            = 1;
+    param.activation_type = activation_type;
+    param.fusion_type     = fusion_type;
+
+    if (fusion_type != FusionType_None) {
+        Blob conv_input_blob   = Blob(inputs_desc[0]);
+        std::vector<Blob*> conv_input = {&conv_input_blob};
+
+        BlobDesc conv_output_desc;
+        conv_output_desc.data_type   = data_type;
+        conv_output_desc.device_type = DEVICE_NAIVE;
+        Blob conv_output_blob  = Blob(conv_output_desc);
+        std::vector<Blob*> conv_output = {&conv_output_blob};
+
+        auto layer_creator_map = GetGlobalLayerCreatorMap();
+        auto conv_layer        = layer_creator_map[LAYER_CONVOLUTION]->CreateLayer();
+
+        conv_layer->InferShapeAhead(conv_input, conv_output, &param, nullptr);
+        inputs_desc.push_back(conv_output[0]->GetBlobDesc());
+    }
 
     // resource
     ConvLayerResource resource;

@@ -28,7 +28,8 @@ namespace TNN_NS {
 
 #ifndef TNN_USE_NEON
 void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
-                         long c_stride, const float* scales, long relu) {
+                         long c_stride, const float* scales, long relu,
+                         const int8_t* add_input, const float* add_scale) {
     union {
         const void* as_void_ptr;
         int8_t* as_int8_ptr;
@@ -42,20 +43,28 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
             for (int kk = 0; kk < k; kk++) {
                 acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
             }
-
-            c[m * c_stride + n] = float2int8(acc * scales[n]);
-            if (relu) {
-                c[m * c_stride + n] = MAX(0, c[m * c_stride + n]);
+            auto res = acc * scales[n];
+            // Conv-Relu-Add
+            if (relu < 0) {
+                res = MAX(0, res);
             }
+            if (add_input) {
+                res += add_input[m * c_stride + n] * add_scale[n];
+            }
+            // Conv-Add-Relu
+            if (relu > 0) {
+                res = MAX(0, res);
+            }
+            c[m * c_stride + n] = float2int8(res);
         }
     }
 }
 #else
 extern "C" {
 void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale);
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale);
 }
 #endif
 
@@ -79,10 +88,13 @@ static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start,
     GemmInt8N8Func gemm_int8_func = GemmInt8Unit4x8;
 #endif
 
+    auto add_input = context->add_input ? context->add_input + mr_block_start * c_stride + nr_block_start : nullptr;
+    auto add_scale = context->add_scale ? context->add_scale + nr_block_start : nullptr;
+
     gemm_int8_func(mr_block_size, nr_block_size, k, a + (mr_block_start)*a_stride, a_stride,
                    (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
-                   c + mr_block_start * c_stride + nr_block_start, c_stride, context->scales + nr_block_start,
-                   context->relu);
+                   c + mr_block_start * c_stride + nr_block_start, c_stride, context->scales + nr_block_start, context->relu,
+                   add_input, add_scale);
 }
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
@@ -97,13 +109,14 @@ void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_
 #ifndef TNN_USE_NEON
 /*
 kernel func used in linux debug mode
-conv int8 common micro kernel
+conv int8 fuse with add common micro kernel
 */
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias) {
+                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input, const float* add_scale) {
     for (long w = 0; w < 4; ++w) {
         const auto src_x   = src + w * src_w_step;
         auto dst_x         = dst + w * dst_depth;
+        auto add_input_x   = add_input ? add_input + w * dst_depth : nullptr;
         int32_t dstTemp[4] = {0, 0, 0, 0};
         long sz            = 0;
         for (; sz < cdiv8 / 2; ++sz) {
@@ -129,7 +142,19 @@ void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long 
             }
         }
         for (long j = 0; j < 4; ++j) {
-            dst_x[j] = float2int8(static_cast<float>(dstTemp[j] + bias[j]) * scale[j]);
+            auto res = static_cast<float>(dstTemp[j] + bias[j]) * scale[j];
+            // Conv-Relu-Add
+            if (relu < 0) {
+                res = MAX(0, res);
+            }
+            if (add_input_x) {
+                res += add_input_x[j] * add_scale[j];
+            }
+            // Conv-Add-Relu
+            if (relu > 0) {
+                res = MAX(0, res);
+            }
+            dst_x[j] = float2int8(res);
         }
     }
 }
@@ -434,24 +459,29 @@ assemble kernel used int gemm int8 func
 */
 extern "C" {
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias);
+                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input, const float* add_scale);
 }
 #endif
 
 /*
-gemm int8 func used in linux debug mode
+gemm int8 fuse with add func used in linux debug mode
 */
 void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-              const float* scale, long src_depth_d8, long src_w_step, long dst_depth) {
+              const float* scale, long src_depth_d8, long src_w_step, long dst_depth, long relu,
+              const int8_t* add_input, const float* add_scale) {
     const long src_depth_d16 = UP_DIV(src_depth_d8, 2);
 #if !defined(__aarch64__) && defined(TNN_USE_NEON)
     PackLineV7(src_depth_d8 * 8, reinterpret_cast<const int32_t*>(src), reinterpret_cast<int32_t*>(work_space));
     src = work_space;
 #endif
     for (long j = 0; j < dst_depth; j += 4) {
-        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j);
+        GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, relu, add_input, add_scale);
         dst += 4;
         weight += 4 * src_depth_d16 * 16;
+        if (add_input) {
+            add_input += 4;
+            add_scale += 4;
+        }
     }
 }
 

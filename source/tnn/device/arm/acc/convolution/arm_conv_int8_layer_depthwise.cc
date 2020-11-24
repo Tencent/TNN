@@ -29,6 +29,9 @@ bool ArmConvInt8LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vec
     if (inputs[0]->GetBlobDesc().data_type != DATA_TYPE_INT8) {
         return false;
     }
+    if (param->fusion_type != FusionType_None) {
+        return false;
+    }
 
     auto dims_input          = inputs[0]->GetBlobDesc().dims;
     auto dims_output         = outputs[0]->GetBlobDesc().dims;
