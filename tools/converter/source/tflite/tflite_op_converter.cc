@@ -37,6 +37,7 @@ TFLiteOpConverterManager::~TFLiteOpConverterManager() {
         delete it.second;
     }
     tf_lite_op_converter_map_.clear();
+    delete tf_lite_op_converter_manager_;
 }
 
 void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TFLiteOpConverter* t) {

@@ -23,6 +23,7 @@ OnnxConverterManager::~OnnxConverterManager() {
         delete iter.second;
     }
     onnx_converter_map_.clear();
+    delete onnx_converter_manager_;
 }
 
 OnnxConverterManager* OnnxConverterManager::get() {
