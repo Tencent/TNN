@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 class ConvLayerTest : public LayerTest,
                       public ::testing::WithParamInterface<
-                          std::tuple<int, int, int, int, int, int, int, int, ActivationType, DataType>> {};
+                          std::tuple<int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch
