@@ -50,6 +50,10 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
     param->alpha = alpha;

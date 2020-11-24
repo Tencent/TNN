@@ -28,10 +28,11 @@ bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceTyp
     if (batch > 1 && DEVICE_METAL == dev) {
         return true;
     }
+
     return false;
 }
 
-void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
+void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_positive) {
     // get param
     int batch           = std::get<0>(GetParam());
     int channel         = std::get<1>(GetParam());
@@ -43,6 +44,10 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
     DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
     if (InputParamCheck(data_type, dev, batch)) {
+        GTEST_SKIP();
+    }
+
+    if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -67,7 +72,11 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str) {
         resource = std::shared_ptr<EltwiseLayerResource>(new EltwiseLayerResource());
         RawBuffer buffer(param_count * sizeof(float));
         float* buffer_data = buffer.force_to<float*>();
-        InitRandom(buffer_data, param_count, 1.0f);
+        if (resource_positive) {
+            InitRandom(buffer_data, param_count, 0.001f, 1.0f);
+        } else {
+            InitRandom(buffer_data, param_count, 1.0f);
+        }
         resource->element_handle = buffer;
         resource->element_shape  = param_dims;
     }

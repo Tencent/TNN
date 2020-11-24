@@ -31,6 +31,12 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
     int input_size = std::get<2>(GetParam());
     int order_type = std::get<3>(GetParam());
 
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PermuteLayerParam> param(new PermuteLayerParam());
     param->orders = {0, 1, 2, 3};

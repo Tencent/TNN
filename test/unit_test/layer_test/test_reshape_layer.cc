@@ -32,6 +32,10 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     int reshape_type = std::get<3>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
+    if (0 != reshape_type && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReshapeLayerParam> param(new ReshapeLayerParam());
     param->name         = "Reshape";
