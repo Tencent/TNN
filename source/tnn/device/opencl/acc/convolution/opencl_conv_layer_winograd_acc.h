@@ -37,8 +37,6 @@ private:
 
     Status AllocateWinogradMatrixVAndM(DimsVector input_dims, DimsVector output_dims);
 
-    std::vector<uint32_t> Conv2dWinogradLocalWS2D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size);
-
     shared_ptr<OpenCLMemory> ocl_v_;
     shared_ptr<OpenCLMemory> ocl_m_;
 };

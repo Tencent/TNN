@@ -129,7 +129,6 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[0].ocl_kernel.setArg(idx++, round_up_output_height);
     execute_units_[0].ocl_kernel.setArg(idx++, round_up_ouptut_width);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
-    
 
     //kernel MatrixInnerProduct
     idx = 0;
@@ -223,9 +222,21 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
         data_type = CL_HALF_FLOAT;
     cl_int ret = CL_SUCCESS;
 
+    const int batch =        output_dims[0];
+    const int output_channel = output_dims[1];
+    const int output_height = output_dims[2];
+    const int output_width  = output_dims[3];
+
+    const int input_channel = input_dims[1];
+    const int output_channel_blocks = UP_DIV(output_channel, 4);
+    const int input_channel_blocks = UP_DIV(input_channel, 4);
+
+    const int round_up_ouptut_width = UP_DIV(output_width, 2);
+    const int round_up_output_height = UP_DIV(output_height, 2);
+
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                        UP_DIV(input_dims[1], 4) * UP_DIV(output_dims[3], 2), 16 * input_dims[0] * UP_DIV(output_dims[2], 2), 0, nullptr, &ret);
+                        input_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, 0, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
@@ -238,7 +249,7 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
 
     image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                        UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 2), 16 * output_dims[0] * UP_DIV(output_dims[2], 2), 0, nullptr, &ret);
+                        output_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, 0, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
