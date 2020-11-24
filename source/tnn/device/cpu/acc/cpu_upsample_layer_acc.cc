@@ -12,14 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "tnn/device/cpu/acc/cpu_upsample_layer_acc.h"
+
+#include "tnn/core/blob_int8.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
+
 namespace TNN_NS {
 
-static inline bool CheckInputOutputSizeSame(int input_height, int input_width,
-            int output_height, int output_width) {
+static inline bool CheckInputOutputSizeSame(int input_height, int input_width, int output_height, int output_width) {
     return input_height == output_height && input_width == output_width;
 }
 
@@ -132,9 +135,19 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
-DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
+CpuUpsampleLayerAcc::~CpuUpsampleLayerAcc() {}
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        int workspace_byte_size = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims) * sizeof(float);
+        if (buffer_input_fp32_.GetBytesSize() < workspace_byte_size) {
+            buffer_input_fp32_ = RawBuffer(workspace_byte_size);
+        }
+        workspace_byte_size = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims) * sizeof(float);
+        if (buffer_output_fp32_.GetBytesSize() < workspace_byte_size) {
+            buffer_output_fp32_ = RawBuffer(workspace_byte_size);
+        }
+    }
     return TNN_OK;
 }
 
@@ -152,8 +165,20 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto input_width = dims_input[3], input_height = dims_input[2];
     auto output_width = dims_output[3], output_height = dims_output[2], output_channel = dims_output[1];
 
+    DataType data_type = output_blob->GetBlobDesc().data_type;
+
     float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+
+    if (data_type == DATA_TYPE_INT8) {
+        auto resource      = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource();
+        const float *scale = resource->scale_handle.force_to<float *>();
+        int scale_len      = resource->scale_handle.GetDataCount();
+        auto workspace     = buffer_input_fp32_.force_to<float *>();
+        NaiveDequant(reinterpret_cast<int8_t *>(input_data), scale, scale_len, workspace, dims_input);
+        input_data  = workspace;
+        output_data = buffer_output_fp32_.force_to<float *>();
+    }
 
     if (param->mode == 1) {  // nearest
         upsample_nearest2d(output_data, input_data, input_height, input_width, output_height, output_width,
@@ -161,10 +186,17 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     } else if (param->mode == 2) {  // bilinear/linear
         upsample_bilinear2d(output_data, input_data, input_height, input_width, output_height, output_width,
                             output_channel, (bool)param->align_corners);
-
     } else {
         LOGE("Error: Upsample dont support resize type\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
+    }
+
+    if (data_type == DATA_TYPE_INT8) {
+        auto resource      = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource();
+        const float *scale = resource->scale_handle.force_to<float *>();
+        int scale_len      = resource->scale_handle.GetDataCount();
+        auto workspace     = output_data;
+        NaiveQuant(workspace, scale, scale_len, reinterpret_cast<int8_t *>(output_data), dims_input);
     }
 
     return TNN_OK;
