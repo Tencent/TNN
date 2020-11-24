@@ -45,10 +45,10 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         conv_acc_implement_ = std::make_shared<OpenCLConvLayerDepthwiseAcc>();
     } else if (OpenCLConvLayer1x1Acc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<OpenCLConvLayer1x1Acc>();
-    } else if (OpenCLConvLayerCommonAcc::IsPrefered(conv_param, inputs, outputs)) {
-        conv_acc_implement_ = std::make_shared<OpenCLConvLayerCommonAcc>();
     } else if (OpenCLConvLayerWinogradAcc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<OpenCLConvLayerWinogradAcc>();
+    } else if (OpenCLConvLayerCommonAcc::IsPrefered(conv_param, inputs, outputs)) {
+        conv_acc_implement_ = std::make_shared<OpenCLConvLayerCommonAcc>();
     }
 
     if (conv_acc_implement_ == nullptr)
