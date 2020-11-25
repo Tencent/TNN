@@ -248,11 +248,11 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
                     vst1_lane_s32(reinterpret_cast<int32_t *>(Ydata), vreinterpret_s32_s8(res_s8), 0);
                 }
             } else {
-                int16x4_t v_w0_short = vdupq_n_s16(w0_short);
-                int16x4_t v_w1_short = vdupq_n_s16(w1_short);
-                int16x4_t v_h0_short = vdupq_n_s16(h0_short);
-                int16x4_t v_h1_short = vdupq_n_s16(h1_short);
-                int32x4_t v_2        = vdupq_n_s32(2);
+                int16x4_t v_w0 = vdup_n_s16(w0_short);
+                int16x4_t v_w1 = vdup_n_s16(w1_short);
+                int16x4_t v_h0 = vdup_n_s16(h0_short);
+                int16x4_t v_h1 = vdup_n_s16(h1_short);
+                int32x4_t v_2  = vdupq_n_s32(2);
                 for (int z = 0; z < c_4 / 2; z++) {
                     int8x8_t data00   = vld1_s8(Xdata00);
                     int8x8_t data01   = vld1_s8(Xdata01);
@@ -262,21 +262,17 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
                     int16x8_t data01h = vmovl_s8(data01);
                     int16x8_t data10h = vmovl_s8(data10);
                     int16x8_t data11h = vmovl_s8(data11);
-                    int32x4_t acc0 =
-                        vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0_short), vget_low_s16(data01h), v_w1_short);
-                    int32x4_t acc1 =
-                        vmlal_s16(vmull_s16(vget_low_s16(data10h), v_w0_short), vget_low_s16(data11h), v_w1_short);
-                    int32x4_t acc = v_2;
-                    acc           = vsraq_n_s32(
-                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
-                        16);
+                    int32x4_t acc0    = vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0), vget_low_s16(data01h), v_w1);
+                    int32x4_t acc1    = vmlal_s16(vmull_s16(vget_low_s16(data10h), v_w0), vget_low_s16(data11h), v_w1);
+                    int32x4_t acc     = v_2;
+                    acc = vsraq_n_s32(v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0), vshrn_n_s32(acc1, 4), v_h1),
+                                      16);
                     int16x4_t res_s16 = vshrn_n_s32(acc, 2);
-                    acc0 = vmlal_s16(vmull_s16(vget_high_s16(data00h), v_w0_short), vget_high_s16(data01h), v_w1_short);
-                    acc1 = vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0_short), vget_high_s16(data11h), v_w1_short);
+                    acc0 = vmlal_s16(vmull_s16(vget_high_s16(data00h), v_w0), vget_high_s16(data01h), v_w1);
+                    acc1 = vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0), vget_high_s16(data11h), v_w1);
                     acc  = v_2;
-                    acc  = vsraq_n_s32(
-                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
-                        16);
+                    acc = vsraq_n_s32(v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0), vshrn_n_s32(acc1, 4), v_h1),
+                                      16);
                     vst1_s8(Ydata, vqmovn_s16(vcombine_s16(res_s16, vshrn_n_s32(acc, 2))));
 
                     Xdata00 += 8;
@@ -294,14 +290,11 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
                     int16x8_t data01h = vmovl_s8(data01);
                     int16x8_t data10h = vmovl_s8(data10);
                     int16x8_t data11h = vmovl_s8(data11);
-                    int32x4_t acc0 =
-                        vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0_short), vget_high_s16(data01h), v_w1_short);
-                    int32x4_t acc1 =
-                        vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0_short), vget_high_s16(data11h), v_w1_short);
-                    int32x4_t acc = v_2;
-                    acc           = vsraq_n_s32(
-                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
-                        16);
+                    int32x4_t acc0    = vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0), vget_high_s16(data01h), v_w1);
+                    int32x4_t acc1 = vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0), vget_high_s16(data11h), v_w1);
+                    int32x4_t acc  = v_2;
+                    acc = vsraq_n_s32(v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0), vshrn_n_s32(acc1, 4), v_h1),
+                                      16);
                     int16x4_t res_s16 = vshrn_n_s32(acc, 2);
                     int8x8_t res_s8   = vqmovn_s16(vcombine_s16(res_s16, res_s16));
                     vst1_lane_s32(reinterpret_cast<int32_t *>(Ydata), vreinterpret_s32_s8(res_s8), 0);
