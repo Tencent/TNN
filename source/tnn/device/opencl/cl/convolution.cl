@@ -159,29 +159,15 @@ __kernel void Conv2D1x1_S1_MIX_CB2(GLOBAL_SIZE_2_DIMS __read_only image2d_t inpu
 
     const int remain = wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void Conv2D1x1_S1(
@@ -757,30 +743,16 @@ __kernel void Conv2D1x1GS3D_S1_CB2(
 
     const int remain = wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void Conv2D1x1GS3D_CB2(
@@ -861,30 +833,16 @@ __kernel void Conv2D1x1GS3D_CB2(
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void Conv2DGS3D_CB2(
@@ -984,30 +942,16 @@ __kernel void Conv2DGS3D_CB2(
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void Conv2D_CB2(
@@ -1109,30 +1053,16 @@ __kernel void Conv2D_CB2(
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void Conv2D_MIX_CB2(
@@ -1235,29 +1165,15 @@ __kernel void Conv2D_MIX_CB2(
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx_s0 = out_x_base + out_x_idx;
-    WI_F(output, (int2)(output_w_idx_s0, output_bh_idx), out_w0_s0);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s0 + 1, output_bh_idx), out_w1_s0);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s0 + 2, output_bh_idx), out_w2_s0);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s0 + 3, output_bh_idx), out_w3_s0);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
+                                    out_w2_s0, out_w3_s0, output_w_idx_s0,
+                                    output_bh_idx, remain);
 
     if (!is_s1_in_boundary) return;
     int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
-    WI_F(output, (int2)(output_w_idx_s1, output_bh_idx), out_w0_s1);
-    if (remain >= 2) {
-        WI_F(output, (int2)(output_w_idx_s1 + 1, output_bh_idx), out_w1_s1);
-    }
-    if (remain >= 3) {
-        WI_F(output, (int2)(output_w_idx_s1 + 2, output_bh_idx), out_w2_s1);
-    }
-    if (remain >= 4) {
-        WI_F(output, (int2)(output_w_idx_s1 + 3, output_bh_idx), out_w3_s1);
-    }
+    WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
+                                    out_w2_s1, out_w3_s1, output_w_idx_s1,
+                                    output_bh_idx, remain);
 }
 
 __kernel void DepthwiseConv2DS1(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
