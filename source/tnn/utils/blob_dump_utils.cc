@@ -73,12 +73,15 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void *data_ptr = cpu_mat.GetData();
     
-    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
+    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE || data_type == DATA_TYPE_INT8) {
         BlobConverter blob_converter_dev(blob);
         Status ret = blob_converter_dev.ConvertToMat(cpu_mat, MatConvertParam(), command_queue);
         if (ret != TNN_OK) {
             LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
             return ret;
+        }
+        if (mat_type == NCHW_FLOAT || mat_type == NCDHW_FLOAT) {
+            data_type = DATA_TYPE_FLOAT;
         }
     } else {
         data_ptr = blob->GetHandle().base;
