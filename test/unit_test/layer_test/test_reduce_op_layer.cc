@@ -24,13 +24,15 @@ class ReduceOpLayerTest : public LayerTest,
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
+                         ::testing::Combine(testing::Values(1), 
+                                            testing::Values(2, 3, 9, 128),
+                                            testing::Values(9, 10, 19, 128),
+                                            testing::Values(9, 10, 19, 128),
                                             // axis
-                                            testing::Values(std::vector<int>({1}), std::vector<int>({3}),
-                                                            std::vector<int>({1, 2}), std::vector<int>({1, -1}),
-                                                            std::vector<int>({3, -2}), std::vector<int>({1, -2, -1})),
+                                            testing::Values(std::vector<int>({1}), std::vector<int>({2}),
+                                                            std::vector<int>({3}), std::vector<int>({1, 2}),
+                                                            std::vector<int>({1, -1}), std::vector<int>({3, -2}),
+                                                            std::vector<int>({1, -2, -1})),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -44,9 +46,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
-        (channel == 512 && input_width == 512)) {
+    // only test one case for large inputs
+    if ((channel == 128 && (input_height > 9 || input_width > 9)) ||
+        (input_width == 128 && (channel > 2 || input_height > 9)) ||
+        (input_height == 128 && (channel > 2 || input_width > 9))) {
         GTEST_SKIP();
     }
 
