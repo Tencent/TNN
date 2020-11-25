@@ -20,6 +20,7 @@
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -43,7 +44,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             // output_pads
                                             testing::Values(0),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF),
                                             // activation_type
                                             testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
 
@@ -67,7 +68,17 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-    
+
+#if TNN_ARM82
+    if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
+#else
+    if (dtype == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
+
     if ( DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) && !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) ) {
         GTEST_SKIP();
     }

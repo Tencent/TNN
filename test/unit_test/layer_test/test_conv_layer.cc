@@ -78,9 +78,15 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 
+#if TNN_ARM82
     if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
     }
+#else
+    if (dtype == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
 
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, dtype);

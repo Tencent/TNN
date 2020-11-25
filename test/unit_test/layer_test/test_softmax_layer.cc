@@ -42,9 +42,15 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+#if TNN_ARM82
     if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
     }
+#else
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }

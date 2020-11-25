@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_binary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -24,6 +25,16 @@ bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceTyp
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         return true;
     }
+
+#if TNN_ARM82
+    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        return true;
+    }
+#else
+    if (data_type == DATA_TYPE_HALF) {
+        return true;
+    }
+#endif
 
     if (batch > 1 && DEVICE_METAL == dev) {
         return true;

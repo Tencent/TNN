@@ -14,6 +14,7 @@
 
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -48,6 +49,16 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
+
+#if TNN_ARM82
+    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
+#else
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
 
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
