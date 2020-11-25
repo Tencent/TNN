@@ -225,6 +225,41 @@ template void PostAddBiasSwish<float, float, true>(void* dst, const void* bias, 
 template void PostAddBiasSwish<bfp16_t, float, false>(void* dst, const void* bias, long area, long oc4);
 template void PostAddBiasSwish<bfp16_t, float, true>(void* dst, const void* bias, long area, long oc4);
 
+#if TNN_ARM82
+template <>
+void PostAddBiasSwish<fp16_t, fp16_t, false>(void* dst, const void* bias, long area, long oc8) {
+    if (!bias) {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            fp16_t* dst_z  = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p      = dst_z + 8 * p;
+                float16x8_t val = vld1q_f16(dst_p);
+                Float4 v_low    = vcvt_f32_f16(vget_low_f16(val));
+                Float4 v_high   = vcvt_f32_f16(vget_high_f16(val));
+                v_low           = v_low * Float4::sigmoid(v_low);
+                v_high          = v_high * Float4::sigmoid(v_high);
+                vst1q_f16(dst_p, vcombine_f16(vcvt_f16_f32(v_low.value), vcvt_f16_f32(v_high.value)));
+            }
+        }
+    } else {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            float16x8_t vbias = vld1q_f16(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+            fp16_t* dst_z     = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 8 * p;
+                float16x8_t val = vld1q_f16(dst_p);
+                val = vaddq_f16(val, vbias);
+                Float4 v_low    = vcvt_f32_f16(vget_low_f16(val));
+                Float4 v_high   = vcvt_f32_f16(vget_high_f16(val));
+                v_low           = v_low * Float4::sigmoid(v_low);
+                v_high          = v_high * Float4::sigmoid(v_high);
+                vst1q_f16(dst_p, vcombine_f16(vcvt_f16_f32(v_low.value), vcvt_f16_f32(v_high.value)));
+            }
+        }
+    }
+}
+#endif
+
 /*
 min(x, clap)
 */

@@ -571,11 +571,45 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
         post_func_ = PostAddBiasRelu<__fp16, __fp16>;
     } else if (conv_param->activation_type == ActivationType_ReLU6) {
         post_func_ = PostAddBiasRelu6<__fp16, __fp16>;
+    } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+        post_func_ = PostAddBiasSwish<fp16_t, fp16_t, false>;
     } else {
         post_func_ = PostAddBias<__fp16, __fp16>;
     }
 
     return TNN_OK;
+}
+
+template <>
+void ArmConvFp16LayerCommon::PostExec<__fp16>(const std::vector<Blob *> &outputs) {
+    const int batch = outputs[0]->GetBlobDesc().dims[0];
+    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    if (post_func_) {
+        OMP_PARALLEL_FOR_
+        for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
+            auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r8;
+            for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
+                auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
+                __fp16 *bias_z = reinterpret_cast<__fp16 *>(k_param_->bias) + dz;
+                post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
+            }
+        }
+    }
+}
+
+void ArmConvFp16LayerCommon::PostExecNoBias(const std::vector<Blob *> &outputs) {
+    const int batch = outputs[0]->GetBlobDesc().dims[0];
+    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    if (post_func_) {
+        OMP_PARALLEL_FOR_
+        for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
+            auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r8;
+            for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
+                auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
+                post_func_(dst_z, nullptr, k_param_->ow * k_param_->oh, 1);
+            }
+        }
+    }
 }
 
 Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -602,6 +636,11 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     size_t workspace_size_per_thread = img2col_size + repack_size + NEON_KERNEL_EXTRA_LOAD;
     __fp16 *work_space = reinterpret_cast<__fp16 *>(
         context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
+
+    long act_type = conv_param->activation_type;
+    if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+        act_type = 0;
+    }
 
     for (int n = 0; n < batch; ++n) {
         const auto input_batch = input_data + n * k_param_->iw * k_param_->ih * k_param_->ic_r8;
@@ -642,27 +681,15 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
             GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
                         crs, 8 * k_param_->ow * k_param_->oh, k_param_->oc_r8, real_hw_tile, 
-                        reinterpret_cast<__fp16 *>(k_param_->bias), conv_param->activation_type);
+                        reinterpret_cast<__fp16 *>(k_param_->bias), act_type);
         }
     }
-    return TNN_OK;
-}
 
-template <>
-void ArmConvFp16LayerCommon::PostExec<__fp16>(const std::vector<Blob *> &outputs) {
-    const int batch = outputs[0]->GetBlobDesc().dims[0];
-    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-    if (post_func_) {
-        OMP_PARALLEL_FOR_
-        for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
-            auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r8;
-            for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
-                auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
-                __fp16 *bias_z = reinterpret_cast<__fp16 *>(k_param_->bias) + dz;
-                post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
-            }
-        }
+    if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+        PostExecNoBias(outputs);
     }
+
+    return TNN_OK;
 }
 }  // namespace TNN_NS
 

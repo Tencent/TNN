@@ -49,6 +49,7 @@ protected:
 
     template <typename T>
     void PostExec(const std::vector<Blob *> &outputs);
+    void PostExecNoBias(const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS
