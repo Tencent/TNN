@@ -55,12 +55,13 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         GTEST_SKIP();
     }
 
-    if (mode == 3) {
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (mode == 3 && dev != DEVICE_METAL) {
         // skip cubic upsample for now
         GTEST_SKIP();
     }
 
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     //blob desc
     auto inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);

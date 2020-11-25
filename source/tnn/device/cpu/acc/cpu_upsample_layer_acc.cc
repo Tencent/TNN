@@ -158,13 +158,13 @@ static void upsample_cubic2d_impl(float *dst, const float *src, int sh, int sw,
 
         _Pragma("omp parallel for")
         for (int h2 = 0; h2 < dh; ++h2) {
-            float h1     = static_cast<float>(align_corners ? h_scale * h2 : h_scale * (h2 + 0.5) - 0.5);
-            int hh  = std::floor(h1);
+            float h1 = static_cast<float>(align_corners ? h_scale * h2 : h_scale * (h2 + 0.5) - 0.5);
+            int hh = std::floor(h1);
             float wy[4];
             GetCubicWeights(h1, wy);
             for (int w2 = 0; w2 < dw; ++w2) {
                 float w1 = static_cast<float>(align_corners? w_scale * w2 : w_scale * (w2 + 0.5) - 0.5);
-                int ww           = std::floor(w1);
+                int ww = std::floor(w1);
                 float wx[4];
                 GetCubicWeights(w1, wx);
                 for (int c = 0; c < channels; ++c) {
