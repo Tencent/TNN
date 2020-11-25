@@ -132,8 +132,63 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
  *  4. Check the weights required.
  */
 Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
-    Status ret = TNN_OK;
+    Status ret            = TNN_OK;
     bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
+
+    // update blob precision, alloc new blob required
+    for (auto layer_info : net_structure->layers) {
+        // set layer nodes
+        std::vector<std::string> &input_names  = layer_info->inputs;
+        std::vector<std::string> &output_names = layer_info->outputs;
+
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+            RETURN_ON_NEQ(ret, TNN_OK);
+        }
+
+#ifdef BENCHMARK
+        LayerType type       = layer_info->type;
+        BaseLayer *cur_layer = CreateLayer(type);
+        if (cur_layer == NULL) {
+            LOGE("Error: CreateLayer failed, type:%d\n", type);
+            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+        }
+        std::string layer_name = layer_info->name;
+        cur_layer->SetLayerName(layer_name);
+
+        std::vector<Blob *> inputs;
+        std::vector<Blob *> outputs_for_shape;
+        for (auto name : input_names) {
+            inputs.push_back(blob_manager_->GetBlob(name));
+        }
+
+        for (auto name : output_names) {
+            outputs_for_shape.push_back(blob_manager_->GetBlob(name));
+        }
+
+        // generate resource if null
+        if (net_resource->resource_map.count(layer_name) == 0) {
+            LayerParam *layer_param  = layer_info->param.get();
+            LayerResource *layer_res = nullptr;
+            GenerateRandomResource(type, layer_param, &layer_res, inputs);
+            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
+        }
+
+        cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
+                                   net_resource->resource_map[layer_name].get());
+
+        delete cur_layer;
+#endif
+
+        for (auto name : output_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
+            RETURN_ON_NEQ(ret, TNN_OK);
+        }
+    }
+
+    // init layer
     for (auto layer_info : net_structure->layers) {
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
@@ -149,39 +204,14 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
-            auto ret = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
-            if (ret != TNN_OK) {
-                return ret;
-            }
             inputs.push_back(blob);
         }
 
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
-#ifdef BENCHMARK
-        // generate resource if null
-        if (net_resource->resource_map.count(layer_name) == 0) {
-            LayerParam *layer_param  = layer_info->param.get();
-            LayerResource *layer_res = nullptr;
-            GenerateRandomResource(type, layer_param, &layer_res, inputs);
-            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
-        }
-
-        std::vector<Blob *> outputs_for_shape;
-        for (auto name : output_names) {
-            outputs_for_shape.push_back(blob_manager_->GetBlob(name));
-        }
-        cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
-                                   net_resource->resource_map[layer_name].get());
-#endif
-
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            auto ret = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
-            if (ret != TNN_OK) {
-                return ret;
-            }
             outputs.push_back(blob);
         }
 
@@ -193,6 +223,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
+            // release layer if Init failed
+            delete cur_layer;
             return ret;
         }
 
@@ -226,8 +258,8 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
     return TNN_OK;
 }
 
- Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
-                                            const std::string &name, NetResource *net_resource, Blob **blob) {
+Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
+                                           const std::string &name, NetResource *net_resource, Blob **blob) {
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }
@@ -355,7 +387,7 @@ Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
     if (context_ == NULL) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
-    
+
     auto network_target = dynamic_cast<DefaultNetwork *>(network);
     if (!network_target) {
         return Status(TNNERR_DEVICE_CONTEXT_CREATE, "inpute network is DefaultNetwork");
@@ -363,7 +395,7 @@ Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return context_->ShareCommandQueue(network_target->GetContext());
 }
 
-Context* DefaultNetwork::GetContext() {
+Context *DefaultNetwork::GetContext() {
     return context_;
 }
 

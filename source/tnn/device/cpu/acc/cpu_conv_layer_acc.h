@@ -37,6 +37,8 @@ class CpuConvLayerAcc : public CpuLayerAcc {
 
 private:
     RawBuffer buffer_scale_;
+    // @brief for conv add fusion
+    RawBuffer buffer_add_scale_;
 };
 
 }  // namespace TNN_NS

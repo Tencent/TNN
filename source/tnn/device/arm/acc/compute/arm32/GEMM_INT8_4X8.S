@@ -21,7 +21,7 @@
 .align 5
 asm_function GemmInt8Unit4x8
 //void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-//                     const float* scales, long relu)
+//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale)
 //r0(mr),
 //r1(nr),
 //r2(k),
@@ -324,6 +324,18 @@ blo 1f
     vld1.32 {d14,d15}, [r10]
 
 22:
+    cmp r11, #0
+    bge 23f
+    vmov.i32 q0,  #0
+    vmax.s32 q8,  q0
+    vmax.s32 q9,  q0
+    vmax.s32 q10, q0
+    vmax.s32 q11, q0
+    vmax.s32 q12, q0
+    vmax.s32 q13, q0
+    vmax.s32 q14, q0
+    vmax.s32 q15, q0
+23:
     vcvt.f32.s32 q8, q8
     vcvt.f32.s32 q9, q9
     vcvt.f32.s32 q10, q10
@@ -333,15 +345,81 @@ blo 1f
     vcvt.f32.s32 q14, q14
     vcvt.f32.s32 q15, q15
 
+    ldr r6, [sp, #124]  // add_input
+
     vmul.f32 q8, q8, q6
-    vmul.f32 q10, q10, q6
-    vmul.f32 q12, q12, q6
-    vmul.f32 q14, q14, q6
     vmul.f32 q9, q9, q7
+    vmul.f32 q10, q10, q6
     vmul.f32 q11, q11, q7
+
+    cmp r6, #0
+    beq 25f
+    add r7, r6, r9
+    cmp r0, #2
+    movlo r7, r6
+
+    vld1.s32 d0, [r6]
+    vld1.s32 d2, [r7]
+    vmovl.s8 q0,d0
+    vmovl.s8 q1,d2
+    vmovl.s16 q2,d0
+    vmovl.s16 q3,d1
+    vmovl.s16 q4,d2
+    vmovl.s16 q5,d3
+
+    ldr r10, [sp, #128]  // add_scale
+    vld1.32 {d0,d1}, [r10]!
+    vmov.i32 q1, #0
+    cmp r1, #4
+    ble 24f
+    vld1.32 {d2,d3}, [r10]
+
+24:
+    vcvt.f32.s32 q2, q2
+    vcvt.f32.s32 q3, q3
+    vcvt.f32.s32 q4, q4
+    vcvt.f32.s32 q5, q5
+
+    vmla.f32 q8,  q2, q0
+    vmla.f32 q9,  q3, q1
+    vmla.f32 q10, q4, q0
+    vmla.f32 q11, q5, q1
+
+25:
+    vmul.f32 q12, q12, q6
     vmul.f32 q13, q13, q7
+    vmul.f32 q14, q14, q6
     vmul.f32 q15, q15, q7
 
+    cmp r6, #0
+    beq 26f
+    cmp r0, #2
+    add r3, r7, r9
+    movls r3, r7
+    cmp r0, #4
+    add r4, r3, r9
+    movne r4, r3
+
+    vld1.s32 d12, [r3]
+    vld1.s32 d14, [r4]
+    vmovl.s8 q6,d12
+    vmovl.s8 q7,d14
+    vmovl.s16 q2,d12
+    vmovl.s16 q3,d13
+    vmovl.s16 q4,d14
+    vmovl.s16 q5,d15
+
+    vcvt.f32.s32 q2, q2
+    vcvt.f32.s32 q3, q3
+    vcvt.f32.s32 q4, q4
+    vcvt.f32.s32 q5, q5
+
+    vmla.f32 q12, q2, q0
+    vmla.f32 q13, q3, q1
+    vmla.f32 q14, q4, q0
+    vmla.f32 q15, q5, q1
+
+26:
     // trick: magic num 12582912.0f
     ldr r2, .L4
     vdup.32 q6, r2
