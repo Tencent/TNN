@@ -77,25 +77,26 @@ __kernel void TransformToMatrixV(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 v23 = -in21 + in23;
     FLOAT4 v33 = -in31 + in33;
 
+    //bug mul24(...
     WI_F(matrix_v, (int2)(output_cw_idx, output_bh_idx), v00 - v20);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 2)), (FLOAT)0.5f * v10 + (FLOAT)0.5f * v20);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 3)), -(FLOAT)0.5f * v10 + (FLOAT)0.5f * v20);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 4)), -v10 + v30);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(1, global_size_dim1, output_bh_idx)), (FLOAT)0.5f * v10 + (FLOAT)0.5f * v20);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(2, global_size_dim1, output_bh_idx)), -(FLOAT)0.5f * v10 + (FLOAT)0.5f * v20);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(3, global_size_dim1, output_bh_idx)), -v10 + v30);
 
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 5)), v01 - v21);    
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 6)), (FLOAT)0.5f * v11 + (FLOAT)0.5f * v21);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 7)), -(FLOAT)0.5f * v11 + (FLOAT)0.5f * v21);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 8)), -v11 + v31);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(4, global_size_dim1, output_bh_idx)), v01 - v21);    
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(5, global_size_dim1, output_bh_idx)), (FLOAT)0.5f * v11 + (FLOAT)0.5f * v21);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(6, global_size_dim1, output_bh_idx)), -(FLOAT)0.5f * v11 + (FLOAT)0.5f * v21);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(7, global_size_dim1, output_bh_idx)), -v11 + v31);
 
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 9)), v02 - v22);    
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 10)), (FLOAT)0.5f * v12 + (FLOAT)0.5f * v22);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 11)), -(FLOAT)0.5f * v12 + (FLOAT)0.5f * v22);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 12)), -v12 + v32);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(8, global_size_dim1, output_bh_idx)), v02 - v22);    
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(9, global_size_dim1, output_bh_idx)), (FLOAT)0.5f * v12 + (FLOAT)0.5f * v22);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(10, global_size_dim1, output_bh_idx)), -(FLOAT)0.5f * v12 + (FLOAT)0.5f * v22);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(11, global_size_dim1, output_bh_idx)), -v12 + v32);
 
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 13)), v03 - v23);    
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 14)), (FLOAT)0.5f * v13 + (FLOAT)0.5f * v23);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 15)), -(FLOAT)0.5f * v13 + (FLOAT)0.5f * v23);
-    WI_F(matrix_v, (int2)(output_cw_idx, mul24(output_bh_idx, 16)), -v13 + v33);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(12, global_size_dim1, output_bh_idx)), v03 - v23);    
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(13, global_size_dim1, output_bh_idx)), (FLOAT)0.5f * v13 + (FLOAT)0.5f * v23);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(14, global_size_dim1, output_bh_idx)), -(FLOAT)0.5f * v13 + (FLOAT)0.5f * v23);
+    WI_F(matrix_v, (int2)(output_cw_idx, mad24(15, global_size_dim1, output_bh_idx)), -v13 + v33);
 }
 
 __kernel void MatrixInnerProduct(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_v,
@@ -157,21 +158,21 @@ __kernel void TransformFromMatrixM(GLOBAL_SIZE_2_DIMS __read_only image2d_t matr
         FLOAT4 bias_value    = RI_F(bias, SAMPLER, (int2)(c_block_idx, 0));
 
         FLOAT4 m00  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, output_bh_idx));
-        FLOAT4 m10  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 2)));
-        FLOAT4 m20  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 3)));
-        FLOAT4 m30  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 4)));
-        FLOAT4 m01  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 5)));
-        FLOAT4 m11  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 6)));
-        FLOAT4 m21  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 7)));
-        FLOAT4 m31  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 8)));
-        FLOAT4 m02  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 9)));
-        FLOAT4 m12  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 10)));
-        FLOAT4 m22  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 11)));
-        FLOAT4 m32  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 12)));
-        FLOAT4 m03  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 13)));
-        FLOAT4 m13  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 14)));
-        FLOAT4 m23  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 15)));
-        FLOAT4 m33  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mul24(output_bh_idx, 16)));
+        FLOAT4 m10  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(1, global_size_dim1, output_bh_idx)));
+        FLOAT4 m20  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(2, global_size_dim1, output_bh_idx)));
+        FLOAT4 m30  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(3, global_size_dim1, output_bh_idx)));
+        FLOAT4 m01  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(4, global_size_dim1, output_bh_idx)));
+        FLOAT4 m11  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(5, global_size_dim1, output_bh_idx)));
+        FLOAT4 m21  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(6, global_size_dim1, output_bh_idx)));
+        FLOAT4 m31  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(7, global_size_dim1, output_bh_idx)));
+        FLOAT4 m02  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(8, global_size_dim1, output_bh_idx)));
+        FLOAT4 m12  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(9, global_size_dim1, output_bh_idx)));
+        FLOAT4 m22  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(10, global_size_dim1, output_bh_idx)));
+        FLOAT4 m32  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(11, global_size_dim1, output_bh_idx)));
+        FLOAT4 m03  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(12, global_size_dim1, output_bh_idx)));
+        FLOAT4 m13  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(13, global_size_dim1, output_bh_idx)));
+        FLOAT4 m23  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(14, global_size_dim1, output_bh_idx)));
+        FLOAT4 m33  = RI_F(matrix_m, SAMPLER, (int2)(output_cw_idx, mad24(15, global_size_dim1, output_bh_idx)));
         FLOAT4 out00  = m00 + m01 + m02;
         FLOAT4 out10  = m10 + m11 + m12;
         FLOAT4 out20  = m20 + m21 + m22;
