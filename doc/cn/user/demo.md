@@ -170,7 +170,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 #### 2. 编译
 ##### Linux
 * 环境要求  
-   - Cmake (>=3.7.2)
+   - Cmake (>=3.11)
 * 编译  
    进入 `examples/x86` 目录，执行 `build_linux.sh`:
    ```
@@ -197,7 +197,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    进入 `examples\x86` 目录，执行 `build_msvc.bat`:
    ```
    cd <path_to_tnn>\examples\x86
-   .\build_msvc.bat [VS2015/VS2017/VS2019]
+   .\build_msvc.bat [VS2017/VS2019]
    ```
    如果找不到 Visual Studio 请手动指定版本
 * 执行  

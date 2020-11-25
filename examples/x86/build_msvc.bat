@@ -4,6 +4,7 @@ SETLOCAL EnableDelayedExpansion
 set "ROOT_DIR=%~dp0"
 set "TNN_LIB_PATH=!ROOT_DIR!\..\..\scripts\build_msvc\Release\"
 set "TNN_OPENVINO_LIB_PATH=!ROOT_DIR!\..\..\source\tnn\network\openvino\thirdparty\openvino\lib"
+set "OPENCV_ROOT_PATH=OPENCV_INSTALL_PATH"
 
 cd ..\..\scripts
 call build_msvc.bat
@@ -56,7 +57,8 @@ cmake -G !VS_FLAG! -A x64 .. ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DTNN_LIB_PATH=!TNN_LIB_PATH! ^
     -DTNN_DEMO_WITH_WEBCAM=ON ^
-    -DTNN_OPENVINO_LIB_PATH=!TNN_OPENVINO_LIB_PATH!
+    -DTNN_OPENVINO_LIB_PATH=!TNN_OPENVINO_LIB_PATH! ^
+    -DOpenCV_DIR=!OPENCV_ROOT_PATH!
 
 cmake --build . --config Release -j4
 

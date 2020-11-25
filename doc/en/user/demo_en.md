@@ -170,7 +170,8 @@
 #### 2. Compile Steps
 ##### Linux
 * Environment Requirements  
-   - Cmake (>=3.7.2)
+   - Cmake (>=3.11)
+   - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
 * Compile  
    Move to `examples/x86` directory and execute `build_linux.sh`:
    ```
@@ -189,15 +190,41 @@
    ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
    ```
 
+##### MacOS
+* Environment Requirements  
+   - Cmake (>=3.11)
+   - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
+* Compile  
+   Move to `examples/x86` directory and execute `build_macos.sh`:
+   ```
+   cd <path_to_tnn>/examples/x86
+   ./build_macos.sh
+   ```
+* Execute  
+   Move to `examples/x86/build_macos` directory and execute:
+   ```
+   cd build_macos
+   
+   image-classification demo
+   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   face-detector demo
+   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   webcam base face alignment demo
+   ./demo_x86_webcam
+   ```
+
 ##### Windows
 * Environment Requirements  
    - Visual Studio (>=2015)
-   - Cmake (>=3.7.2; Or run scripts with Visual Studio Prompt)
+   - Cmake (>=3.11; Or run scripts with Visual Studio Prompt)
+   - OpenCV3, compiled by the same version of VC, set the install path in examples\x86\build_msvc.bat (7th line OPENCV_ROOT_PATH) 
 * Comiple  
    Move to `examples\x86` directory and execute `build_msvc.bat`:
    ```
    cd <path_to_tnn>\examples\x86
-   .\build_msvc.bat [VS2015/VS2017/VS2019]
+   .\build_msvc.bat [VS2017/VS2019]
    ```
    If Visual Studio not found, please refer to Visual Studio Version manually
 * Execute  
@@ -210,6 +237,10 @@
 
    face-detector demo
    .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+
+   webcam base face alignment demo
+   ./demo_x86_webcam
+   ```
 
 ##### ArmLinux
 * Environment Requirements  
