@@ -19,6 +19,7 @@
 #include <vector>
 #include <math.h>
 #include <immintrin.h>
+#include <algorithm>
 
 namespace TNN_NS {
 
