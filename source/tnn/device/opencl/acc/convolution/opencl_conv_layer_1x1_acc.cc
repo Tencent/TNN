@@ -122,9 +122,16 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].local_work_size =
             Conv2d1x1LocalWS3D(execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max);
     } else {
-        execute_units_[0].global_work_size = {
-            static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
-            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        if (is_channel_blocking_) {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 8) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        } else {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        }
+
         execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
             execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
     }

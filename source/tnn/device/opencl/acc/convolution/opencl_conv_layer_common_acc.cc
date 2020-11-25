@@ -37,11 +37,20 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     conv_type_ = CT_CONV_COMMON;
     op_name_   = "Conv_" + ToString(conv_params_.kernel_x) + "x" + ToString(conv_params_.kernel_y);
 
+    if (!run_3d_ndrange_) {
+        if (MALI_T == gpu_info_.type || (MALI_G == gpu_info_.type && gpu_info_.model_num < 76)) {
+            use_buffer_ = true;
+        }
+    }
+
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
-    const int output_channel = output_dims[1];
+    const int output_batch      = output_dims[0];
+    const int output_channel    = output_dims[1];
+    const int output_height     = output_dims[2];
+    const int output_width      = output_dims[3];
 
     // create kernel
     std::set<std::string> build_options;
@@ -56,6 +65,15 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     if (run_3d_ndrange_) {
         kernel_name = "Conv2DGS3D";
         if (output_channel > 4) {
+            is_channel_blocking_ = true;
+            kernel_name += "_CB2";
+        }
+    } else {
+        if (use_buffer_) {
+            kernel_name += "_MIX";
+        }
+        int task_size = output_batch * output_channel * output_height * output_width;
+        if (task_size > 4096 && output_channel > 4) {
             is_channel_blocking_ = true;
             kernel_name += "_CB2";
         }
@@ -134,8 +152,13 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     }
 
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
+    if (use_buffer_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)ocl_weights_->GetData()));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)ocl_bias_->GetData()));
+    } else {
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
+    }
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     
