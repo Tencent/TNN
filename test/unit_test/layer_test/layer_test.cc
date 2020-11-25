@@ -430,7 +430,7 @@ Status LayerTest::Compare() {
                                       static_cast<float*>(dev_cpu_mat.GetData()), count, 0.01);
         } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
             cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()),
-                                      static_cast<float*>(dev_cpu_mat.GetData()), count, 0.01);
+                                      static_cast<float*>(dev_cpu_mat.GetData()), count, 0.01, 0.001);
         } else if (device_output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
             cmp_result |= CompareData(static_cast<bfp16_t*>(cpu_mat.GetData()),
                                       static_cast<bfp16_t*>(dev_cpu_mat.GetData()), count, 0.05);

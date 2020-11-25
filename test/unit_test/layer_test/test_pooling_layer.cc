@@ -50,6 +50,9 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
         GTEST_SKIP();
     }
 
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
 #if TNN_ARM82
     if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
