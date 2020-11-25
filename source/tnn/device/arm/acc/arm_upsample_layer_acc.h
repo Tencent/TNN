@@ -25,18 +25,13 @@ class ArmUpsampleLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmUpsampleLayerAcc();
 
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     RawBuffer buffer_scale_;
-    RawBuffer buffer_ones_;
-    RawBuffer buffer_input_fp32_;
-    RawBuffer buffer_output_fp32_;
+
+private:
+    bool do_scale_;
 };
 
 }  // namespace TNN_NS
