@@ -34,6 +34,9 @@ public:
     virtual Float4 operator()(const Float4 &v) {
         return v;
     };
+    virtual Float4 fast_op(const Float4 &v) {
+        return operator()(v); 
+    };
 
     virtual fp16_t operator()(const fp16_t &v) {
         return v;

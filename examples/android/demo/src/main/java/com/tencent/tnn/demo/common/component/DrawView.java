@@ -8,16 +8,19 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.graphics.Bitmap;
 
 import com.tencent.tnn.demo.BlazeFaceDetector;
 import com.tencent.tnn.demo.FaceDetector;
 import com.tencent.tnn.demo.FaceInfo;
+import com.tencent.tnn.demo.ImageInfo;
 import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.ObjectDetectorSSD;
 import com.tencent.tnn.demo.ObjectInfo;
 
 
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
 
 
 public class DrawView extends SurfaceView
@@ -28,6 +31,7 @@ public class DrawView extends SurfaceView
     private ArrayList<String> labels = new ArrayList<String>();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
     private ArrayList<float[]> points_list = new ArrayList<float[]>();
+    private ArrayList<ImageInfo> image_info_list = new ArrayList<ImageInfo>();
 
     public DrawView(Context context, AttributeSet attrs)
     {
@@ -80,6 +84,14 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
+    public void addImageInfo(ImageInfo imageInfo)
+    {
+        image_info_list.clear();
+        image_info_list.add(imageInfo);
+
+        postInvalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas)
     {
@@ -100,6 +112,22 @@ public class DrawView extends SurfaceView
             for(int i = 0; i < points_list.size(); ++i) {
                 float[] points = points_list.get(i);
                 canvas.drawPoints(points, key_paint);
+            }
+        }
+
+        if (image_info_list.size() > 0) {
+            for (int i = 0; i < image_info_list.size(); i++) {
+                ImageInfo imageInfo = image_info_list.get(i);
+                if (imageInfo.image_channel != 4) {
+                    Log.e(TAG, "canvas get invalid image info, image_channel: " + imageInfo.image_channel);
+                } else {
+                    Bitmap bitmap = Bitmap.createBitmap(imageInfo.image_width, imageInfo.image_height, Bitmap.Config.ARGB_8888);
+                    ByteBuffer buffer = ByteBuffer.wrap(imageInfo.data);
+                    bitmap.copyPixelsFromBuffer(buffer);
+                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() -1);
+                    canvas.drawBitmap(bitmap, null, rect, null);
+                    bitmap.recycle();
+                }
             }
         }
     }

@@ -256,6 +256,7 @@ int main(int argc, char* argv[]) {
         return -1;
 
     ModelChecker model_checker;
+    net_config.precision = PRECISION_HIGH;
     Status status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed!\n");

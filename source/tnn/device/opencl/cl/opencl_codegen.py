@@ -1,4 +1,5 @@
 import os
+import sys
 
 def convert_string_to_hex_list(code_str):
     hex_list = []
@@ -8,8 +9,11 @@ def convert_string_to_hex_list(code_str):
     return hex_list
 
 def opencl_codegen():
-    cl_kernel_dir = "./"
-    output_path = "./codegen/opencl_program.cc"
+    if len(sys.argv) > 1:
+        cl_kernel_dir = sys.argv[1]
+    else:
+        cl_kernel_dir = "./cl"
+    output_path = cl_kernel_dir + "/opencl_program.cc"
     if not os.path.exists(cl_kernel_dir):
         print(cl_kernel_dir + " doesn't exist!")
 
@@ -53,7 +57,7 @@ def opencl_codegen():
     opencl_source_map += "namespace TNN_NS { \n"
     opencl_source_map += "extern const std::map<std::string, std::vector<unsigned char>> g_opencl_program_map = \n{ \n"
 
-    for file_name, file_source in opencl_code_maps.iteritems():
+    for file_name, file_source in opencl_code_maps.items():
         opencl_source_map += "{\n    \""
         opencl_source_map += file_name
         opencl_source_map += "\", \n"

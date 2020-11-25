@@ -75,6 +75,7 @@ Status ModelPacker::PackProto(std::string file_path) {
     write_stream.open(file_path);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
+        LOGE("invalid proto file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
     }
 
@@ -176,6 +177,7 @@ Status ModelPacker::PackModel(std::string file_path) {
     write_stream.open(file_path, std::ios::binary);
     if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
         write_stream.close();
+        LOGE("invalid model file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "model file cannot be written");
     }
     auto magic_number = GetMagicNumber();

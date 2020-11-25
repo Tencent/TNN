@@ -28,7 +28,7 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    //@brief net optimize: fuse relu and relu6 to convolution
+    //@brief net optimize: insert reformat layer between fp16 and fp32 layers
     class NetOptimizerInsertFp16Reformat : public NetOptimizer {
     public:
         virtual std::string Strategy();

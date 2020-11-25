@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 #include <cstring>
 #include <sys/time.h>
@@ -27,6 +28,56 @@ const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
 
 void printShape(const std::string& msg, const DimsVector& shape) {
     printf("%s:(%d,%d,%d,%d)\n", msg.c_str(), shape[0], shape[1], shape[2], shape[3]);
+}
+ImageInfo::ImageInfo() {
+    image_width = 0;
+    image_height = 0;
+    image_channel = 0;
+    data = nullptr;
+}
+
+ImageInfo::ImageInfo(const ImageInfo& info) {
+    image_width = info.image_width;
+    image_height = info.image_height;
+    image_channel = info.image_channel;
+    data = info.data;
+}
+
+ImageInfo::ImageInfo(std::shared_ptr<Mat>image) {
+    if (image != nullptr) {
+        const auto& dims = image->GetDims();
+        image_channel = dims[1];
+        image_height = dims[2];
+        image_width = dims[3];
+        auto count = DimsVectorUtils::Count(dims);
+        data.reset(new char[count]);
+        memcpy(data.get(), image->GetData(), count);
+    }
+}
+
+ImageInfo ImageInfo::FlipX() {
+    auto flip_image_row = [](const char*src, char*dst, int width, int channel){
+        int src_offset = (width-1) * channel;
+        int dst_offset = 0;
+        for(int w=0; w<width; ++w) {
+            for(int c=0; c<channel; ++c) {
+                dst[dst_offset + c] = src[src_offset + c];
+            }
+            src_offset -= channel;
+            dst_offset += channel;
+        }
+    };
+    ImageInfo info;
+    info.image_width = image_width;
+    info.image_height = image_height;
+    info.image_channel = image_channel;
+    info.data.reset(new char[info.image_height * info.image_width*info.image_channel]);
+    auto bytes_per_row = image_width * image_channel;
+    for(int h=0; h<image_height; ++h) {
+        flip_image_row(data.get()+h*bytes_per_row, info.data.get()+h*bytes_per_row, image_width, image_channel);
+    }
+
+    return info;
 }
 
 ObjectInfo ObjectInfo::FlipX() {

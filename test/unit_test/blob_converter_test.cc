@@ -275,17 +275,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
         CLEANUP_AND_FAIL();
     }
-    if (need_tmp_buffer_metal) {
-        Mat metal_tmp_buffer(DEVICE_METAL, mat_type, dims);
-        ret = MatUtils::Copy(mat_in, metal_tmp_buffer, device_command_queue);
-        if (ret != TNN_OK) {
-           LOGE("copy cpu mat to metal failed, mat type: %d\n", mat_type);
-           CLEANUP_AND_FAIL();
-        }
-        ret = device_converter.ConvertFromMat(metal_tmp_buffer, from_mat_param, device_command_queue);
-    } else {
-        ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
-    }
+    ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
     if (ret != TNN_OK) {
         LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
         CLEANUP_AND_FAIL();
