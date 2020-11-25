@@ -172,73 +172,140 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
             const float *scale_p  = scale;
 #ifndef TNN_USE_NEON
             for (int c = 0; c < c_r4; ++c) {
-                short h0_res = (Xdata00[c] * w0_short + Xdata01[c] * w1_short) >> 4;
-                short h1_res = (Xdata10[c] * w0_short + Xdata11[c] * w1_short) >> 4;
-                int8_t res   = (((h0_res * h0_short) >> 16) + ((h1_res * h1_short) >> 16) + 2) >> 2;
                 if (do_scale) {
-                    res = float2int8(res * scale_p[c]);
+                    // compute as float
+                    Ydata[c] = float2int8(((Xdata00[c] * w0lambda + Xdata01[c] * w1lambda) * h0lambda +
+                                           (Xdata10[c] * w0lambda + Xdata11[c] * w1lambda) * h1lambda) *
+                                          scale_p[c]);
+                } else {
+                    // compute as int
+                    short h0_res = (Xdata00[c] * w0_short + Xdata01[c] * w1_short) >> 4;
+                    short h1_res = (Xdata10[c] * w0_short + Xdata11[c] * w1_short) >> 4;
+                    int8_t res   = (((h0_res * h0_short) >> 16) + ((h1_res * h1_short) >> 16) + 2) >> 2;
+                    Ydata[c]     = res;
                 }
-                Ydata[c] = res;
             }
 #else
-            float32x4_t v_w0lambda = vdupq_n_f32(w0lambda);
-            float32x4_t v_w1lambda = vdupq_n_f32(w1lambda);
-            float32x4_t v_h0lambda = vdupq_n_f32(h0lambda);
-            float32x4_t v_h1lambda = vdupq_n_f32(h1lambda);
-            for (int z = 0; z < c_4 / 2; z++) {
-                int8x8_t data00      = vld1_s8(Xdata00);
-                int8x8_t data01      = vld1_s8(Xdata01);
-                int8x8_t data10      = vld1_s8(Xdata10);
-                int8x8_t data11      = vld1_s8(Xdata11);
-                int16x8_t data00h    = vmovl_s8(data00);
-                int16x8_t data01h    = vmovl_s8(data01);
-                int16x8_t data10h    = vmovl_s8(data10);
-                int16x8_t data11h    = vmovl_s8(data11);
-                float32x4_t data00_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
-                float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data00h)));
-                float32x4_t data01_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data01h)));
-                float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
-                float32x4_t data10_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data10h)));
-                float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
-                float32x4_t data11_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data11h)));
-                float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
-                float32x4_t acc0     = vaddq_f32(vmulq_f32(data00_0, v_w0lambda), vmulq_f32(data01_0, v_w1lambda));
-                float32x4_t acc1     = vaddq_f32(vmulq_f32(data10_0, v_w0lambda), vmulq_f32(data11_0, v_w1lambda));
-                float32x4_t acc      = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
-                int16x4_t res_s16    = vqmovn_s32(VCVTAQ_S32_F32(acc));
-                acc0                 = vaddq_f32(vmulq_f32(data00_1, v_w0lambda), vmulq_f32(data01_1, v_w1lambda));
-                acc1                 = vaddq_f32(vmulq_f32(data10_1, v_w0lambda), vmulq_f32(data11_1, v_w1lambda));
-                acc                  = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
-                vst1_s8(Ydata, vqmovn_s16(VQMOVN_HIGH_S32_T(res_s16, VCVTAQ_S32_F32(acc))));
+            if (do_scale) {
+                float32x4_t v_w0lambda = vdupq_n_f32(w0lambda);
+                float32x4_t v_w1lambda = vdupq_n_f32(w1lambda);
+                float32x4_t v_h0lambda = vdupq_n_f32(h0lambda);
+                float32x4_t v_h1lambda = vdupq_n_f32(h1lambda);
+                for (int z = 0; z < c_4 / 2; z++) {
+                    float32x4_t v_scale0 = vld1q_f32(scale_p);
+                    float32x4_t v_scale1 = vld1q_f32(scale_p + 4);
+                    int8x8_t data00      = vld1_s8(Xdata00);
+                    int8x8_t data01      = vld1_s8(Xdata01);
+                    int8x8_t data10      = vld1_s8(Xdata10);
+                    int8x8_t data11      = vld1_s8(Xdata11);
+                    int16x8_t data00h    = vmovl_s8(data00);
+                    int16x8_t data01h    = vmovl_s8(data01);
+                    int16x8_t data10h    = vmovl_s8(data10);
+                    int16x8_t data11h    = vmovl_s8(data11);
+                    float32x4_t data00_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
+                    float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data00h)));
+                    float32x4_t data01_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data01h)));
+                    float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
+                    float32x4_t data10_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data10h)));
+                    float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
+                    float32x4_t data11_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data11h)));
+                    float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
+                    float32x4_t acc0     = vmlaq_f32(vmulq_f32(data00_0, v_w0lambda), data01_0, v_w1lambda);
+                    float32x4_t acc1     = vmlaq_f32(vmulq_f32(data10_0, v_w0lambda), data11_0, v_w1lambda);
+                    float32x4_t acc   = vmulq_f32(vmlaq_f32(vmulq_f32(acc0, v_h0lambda), acc1, v_h1lambda), v_scale0);
+                    int16x4_t res_s16 = vqmovn_s32(VCVTAQ_S32_F32(acc));
+                    acc0              = vmlaq_f32(vmulq_f32(data00_1, v_w0lambda), data01_1, v_w1lambda);
+                    acc1              = vmlaq_f32(vmulq_f32(data10_1, v_w0lambda), data11_1, v_w1lambda);
+                    acc               = vmulq_f32(vmlaq_f32(vmulq_f32(acc0, v_h0lambda), acc1, v_h1lambda), v_scale1);
+                    vst1_s8(Ydata, vqmovn_s16(VQMOVN_HIGH_S32_T(res_s16, VCVTAQ_S32_F32(acc))));
 
-                Xdata00 += 8;
-                Xdata01 += 8;
-                Xdata10 += 8;
-                Xdata11 += 8;
-                Ydata += 8;
-                if (do_scale) {
+                    Xdata00 += 8;
+                    Xdata01 += 8;
+                    Xdata10 += 8;
+                    Xdata11 += 8;
+                    Ydata += 8;
                     scale_p += 8;
                 }
-            }
-            if (c_4 % 2) {
-                int8x8_t data00      = vld1_s8(Xdata00);
-                int8x8_t data01      = vld1_s8(Xdata01 - 4);
-                int8x8_t data10      = vld1_s8(Xdata10 - 4);
-                int8x8_t data11      = vld1_s8(Xdata11 - 4);
-                int16x8_t data00h    = vmovl_s8(data00);
-                int16x8_t data01h    = vmovl_s8(data01);
-                int16x8_t data10h    = vmovl_s8(data10);
-                int16x8_t data11h    = vmovl_s8(data11);
-                float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
-                float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
-                float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
-                float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
-                float32x4_t acc0     = vaddq_f32(vmulq_f32(data00_1, v_w0lambda), vmulq_f32(data01_1, v_w1lambda));
-                float32x4_t acc1     = vaddq_f32(vmulq_f32(data10_1, v_w0lambda), vmulq_f32(data11_1, v_w1lambda));
-                float32x4_t acc      = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
-                int16x4_t res_s16    = vqmovn_s32(VCVTAQ_S32_F32(acc));
-                int8x8_t res_s8      = vqmovn_s16(vcombine_s16(res_s16, res_s16));
-                vst1_lane_s32(reinterpret_cast<int32_t *>(Ydata), vreinterpret_s32_s8(res_s8), 0);
+                if (c_4 % 2) {
+                    float32x4_t v_scale  = vld1q_f32(scale_p);
+                    int8x8_t data00      = vld1_s8(Xdata00);
+                    int8x8_t data01      = vld1_s8(Xdata01 - 4);
+                    int8x8_t data10      = vld1_s8(Xdata10 - 4);
+                    int8x8_t data11      = vld1_s8(Xdata11 - 4);
+                    int16x8_t data00h    = vmovl_s8(data00);
+                    int16x8_t data01h    = vmovl_s8(data01);
+                    int16x8_t data10h    = vmovl_s8(data10);
+                    int16x8_t data11h    = vmovl_s8(data11);
+                    float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
+                    float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
+                    float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
+                    float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
+                    float32x4_t acc0     = vmlaq_f32(vmulq_f32(data00_1, v_w0lambda), data01_1, v_w1lambda);
+                    float32x4_t acc1     = vmlaq_f32(vmulq_f32(data10_1, v_w0lambda), data11_1, v_w1lambda);
+                    float32x4_t acc      = vmulq_f32(vmlaq_f32(vmulq_f32(acc0, v_h0lambda), acc1, v_h1lambda), v_scale);
+                    int16x4_t res_s16    = vqmovn_s32(VCVTAQ_S32_F32(acc));
+                    int8x8_t res_s8      = vqmovn_s16(vcombine_s16(res_s16, res_s16));
+                    vst1_lane_s32(reinterpret_cast<int32_t *>(Ydata), vreinterpret_s32_s8(res_s8), 0);
+                }
+            } else {
+                int16x4_t v_w0_short = vdupq_n_s16(w0_short);
+                int16x4_t v_w1_short = vdupq_n_s16(w1_short);
+                int16x4_t v_h0_short = vdupq_n_s16(h0_short);
+                int16x4_t v_h1_short = vdupq_n_s16(h1_short);
+                int32x4_t v_2        = vdupq_n_s32(2);
+                for (int z = 0; z < c_4 / 2; z++) {
+                    int8x8_t data00   = vld1_s8(Xdata00);
+                    int8x8_t data01   = vld1_s8(Xdata01);
+                    int8x8_t data10   = vld1_s8(Xdata10);
+                    int8x8_t data11   = vld1_s8(Xdata11);
+                    int16x8_t data00h = vmovl_s8(data00);
+                    int16x8_t data01h = vmovl_s8(data01);
+                    int16x8_t data10h = vmovl_s8(data10);
+                    int16x8_t data11h = vmovl_s8(data11);
+                    int32x4_t acc0 =
+                        vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0_short), vget_low_s16(data01h), v_w1_short);
+                    int32x4_t acc1 =
+                        vmlal_s16(vmull_s16(vget_low_s16(data10h), v_w0_short), vget_low_s16(data11h), v_w1_short);
+                    int32x4_t acc = v_2;
+                    acc           = vsraq_n_s32(
+                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
+                        16);
+                    int16x4_t res_s16 = vshrn_n_s32(acc, 2);
+                    acc0 = vmlal_s16(vmull_s16(vget_high_s16(data00h), v_w0_short), vget_high_s16(data01h), v_w1_short);
+                    acc1 = vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0_short), vget_high_s16(data11h), v_w1_short);
+                    acc  = v_2;
+                    acc  = vsraq_n_s32(
+                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
+                        16);
+                    vst1_s8(Ydata, vqmovn_s16(vcombine_s16(res_s16, vshrn_n_s32(acc, 2))));
+
+                    Xdata00 += 8;
+                    Xdata01 += 8;
+                    Xdata10 += 8;
+                    Xdata11 += 8;
+                    Ydata += 8;
+                }
+                if (c_4 % 2) {
+                    int8x8_t data00   = vld1_s8(Xdata00);
+                    int8x8_t data01   = vld1_s8(Xdata01 - 4);
+                    int8x8_t data10   = vld1_s8(Xdata10 - 4);
+                    int8x8_t data11   = vld1_s8(Xdata11 - 4);
+                    int16x8_t data00h = vmovl_s8(data00);
+                    int16x8_t data01h = vmovl_s8(data01);
+                    int16x8_t data10h = vmovl_s8(data10);
+                    int16x8_t data11h = vmovl_s8(data11);
+                    int32x4_t acc0 =
+                        vmlal_s16(vmull_s16(vget_low_s16(data00h), v_w0_short), vget_high_s16(data01h), v_w1_short);
+                    int32x4_t acc1 =
+                        vmlal_s16(vmull_s16(vget_high_s16(data10h), v_w0_short), vget_high_s16(data11h), v_w1_short);
+                    int32x4_t acc = v_2;
+                    acc           = vsraq_n_s32(
+                        v_2, vmlal_s16(vmull_s16(vshrn_n_s32(acc0, 4), v_h0_short), vshrn_n_s32(acc1, 4), v_h1_short),
+                        16);
+                    int16x4_t res_s16 = vshrn_n_s32(acc, 2);
+                    int8x8_t res_s8   = vqmovn_s16(vcombine_s16(res_s16, res_s16));
+                    vst1_lane_s32(reinterpret_cast<int32_t *>(Ydata), vreinterpret_s32_s8(res_s8), 0);
+                }
             }
 #endif
         }
