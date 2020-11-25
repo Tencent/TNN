@@ -27,7 +27,8 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
         return false;
     }
     return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1;
+            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->input_channel >= 64
+            && param->output_channel >= 64;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
