@@ -38,8 +38,7 @@ bool ArmConvInt8LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vec
     const int input_channel  = dims_input[1];
     const int output_channel = dims_output[1];
 
-    return param->group == input_channel && param->group == output_channel && param->dialations[0] == 1 &&
-           param->dialations[1] == 1;
+    return param->group == input_channel && param->group == output_channel;
 }
 
 ArmConvInt8LayerDepthwise::~ArmConvInt8LayerDepthwise() {}
@@ -115,9 +114,9 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         ;
     for (; t * stride_y - pad_y < 0; t++)
         ;
-    for (; (r - 1) * stride_x - pad_x + kernel_x > input_width && r > l; r--)
+    for (; (r - 1) * stride_x - pad_x + kernel_x * dilate_x > input_width && r > l; r--)
         ;
-    for (; (b - 1) * stride_y - pad_y + kernel_y > input_height && b > t; b--)
+    for (; (b - 1) * stride_y - pad_y + kernel_y * dilate_y > input_height && b > t; b--)
         ;
 
     auto RunCorner = [=](int8_t *dst_z, const int8_t *src_z, int left, int top, int right, int bottom) {
@@ -125,20 +124,21 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
             auto dst_y             = dst_z + dy * dst_y_step;
             const long src_start_y = dy * stride_y - pad_y;
             const auto src_y       = src_z + src_start_y * src_y_step;
-            const long sfy         = MAX(0, (UP_DIV(-src_start_y, 1)));
-            const long efy         = MIN(kernel_y, (UP_DIV(k_param_->ih - src_start_y, 1)));
+            const long sfy         = MAX(0, (UP_DIV(-src_start_y, dilate_y)));
+            const long efy         = MIN(kernel_y, (UP_DIV(k_param_->ih - src_start_y, dilate_y)));
             for (long dx = left; dx < right; ++dx) {
                 auto dst_x             = dst_y + k_param_->oc_r4 * dx;
                 const long src_start_x = dx * stride_x - pad_x;
                 const auto src_x       = src_y + src_start_x * k_param_->oc_r4;
-                const long sfx         = MAX(0, (UP_DIV(-src_start_x, 1)));
-                const long efx         = MIN(kernel_x, (UP_DIV(k_param_->iw - src_start_x, 1)));
-                const long srcIndex    = (sfx * 1 + sfy * 1 * k_param_->iw) * k_param_->oc_r4;
+                const long sfx         = MAX(0, (UP_DIV(-src_start_x, dilate_x)));
+                const long efx         = MIN(kernel_x, (UP_DIV(k_param_->iw - src_start_x, dilate_x)));
+                const long srcIndex    = (sfx * dilate_x + sfy * dilate_y * k_param_->iw) * k_param_->oc_r4;
                 const long weightIndex = (kernel_x * sfy + sfx) * k_param_->oc_r4;
 
                 DepthwiseI8Unit(dst_x, src_x + srcIndex, reinterpret_cast<int8_t *>(k_param_->fil_ptr) + weightIndex,
                                 reinterpret_cast<int32_t *>(k_param_->bias), efx - sfx, efy - sfy,
-                                k_param_->oc_r4 * kernel_x, src_y_step, k_param_->scale, k_param_->oc_r4);
+                                k_param_->oc_r4 * kernel_x, src_y_step * dilate_y, k_param_->oc_r4 * dilate_x,
+                                k_param_->scale, k_param_->oc_r4);
             }
         }
     };
@@ -150,7 +150,7 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         long src_w_step = k_param_->oc_r4 * conv_param->strides[0];
         auto dwfunc     = DepthwiseI8General;
 #ifdef TNN_USE_NEON
-        if (kernel_x == kernel_y && kernel_x == 3 && k_param_->oc_r4 >= 8) {
+        if (kernel_x == kernel_y && kernel_x == 3 && k_param_->oc_r4 >= 8 && dilate_x == 1 && dilate_y == 1) {
             dwfunc = DepthwiseI8K3;
         }
 #endif
@@ -181,8 +181,8 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
                 dwfunc(dst_y + l * k_param_->oc_r4,
                        src_dy + (l * conv_param->strides[0] - conv_param->pads[0]) * k_param_->oc_r4,
                        reinterpret_cast<int8_t *>(k_param_->fil_ptr), reinterpret_cast<int32_t *>(k_param_->bias),
-                       r - l, src_y_step, src_w_step, k_param_->oc_r4, conv_param->kernels[0], conv_param->kernels[1],
-                       k_param_->scale);
+                       r - l, src_y_step * dilate_y, k_param_->oc_r4 * dilate_x, src_w_step, k_param_->oc_r4,
+                       conv_param->kernels[0], conv_param->kernels[1], k_param_->scale);
             }
         }
 
