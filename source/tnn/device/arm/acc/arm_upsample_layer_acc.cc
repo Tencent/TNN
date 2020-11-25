@@ -17,6 +17,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -111,6 +112,136 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
+static inline int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, int ih, int iw, int oh, int ow,
+                                      int c_4, bool align_corners, const float *scale) {
+    auto c_r4       = c_4 * 4;
+    auto src_y_step = iw * c_r4;
+    auto dst_y_step = ow * c_r4;
+
+    RawBuffer h_coeffs(oh * sizeof(float));
+    RawBuffer w_coeffs(ow * sizeof(float));
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
+
+    if (align_corners) {
+        const float rheight = (oh > 1) ? (float)(ih - 1) / (oh - 1) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw - 1) / (ow - 1) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = h * rheight;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = w * rwidth;
+        }
+    } else {
+        const float rheight = (oh > 1) ? (float)(ih) / (oh) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw) / (ow) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = rheight * (h + 0.5) - 0.5;
+            h_coeffs_ptr[h] = h_coeffs_ptr[h] >= 0 ? h_coeffs_ptr[h] : 0;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = rwidth * (w + 0.5) - 0.5;
+            w_coeffs_ptr[w] = w_coeffs_ptr[w] >= 0 ? w_coeffs_ptr[w] : 0;
+        }
+    }
+
+    OMP_PARALLEL_FOR_
+    for (int h2 = 0; h2 < oh; ++h2) {
+        const float h1r      = h_coeffs_ptr[h2];
+        const int h1         = h1r;
+        const int h1p        = (h1 < ih - 1) ? 1 : 0;
+        const float h1lambda = h1r - h1;
+        const float h0lambda = (float)1. - h1lambda;
+        for (int w2 = 0; w2 < ow; ++w2) {
+            const float w1r       = w_coeffs_ptr[w2];
+            const int w1          = w1r;
+            const int w1p         = (w1 < iw - 1) ? 1 : 0;
+            const float w1lambda  = w1r - w1;
+            const float w0lambda  = (float)1. - w1lambda;
+            const int8_t *Xdata00 = &(input_data[h1 * src_y_step + w1 * c_r4]);
+            const int8_t *Xdata01 = Xdata00 + w1p * c_r4;
+            const int8_t *Xdata10 = Xdata00 + h1p * src_y_step;
+            const int8_t *Xdata11 = Xdata10 + w1p * c_r4;
+            int8_t *Ydata         = &(output_data[h2 * dst_y_step + w2 * c_r4]);
+            const float *scale_p  = scale;
+#ifdef TNN_USE_NEON
+            float32x4_t v_w0lambda = vdupq_n_f32(w0lambda);
+            float32x4_t v_w1lambda = vdupq_n_f32(w1lambda);
+            float32x4_t v_h0lambda = vdupq_n_f32(h0lambda);
+            float32x4_t v_h1lambda = vdupq_n_f32(h1lambda);
+#endif
+            for (int z = 0; z < c_4 / 2; z++) {
+#ifdef TNN_USE_NEON
+                int8x8_t data00 = vld1_s8(Xdata00);
+                int8x8_t data01 = vld1_s8(Xdata01);
+                int8x8_t data10 = vld1_s8(Xdata10);
+                int8x8_t data11 = vld1_s8(Xdata11);
+                int16x8_t data00h = vmovl_s8(data00);
+                int16x8_t data01h = vmovl_s8(data01);
+                int16x8_t data10h = vmovl_s8(data10);
+                int16x8_t data11h = vmovl_s8(data11);
+                float32x4_t data00_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
+                float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data00h)));
+                float32x4_t data01_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data01h)));
+                float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
+                float32x4_t data10_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data10h)));
+                float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
+                float32x4_t data11_0 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data11h)));
+                float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
+                float32x4_t acc0 = vaddq_f32(vmulq_f32(data00_0, v_w0lambda), vmulq_f32(data01_0, v_w1lambda));
+                float32x4_t acc1 = vaddq_f32(vmulq_f32(data10_0, v_w0lambda), vmulq_f32(data11_0, v_w1lambda));
+                float32x4_t acc  = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
+                int16x4_t res_s16 = vqmovn_s32(VCVTAQ_S32_F32(acc));
+                acc0 = vaddq_f32(vmulq_f32(data00_1, v_w0lambda), vmulq_f32(data01_1, v_w1lambda));
+                acc1 = vaddq_f32(vmulq_f32(data10_1, v_w0lambda), vmulq_f32(data11_1, v_w1lambda));
+                acc  = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
+                vst1_s8(Ydata, vqmovn_s16(VQMOVN_HIGH_S32_T(res_s16, VCVTAQ_S32_F32(acc))));
+#else
+                for (int i = 0; i < 8; ++i) {
+                    Ydata[i] = float2int8(((Xdata00[i] * w0lambda + Xdata01[i] * w1lambda) * h0lambda +
+                                          (Xdata10[i] * w0lambda + Xdata11[i] * w1lambda) * h1lambda) * scale_p[i]);
+                }
+#endif
+                Xdata00 += 8;
+                Xdata01 += 8;
+                Xdata10 += 8;
+                Xdata11 += 8;
+                Ydata   += 8;
+                scale_p += 8;
+            }
+            if (c_4 % 2) {
+#ifdef TNN_USE_NEON
+                int8x8_t data00 = vld1_s8(Xdata00);
+                int8x8_t data01 = vld1_s8(Xdata01 - 4);
+                int8x8_t data10 = vld1_s8(Xdata10 - 4);
+                int8x8_t data11 = vld1_s8(Xdata11 - 4);
+                int16x8_t data00h = vmovl_s8(data00);
+                int16x8_t data01h = vmovl_s8(data01);
+                int16x8_t data10h = vmovl_s8(data10);
+                int16x8_t data11h = vmovl_s8(data11);
+                float32x4_t data00_1 = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data00h)));
+                float32x4_t data01_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data01h)));
+                float32x4_t data10_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data10h)));
+                float32x4_t data11_1 = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data11h)));
+                float32x4_t acc0 = vaddq_f32(vmulq_f32(data00_1, v_w0lambda), vmulq_f32(data01_1, v_w1lambda));
+                float32x4_t acc1 = vaddq_f32(vmulq_f32(data10_1, v_w0lambda), vmulq_f32(data11_1, v_w1lambda));
+                float32x4_t acc  = vaddq_f32(vmulq_f32(acc0, v_h0lambda), vmulq_f32(acc1, v_h1lambda));
+                int16x4_t res_s16 = vqmovn_s32(VCVTAQ_S32_F32(acc));
+                int8x8_t res_s8   = vqmovn_s16(vcombine_s16(res_s16, res_s16));
+                vst1_lane_s32(Ydata, res_s8, 0);
+#else
+                for (int i = 0; i < 4; ++i) {
+                    Ydata[i] = float2int8(((Xdata00[i] * w0lambda + Xdata01[i] * w1lambda) * h0lambda +
+                                          (Xdata10[i] * w0lambda + Xdata11[i] * w1lambda) * h1lambda) * scale_p[i]);
+                }
+#endif
+            }
+        }
+    }
+
+    return 0;
+}
+
 ArmUpsampleLayerAcc::~ArmUpsampleLayerAcc() {}
 
 Status ArmUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -190,35 +321,30 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     auto oc_4 = UP_DIV(dims_output[1], 4);
 
-    if (data_type == DATA_TYPE_INT8) {
-        const float *scale = buffer_scale_.force_to<float *>();
-        auto workspace     = buffer_input_fp32_.force_to<float *>();
-        Int8ToFloat(workspace, reinterpret_cast<int8_t *>(input_data), scale, dims_input[0], dims_input[1],
-                    dims_input[2] * dims_input[3]);
-        input_data  = workspace;
-        output_data = buffer_output_fp32_.force_to<float *>();
-    }
-
-    if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3]) {
+    if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3] && data_type != DATA_TYPE_INT8) {
         if (output_data != input_data) {
-            memcpy(output_data, input_data, oc_4 * dims_input[2] * dims_input[3] * 4 * sizeof(float));
+            memcpy(output_data, input_data, oc_4 * dims_input[2] * dims_input[3] * 4 * DataTypeUtils::GetBytesSize(data_type));
         }
     } else if (param->mode == 1) {  // nearest
-        upsample_nearest2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3], oc_4);
+        if (data_type == DATA_TYPE_FLOAT) {
+            upsample_nearest2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3], oc_4);
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample nearest");
+        }
     } else if (param->mode == 2) {  // bilinear/linear
-        upsample_bilinear2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3], oc_4,
-                            (bool)param->align_corners);
+        if (data_type == DATA_TYPE_FLOAT) {
+            upsample_bilinear2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3], oc_4,
+                                (bool)param->align_corners);
+        } else if (data_type == DATA_TYPE_INT8) {
+            upsample_bilinear2d(reinterpret_cast<int8_t *>(output_data), reinterpret_cast<int8_t *>(input_data), dims_input[2],
+                                dims_input[3], dims_output[2], dims_output[3], oc_4, (bool)param->align_corners,
+                                buffer_scale_.force_to<float *>());
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample bilinear");
+        }
     } else {
         LOGE("Error: Upsample dont support resize mode\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize mode");
-    }
-
-    if (data_type == DATA_TYPE_INT8) {
-        const float *scale = buffer_ones_.force_to<float *>();
-        auto workspace     = output_data;
-        output_data        = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        FloatToInt8(reinterpret_cast<int8_t *>(output_data), workspace, scale, dims_output[0], dims_output[1],
-                    dims_output[2] * dims_output[3]);
     }
 
     return TNN_OK;

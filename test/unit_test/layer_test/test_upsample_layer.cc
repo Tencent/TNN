@@ -60,6 +60,10 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         GTEST_SKIP();
     }
 
+    if (data_type == DATA_TYPE_INT8 && mode == 1) {
+        GTEST_SKIP();
+    }
+
     // blob desc
     auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
     auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
