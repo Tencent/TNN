@@ -42,7 +42,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                              // pads
                              testing::Values(0, 1),
                              // data_type
-                             testing::Values(DATA_TYPE_FLOAT),
+                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF),
                              // activation_type
                              testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6,
                                              ActivationType_SIGMOID_MUL)));
@@ -61,15 +61,6 @@ TEST_P(ConvLayerTest, ConvLayer) {
     auto dtype            = std::get<8>(GetParam());
     int activation_type   = std::get<9>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-
-    auto precision = PRECISION_AUTO;
-    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
-        if (DATA_TYPE_FLOAT == dtype) {
-            precision = PRECISION_HIGH;
-        } else {
-            GTEST_SKIP();
-        }
-    }
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
         GTEST_SKIP();
@@ -110,6 +101,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param->activation_type = activation_type;
 
     // generate interpreter
+    Precision precision = SetPrecision(dev, dtype);
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter, precision);

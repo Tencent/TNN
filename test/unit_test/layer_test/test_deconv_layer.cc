@@ -19,8 +19,8 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -128,18 +128,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
-    Precision precision = PRECISION_AUTO;
-    if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
-    }
-
-    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
-        if (DATA_TYPE_FLOAT == data_type) {
-            precision = PRECISION_HIGH;
-        } else {
-            GTEST_SKIP();
-        }
-    }
+    Precision precision = SetPrecision(dev, data_type);
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};

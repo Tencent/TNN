@@ -29,6 +29,8 @@ NetworkType ConvertNetworkType(std::string network_type);
 
 Precision ConvertPrecision(std::string precision);
 
+Precision SetPrecision(DeviceType dev, DataType dtype);
+
 int CompareData(const float* ref_data, const float* result_data, size_t n, float ep);
 int CompareData(const float* ref_data, const float* result_data, size_t n, float ep, float dp);
 int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, float ep);

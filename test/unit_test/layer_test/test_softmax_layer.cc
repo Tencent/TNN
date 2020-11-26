@@ -75,6 +75,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     param->name = "Softmax";
     param->axis = axis;
 
+    auto precision = SetPrecision(dev, data_type); 
+
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
     auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);

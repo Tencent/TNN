@@ -51,13 +51,12 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "Unary";
 
-    Precision precision = PRECISION_AUTO;
+    Precision precision = SetPrecision(dev, data_type);
+    
     // generate proto string
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (DATA_TYPE_INT8 == data_type) {
         param->quantized = true;
-    } else if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
     }
 
     auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);

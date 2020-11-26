@@ -64,6 +64,11 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     param->name = "Concat";
     param->axis = axis;
 
+    Precision precision = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+
     // generate interpreter
     std::vector<std::vector<int>> input_dims_vec;
     for (int i = 0; i < input_count; ++i)

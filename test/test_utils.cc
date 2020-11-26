@@ -81,6 +81,16 @@ Precision ConvertPrecision(std::string precision) {
     }
 }
 
+Precision SetPrecision(DeviceType dev, DataType dtype) {
+    if (DATA_TYPE_BFP16 == dtype) {
+        return PRECISION_LOW;
+    } else if (DATA_TYPE_FLOAT == dtype && dev == DEVICE_ARM) {
+        return PRECISION_HIGH;
+    }
+
+    return PRECISION_AUTO;
+}
+
 int CompareData(const float* ref_data, const float* result_data, size_t n, float ep) {
     for (unsigned long long i = 0; i < n; i++) {
         float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
