@@ -278,11 +278,7 @@ Status TensorRTNetwork_::Forward() {
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    ret = context_->Synchronize();
-    if (ret != TNN_OK) {
-        return ret;
-    }
-    return TNN_OK;
+    return context_->Synchronize();
 }
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
