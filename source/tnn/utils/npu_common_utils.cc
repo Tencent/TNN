@@ -50,6 +50,9 @@ Status NpuCommonUtils::CalculateBroadcastSize(std::vector<int> &weight, EltwiseL
 }
 
 std::string NpuCommonUtils::GetFileHash(ModelConfig &model_config) {
+    if (model_config.params.size() < 2) {
+        return "empty_model_config";
+    }
     std::string file_content = model_config.params[1] + model_config.params[0];
     int hash                 = 0;
     for (size_t i = 0; i < file_content.length(); ++i)

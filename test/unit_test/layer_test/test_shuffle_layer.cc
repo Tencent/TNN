@@ -36,16 +36,15 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
     // param
-    ShuffleLayerParam param;
-    param.name  = "ShuffleChannel";
-    param.group = group;
+    std::shared_ptr<ShuffleLayerParam> param(new ShuffleLayerParam());
+    param->name  = "ShuffleChannel";
+    param->group = group;
 
-    Run(LAYER_SHUFFLE_CHANNEL, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("ShuffleChannel", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

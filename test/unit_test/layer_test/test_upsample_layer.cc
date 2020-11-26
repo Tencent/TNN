@@ -56,21 +56,24 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    UpsampleLayerParam param;
-    param.name          = "Upsample";
-    param.mode          = mode;
-    param.align_corners = align_corners;
-    param.scales        = {scale_x, scale_y};
-    if (use_dims) {
-        param.dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
+    if (DEVICE_HUAWEI_NPU == dev && (mode == 2 || ((int)scale_x != scale_x || (int)scale_y != scale_y))) {
+        GTEST_SKIP();
     }
 
-    Run(LAYER_UPSAMPLE, &param, nullptr, inputs_desc, outputs_desc);
+    // param
+    std::shared_ptr<UpsampleLayerParam> param(new UpsampleLayerParam());
+    param->name          = "Upsample";
+    param->mode          = mode;
+    param->align_corners = align_corners;
+    param->scales        = {scale_x, scale_y};
+    if (use_dims) {
+        param->dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
+    }
+
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Upsample", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS
