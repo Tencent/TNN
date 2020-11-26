@@ -62,6 +62,72 @@ static inline int upsample_nearest2d(float *output_data, const float *input_data
     return 0;
 }
 
+template <bool do_scale>
+static int upsample_nearest2d(int8_t *output_data, const int8_t *input_data, int ih, int iw, int oh, int ow, int c_4,
+                              const float *scale) {
+    auto c_r4       = c_4 * 4;
+    auto src_y_step = iw * c_r4;
+    auto dst_y_step = ow * c_r4;
+
+    const float height_scale = (float)ih / (float)oh;
+    const float width_scale  = (float)iw / (float)ow;
+
+    OMP_PARALLEL_FOR_
+    for (int h = 0; h < oh; h++) {
+        int scale_h = h * height_scale;
+        auto dst_y  = output_data + h * dst_y_step;
+        auto src_y  = input_data + scale_h * src_y_step;
+        for (int w = 0; w < ow; w++) {
+            int scale_w = w * width_scale;
+            auto dst_x  = dst_y + w * c_r4;
+            auto src_x  = src_y + scale_w * c_r4;
+            if (!do_scale) {
+                memcpy(dst_x, src_x, c_r4);
+            } else {
+#ifndef TNN_USE_NEON
+                for (int c = 0; c < c_r4; ++c) {
+                    dst_x[c] = float2int8(src_x[c] * scale[c]);
+                }
+#else
+                auto scale_p = scale;
+                for (int z = 0; z < c_4 / 2; z++) {
+                    float32x4_t v_scale0 = vld1q_f32(scale_p);
+                    float32x4_t v_scale1 = vld1q_f32(scale_p + 4);
+                    int8x8_t data_src    = vld1_s8(src_x);
+                    int16x8_t data_h     = vmovl_s8(data_src);
+                    float32x4_t data_f0  = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data_h)));
+                    float32x4_t data_f1  = vcvtq_f32_s32(vmovl_s16(vget_high_s16(data_h)));
+                    float32x4_t res_f0   = vmulq_f32(data_f0, v_scale0);
+                    float32x4_t res_f1   = vmulq_f32(data_f1, v_scale1);
+                    int16x4_t res_s16    = vqmovn_s32(VCVTAQ_S32_F32(res_f0));
+                    vst1_s8(dst_x, vqmovn_s16(VQMOVN_HIGH_S32_T(res_s16, VCVTAQ_S32_F32(res_f1))));
+
+                    src_x += 8;
+                    dst_x += 8;
+                    scale_p += 8;
+                }
+                if (c_4 % 2) {
+                    float32x4_t v_scale = vld1q_f32(scale_p);
+                    int8x8_t data_src   = int8x8_t();
+                    data_src            = vld1_lane_s8(src_x, data_src, 0);
+                    data_src            = vld1_lane_s8(src_x + 1, data_src, 1);
+                    data_src            = vld1_lane_s8(src_x + 2, data_src, 2);
+                    data_src            = vld1_lane_s8(src_x + 3, data_src, 3);
+                    int16x8_t data_h    = vmovl_s8(data_src);
+                    float32x4_t data_f  = vcvtq_f32_s32(vmovl_s16(vget_low_s16(data_h)));
+                    float32x4_t res_f   = vmulq_f32(data_f, v_scale);
+                    int16x4_t res_s16   = vqmovn_s32(VCVTAQ_S32_F32(res_f));
+                    int8x8_t res_s8     = vqmovn_s16(vcombine_s16(res_s16, res_s16));
+                    vst1_lane_s32(reinterpret_cast<int32_t *>(dst_x), vreinterpret_s32_s8(res_s8), 0);
+                }
+#endif
+            }
+        }
+    }
+
+    return 0;
+}
+
 static inline void get_bilinear_coeffs(float *h_coeffs_ptr, float *w_coeffs_ptr, int ih, int iw, int oh, int ow,
                                        bool align_corners) {
     if (align_corners) {
@@ -225,13 +291,13 @@ static void upsample_get_adjacent_rows(int sy, int prev_sy, short **rows0, short
 #else
             int16x4_t _a0 = vdup_n_s16(a0);
             int16x4_t _a1 = vdup_n_s16(a1);
-            int8x8_t _S1  = vld1_s8(S1p);
+            int8x8_t _S1 = vld1_s8(S1p);
 
-            int16x8_t _S116      = vmovl_s8(_S1);
-            int16x4_t _S1low     = vget_low_s16(_S116);
-            int16x4_t _S1high    = vget_high_s16(_S116);
-            int32x4_t _rows1     = vmull_s16(_S1low, _a0);
-            _rows1               = vmlal_s16(_rows1, _S1high, _a1);
+            int16x8_t _S116 = vmovl_s8(_S1);
+            int16x4_t _S1low = vget_low_s16(_S116);
+            int16x4_t _S1high = vget_high_s16(_S116);
+            int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+            _rows1 = vmlal_s16(_rows1, _S1high, _a1);
             int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
             vst1_s16(rows1p, _rows1_sr4);
 #endif
@@ -259,20 +325,20 @@ static void upsample_get_adjacent_rows(int sy, int prev_sy, short **rows0, short
                 rows1p[dc] = (S1p[dc] * a0 + S1p[dc + 4] * a1) >> 4;
             }
 #else
-            int16x4_t _a0        = vdup_n_s16(a0);
-            int16x4_t _a1        = vdup_n_s16(a1);
-            int8x8_t _S0         = vld1_s8(S0p);
-            int8x8_t _S1         = vld1_s8(S1p);
-            int16x8_t _S016      = vmovl_s8(_S0);
-            int16x8_t _S116      = vmovl_s8(_S1);
-            int16x4_t _S0low     = vget_low_s16(_S016);
-            int16x4_t _S1low     = vget_low_s16(_S116);
-            int16x4_t _S0high    = vget_high_s16(_S016);
-            int16x4_t _S1high    = vget_high_s16(_S116);
-            int32x4_t _rows0     = vmull_s16(_S0low, _a0);
-            int32x4_t _rows1     = vmull_s16(_S1low, _a0);
-            _rows0               = vmlal_s16(_rows0, _S0high, _a1);
-            _rows1               = vmlal_s16(_rows1, _S1high, _a1);
+            int16x4_t _a0 = vdup_n_s16(a0);
+            int16x4_t _a1 = vdup_n_s16(a1);
+            int8x8_t _S0 = vld1_s8(S0p);
+            int8x8_t _S1 = vld1_s8(S1p);
+            int16x8_t _S016 = vmovl_s8(_S0);
+            int16x8_t _S116 = vmovl_s8(_S1);
+            int16x4_t _S0low = vget_low_s16(_S016);
+            int16x4_t _S1low = vget_low_s16(_S116);
+            int16x4_t _S0high = vget_high_s16(_S016);
+            int16x4_t _S1high = vget_high_s16(_S116);
+            int32x4_t _rows0 = vmull_s16(_S0low, _a0);
+            int32x4_t _rows1 = vmull_s16(_S1low, _a0);
+            _rows0 = vmlal_s16(_rows0, _S0high, _a1);
+            _rows1 = vmlal_s16(_rows1, _S1high, _a1);
             int16x4_t _rows0_sr4 = vshrn_n_s32(_rows0, 4);
             int16x4_t _rows1_sr4 = vshrn_n_s32(_rows1, 4);
             vst1_s16(rows0p, _rows0_sr4);
@@ -601,6 +667,8 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
                 temp_ptr[i] = 0.0;
         }
         do_scale_ = need_do_scale(temp_ptr, dims_output[1]);
+    } else {
+        do_scale_ = false;
     }
 
     float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
@@ -608,7 +676,7 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     auto oc_4 = UP_DIV(dims_output[1], 4);
 
-    if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3] && data_type != DATA_TYPE_INT8) {
+    if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3] && !do_scale_) {
         if (output_data != input_data) {
             memcpy(output_data, input_data,
                    oc_4 * dims_input[2] * dims_input[3] * 4 * DataTypeUtils::GetBytesSize(data_type));
@@ -617,6 +685,15 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         if (data_type == DATA_TYPE_FLOAT) {
             upsample_nearest2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3],
                                oc_4);
+        } else if (data_type == DATA_TYPE_INT8) {
+            if (do_scale_)
+                upsample_nearest2d<true>(reinterpret_cast<int8_t *>(output_data),
+                                         reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
+                                         dims_output[2], dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+            else
+                upsample_nearest2d<false>(reinterpret_cast<int8_t *>(output_data),
+                                          reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
+                                          dims_output[2], dims_output[3], oc_4, buffer_scale_.force_to<float *>());
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample nearest");
         }
