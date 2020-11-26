@@ -153,11 +153,13 @@ static inline void get_bilinear_coeffs(float *h_coeffs_ptr, float *w_coeffs_ptr,
     }
 }
 
-static inline int upsample_bilinear2d(float *output_data, const float *input_data, int ih, int iw, int oh, int ow,
-                                      int c_4, bool align_corners) {
+static inline int upsample_bilinear2d(float *output_data, const float *input_data, int batch, int ih, int iw, int oh,
+                                      int ow, int c_4, bool align_corners) {
     auto src_z_step = iw * ih * 4;
     auto dst_z_step = ow * oh * 4;
     auto src_y_step = iw * 4;
+    auto src_plane  = iw * ih * c_4 * 4;
+    auto dst_plane  = ow * oh * c_4 * 4;
 
     RawBuffer h_coeffs(oh * sizeof(float));
     RawBuffer w_coeffs(ow * sizeof(float));
@@ -166,30 +168,35 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
 
     get_bilinear_coeffs(h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
 
-    OMP_PARALLEL_FOR_
-    for (int h2 = 0; h2 < oh; ++h2) {
-        const float h1r      = h_coeffs_ptr[h2];
-        const int h1         = h1r;
-        const int h1p        = (h1 < ih - 1) ? 1 : 0;
-        const float h1lambda = h1r - h1;
-        const float h0lambda = (float)1. - h1lambda;
-        for (int w2 = 0; w2 < ow; ++w2) {
-            const float w1r      = w_coeffs_ptr[w2];
-            const int w1         = w1r;
-            const int w1p        = (w1 < iw - 1) ? 1 : 0;
-            const float w1lambda = w1r - w1;
-            const float w0lambda = (float)1. - w1lambda;
-            const float *Xdata   = &(input_data[h1 * iw * 4 + w1 * 4]);
-            float *Ydata         = &(output_data[h2 * ow * 4 + w2 * 4]);
-            for (int z = 0; z < c_4; z++) {
-                Float4::save(Ydata,
-                             (Float4::load(Xdata) * w0lambda + Float4::load(Xdata + w1p * 4) * w1lambda) * h0lambda +
-                                 (Float4::load(Xdata + h1p * src_y_step) * w0lambda +
-                                  Float4::load(Xdata + h1p * src_y_step + w1p * 4) * w1lambda) *
-                                     h1lambda);
+    for (int b = 0; b < batch; ++b) {
+        auto input_b  = input_data + b * src_plane;
+        auto output_b = output_data + b * dst_plane;
 
-                Xdata += src_z_step;
-                Ydata += dst_z_step;
+        OMP_PARALLEL_FOR_
+        for (int h2 = 0; h2 < oh; ++h2) {
+            const float h1r      = h_coeffs_ptr[h2];
+            const int h1         = h1r;
+            const int h1p        = (h1 < ih - 1) ? 1 : 0;
+            const float h1lambda = h1r - h1;
+            const float h0lambda = (float)1. - h1lambda;
+            for (int w2 = 0; w2 < ow; ++w2) {
+                const float w1r      = w_coeffs_ptr[w2];
+                const int w1         = w1r;
+                const int w1p        = (w1 < iw - 1) ? 1 : 0;
+                const float w1lambda = w1r - w1;
+                const float w0lambda = (float)1. - w1lambda;
+                const float *Xdata   = &(input_b[h1 * iw * 4 + w1 * 4]);
+                float *Ydata         = &(output_b[h2 * ow * 4 + w2 * 4]);
+                for (int z = 0; z < c_4; z++) {
+                    Float4::save(
+                        Ydata, (Float4::load(Xdata) * w0lambda + Float4::load(Xdata + w1p * 4) * w1lambda) * h0lambda +
+                                   (Float4::load(Xdata + h1p * src_y_step) * w0lambda +
+                                    Float4::load(Xdata + h1p * src_y_step + w1p * 4) * w1lambda) *
+                                       h1lambda);
+
+                    Xdata += src_z_step;
+                    Ydata += dst_z_step;
+                }
             }
         }
     }
@@ -414,8 +421,8 @@ void upsample_bilinear_one_row(UpsampleBilinearKernelParm &param, int thread_id,
     upsample_calculate_one_row(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, Dp);
 }
 
-static int upsample_bilinear_c4(int8_t *dst, const int8_t *src, int src_h, int src_w, int h, int w, bool align_corners,
-                                int batch = 1) {
+static int upsample_bilinear_c4(int8_t *dst, const int8_t *src, int batch, int src_h, int src_w, int h, int w,
+                                bool align_corners) {
     int src_stride = src_w * 4;
     int stride     = w * 4;
     int *buf       = nullptr;
@@ -457,22 +464,12 @@ static int upsample_bilinear_c4(int8_t *dst, const int8_t *src, int src_h, int s
 }
 
 template <bool do_scale>
-static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, int ih, int iw, int oh, int ow, int c_4,
-                               bool align_corners, const float *scale) {
-    if (!do_scale && c_4 == 1) {
-        return upsample_bilinear_c4(output_data, input_data, ih, iw, oh, ow, align_corners);
-    }
-
+static void upsample_bilinear_cn(int8_t *output_data, const int8_t *input_data, const float *h_coeffs_ptr,
+                                 const float *w_coeffs_ptr, int c_4, int ih, int iw, int oh, int ow,
+                                 const float *scale) {
     auto c_r4       = c_4 * 4;
     auto src_y_step = iw * c_r4;
     auto dst_y_step = ow * c_r4;
-
-    RawBuffer h_coeffs(oh * sizeof(float));
-    RawBuffer w_coeffs(ow * sizeof(float));
-    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
-    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
-
-    get_bilinear_coeffs(h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
 
     const float INTER_RESIZE_COEF_SCALE = float(1 << 11);
 
@@ -628,6 +625,34 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
 #endif
         }
     }
+}
+
+template <bool do_scale>
+static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, int batch, int ih, int iw, int oh, int ow,
+                               int c_4, bool align_corners, const float *scale) {
+    if (!do_scale && c_4 == 1) {
+        return upsample_bilinear_c4(output_data, input_data, batch, ih, iw, oh, ow, align_corners);
+    }
+
+    auto src_plane = iw * ih * c_4 * 4;
+    auto dst_plane = ow * oh * c_4 * 4;
+
+    RawBuffer h_coeffs(oh * sizeof(float));
+    RawBuffer w_coeffs(ow * sizeof(float));
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
+
+    get_bilinear_coeffs(h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
+
+    for (int b = 0; b < batch; ++b) {
+        auto input_b  = input_data + b * src_plane;
+        auto output_b = output_data + b * dst_plane;
+        if (do_scale) {
+            upsample_bilinear_cn<true>(output_b, input_b, h_coeffs_ptr, w_coeffs_ptr, c_4, ih, iw, oh, ow, scale);
+        } else {
+            upsample_bilinear_cn<false>(output_b, input_b, h_coeffs_ptr, w_coeffs_ptr, c_4, ih, iw, oh, ow, scale);
+        }
+    }
 
     return 0;
 }
@@ -638,8 +663,11 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    auto dims_input  = inputs[0]->GetBlobDesc().dims;
-    auto dims_output = outputs[0]->GetBlobDesc().dims;
+    auto dims_input   = inputs[0]->GetBlobDesc().dims;
+    auto dims_output  = outputs[0]->GetBlobDesc().dims;
+    auto batch        = dims_input[0];
+    auto input_plane  = dims_input[2] * dims_input[3] * ROUND_UP(dims_input[1], 4);
+    auto output_plane = dims_output[2] * dims_output[3] * ROUND_UP(dims_output[1], 4);
 
     DataType data_type = outputs[0]->GetBlobDesc().data_type;
 
@@ -678,38 +706,41 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3] && !do_scale_) {
         if (output_data != input_data) {
-            memcpy(output_data, input_data,
-                   oc_4 * dims_input[2] * dims_input[3] * 4 * DataTypeUtils::GetBytesSize(data_type));
+            memcpy(output_data, input_data, batch * input_plane * DataTypeUtils::GetBytesSize(data_type));
         }
     } else if (param->mode == 1) {  // nearest
         if (data_type == DATA_TYPE_FLOAT) {
-            upsample_nearest2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3],
-                               oc_4);
+            for (int b = 0; b < batch; ++b) {
+                upsample_nearest2d(output_data + b * output_plane, input_data + b * input_plane, dims_input[2],
+                                   dims_input[3], dims_output[2], dims_output[3], oc_4);
+            }
         } else if (data_type == DATA_TYPE_INT8) {
-            if (do_scale_)
-                upsample_nearest2d<true>(reinterpret_cast<int8_t *>(output_data),
-                                         reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
-                                         dims_output[2], dims_output[3], oc_4, buffer_scale_.force_to<float *>());
-            else
-                upsample_nearest2d<false>(reinterpret_cast<int8_t *>(output_data),
-                                          reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
-                                          dims_output[2], dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+            for (int b = 0; b < batch; ++b) {
+                auto output_b = reinterpret_cast<int8_t *>(output_data) + b * output_plane;
+                auto input_b  = reinterpret_cast<int8_t *>(input_data) + b * input_plane;
+                if (do_scale_)
+                    upsample_nearest2d<true>(output_b, input_b, dims_input[2], dims_input[3], dims_output[2],
+                                             dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+                else
+                    upsample_nearest2d<false>(output_b, input_b, dims_input[2], dims_input[3], dims_output[2],
+                                              dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+            }
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample nearest");
         }
     } else if (param->mode == 2) {  // bilinear/linear
         if (data_type == DATA_TYPE_FLOAT) {
-            upsample_bilinear2d(output_data, input_data, dims_input[2], dims_input[3], dims_output[2], dims_output[3],
-                                oc_4, (bool)param->align_corners);
+            upsample_bilinear2d(output_data, input_data, batch, dims_input[2], dims_input[3], dims_output[2],
+                                dims_output[3], oc_4, (bool)param->align_corners);
         } else if (data_type == DATA_TYPE_INT8) {
             if (do_scale_)
                 upsample_bilinear2d<true>(reinterpret_cast<int8_t *>(output_data),
-                                          reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
+                                          reinterpret_cast<int8_t *>(input_data), batch, dims_input[2], dims_input[3],
                                           dims_output[2], dims_output[3], oc_4, (bool)param->align_corners,
                                           buffer_scale_.force_to<float *>());
             else
                 upsample_bilinear2d<false>(reinterpret_cast<int8_t *>(output_data),
-                                           reinterpret_cast<int8_t *>(input_data), dims_input[2], dims_input[3],
+                                           reinterpret_cast<int8_t *>(input_data), batch, dims_input[2], dims_input[3],
                                            dims_output[2], dims_output[3], oc_4, (bool)param->align_corners,
                                            buffer_scale_.force_to<float *>());
         } else {

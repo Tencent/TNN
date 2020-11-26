@@ -50,10 +50,6 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     bool use_dims     = std::get<7>(GetParam());
     auto data_type    = std::get<8>(GetParam());
 
-    if (batch > 1) {
-        GTEST_SKIP();
-    }
-
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {

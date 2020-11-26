@@ -162,8 +162,12 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
 
+    auto batch       = dims_input[0];
+    auto channel     = dims_input[1];
     auto input_width = dims_input[3], input_height = dims_input[2];
-    auto output_width = dims_output[3], output_height = dims_output[2], output_channel = dims_output[1];
+    auto output_width = dims_output[3], output_height = dims_output[2];
+    auto input_plane  = input_width * input_height * channel;
+    auto output_plane = output_width * output_height * channel;
 
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
@@ -181,11 +185,15 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     }
 
     if (param->mode == 1) {  // nearest
-        upsample_nearest2d(output_data, input_data, input_height, input_width, output_height, output_width,
-                           output_channel, (bool)param->align_corners);
+        for (int b = 0; b < batch; ++b) {
+            upsample_nearest2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+                               output_height, output_width, channel, (bool)param->align_corners);
+        }
     } else if (param->mode == 2) {  // bilinear/linear
-        upsample_bilinear2d(output_data, input_data, input_height, input_width, output_height, output_width,
-                            output_channel, (bool)param->align_corners);
+        for (int b = 0; b < batch; ++b) {
+            upsample_bilinear2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+                                output_height, output_width, channel, (bool)param->align_corners);
+        }
     } else {
         LOGE("Error: Upsample dont support resize type\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
