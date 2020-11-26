@@ -71,15 +71,15 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
-    if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
 #if TNN_ARM82
-    if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
     }
 #else
-    if (dtype == DATA_TYPE_HALF) {
+    if (data_type == DATA_TYPE_HALF) {
         GTEST_SKIP();
     }
 #endif
