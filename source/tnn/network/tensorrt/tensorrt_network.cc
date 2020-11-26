@@ -132,7 +132,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             auto profile = this->m_trt_builder->createOptimizationProfile();
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
             profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
-            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{64, desc.dims[1], desc.dims[2], desc.dims[3]});
+            profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
             this->m_trt_config->addOptimizationProfile(profile);
             auto foreign_tensor = foreign_blob->GetForeignTensor();
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
