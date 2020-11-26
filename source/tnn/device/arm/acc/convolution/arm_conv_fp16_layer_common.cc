@@ -572,7 +572,8 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     } else if (conv_param->activation_type == ActivationType_ReLU6) {
         post_func_ = PostAddBiasRelu6<__fp16, __fp16>;
     } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
-        post_func_ = PostAddBiasSwish<fp16_t, fp16_t, false>;
+        post_func_ = context_->GetPrecision() == PRECISION_NORMAL ? PostAddBiasSwish<fp16_t, fp16_t, false>
+                                                                  : PostAddBiasSwish<fp16_t, fp16_t, true>;
     } else {
         post_func_ = PostAddBias<__fp16, __fp16>;
     }
