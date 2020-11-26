@@ -25,7 +25,7 @@ namespace TNN_NS {
 class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, DataType>> {
 public:
     explicit UnaryLayerTest(LayerType type);
-    void RunUnaryTest();
+    void RunUnaryTest(std::string type_str);
 
 protected:
     LayerType layer_type_;
