@@ -100,7 +100,7 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             src = tmp_ptr;
         }
         PostCalculateReduce(output_data, src, output_count);
-        if (release_mem) {
+        if (release_mem || reduce_dims.size() == 1) {
             delete[] src;
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {

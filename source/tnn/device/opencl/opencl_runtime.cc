@@ -141,8 +141,8 @@ Status OpenCLRuntime::Init() {
         cl_int err;
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
         // create context from glcontext
-        LOGE("Create special opencl context to share with OpenGL\n");
-        LOGE("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
+        LOGI("Create special opencl context to share with OpenGL\n");
+        LOGI("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
         cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
                                                 CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
         context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, context_prop, nullptr, nullptr, &err));

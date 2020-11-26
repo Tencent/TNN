@@ -13,53 +13,17 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/unit_test_common.h"
+
+#include <iostream>
+#include <sstream>
+
 #include "test/flags.h"
 #include "test/test_utils.h"
 #include "tnn/core/macro.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
-
-template <typename T>
-int InitRandom(T* host_data, size_t n, T range) {
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = (T)((rand() % 16 - 8) / 8.0f * range);
-    }
-
-    return 0;
-}
-template int InitRandom(float* host_data, size_t n, float range);
-template int InitRandom(int32_t* host_data, size_t n, int32_t range);
-template int InitRandom(int8_t* host_data, size_t n, int8_t range);
-template int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range);
-
-template <typename T>
-int InitRandom(T* host_data, size_t n, T range_min, T range_max) {
-    std::mt19937 g(42);
-    std::uniform_real_distribution<> rnd(range_min, range_max);
-
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = static_cast<T>(rnd(g));
-    }
-
-    return 0;
-}
-template int InitRandom(float* host_data, size_t n, float range_min, float range_max);
-template int InitRandom(int32_t* host_data, size_t n, int32_t range_min, int32_t range_max);
-template int InitRandom(int8_t* host_data, size_t n, int8_t range_min, int8_t range_max);
-template int InitRandom(uint8_t* host_data, size_t n, uint8_t range_min, uint8_t range_max);
-
-template <>
-int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range_min, bfp16_t range_max) {
-    std::mt19937 g(42);
-    std::uniform_real_distribution<> rnd((float)range_min, (float)range_max);
-
-    for (unsigned long long i = 0; i < n; i++) {
-        host_data[i] = static_cast<bfp16_t>(rnd(g));
-    }
-
-    return 0;
-}
 
 IntScaleResource* CreateIntScale(int channel) {
     IntScaleResource* int8scale = new IntScaleResource();
@@ -80,8 +44,7 @@ IntScaleResource* CreateIntScale(int channel) {
     return int8scale;
 }
 
-void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
-                       Context** cpu_context, Context** device_context) {
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context) {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);
     if (FLAGS_lp.length() > 0) {
@@ -112,6 +75,62 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
 
     ret = (*device_context)->LoadLibrary(config.library_path);
     ASSERT(ret == TNN_OK);
+}
+
+InputShapesMap GenerateInputShapeMap(std::vector<std::vector<int>>& input_vec) {
+    InputShapesMap shape_map;
+    for (int i = 0; i < input_vec.size(); ++i) {
+        std::ostringstream ostr;
+        ostr << "input" << i;
+        shape_map[ostr.str()] = input_vec[i];
+    }
+    return shape_map;
+}
+
+std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_type_str,
+                                                              std::vector<std::vector<int>> input_vec,
+                                                              std::shared_ptr<LayerParam> param,
+                                                              std::shared_ptr<LayerResource> resource,
+                                                              int output_count) {
+    auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
+    if (!interpreter) {
+        return nullptr;
+    }
+    DefaultModelInterpreter* default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter);
+    if (!default_interpreter) {
+        return nullptr;
+    }
+
+    NetStructure* net_structure = default_interpreter->GetNetStructure();
+    NetResource* net_resource   = default_interpreter->GetNetResource();
+
+    // generate net structure
+    net_structure->inputs_shape_map = GenerateInputShapeMap(input_vec);
+
+    std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+    layer_info->type                      = GlobalConvertLayerType(layer_type_str);
+    layer_info->type_str                  = layer_type_str;
+    layer_info->name                      = "layer_name";
+    for (auto item : net_structure->inputs_shape_map) {
+        layer_info->inputs.push_back(item.first);
+        net_structure->blobs.insert(item.first);
+    }
+    for (int i = 0; i < output_count; ++i) {
+        std::ostringstream ostr;
+        ostr << "output" << i;
+        layer_info->outputs.push_back(ostr.str());
+        net_structure->outputs.insert(ostr.str());
+        net_structure->blobs.insert(ostr.str());
+    }
+    layer_info->param = param;
+    net_structure->layers.push_back(layer_info);
+
+    // generate net resource
+    if (nullptr != resource) {
+        net_resource->resource_map["layer_name"] = resource;
+    }
+
+    return std::shared_ptr<AbstractModelInterpreter>(interpreter);
 }
 
 }  // namespace TNN_NS

@@ -22,7 +22,7 @@ namespace TNN_NS {
 class PriorBoxLayerTest
     : public LayerTest,
       public ::testing::WithParamInterface<
-            std::tuple<int, int, int, float, float, bool, bool, std::vector<float>, std::vector<float>, int, float>> {};
+          std::tuple<int, int, int, float, float, bool, bool, std::vector<float>, std::vector<float>, int, float>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PriorBoxLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, ::testing::Values(1.0, 2.0),
@@ -48,26 +48,30 @@ TEST_P(PriorBoxLayerTest, PriorBoxLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev && batch != 1) {
+        GTEST_SKIP();
+    }
+
     std::vector<float> min_sizes = {min_size};
     std::vector<float> max_sizes = {max_size};
     float offset                 = 0.5;
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    std::shared_ptr<PriorBoxLayerParam> param(new PriorBoxLayerParam());
+    param->name          = "PriorBox";
+    param->min_sizes     = min_sizes;
+    param->max_sizes     = max_sizes;
+    param->clip          = clip;
+    param->flip          = flip;
+    param->variances     = variances;
+    param->aspect_ratios = aspect_ratios;
+    param->img_w = param->img_h = img_size;
+    param->step_h = param->step_w = step_size;
+    param->offset                 = offset;
 
-    PriorBoxLayerParam param;
-    param.name          = "PriorBox";
-    param.min_sizes     = min_sizes;
-    param.max_sizes     = max_sizes;
-    param.clip          = clip;
-    param.flip          = flip;
-    param.variances     = variances;
-    param.aspect_ratios = aspect_ratios;
-    param.img_w = param.img_h = img_size;
-    param.step_h = param.step_w = step_size;
-    param.offset                = offset;
-    Run(LAYER_PRIOR_BOX, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("PriorBox", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS
