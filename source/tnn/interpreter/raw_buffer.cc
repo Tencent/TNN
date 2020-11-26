@@ -165,6 +165,9 @@ std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();
     int bytes        = raw_buffer.GetBytesSize();
+    if (0 == bytes)
+        return nullptr;
+
     std::shared_ptr<float> float_data;
     if (type == DATA_TYPE_FLOAT) {
         element_size = bytes / sizeof(float);

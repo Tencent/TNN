@@ -41,6 +41,10 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (channel <= 1) {
         GTEST_SKIP();
     }
@@ -49,17 +53,16 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(output_count, data_type);
-
     // param
-    SplitVLayerParam param;
-    param.name   = "SplitV";
-    param.axis   = 1;
-    param.slices = {channel / 2, channel - channel / 2};
+    std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
+    param->name   = "SplitV";
+    param->axis   = 1;
+    param->slices = {channel / 2, channel - channel / 2};
 
-    Run(LAYER_SPLITV, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

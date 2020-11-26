@@ -45,23 +45,27 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     int select_last_index = std::get<6>(GetParam());
     DataType dtype        = std::get<7>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
+
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (dtype != DATA_TYPE_FLOAT) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, dtype);
-    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
-
     // param
-    ArgMaxOrMinLayerParam param;
-    param.name              = "ArgMaxOrMin";
-    param.mode              = mode;
-    param.axis              = axis;
-    param.keep_dims         = keep_dims;
-    param.select_last_index = select_last_index;
+    std::shared_ptr<ArgMaxOrMinLayerParam> param(new ArgMaxOrMinLayerParam());
+    param->name              = "ArgMaxOrMin";
+    param->mode              = mode;
+    param->axis              = axis;
+    param->keep_dims         = keep_dims;
+    param->select_last_index = select_last_index;
 
-    Run(LAYER_ARG_MAX_OR_MIN, &param, nullptr, inputs_desc, outputs_desc);
+    // generate proto string
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("ArgMaxOrMin", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

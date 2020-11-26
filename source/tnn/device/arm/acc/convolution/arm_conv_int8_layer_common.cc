@@ -132,6 +132,10 @@ Status ArmConvInt8LayerCommon::allocateBufferScale(const std::vector<Blob *> &in
             int scale_idx_w = scale_len_w == 1 ? 0 : i;
             int scale_idx_o = scale_len_o == 1 ? 0 : i;
 
+            if (w_scale[scale_idx_w] < 0.0f || o_scale[scale_idx_o] < 0.0f) {
+                return Status(TNNERR_PARAM_ERR, "int8-blob scale can not be negative");
+            }
+
             if (o_scale[scale_idx_o] >= FLT_MIN)
                 temp_ptr[i] = w_scale[scale_idx_w] / o_scale[scale_idx_o];
             else
@@ -172,6 +176,10 @@ Status ArmConvInt8LayerCommon::allocateBufferAddScale(const std::vector<Blob *> 
         for (int i = 0; i < dims_output[1]; i++) {
             int scale_idx_i = scale_len_i == 1 ? 0 : i;
             int scale_idx_o = scale_len_o == 1 ? 0 : i;
+
+            if (i_scale[scale_idx_i] < 0.0f || o_scale[scale_idx_o] < 0.0f) {
+                return Status(TNNERR_PARAM_ERR, "int8-blob scale can not be negative");
+            }
 
             if (o_scale[scale_idx_o] >= FLT_MIN)
                 temp_ptr[i] = i_scale[scale_idx_i] / o_scale[scale_idx_o];
