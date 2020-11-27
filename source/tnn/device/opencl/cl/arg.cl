@@ -21,9 +21,6 @@ __kernel void ArgOpN(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     DEAL_NON_UNIFORM_DIM2(out_cw_idx, out_height_idx);
 
-    const int out_channel_blocks_idx    = out_cw_idx / output_width;
-    const int out_width_idx             = out_cw_idx % output_width;
-
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(out_cw_idx, out_height_idx));
     FLOAT4 out          = 0;
 
@@ -53,9 +50,6 @@ __kernel void ArgOpC(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     const int out_bh_idx    = get_global_id(1);
 
     DEAL_NON_UNIFORM_DIM2(out_width_idx, out_bh_idx);
-
-    const int out_batch_idx     = out_bh_idx / output_height;
-    const int out_height_idx    = out_bh_idx % output_height;
 
     FLOAT4 in       = RI_F(input, SAMPLER, (int2)(out_width_idx, out_bh_idx));
     FLOAT guard_val = in.x;
@@ -120,9 +114,6 @@ __kernel void ArgOpH(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     DEAL_NON_UNIFORM_DIM2(out_cw_idx, out_batch_idx);
 
-    const int out_channel_blocks_idx    = out_cw_idx / output_width;
-    const int out_width_idx             = out_cw_idx % output_width;
-
     int input_bh_idx    = out_batch_idx * input_height;
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(out_cw_idx, input_bh_idx));
     FLOAT4 out          = 0;
@@ -152,9 +143,6 @@ __kernel void ArgOpW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     const int out_bh_idx                = get_global_id(1);
 
     DEAL_NON_UNIFORM_DIM2(out_channel_blocks_idx, out_bh_idx);
-
-    const int out_batch_idx    = out_bh_idx / output_height;
-    const int out_height_idx   = out_bh_idx % output_height;
 
     int input_cw_idx    = out_channel_blocks_idx * input_width;
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(input_cw_idx, out_bh_idx));
