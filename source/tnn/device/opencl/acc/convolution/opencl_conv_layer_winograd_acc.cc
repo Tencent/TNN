@@ -27,8 +27,8 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
         return false;
     }
     return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->input_channel >= 64
-            && param->output_channel >= 64;
+            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->input_channel >= 8
+            && param->output_channel >= 8;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -66,15 +66,15 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     std::string kernel_name;
     //kernel WinogradTransformSource
     kernel_name = "TransformToMatrixV";
-    ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);    
+    ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);    
     CHECK_TNN_OK(ret)
     //kernel MatrixInnerProduct
     kernel_name = "MatrixInnerProduct";
-    ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);    
+    ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);    
     CHECK_TNN_OK(ret)
     //kernel WinogradTransformDest 
     kernel_name = "TransformFromMatrixM";
-    ret         = CreateExecuteUnit(execute_units_[2], program_name, kernel_name);
+    ret         = CreateExecuteUnit(execute_units_[2], program_name, kernel_name, build_options_);
     CHECK_TNN_OK(ret)
 
     return TNN_OK;
@@ -199,8 +199,8 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
-    int image_height = DimsVectorUtils::Count(dims, 0, 2);
-    int image_width = DimsVectorUtils::Count(dims, 2);
+    int image_height = dims[0] * dims[1];
+    int image_width = dims[2] * dims[3];
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
                         image_width, image_height, 0, nullptr, &ret);
