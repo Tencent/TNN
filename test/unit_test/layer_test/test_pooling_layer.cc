@@ -49,26 +49,29 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    PoolingLayerParam param;
-    param.name           = "Pooling";
-    param.kernels_params = {kernel, kernel};
-    param.kernels        = {kernel, kernel};
-    param.strides        = {stride, stride};
+    std::shared_ptr<PoolingLayerParam> param(new PoolingLayerParam());
+    param->name           = "Pooling";
+    param->kernels_params = {kernel, kernel};
+    param->kernels        = {kernel, kernel};
+    param->strides        = {stride, stride};
     if (kernel == 3)
-        param.pads = {1, 1, 1, 1};
+        param->pads = {1, 1, 1, 1};
     else
-        param.pads = {0, 0, 0, 0};
-    param.pad_type  = -1;
-    param.pool_type = pool_type;
-    param.kernel_indexs.push_back(-1);
-    param.kernel_indexs.push_back(-1);
+        param->pads = {0, 0, 0, 0};
+    param->pad_type  = -1;
+    param->pool_type = pool_type;
+    param->kernel_indexs.push_back(-1);
+    param->kernel_indexs.push_back(-1);
 
-    Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, param);
+    Precision precision         = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

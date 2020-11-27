@@ -70,7 +70,7 @@ protected:
     shared_ptr<OpenCLMemory> ocl_bias_;
     ConvType conv_type_;
     std::set<std::string> build_options_;
-    
+    bool is_channel_blocking_ = false;
 };
 
 }  // namespace TNN_NS

@@ -44,7 +44,7 @@ public:
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
 private:
-    static std::map<LayerType, LayerAccCreator*>& GetLayerCreatorMap();
+    static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
 };
 
 //@brief CpuTypeLayerAccRegister register CpuTypeLayerAccCreator

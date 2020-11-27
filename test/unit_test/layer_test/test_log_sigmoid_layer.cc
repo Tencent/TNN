@@ -25,7 +25,12 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, LogSigmoidLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(LogSigmoidLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
+    RunUnaryTest("LogSigmoid");
 }
 
 }  // namespace TNN_NS

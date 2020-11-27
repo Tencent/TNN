@@ -147,7 +147,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             RETURN_ON_NEQ(ret, TNN_OK);
         }
 
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         if (cur_layer == NULL) {
@@ -238,7 +238,7 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
     CHECK_PARAM_NULL(new_blob);
 
     std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
     if (net_resource->resource_map.count(blob_scale_name) == 0) {
         LayerResource *layer_res  = nullptr;
         std::vector<Blob *> blobs = {*blob};
@@ -287,14 +287,21 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
                 return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
         }
-    } else if (!is_input) {
-        // reformat layer cannot be the first layer
-        // only need to deal with output blob of reformat layer
-        auto dst_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type;
-        if (dst_type == DATA_TYPE_INT8) {
-            RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+    } else {
+        if (is_input) {
+            auto src_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->src_type;
+            if (src_type == DATA_TYPE_INT8) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+            } else {
+                desc.data_type = src_type;
+            }
         } else {
-            desc.data_type = dst_type;
+            auto dst_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type;
+            if (dst_type == DATA_TYPE_INT8) {
+                RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
+            } else {
+                desc.data_type = dst_type;
+            }
         }
     }
 

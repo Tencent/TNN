@@ -17,8 +17,6 @@
 
 namespace TNN_NS {
 
-// (inputs + weights + outputs) * array_size * sizeof(float)
-static const uint32_t kernel_cache_size = (4 + 4 + 4) * 4 * 4;
 // magic number
 static const uint32_t lws_limit         = 128;
 
@@ -55,6 +53,10 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+
+    const int output_channel = output_dims[1];
+
     std::string kernel_name;
     if (run_3d_ndrange_) {
         kernel_name = "Conv2D1x1GS3D";
@@ -66,6 +68,11 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     }
     if (use_buffer_) {
         kernel_name += "_MIX";
+    }
+
+    if (output_channel > 4 && run_3d_ndrange_ && !use_buffer_) {
+        is_channel_blocking_ = true;
+        kernel_name += "_CB2";
     }
 
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
@@ -89,16 +96,33 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
 
     const int input_channel_blocks = UP_DIV(input_dims[1], 4);
 
+    const int output_channels = output_dims[1];
+    const int output_channel_blocks = UP_DIV(output_channels, 4);
+
     if (run_3d_ndrange_) {
-        execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                            static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
-                                            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        if (is_channel_blocking_) {
+            execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 8)),
+                                                  static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
+                                                  static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        } else {
+            execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
+                                                  static_cast<uint32_t>(UP_DIV(output_dims[3], 4)),
+                                                  static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        }
+
         execute_units_[0].local_work_size =
             Conv2d1x1LocalWS3D(execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max);
     } else {
-        execute_units_[0].global_work_size = {
-            static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
-            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        if (is_channel_blocking_) {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 8) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        } else {
+            execute_units_[0].global_work_size = {
+                static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
+                static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+        }
+
         execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
             execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
     }
@@ -122,6 +146,9 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int>(input_channel_blocks));
+    if (is_channel_blocking_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int>(output_channel_blocks));
+    }
     if (!stride_is_1_) {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
@@ -138,6 +165,8 @@ std::vector<uint32_t> OpenCLConvLayer1x1Acc::Conv2d1x1LocalWS3D(std::vector<uint
     uint64_t cache_size    = OpenCLRuntime::GetInstance()->DeviceGlobalMemeryCacheSize();
     LOGD("cache_size: %d\n", (int)cache_size);
     const uint32_t base = std::max<uint32_t>(cache_size / g_base_gpu_mem_cachesize, 1);
+    // (inputs + weights + outputs) * array_size * sizeof(float)
+    uint32_t kernel_cache_size = is_channel_blocking_ ? (4 + 8 + 8) * 4 * 4 : (4 + 4 + 4) * 4 * 4;
 
     std::vector<uint32_t> lws(3, 1);
     if(max_workgroup_size > 0) {
@@ -154,7 +183,7 @@ std::vector<uint32_t> OpenCLConvLayer1x1Acc::Conv2d1x1LocalWS3D(std::vector<uint
         }
         lws[0]                  = std::min<uint32_t>(lws[0], max_workgroup_size / lws[1]);
         const uint32_t lws_size = lws[0] * lws[1];
-        lws[2] = std::min<uint32_t>((cache_size / kernel_cache_size / lws_size / compute_units) * 8, gws[2]);
+        lws[2] = std::min<uint32_t>((cache_size / kernel_cache_size / lws_size / compute_units) * 2, gws[2]);
         if (lws[2] == 0) {
             lws[2] = std::min<uint32_t>(gws[2], base);
         }

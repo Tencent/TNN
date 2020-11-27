@@ -18,8 +18,6 @@
 
 namespace TNN_NS {
 
-// (inputs + weights + outputs) * array_size * sizeof(float)
-static const uint32_t kernel_cache_size = (4 + 4 + 4) * 4 * 4;
 // magic number
 static const uint32_t lws_limit = 128;
 
@@ -252,6 +250,9 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DKernel3x3(std
     uint32_t compute_units = std::max<uint32_t>(OpenCLRuntime::GetInstance()->DeviceComputeUnits() / 2, 1);
     uint64_t cache_size    = OpenCLRuntime::GetInstance()->DeviceGlobalMemeryCacheSize();
     const uint32_t base    = std::max<uint32_t>(std::min<uint32_t>(cache_size / g_base_gpu_mem_cachesize, 4), 1);
+    // (inputs + weights + outputs) * array_size * sizeof(float)
+    uint32_t kernel_cache_size = is_channel_blocking_ ? (4 + 8 + 8) * 4 * 4 : (4 + 4 + 4) * 4 * 4;
+
     std::vector<uint32_t> lws(3, 1);
     if (max_workgroup_size > 0) {
         lws[1] = std::min<uint32_t>(gws[1], max_workgroup_size);
@@ -279,6 +280,8 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DGeneral(std::
     uint32_t compute_units = OpenCLRuntime::GetInstance()->DeviceComputeUnits();
     uint64_t cache_size    = OpenCLRuntime::GetInstance()->DeviceGlobalMemeryCacheSize();
     const uint32_t base    = std::max<uint32_t>(cache_size / g_base_gpu_mem_cachesize, 1);
+    // (inputs + weights + outputs) * array_size * sizeof(float)
+    uint32_t kernel_cache_size = is_channel_blocking_ ? (4 + 8 + 8) * 4 * 4 : (4 + 4 + 4) * 4 * 4;
     LOGD("cache_size: %d\n", (int)cache_size);
     std::vector<uint32_t> lws(3, 1);
     if (max_workgroup_size > 0) {

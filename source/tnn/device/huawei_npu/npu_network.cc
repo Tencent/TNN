@@ -290,19 +290,19 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         std::vector<Blob *> input_blobs;
         BlobDesc blob_desc;
 #endif
         for (std::string &name : layer_info->inputs) {
             input_ops.push_back(global_operator_map_[name]);
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
             blob_desc.dims = global_operator_map_[name]->GetShape();
             Blob *blob     = new Blob(blob_desc);
             input_blobs.push_back(blob);
 #endif
         }
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
@@ -320,11 +320,11 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
          */
         ret =
             cur_layer->Init(context_, layer_info->param.get(), layer_resource, input_ops, device_, layer_info->outputs);
-        layers_.push_back(cur_layer);
         if (ret != TNN_OK) {
-            LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
+            LOGE("Error Init layer %s (%s)\n", cur_layer->GetLayerName().c_str(), ret.description().c_str());
             return ret;
         }
+        layers_.push_back(cur_layer);
 
         for (auto &op : cur_layer->GetOutputOps()) {
             visited_.insert(op->GetOperator()->GetName());
