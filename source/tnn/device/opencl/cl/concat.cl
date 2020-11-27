@@ -17,7 +17,6 @@ __kernel void ConcatChannel(
   const int input1_channel = output_channel - input0_channel;
 
   const int input0_channel_blk = (input0_channel + 3) >> 2;
-  const int output_channel_blk = (output_channel + 3) >> 2;
 
   FLOAT4 data = 0;
   if (channel_block_idx < input0_channel_blk - 1) {
