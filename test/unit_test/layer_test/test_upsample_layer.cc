@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 class UpsampleLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, float, float, bool>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, float, float, bool, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, UpsampleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -34,7 +34,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, UpsampleLayerTest,
                                             // scale y Values(1.0, 1.45, 2, 2.78)
                                             testing::Values(0.3, 0.5, 1.0, 1.45, 2, 2.78),
                                             // use dims
-                                            testing::Values(true, false)));
+                                            testing::Values(true, false),
+                                            // data_type
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
 
 TEST_P(UpsampleLayerTest, UpsampleLayer) {
     // get param
@@ -46,12 +48,13 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     float scale_x     = std::get<5>(GetParam());
     float scale_y     = std::get<6>(GetParam());
     bool use_dims     = std::get<7>(GetParam());
-
-    if (batch > 1) {
-        GTEST_SKIP();
-    }
+    auto data_type    = std::get<8>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
 
     if (DEVICE_HUAWEI_NPU == dev && (mode == 2 || ((int)scale_x != scale_x || (int)scale_y != scale_y))) {
         GTEST_SKIP();

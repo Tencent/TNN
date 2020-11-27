@@ -238,7 +238,7 @@ Status ArmConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &in
     int oy   = x_id / kparam->ow;                                                                                      \
     int sx   = ox * param->strides[0] - param->pads[0];                                                                \
     int sy   = oy * param->strides[1] - param->pads[2];                                                                \
-    int sfy  = MAX(0, (UP_DIV(-sy, param->dialations[0])));                                                            \
+    int sfy  = MAX(0, (UP_DIV(-sy, param->dialations[1])));                                                            \
     int efy  = MIN(kh, UP_DIV(kparam->ih - sy, param->dialations[1]));                                                 \
     int sfx  = MAX(0, (UP_DIV(-sx, param->dialations[0])));                                                            \
     int efx  = MIN(kw, UP_DIV(kparam->iw - sx, param->dialations[0]));                                                 \
@@ -256,15 +256,23 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
     memset(dst, 0, col_buffer_size);
     auto kh = param->kernels[1];
     auto kw = param->kernels[0];
+    auto dilate_y = param->dialations[1];
+    auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
         DEF_IMG2COL_VAL;
 
         auto dst_i        = dst + crs_r8 * i;
-        auto input_offset = src + (sx + sfx + (sy + sfy) * kparam->iw) * src_w_step;
+        auto input_offset = src + (sx + sfx * dilate_x + (sy + sfy * dilate_y) * kparam->iw) * src_w_step;
         auto idx_offset   = (sfy * kw + sfx) * kparam->ic_r4;
         for (int fy = 0; fy < fyC; ++fy) {
-            auto src_i = input_offset + fy * kparam->iw * src_w_step;
-            memcpy(dst_i + idx_offset + fy * kw * kparam->ic_r4, src_i, kparam->ic_r4 * fxC);
+            auto dst_y = dst_i + idx_offset + fy * kw * kparam->ic_r4;
+            auto src_y = input_offset + fy * kparam->iw * kparam->ic_r4 * dilate_y;
+            for (int fx = 0; fx < fxC; ++fx) {
+                auto dst_x = dst_y + fx * kparam->ic_r4;
+                auto src_x = src_y + fx * dilate_x * kparam->ic_r4;
+                memcpy(dst_x, src_x, kparam->ic_r4);
+            }
+
         }
     }
 }
@@ -281,18 +289,22 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     memset(dst, 0, col_buffer_size);
     auto kh = param->kernels[1];
     auto kw = param->kernels[0];
+    auto dilate_y = param->dialations[1];
+    auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
         DEF_IMG2COL_VAL;
 
         auto dst_i        = dst + crs_r8 * i;
-        auto input_offset = src + (sx + sfx + (sy + sfy) * kparam->iw) * src_w_step;
+        auto input_offset = src + (sx + sfx * dilate_x + (sy + sfy * dilate_y) * kparam->iw) * src_w_step;
         auto idx_offset   = (sfy * kw + sfx) * REALC;
         for (int fy = 0; fy < fyC; ++fy) {
+            auto dst_y = dst_i + idx_offset + fy * kw * REALC;
+            auto src_y = input_offset + fy * kparam->iw * src_w_step * dilate_y;
             for (int fx = 0; fx < fxC; fx++) {
-                auto src_c = input_offset + fy * kparam->iw * src_w_step + fx * src_w_step;
-                auto dst_c = dst_i + idx_offset + fy * kw * REALC + fx * REALC;
+                auto dst_x = dst_y + fx * REALC;
+                auto src_x = src_y + fx * src_w_step * dilate_x;
                 for (int c = 0; c < REALC; c++) {
-                    dst_c[c] = src_c[c];
+                    dst_x[c] = src_x[c];
                 }
             }
         }
