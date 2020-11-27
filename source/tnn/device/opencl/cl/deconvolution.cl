@@ -68,7 +68,6 @@ __kernel void Deconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __read_on
 
     out0 = ActivationProcess(out0);
 
-    int out_image_width_idx = mad24(out_channel_blocks_idx, output_wh.x, out_width_idx);
     WI_F(output, (int2)(output_cw_idx, output_bh_idx), out0);
 }
 
@@ -201,8 +200,6 @@ __kernel void Deconv2D4x4s2p1wb4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     out3 = ActivationProcess(out3);
 
     int out_width_idx   = out_width_blocks_idx << 2;
-    int out_image_width_idx = mad24(out_channel_blocks_idx, output_wh.x, out_width_idx);
-
     const int remain = output_wh.x - out_width_idx;
     int output_cw_idx = output_cw_blocks_idx << 2;
 
