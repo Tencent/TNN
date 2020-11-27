@@ -44,7 +44,7 @@ public:
     }
 
     CMatrix allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo);
-    void transformWeight(CMatrix &dest, const float* source, int batch, int channel, int height, int width);
+    void transformWeight(CMatrix &dest, const float* source, int batch, int channel, int height, int width, bool transform_inner = false);
 
 private:
     CMatrix A_;

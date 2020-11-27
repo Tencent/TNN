@@ -108,13 +108,19 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
 
     execute_units_[0].global_work_size = {static_cast<uint32_t>(input_channel_blocks * round_up_ouptut_width),
                                         static_cast<uint32_t>(batch_round_h)};
+    execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
+            execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
 
     
     execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
                                         static_cast<uint32_t>(16 * batch_round_h)};
+    execute_units_[1].local_work_size = Conv2dCommonLocalWS2D(
+            execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);
 
     execute_units_[2].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
                                         static_cast<uint32_t>(batch_round_h)};
+    execute_units_[2].local_work_size = Conv2dCommonLocalWS2D(
+            execute_units_[2].global_work_size, execute_units_[2].workgroupsize_max, execute_units_[2].sub_group_size);
 
 
     //kernel WinogradTransformSource

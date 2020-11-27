@@ -403,7 +403,7 @@ CMatrix WinogradGenerator::allocTransformWeight(int batch, int channel, int heig
 transform weight from [oc][ic][kh][kw] to [unit][unit][co4][ci4][16]
 */
 void WinogradGenerator::transformWeight(CMatrix& weightDest, const float* source, int batch, int channel, int height,
-                                        int width) {
+                                        int width, bool transform_inner) {
     auto GT = CMatrixCreate(std::get<1>(G_)[1], std::get<1>(G_)[0]);
     transpose(GT, G_);
 
