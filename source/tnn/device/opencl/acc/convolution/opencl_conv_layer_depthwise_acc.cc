@@ -36,6 +36,12 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
+    if (!run_3d_ndrange_) {
+        if (MALI_T == gpu_info_.type || (MALI_G == gpu_info_.type && gpu_info_.model_num < 76)) {
+            use_buffer_ = true;
+        }
+    }
+
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
@@ -44,6 +50,11 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
         conv_params_.dilation_y == 1) {
         kernel_name = "DepthwiseConv2DS1";
     }
+
+    if (use_buffer_) {
+        kernel_name += "_MIX";
+    }
+
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
@@ -82,8 +93,13 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
+    if (use_buffer_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)ocl_weights_->GetData()));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)ocl_bias_->GetData()));
+    } else {
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
+    }
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
@@ -101,6 +117,11 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
 
     if (ocl_context_->GetEnableTuneKernel()) {
         execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
+    }
+
+    if (use_buffer_) {
+        execute_units_[0].ocl_kernel.setArg(idx++, kernel_shape[0] * kernel_shape[1]);
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
     }
 
     return TNN_OK;
