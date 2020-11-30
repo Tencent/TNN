@@ -12,8 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <tnn/utils/string_utils_inner.h>
+#include "tnn/device/cpu/acc/cpu_upsample_layer_acc.h"
 
+#include "tnn/core/blob_int8.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -135,10 +136,7 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
-// DECLARE_CPU_ACC(Upsample, LAYER_UPSAMPLE);
-DECLARE_CPU_ACC_WITH_FUNC(Upsample, LAYER_UPSAMPLE,
-                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
-                                                                 const std::vector<Blob *> &outputs););
+CpuUpsampleLayerAcc::~CpuUpsampleLayerAcc() {}
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {

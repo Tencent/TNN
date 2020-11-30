@@ -195,7 +195,17 @@ Status ModelPacker::PackModel(std::string file_path) {
     }
 
     res_header header;
-    header.layer_cnt_ = GetResourceCount(net_struct, net_resource);
+    header.layer_cnt_ = 0;
+
+    int resource_count = 0;
+    auto serializer    = GetSerializer(write_stream);
+    auto ret           = PackLayers(serializer, false, resource_count);
+    if (ret != TNN_OK) {
+        write_stream.close();
+        return ret;
+    }
+
+    header.layer_cnt_ = resource_count;
     if (header.layer_cnt_ <= 0) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
@@ -266,10 +276,11 @@ Status ModelPacker::PackLayers(std::shared_ptr<Serializer> &serializer, bool sav
                     resource_map.find(blob_scale_name)->second == nullptr) {
                     continue;
                 }
-                result = PackResource(resource_map, blob_scale_name, serializer, write_stream);
-                if (result != TNN_OK) {
-                    write_stream.close();
-                    return result;
+                if (save_resource) {
+                    result = PackResource(resource_map, blob_scale_name, serializer);
+                    if (result != TNN_OK) {
+                        return result;
+                    }
                 }
                 resource_count++;
                 blob_scale_set.insert(blob_scale_name);
@@ -312,50 +323,5 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
     return TNN_OK;
 }
 
-int ModelPacker::GetResourceCount(NetStructure *net_structure, NetResource *net_resource) {
-    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
-    auto layers                 = net_structure->layers;
-    auto resource_map           = net_resource->resource_map;
-    std::set<std::string> blob_scale_set;
-    int resource_count = 0;
-    for (const auto &layer_info : layers) {
-        // save input blobs scale
-        std::string layer_name = layer_info->name;
-        if (layer_info->param->quantized) {
-            for (auto &input_name : layer_info->inputs) {
-                auto blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
-                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
-                    continue;
-                }
-                if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(blob_scale_name)->second == nullptr) {
-                    continue;
-                }
-                resource_count++;
-                blob_scale_set.insert(blob_scale_name);
-            }
-        }
-        // save layer resource
-        if (resource_map.find(layer_name) != resource_map.end() && resource_map.find(layer_name)->second != nullptr) {
-            resource_count++;
-        }
-        // save output blob scale
-        if (layer_info->param->quantized) {
-            for (auto &output_name : layer_info->outputs) {
-                auto blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
-                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
-                    continue;
-                }
-                if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(blob_scale_name)->second == nullptr) {
-                    continue;
-                }
-                resource_count++;
-                blob_scale_set.insert(blob_scale_name);
-            }
-        }
-    }
-    return resource_count;
-}
 
 }  // namespace TNN_NS
