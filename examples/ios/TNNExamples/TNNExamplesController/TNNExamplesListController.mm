@@ -185,6 +185,7 @@ using namespace std;
             data.viewModel = [TNNSkeletonDetectorViewModel new];
             data.viewModel.title = @"人体关键点 - 腾讯微视";
             data.viewModel.preferFrontCamera = false;
+            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }
