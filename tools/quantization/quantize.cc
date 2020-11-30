@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
             } break;
             case 'c':
                 printf("merge channel: true\n");
-                cali_params.merge_blob_channel = true;
+                cali_params.merge_blob_channel    = true;
                 cali_params.merge_weights_channel = true;
                 break;
             case 'o':

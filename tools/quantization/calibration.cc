@@ -9,33 +9,31 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "calibration.h"
 #include <algorithm>
 #include <cmath>
 #include <random>
-#include "tnn/core/macro.h"
 #include "file_reader.h"
-#include "tnn/interpreter/tnn/objseri.h"
+#include "tnn/core/macro.h"
 #include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-static const std::set<LayerType> kQuantizedLayerTypeStr = {
-    LAYER_CONVOLUTION, LAYER_ADD, LAYER_CONCAT, LAYER_INNER_PRODUCT};
+static const std::set<LayerType> kQuantizedLayerTypeStr = {LAYER_CONVOLUTION, LAYER_ADD, LAYER_CONCAT,
+                                                           LAYER_INNER_PRODUCT};
 
-static const std::set<LayerType> kBlobScaleMergeLayerTypeStr = {LAYER_RELU,
-                                                                LAYER_POOLING};
+static const std::set<LayerType> kBlobScaleMergeLayerTypeStr = {LAYER_RELU, LAYER_POOLING};
 
-static void InitWeightScaleADMM(const float* weights, const int size,
-                                const int output_channel, bool merge_channel, float* weight_scale,
-                                const int quantize_bits) {
+static void InitWeightScaleADMM(const float* weights, const int size, const int output_channel, bool merge_channel,
+                                float* weight_scale, const int quantize_bits) {
     int weight_scale_count = merge_channel ? 1 : output_channel;
-    const int s_size = size / weight_scale_count;
-    const int bound  = std::pow(2, quantize_bits - 1) - 1;
+    const int s_size       = size / weight_scale_count;
+    const int bound        = std::pow(2, quantize_bits - 1) - 1;
 
     for (int i = 0; i < weight_scale_count; i++) {
         float avg = 0;
@@ -59,31 +57,27 @@ static void InitWeightScaleADMM(const float* weights, const int size,
     }
 }
 
-static void UpdateQuantizedWeightsADMM(const float* weights, const int size,
-                                       const int output_channel, bool merge_channel,
-                                       float* weight_scale,
-                                       const int quantize_bits,
+static void UpdateQuantizedWeightsADMM(const float* weights, const int size, const int output_channel,
+                                       bool merge_channel, float* weight_scale, const int quantize_bits,
                                        int8_t* quantized_weights) {
     int weight_scale_count = merge_channel ? 1 : output_channel;
-    const int s_size = size / weight_scale_count;
-    const float bound   = std::pow(2, quantize_bits - 1) - 1;
-    const float eps     = 1e-9f;
+    const int s_size       = size / weight_scale_count;
+    const float bound      = std::pow(2, quantize_bits - 1) - 1;
+    const float eps        = 1e-9f;
     float weight_quan;
     ASSERT(quantize_bits > 4);
 
     for (int i = 0; i < size; i++) {
-        weight_quan = weights[i] / (weight_scale[i / s_size] + eps);
-        quantized_weights[i] =
-            std::min(bound, std::max(-bound, std::roundf(weight_quan)));
+        weight_quan          = weights[i] / (weight_scale[i / s_size] + eps);
+        quantized_weights[i] = std::min(bound, std::max(-bound, std::roundf(weight_quan)));
     }
 }
 
-static void UpdateAlphaADMM(const float* weights, const int size,
-                            const int output_channel, bool merge_channel, float* weight_scale,
-                            int8_t* quantized_weights) {
+static void UpdateAlphaADMM(const float* weights, const int size, const int output_channel, bool merge_channel,
+                            float* weight_scale, int8_t* quantized_weights) {
     int weight_scale_count = merge_channel ? 1 : output_channel;
-    const int s_size = size / weight_scale_count;
-    const float eps  = 1e-9f;
+    const int s_size       = size / weight_scale_count;
+    const float eps        = 1e-9f;
 
     for (int i = 0; i < weight_scale_count; i++) {
         const int offset = i * s_size;
@@ -92,8 +86,7 @@ static void UpdateAlphaADMM(const float* weights, const int size,
 
         for (int j = 0; j < s_size; j++) {
             sum1 += weights[offset + j] * quantized_weights[offset + j];
-            sum2 +=
-                quantized_weights[offset + j] * quantized_weights[offset + j];
+            sum2 += quantized_weights[offset + j] * quantized_weights[offset + j];
         }
         weight_scale[i] = sum1 / (sum2 + eps);
     }
@@ -103,11 +96,9 @@ Calibration::Calibration() {}
 
 Calibration::~Calibration() {}
 
-Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config,
-                         InputShapesMap inputs_shape) {
+Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape) {
     DefaultModelInterpreter* interpreter =
-        dynamic_cast<DefaultModelInterpreter*>(
-            CreateModelInterpreter(model_config.model_type));
+        dynamic_cast<DefaultModelInterpreter*>(CreateModelInterpreter(model_config.model_type));
     if (!interpreter) {
         return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
@@ -120,9 +111,7 @@ Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config,
     }
 
     instance_ = std::make_shared<Instance>(net_config, model_config);
-    status    = instance_->Init(
-        std::static_pointer_cast<AbstractModelInterpreter>(interpreter_),
-        inputs_shape);
+    status    = instance_->Init(std::static_pointer_cast<AbstractModelInterpreter>(interpreter_), inputs_shape);
     if (status != TNN_OK) {
         LOGE("create instance falied!\n");
         return TNNERR_INST_ERR;
@@ -234,11 +223,9 @@ int Calibration::CalBlobScale(DataSet& dataset) {
         if (ret != 0) {
             return ret;
         }
-        std::string input_scale_name =
-            item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
-        LayerResource* blob_scale_res = CreateIntScale(scale_vec);
-        net_resource->resource_map[input_scale_name] =
-            std::shared_ptr<LayerResource>(blob_scale_res);
+        std::string input_scale_name                 = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
+        LayerResource* blob_scale_res                = CreateIntScale(scale_vec);
+        net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
     }
 
@@ -248,19 +235,14 @@ int Calibration::CalBlobScale(DataSet& dataset) {
 int Calibration::InitFeatureMap() {
     feature_map_.clear();
 
-    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs,
-                                     LayerInfo* info) {
+    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs, LayerInfo* info) {
         LayerType layer_type = info->type;
-        if (kQuantizedLayerTypeStr.find(layer_type) !=
-                kQuantizedLayerTypeStr.end() ||
-            kBlobScaleMergeLayerTypeStr.find(layer_type) !=
-                kBlobScaleMergeLayerTypeStr.end()) {
+        if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end() ||
+            kBlobScaleMergeLayerTypeStr.find(layer_type) != kBlobScaleMergeLayerTypeStr.end()) {
             for (auto blob : blobs) {
                 if (feature_map_.find(blob) == feature_map_.end()) {
-                    std::shared_ptr<ScaleCalculator> scale_cal(
-                        new ScaleCalculator());
-                    if (scale_cal->Init(blob, cali_params_.merge_blob_channel,
-                                        cali_params_.blob_quantize_method) ==
+                    std::shared_ptr<ScaleCalculator> scale_cal(new ScaleCalculator());
+                    if (scale_cal->Init(blob, cali_params_.merge_blob_channel, cali_params_.blob_quantize_method) ==
                         0) {
                         feature_map_[blob] = scale_cal;
                     }
@@ -303,8 +285,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
     }
     Blob* input_blob = input_blobs.begin()->second;
 
-    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs,
-                                     LayerInfo* info) {
+    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs, LayerInfo* info) {
         for (auto blob : blobs) {
             if (feature_map_.find(blob) != feature_map_.end()) {
                 feature_map_[blob]->UpdateRange();
@@ -320,8 +301,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
             item.second->ClearRangeFlag();
         }
 
-        status =
-            file_reader.Read(input_blob, file_pack.first, file_pack.second);
+        status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
             continue;
@@ -345,8 +325,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     }
     Blob* input_blob = input_blobs.begin()->second;
 
-    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs,
-                                     LayerInfo* info) {
+    BlobStatisticCallback func = [&](std::vector<Blob*>& blobs, LayerInfo* info) {
         for (auto blob : blobs) {
             if (feature_map_.find(blob) != feature_map_.end()) {
                 feature_map_[blob]->UpdateDistribute();
@@ -362,8 +341,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
             item.second->ClearDistributeFlag();
         }
 
-        status =
-            file_reader.Read(input_blob, file_pack.first, file_pack.second);
+        status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
             continue;
@@ -398,35 +376,28 @@ int Calibration::QuantizeParams() {
 
     for (auto& item : net_struct->layers) {
         LayerType layer_type = item->type;
-        if (kQuantizedLayerTypeStr.find(layer_type) !=
-            kQuantizedLayerTypeStr.end()) {
+        if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end()) {
             // assign NetStructure
             item->param->quantized = true;
 
             // assign NetResource
             if (layer_type == LAYER_CONVOLUTION) {
                 printf("\tQuantize Convolution parameters...\n");
-                if (net_resource->resource_map.find(item->name) ==
-                    net_resource->resource_map.end()) {
-                    LOGE("Convolution resource not found (name: %s)",
-                         item->name.c_str());
+                if (net_resource->resource_map.find(item->name) == net_resource->resource_map.end()) {
+                    LOGE("Convolution resource not found (name: %s)", item->name.c_str());
                     return -1;
                 }
 
-                ConvLayerResource* conv_res = dynamic_cast<ConvLayerResource*>(
-                    net_resource->resource_map[item->name].get());
-                ConvLayerParam* conv_param =
-                    dynamic_cast<ConvLayerParam*>(item->param.get());
-                std::string input_blob_scale_name =
-                    item->inputs[0] + BLOB_SCALE_SUFFIX;
-                if (net_resource->resource_map.find(input_blob_scale_name) ==
-                    net_resource->resource_map.end()) {
-                    LOGE("Blob Scale resource not found (name: %s)",
-                         input_blob_scale_name.c_str());
+                ConvLayerResource* conv_res =
+                    dynamic_cast<ConvLayerResource*>(net_resource->resource_map[item->name].get());
+                ConvLayerParam* conv_param        = dynamic_cast<ConvLayerParam*>(item->param.get());
+                std::string input_blob_scale_name = item->inputs[0] + BLOB_SCALE_SUFFIX;
+                if (net_resource->resource_map.find(input_blob_scale_name) == net_resource->resource_map.end()) {
+                    LOGE("Blob Scale resource not found (name: %s)", input_blob_scale_name.c_str());
                     return -1;
                 }
-                IntScaleResource* blob_scale = dynamic_cast<IntScaleResource*>(
-                    net_resource->resource_map[input_blob_scale_name].get());
+                IntScaleResource* blob_scale =
+                    dynamic_cast<IntScaleResource*>(net_resource->resource_map[input_blob_scale_name].get());
                 int ret = QuantizeConvParams(conv_res, conv_param, blob_scale);
                 if (ret != 0) {
                     LOGE(
@@ -439,28 +410,21 @@ int Calibration::QuantizeParams() {
 
             } else if (layer_type == LAYER_INNER_PRODUCT) {
                 printf("\tQuantize InnerProduct parameters...\n");
-                if (net_resource->resource_map.find(item->name) ==
-                    net_resource->resource_map.end()) {
-                    LOGE("InnerProduct resource not found (name: %s)",
-                         item->name.c_str());
+                if (net_resource->resource_map.find(item->name) == net_resource->resource_map.end()) {
+                    LOGE("InnerProduct resource not found (name: %s)", item->name.c_str());
                     return -1;
                 }
 
                 InnerProductLayerResource* fc_res =
-                    dynamic_cast<InnerProductLayerResource*>(
-                        net_resource->resource_map[item->name].get());
-                InnerProductLayerParam* fc_param =
-                    dynamic_cast<InnerProductLayerParam*>(item->param.get());
-                std::string input_blob_scale_name =
-                    item->inputs[0] + BLOB_SCALE_SUFFIX;
-                if (net_resource->resource_map.find(input_blob_scale_name) ==
-                    net_resource->resource_map.end()) {
-                    LOGE("Blob Scale resource not found (name: %s)",
-                         input_blob_scale_name.c_str());
+                    dynamic_cast<InnerProductLayerResource*>(net_resource->resource_map[item->name].get());
+                InnerProductLayerParam* fc_param  = dynamic_cast<InnerProductLayerParam*>(item->param.get());
+                std::string input_blob_scale_name = item->inputs[0] + BLOB_SCALE_SUFFIX;
+                if (net_resource->resource_map.find(input_blob_scale_name) == net_resource->resource_map.end()) {
+                    LOGE("Blob Scale resource not found (name: %s)", input_blob_scale_name.c_str());
                     return -1;
                 }
-                IntScaleResource* blob_scale = dynamic_cast<IntScaleResource*>(
-                    net_resource->resource_map[input_blob_scale_name].get());
+                IntScaleResource* blob_scale =
+                    dynamic_cast<IntScaleResource*>(net_resource->resource_map[input_blob_scale_name].get());
                 int ret = QuantizeFcParams(fc_res, fc_param, blob_scale);
                 if (ret != 0) {
                     LOGE(
@@ -477,9 +441,7 @@ int Calibration::QuantizeParams() {
     return 0;
 }
 
-int Calibration::QuantizeConvParams(ConvLayerResource* resource,
-                                    ConvLayerParam* param,
-                                    IntScaleResource* input_scale) {
+int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam* param, IntScaleResource* input_scale) {
     int group          = param->group;
     int output_channel = param->output_channel;
     int kernel_size    = DimsVectorUtils::Count(param->kernels);
@@ -511,16 +473,13 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
             for (int ic = 0; ic < input_channel_per_group; ++ic) {
                 int s_idx = ic + group_idx * input_channel_per_group;
                 for (int i = 0; i < kernel_size; ++i) {
-                    int idx = (group_idx * output_channel_per_group + oc) *
-                                  oc_stride +
-                              ic * kernel_size + i;
+                    int idx = (group_idx * output_channel_per_group + oc) * oc_stride + ic * kernel_size + i;
                     if (merge_channel)
                         s_idx = 0;
                     if (is_depthwise) {
                         weight_multiby_inputscale[idx] = weight_data[idx];
                     } else {
-                        weight_multiby_inputscale[idx] =
-                            weight_data[idx] * input_scale_data[s_idx];
+                        weight_multiby_inputscale[idx] = weight_data[idx] * input_scale_data[s_idx];
                     }
                 }
             }
@@ -537,9 +496,8 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
-    int ret = CalQuantizedWeights(weight_multiby_inputscale.data(), size,
-                                  output_channel, cali_params_.merge_weights_channel, weight_quantized_data,
-                                  weight_scale_data);
+    int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
+                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights falied!\n");
         return ret;
@@ -551,8 +509,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
             int s_idx = i;
             if (merge_channel)
                 s_idx = 0;
-            weight_scale_data[i] =
-                weight_scale_data[i] * input_scale_data[s_idx];
+            weight_scale_data[i] = weight_scale_data[i] * input_scale_data[s_idx];
         }
     }
 
@@ -573,8 +530,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
                 int weight_scale_idx = oc;
                 if (cali_params_.merge_weights_channel)
                     weight_scale_idx = 0;
-                bias_quantized_data[oc] =
-                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
+                bias_quantized_data[oc] = static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
             }
         }
 
@@ -584,8 +540,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
     return 0;
 }
 
-int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
-                                  InnerProductLayerParam* param,
+int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProductLayerParam* param,
                                   IntScaleResource* input_scale) {
     int output_channel = param->num_output;
     int size           = resource->weight_handle.GetDataCount();
@@ -618,9 +573,8 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
-    int ret = CalQuantizedWeights(weight_multiby_inputscale.data(), size,
-                                  output_channel, cali_params_.merge_weights_channel, weight_quantized_data,
-                                  weight_scale_data);
+    int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
+                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights falied!\n");
         return ret;
@@ -643,8 +597,7 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
                 int weight_scale_idx = oc;
                 if (cali_params_.merge_weights_channel)
                     weight_scale_idx = 0;
-                bias_quantized_data[oc] =
-                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
+                bias_quantized_data[oc] = static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
             }
         }
 
@@ -654,44 +607,38 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
     return 0;
 }
 
-int Calibration::CalQuantizedWeights(const float* weights, const int size,
-                                     const int output_channel, bool merge_channel,
-                                     int8_t* quantized_weights,
-                                     float* weight_scale) {
+int Calibration::CalQuantizedWeights(const float* weights, const int size, const int output_channel, bool merge_channel,
+                                     int8_t* quantized_weights, float* weight_scale) {
     ASSERT(size % output_channel == 0);
 
     if (cali_params_.weights_quantize_method == MIN_MAX) {
         // MIN_MAX
         int weight_scale_count = merge_channel ? 1 : output_channel;
-        int s_size = size / weight_scale_count;
+        int s_size             = size / weight_scale_count;
         for (int s_idx = 0; s_idx < weight_scale_count; ++s_idx) {
             const float* weight_start = weights + s_idx * s_size;
             int8_t* weight_q_start    = quantized_weights + s_idx * s_size;
-            auto minmax =
-                std::minmax_element(weight_start, weight_start + s_size);
-            float max_val_abs =
-                std::max(std::abs(*minmax.first), std::abs(*minmax.second));
+            auto minmax               = std::minmax_element(weight_start, weight_start + s_size);
+            float max_val_abs         = std::max(std::abs(*minmax.first), std::abs(*minmax.second));
 
-            weight_scale[s_idx]       = max_val_abs / 127.0f;
+            weight_scale[s_idx]    = max_val_abs / 127.0f;
             float scale_float2int8 = 1.0f;
             if (max_val_abs != 0)
                 scale_float2int8 = 1 / weight_scale[s_idx];
 
             // quantize weights
             for (int i = 0; i < s_size; ++i) {
-                int value = static_cast<int>(
-                    std::round(weight_start[i] * scale_float2int8));
+                int value         = static_cast<int>(std::round(weight_start[i] * scale_float2int8));
                 weight_q_start[i] = std::min(127, std::max(-127, value));
             }
         }
     } else if (cali_params_.weights_quantize_method == ADMM) {
         // ADMM
-        int weight_scale_count = merge_channel ? 1 : output_channel;
-        int s_size = size / weight_scale_count;
+        int weight_scale_count  = merge_channel ? 1 : output_channel;
+        int s_size              = size / weight_scale_count;
         const int quantize_bits = 8;
 
-        InitWeightScaleADMM(weights, size, output_channel, merge_channel, weight_scale,
-                            quantize_bits);
+        InitWeightScaleADMM(weights, size, output_channel, merge_channel, weight_scale, quantize_bits);
 
         int iter           = 0;
         float pre_sum      = 0;
@@ -703,22 +650,18 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size,
         }
         // update weights quan
         while (iter < max_iter) {
-            UpdateQuantizedWeightsADMM(weights, size, output_channel, merge_channel,
-                                       weight_scale, quantize_bits,
+            UpdateQuantizedWeightsADMM(weights, size, output_channel, merge_channel, weight_scale, quantize_bits,
                                        quantized_weights);
-            UpdateAlphaADMM(weights, size, output_channel, merge_channel, weight_scale,
-                            quantized_weights);
+            UpdateAlphaADMM(weights, size, output_channel, merge_channel, weight_scale, quantized_weights);
             iter++;
         }
 
         for (int i = 0; i < size; i++) {
-            cur_sum +=
-                std::fabs(quantized_weights[i] * weight_scale[i / s_size]);
+            cur_sum += std::fabs(quantized_weights[i] * weight_scale[i / s_size]);
         }
         // LOGD("iter: %d  with diff %f\n", iter, pre_sum - cur_sum);
     } else {
-        LOGE("Not support yet (method: %d) for quantize weights",
-             cali_params_.weights_quantize_method);
+        LOGE("Not support yet (method: %d) for quantize weights", cali_params_.weights_quantize_method);
         return -1;
     }
 
@@ -737,29 +680,19 @@ int Calibration::MergeBlobScale() {
     return 0;
 }
 
-void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info,
-                                          NetStructure* net_struct,
-                                          NetResource* net_resource) {
+void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource) {
     LayerType layer_type = layer_info->type;
-    if (kBlobScaleMergeLayerTypeStr.find(layer_type) !=
-        kBlobScaleMergeLayerTypeStr.end()) {
-        ASSERT(layer_info->inputs.size() == 1 &&
-               layer_info->outputs.size() == 1)
-        LayerInfo* pre_layer_info =
-            GetLayerInfoFromOutpubBlobName(layer_info->inputs[0], net_struct);
+    if (kBlobScaleMergeLayerTypeStr.find(layer_type) != kBlobScaleMergeLayerTypeStr.end()) {
+        ASSERT(layer_info->inputs.size() == 1 && layer_info->outputs.size() == 1)
+        LayerInfo* pre_layer_info = GetLayerInfoFromOutpubBlobName(layer_info->inputs[0], net_struct);
         if (pre_layer_info != nullptr && pre_layer_info->param->quantized) {
             // merge blob scale
-            std::string input_scale_name =
-                layer_info->inputs[0] + BLOB_SCALE_SUFFIX;
-            std::string output_scale_name =
-                layer_info->outputs[0] + +BLOB_SCALE_SUFFIX;
-            if (net_resource->resource_map.find(input_scale_name) !=
-                    net_resource->resource_map.end() &&
-                net_resource->resource_map.find(output_scale_name) !=
-                    net_resource->resource_map.end()) {
-                net_resource->resource_map[input_scale_name] =
-                    net_resource->resource_map[output_scale_name];
-                layer_info->param->quantized = true;
+            std::string input_scale_name  = layer_info->inputs[0] + BLOB_SCALE_SUFFIX;
+            std::string output_scale_name = layer_info->outputs[0] + +BLOB_SCALE_SUFFIX;
+            if (net_resource->resource_map.find(input_scale_name) != net_resource->resource_map.end() &&
+                net_resource->resource_map.find(output_scale_name) != net_resource->resource_map.end()) {
+                net_resource->resource_map[input_scale_name] = net_resource->resource_map[output_scale_name];
+                layer_info->param->quantized                 = true;
             }
 
             MergeBlobScaleRecursion(pre_layer_info, net_struct, net_resource);
@@ -767,8 +700,7 @@ void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info,
     }
 }
 
-LayerInfo* Calibration::GetLayerInfoFromOutpubBlobName(
-    std::string blob_name, NetStructure* net_struct) {
+LayerInfo* Calibration::GetLayerInfoFromOutpubBlobName(std::string blob_name, NetStructure* net_struct) {
     LayerInfo* layer_info = nullptr;
     for (auto item : net_struct->layers) {
         for (auto name : item->outputs) {
