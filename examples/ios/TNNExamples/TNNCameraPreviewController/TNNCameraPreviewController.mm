@@ -72,7 +72,7 @@ typedef void(^CommonCallback)(Status);
     }
     
     // add the bounding box layers to the UI, on top of the video preview.
-    [self setupBoundingBox:12];
+    [self setupBoundingBox:17];
     
     //set up camera
     auto camera = self.viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
