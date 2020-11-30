@@ -30,7 +30,7 @@ DimsVector CMatrixGetStrides(CMatrix &matrix);
 
 class WinogradGenerator {
 public:
-    WinogradGenerator(int computeUnit, int kernelSize, float interp = 0.5f);
+    WinogradGenerator(int computeUnit, int kernelSize, float interp = 0.5f, bool transform_inner = false);
     ~WinogradGenerator() = default;
 
     CMatrix A() const {
@@ -44,7 +44,7 @@ public:
     }
 
     CMatrix allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo);
-    void transformWeight(CMatrix &dest, const float* source, int batch, int channel, int height, int width, bool transform_inner = false);
+    void transformWeight(CMatrix &dest, const float* source, int batch, int channel, int height, int width);
 
 private:
     CMatrix A_;
@@ -52,6 +52,7 @@ private:
     CMatrix B_;
     int unit_;
     int kernel_size_;
+    bool transform_inner_;
 };
 
 } // namespace TNN_NS
