@@ -129,8 +129,12 @@ cd <path_to_tnn>/scripts
   - CUDA (version 10.2 or higher)
 
 #### TensorRT configuration
-  - Download TensorRT (version>=7.1)  <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
   - Configure the TensorRT path in env `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN configuration
+  - Download CuDNN (version>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - Configure the CuDNN path in env `export CUDNN_ROOT_DIR=<CuDNN_path>`
 
 ### 2. Compilation Steps
 1) switch to 'scripts' directory
@@ -181,3 +185,4 @@ More problems refer to [FAQ](openvino_en.md)
 |TNN_PROFILER_ENABLE| OFF | Performance debugging switch, after opening it will print more performance information, only for debugging.|
 |TNN_QUANTIZATION_ENABLE| OFF | Quantization tool compilation switch|
 |TNN_BENCHMARK_MODE| OFF | Benchmark switch, after opening, the model weights file is empty, and data can be automatically generated.|
+

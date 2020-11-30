@@ -254,9 +254,13 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    - TensorRT (>= 7.1)
 
 * 编译
-   设置环境 `TENSORRT_ROOT_DIR` 变量
+   设置环境变量 `TENSORRT_ROOT_DIR`
    ```
-   export TENSORRT_ROOT_DIR = <TensorRT_path>`
+   export TENSORRT_ROOT_DIR = <TensorRT_path>
+   ```
+   设置环境变量 `CUDNN_ROOT_DIR`
+   ```
+   export CUDNN_ROOT_DIR = <CuDNN_path>
    ```
    进入 `examples/cuda` 目录, 执行 `build_cuda_linux.sh`:
    ```
@@ -332,4 +336,5 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 ## 四、NCNN 模型使用及接口介绍
 
 - [NCNN相关](ncnn.md)
+
 

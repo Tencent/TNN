@@ -258,6 +258,10 @@
    ```
    export TENSORRT_ROOT_DIR=<TensorRT_path>
    ```
+   Configure the CuDNN path in env
+   ```
+   export CUDNN_ROOT_DIR=<CuDNN_path>
+   ```
    Move to `example/cuda` directory and execute `build_cuda_linux.sh` :
    ```
    cd <path_to_tnn>/examples/cuda
@@ -333,4 +337,5 @@
 ## IV. NCNN model usage and interface introduction
 
 - [NCNN related](./ncnn_en.md)
+
 
