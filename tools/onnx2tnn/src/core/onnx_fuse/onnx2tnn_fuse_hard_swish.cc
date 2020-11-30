@@ -17,6 +17,12 @@
 #include "objseri.h"
 #include "onnx2tnn.h"
 
+
+inline bool IsEqual(float num1, float num2) {
+    return std::abs(num1 - num2) <= 1e-6;
+}
+
+
 int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                             std::map<std::string, onnx::TensorProto>& weights,
                             std::map<std::string, int>& node_reference, std::set<std::string>& blob_names) {
@@ -43,7 +49,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float constant_add_three = add_three.has_raw_data() ? ((const float*)add_three.raw_data().data())[0]
                                                                     : add_three.float_data().data()[0];
-                if (constant_add_three != 3.f)
+                if (!IsEqual(constant_add_three, 3.f))
                     break;
 
                 auto node_clip = index_nodes[i + 1].node;
@@ -63,7 +69,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float relu6_min = get_node_attr_f(*node_clip, "min", onnx_net_info_, 1, -FLT_MAX);
                 float relu6_max = get_node_attr_f(*node_clip, "max", onnx_net_info_, 2, FLT_MAX);
-                if (relu6_min != 0.f || relu6_max != 6.f)
+                if (!IsEqual(relu6_min, 0.f) || !IsEqual(relu6_max, 6.f))
                     break;
 
                 if (!(node_div->input_size() == 2 && node_div->input(0) == node_clip->output(0)))
@@ -78,7 +84,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float constant_div_six = div_six.has_raw_data() ? ((const float*)div_six.raw_data().data())[0]
                                                                 : div_six.float_data().data()[0];
-                if (constant_div_six != 6.f)
+                if (!IsEqual(constant_div_six, 6.f))
                     break;
                 int x0_index = (node_mul->input(1) == node_div->output(0)) ? 0 : 1;
                 std::vector<std::string> inputs;
@@ -137,7 +143,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float constant_add_three = add_three.has_raw_data() ? ((const float*)add_three.raw_data().data())[0]
                                                                     : add_three.float_data().data()[0];
-                if (constant_add_three != 3.f)
+                if (!IsEqual(constant_add_three, 3.f))
                     break;
 
                 auto node_clip   = index_nodes[i + 1].node;
@@ -159,7 +165,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float relu6_min = get_node_attr_f(*node_clip, "min", onnx_net_info_, 1, -FLT_MAX);
                 float relu6_max = get_node_attr_f(*node_clip, "max", onnx_net_info_, 2, FLT_MAX);
-                if (relu6_min != 0.f || relu6_max != 6.f)
+                if (!IsEqual(relu6_min, 0.f) || !IsEqual(relu6_max, 6.f))
                     break;
 
                 if (!(node_div->input_size() == 2 && node_div->input(0) == node_cast_1->output(0)))
@@ -183,7 +189,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
                 } else {
                     constant_div_six = div_six.float_data().data()[0];
                 }
-                if (constant_div_six != 6.f)
+                if (!IsEqual(constant_div_six, 6.f))
                     break;
                 int x0_index = (node_mul->input(1) == node_cast_2->output(0)) ? 0 : 1;
                 std::vector<std::string> inputs;
@@ -248,7 +254,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float constant_add_three = add_three.has_raw_data() ? ((const float*)add_three.raw_data().data())[0]
                                                                     : add_three.float_data().data()[0];
-                if (constant_add_three != 3.f)
+                if (!IsEqual(constant_add_three, 3.f))
                     break;
 
                 auto node_clip = index_nodes[i + 1].node;
@@ -268,7 +274,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float relu6_min = get_node_attr_f(*node_clip, "min", onnx_net_info_, 1, -FLT_MAX);
                 float relu6_max = get_node_attr_f(*node_clip, "max", onnx_net_info_, 2, FLT_MAX);
-                if (relu6_min != 0.f || relu6_max != 6.f)
+                if (!IsEqual(relu6_min, 0.f) || !IsEqual(relu6_max, 6.f))
                     break;
 
                 if (!(node_mul->input_size() == 2 &&
@@ -293,7 +299,7 @@ int Onnx2TNN::FuseHardSwish(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
                 float constant_div_six = div_six.has_raw_data() ? ((const float*)div_six.raw_data().data())[0]
                                                                 : div_six.float_data().data()[0];
-                if (constant_div_six != 6.f)
+                if (!IsEqual(constant_div_six, 6.f))
                     break;
 
                 // reduce
