@@ -54,23 +54,26 @@ TEST_P(PadLayerTest, PadLayer) {
         pad_h = pad_h % input_size;
     }
     // 目前 只有pad mode 为 const 时, 才支持在channel上进行pad
-    if ( (pad_type == 1 || pad_type == 2) && (pad_c != 0)){
+    if ((pad_type == 1 || pad_type == 2) && (pad_c != 0)) {
         GTEST_SKIP();
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    if ((-FLT_MAX == value || FLT_MAX == value) && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     // param
-    PadLayerParam param;
-    param.name = "Pad";
-    param.type = pad_type;
-    param.pads = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
-    param.value = value;
+    std::shared_ptr<PadLayerParam> param(new PadLayerParam());
+    param->name  = "Pad";
+    param->type  = pad_type;
+    param->pads  = {pad_w, pad_w, pad_h, pad_h, pad_c, pad_c};
+    param->value = value;
 
-    Run(LAYER_PAD, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Pad", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

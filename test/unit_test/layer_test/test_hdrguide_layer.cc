@@ -38,54 +38,14 @@ TEST_P(HdrGuideLayerTest, HdrGuideLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
     // param
-    LayerParam param;
-    param.name = "HDRGuide";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "HDRGuide";
 
-    // resource
-    HdrGuideLayerResource resource;
-
-    int size = 9;
-    RawBuffer ccm_weight(size * sizeof(float));
-    float* ccm_weight_data = ccm_weight.force_to<float*>();
-    InitRandom(ccm_weight_data, size, 1.0f);
-    resource.ccm_weight_handle = ccm_weight;
-
-    size = 3;
-    RawBuffer ccm_bias(size * sizeof(float));
-    float* ccm_bias_data = ccm_bias.force_to<float*>();
-    InitRandom(ccm_bias_data, size, 1.0f);
-    resource.ccm_bias_handle = ccm_bias;
-
-    size = 12;
-    RawBuffer shifts(size * sizeof(float));
-    float* shifts_data = shifts.force_to<float*>();
-    InitRandom(shifts_data, size, 1.0f);
-    resource.shifts_handle = shifts;
-
-    size = 12;
-    RawBuffer slopes(size * sizeof(float));
-    float* slopes_data = slopes.force_to<float*>();
-    InitRandom(slopes_data, size, 1.0f);
-    resource.slopes_handle = slopes;
-
-    size = 3;
-    RawBuffer p_weight(size * sizeof(float));
-    float* p_weight_data = p_weight.force_to<float*>();
-    InitRandom(p_weight_data, size, 1.0f);
-    resource.projection_weight_handle = p_weight;
-
-    size = 1;
-    RawBuffer p_bias(size * sizeof(float));
-    float* p_bias_data = p_bias.force_to<float*>();
-    InitRandom(p_bias_data, size, 1.0f);
-    resource.projection_bias_handle = p_bias;
-
-    Run(LAYER_HDRGUIDE, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("HDRGuide", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

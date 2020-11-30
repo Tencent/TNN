@@ -21,7 +21,7 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType,
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType,
                                                                            ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
@@ -33,6 +33,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             testing::Values(1, 2),
                                             // group
                                             testing::Values(1, 2, 3, 8),
+                                            // dilation
+                                            testing::Values(1, 2),
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
                                             // activation_type
@@ -48,10 +50,11 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int input_size        = std::get<2>(GetParam());
     int kernel            = std::get<3>(GetParam());
     int stride            = std::get<4>(GetParam());
-    DataType data_type    = std::get<6>(GetParam());
     int group             = std::get<5>(GetParam());
-    auto activation_type  = std::get<7>(GetParam());
-    auto fusion_type      = std::get<8>(GetParam());
+    int dilation          = std::get<6>(GetParam());
+    DataType data_type    = std::get<7>(GetParam());
+    auto activation_type  = std::get<8>(GetParam());
+    auto fusion_type      = std::get<9>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
@@ -65,63 +68,54 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         }
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    ConvLayerParam param;
-    param.name            = "Conv";
-    param.input_channel   = channel;
-    param.output_channel  = channel;
-    param.group           = group;
-    param.kernels         = {kernel, kernel};
-    param.dialations      = {1, 1};
-    param.strides         = {stride, stride};
-    param.pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
-    param.bias            = 1;
-    param.activation_type = activation_type;
-    param.fusion_type     = fusion_type;
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
+    param->name            = "Conv";
+    param->input_channel   = channel;
+    param->output_channel  = channel;
+    param->group           = group;
+    param->kernels         = {kernel, kernel};
+    param->dialations      = {dilation, dilation};
+    param->strides         = {stride, stride};
+    param->pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
+    param->bias            = 1;
+    param->activation_type = activation_type;
+    param->fusion_type     = fusion_type;
 
+    std::vector<int> conv_input_dims = {batch, channel, input_size, input_size};
+    std::vector<std::vector<int>> input_vec;
+    input_vec.push_back(conv_input_dims);
+
+    // get add input dim
     if (fusion_type != FusionType_None) {
-        Blob conv_input_blob   = Blob(inputs_desc[0]);
+        auto inputs_desc              = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+        Blob conv_input_blob          = Blob(inputs_desc[0]);
         std::vector<Blob*> conv_input = {&conv_input_blob};
 
         BlobDesc conv_output_desc;
-        conv_output_desc.data_type   = data_type;
-        conv_output_desc.device_type = DEVICE_NAIVE;
-        Blob conv_output_blob  = Blob(conv_output_desc);
+        conv_output_desc.data_type     = data_type;
+        conv_output_desc.device_type   = DEVICE_NAIVE;
+        Blob conv_output_blob          = Blob(conv_output_desc);
         std::vector<Blob*> conv_output = {&conv_output_blob};
 
         auto layer_creator_map = GetGlobalLayerCreatorMap();
         auto conv_layer        = layer_creator_map[LAYER_CONVOLUTION]->CreateLayer();
 
-        conv_layer->InferShapeAhead(conv_input, conv_output, &param, nullptr);
-        inputs_desc.push_back(conv_output[0]->GetBlobDesc());
+        conv_layer->InferShapeAhead(conv_input, conv_output, param.get(), nullptr);
+        input_vec.push_back(conv_output[0]->GetBlobDesc().dims);
+        delete conv_layer;
     }
 
-    // resource
-    ConvLayerResource resource;
-    auto element_size = (data_type == DATA_TYPE_INT8) ? 1 : 4;
-    int filter_count  = channel * channel * kernel * kernel / group;
-    RawBuffer filter(filter_count * element_size);
-    RawBuffer bias(channel * sizeof(float));
-    if (data_type == DATA_TYPE_BFP16) {
-        InitRandom(filter.force_to<float*>(), filter_count, (float)1.0);
-        InitRandom(bias.force_to<float*>(), channel, (float)1);
-    } else {
-        RawBuffer scale(channel * sizeof(float));
-        InitRandom(filter.force_to<int8_t*>(), filter_count, (int8_t)8);
-        filter.SetDataType(data_type);
-        InitRandom(bias.force_to<int32_t*>(), channel, (int32_t)8);
-        InitRandom(scale.force_to<float*>(), channel, 0.f, 1.0f);
-        resource.scale_handle = scale;
+    // generate proto string
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
     }
 
-    resource.filter_handle = filter;
-    resource.bias_handle   = bias;
-
-    Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
+    auto interpreter = GenerateInterpreter("Convolution", input_vec, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS
