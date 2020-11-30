@@ -165,9 +165,18 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
         for (int i = 0; i < scales_count; ++i) {
             scales.push_back(scales_data[i]);
         }
-        // width height
-        layer_param->scales.push_back(scales.back());
-        layer_param->scales.push_back(scales.back());
+        // width_scale height_scale
+        float w_scale = scales[scales.size() - 1];
+        float h_scale = scales[scales.size() - 2];
+        layer_param->scales.push_back(w_scale);
+        layer_param->scales.push_back(h_scale);
+        if (layer_param->align_corners < 0) {
+            if (w_scale >= 1.0f && h_scale >= 1.0f) {
+                layer_param->align_corners = 0;
+            } else {
+                layer_param->align_corners = 1;
+            }
+        }
 
         int num        = input_blob->GetBlobDesc().dims[0];
         int channels   = input_blob->GetBlobDesc().dims[1];
