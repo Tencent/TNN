@@ -288,7 +288,7 @@ int main(int argc, char* argv[]) {
             case 'o':
                 printf("output name: %s\n", optarg);
                 output_name = optarg;
-                if (!CheckFileName(output_name)) {
+                if (!CheckFileName(output_name + ".quantized.tnnproto")) {
                     printf("invaild output name!\n");
                     return 0;
                 }

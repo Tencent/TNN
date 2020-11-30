@@ -505,7 +505,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // for depthwise conv, need to mul weight_scale by input_scale
     if (is_depthwise) {
-        for (int i = 0; i < output_channel; ++i) {
+        for (int i = 0; i < weight_scale_size; ++i) {
             int s_idx = i;
             if (merge_channel)
                 s_idx = 0;
