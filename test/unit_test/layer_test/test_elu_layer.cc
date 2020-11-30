@@ -23,17 +23,17 @@ class EluLayerTest : public LayerTest,
                      public ::testing::WithParamInterface<std::tuple<int, int, int, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, EluLayerTest,
-                        ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 8),
-                            testing::Values(1, 4, 15),
-                            // size Values(16, 19),
-                            testing::Values(1, 6, 8, 13),
-                            // alpha
-                            testing::Values(-1.234, 2.30, 0.564),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 8),
+                             testing::Values(1, 4, 15),
+                             // size Values(16, 19),
+                             testing::Values(1, 6, 8, 13),
+                             // alpha
+                             testing::Values(-1.234, 2.30, 0.564),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(EluLayerTest, EluLayer) {
     // get param
@@ -48,15 +48,15 @@ TEST_P(EluLayerTest, EluLayer) {
         GTEST_SKIP();
     }
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    EluLayerParam param;
-    param.name  = "Elu";
-    param.alpha = alpha;
+    std::shared_ptr<EluLayerParam> param(new EluLayerParam());
+    param->name  = "Elu";
+    param->alpha = alpha;
 
-    Run(LAYER_ELU, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Elu", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

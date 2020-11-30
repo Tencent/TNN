@@ -43,7 +43,7 @@ function build_x86() {
 function run_x86() {
     build_x86
     mkdir -p $DUMP_DIR
-    ./test/TNNTest -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -op=dump_data.txt -wc=0 -ic=1
+    ./test/TNNTest -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -dt="NAIVE" -op=dump_data.txt -wc=0 -ic=1
 }
 
 while [ "$1" != "" ]; do

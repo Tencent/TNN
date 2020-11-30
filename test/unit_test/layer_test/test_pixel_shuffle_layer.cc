@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/layer_test.h"
+#include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/unit_test_macro.h"
 
 namespace TNN_NS {
@@ -20,8 +21,7 @@ namespace TNN_NS {
 class PixelShuffleLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PixelShuffleLayerTest,
-                         ::testing::Combine(testing::Values(1, 2),
-                                            testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32, 50),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 9, 10, 16, 18, 32, 50),
                                             testing::Values(9, 10, 16, 19),
                                             // upscale_factor
                                             testing::Values(1, 2, 3, 4, 5)));
@@ -37,15 +37,18 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
-    PixelShuffleLayerParam param;
-    param.name           = "PixelShuffle";
-    param.upscale_factor = upscale_factor;
+    std::shared_ptr<PixelShuffleLayerParam> param(new PixelShuffleLayerParam());
+    param->name           = "PixelShuffle";
+    param->upscale_factor = upscale_factor;
 
-    Run(LAYER_PIXEL_SHUFFLE, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("PixelShuffle", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

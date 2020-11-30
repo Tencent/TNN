@@ -24,8 +24,10 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/common.h"
 #include "tnn/core/context.h"
+#include "tnn/core/instance.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/core/tnn.h"
 #include "tnn/layer/base_layer.h"
 
 #define EXPECT_EQ_OR_RETURN(status, target)                                                                            \
@@ -38,53 +40,28 @@ class LayerTest : public ::testing::Test {
 protected:
     static void SetUpTestCase();
 
-    void Run(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-             std::vector<BlobDesc>& outputs_desc);
+    void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO);
 
     static void TearDownTestCase();
 
 private:
-    Status Init(LayerType, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-                std::vector<BlobDesc>& outputs_desc);
-    Status Reshape();
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision);
     Status Forward();
     Status Compare();
     Status DeInit();
 
 protected:
-    static AbstractDevice* cpu_;
-    static AbstractDevice* device_;
-    static Context* cpu_context_;
-    static Context* device_context_;
-
-    LayerParam* param_;
-    BaseLayer* cpu_layer_;
-    BaseLayer* device_layer_;
-    std::vector<Blob*> cpu_inputs_;
-    std::vector<Blob*> cpu_outputs_;
-    std::vector<Blob*> device_inputs_;
-    std::vector<Blob*> device_outputs_;
     int ensure_input_positive_ = 0;
 
+    static std::shared_ptr<Instance> instance_cpu_;
+    static std::shared_ptr<Instance> instance_device_;
+    static std::shared_ptr<Instance> instance_ocl_cache_;
+
 private:
-    Status CreateLayers(LayerType type);
+    Status GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num);
+    int CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev);
 
-    Status CreateInputBlobs(std::vector<BlobDesc>& inputs_desc);
-
-    Status InitInputBlobsDataRandom(LayerType type);
-
-    Status InitLayers(LayerType type, LayerParam* param, LayerResource* resource, std::vector<BlobDesc>& inputs_desc,
-                      std::vector<BlobDesc>& outputs_desc);
-
-    Status CreateOutputBlobs(std::vector<BlobDesc>& outputs_desc);
-
-    Status AllocateInputBlobs();
-    Status AllocateOutputBlobs();
-
-    virtual float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
-        return 0.f;
-    }
-    virtual float GetCalcDramThrp(float avg_time);
+    Status InitInputBlobsDataRandom();
 };
 
 }  // namespace TNN_NS
