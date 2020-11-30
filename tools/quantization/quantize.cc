@@ -196,7 +196,7 @@ void PrintConfig() {
         "input, ie, "
         "1.0,1.0,1.0 \n"
         "\t\tformula: y = (x - bias) * scale\n"
-        "\t-c, --merge_channel\t(optional) merge blob channel when quantize blob\n"
+        "\t-c, --merge_channel\t(optional) merge blob/weights channel when quantize blob/weights\n"
         "\t-o, --output       \t(optional) specify the name of output\n");
 }
 
@@ -208,11 +208,6 @@ int main(int argc, char* argv[]) {
     std::string output_name = "model";
 
     CalibrationParam cali_params;
-    cali_params.blob_quantize_method    = MIN_MAX;
-    cali_params.weights_quantize_method = MIN_MAX;
-    cali_params.merge_blob_channel      = false;
-    cali_params.input_bias              = {0, 0, 0, 0};
-    cali_params.input_scale             = {1.0f, 1.0f, 1.0f, 1.0f};
 
     struct option long_options[] = {{"proto", required_argument, 0, 'p'},
                                     {"model", required_argument, 0, 'm'},
@@ -288,6 +283,7 @@ int main(int argc, char* argv[]) {
             case 'c':
                 printf("merge channel: true\n");
                 cali_params.merge_blob_channel = true;
+                cali_params.merge_weights_channel = true;
                 break;
             case 'o':
                 printf("output name: %s\n", optarg);

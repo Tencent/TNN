@@ -70,7 +70,7 @@ private:
                          InnerProductLayerParam* param,
                          IntScaleResource* input_scale);
     int CalQuantizedWeights(const float* weights, const int size,
-                            const int output_channel, int8_t* quantized_weight,
+                            const int output_channel, bool merge_channel, int8_t* quantized_weight,
                             float* weight_scale);
 
     int MergeBlobScale();

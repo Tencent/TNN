@@ -41,11 +41,12 @@ struct DataSet {
 };
 
 struct CalibrationParam {
-    CalibrationMethod blob_quantize_method;
-    CalibrationMethod weights_quantize_method;
-    bool merge_blob_channel;
-    std::vector<float> input_bias;
-    std::vector<float> input_scale;
+    CalibrationMethod blob_quantize_method = MIN_MAX;
+    CalibrationMethod weights_quantize_method = MIN_MAX;
+    bool merge_blob_channel = false;
+    bool merge_weights_channel = false;
+    std::vector<float> input_bias = {0, 0, 0, 0};
+    std::vector<float> input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 }  // namespace TNN_NS

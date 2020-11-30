@@ -31,24 +31,25 @@ static const std::set<LayerType> kBlobScaleMergeLayerTypeStr = {LAYER_RELU,
                                                                 LAYER_POOLING};
 
 static void InitWeightScaleADMM(const float* weights, const int size,
-                                const int output_channel, float* weight_scale,
+                                const int output_channel, bool merge_channel, float* weight_scale,
                                 const int quantize_bits) {
-    const int oc_stride = size / output_channel;
-    const int bound     = std::pow(2, quantize_bits - 1) - 1;
+    int weight_scale_count = merge_channel ? 1 : output_channel;
+    const int s_size = size / weight_scale_count;
+    const int bound  = std::pow(2, quantize_bits - 1) - 1;
 
-    for (int i = 0; i < output_channel; i++) {
+    for (int i = 0; i < weight_scale_count; i++) {
         float avg = 0;
         float max = 0;
         float val_abs;
 
-        for (int j = 0; j < oc_stride; j++) {
-            val_abs = std::fabs(weights[i * oc_stride + j]);
+        for (int j = 0; j < s_size; j++) {
+            val_abs = std::fabs(weights[i * s_size + j]);
             avg += val_abs;
             if (val_abs > max) {
                 max = val_abs;
             }
         }
-        avg = avg / float(oc_stride);
+        avg = avg / float(s_size);
 
         if (quantize_bits > 2) {
             weight_scale[i] = max / (bound * 1.25);
@@ -59,35 +60,37 @@ static void InitWeightScaleADMM(const float* weights, const int size,
 }
 
 static void UpdateQuantizedWeightsADMM(const float* weights, const int size,
-                                       const int output_channel,
+                                       const int output_channel, bool merge_channel,
                                        float* weight_scale,
                                        const int quantize_bits,
                                        int8_t* quantized_weights) {
-    const int oc_stride = size / output_channel;
+    int weight_scale_count = merge_channel ? 1 : output_channel;
+    const int s_size = size / weight_scale_count;
     const float bound   = std::pow(2, quantize_bits - 1) - 1;
     const float eps     = 1e-9f;
     float weight_quan;
     ASSERT(quantize_bits > 4);
 
     for (int i = 0; i < size; i++) {
-        weight_quan = weights[i] / (weight_scale[i / oc_stride] + eps);
+        weight_quan = weights[i] / (weight_scale[i / s_size] + eps);
         quantized_weights[i] =
             std::min(bound, std::max(-bound, std::roundf(weight_quan)));
     }
 }
 
 static void UpdateAlphaADMM(const float* weights, const int size,
-                            const int output_channel, float* weight_scale,
+                            const int output_channel, bool merge_channel, float* weight_scale,
                             int8_t* quantized_weights) {
-    const int oc_stride = size / output_channel;
-    const float eps     = 1e-9f;
+    int weight_scale_count = merge_channel ? 1 : output_channel;
+    const int s_size = size / weight_scale_count;
+    const float eps  = 1e-9f;
 
-    for (int i = 0; i < output_channel; i++) {
-        const int offset = i * oc_stride;
+    for (int i = 0; i < weight_scale_count; i++) {
+        const int offset = i * s_size;
         float sum1       = 0;
         float sum2       = 0;
 
-        for (int j = 0; j < oc_stride; j++) {
+        for (int j = 0; j < s_size; j++) {
             sum1 += weights[offset + j] * quantized_weights[offset + j];
             sum2 +=
                 quantized_weights[offset + j] * quantized_weights[offset + j];
@@ -96,13 +99,7 @@ static void UpdateAlphaADMM(const float* weights, const int size,
     }
 }
 
-Calibration::Calibration() {
-    cali_params_.blob_quantize_method    = MIN_MAX;
-    cali_params_.weights_quantize_method = MIN_MAX;
-    cali_params_.merge_blob_channel      = true;
-    cali_params_.input_bias              = {0, 0, 0, 0};
-    cali_params_.input_scale             = {1.0f, 1.0f, 1.0f, 1.0f};
-}
+Calibration::Calibration() {}
 
 Calibration::~Calibration() {}
 
@@ -533,12 +530,15 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
     // quantize weights
     RawBuffer weight_quantized(size * sizeof(char));
     weight_quantized.SetDataType(DATA_TYPE_INT8);
-    RawBuffer weight_scale(output_channel * sizeof(float));
+    int weight_scale_size = output_channel;
+    if (cali_params_.merge_weights_channel)
+        weight_scale_size = 1;
+    RawBuffer weight_scale(weight_scale_size * sizeof(float));
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
     int ret = CalQuantizedWeights(weight_multiby_inputscale.data(), size,
-                                  output_channel, weight_quantized_data,
+                                  output_channel, cali_params_.merge_weights_channel, weight_quantized_data,
                                   weight_scale_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights falied!\n");
@@ -570,8 +570,11 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource,
             if (weight_scale_data[oc] == 0) {
                 bias_quantized_data[oc] = 0;
             } else {
+                int weight_scale_idx = oc;
+                if (cali_params_.merge_weights_channel)
+                    weight_scale_idx = 0;
                 bias_quantized_data[oc] =
-                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[oc]);
+                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
             }
         }
 
@@ -608,12 +611,15 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
     // quantize weights
     RawBuffer weight_quantized(size * sizeof(char));
     weight_quantized.SetDataType(DATA_TYPE_INT8);
-    RawBuffer weight_scale(output_channel * sizeof(float));
+    int weight_scale_size = output_channel;
+    if (cali_params_.merge_weights_channel)
+        weight_scale_size = 1;
+    RawBuffer weight_scale(weight_scale_size * sizeof(float));
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
     int ret = CalQuantizedWeights(weight_multiby_inputscale.data(), size,
-                                  output_channel, weight_quantized_data,
+                                  output_channel, cali_params_.merge_weights_channel, weight_quantized_data,
                                   weight_scale_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights falied!\n");
@@ -634,8 +640,11 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
             if (weight_scale_data[oc] == 0) {
                 bias_quantized_data[oc] = 0;
             } else {
+                int weight_scale_idx = oc;
+                if (cali_params_.merge_weights_channel)
+                    weight_scale_idx = 0;
                 bias_quantized_data[oc] =
-                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[oc]);
+                    static_cast<int32_t>(bias_data[oc] / weight_scale_data[weight_scale_idx]);
             }
         }
 
@@ -646,29 +655,30 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource,
 }
 
 int Calibration::CalQuantizedWeights(const float* weights, const int size,
-                                     const int output_channel,
+                                     const int output_channel, bool merge_channel,
                                      int8_t* quantized_weights,
                                      float* weight_scale) {
     ASSERT(size % output_channel == 0);
 
     if (cali_params_.weights_quantize_method == MIN_MAX) {
         // MIN_MAX
-        int oc_stride = size / output_channel;
-        for (int oc = 0; oc < output_channel; ++oc) {
-            const float* weight_start = weights + oc * oc_stride;
-            int8_t* weight_q_start    = quantized_weights + oc * oc_stride;
+        int weight_scale_count = merge_channel ? 1 : output_channel;
+        int s_size = size / weight_scale_count;
+        for (int s_idx = 0; s_idx < weight_scale_count; ++s_idx) {
+            const float* weight_start = weights + s_idx * s_size;
+            int8_t* weight_q_start    = quantized_weights + s_idx * s_size;
             auto minmax =
-                std::minmax_element(weight_start, weight_start + oc_stride);
+                std::minmax_element(weight_start, weight_start + s_size);
             float max_val_abs =
                 std::max(std::abs(*minmax.first), std::abs(*minmax.second));
 
-            weight_scale[oc]       = max_val_abs / 127.0f;
+            weight_scale[s_idx]       = max_val_abs / 127.0f;
             float scale_float2int8 = 1.0f;
             if (max_val_abs != 0)
-                scale_float2int8 = 1 / weight_scale[oc];
+                scale_float2int8 = 1 / weight_scale[s_idx];
 
             // quantize weights
-            for (int i = 0; i < oc_stride; ++i) {
+            for (int i = 0; i < s_size; ++i) {
                 int value = static_cast<int>(
                     std::round(weight_start[i] * scale_float2int8));
                 weight_q_start[i] = std::min(127, std::max(-127, value));
@@ -676,10 +686,11 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size,
         }
     } else if (cali_params_.weights_quantize_method == ADMM) {
         // ADMM
-        int oc_stride           = size / output_channel;
+        int weight_scale_count = merge_channel ? 1 : output_channel;
+        int s_size = size / weight_scale_count;
         const int quantize_bits = 8;
 
-        InitWeightScaleADMM(weights, size, output_channel, weight_scale,
+        InitWeightScaleADMM(weights, size, output_channel, merge_channel, weight_scale,
                             quantize_bits);
 
         int iter           = 0;
@@ -692,17 +703,17 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size,
         }
         // update weights quan
         while (iter < max_iter) {
-            UpdateQuantizedWeightsADMM(weights, size, output_channel,
+            UpdateQuantizedWeightsADMM(weights, size, output_channel, merge_channel,
                                        weight_scale, quantize_bits,
                                        quantized_weights);
-            UpdateAlphaADMM(weights, size, output_channel, weight_scale,
+            UpdateAlphaADMM(weights, size, output_channel, merge_channel, weight_scale,
                             quantized_weights);
             iter++;
         }
 
         for (int i = 0; i < size; i++) {
             cur_sum +=
-                std::fabs(quantized_weights[i] * weight_scale[i / oc_stride]);
+                std::fabs(quantized_weights[i] * weight_scale[i / s_size]);
         }
         // LOGD("iter: %d  with diff %f\n", iter, pre_sum - cur_sum);
     } else {
