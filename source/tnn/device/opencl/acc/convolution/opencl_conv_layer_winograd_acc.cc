@@ -21,14 +21,16 @@ namespace TNN_NS {
 
 #define UNIT 2
 
-bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &,
-                                       const std::vector<Blob *> &) {
+bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> & inputs,
+                                       const std::vector<Blob *> & outputs) {
     if (!param) {
         return false;
     }
+
+    auto input_dims          = inputs[0]->GetBlobDesc().dims;
     return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->input_channel >= 8
-            && param->output_channel >= 8;
+            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->output_channel == 32
+             && input_dims[3] <= 32;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
