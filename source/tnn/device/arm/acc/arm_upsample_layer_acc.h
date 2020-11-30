@@ -12,25 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_UPSAMPLE_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_UPSAMPLE_LAYER_ACC_H_
+
+#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/arm_device.h"
+#include "tnn/interpreter/layer_resource.h"
 
 namespace TNN_NS {
 
-class AtanLayerTest : public UnaryLayerTest {
+class ArmUpsampleLayerAcc : public ArmLayerAcc {
 public:
-    AtanLayerTest() : UnaryLayerTest(LAYER_ATAN) {}
+    virtual ~ArmUpsampleLayerAcc();
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+protected:
+    RawBuffer buffer_scale_;
+
+private:
+    bool do_scale_;
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, AtanLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
-
-TEST_P(AtanLayerTest, UnaryLayerTest) {
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
-    RunUnaryTest("Atan");
-}
-
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_UPSAMPLE_LAYER_ACC_H_

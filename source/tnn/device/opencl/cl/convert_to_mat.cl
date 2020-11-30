@@ -229,8 +229,6 @@ __kernel void CopyToN8UC4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
 
     const int batch_idx         = image_height_idx / height;
     const int height_idx        = image_height_idx % height;
-    const int width_idx         = image_width_idx % width;
-    const int channel_block_idx = image_width_idx / width;
 
     int buffer_offset = ((batch_idx * height + height_idx) * width + image_width_idx) * 4;
     int2 coord      = (int2)(image_width_idx, image_height_idx);

@@ -20,6 +20,9 @@ typedef struct arm_sigmoid_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {
         return Float4::sigmoid(v);
     }
+    virtual Float4 fast_op(const Float4& v) {
+        return Float4::fast_sigmoid(v);
+    }
 } ARM_SIGMOID_OP;
 
 DECLARE_ARM_UNARY_ACC(Sigmoid, ARM_SIGMOID_OP);
