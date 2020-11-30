@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 #endif
     else
         strncpy(input_imgfn, argv[5], 256);
-    printf("Classify is about to start, and the picrture is %s\n",input_imgfn);
+    printf("Classify is about to start, and the picture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);

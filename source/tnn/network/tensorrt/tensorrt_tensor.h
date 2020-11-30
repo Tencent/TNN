@@ -57,8 +57,17 @@ public:
         return int8_mode;
     }
 
+    bool IsQuantized() {
+        return quantized;
+    }
+
+    void SetQuantized() {
+        quantized = true;
+    }
+
 private:
     bool int8_mode = false;
+    bool quantized = false;
     IntScaleResource *resource_ = nullptr;
     nvinfer1::ITensor* m_trt_tensor = nullptr;
 };

@@ -18,15 +18,15 @@
 
 #include "ultra_face_detector.h"
 #include "tnn_sdk_sample.h"
-#include "utils/utils.h"
 #include "macro.h"
+#include "utils/utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "../../../../third_party/stb/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image_resize.h"
+#include "../../../../third_party/stb/stb_image_resize.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "../../../../third_party/stb/stb_image_write.h"
 
 using namespace TNN_NS;
 
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
-        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
     
         option->input_width = w;
         option->input_height = h;
@@ -62,7 +62,11 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
+#ifdef _WIN32
+        strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
+#else
         strncpy(input_imgfn, "../../assets/test_face.jpg", 256);
+#endif
     else
         strncpy(input_imgfn, argv[5], 256);
     printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
@@ -74,7 +78,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
     //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
     std::vector<FaceInfo> face_info;
     if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
@@ -112,3 +116,4 @@ int main(int argc, char** argv) {
     free(data);
     return 0;
 }
+

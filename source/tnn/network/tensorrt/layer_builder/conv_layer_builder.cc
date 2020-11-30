@@ -219,6 +219,7 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
         output_dequant_layer->setName(output_dequant_layer_name.c_str());
         last_layer = output_dequant_layer;
+        std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->SetQuantized();
     }
 
     return last_layer;
@@ -227,3 +228,4 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 REGISTER_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION);
 
 }  //  namespace TNN_NS
+

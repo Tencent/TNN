@@ -16,21 +16,20 @@
 #include <string>
 #include <vector>
 
-#include "macro.h"
 #include "image_classifier.h"
+#include "macro.h"
 #include "utils/utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "../../../../third_party/stb/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image_resize.h"
+#include "../../../../third_party/stb/stb_image_resize.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "../../../../third_party/stb/stb_image_write.h"
 
 using namespace TNN_NS;
 
 int main(int argc, char** argv) {
-// int main(int argc, char** argv) {
     if (argc < 3) {
         printf("how to run:  %s proto model height width\n", argv[0]);
         return -1;
@@ -38,27 +37,27 @@ int main(int argc, char** argv) {
     // 创建tnn实例
     auto proto_content = fdLoadFile(argv[1]);
     auto model_content = fdLoadFile(argv[2]);
-    int h = 224, w = 224;
-    if(argc >= 5) {
-        h = std::atoi(argv[3]);
-        w = std::atoi(argv[4]);
-    }
+
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
-        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
     }
 
     auto predictor = std::make_shared<ImageClassifier>();
-    std::vector<int> nchw = {1, 3, h, w};
 
     char* temp_p;
     char line[256];
     FILE *fp_label;
+#ifdef _WIN32
+    if((fp_label = fopen("../../../assets/synset.txt", "r")) == NULL)
+        return -1;
+#else
     if((fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
         return -1;
+#endif
     static unsigned char labels[1000][256];
     for(int i = 0; i < 1000; i++){
         temp_p = fgets(line, 256 ,fp_label);
@@ -69,19 +68,20 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
-        strncpy(input_imgfn, "../../assets/dog.png", 256);
+        strncpy(input_imgfn, "../../assets/car.png", 256);
     else
         strncpy(input_imgfn, argv[5], 256);
-    printf("Classify is about to start, and the picrture is %s\n",input_imgfn);
+    printf("Classify is about to start, and the picture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+    std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
     //Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
     //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
 
     int class_id = -1;
@@ -91,6 +91,7 @@ int main(int argc, char** argv) {
     }
     //完成计算，获取任意输出点
     fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[class_id], class_id+1);
+    fprintf(stdout, "%s\n", predictor->GetBenchResult().Description().c_str());
     free(data);
     return 0;
 }

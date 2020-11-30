@@ -155,7 +155,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
     
-## 三、Linux/Windows/ArmLinux Demo 介绍
+## 三、Linux/Windows/ArmLinux/CudaLinux Demo 介绍
 ### 功能
 * 快速在 Linux/Windows/ArmLinux 环境下运行模型，展示 TNN 接口的使用方法。
 
@@ -246,7 +246,35 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    人脸检测 demo
    ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
    ```
- 
+
+##### CudaLinux
+* 环境要求
+   - Cmake (>= 3.8)
+   - CUDA (>= 10.2)
+   - TensorRT (>= 7.1)
+
+* 编译
+   设置环境 `TENSORRT_ROOT_DIR` 变量
+   ```
+   export TENSORRT_ROOT_DIR = <TensorRT_path>`
+   ```
+   进入 `examples/cuda` 目录, 执行 `build_cuda_linux.sh`:
+   ```
+   cd <path_to_tnn>/examples/cuda
+   sh build_linux.sh
+   ```
+* 执行
+   进入 `examples/cuda/build_cuda_linux` 目录， 执行文件：
+   ```
+   cd build_cuda_linux
+
+   图像分类 demo
+   ./demo_cuda_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   人脸检测 demo
+   ./demo_cuda_facedetector ~/tnn-models/face-detector/version-slim-320_simplified.tnnproto ~/tnn-models/face-detector/version-slim-320_simplified.tnnmodel
+   ```
+
 ### 函数流程
 #### 图像分类函数流程
 * 创建predictor
@@ -304,3 +332,4 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 ## 四、NCNN 模型使用及接口介绍
 
 - [NCNN相关](ncnn.md)
+

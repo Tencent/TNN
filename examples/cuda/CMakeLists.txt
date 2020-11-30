@@ -19,14 +19,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -pthread -fPIC")
 
 set(TNNRoot ${CMAKE_SOURCE_DIR}/../../)
 set(TNNInclude ${TNNRoot}/include)
-set(LINK_LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} nvinfer)
 
-include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${TNNInclude})
+include_directories(${CMAKE_SOURCE_DIR}/../base)
+include_directories(${CUDA_INCLUDE_DIRS})
+
 link_directories(${TNN_LIB_PATH})
 link_directories($ENV{TENSORRT_ROOT_DIR}/lib)
+set(CUDA_LINK_LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} nvinfer)
+link_libraries(TNN)
+link_libraries(${CUDA_LINK_LIBS})
 
-file(GLOB_RECURSE SRC "./*.cc")
+file(GLOB_RECURSE BASE_SRC
+    "${CMAKE_SOURCE_DIR}/../base/*.cc"
+    "${CMAKE_SOURCE_DIR}/../base/utils/*.cc")
 
-add_executable(demo_cuda_linux ${SRC})
-target_link_libraries(demo_cuda_linux TNN ${LINK_LIBS})
+add_executable(demo_cuda_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
+add_executable(demo_cuda_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC})

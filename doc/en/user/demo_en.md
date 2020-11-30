@@ -154,7 +154,7 @@
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
    
-## III. Introduction to Linux/Windows/Armlinux Demo
+## III. Introduction to Linux/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
 * Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Windows/ArmLinux environment.
@@ -210,6 +210,7 @@
 
    face-detector demo
    .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+   ```
 
 ##### ArmLinux
 * Environment Requirements  
@@ -220,7 +221,7 @@
       arm32hf: sudo apt-get install g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
   - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
 * Comiple  
-   Move to `examples\linux` directory:
+   Move to `examples/linux` directory:
    ```
    cd <path_to_tnn>/examples/linux
    ```
@@ -244,6 +245,34 @@
 
    face-detector demo
    ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ```
+
+##### CudaLinux
+* Environment Requirements
+   - Cmake (>= 3.8)
+   - CUDA (>= 10.2)
+   - TensorRT (>= 7.1)
+
+* Compile
+   Configure the TensorRT path in env
+   ```
+   export TENSORRT_ROOT_DIR=<TensorRT_path>
+   ```
+   Move to `example/cuda` directory and execute `build_cuda_linux.sh` :
+   ```
+   cd <path_to_tnn>/examples/cuda
+   sh build_linux.sh
+   ```
+* Execute
+    Move to `examples/cuda/build_cuda_linux` directory and execute:
+    ```
+    cd build_cuda_linux
+
+    image-classification demo
+    ./demo_cuda_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   face-detector demo
+   ./demo_cuda_facedetector ~/tnn-models/face-detector/version-slim-320_simplified.tnnproto ~/tnn-models/face-detector/version-slim-320_simplified.tnnmodel
    ```
 
 ### Function process
@@ -304,3 +333,4 @@
 ## IV. NCNN model usage and interface introduction
 
 - [NCNN related](./ncnn_en.md)
+

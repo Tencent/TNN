@@ -19,8 +19,9 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(Pooling, LAYER_POOLING);
 
-__global__ void pool_kernel(int wh, float *in, float* out) {
-    int tid = threadIdx.x;
+__global__ void pool_kernel(int wh, float *in, float* out, int n, int c) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= n * c) return;
     float sum = 0.f;
     for (int i = 0; i < wh; i++) {
         sum += in[tid * wh + i];
@@ -44,9 +45,10 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     int wh = dims[2] * dims[3];
     int c = dims[1];
     int n = dims[0];
+    int grid = (n * c + 127) / 128;
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    pool_kernel<<<1, n*c, 0, context_->GetStream()>>>(wh, input_data, output_data);
+    pool_kernel<<<grid, 128, 0, context_->GetStream()>>>(wh, input_data, output_data, n, c);
     return TNN_OK;
 }
 
