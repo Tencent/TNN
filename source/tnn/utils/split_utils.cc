@@ -88,6 +88,33 @@ char *SplitUtils::StrNCpy(char *dst, const char *src, int maxcnt) {
     return dst;
 }
 
+void SplitUtils::ParseStr(const char *str, char *subs, const int len,
+                          const bool supp_quote, const bool trim, const bool ignore_blank,
+                          const bool trim_quote, const bool supp_quanjiao, const int i,
+                          int& cursor, bool &left_quote, bool &right_quote) {
+    if (len > 0) {
+        if (!supp_quote)
+            StrNCpy(subs, str + cursor, len + 1);
+        else {
+            if (trim_quote && IsQuote(str[cursor])) {
+                left_quote = true;
+                if (str[i - 1] == str[cursor])
+                    right_quote = true;
+
+                StrNCpy(subs, str + cursor + left_quote, len + 1 - left_quote - right_quote);
+            } else
+                StrNCpy(subs, str + cursor, len + 1);
+
+            right_quote = false;
+        }
+    }
+    cursor = i + 1;
+
+    // trim it
+    if (trim || ignore_blank)
+        TrimStr(subs, ' ', supp_quanjiao);
+}
+
 Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spliter[] /* = ",;" */,
                             bool trim /* = true */, bool ignore_blank /* = false */, bool supp_quote /* = false */,
                             bool trim_quote /* = true */, bool supp_quanjiao /* = false */) {
@@ -137,27 +164,9 @@ Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spl
 #else
             int len = std::min<int>(i - cursor, subs_length - 1);
 #endif
-            if (len > 0) {
-                if (!supp_quote)
-                    StrNCpy(subs, str + cursor, len + 1);
-                else {
-                    if (trim_quote && IsQuote(str[cursor])) {
-                        left_quote = true;
-                        if (str[i - 1] == str[cursor])
-                            right_quote = true;
 
-                        StrNCpy(subs, str + cursor + left_quote, len + 1 - left_quote - right_quote);
-                    } else
-                        StrNCpy(subs, str + cursor, len + 1);
-
-                    right_quote = false;
-                }
-            }
-            cursor = i + 1;
-
-            // trim it
-            if (trim || ignore_blank)
-                TrimStr(subs, ' ', supp_quanjiao);
+            ParseStr(str, subs, len, supp_quote, trim, ignore_blank,
+                     trim_quote, supp_quanjiao, i, cursor, left_quote, right_quote);
 
             std::string subs_str(subs);  // for gnu_stl
             if (!ignore_blank || subs[0] != 0)

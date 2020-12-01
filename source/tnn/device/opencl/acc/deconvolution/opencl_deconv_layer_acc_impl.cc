@@ -23,7 +23,7 @@ Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, Layer
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
-    run_3d_ndrange_ = true;
+    run_3d_ndrange_ = false;
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (nullptr == conv_param) {
@@ -111,11 +111,25 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     int padding_shape[2]     = {pad_x_trans, pad_y_trans};
     int kernel_shape[2]      = {deconv_params_.kernel_x, deconv_params_.kernel_y};
 
-    //output_channel/4, output_width, batch * output_height
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                        static_cast<uint32_t>(output_dims[3]),
-                                        static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-    execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
+    bool is_deconv_4x4_s2_p1_wb4    =
+        (CT_DECONV_DEPTHWISE != deconv_type_ &&
+        deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
+        deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
+        deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
+        deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && output_dims[3] % 4 == 0);
+
+    // output_width * output_channel/4, batch * output_height
+    execute_units_[0].global_work_size = {
+            static_cast<uint32_t>(output_dims[3] * UP_DIV(output_dims[1], 4)),
+            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+
+    if (is_deconv_4x4_s2_p1_wb4) {
+        // output_width/4 * output_channel/4, batch * output_height
+        execute_units_[0].global_work_size[0] =
+            static_cast<uint32_t>(UP_DIV(output_dims[3], 4) * UP_DIV(output_dims[1], 4));
+    }
+
+    execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
 
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
@@ -128,11 +142,16 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(kernel_shape[0] * kernel_shape[1]));
+
+    if (is_deconv_4x4_s2_p1_wb4) {
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(UP_DIV(output_dims[3], 4)));
+    } else {
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(kernel_shape[0] * kernel_shape[1]));
+    }
 
     SetExtraKernelParameters(idx, inputs, outputs);
 
@@ -206,7 +225,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                                                                  deconv_params_.kernel_x * deconv_params_.kernel_y)};
     }
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
@@ -234,7 +253,7 @@ void OpenCLDeconvLayerAccImpl::SetExtraKernelParameters(uint32_t idx, const std:
 
 #if TNN_PROFILE
 double OpenCLDeconvLayerAccImpl::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(input_dims_) * input_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
+    return 2.0 * DimsVectorUtils::Count(input_dims_) * output_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
            deconv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif

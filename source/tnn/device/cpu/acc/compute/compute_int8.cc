@@ -63,36 +63,4 @@ void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<float *> &
     CPU_INT8_CALCULATE(input_ptrs, scale_ptrs, scale_len, output, scale_out, dims, sub_op);
 }
 
-void CPU_DEQUANT(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims) {
-    int batch   = dims[0];
-    int channel = dims[1];
-    int count   = DimsVectorUtils::Count(dims, 2, 4);
-    for (int n = 0; n < batch; n++) {
-        OMP_PARALLEL_FOR_
-        for (int c = 0; c < channel; c++) {
-            int offset    = n * channel * count + c * count;
-            int scale_idx = scale_len == 1 ? 0 : c;
-            for (int hw = 0; hw < dims[2] * dims[3]; hw++) {
-                output[offset + hw] = scale_ptr[scale_idx] * static_cast<float>(input_ptr[offset + hw]);
-            }
-        }
-    }
-}
-
-void CPU_QUANT(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims) {
-    for (int n = 0; n < dims[0]; n++) {
-        OMP_PARALLEL_FOR_
-        for (int c = 0; c < dims[1]; c++) {
-            int offset    = n * dims[1] * dims[2] * dims[3] + c * dims[2] * dims[3];
-            int scale_idx = scale_len == 1 ? 0 : c;
-            for (int hw = 0; hw < dims[2] * dims[3]; hw++) {
-                if (scale_ptr[scale_idx] != 0)
-                    output[offset + hw] = float2int8(input_ptr[offset + hw] / scale_ptr[scale_idx]);
-                else
-                    output[offset + hw] = 0;
-            }
-        }
-    }
-}
-
 }  // namespace TNN_NS

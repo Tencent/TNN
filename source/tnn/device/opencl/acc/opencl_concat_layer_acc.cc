@@ -48,6 +48,10 @@ private:
     ConcatKernelType concat_type_                           = BUFFER_COPY;
 };
 
+bool CheckIsTwoInputs(const size_t input_size, const int axis) {
+    return input_size == 2 && axis == 1;
+}
+
 Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Concat Acc\n");
@@ -75,7 +79,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     LOGD("do_image_concat: %s\n", do_image_concat_ ? "true" : "false");
 
     // choose kernel type
-    if (inputs.size() == 2 && axis_ == 1) {
+    if (CheckIsTwoInputs(inputs.size(), axis_)) {
         if (do_image_concat_) {
             if (gpu_info_.type == ADRENO) {
                 concat_type_ = TWO_INPUTS_CHANNEL_4X;
@@ -173,7 +177,7 @@ Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 #if TNN_PROFILE
 double OpenCLConcatLayerAcc::GetBandwidth() {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int data_type_size            = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    int data_type_size            = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     return DimsVectorUtils::Count(output_dims_) * data_type_size / 1000.0 / 1000.0;
 }
 #endif
@@ -218,7 +222,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
     auto output_dims              = output->GetBlobDesc().dims;
 
     // allocate temp buffers
-    int blob_elem_size = opencl_runtime->GetFp16Enable() ? 2 : 4;
+    int blob_elem_size = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     int output_size    = DimsVectorUtils::Count(output->GetBlobDesc().dims);
     output_buffer_ =
         std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, output_size * blob_elem_size);

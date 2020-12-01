@@ -17,28 +17,16 @@
 namespace TNN_NS {
 
 typedef struct arm_reduce_sum_square_operator : arm_reduce_operator {
-    virtual void DataInit(void *data, size_t count) {
-        memset(data, 0, count * sizeof(float));
+    virtual Float4 PreCalculate(Float4 &v) {
+        return v * v;
     };
 
-    virtual Float4 DataInit() {
-        return Float4(0);
+    virtual float PreCalculate(const float &v) {
+        return v * v;
     };
 
-    virtual Float4 Calculate(Float4 &v, Float4 &t) {
-        return v + t * t;
-    };
-
-    virtual float Calculate(const float &v, const float &t) {
-        return v + t * t;
-    };
-
-    virtual Float4 PostCalculate(const Float4 &v, const Float4 &t) {
-        return v;
-    };
-
-    virtual float PostCalculate(const float &v, const float &t) {
-        return v;
+    virtual bool NeedPreCalculate() {
+        return true;
     };
 } ARM_REDUCE_SUM_SQUARE_OP;
 

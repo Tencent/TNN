@@ -14,7 +14,6 @@
 
 #include "graph/attr_value.h"
 #include "npu_base_layer_convert.h"
-#include "npu_utils.h"
 
 namespace TNN_NS {
 

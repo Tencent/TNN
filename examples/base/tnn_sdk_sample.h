@@ -62,6 +62,19 @@ struct ObjectInfo {
     float IntersectionRatio(ObjectInfo *obj);
 };
 
+struct ImageInfo {
+    ImageInfo();
+    ImageInfo(std::shared_ptr<Mat>mat);
+    ImageInfo(const ImageInfo& info);
+    int image_width = 0;
+    int image_height = 0;
+    int image_channel = 0;
+    // 4-channel image data
+    std::shared_ptr<char> data;
+
+    ImageInfo FlipX();
+};
+
 struct BenchOption {
     int warm_count    = 0;
     int forward_count = 1;
@@ -96,9 +109,10 @@ typedef enum {
     TNNComputeUnitsHuaweiNPU = 2,
 } TNNComputeUnits;
 
-typedef  struct{
-    unsigned char r,g,b,a;
-}RGBA;
+struct RGBA{
+    RGBA(int r = 0, int g = 0, int b = 0, int a = 0) : r(r), g(g), b(b), a(a) {}
+    unsigned char r, g, b, a;
+};
 
 
 extern const std::string kTNNSDKDefaultName;
@@ -181,6 +195,7 @@ protected:
 
     std::vector<std::string> GetInputNames();
     std::vector<std::string> GetOutputNames();
+    std::shared_ptr<Mat> ResizeToInputShape(std::shared_ptr<Mat> input_mat, std::string name);
     
 protected:
     std::shared_ptr<TNN> net_             = nullptr;
@@ -206,6 +221,13 @@ protected:
     std::vector<std::shared_ptr<TNNSDKSample>> sdks_ = {};
     
 };
+
+typedef enum {
+    TNNHardNMS      = 0,
+    TNNBlendingNMS  = 1,
+} TNNNMSType;
+
+void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);

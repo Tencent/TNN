@@ -41,6 +41,13 @@ enum ActivationType {
     ActivationType_None  = 0x0000,
     ActivationType_ReLU  = 0x0001,
     ActivationType_ReLU6 = 0x0002,
+    ActivationType_SIGMOID_MUL = 0x0100,
+};
+
+enum FusionType {
+    FusionType_None                = 0x0000,
+    FusionType_Conv_Add_Activation = 0x0001,
+    FusionType_Conv_Activation_Add = 0x0002,
 };
 
 struct BatchNormLayerParam : public LayerParam {
@@ -69,6 +76,7 @@ struct ConvLayerParam : public LayerParam {
     int group           = 1;
     int bias            = 0;
     int activation_type = ActivationType_None;
+    int fusion_type     = FusionType_None;
 };
 
 struct PadLayerParam : public LayerParam {
@@ -338,7 +346,8 @@ struct LRNLayerParam : public LayerParam {
 
 struct ReorgLayerParam : public LayerParam {
     int stride;
-    bool reverse;
+    bool forward;
+    int mode; // DCR: 0  CRD: 1
 };
 
 struct ConstLayerParam : public LayerParam {
@@ -353,6 +362,17 @@ struct SignedMulLayerParam : public LayerParam {
 
 struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
+};
+
+struct ArgMaxOrMinLayerParam : public LayerParam {
+    int mode;
+    int axis;
+    int keep_dims;
+    int select_last_index;
+};
+
+struct PixelShuffleLayerParam : public LayerParam {
+    int upscale_factor;
 };
 
 }  // namespace TNN_NS

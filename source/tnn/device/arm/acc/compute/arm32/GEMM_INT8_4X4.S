@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit4x4 
 //void GemmInt8Unit4x4(int8_t* src, const int8_t* weight, int8_t* dst, int src_w_step, int dst_depth, 
-//                            int cdiv8, float *scale, int32_t*bias)
+//                            int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale)
 src          .req r0
 weight       .req r1
 dst          .req r2
@@ -29,9 +29,12 @@ dst_depth    .req r4
 cdiv8        .req r5
 scale        .req r6
 bias         .req r7
+relu         .req r8
+add_input    .req r9
+add_scale    .req r10
 
 
-push {r4, r5, r6, r7, r8, lr}
+push {r4, r5, r6, r7, r8, r9, r10, lr}
 
 
 //prefetch data
@@ -39,10 +42,13 @@ push {r4, r5, r6, r7, r8, lr}
 vld1.8 {q12, q13}, [weight]!
 vld1.8 {q14, q15}, [src]!
 
-ldr r4, [sp, #24]
-ldr r5, [sp, #28]
-ldr r6, [sp, #32]
-ldr r7, [sp, #36]
+ldr r4, [sp, #32]
+ldr r5, [sp, #36]
+ldr r6, [sp, #40]
+ldr r7, [sp, #44]
+ldr r8, [sp, #48]
+ldr r9, [sp, #52]
+ldr r10, [sp, #56]
 vpush {q4-q7}
 
 C8Start:
@@ -119,9 +125,7 @@ C8Start:
 LoopEnd: 
     //bias q14, scale q15
     vld1.8 {q14}, [bias]
-    vmov.s32 q12, 0x3f000000
     vld1.8 {q15}, [scale]
-    vmov.s32 q13, 0x3f000000
     //q4 ~ q11  --> q4, q5 
     //c00, c11; c20, c31;  d8 -d11
     //c02, c13; c22, c33;  d12-d15
@@ -147,8 +151,6 @@ LoopEnd:
     vqadd.s32 q1, q14 
     vqadd.s32 q2, q14 
     vqadd.s32 q3, q14 
-    vmov.s32 q4, 0x3f000000
-    vmov.s32 q5, 0x3f000000
 
     //(q2, q3 + bias) * scale --> q0, q1
     vcvt.f32.s32 q0, q0 
@@ -156,16 +158,60 @@ LoopEnd:
     vcvt.f32.s32 q2, q2 
     vcvt.f32.s32 q3, q3 
 
-    vmla.f32 q12, q0, q15
-    vmla.f32 q13, q1, q15
-    vmla.f32 q4,  q2, q15
-    vmla.f32 q5,  q3, q15
+    vmul.f32 q12, q0, q15
+    vmul.f32 q13, q1, q15
+    vmul.f32 q4,  q2, q15
+    vmul.f32 q5,  q3, q15
 
+    cmp relu, #0
+    bge Add
+    vmov.i32 q6,  #0
+    vmax.f32 q12, q6
+    vmax.f32 q13, q6
+    vmax.f32 q4,  q6
+    vmax.f32 q5,  q6
+
+Add:
+    cmp add_input, #0
+    beq Relu
+
+    vld1.s32 d4[0], [add_input], dst_depth
+    vld1.s32 d4[1], [add_input], dst_depth
+    vld1.s32 d6[0], [add_input], dst_depth
+    vld1.s32 d6[1], [add_input]
+    vld1.f32 {q14}, [add_scale]
+
+    vmovl.s8 q0,d4
+    vmovl.s8 q1,d6
+    vmovl.s16 q8,d0
+    vmovl.s16 q9,d1
+    vmovl.s16 q10,d2
+    vmovl.s16 q11,d3
+
+    vcvt.f32.s32 q8, q8
+    vcvt.f32.s32 q9, q9
+    vcvt.f32.s32 q10, q10
+    vcvt.f32.s32 q11, q11
+
+    vmla.f32 q12, q8,  q14
+    vmla.f32 q13, q9,  q14
+    vmla.f32 q4,  q10, q14
+    vmla.f32 q5,  q11, q14
+
+Relu:
     //f32 --> s8
-    vcvt.s32.f32 q12, q12
-    vcvt.s32.f32 q13, q13
-    vcvt.s32.f32 q4, q4
-    vcvt.s32.f32 q5, q5
+    // trick: magic num 12582912.0f
+    ldr r0, .L4
+    vdup.32 q7, r0
+    vadd.f32 q12, q12, q7
+    vadd.f32 q13, q13, q7
+    vadd.f32 q4,  q4,  q7
+    vadd.f32 q5,  q5,  q7
+
+    vsub.s32 q12, q12, q7
+    vsub.s32 q13, q13, q7
+    vsub.s32 q4,  q4,  q7
+    vsub.s32 q5,  q5,  q7
 
     vqmovn.s32 d0,q12
     vqmovn.s32 d1,q13
@@ -173,14 +219,24 @@ LoopEnd:
     vqmovn.s32 d3,q5
     vqmovn.s16 d4,q0
     vqmovn.s16 d6,q1
-    
+
+    cmp relu, #0
+    ble Store
+    vmov.i32 q6,  #0
+    vmax.s8 d4, d12
+    vmax.s8 d6, d12
+
+Store:
     vst1.s32 d4[0], [dst], dst_depth
     vst1.s32 d4[1], [dst], dst_depth
     vst1.s32 d6[0], [dst], dst_depth
     vst1.s32 d6[1], [dst]
     
 vpop {q4-q7}
-pop {r4, r5, r6, r7, r8, pc}
+pop {r4, r5, r6, r7, r8, r9, r10, pc}
+
+.L4:
+    .word 0x4B400000
 
 #endif
 #endif

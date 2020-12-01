@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:debuggable="true" >
+        <activity android:name="com.tencent.tnn.demo.StreamHairSegmentation.StreamHairSegmentationActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:screenOrientation="portrait"
+            android:configChanges="keyboardHidden|orientation|screenSize"/>
         <activity android:name="com.tencent.tnn.demo.StreamBlazeFaceAlign.StreamBlazeFaceAlignActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:windowSoftInputMode="stateAlwaysHidden"

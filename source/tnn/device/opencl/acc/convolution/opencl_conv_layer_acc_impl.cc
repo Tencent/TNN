@@ -18,8 +18,6 @@
 
 namespace TNN_NS {
 
-// (inputs + weights + outputs) * array_size * sizeof(float)
-static const uint32_t kernel_cache_size = (4 + 4 + 4) * 4 * 4;
 // magic number
 static const uint32_t lws_limit = 128;
 
@@ -157,10 +155,10 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         // create weights use clBuffer
         DimsVector filter_buffershape;
         filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
-                            conv_params_.kernel_y, conv_params_.kernel_x};
+                              conv_params_.kernel_y, conv_params_.kernel_x};
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_BUFFER));
         size_t type_size = sizeof(float);
-        if (opencl_runtime->GetFp16Enable())
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
             type_size = 2;
         cl::Buffer *weights_clbuffer =
             new cl::Buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
@@ -182,14 +180,14 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         DimsVector filter_imageshape;
         if (CT_CONV_DEPTHWISE == conv_type_) {
             filter_imageshape = {conv_params_.kernel_x * conv_params_.kernel_y,
-                                (int)(UP_DIV(conv_params_.output_channel, 4))};  // {w,h}
+                                 (int)(UP_DIV(conv_params_.output_channel, 4))};  // {w,h}
         } else {
             filter_imageshape = {conv_params_.input_channel, (int)(UP_DIV(conv_params_.output_channel, 4) *
                                                                    conv_params_.kernel_x * conv_params_.kernel_y)};
         }
 
         cl_channel_type data_type = CL_FLOAT;
-        if (opencl_runtime->GetFp16Enable())
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
             data_type = CL_HALF_FLOAT;
         cl::Image2D *image =
             new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
@@ -216,7 +214,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
 
 #if TNN_PROFILE
 double OpenCLConvLayerAccImpl::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(output_dims_) * output_dims_[1] / conv_params_.group * conv_params_.kernel_x *
+    return 2.0 * DimsVectorUtils::Count(output_dims_) * input_dims_[1] / conv_params_.group * conv_params_.kernel_x *
            conv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif
@@ -238,12 +236,44 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS2D(std::vector<
 }
 
 // local size 3d calculate, special for conv default.
-std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3D(std::vector<uint32_t> &gws,
+std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DKernel3x3(std::vector<uint32_t> &gws,
                                                                     const uint32_t kernel_size,
                                                                     const uint32_t max_workgroup_size) {
+    uint32_t compute_units = std::max<uint32_t>(OpenCLRuntime::GetInstance()->DeviceComputeUnits() / 2, 1);
+    uint64_t cache_size    = OpenCLRuntime::GetInstance()->DeviceGlobalMemeryCacheSize();
+    const uint32_t base    = std::max<uint32_t>(std::min<uint32_t>(cache_size / g_base_gpu_mem_cachesize, 4), 1);
+    // (inputs + weights + outputs) * array_size * sizeof(float)
+    uint32_t kernel_cache_size = is_channel_blocking_ ? (4 + 8 + 8) * 4 * 4 : (4 + 4 + 4) * 4 * 4;
+
+    std::vector<uint32_t> lws(3, 1);
+    if (max_workgroup_size > 0) {
+        lws[1] = std::min<uint32_t>(gws[1], max_workgroup_size);
+        lws[0] = std::min<uint32_t>(std::min<uint32_t>(gws[0], base), max_workgroup_size / lws[1]);
+        const uint32_t lws_size = lws[0] * lws[1];
+
+        lws[2] = std::min<uint32_t>(ROUND_UP(cache_size / kernel_cache_size / lws_size / compute_units, base), gws[2]);
+        if (lws[2] == 0) {
+            lws[2] = std::min<uint32_t>(gws[2], base);
+        }
+        lws[2] = std::max<uint32_t>(std::min<uint32_t>(lws[2], max_workgroup_size / lws_size), 1);
+    }
+
+    LOGD("compute_units : %d , max_workgroup_size : %d\n", compute_units, max_workgroup_size);
+    LOGD("layer: %s conv_common [%d, %d, %d] -- [%d, %d, %d] \n", layer_name_.c_str(), gws[0], gws[1], gws[2], lws[0],
+         lws[1], lws[2]);
+    return lws;
+}
+
+// local size 3d calculate, special for conv default.
+std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DGeneral(std::vector<uint32_t> &gws,
+                                                                    const uint32_t kernel_size,
+                                                                    const uint32_t max_workgroup_size) {
+
     uint32_t compute_units = OpenCLRuntime::GetInstance()->DeviceComputeUnits();
     uint64_t cache_size    = OpenCLRuntime::GetInstance()->DeviceGlobalMemeryCacheSize();
     const uint32_t base    = std::max<uint32_t>(cache_size / g_base_gpu_mem_cachesize, 1);
+    // (inputs + weights + outputs) * array_size * sizeof(float)
+    uint32_t kernel_cache_size = is_channel_blocking_ ? (4 + 8 + 8) * 4 * 4 : (4 + 4 + 4) * 4 * 4;
     LOGD("cache_size: %d\n", (int)cache_size);
     std::vector<uint32_t> lws(3, 1);
     if (max_workgroup_size > 0) {

@@ -99,6 +99,36 @@ void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
 template void PostAddBiasRelu6<float>(void* dst, const float* bias, long area, long oc4);
 template void PostAddBiasRelu6<bfp16_t>(void* dst, const float* bias, long area, long oc4);
 
+template <typename T, bool Fast>
+void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
+    auto f = Fast? Float4::fast_sigmoid : Float4::sigmoid;
+
+    if (!bias) {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p);
+                Float4::save(dst_p, val * f(val));
+            }
+        }
+    } else {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            Float4 vbias = Float4::load(bias + 4 * z);
+            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p) + vbias;
+                Float4::save(dst_p, val * f(val));
+            }
+        }
+    }
+}
+template void PostAddBiasSwish<float, false>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwish<float, true>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, false>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, true>(void* dst, const float* bias, long area, long oc4);
+
 /*
 min(x, clap)
 */
@@ -280,6 +310,17 @@ void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, 
                  reinterpret_cast<const float*>(weight_z), dst_width, 5, 5);
 }
 
+template <typename T>
+void ActiveOutput(T* dst, const Float4* src, long relu, int num) {
+    for (long i = 0; i < num; i++) {
+        if (relu) {
+            Float4::save(dst + i * 4, Float4::max(src[i], Float4(0.f)));
+        } else {
+            Float4::save(dst + i * 4, src[i]);
+        }
+    }
+}
+
 /*
 micro kernel used in gemm like conv, such as conv1x1, conv3x3 winograd
 */
@@ -322,13 +363,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst[7] = v_dst[7] + v_weight[i] * v_src[i][1].value[3];
                 }
             }
-            for (long i = 0; i < 8; i++) {
-                if (relu) {
-                    Float4::save(dst_dx + i * 4, Float4::max(v_dst[i], Float4(0.f)));
-                } else {
-                    Float4::save(dst_dx + i * 4, v_dst[i]);
-                }
-            }
+            ActiveOutput(dst_dx, v_dst, relu, 8);
         }
         // process 4x4 results in one loop
         for (; dx + 3 < width; dx += 4) {
@@ -354,13 +389,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst[3] = v_dst[3] + v_weight[i] * v_src[i].value[3];
                 }
             }
-            for (long i = 0; i < 4; i++) {
-                if (relu) {
-                    Float4::save(dst_dx + i * 4, Float4::max(v_dst[i], Float4(0.f)));
-                } else {
-                    Float4::save(dst_dx + i * 4, v_dst[i]);
-                }
-            }
+            ActiveOutput(dst_dx, v_dst, relu, 4);
         }
         // the process 1x4 results in one loop
         for (; dx < width; ++dx) {
@@ -379,17 +408,13 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst = v_dst + v_weight[i] * v_src.value[i];
                 }
             }
-            if (relu) {
-                Float4::save(dst_dx, Float4::max(v_dst, Float4(0.f)));
-            } else {
-                Float4::save(dst_dx, v_dst);
-            }
+            ActiveOutput(dst_dx, &v_dst, relu, 1);
         }
     }
 }
 
 void GEMM_BFP16_N4(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu) {
+                   long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 

@@ -38,7 +38,7 @@ struct OpenCLProfilingData : public ProfilingData {
 class OpenCLProfileResult : public ProfileResult {
 public:
     virtual ~OpenCLProfileResult();
-    virtual std::string GetProfilingData() override;
+    virtual std::string GetProfilingDataInfo() override;
 };
 #endif
 
@@ -50,6 +50,9 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     Status GetCommandQueue(void **command_queue) override;
+
+    // @brief share tnn command queue to another context
+    Status ShareCommandQueue(Context* context) override;
 
     /**
      * @brief get CommandQueue
@@ -88,6 +91,7 @@ public:
 
 private:
     std::shared_ptr<cl::CommandQueue> command_queue_ = nullptr;
+    std::shared_ptr<cl::CommandQueue> GetCommandQueue();
     OpenCLRuntime *opencl_runtime_ = nullptr;
     unsigned int flush_count_ = 0;
 };

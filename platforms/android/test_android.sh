@@ -16,8 +16,9 @@ ABI="armeabi-v7a"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     export HUAWEI_NPU="ON"
+else 
+    export HUAWEI_NPU="OFF"
 fi
-
 if $NEED_REBUILD
 then
     ../../scripts/build_android.sh -ic
@@ -41,6 +42,7 @@ then
     adb push ${TEST_MODEL_PATH} ${ANDROID_DIR}/test.tnnmodel
 fi
 
+adb shell "echo "${DEVICE}" > $ANDROID_DIR/test.log"
 if [ "$DEVICE" == "HUAWEI_NPU" ]
 then
     echo "Run Huawei Npu"

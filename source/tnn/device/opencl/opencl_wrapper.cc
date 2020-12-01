@@ -36,13 +36,17 @@ static const std::vector<std::string> g_opencl_library_paths = {
     // Mali
     "/system/vendor/lib64/egl/libGLES_mali.so",
     "/system/lib64/egl/libGLES_mali.so",
+    // Pixel Phone
+    "libOpenCL-pixel.so",
 #else
     // Qualcomm Adreno
     "/system/vendor/lib/libOpenCL.so", "/system/lib/libOpenCL.so",
     // Mali
     "/system/vendor/lib/egl/libGLES_mali.so", "/system/lib/egl/libGLES_mali.so",
     // other
-    "/system/vendor/lib/libPVROCL.so", "/data/data/org.pocl.libs/files/lib/libpocl.so"
+    "/system/vendor/lib/libPVROCL.so", "/data/data/org.pocl.libs/files/lib/libpocl.so",
+    // Pixel Phone
+    "libOpenCL-pixel.so",
 #endif
 #elif defined(__linux__)
     "/usr/lib/libOpenCL.so",
@@ -104,10 +108,29 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     if (handle_ == nullptr) {
         return false;
     }
+    bool is_pixel = library_path == "libOpenCL-pixel.so";
+    typedef void* (*loadOpenCLPointer_t)(const char* name);
+    loadOpenCLPointer_t loadOpenCLPointer;
+    if(is_pixel){
+        typedef void (*enableOpenCL_t)();
+        enableOpenCL_t enableOpenCL = reinterpret_cast<enableOpenCL_t>(dlsym(handle_, "enableOpenCL"));
+        if (enableOpenCL == nullptr) {
+            return false;
+        }
+        enableOpenCL();
+        loadOpenCLPointer = reinterpret_cast<loadOpenCLPointer_t>(dlsym(handle_, "loadOpenCLPointer"));
+        if (loadOpenCLPointer == nullptr) {
+            return false;
+        }
+    }
 
 // load function ptr use dlopen and dlsym. if cann't find func_name, will return false.
 #define TNN_LOAD_FUNCTION_PTR(func_name)                                                                               \
-    func_name = reinterpret_cast<func_name##Func>(dlsym(handle_, #func_name));                                         \
+    if(is_pixel){                                                                                                      \
+        func_name = reinterpret_cast<func_name##Func>(loadOpenCLPointer(#func_name));                                  \
+    } else {                                                                                                           \
+        func_name = reinterpret_cast<func_name##Func>(dlsym(handle_, #func_name));                                     \
+    }                                                                                                                  \
     if (func_name == nullptr) {                                                                                        \
         LOGE("load func (%s) from (%s) failed!\n", #func_name, library_path.c_str());                                  \
         return false;                                                                                                  \
