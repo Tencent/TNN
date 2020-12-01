@@ -238,6 +238,9 @@ TEST_P(MatConverterTest, MatConverterTest) {
         CvtColorCheck(device_type, mat_type, mat_converter_type, cvt_type, input_size)) {
         GTEST_SKIP();
     }
+    if (device_type == DEVICE_HUAWEI_NPU) {
+        GTEST_SKIP();
+    }
 
     int output_size;
     GetOutputSize(mat_converter_test_param, mat_converter_type, input_size, output_size);

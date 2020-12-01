@@ -38,31 +38,31 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     bool has_bias      = std::get<4>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
 
     // param
-    LayerParam param;
-    param.name = "BatchNorm";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "BatchNorm";
 
     // resource
-    BatchNormLayerResource resource;
+    std::shared_ptr<BatchNormLayerResource> resource(new BatchNormLayerResource());
     int k_count = share_channel ? 1 : channel;
     RawBuffer filter_k(k_count * sizeof(float));
     float* k_data = filter_k.force_to<float*>();
     InitRandom(k_data, k_count, 1.0f);
-    resource.scale_handle = filter_k;
+    resource->scale_handle = filter_k;
     if (has_bias) {
         RawBuffer bias(k_count * sizeof(float));
         float* bias_data = bias.force_to<float*>();
         InitRandom(bias_data, k_count, 1.0f);
-        resource.bias_handle = bias;
+        resource->bias_handle = bias;
     }
 
-    Run(LAYER_BATCH_NORM, &param, &resource, inputs_desc, outputs_desc);
-    param.name = "Scale";
-    Run(LAYER_SCALE, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
+    auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
+    Run(interpreter1);
+    Run(interpreter2);
 }
 
 }  // namespace TNN_NS

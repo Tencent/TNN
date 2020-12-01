@@ -24,18 +24,18 @@ class HardSigmoidLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSigmoidLayerTest,
                          ::testing::Combine(
-                            // batch
-                            testing::Values(1),
-                            // channel Values(1, 6, 8, 13),
-                            testing::Values(1, 6, 8, 13),
-                            // size Values(1, 6, 8, 13),
-                            testing::Values(6),
-                            // alpha Values(2, 1, 0.5),
-                            testing::Values(2, 1, 0.5),
-                            // beta Values(0, 2, 1.5, 3),
-                            testing::Values(0, 2, 1.5, 3),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                             // batch
+                             testing::Values(1),
+                             // channel Values(1, 6, 8, 13),
+                             testing::Values(1, 6, 8, 13),
+                             // size Values(1, 6, 8, 13),
+                             testing::Values(6),
+                             // alpha Values(2, 1, 0.5),
+                             testing::Values(2, 1, 0.5),
+                             // beta Values(0, 2, 1.5, 3),
+                             testing::Values(0, 2, 1.5, 3),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     // get param
@@ -48,16 +48,20 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     // param
-    HardSigmoidLayerParam param;
-    param.name  = "HardSigmoid";
-    param.alpha = alpha;
-    param.beta  = beta;
+    std::shared_ptr<HardSigmoidLayerParam> param(new HardSigmoidLayerParam());
+    param->name  = "HardSigmoid";
+    param->alpha = alpha;
+    param->beta  = beta;
 
-    Run(LAYER_HARDSIGMOID, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("HardSigmoid", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS
