@@ -36,17 +36,22 @@ int Onnx2TNN::RemoveSqueeze(onnx::GraphProto* mutable_graph, std::vector<IndexNo
 
         const std::string& node_output_name = node->output(0);
         if (output_node_set.find(node_output_name) != output_node_set.end() && i > 0) {
+            bool is_remove = false;
             const auto& node_input_name = node->input(0);
-            auto pre_node               = index_nodes[i - 1].node;
-            for (int j = 0; j < pre_node->output_size(); j++) {
-                if (node_input_name == pre_node->output(j)) {
-                    pre_node->set_output(j, node_output_name);
+            for (int index = i - 1; index >= 0 && !is_remove; index--) {
+                auto pre_node = index_nodes[index].node;
+                for (int j = 0; j < pre_node->output_size(); j++) {
+                    if (node_input_name == pre_node->output(j)) {
+                        pre_node->set_output(j, node_output_name);
+                        is_remove = true;
+                        break;
+                    }
                 }
             }
         }
 
         node->set_op_type(k_tnn_noop_type);
-        if (node_reference.find(node->output(0)) == node_reference.end() || node_reference[node->output(0)] != 1) {
+        if (node_reference.find(node->output(0)) == node_reference.end()) {
             continue;
         }
         RemoveIndexNode(index_nodes, i);
