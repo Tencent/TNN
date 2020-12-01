@@ -19,13 +19,13 @@
 
 namespace TNN_CONVERTER {
 
-DECLARE_OPTIMIZE_PASS(ReshapeConstFolding);
+DECLARE_OPTIMIZE_PASS(AdjustLayerInputs);
 
-std::string TnnOptimizeReshapeConstFoldingPass::PassName() {
-    return "ReshapeConstFolding";
+std::string TnnOptimizeAdjustLayerInputsPass::PassName() {
+    return "AdjustLayerInputs";
 }
 
-TNN_NS::Status TnnOptimizeReshapeConstFoldingPass::exec(TNN_NS::NetStructure& net_structure,
+TNN_NS::Status TnnOptimizeAdjustLayerInputsPass::exec(TNN_NS::NetStructure& net_structure,
                                                         TNN_NS::NetResource& net_resource) {
     auto& layers = net_structure.layers;
     for (auto iter = layers.begin(); iter < layers.end();) {
@@ -40,11 +40,18 @@ TNN_NS::Status TnnOptimizeReshapeConstFoldingPass::exec(TNN_NS::NetStructure& ne
             std::string input_name = cur_layer->inputs[0];
             cur_layer->inputs.resize(1);
             cur_layer->inputs[0] = input_name;
+        } else if (cur_layer->type == TNN_NS::LAYER_UPSAMPLE) {
+            const auto& input_size = cur_layer->inputs.size();
+            if (input_size == 2) {
+                const auto input_name = cur_layer->inputs[0];
+                cur_layer->inputs.resize(1);
+                cur_layer->inputs[0] = input_name;
+            }
         }
         iter++;
     }
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_OPTIMIZE_PASS(ReshapeConstFolding);
+REGISTER_OPTIMIZE_PASS(AdjustLayerInputs);
 }  // namespace TNN_CONVERTER
