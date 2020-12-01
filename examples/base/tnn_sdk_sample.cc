@@ -480,6 +480,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #endif
     } else if (option->compute_units == TNNComputeUnitsOpenvino) {
         device_type_ = TNN_NS::DEVICE_X86;
+    } else if (option->compute_units == TNNComputeUnitsTensorRT) {
+        device_type_ = TNN_NS::DEVICE_CUDA;
     }
     //创建实例instance
     {
@@ -490,6 +492,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
         } else if (device_type_ == TNN_NS::DEVICE_X86) {
             network_config.network_type = NETWORK_TYPE_OPENVINO;
+        } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
+            network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
         auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
 

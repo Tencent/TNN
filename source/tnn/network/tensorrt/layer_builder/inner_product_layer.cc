@@ -30,9 +30,11 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     Weights kernelWeights;
     Weights biasWeights;
     ILayer* last_layer;
+    ILayer* weight_layer;
     if (int8) {
         float weight_scale_value = *(resource->scale_handle.force_to<float*>());
         float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
         kernelWeights.type = nvinfer1::DataType::kFLOAT;
         kernelWeights.values = nullptr;
         kernelWeights.count = 0;
@@ -44,6 +46,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         for (int i = 0; i < resource->weight_handle.GetDataCount(); i++) {
             host_weight[i] = resource->weight_handle.force_to<int8_t*>()[i];
         }
+
         int8Weights.values = (void*)host_weight;
         int8Weights.count = resource->weight_handle.GetDataCount();
 
@@ -100,7 +103,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
         Weights weight_dequant_scale;
         float* weight_dequant_scale_data = (float*)malloc(sizeof(float));
-        *weight_dequant_scale_data = 1 / (weight_scale_value / input_scale_value);
+        *weight_dequant_scale_data = output_scale_value / (weight_scale_value / input_scale_value);
         int8_weight_data.push_back(weight_dequant_scale_data);
         weight_dequant_scale.type = nvinfer1::DataType::kFLOAT;
         weight_dequant_scale.values = (void*)weight_dequant_scale_data;
@@ -116,7 +119,59 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         std::string weight_dequant_layer_name = layer_name_ + "_weight_dequant_";
         weight_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
         weight_dequant_layer->setName(weight_dequant_layer_name.c_str());
-        last_layer = weight_dequant_layer;
+        weight_layer = weight_dequant_layer;
+
+        if (!std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->IsQuantized()) {
+            Weights input_quant_shift;
+            input_quant_shift.type = nvinfer1::DataType::kFLOAT;
+            input_quant_shift.values = nullptr;
+            input_quant_shift.count = 0;
+
+            Weights input_quant_scale;
+            input_quant_scale.type = nvinfer1::DataType::kFLOAT;
+            float* input_quant_scale_data = (float*)malloc(sizeof(float));
+            int8_weight_data.push_back(input_quant_scale_data);
+            *input_quant_scale_data = input_scale_value;
+            input_quant_scale.values = (void*)input_quant_scale_data;
+            input_quant_scale.count = 1;
+
+            Weights input_quant_power;
+            input_quant_power.type = nvinfer1::DataType::kFLOAT;
+            input_quant_power.values = nullptr;
+            input_quant_power.count = 0;
+
+            auto input_quant_layer = network->addScale(*input_tensor, ScaleMode::kUNIFORM,
+                input_quant_shift, input_quant_scale, input_quant_power);
+            std::string input_scale_name = layer_name_ + "_input_quant_";
+            input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
+            input_quant_layer->setName(input_scale_name.c_str());
+
+            Weights input_dequant_shift;
+            input_dequant_shift.type = nvinfer1::DataType::kFLOAT;
+            input_dequant_shift.values = nullptr;
+            input_dequant_shift.count = 0;
+
+            Weights input_dequant_scale;
+            input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
+            float* input_dequant_scale_data = (float*)malloc(sizeof(float));
+            int8_weight_data.push_back(input_dequant_scale_data);
+            *input_dequant_scale_data = 1 / input_scale_value;
+            input_dequant_scale.values = (void*)input_dequant_scale_data;
+            input_dequant_scale.count = 1;
+
+            Weights input_dequant_power;
+            input_dequant_power.type = nvinfer1::DataType::kFLOAT;
+            input_dequant_power.values = nullptr;
+            input_dequant_power.count = 0;
+
+            auto input_dequant_layer = network->addScale(*(input_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
+                input_dequant_shift, input_dequant_scale, input_dequant_power);
+            std::string input_dequant_layer_name = layer_name_ + "_input_dequant_";
+            input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+            input_dequant_layer->setName(input_dequant_layer_name.c_str());
+            std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->SetQuantized();
+            input_tensor = input_dequant_layer->getOutput(0);
+        }
     } else {
         kernelWeights.type = nvinfer1::DataType::kFLOAT;
         kernelWeights.values = resource->weight_handle.force_to<void*>();
@@ -134,7 +189,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     IFullyConnectedLayer* fc_layer = network->addFullyConnected(*input_tensor, paramlist->num_output, kernelWeights, biasWeights);
     if (int8) {
-        fc_layer->setInput(1, *(last_layer->getOutput(0)));
+        fc_layer->setInput(1, *(weight_layer->getOutput(0)));
         fc_layer->setPrecision(nvinfer1::DataType::kINT8);
     }
 
@@ -154,7 +209,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         output_quant_scale.type = nvinfer1::DataType::kFLOAT;
         float* output_quant_scale_data = (float*)malloc(sizeof(float));
         int8_weight_data.push_back(output_quant_scale_data);
-        *output_quant_scale_data = output_scale_value;
+        *output_quant_scale_data = 1;
         output_quant_scale.values = (void*)output_quant_scale_data;
         output_quant_scale.count = 1;
 
@@ -165,9 +220,9 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
         auto output_quant_layer = network->addScale(*(last_layer->getOutput(0)), ScaleMode::kUNIFORM,
             output_quant_shift, output_quant_scale, output_quant_power);
-        std::string output_scale_name1 = layer_name_ + "_output_quant_";
+        std::string output_scale_name = layer_name_ + "_output_quant_";
         output_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
-        output_quant_layer->setName(output_scale_name1.c_str());
+        output_quant_layer->setName(output_scale_name.c_str());
 
         Weights output_dequant_shift;
         output_dequant_shift.type = nvinfer1::DataType::kFLOAT;
@@ -193,6 +248,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
         output_dequant_layer->setName(output_dequant_layer_name.c_str());
         last_layer = output_dequant_layer;
+        std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->SetQuantized();
     }
 
     return last_layer;
@@ -201,3 +257,4 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 REGISTER_TENSORRT_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 }  //  namespace TNN_NS
+

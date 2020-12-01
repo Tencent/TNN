@@ -132,8 +132,12 @@ cd <path_to_tnn>/scripts
   - CUDA (使用10.2及以上版本)
 
 #### TensorRT配置
-  - 下载TensorRT版本(>=7.1)  <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - 下载TensorRT(>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
   - 配置环境变量 `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN配置
+  - 下载CuDNN(>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - 配置环境变量 `export CUDNN_ROOT_DIR=<CuDNN_path>`
 
 ### 2.编译步骤
 1）切换到脚本目录
@@ -184,3 +188,4 @@ cd <path_to_tnn>/scripts
 |TNN_PROFILER_ENABLE| OFF | 性能调试开关，打开后会打印更多性能信息，仅用于调试。|
 |TNN_QUANTIZATION_ENABLE| OFF | 量化工具编译开关|
 |TNN_BENCHMARK_MODE| OFF | benchmark开关，打开后支持model weights文件为空，可自动生成数据。|
+
