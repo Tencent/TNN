@@ -64,7 +64,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     // build ngraph network
     BuildNgraphNetwork(net_structure);
     //////////////////////////////////////////////////////////////
-    ie_.SetConfig({{ CONFIG_KEY(CPU_THREADS_NUM), "1"}}, "CPU");
+    ie_.SetConfig({{CONFIG_KEY(CPU_BIND_THREAD), "NO"}}, "CPU");
     InferenceEngine::IExtensionPtr extensionPtr;
     extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
     ie_.AddExtension(extensionPtr, "CPU");

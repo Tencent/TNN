@@ -13,7 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+
 #include <cmath>
+#include <algorithm>
 
 namespace TNN_NS {
 typedef struct x86_relu_operator : x86_unary_operator {

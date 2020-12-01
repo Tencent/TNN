@@ -16,6 +16,7 @@
 #include "tnn/interpreter/layer_param.h"
 
 #include <math.h>
+#include <algorithm>
 
 namespace TNN_NS {
 typedef struct x86_clip_operator : x86_unary_operator {

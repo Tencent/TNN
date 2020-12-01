@@ -33,7 +33,7 @@ public:
 #else
     virtual float Init() { return 0.f; }
     virtual float PostProcess(const float v, int channel = 1) { return v; };
-    virtual float operator()(const float v1, const float v2) {};
+    virtual float operator()(const float v1, const float v2) {return v1;};
 #endif
 } X86_REDUCE_OP;
 

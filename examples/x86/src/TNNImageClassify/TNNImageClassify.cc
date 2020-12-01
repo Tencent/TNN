@@ -80,6 +80,10 @@ int main(int argc, char** argv) {
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+    if (!data) {
+        fprintf(stderr, "ImageClassifier open file %s failed.\n", input_imgfn);
+    }
+
     std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
     //Init
