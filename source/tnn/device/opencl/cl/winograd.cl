@@ -93,7 +93,7 @@ __kernel void TransformToMatrixV(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     WI_F(matrix_v, (int2)(output_cw_idx, mad24(16, output_bh_idx, 15)), -v13 + v33);
 }
 
-__kernel void MatrixInnerProduct(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_v,
+__kernel void MatrixInnerProduct4x1(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_v,
                                  __read_only image2d_t matrix_u,
                                  __write_only image2d_t matrix_m,
                                  __private const int round_w,
@@ -131,6 +131,82 @@ __kernel void MatrixInnerProduct(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix
     }
 
     WI_F(matrix_m, (int2)(output_cw_idx, output_16_bh_idx), m);
+    
+}
+
+__kernel void MatrixInnerProduct4x4(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_v,
+                                 __read_only image2d_t matrix_u,
+                                 __write_only image2d_t matrix_m,
+                                 __private const int round_w,
+                                 __private const int round_4x4_w,
+                                 __private const int batch_round_h,
+                                 __private const int out_channel_block, 
+                                 __private const int in_channel_block){
+    const int output_cw_block_idx = get_global_id(0); //c/4  w/2/4
+    const int output_16_bh_idx  = get_global_id(1); //16 b h/2
+
+    DEAL_NON_UNIFORM_DIM2(output_cw_block_idx, output_16_bh_idx);
+   
+    const int c_block_idx = output_cw_block_idx / round_4x4_w;
+    const int w_block_idx = output_cw_block_idx - mul24(c_block_idx, round_4x4_w);
+    const int4 w_idx = (int4)(w_block_idx << 2) + (int4)(0,1,2,3);
+
+    const int alpha = output_16_bh_idx % 16;
+    //const int u_bh_idx = mul24(alpha, out_channel_block) + c_block_idx;
+    const int u_bh_idx = mad24(c_block_idx, 16, alpha);
+
+    FLOAT4 m0 = (FLOAT4)(0);
+    FLOAT4 m1 = (FLOAT4)(0);
+    FLOAT4 m2 = (FLOAT4)(0);
+    FLOAT4 m3 = (FLOAT4)(0);
+
+    for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block; ++input_c_block_idx) {
+        const int4 input_c_idx = (int4)(input_c_block_idx << 2) + (int4)(0,1,2,3);
+        int4 v_cw_idx = select(mad24((int4)(input_c_block_idx), (int4)(round_w), w_idx), (int4)(-1), w_idx >= (int4)(round_w));
+        FLOAT4 v_in0 = RI_F(matrix_v, SAMPLER, (int2)(v_cw_idx.s0, output_16_bh_idx));
+        FLOAT4 v_in1 = RI_F(matrix_v, SAMPLER, (int2)(v_cw_idx.s1, output_16_bh_idx));
+        FLOAT4 v_in2 = RI_F(matrix_v, SAMPLER, (int2)(v_cw_idx.s2, output_16_bh_idx));
+        FLOAT4 v_in3 = RI_F(matrix_v, SAMPLER, (int2)(v_cw_idx.s3, output_16_bh_idx));
+        FLOAT4 u_in0 = RI_F(matrix_u, SAMPLER, (int2)(input_c_idx.s0, u_bh_idx));
+        FLOAT4 u_in1 = RI_F(matrix_u, SAMPLER, (int2)(input_c_idx.s1, u_bh_idx));
+        FLOAT4 u_in2 = RI_F(matrix_u, SAMPLER, (int2)(input_c_idx.s2, u_bh_idx));
+        FLOAT4 u_in3 = RI_F(matrix_u, SAMPLER, (int2)(input_c_idx.s3, u_bh_idx));
+
+        m0 = mad(v_in0.s0, u_in0, m0);
+        m0 = mad(v_in0.s1, u_in1, m0);
+        m0 = mad(v_in0.s2, u_in2, m0);
+        m0 = mad(v_in0.s3, u_in3, m0);
+
+        m1 = mad(v_in1.s0, u_in0, m1);
+        m1 = mad(v_in1.s1, u_in1, m1);
+        m1 = mad(v_in1.s2, u_in2, m1);
+        m1 = mad(v_in1.s3, u_in3, m1);
+
+        m2 = mad(v_in2.s0, u_in0, m2);
+        m2 = mad(v_in2.s1, u_in1, m2);
+        m2 = mad(v_in2.s2, u_in2, m2);
+        m2 = mad(v_in2.s3, u_in3, m2);
+
+        m3 = mad(v_in3.s0, u_in0, m3);
+        m3 = mad(v_in3.s1, u_in1, m3);
+        m3 = mad(v_in3.s2, u_in2, m3);
+        m3 = mad(v_in3.s3, u_in3, m3);
+    }
+
+    const int output_cw_idx = mul24(c_block_idx, round_w) + w_idx.s0;
+    WI_F(matrix_m, (int2)(output_cw_idx, output_16_bh_idx), m0);
+
+    if(w_idx.s1 < round_w) {
+        WI_F(matrix_m, (int2)(output_cw_idx + 1, output_16_bh_idx), m1);
+    }
+
+    if(w_idx.s2 < round_w) {
+        WI_F(matrix_m, (int2)(output_cw_idx + 2, output_16_bh_idx), m2);
+    }
+
+    if(w_idx.s3 < round_w) {
+        WI_F(matrix_m, (int2)(output_cw_idx + 3, output_16_bh_idx), m3);
+    }
     
 }
 

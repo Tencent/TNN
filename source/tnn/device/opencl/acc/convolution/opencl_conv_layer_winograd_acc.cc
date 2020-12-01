@@ -29,8 +29,7 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
 
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
     return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->output_channel == 32
-             && input_dims[3] <= 32;
+            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->output_channel * param->input_channel > 1024;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -70,10 +69,18 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     kernel_name = "TransformToMatrixV";
     ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);    
     CHECK_TNN_OK(ret)
-    //kernel MatrixInnerProduct
-    kernel_name = "MatrixInnerProduct";
-    ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);    
-    CHECK_TNN_OK(ret)
+
+    if (use_4x1_) {
+        // kernel MatrixInnerProduct4x1
+        kernel_name = "MatrixInnerProduct4x1";
+        ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
+        CHECK_TNN_OK(ret)
+    } else {
+        // kernel MatrixInnerProduct4x4
+        kernel_name = "MatrixInnerProduct4x4";
+        ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
+        CHECK_TNN_OK(ret)
+    }
     //kernel WinogradTransformDest 
     kernel_name = "TransformFromMatrixM";
     ret         = CreateExecuteUnit(execute_units_[2], program_name, kernel_name, build_options_);
@@ -103,21 +110,27 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     const int batch_round_h = batch * round_up_output_height;
     const int output_channel_blocks = UP_DIV(output_channel, 4);
     const int input_channel_blocks = UP_DIV(input_channel, 4);
+    const int round_up_4x4_ouptut_width = UP_DIV(round_up_ouptut_width, 4);
+
 
     int padding_shape[2]     = {conv_params_.pad_x, conv_params_.pad_y};
-
-
 
     execute_units_[0].global_work_size = {static_cast<uint32_t>(input_channel_blocks * round_up_ouptut_width),
                                         static_cast<uint32_t>(batch_round_h)};
     execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
             execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
 
-    
-    execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
-                                        static_cast<uint32_t>(16 * batch_round_h)};
-    execute_units_[1].local_work_size = Conv2dCommonLocalWS2D(
+    if (use_4x1_) {
+        execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
+                                              static_cast<uint32_t>(16 * batch_round_h)};
+        execute_units_[1].local_work_size  = Conv2dCommonLocalWS2D(
             execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);
+    } else {
+        execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_4x4_ouptut_width),
+                                              static_cast<uint32_t>(16 * batch_round_h)};
+        execute_units_[1].local_work_size  = Conv2dCommonLocalWS2D(
+            execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);
+    }
 
     execute_units_[2].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
                                         static_cast<uint32_t>(batch_round_h)};
@@ -139,18 +152,34 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[0].ocl_kernel.setArg(idx++, round_up_ouptut_width);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
 
-    //kernel MatrixInnerProduct
-    idx = 0;
-    for (auto gws : execute_units_[1].global_work_size) {
-        execute_units_[1].ocl_kernel.setArg(idx++, gws);
+    if (use_4x1_) {
+        // kernel MatrixInnerProduct4x1
+        idx = 0;
+        for (auto gws : execute_units_[1].global_work_size) {
+            execute_units_[1].ocl_kernel.setArg(idx++, gws);
+        }
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+        execute_units_[1].ocl_kernel.setArg(idx++, batch_round_h);
+        execute_units_[1].ocl_kernel.setArg(idx++, output_channel_blocks);
+        execute_units_[1].ocl_kernel.setArg(idx++, input_channel_blocks);
+    } else {
+        // kernel MatrixInnerProduct4x4
+        idx = 0;
+        for (auto gws : execute_units_[1].global_work_size) {
+            execute_units_[1].ocl_kernel.setArg(idx++, gws);
+        }
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
+        execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
+        execute_units_[1].ocl_kernel.setArg(idx++, round_up_4x4_ouptut_width);
+        execute_units_[1].ocl_kernel.setArg(idx++, batch_round_h);
+        execute_units_[1].ocl_kernel.setArg(idx++, output_channel_blocks);
+        execute_units_[1].ocl_kernel.setArg(idx++, input_channel_blocks);
     }
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
-    execute_units_[1].ocl_kernel.setArg(idx++, batch_round_h);
-    execute_units_[1].ocl_kernel.setArg(idx++, output_channel_blocks);
-    execute_units_[1].ocl_kernel.setArg(idx++, input_channel_blocks);
 
     //kernel TransformFromMatrixM
     idx = 0;
