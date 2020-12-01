@@ -40,7 +40,7 @@ TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TN
 
 TNN_NS::Status TnnOptimizer::PostOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     // pre optimize
-    std::vector<std::string> pre_optimize_pass = {"ConstantFolding", "AdjustLayerInputs"};
+    std::vector<std::string> pre_optimize_pass = {"ConstantFolding", "AdjustLayerInputs", "EliminateReformatNode"};
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {

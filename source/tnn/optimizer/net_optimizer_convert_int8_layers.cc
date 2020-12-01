@@ -41,9 +41,9 @@ namespace optimizer {
         auto device = net_config.device_type;
         if (device == DEVICE_ARM || device == DEVICE_NAIVE) {
             one_direction_layers_.insert(LAYER_RELU);
-            // one_direction_layers_.insert(LAYER_UPSAMPLE);
+            one_direction_layers_.insert(LAYER_UPSAMPLE);
             two_direction_layers_.insert(LAYER_ADD);
-            // two_direction_layers_.insert(LAYER_CONCAT);
+            two_direction_layers_.insert(LAYER_CONCAT);
             return true;
         }
         return false;
@@ -127,6 +127,9 @@ namespace optimizer {
                     }
                 }
                 // convert to int8 layer
+                std::string type_name = "Quantized" + cur_layer->type_str;
+                cur_layer->type = GlobalConvertLayerType(type_name);
+                cur_layer->type_str = type_name;
                 cur_layer->param->quantized = true;
                 LOGD("Convert to int8 layer: type %s name %s\n", cur_layer->type_str.c_str(), cur_layer->name.c_str());
                 ++count;
@@ -162,6 +165,9 @@ namespace optimizer {
             }
             if (can_convert_to_int8) {
                 // convert to int8 layer
+                std::string type_name = "Quantized" + cur_layer->type_str;
+                cur_layer->type = GlobalConvertLayerType(type_name);
+                cur_layer->type_str = type_name;
                 cur_layer->param->quantized = true;
                 LOGD("Convert to int8 layer: type %s name %s\n", cur_layer->type_str.c_str(), cur_layer->name.c_str());
                 ++count;

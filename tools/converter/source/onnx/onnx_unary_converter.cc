@@ -20,7 +20,11 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Unary);
 
 std::string OnnxUnaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return node.op_type();
+    if (node.op_type() == "Relu") {
+        return "ReLU";
+    } else {
+        return node.op_type();
+    }
 }
 
 TNN_NS::ActivationType OnnxUnaryConverter::ActivationType(const onnx::NodeProto &node) {
