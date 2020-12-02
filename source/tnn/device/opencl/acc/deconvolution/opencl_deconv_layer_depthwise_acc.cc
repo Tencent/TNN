@@ -42,6 +42,8 @@ Status OpenCLDeconvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, 
         build_options.emplace("-DRELU");
     } else if (deconv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (deconv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "DepthwiseDeconv2D";
 

@@ -19,18 +19,30 @@
 
 namespace TNN_NS {
 
-class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {
-};
+static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam param) {
+    std::ostringstream ostr;
+    ostr << "\"" << op_type << " layer_name 1 1 input output " << param.keep_dims << " ";
+    for (auto axis : param.axis) {
+        ostr << axis << " ";
+    }
+    ostr << ",\"";
+    return ostr.str();
+}
+
+class ReduceOpLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
-                                            testing::Values(9, 10, 16, 19, 512),
+                         ::testing::Combine(testing::Values(1), 
+                                            testing::Values(2, 3, 9, 128),
+                                            testing::Values(9, 10, 19, 128),
+                                            testing::Values(9, 10, 19, 128),
                                             // axis
-                                            testing::Values(std::vector<int>({1}), std::vector<int>({3}),
-                                                            std::vector<int>({1, 2}), std::vector<int>({1, -1}),
-                                                            std::vector<int>({3, -2}), std::vector<int>({1, -2, -1})),
+                                            testing::Values(std::vector<int>({1}), std::vector<int>({2}),
+                                                            std::vector<int>({3}), std::vector<int>({1, 2}),
+                                                            std::vector<int>({1, -1}), std::vector<int>({3, -2}),
+                                                            std::vector<int>({1, -2, -1})),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -40,44 +52,47 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int channel        = std::get<1>(GetParam());
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
-    auto& axes         = std::get<4>(GetParam());
+    auto& axis         = std::get<4>(GetParam());
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
-        (channel == 512 && input_width == 512)) {
+    // only test one case for large inputs
+    if ((channel == 128 && (input_height > 9 || input_width > 9)) ||
+        (input_width == 128 && (channel > 2 || input_height > 9)) ||
+        (input_height == 128 && (channel > 2 || input_width > 9))) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    ReduceMaxLayerParam param;
-    param.name = "ReduceOp";
-    param.axis = axes;
+    std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
+    param->name = "ReduceOp";
+    param->axis = axis;
 
-    // all reduce different op layer run
-    Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MIN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MEAN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_L1, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_L2, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM_EXP, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_PROD, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM_SQUARE, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+
+    if (DEVICE_HUAWEI_NPU != dev) {
+        auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
+        Run(interpreter1);
+        auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param);
+        Run(interpreter2);
+        auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
+        Run(interpreter3);
+        auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+        Run(interpreter5);
+        auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+        Run(interpreter6);
+        auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+        Run(interpreter7);
+        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+        Run(interpreter8);
+        auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+        Run(interpreter10);
+    }
+    auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
+    Run(interpreter4);
+    auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
+    Run(interpreter9);
 }
 
 }  // namespace TNN_NS
