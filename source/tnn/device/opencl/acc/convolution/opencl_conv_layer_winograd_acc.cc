@@ -30,7 +30,7 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
     return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
             param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->output_channel * param->input_channel >= 1024 &&
-            input_dims[3] > 8 && input_dims[3] <= 72;
+            input_dims[3] >= 8 && input_dims[3] <= 72;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -64,7 +64,12 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
 
     //create kernels 
     execute_units_.resize(3);
-    std::string program_name = "winograd";
+    std::string program_name;
+    if(transform_inner_) {
+        program_name = "winograd";
+    } else {
+        program_name = "winograd_outer";
+    }
     std::string kernel_name;
     //kernel WinogradTransformSource
     kernel_name = "TransformToMatrixV";
@@ -203,7 +208,7 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
     const int kernel_size       = conv_params_.kernel_x;
     int unit_output = UNIT;
     int unit_input = UNIT + kernel_size - 1;
-    WinogradGenerator generator(unit_output, kernel_size, 1.0f, true);
+    WinogradGenerator generator(unit_output, kernel_size, 1.0f, transform_inner_);
     auto transform_weight =  generator.allocTransformWeight(output_channel, input_channel, kernel_size, kernel_size, 4, 4);
     // if filter handle is half, need convert to float first.
     auto filter_data = GetFloatFromRawBuffer(raw_handle);
