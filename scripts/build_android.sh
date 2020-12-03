@@ -1,20 +1,21 @@
 #!/bin/bash
 
-#ABIA32="armeabi-v7a with NEON"
+ABIA32="armeabi-v7a with NEON"
+OPENCL="ON"
+DEBUG="OFF"
+ARM="ON"
+OPENMP="ON"
+
 ABIA32="armeabi-v7a"
 ABIA64="arm64-v8a"
 STL="c++_static"
 #STL="gnustl_static"
 SHARED_LIB="ON"
-ARM="ON"
-OPENMP="ON"
-OPENCL="ON"
 #HUAWEI_NPU="ON"
 if [ -z "$HUAWEI_NPU" ]; then
     HUAWEI_NPU="OFF"
 fi
-BENMARK_MODE="OFF"
-DEBUG="OFF"
+BENMARK_MODE="ON"
 INCREMENTAL_COMPILE="OFF"
 SHARING_MEM_WITH_OPENGL=0
 ANDROID_API_LEVEL="android-14"
