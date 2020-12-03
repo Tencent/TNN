@@ -40,23 +40,26 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (mode == 1 && forward == 0) {
         // illegal case
         GTEST_SKIP();
     }
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
 
     // param
-    ReorgLayerParam param;
-    param.name    = "Reorg";
-    param.stride  = stride;
-    param.forward = forward;
-    param.mode    = mode;
+    std::shared_ptr<ReorgLayerParam> param(new ReorgLayerParam());
+    param->name    = "Reorg";
+    param->stride  = stride;
+    param->forward = forward;
+    param->mode    = mode;
 
-    // resource
-    Run(LAYER_REORG, &param, NULL, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Reorg", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

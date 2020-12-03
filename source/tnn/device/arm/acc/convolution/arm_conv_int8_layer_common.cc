@@ -17,6 +17,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -131,12 +132,61 @@ Status ArmConvInt8LayerCommon::allocateBufferScale(const std::vector<Blob *> &in
             int scale_idx_w = scale_len_w == 1 ? 0 : i;
             int scale_idx_o = scale_len_o == 1 ? 0 : i;
 
+            if (w_scale[scale_idx_w] < 0.0f || o_scale[scale_idx_o] < 0.0f) {
+                return Status(TNNERR_PARAM_ERR, "int8-blob scale can not be negative");
+            }
+
             if (o_scale[scale_idx_o] >= FLT_MIN)
                 temp_ptr[i] = w_scale[scale_idx_w] / o_scale[scale_idx_o];
             else
                 temp_ptr[i] = 0.0;
         }
         buffer_scale_ = temp_buffer;
+    }
+
+    return TNN_OK;
+}
+
+Status ArmConvInt8LayerCommon::allocateBufferAddScale(const std::vector<Blob *> &inputs,
+                                                      const std::vector<Blob *> &outputs) {
+    ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    CHECK_PARAM_NULL(conv_res);
+
+    if (DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims) !=
+        DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims)) {
+        return Status(TNNERR_LAYER_ERR, "Conv-Add fusion does not support broadcast-add");
+    }
+
+    // alloc add scale buffer
+    if (!buffer_add_scale_.GetBytesSize()) {
+        auto dims_output = outputs[0]->GetBlobDesc().dims;
+        int total_byte_size =
+            ROUND_UP(dims_output[1], 4) * DataTypeUtils::GetBytesSize(conv_res->scale_handle.GetDataType());
+
+        const float *i_scale =
+            reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource()->scale_handle.force_to<float *>();
+
+        const float *o_scale =
+            reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.force_to<float *>();
+
+        int scale_len_i = reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource()->scale_handle.GetDataCount();
+        int scale_len_o = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.GetDataCount();
+        RawBuffer temp_buffer(total_byte_size);
+        float *temp_ptr = temp_buffer.force_to<float *>();
+        for (int i = 0; i < dims_output[1]; i++) {
+            int scale_idx_i = scale_len_i == 1 ? 0 : i;
+            int scale_idx_o = scale_len_o == 1 ? 0 : i;
+
+            if (i_scale[scale_idx_i] < 0.0f || o_scale[scale_idx_o] < 0.0f) {
+                return Status(TNNERR_PARAM_ERR, "int8-blob scale can not be negative");
+            }
+
+            if (o_scale[scale_idx_o] >= FLT_MIN)
+                temp_ptr[i] = i_scale[scale_idx_i] / o_scale[scale_idx_o];
+            else
+                temp_ptr[i] = 0.0;
+        }
+        buffer_add_scale_ = temp_buffer;
     }
 
     return TNN_OK;
@@ -168,13 +218,15 @@ Status ArmConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &in
         buffer_im2col_          = temp_buffer_i2c;
         buffer_gemm_work_space_ = temp_buffer_ws;
     }
+    const int oc_round4   = ROUND_UP(output_channel, 4);
+    const int buffer_size = oc_round4 * NEON_INT8CONV_TILE_HW * max_num_threads;
     if (!buffer_tmpout_.GetBytesSize()) {
-        const int oc_round4   = ROUND_UP(output_channel, 4);
-        const int buffer_size = oc_round4 * NEON_INT8CONV_TILE_HW * max_num_threads;
-
         RawBuffer temp_buffer(buffer_size);
-        memset(temp_buffer.force_to<void *>(), 0, buffer_size);
         buffer_tmpout_ = temp_buffer;
+    }
+    if (conv_param->fusion_type != FusionType_None && !buffer_add_tmpin_.GetBytesSize()) {
+        RawBuffer temp_buffer(buffer_size);
+        buffer_add_tmpin_ = temp_buffer;
     }
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     return TNN_OK;
@@ -186,7 +238,7 @@ Status ArmConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &in
     int oy   = x_id / kparam->ow;                                                                                      \
     int sx   = ox * param->strides[0] - param->pads[0];                                                                \
     int sy   = oy * param->strides[1] - param->pads[2];                                                                \
-    int sfy  = MAX(0, (UP_DIV(-sy, param->dialations[0])));                                                            \
+    int sfy  = MAX(0, (UP_DIV(-sy, param->dialations[1])));                                                            \
     int efy  = MIN(kh, UP_DIV(kparam->ih - sy, param->dialations[1]));                                                 \
     int sfx  = MAX(0, (UP_DIV(-sx, param->dialations[0])));                                                            \
     int efx  = MIN(kw, UP_DIV(kparam->iw - sx, param->dialations[0]));                                                 \
@@ -204,15 +256,23 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
     memset(dst, 0, col_buffer_size);
     auto kh = param->kernels[1];
     auto kw = param->kernels[0];
+    auto dilate_y = param->dialations[1];
+    auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
         DEF_IMG2COL_VAL;
 
         auto dst_i        = dst + crs_r8 * i;
-        auto input_offset = src + (sx + sfx + (sy + sfy) * kparam->iw) * src_w_step;
+        auto input_offset = src + (sx + sfx * dilate_x + (sy + sfy * dilate_y) * kparam->iw) * src_w_step;
         auto idx_offset   = (sfy * kw + sfx) * kparam->ic_r4;
         for (int fy = 0; fy < fyC; ++fy) {
-            auto src_i = input_offset + fy * kparam->iw * src_w_step;
-            memcpy(dst_i + idx_offset + fy * kw * kparam->ic_r4, src_i, kparam->ic_r4 * fxC);
+            auto dst_y = dst_i + idx_offset + fy * kw * kparam->ic_r4;
+            auto src_y = input_offset + fy * kparam->iw * kparam->ic_r4 * dilate_y;
+            for (int fx = 0; fx < fxC; ++fx) {
+                auto dst_x = dst_y + fx * kparam->ic_r4;
+                auto src_x = src_y + fx * dilate_x * kparam->ic_r4;
+                memcpy(dst_x, src_x, kparam->ic_r4);
+            }
+
         }
     }
 }
@@ -229,22 +289,47 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     memset(dst, 0, col_buffer_size);
     auto kh = param->kernels[1];
     auto kw = param->kernels[0];
+    auto dilate_y = param->dialations[1];
+    auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
         DEF_IMG2COL_VAL;
 
         auto dst_i        = dst + crs_r8 * i;
-        auto input_offset = src + (sx + sfx + (sy + sfy) * kparam->iw) * src_w_step;
+        auto input_offset = src + (sx + sfx * dilate_x + (sy + sfy * dilate_y) * kparam->iw) * src_w_step;
         auto idx_offset   = (sfy * kw + sfx) * REALC;
         for (int fy = 0; fy < fyC; ++fy) {
+            auto dst_y = dst_i + idx_offset + fy * kw * REALC;
+            auto src_y = input_offset + fy * kparam->iw * src_w_step * dilate_y;
             for (int fx = 0; fx < fxC; fx++) {
-                auto src_c = input_offset + fy * kparam->iw * src_w_step + fx * src_w_step;
-                auto dst_c = dst_i + idx_offset + fy * kw * REALC + fx * REALC;
+                auto dst_x = dst_y + fx * REALC;
+                auto src_x = src_y + fx * src_w_step * dilate_x;
                 for (int c = 0; c < REALC; c++) {
-                    dst_c[c] = src_c[c];
+                    dst_x[c] = src_x[c];
                 }
             }
         }
     }
+}
+
+Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
+                                              const std::vector<Blob *> &outputs) {
+    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
+    CHECK_PARAM_NULL(conv_param);
+
+    // fused add input
+    if (conv_param->fusion_type != FusionType_None) {
+        RETURN_ON_NEQ(allocateBufferAddScale(inputs, outputs), TNN_OK);
+    }
+
+    // only support relu activation
+    if (conv_param->activation_type == ActivationType_ReLU) {
+        relu_ = 1;
+        if (conv_param->fusion_type == FusionType_Conv_Activation_Add) {
+            relu_ = -1;
+        }
+    }
+
+    return TNN_OK;
 }
 
 Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -253,6 +338,7 @@ Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferScale(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(setFusionParam(inputs, outputs), TNN_OK);
 
     // init base k_param_
     k_param_->scale   = buffer_scale_.force_to<float *>();
@@ -292,6 +378,7 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     CHECK_PARAM_NULL(conv_param);
     auto input  = inputs[0];
     auto output = outputs[0];
+    auto add_input = (conv_param->fusion_type == FusionType_None) ? nullptr : inputs[1];
 
     DataType data_type = output->GetBlobDesc().data_type;
     int data_byte_size = DataTypeUtils::GetBytesSize(data_type);
@@ -304,12 +391,14 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
     int8_t *input_data  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
     int8_t *output_data = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+    int8_t *add_input_data = add_input ? reinterpret_cast<int8_t *>(GetBlobHandlePtr(add_input->GetHandle())) : nullptr;
 
     const int crs_div8   = UP_DIV(ic_calc * conv_param->kernels[1] * conv_param->kernels[0], 8);
     const int tile_count = UP_DIV(k_param_->oh * k_param_->ow, NEON_INT8CONV_TILE_HW);
     for (int n = 0; n < batch; ++n) {
         const auto input_batch = input_data + n * k_param_->iw * k_param_->ih * k_param_->ic_r4;
         auto output_batch      = output_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4;
+        auto add_input_batch   = add_input_data ? add_input_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4 : nullptr;
 
         OMP_PARALLEL_FOR_GUIDED_
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
@@ -326,23 +415,25 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                 input_kernel = input_batch + hw_start * ic_calc;
             }
             auto output_kernel = output_batch + hw_start * k_param_->oc_r4;
+            auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * k_param_->oc_r4 : nullptr;
             // gemm int8
             if (real_hw_tile == NEON_INT8CONV_TILE_HW) {
                 GemmInt8(output_kernel, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4);
+                         k_param_->oc_r4, relu_, add_input_kernel, buffer_add_scale_.force_to<float *>());
             } else {
                 int8_t *outptr_tmp =
                     buffer_tmpout_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
+                int8_t *add_input_ptr_tmp = nullptr;
+                if (add_input_kernel) {
+                    add_input_ptr_tmp = buffer_add_tmpin_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
+                    memcpy(add_input_ptr_tmp, add_input_kernel, real_hw_tile * k_param_->oc_r4);
+                }
                 GemmInt8(outptr_tmp, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4);
+                         k_param_->oc_r4, relu_, add_input_ptr_tmp, buffer_add_scale_.force_to<float *>());
                 memcpy(output_kernel, outptr_tmp, real_hw_tile * k_param_->oc_r4);
             }
-        }
-        // only support relu activation
-        if (conv_param->activation_type == ActivationType_ReLU) {
-            ReluInt8(output_batch, output_batch, k_param_->ow * k_param_->oh * k_param_->oc_r4);
         }
     }
     return TNN_OK;

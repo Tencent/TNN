@@ -29,16 +29,16 @@ namespace TNN_NS {
 
 template <typename T>
 void GEMM_FUNC(T *dst, const T *src, const float *weight, int src_depth_quad, int dst_step, int dst_depth_quad,
-               int width, float *bias, int64_t relu);
+               int width, float *bias, long relu);
 
 void set_block_size(int &a_block, int &b_block, int l2_size, const int plane_num, const int oc_r4, const int ic_r4,
                     int byte_size);
 template <typename T>
 void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 
 }  // namespace TNN_NS
 

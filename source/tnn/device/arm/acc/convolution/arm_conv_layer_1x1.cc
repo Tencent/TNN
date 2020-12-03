@@ -165,10 +165,12 @@ Status ArmConvLayer1x1::Exec(const std::vector<Blob *> &inputs, const std::vecto
         */
         if (plane_num > oc4 * 4) {
             sgemm_repack_lhs(output_ptr, input_ptr, buffer_weight_.force_to<float *>(), ic4, oc4, plane_num, dst_z_step,
-                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type);
+                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type,
+                             context_->GetPrecision() != PRECISION_HIGH);
         } else {
             sgemm_repack_rhs(output_ptr, input_ptr, buffer_weight_.force_to<float *>(), ic4, oc4, plane_num, dst_z_step,
-                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type);
+                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type,
+                             context_->GetPrecision() != PRECISION_HIGH);
         }
     }
 

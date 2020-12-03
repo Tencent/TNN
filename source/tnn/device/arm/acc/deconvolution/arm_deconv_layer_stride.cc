@@ -29,8 +29,12 @@ bool ArmDeconvLayerStride::isPrefered(ConvLayerParam *param, const std::vector<B
     if (!param)
         return false;
 
-    return param->group == 1 && param->strides[0] > 1 && param->strides[1] > 1 && param->dialations[0] == 1 &&
-           param->dialations[1] == 1 && param->kernels[0] >= param->strides[0] && param->kernels[1] >= param->strides[1];
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+
+    return param->group == 1 && input_dims[1] >= 64 &&
+           param->strides[0] > 1 && param->strides[1] > 1 &&
+           param->dialations[0] == 1 && param->dialations[1] == 1 &&
+           param->kernels[0] >= param->strides[0] && param->kernels[1] >= param->strides[1];
 }
 
 Status ArmDeconvLayerStride::Init(Context *context, LayerParam *param, LayerResource *resource,
