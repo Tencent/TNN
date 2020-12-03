@@ -27,10 +27,23 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
         return false;
     }
 
+    if(param->group != 1) {
+        return false;
+    }
+
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    auto image2d_max_size = opencl_runtime->GetImage2dMaxSize();
+    int image2d_max_height = image2d_max_size[1];
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
-    return param->group == 1 && param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && param->output_channel * param->input_channel >= 1024 &&
-            input_dims[3] >= 8 && input_dims[3] <= 72;
+
+    if(UP_DIV(param->output_channel, 4) * 16 > image2d_max_height || 
+        input_dims[0] * UP_DIV(input_dims[2], 2) * 16 > image2d_max_height) {
+        return false;
+    }
+
+    return  param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
+            param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && 
+            param->output_channel >=32 && param->input_channel >= 32 && input_dims[3] <= 128;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,

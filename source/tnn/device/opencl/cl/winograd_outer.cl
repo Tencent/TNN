@@ -192,7 +192,7 @@ __kernel void MatrixInnerProduct4x4(GLOBAL_SIZE_2_DIMS __read_only image2d_t mat
         m3 = mad(v_in3.s3, u_in3, m3);
     }
 
-    const int output_cw_idx = mul24(c_block_idx, round_w) + w_idx.s0;
+    const int output_cw_idx = mad24(c_block_idx, round_w, w_idx.s0);
     WI_F(matrix_m, (int2)(output_cw_idx, output_16_bh_idx), m0);
 
     if(w_idx.s1 < round_w) {
