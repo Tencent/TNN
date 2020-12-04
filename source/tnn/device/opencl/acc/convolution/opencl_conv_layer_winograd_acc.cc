@@ -78,19 +78,15 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     //create kernels 
     execute_units_.resize(3);
     std::string program_name;
-    if(transform_inner_) {
-        program_name = "winograd";
-    } else {
-        program_name = "winograd_outer";
-    }
+    program_name = "winograd";
     std::string kernel_name;
     //kernel WinogradTransformSource
     kernel_name = "TransformToMatrixV";
     ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);    
     CHECK_TNN_OK(ret)
 
-    // kernel MatrixInnerProduct4x4
-    kernel_name = "MatrixInnerProduct4x4";
+    // kernel MatrixInnerProduct
+    kernel_name = "MatrixInnerProduct";
     ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
     CHECK_TNN_OK(ret)
 
@@ -156,7 +152,7 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[0].ocl_kernel.setArg(idx++, round_up_ouptut_width);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
 
-    // kernel MatrixInnerProduct4x4
+    // kernel MatrixInnerProduct
     idx = 0;
     for (auto gws : execute_units_[1].global_work_size) {
         execute_units_[1].ocl_kernel.setArg(idx++, gws);
