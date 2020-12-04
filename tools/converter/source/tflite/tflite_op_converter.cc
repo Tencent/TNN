@@ -45,13 +45,14 @@ void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TF
 
 TNN_NS::Status TFLiteOpConverter::SeparateActivation(TNN_NS::NetStructure& net_structure,
                                                      tflite::ActivationFunctionType activation_function_type) {
-    if (activation_function_type == tflite::ActivationFunctionType_NONE) {
+    auto& layers = net_structure.layers;
+    auto& layer  = layers.back();
+    if (activation_function_type == tflite::ActivationFunctionType_NONE || layer->type == TNN_NS::LAYER_CONVOLUTION ||
+        layer->type == TNN_NS::LAYER_DECONVOLUTION) {
         return TNN_NS::TNN_CONVERT_OK;
     }
-    auto& layers                         = net_structure.layers;
     const std::string conv_output_suffix = "_output";
     const std::string activation_suffix  = "_activation";
-    auto& layer                          = layers.back();
     if (activation_function_type == tflite::ActivationFunctionType_RELU ||
         activation_function_type == tflite::ActivationFunctionType_RELU6) {
         auto activation_layer = new TNN_NS::LayerInfo;
