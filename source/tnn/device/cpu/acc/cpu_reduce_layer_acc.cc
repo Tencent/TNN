@@ -40,6 +40,7 @@ Status CalculateReduceDims(Blob *input_blob, ReduceLayerParam *layer_param,
 }
 
 Status CpuReduceLayerAcc::PreCalculateReduce(float *dst, float *src, int count) {
+    ::memcpy(dst, src, count * sizeof(float));
     return TNN_OK;
 }
 
@@ -79,11 +80,10 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
         int input_count            = DimsVectorUtils::Count(input_dims);
-        float *save_input_data_ptr = new float[input_count];
-        memcpy(save_input_data_ptr, input_data, input_count * sizeof(float));
-        PreCalculateReduce(input_data, input_data, input_count);
+        float* pre_cal_reduce_result = new float[input_count];
+        PreCalculateReduce(pre_cal_reduce_result, input_data, input_count);
 
-        float *src       = input_data;
+        float *src       = pre_cal_reduce_result;
         float *tmp_ptr   = nullptr;
         bool release_mem = false;
         for (int i = 0; i < reduce_dims.size(); ++i) {
@@ -105,8 +105,7 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         if (release_mem || reduce_dims.size() == 1) {
             delete[] src;
         }
-        memcpy(input_data, save_input_data_ptr, input_count * sizeof(float));
-        delete[] save_input_data_ptr;
+        delete[] pre_cal_reduce_result;
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
