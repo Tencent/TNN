@@ -53,8 +53,8 @@ Status MetalConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
                 auto conv_acc = make_shared<MetalConvLayerDepthwise>();
                 conv_acc->Init(context_, param_, resource_, inputs, outputs);
                 conv_acc_impl_ = conv_acc;
-                break;
             }
+            break;
         }
 
         if (MetalConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
@@ -62,8 +62,8 @@ Status MetalConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
                 auto conv_acc = make_shared<MetalConvLayer1x1>();
                 conv_acc->Init(context_, param_, resource_, inputs, outputs);
                 conv_acc_impl_ = conv_acc;
-                break;
             }
+            break;
         }
 
         if (MetalConvLayerWinograd::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
@@ -71,8 +71,8 @@ Status MetalConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
                 auto conv_acc = make_shared<MetalConvLayerWinograd>();
                 conv_acc->Init(context_, param_, resource_, inputs, outputs);
                 conv_acc_impl_ = conv_acc;
-                break;
             }
+            break;
         }
     } while (0);
 
