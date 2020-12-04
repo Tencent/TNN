@@ -194,7 +194,7 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
     const int kernel_size       = conv_params_.kernel_x;
     int unit_output = UNIT;
     int unit_input = UNIT + kernel_size - 1;
-    WinogradGenerator generator(unit_output, kernel_size, 1.0f, transform_inner_);
+    WinogradGenerator generator(unit_output, kernel_size, 1.0f);
     auto transform_weight =  generator.allocTransformWeight(output_channel, input_channel, kernel_size, kernel_size, 4, 4);
     // if filter handle is half, need convert to float first.
     auto filter_data = GetFloatFromRawBuffer(raw_handle);
