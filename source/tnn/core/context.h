@@ -40,11 +40,17 @@ public:
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
     
-    // @brief befor instace forword
+    // @brief before instace forword
     virtual Status OnInstanceForwardBegin();
 
     // @brief after instace forword
     virtual Status OnInstanceForwardEnd() = 0;
+
+    // @brief before instance Reshape
+    virtual Status OnInstanceReshapeBegin();
+
+    // @brief after instace Reshape
+    virtual Status OnInstanceReshapeEnd();
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() = 0;
@@ -52,11 +58,13 @@ public:
     // @brief set threads run on device
     virtual Status SetNumThreads(int num_threads);
 
-    // @brief set precision to run on device
-    virtual Status SetPrecision(Precision precision);
+    void SetPrecision(Precision precision);
 
-    // @brief get precision to run on device
-    virtual Precision GetPrecision();
+    Precision GetPrecision();
+
+    void SetEnableTuneKernel(bool enalbe_tune_kernel);
+
+    bool GetEnableTuneKernel();
 
 #if TNN_PROFILE
 public:
@@ -72,6 +80,7 @@ protected:
 
 protected:
     Precision precision_ = PRECISION_AUTO;
+    bool enable_tune_kernel_ = true;
 };
 
 }  // namespace TNN_NS

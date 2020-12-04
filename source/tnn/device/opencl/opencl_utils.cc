@@ -41,6 +41,18 @@ std::vector<int> GetImageShape(const OpenCLMemory *image) {
 }
 
 // get kernel run time info.
+void GetKernelTime(const cl::Event *event, double &kernel_time) {
+    cl_int error = CL_SUCCESS;
+    error        = event->wait();
+    CHECK_CL_SUCCESS(error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    CHECK_CL_SUCCESS(error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    CHECK_CL_SUCCESS(error);
+    kernel_time  = (end_t - start_t) / 1000000.0;
+}
+
+// get kernel run time info.
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,
                       double &event_start, double &event_end) {
     cl_int error = CL_SUCCESS;
@@ -128,11 +140,9 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
         return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
     }
 
-#if TNN_PROFILE
     if (pdata != nullptr) {
         pdata->event = event;
     }
-#endif
     LOGD("end RunKernel !\n");
     return TNN_OK;
 }
@@ -294,6 +304,61 @@ std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const u
 
     return lws;
 }
+
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, cl::CommandQueue *command_queue) {
+    std::vector<uint32_t> &gws = unit.global_work_size;
+    uint32_t workgroupsize_max = unit.workgroupsize_max;
+    cl::Kernel& kernel = unit.ocl_kernel;
+
+    std::vector<uint32_t> opt_lws = unit.local_work_size;
+    std::vector<uint32_t> lws(gws.size(), 1);
+
+    double kernel_min_time;
+    OpenCLProfilingData data;
+    RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "tune", &data);
+    GetKernelTime(&data.event, kernel_min_time);
+
+    if (gws.size() == 2) {
+        for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+            for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                if (lws[0] * lws[1] <= workgroupsize_max) {
+                    double kernel_time;
+                    RunKernel(unit.ocl_kernel, unit.global_work_size, lws, command_queue, "tune", &data);
+                    GetKernelTime(&data.event, kernel_time);
+                    if (kernel_time < kernel_min_time) {
+                        kernel_min_time = kernel_time;
+                        opt_lws.resize(2);
+                        opt_lws[0]      = lws[0];
+                        opt_lws[1]      = lws[1];
+                    }
+                }
+            }
+        }
+    } else if (gws.size() == 3) {
+        for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+            for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                for (lws[2] = 1; lws[2] < gws[2] * 2; lws[2] *= 2) {
+                    if (lws[0] * lws[1] * lws[2] <= workgroupsize_max) {
+                        double kernel_time;
+                        RunKernel(unit.ocl_kernel, unit.global_work_size, lws, command_queue, "tune",
+                                  &data);
+                        GetKernelTime(&data.event, kernel_time);
+                        if (kernel_time < kernel_min_time) {
+                            kernel_min_time = kernel_time;
+                            opt_lws.resize(3);
+                            opt_lws[0]      = lws[0];
+                            opt_lws[1]      = lws[1];
+                            opt_lws[2]      = lws[2];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return opt_lws;
+}
+
 
 // copy data from clBuffer to clImage.
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,

@@ -202,6 +202,7 @@ namespace test {
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
+        printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
     }
 
     void SetCpuAffinity() {
@@ -301,6 +302,8 @@ namespace test {
         NetworkConfig config;
         // Precision : AUTO for float computing.
         config.precision = ConvertPrecision(FLAGS_pr);
+
+        config.enable_tune_kernel = FLAGS_et;
 
         // Device Type: ARM, OPENECL, ...
         config.device_type = ConvertDeviceType(FLAGS_dt);

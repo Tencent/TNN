@@ -41,7 +41,6 @@ private:
     shared_ptr<OpenCLMemory> ocl_m_;
 
     bool transform_inner_ = false;
-    bool use_4x1_ = false;
 };
 
 }  // namespace TNN_NS

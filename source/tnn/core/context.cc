@@ -23,6 +23,16 @@ Status Context::OnInstanceForwardBegin() {
     return TNN_OK;
 }
 
+// this function is called before Reshape by Network.
+Status Context::OnInstanceReshapeBegin() {
+    return TNN_OK;
+}
+
+// this function is called after Reshape by Network.
+Status Context::OnInstanceReshapeEnd() {
+    return TNN_OK;
+}
+
 Status Context::ShareCommandQueue(Context* context) {
     LOGE("Subclass of Context must implement this func SetCommandQueue\n");
     return Status(TNNERR_COMMON_ERROR, "Subclass of Context must implement this func SetCommandQueue");
@@ -36,13 +46,20 @@ Status Context::SetNumThreads(int num_threads) {
     return TNN_OK;
 }
 
-Status Context::SetPrecision(Precision precision) {
+void Context::SetPrecision(Precision precision) {
     precision_ = precision;
-    return TNN_OK;
 }
 
 Precision Context::GetPrecision() {
     return precision_;
+}
+
+void Context::SetEnableTuneKernel(bool enable_tune_kernel) {
+    enable_tune_kernel_ = enable_tune_kernel;
+}
+
+bool Context::GetEnableTuneKernel() {
+    return enable_tune_kernel_;
 }
 
 #if TNN_PROFILE

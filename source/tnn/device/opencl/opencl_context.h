@@ -59,6 +59,8 @@ public:
      */
     cl::CommandQueue *CommandQueue();
 
+    cl::CommandQueue *TuneCommandQueue();
+
     // load library
     virtual Status LoadLibrary(std::vector<std::string> path) override;
     /**
@@ -71,6 +73,12 @@ public:
      * @param instance instace
      */
     virtual Status OnInstanceForwardEnd() override;
+
+     // @brief before instance Reshape
+    virtual Status OnInstanceReshapeBegin() override;
+
+    // @brief after instace Reshape
+    virtual Status OnInstanceReshapeEnd() override;   
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
@@ -91,9 +99,12 @@ public:
 
 private:
     std::shared_ptr<cl::CommandQueue> command_queue_ = nullptr;
+    std::shared_ptr<cl::CommandQueue> tune_command_queue_ = nullptr;
     std::shared_ptr<cl::CommandQueue> GetCommandQueue();
     OpenCLRuntime *opencl_runtime_ = nullptr;
     unsigned int flush_count_ = 0;
+    cl_command_queue_properties properties_ = 0;
+
 };
 
 }  // namespace TNN_NS

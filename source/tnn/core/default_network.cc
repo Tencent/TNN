@@ -77,10 +77,8 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
-    ret = context_->SetPrecision(net_config.precision);
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    context_->SetPrecision(net_config.precision);
+    context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
 
     ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {
@@ -336,6 +334,11 @@ Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
  * Memory allocation may be involved in Reshape function.
  */
 Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
+    Status ret = TNN_OK;
+    ret = context_->OnInstanceReshapeBegin();
+    if (ret != TNN_OK) {
+        return ret;
+    }
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
@@ -345,13 +348,15 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
         blob->GetBlobDesc().dims = iter.second;
     }
 
-    Status ret = TNN_OK;
     for (auto cur_layer : layers_) {
         ret = cur_layer->Reshape();
         if (ret != TNN_OK) {
             return ret;
         }
     }
+
+    ret = context_->OnInstanceReshapeEnd();
+
     return ret;
 }
 

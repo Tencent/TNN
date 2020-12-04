@@ -129,8 +129,6 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
             static_cast<uint32_t>(UP_DIV(output_dims[3], 4) * UP_DIV(output_dims[1], 4));
     }
 
-    execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
-
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
         execute_units_[0].ocl_kernel.setArg(idx++, gws);
@@ -154,6 +152,12 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     }
 
     SetExtraKernelParameters(idx, inputs, outputs);
+
+    execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_->TuneCommandQueue());
+    }
 
     return TNN_OK;
 }

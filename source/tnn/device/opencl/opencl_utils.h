@@ -103,6 +103,8 @@ inline cl::Image &GetOpenCLImage(const OpenCLMemory *blob) {
 
 std::vector<int> GetImageShape(const OpenCLMemory *image);
 
+void GetKernelTime(const cl::Event *event, double &kernel_time);
+
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,
                       double &event_start, double &event_end);
 
@@ -124,6 +126,8 @@ std::vector<uint32_t> LocalWS2DDefault(OpenCLExecuteUnit &unit);
 
 std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
                                        const uint32_t subgroup_size = 0);
+
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, cl::CommandQueue *command_queue);
 
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,
                          const cl::Image &image, int w, int h, bool need_wait = false);

@@ -51,13 +51,17 @@ cl::CommandQueue* OpenCLContext::CommandQueue() {
     return command_queue_.get();
 }
 
+cl::CommandQueue* OpenCLContext::TuneCommandQueue() {
+    return tune_command_queue_.get();
+}
+
+OpenCLProfilingData::~OpenCLProfilingData() {}
+
 #if TNN_PROFILE
 void OpenCLContext::StartProfile() {
     Context::StartProfile();
     profiling_result_ = std::make_shared<OpenCLProfileResult>();
 }
-
-OpenCLProfilingData::~OpenCLProfilingData() {}
 
 OpenCLProfileResult::~OpenCLProfileResult() {}
 
@@ -155,6 +159,27 @@ Status OpenCLContext::OnInstanceForwardEnd() {
     return TNN_OK;
 }
 
+// this function is called before Reshape by Network.
+Status OpenCLContext::OnInstanceReshapeBegin() {
+    if (enable_tune_kernel_) {
+        cl_int err;
+        cl_command_queue_properties properties = properties_ | CL_QUEUE_PROFILING_ENABLE;
+        tune_command_queue_ = std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(),
+                                                                 *opencl_runtime_->Device(), properties, &err);
+        if (err != CL_SUCCESS) {
+            LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
+            return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
+        }
+    }
+    return TNN_OK;
+}
+
+// this function is called after Reshape by Network.
+Status OpenCLContext::OnInstanceReshapeEnd() {
+    tune_command_queue_ = nullptr;
+    return TNN_OK;
+}
+
 // synchronize will wait until the comman queue finish
 Status OpenCLContext::Synchronize() {
     cl_int result = command_queue_->finish();
@@ -183,14 +208,13 @@ Status OpenCLContext::Init() {
         return status;
     }
 
-    cl_command_queue_properties properties = 0;
 #if TNN_PROFILE
-    properties |= CL_QUEUE_PROFILING_ENABLE;
+    properties_ |= CL_QUEUE_PROFILING_ENABLE;
 #endif
 
     cl_int err;
     command_queue_ =
-        std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(), *opencl_runtime_->Device(), properties, &err);
+        std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(), *opencl_runtime_->Device(), properties_, &err);
     if (err != CL_SUCCESS) {
         LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
         return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");

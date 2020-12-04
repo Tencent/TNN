@@ -112,6 +112,7 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
 
         execute_units_[0].local_work_size =
             Conv2d1x1LocalWS3D(execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max);
+
     } else {
         if (is_channel_blocking_) {
             execute_units_[0].global_work_size = {
@@ -155,6 +156,10 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
     }
     // set value (output widht / 4)
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_dims[3], 4));
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+            execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_->TuneCommandQueue());
+    }
 
     return TNN_OK;
 }

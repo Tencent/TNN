@@ -110,12 +110,14 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
                                                   static_cast<uint32_t>(output_dims[0] * output_dims[2])};
         }
 
-        if(kernel_shape[0] == 3 && kernel_shape[1] == 3) {
-            execute_units_[0].local_work_size  = Conv2dCommonLocalWS3DKernel3x3(
-                execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
+        if (kernel_shape[0] == 3 && kernel_shape[1] == 3) {
+            execute_units_[0].local_work_size =
+                Conv2dCommonLocalWS3DKernel3x3(execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1],
+                                               execute_units_[0].workgroupsize_max);
         } else {
-            execute_units_[0].local_work_size  = Conv2dCommonLocalWS3DGeneral(
-                execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1], execute_units_[0].workgroupsize_max);
+            execute_units_[0].local_work_size =
+                Conv2dCommonLocalWS3DGeneral(execute_units_[0].global_work_size, kernel_shape[0] * kernel_shape[1],
+                                             execute_units_[0].workgroupsize_max);
         }
     } else {
         if (is_channel_blocking_) {
@@ -129,7 +131,6 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
         }
         execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
     }
-
 
     const int input_channels = input_dims[1];
     const int input_channel_blocks = UP_DIV(input_channels, 4);
@@ -166,6 +167,10 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
         execute_units_[0].ocl_kernel.setArg(idx++, kernel_shape[0] * kernel_shape[1]);
     }
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+            execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_->TuneCommandQueue());
+    }
 
     return TNN_OK;
 }

@@ -142,6 +142,9 @@ struct PUBLIC NetworkConfig {
 
     // cache path to store possible cache models
     std::string cache_path = "";
+
+    // network init or reshape may cost more time to select opt kernel implement if enable tune kernel 
+    bool enable_tune_kernel = false;
 };
 
 struct PUBLIC ModelConfig {
