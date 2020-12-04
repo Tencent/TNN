@@ -356,6 +356,17 @@ std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, cl::CommandQueue *comma
         }
     }
 
+    //double check
+    double kernel_time;
+    RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "tune", &data);
+    GetKernelTime(&data.event, kernel_time);
+
+    if(kernel_time < kernel_min_time) {
+        return unit.local_work_size;
+    } else {
+        return opt_lws;
+    }
+
     return opt_lws;
 }
 
