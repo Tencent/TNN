@@ -98,8 +98,10 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
             param->pads.push_back(pads[1]);
         } else if (pads.size() == 4) {
             if (pads[0] == pads[2] && pads[1] == pads[3]) {
-                param->pads.push_back(pads[0]);
                 param->pads.push_back(pads[1]);
+                param->pads.push_back(pads[1]);
+                param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[0]);
             } else if (pads[0] < pads[2] && pads[1] < pads[3]) {
                 pad_type = 0;  // SAME UPPER
                 param->pads.push_back(pads[0]);
