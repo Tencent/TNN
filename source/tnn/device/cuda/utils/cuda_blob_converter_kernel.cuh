@@ -20,14 +20,16 @@
 namespace TNN_NS {
 
 void BlobToBGR(int batch, int CHW, int HW, const float *src, unsigned char *dst, cudaStream_t stream,
-        int channels, float *scale, float *bias);
+        int channels, float *scale, float *bias, bool reverse_channel);
 
 void BlobToGray(int count, const float *src, unsigned char *dst, cudaStream_t stream, float scale, float bias);
 
 void BGRToBlob(int batch, int CHW, int HW, const unsigned char *src, float *dst, cudaStream_t stream,
-        int channels, float *scale, float *bias);
+        int channels, float *scale, float *bias, bool reverse_channel);
 
 void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t stream, float scale, float bias);
+
+void ScaleBias(const float* src, float* dst, cudaStream_t stream, float* scale, float* bias, int batch, int channels, int hw);
 
 }  //  namespace TNN_NS;
 

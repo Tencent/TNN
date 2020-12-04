@@ -21,8 +21,8 @@
 
 namespace TNN_NS {
 
-void ResizeBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h, int channel);
-void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
+void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel);
+void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int w, int h, int channel);
 void CropRGB(const uint8_t* src, uint8_t* dst, int batch, int channel, int src_width, int src_height, int dst_width,
         int dst_height, int width, int height, int top_left_x, int top_left_y);
 void CropYUV(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width, int dst_height,
@@ -32,9 +32,12 @@ void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int c
 void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width,
         int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val);
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType type);
+        const float (*transform)[3], const float border_val);
+void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+        const float (*transform)[3], const float border_val);
 
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_MAT_UTIL_CUH_
+
 

@@ -101,13 +101,36 @@ __global__ void resize_nearest_kernel(uint8_t* dst_data, int dst_hwc, int height
             const int w = (index / channel) % width;
             const int c = index % channel;
 
-            int sx = (int)(w * scale_x);
-            int sy = (int)(h * scale_y);
-            sx = MIN(sx, src_height - 1);
-            sy = MIN(sy, src_width - 1);
+            float pos_fx = (float)((w + 0.5) * scale_x - 0.5);
+            int pos_ix = (int)pos_fx;
+            float rat_fx = pos_fx - pos_ix;
+            if (pos_ix < 0) {
+                pos_ix = 0;
+                rat_fx = 0.f;
+            }
+            if (pos_ix >= src_width - 1) {
+                pos_ix = src_width - 2;
+                rat_fx = 1.f;
+            }
+            int mask_x = (rat_fx <= 0.5) ? -1 : 0;
 
+            float pos_fy = (float)((h + 0.5) * scale_y - 0.5);
+            int pos_iy = (int)pos_fy;
+            float rat_fy = pos_fy - pos_iy;
+            if (pos_iy < 0) {
+                pos_iy = 0;
+                rat_fy = 0.f;
+            }
+            if (pos_iy >= src_height - 1) {
+                pos_iy = src_height - 2;
+                rat_fy = 1.f;
+            }
+            int mask_y = (rat_fy <= 0.5) ? -1 : 0;
+
+            int sy = (mask_y == 0) ? pos_iy + 1 : pos_iy;
+            int sx = pos_ix;
             int src_idx = sy * src_width * channel + sx * channel + c;
-            dst_data[i * blockDim.x] = src_data[src_idx];
+            dst_data[i * blockDim.x] = (mask_x == 0) ? src_data[src_idx + channel] : src_data[src_idx];
         }
         index += blockDim.x;
     }
@@ -118,11 +141,11 @@ __global__ void crop_rgb_kernel(const uint8_t* src, uint8_t* dst, int channel, i
     int batch = blockIdx.y;
     int ele_off = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (ele_off < width + height) {
-        src += batch * src_width * src_height * channel + top_left_x + top_left_y * src_width * channel;
+    if (ele_off < channel * width * height) {
+        src += batch * src_width * src_height * channel + (top_left_x + top_left_y * src_width) * channel;
         dst += batch * dst_width * dst_height * channel;
-        int h = ele_off / width;
-        int w = ele_off % width;
+        int h = ele_off / (width * channel);
+        int w = ele_off % (width * channel);
         dst[dst_width * h * channel + w] = src[src_width * h * channel + w];
     }
 }
@@ -202,8 +225,8 @@ __global__ void bgra_to_gray_kernel(const uint8_t* src, uint8_t* dst, int height
 
 __global__ void copy_make_border_kernel(const uint8_t* src, uint8_t* dst, int src_height, int src_width, int dst_height,
         int dst_width, int top, int bottom, int left, int right, uint8_t pad_val) {
-    src += blockIdx.z * src_height * src_width;
-    dst += blockIdx.z * dst_height * dst_width;
+    src += blockIdx.y * src_height * src_width;
+    dst += blockIdx.y * dst_height * dst_width;
     int offset = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (offset < src_height * src_width) {
@@ -238,6 +261,25 @@ __global__ void copy_make_border_kernel(const uint8_t* src, uint8_t* dst, int sr
                 dst[(top + h) * dst_width + left + src_width + i] = pad_val;
             }
         }
+        if (h == src_height - 1) {
+            if (w == 0) {
+                for (int i = 0; i < bottom; i++) {
+                    for (int j = 0; j < left; j++) {
+                        dst[(top + src_height + i) * dst_width + j] = pad_val;
+                    }
+                }
+            }
+            for (int i = 0; i < bottom; i++) {
+                dst[left + (top + src_height + i) * dst_width + w] = pad_val;
+            }
+            if (w == src_width - 1) {
+                for (int i = 0; i < bottom; i++) {
+                    for (int j = 0; j < right; j++) {
+                        dst[(top + src_height + i) * dst_width + left + src_width + j] = pad_val;
+                    }
+                }
+            }
+        }
         dst[(h + top) * dst_width + left + w] = src[h * src_width + w];
     }
 }
@@ -259,9 +301,9 @@ __device__ __forceinline__ int imin(int a, int b) {
 
 template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
 __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
-        const int OH, const int OW, const short* table, float* tm, const uint8_t border_value, BorderType type) {
-    src += blockIdx.z * H * W * C;
-    dst += blockIdx.z * OH * OW * C;
+        const int OH, const int OW, const short* table, double* tm, const uint8_t border_value) {
+    src += blockIdx.y * H * W * C;
+    dst += blockIdx.y * OH * OW * C;
     const int DELTA = 1 << 14;
 
     #pragma unroll
@@ -295,12 +337,64 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
         int new_w_real[2] = { new_w_int, new_w_int + 1 };
         int new_h_real[2] = { new_h_int, new_h_int + 1 };
 
+        unsigned char val[2][2];
+        #pragma unroll
+        for(int wi = 0; wi < 2; wi++) {
+            #pragma unroll
+            for(int hi = 0; hi < 2; hi++) {
+                if (new_w_real[wi] >= 0 && new_w_real[wi] < W &&
+                    new_h_real[hi] >= 0 && new_h_real[hi] < H) {
+                    val[hi][wi] = src[(new_h_real[hi] * W + new_w_real[wi]) * C + c];
+                } else {
+                    val[hi][wi] = border_value;
+                }
+            }
+        }
+
+        int val_inter = wtab[0] * val[0][0] + wtab[1] * val[0][1] + wtab[2] * val[1][0] + wtab[3] * val[1][1];
+        int src_value = (val_inter + DELTA ) >> 15;
+        dst[hwc_id] = src_value;
+    }
+}
+
+template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
+__global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
+        const int OH, const int OW, double* tm, const uint8_t border_value) {
+    src += blockIdx.y * H * W * C;
+    dst += blockIdx.y * OH * OW * C;
+    const int DELTA = 1 << 14;
+
+    #pragma unroll
+    for (int i = 0; i < ELE_PER_THREAD; i++) {
+        const int hwc_id = blockIdx.x * THREAD_PER_BLOCK * ELE_PER_THREAD +
+                            threadIdx.x + i * THREAD_PER_BLOCK;
+        if (hwc_id >= OH * OW * C) {
+            break;
+        }
+
+        // output hwc
+        const int c = hwc_id % C;
+        const int hw = hwc_id / C;
+        const int h = hw / OW;
+        const int w = hw % OW;
+
+        int new_w_full = fp_2_int_sat(tm[0] * w * 1024) +
+                         fp_2_int_sat((tm[1] * h + tm[2])* 1024) + 16;
+        int new_h_full = fp_2_int_sat(tm[3] * w * 1024) +
+                         fp_2_int_sat((tm[4] * h + tm[5])* 1024) + 16;
+
+        new_w_full >>= 5;
+        new_h_full >>= 5;
+        bool is_left = (new_w_full & 31) < 16;
+        bool is_top = (new_h_full & 31) < 16;
+        int new_w_int = new_w_full >> 5;
+        int new_h_int = new_h_full >> 5;
+
+        // input hw
+        int new_w_real[2] = { new_w_int, new_w_int + 1 };
+        int new_h_real[2] = { new_h_int, new_h_int + 1 };
+
         unsigned char  val[2][2];
-
-        const int MAX_DIST = 40960;
-        const int STEPS  = int(border_value);
-        int border_dist = MAX_DIST;
-
         #pragma unroll 
         for(int wi = 0; wi < 2; wi++) {
             #pragma unroll 
@@ -308,49 +402,21 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
                 if (new_w_real[wi] >= 0 && new_w_real[wi] < W && 
                     new_h_real[hi] >= 0 && new_h_real[hi] < H) {
                     val[hi][wi] = src[(new_h_real[hi] * W + new_w_real[wi]) * C + c];
-                    int dist_w = imin(new_w_real[wi], W - new_w_real[wi]);
-                    int dist_h = imin(new_h_real[hi], H - new_h_real[hi]);
-                    border_dist = imin(border_dist, imin(dist_w, dist_h));
                 } else {
-                    switch (type) {
-                        case BORDER_TYPE_CONSTANT:
-                            val[hi][wi] = border_value;
-                            break;
-                        case BORDER_TYPE_REFLECT:
-                        case BORDER_TYPE_EDGE:
-                            val[hi][wi] = dst[hwc_id];
-                            break;
-                        default:
-                            val[hi][wi] = 0;
-                            break;
-                    }
+                    val[hi][wi] = border_value;
                 }
             }
         }
 
-        float alpha = 1.0;
-        if (border_dist == MAX_DIST) {
-            alpha = 0.0;
+        if (is_top) {
+            dst[hwc_id] = is_left ? val[0][0] : val[0][1];
         } else {
-            if (border_dist > STEPS ) {
-                alpha = 1.0;    
-            } else {
-                alpha  = 1.0f / STEPS * border_dist;
-            }
-        }
-
-        int val_inter = wtab[0] * val[0][0] + wtab[1] * val[0][1] + wtab[2] * val[1][0] + wtab[3] * val[1][1];
-        int src_value = (val_inter + DELTA ) >> 15;
-
-        if (BORDER_TYPE_EDGE == type) {
-            dst[hwc_id] = (unsigned char)(float(src_value) * alpha + float(dst[hwc_id]) * (1 - alpha));
-        } else {
-            dst[hwc_id] = src_value;
+            dst[hwc_id] = is_left ? val[1][0] : val[1][1];
         }
     }
 }
 
-void ResizeBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h, int channel) {
+void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel) {
     const int ELE_PER_THREAD = 4;
     const int THREAD_PER_BLOCK = 128;
     dim3 grid;
@@ -358,17 +424,29 @@ void ResizeBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t
     grid.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     grid.y = batch;
     float scale_x = (float)src_w / dst_w;
-    float scale_y = (float)dst_h / dst_h;
+    float scale_y = (float)src_h / dst_h;
+    resize_bilinear_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK>>>(dst, size_dst, dst_h, dst_w, src, src_h,
+        src_w, src_h * src_w * channel, channel, scale_x, scale_y);
+}
+
+void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel) {
+    const int ELE_PER_THREAD = 4;
+    const int THREAD_PER_BLOCK = 128;
+    dim3 grid;
+    int size_dst = dst_h * dst_w * channel;
+    grid.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
+    grid.y = batch;
+    float scale_x = (float)src_w / dst_w;
+    float scale_y = (float)src_h / dst_h;
     resize_nearest_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK>>>(dst, size_dst, dst_h, dst_w, src, src_h,
         src_w, src_h * src_w * channel, channel, scale_x, scale_y);
 }
 
 static void initInterTab2D(short* input_table) {
-    short* itab = 0;
-    int ksize = 0;
-    itab = input_table, ksize = 2;
+    short* itab = input_table;
+    int ksize = 2;
 
-    float *_tab = new float[8 * INTER_TAB_SIZE];
+    float *_tab = new float[2 * INTER_TAB_SIZE];
     int i, j, k1, k2;
     InitInterTab1D(_tab, INTER_TAB_SIZE);
     for (i = 0; i < INTER_TAB_SIZE; i++) {
@@ -405,10 +483,12 @@ static void initInterTab2D(short* input_table) {
 }
 
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType type) {
-    float *tm_gpu;
-    cudaMalloc((void**)&tm_gpu, 6 * sizeof(float));
-    cudaMemcpy(tm_gpu, transform, 6 * sizeof(float), cudaMemcpyHostToDevice);
+        const float (*transform)[3], const float border_val) {
+    double m[6];
+    WarpAffineMatrixInverse(transform, m);
+    double *tm_gpu;
+    cudaMalloc((void**)&tm_gpu, 6 * sizeof(double));
+    cudaMemcpy(tm_gpu, m, 6 * sizeof(double), cudaMemcpyHostToDevice);
     const int table_size = INTER_TAB_SIZE * INTER_TAB_SIZE * KSIZE * KSIZE;
     short table_cpu[table_size];
     short *table_gpu;
@@ -420,18 +500,36 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     int size_dst = dst_h * dst_w * channel;
     dim3 griddim;
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
-    griddim.y = 1;
-    griddim.z = batch;
+    griddim.y = batch;
     warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
-        channel, dst_h, dst_w, table_gpu, tm_gpu, border_val, type);    cudaFree(tm_gpu);
+        channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
+    cudaFree(tm_gpu);
     cudaFree(table_gpu);
+}
+
+void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+        const float (*transform)[3], const float border_val) {
+    double m[6];
+    WarpAffineMatrixInverse(transform, m);
+    double *tm_gpu;
+    cudaMalloc((void**)&tm_gpu, 6 * sizeof(double));
+    cudaMemcpy(tm_gpu, m, 6 * sizeof(double), cudaMemcpyHostToDevice);
+    const int THREAD_PER_BLOCK = 128;
+    const int ELE_PER_THREAD = 8;
+    int size_dst = dst_h * dst_w * channel;
+    dim3 griddim;
+    griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
+    griddim.y = batch;
+    warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        channel, dst_h, dst_w, tm_gpu, border_val);
+    cudaFree(tm_gpu);
 }
 
 void CropRGB(const uint8_t* src, uint8_t* dst, int batch, int channel, int src_width, int src_height, int dst_width, int dst_height,
         int width, int height, int top_left_x, int top_left_y) {
     int THREAD_PER_BLOCK = 128;
     dim3 grid;
-    grid.x = (width * height + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
+    grid.x = (width * height * channel + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     grid.y = batch;
     crop_rgb_kernel<<<grid, THREAD_PER_BLOCK>>>(src, dst, channel, src_width, src_height, dst_width, dst_height,
         width, height, top_left_x, top_left_y);
@@ -482,3 +580,4 @@ void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_wid
 }
 
 }  //  namespace TNN_NS
+
