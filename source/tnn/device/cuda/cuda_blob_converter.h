@@ -34,7 +34,8 @@ public:
 private:
     float* scale_ptr;
     float* bias_ptr;
-    unsigned char* image_ptr;
+    void* image_ptr;
+    uint64_t image_size = 0;
 };
 
 }  //  namespace TNN_NS

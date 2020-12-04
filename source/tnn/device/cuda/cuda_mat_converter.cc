@@ -74,11 +74,11 @@ Status CudaMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* 
     } else if ((src.GetMatType() == N8UC4) || (src.GetMatType() == N8UC3) || (src.GetMatType() == NGRAY)) {
         int channel = src.GetChannel();
         if (param.type == INTERP_TYPE_LINEAR) {
-            ResizeBilinear((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                (uint8_t*)dst.GetData(), dst_width, dst_height, channel);
+            ResizeBilinear((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetWidth(),
+                src.GetHeight(), dst_width, dst_height, channel);
         } else if(param.type == INTERP_TYPE_NEAREST) {
-            ResizeNearest((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
-                (uint8_t*)dst.GetData(), dst_width, dst_height, channel);
+            ResizeNearest((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetWidth(),
+                src.GetHeight(), dst_width, dst_height, channel);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
@@ -123,18 +123,26 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
     if (ret != TNN_OK)
         return ret;
 
-    if (param.interp_type == INTERP_TYPE_LINEAR) {
+    if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
         if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
             int channel = src.GetMatType() == NGRAY ? 1 : (src.GetMatType() == N8UC3 ? 3 : 4);
             uint8_t* src_ptr = (uint8_t*)src.GetData();
             uint8_t* dst_ptr = (uint8_t*)dst.GetData();
             WarpAffineBilinear(src_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst_ptr, dst.GetWidth(),
-                dst.GetHeight(), param.transform, param.border_val, param.border_type);
+                dst.GetHeight(), param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
-    } else {
-        return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+    } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
+            int channel = src.GetMatType() == NGRAY ? 1 : (src.GetMatType() == N8UC3 ? 3 : 4);
+            uint8_t* src_ptr = (uint8_t*)src.GetData();
+            uint8_t* dst_ptr = (uint8_t*)dst.GetData();
+            WarpAffineNearest(src_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst_ptr, dst.GetWidth(),
+                dst.GetHeight(), param.transform, param.border_val);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
     }
 
     return ret;

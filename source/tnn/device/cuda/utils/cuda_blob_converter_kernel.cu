@@ -26,29 +26,49 @@ inline __device__ unsigned char fp32_to_u8_sat(float in) {
     return (unsigned char)(x);
 }
 
+__global__ void scale_bias_kernel(int size, const float* src, float* dst, float* scale, float* bias, int hw, int channels) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < size) {
+        int c = tid / hw % channels;
+        dst[tid] = src[tid] * scale[c] + bias[c];
+    }
+}
+
 __global__ void blob_to_bgr_kernel(int CHW, int HW, const float* __restrict__ src, unsigned char *dst,
-        int channels, float *scale, float *bias) {
+        int channels, float *scale, float *bias, bool reverse_channel) {
     const int offset = ELEMENT_PER_THREAD * THREAD_PER_BLOCK * blockIdx.x + threadIdx.x;
 
     src += offset + blockIdx.y * CHW;
-    dst += offset * channels + blockIdx.y * CHW;
-    int channels_coef = channels - 1;
-
-    #pragma unroll
-    for (int c = 0; c < channels; ++c) {
-        unsigned char data_ld[ELEMENT_PER_THREAD];
-        #pragma unroll
-        for (int i = 0; i < ELEMENT_PER_THREAD; ++i) {
+    dst += offset * channels + blockIdx.y * channels * HW;
+    if (reverse_channel) {
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
             if (i * THREAD_PER_BLOCK + offset < HW) {
-                data_ld[i] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK + (channels_coef - c) * HW]
-                                                * scale[channels_coef - c]
-                                                + bias[channels_coef - c]);
+                dst[i * THREAD_PER_BLOCK * channels] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK + 2 * HW] * scale[2] + bias[2]);
             }
         }
-        #pragma unroll
-        for (int i = 0; i < ELEMENT_PER_THREAD; ++i) {
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
             if (i * THREAD_PER_BLOCK + offset < HW) {
-                dst[c + i * THREAD_PER_BLOCK * channels] = data_ld[i];
+                dst[1 + i * THREAD_PER_BLOCK * channels] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK + 1 * HW] * scale[1] + bias[1]);
+            }
+        }
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+            if (i * THREAD_PER_BLOCK + offset < HW) {
+                dst[2 + i * THREAD_PER_BLOCK * channels] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK] * scale[0] + bias[0]);
+            }
+        }
+    } else {
+        for (int c = 0; c < 3; c++) {
+            for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+                if (i * THREAD_PER_BLOCK + offset < HW) {
+                    dst[c + i * THREAD_PER_BLOCK * channels] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK + c * HW] * scale[c] + bias[c]);
+                }
+            }
+        }
+    }
+    if (CHW / HW == 4) {
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+            if (i * THREAD_PER_BLOCK + offset < HW) {
+                dst[3 + i * THREAD_PER_BLOCK * channels] = fp32_to_u8_sat(src[i * THREAD_PER_BLOCK + 3 * HW] * scale[3] + bias[3]);
             }
         }
     }
@@ -61,25 +81,42 @@ __global__ void blob_to_gray_kernel(int count, const float *src, unsigned char *
 }
 
 __global__ void bgr_to_blob_kernel(int CHW, int HW, const unsigned char* __restrict__ src, float *dst,
-        int channels, float *scale, float *bias) {
+        int channels, float *scale, float *bias, bool reverse_channel) {
     const int offset = ELEMENT_PER_THREAD * THREAD_PER_BLOCK * blockIdx.x + threadIdx.x;
 
-    src += offset * channels + blockIdx.y * CHW;
+    src += offset * channels + blockIdx.y * channels * HW;
     dst += offset + blockIdx.y * CHW;
-
-    #pragma unroll
-    for (int c = 0; c < channels; ++c) {
-        float data_ld[ELEMENT_PER_THREAD];
-        #pragma unroll
-        for (int i = 0; i < ELEMENT_PER_THREAD; ++i) {
+    if (reverse_channel) {
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
             if (i * THREAD_PER_BLOCK + offset < HW) {
-                data_ld[i] = (src[i * THREAD_PER_BLOCK * channels + c] * scale[c] + bias[c]);
+                dst[i * THREAD_PER_BLOCK] = src[i * THREAD_PER_BLOCK * channels + 2] * scale[0] + bias[0];
             }
         }
-        #pragma unroll
-        for (int i = 0; i < ELEMENT_PER_THREAD; ++i) {
+
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
             if (i * THREAD_PER_BLOCK + offset < HW) {
-                dst[c * HW + i * THREAD_PER_BLOCK] = data_ld[i];
+                dst[HW + i * THREAD_PER_BLOCK] = src[i * THREAD_PER_BLOCK * channels + 1] * scale[1] + bias[1];
+            }
+        }
+
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+            if (i * THREAD_PER_BLOCK + offset < HW) {
+                dst[HW * 2 + i * THREAD_PER_BLOCK] = src[i * THREAD_PER_BLOCK * channels + 0] * scale[2] + bias[2];
+            }
+        }
+    } else {
+        for (int c = 0; c < 3; c++) {
+            for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+                if (i * THREAD_PER_BLOCK + offset < HW) {
+                    dst[c * HW + i * THREAD_PER_BLOCK] = src[i * THREAD_PER_BLOCK * channels + c] * scale[c] + bias[c];
+                }
+            }
+        }
+    }
+    if (CHW / HW == 4) {
+        for (int i = 0; i < ELEMENT_PER_THREAD; i++) {
+            if (i * THREAD_PER_BLOCK + offset < HW) {
+                dst[HW * 3 + i * THREAD_PER_BLOCK] = src[i * THREAD_PER_BLOCK * channels + 3] * scale[3] + bias[3];
             }
         }
     }
@@ -92,12 +129,12 @@ __global__ void gray_to_blob_kernel(int count, const unsigned char *src, float *
 }
 
 void BlobToBGR(int batch, int CHW, int HW, const float *src, unsigned char *dst, cudaStream_t stream,
-        int channels, float *scale, float *bias) {
+        int channels, float *scale, float *bias, bool reverse_channel) {
     dim3 grid;
     grid.x = (HW + ELEMENT_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELEMENT_PER_THREAD * THREAD_PER_BLOCK);
     grid.y = batch;
     blob_to_bgr_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
-        CHW, HW, src, dst, channels, scale, bias);
+        CHW, HW, src, dst, channels, scale, bias, reverse_channel);
 }
 
 void BlobToGray(int count, const float *src, unsigned char *dst, cudaStream_t stream, float scale, float bias) {
@@ -106,12 +143,12 @@ void BlobToGray(int count, const float *src, unsigned char *dst, cudaStream_t st
 }
 
 void BGRToBlob(int batch, int CHW, int HW, const unsigned char *src, float *dst, cudaStream_t stream,
-        int channels, float *scale, float* bias) {
+        int channels, float *scale, float* bias, bool reverse_channel) {
     dim3 grid;
     grid.x = (HW + ELEMENT_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELEMENT_PER_THREAD * THREAD_PER_BLOCK);
     grid.y = batch;
     bgr_to_blob_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
-        CHW, HW, src, dst, channels, scale, bias);
+        CHW, HW, src, dst, channels, scale, bias, reverse_channel);
 }
 
 void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t stream, float scale, float bias) {
@@ -119,4 +156,11 @@ void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t st
     gray_to_blob_kernel<<<BLOCK_NUM, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias);
 }
 
+void ScaleBias(const float* src, float* dst, cudaStream_t stream, float* scale, float* bias, int batch, int channels, int hw) {
+    int count = batch * channels * hw;
+    int grid = (count + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
+    scale_bias_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias, hw, channels); 
+}
+
 }  //  namespace TNN_NS
+
