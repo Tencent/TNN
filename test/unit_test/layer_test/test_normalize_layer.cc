@@ -41,6 +41,10 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
@@ -53,17 +57,16 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    NormalizeLayerParam param;
-    param.name = "Normalize";
-    param.p    = p;
-    param.axis = axis;
+    std::shared_ptr<NormalizeLayerParam> param(new NormalizeLayerParam());
+    param->name = "Normalize";
+    param->p    = p;
+    param->axis = axis;
 
-    Run(LAYER_NORMALIZE, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Normalize", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

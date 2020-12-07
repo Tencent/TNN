@@ -29,16 +29,15 @@ TEST_P(SeluLayerTest, SeluLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
     // param
-    SeluLayerParam param;
-    param.alpha = 1.67326;
-    param.gamma = 1.0507;
+    std::shared_ptr<SeluLayerParam> param(new SeluLayerParam());
+    param->alpha = 1.67326;
+    param->gamma = 1.0507;
 
-    Run(LAYER_SELU, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Selu", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

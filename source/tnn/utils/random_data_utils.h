@@ -12,25 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#ifndef TNN_UTILS_RANDOM_DATA_UTILS_H_
+#define TNN_UTILS_RANDOM_DATA_UTILS_H_
+
+#include <chrono>
+#include <random>
+#include <string>
+#include <vector>
+
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-class AtanLayerTest : public UnaryLayerTest {
-public:
-    AtanLayerTest() : UnaryLayerTest(LAYER_ATAN) {}
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerTest, AtanLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
-
-TEST_P(AtanLayerTest, UnaryLayerTest) {
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
-    RunUnaryTest("Atan");
-}
+template <typename T>
+int InitRandom(T* host_data, size_t n, T range);
+template <typename T>
+int InitRandom(T* host_data, size_t n, T range_min, T range_max);
 
 }  // namespace TNN_NS
+
+#endif  // TNN_UTILS_RANDOM_DATA_UTILS_H_

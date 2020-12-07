@@ -48,7 +48,7 @@ if(TNN_PROFILER_ENABLE)
 endif()
 
 if(TNN_BENCHMARK_MODE)
-    add_definitions(-DBENCHMARK)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 # ignore loop-vectorize warning
@@ -94,6 +94,7 @@ if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)

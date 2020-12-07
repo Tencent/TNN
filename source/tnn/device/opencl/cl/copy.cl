@@ -40,9 +40,6 @@ __kernel void Crop(GLOBAL_SIZE_2_DIMS
     DEAL_NON_UNIFORM_DIM2(cw, bh);
     const int batch_idx         = bh / crop_height;
     const int height_idx        = bh % crop_height;
-    const int channel_4         = (4 + 3) / 4;//NCU84
-    const int width_idx         = cw / channel_4;
-    const int channel_4_idx     = cw % channel_4;
 
     int2 output_pos = (int2)(cw , height_idx + crop_height*batch_idx);
     int2 input_pos  = (int2)(cw + start_x, height_idx + src_height*batch_idx + start_y);

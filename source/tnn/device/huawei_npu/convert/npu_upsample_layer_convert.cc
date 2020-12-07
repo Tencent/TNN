@@ -23,13 +23,24 @@ Status NpuUpsampleLayer::Convert() {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    const int scale_h = param->scales[1];
-    const int scale_w = param->scales[0];
+    float scale_w = param->scales[0];
+    float scale_h = param->scales[1];
+
+    if (param->dims.size() >= 2) {
+        scale_w = param->dims[0] / input_ops_[0]->GetShape()[3];
+        scale_h = param->dims[1] / input_ops_[0]->GetShape()[2];
+    }
+
+    // only support scale is int
+    if (scale_w != (int)scale_w || scale_h != (int)scale_h) {
+        LOGE("the upsample scale is not support in huawei NPU\n");
+        return Status(TNNERR_NPU_UNSUPPORT_ERROR, "the upsample scale is not support in huawei NPU");
+    }
 
     auto output = std::make_shared<hiai::op::Upsample>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_attr_stride_h(scale_h);
-    output->set_attr_stride_w(scale_w);
+    output->set_attr_stride_h((int)scale_h);
+    output->set_attr_stride_w((int)scale_w);
     ADD_OUTPUT_OP(output)
 }
 
