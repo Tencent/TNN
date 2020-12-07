@@ -45,6 +45,10 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
+    if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (channel < 2) {
         GTEST_SKIP();
     }
@@ -55,24 +59,15 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    SoftmaxLayerParam param;
-    param.name = "Softmax";
-    param.axis = axis;
+    std::shared_ptr<SoftmaxLayerParam> param(new SoftmaxLayerParam());
+    param->name = "Softmax";
+    param->axis = axis;
 
-    Run(LAYER_SOFTMAX, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

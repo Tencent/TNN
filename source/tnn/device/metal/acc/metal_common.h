@@ -370,6 +370,25 @@ struct MetalReduceParams {
     int input_channel_mode_4;
 };
 
+/** Multi-axis Reduce Param Struct **/
+struct MetalMultiAxisReduceParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_batch;
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_batch;
+    int batch;
+    int input_channel;
+    int input_channel_mode_4;
+    int reduce_length;
+    int reduce_flag[4] = {0};
+};
+
 /** Softmax Param Struct **/
 struct MetalSoftmaxParams {
     int output_width;
@@ -553,6 +572,23 @@ struct MetalPixelShuffleParams {
     int batch;
 
     int upscale_factor;
+};
+
+/** Reorg Param Struct **/
+struct MetalReorgParams {
+    int input_width;
+    int input_height;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_slice;
+    int output_channel;
+    int batch;
+
+    int stride;
+    int mode; // DCR: 0  CRD: 1
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \

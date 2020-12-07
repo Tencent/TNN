@@ -108,4 +108,10 @@ cmake ../../ \
 echo "Building TNN ..."
 make -j4
 
-echo "Done"
+# check compile error, or ci will not stop
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
+
+ctest --output-on-failure -j 2

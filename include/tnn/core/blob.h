@@ -59,7 +59,7 @@ public:
 
     virtual ~Blob();    
 
-    //@brief retrun blob desc
+    //@brief return blob desc
     BlobDesc &GetBlobDesc();
 
     //@brief set blob description

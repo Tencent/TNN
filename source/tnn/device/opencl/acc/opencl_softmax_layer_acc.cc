@@ -101,7 +101,7 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int type_size = sizeof(float);
-    if (opencl_runtime->GetFp16Enable()) {
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
         type_size = 2;
     }
 

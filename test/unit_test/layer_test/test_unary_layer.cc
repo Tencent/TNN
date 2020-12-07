@@ -20,7 +20,7 @@ UnaryLayerTest::UnaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-void UnaryLayerTest::RunUnaryTest() {
+void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
@@ -35,13 +35,20 @@ void UnaryLayerTest::RunUnaryTest() {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "Unary";
 
-    LayerParam param;
-    param.name = "Unary";
-    Run(layer_type_, &param, nullptr, inputs_desc, outputs_desc);
+    Precision precision = PRECISION_AUTO;
+    // generate proto string
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

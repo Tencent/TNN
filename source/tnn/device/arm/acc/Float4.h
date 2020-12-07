@@ -258,6 +258,11 @@ struct Float4 {
         dst.value = sigmoid_ps(v.value);
         return dst;
     }
+    static Float4 fast_sigmoid(const Float4& v) {
+        Float4 dst;
+        dst.value = fast_sigmoid_ps(v.value);
+        return dst;
+    }
     static Float4 log(const Float4& v) {
         Float4 dst;
         dst.value = log_ps(v.value);
@@ -643,6 +648,9 @@ struct Float4 {
     static Float4 pow(const Float4& v, const Float4& e) {
         Float4 dst;
         for (int i = 0; i < 4; ++i) {
+            if (v.value[i] <= 0) {
+                LOGE("%s\n", "neon pow does not support zero or negative input value");
+            }
             dst.value[i] = std::pow(v.value[i], e.value[i]);
         }
         return dst;
@@ -689,6 +697,9 @@ struct Float4 {
             dst.value[i] = 1.0f / (1.0f + std::exp(-v.value[i]));
         }
         return dst;
+    }
+    static Float4 fast_sigmoid(const Float4& v) {
+        return Float4::sigmoid(v);
     }
     static Float4 log(const Float4& v) {
         Float4 dst;

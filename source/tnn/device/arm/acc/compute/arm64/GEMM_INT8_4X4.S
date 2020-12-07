@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit4x4 
 //void GemmInt8Unit4x4(int8_t* src, const int8_t* weight, int8_t* dst, int src_w_step, int dst_depth, 
-//                            int cdiv8, float *scale, int32_t*bias)
+//                     int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale)
 //x0(src),
 //x1(weight),
 //x2(dst),
@@ -294,6 +294,44 @@ LoopEnd:
      fmul v14.4s, v6.4s, v1.4s 
      fmul v15.4s, v7.4s, v1.4s 
 
+     ldr x9, [sp, #0]    // relu
+     ldr x7, [sp, #8]    // add_input
+     ldr x8, [sp, #16]   // add_scale
+
+     cmp x9, #0
+     bge Add
+     movi v3.16b, #0
+     fmax v12.4s, v12.4s, v3.4s
+     fmax v13.4s, v13.4s, v3.4s
+     fmax v14.4s, v14.4s, v3.4s
+     fmax v15.4s, v15.4s, v3.4s
+
+Add:
+     cbz x7, Relu
+     ld1 {v28.s}[0], [x7], x4
+     ld1 {v28.s}[1], [x7], x4
+     ld1 {v29.s}[0], [x7], x4
+     ld1 {v29.s}[1], [x7]
+     ld1 {v30.4s}, [x8]
+
+     sxtl  v26.8h, v28.8b
+     sxtl  v27.8h, v29.8b
+     sxtl  v20.4s, v26.4h
+     sxtl2 v21.4s, v26.8h
+     sxtl  v22.4s, v27.4h
+     sxtl2 v23.4s, v27.8h
+
+     scvtf v24.4s, v20.4s
+     scvtf v25.4s, v21.4s
+     scvtf v26.4s, v22.4s
+     scvtf v27.4s, v23.4s
+
+     fmla v12.4s, v24.4s, v30.4s
+     fmla v13.4s, v25.4s, v30.4s
+     fmla v14.4s, v26.4s, v30.4s
+     fmla v15.4s, v27.4s, v30.4s
+
+Relu:
      fcvtas v8.4s, v12.4s 
      fcvtas v9.4s, v13.4s 
      fcvtas v10.4s, v14.4s 
@@ -304,7 +342,15 @@ LoopEnd:
      sqxtn2 v0.8h, v9.4s 
      sqxtn2 v1.8h, v11.4s 
      sqxtn v2.8b, v0.8h 
-     sqxtn v4.8b, v1.8h 
+     sqxtn v4.8b, v1.8h
+
+     cmp x9, #0
+     ble Store
+     movi v3.8b, #0
+     smax v2.8b, v2.8b, v3.8b
+     smax v4.8b, v4.8b, v3.8b
+
+Store:
      st1 {v2.s}[0], [x2], x4 
      st1 {v2.s}[1], [x2], x4 
 

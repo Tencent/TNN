@@ -23,6 +23,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    [self.viewModel setupCustomView:self.customOptionView
+                       layoutHeight:self.customOptionViewHeight];
 }
 
 @end

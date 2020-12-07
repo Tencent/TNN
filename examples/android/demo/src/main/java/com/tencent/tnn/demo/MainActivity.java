@@ -16,6 +16,7 @@ import com.tencent.tnn.demo.StreamBlazeFaceAlign.StreamBlazeFaceAlignActivity;
 import com.tencent.tnn.demo.StreamBlazeFaceDetector.StreamBlazeFaceDetectActivity;
 import com.tencent.tnn.demo.StreamFaceDetector.StreamFaceDetectActivity;
 import com.tencent.tnn.demo.ImageObjectDetector.ImageObjectDetectActivity;
+import com.tencent.tnn.demo.StreamHairSegmentation.StreamHairSegmentationActivity;
 import com.tencent.tnn.demo.StreamObjectDetector.StreamObjectDetectActivity;
 import com.tencent.tnn.demo.StreamObjectDetectorSSD.StreamObjectDetectSSDActivity;
 
@@ -160,6 +161,19 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, StreamBlazeFaceAlignActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.stream_hairsegmentation_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, StreamHairSegmentationActivity.class);
                     activity.startActivity(intent);
                 }
             }

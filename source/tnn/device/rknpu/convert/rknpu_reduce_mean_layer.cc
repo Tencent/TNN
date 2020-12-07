@@ -58,6 +58,7 @@ Status RknpuReduceMeanLayer::Convert() {
     for (const auto val : axes) {
         attr.axis.push_back(static_cast<uint32_t>(val));
     }
+    attr.axis_num = attr.axis.size();
     attr.keep_dim = param->keep_dims;
     graph_->AddOperator(rk::nn::OperatorType::REDUCE, inputs, output_ops_, (void *)&attr);
 

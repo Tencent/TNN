@@ -6,9 +6,9 @@
 TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时也借鉴了业界主流开源框架高性能和良好拓展性的优点。目前TNN已经在手Q、微视、P图等应用中落地，欢迎大家参与协同共建，促进TNN推理框架进一步完善。
 
 ## 效果示例
-|    人脸检测(blazeface)     |   物体检测(yolov5s)       |   人脸配准(腾讯优图)      |
-|:---------|:-----------|:---------|
-|[![blazeface](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface)  iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) |[![yolov5s](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5)    |[![youtu_facealign](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) |
+|    人脸检测(blazeface)     |   物体检测(yolov5s)       |   人脸配准(腾讯优图)      |   头发分割(腾讯光影)      |  
+|:---------|:-----------|:---------|:---------|
+|[![blazeface](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface)  iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) |[![yolov5s](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5)    |[![youtu_facealign](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) iOS ✅ Android ✅ <br> [模型链接](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) |
 
 
 ## 快速开始

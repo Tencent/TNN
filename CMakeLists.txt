@@ -53,7 +53,7 @@ if(TNN_PROFILER_ENABLE)
 endif()
 
 if(TNN_BENCHMARK_MODE)
-    add_definitions(-DBENCHMARK)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 # ignore loop-vectorize warning
@@ -97,10 +97,12 @@ endif()
 
 if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
-    if (TNN_UNIT_TEST_BENCHMARK MATCHES OFF)
-        add_definitions(-DOPENCL_FORCE_FP32)
-    endif()
     set(TNN_CPU_ENABLE ON)
+    set(TNN_SYMBOL_HIDE OFF)
+    add_definitions(-DGENERATE_RESOURCE)
+endif()
+
+if(TNN_CONVERTER_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
 
@@ -114,7 +116,6 @@ if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
-    add_definitions(-DOPENCL_FORCE_FP32)
     option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
 endif()
 
@@ -227,6 +228,11 @@ if(TNN_OPENVINO_ENABLE)
 endif()
 
 if(TNN_OPENCL_ENABLE)
+    include(FindPythonInterp REQUIRED)
+    if (NOT PYTHON_EXECUTABLE)
+        message (FATAL_ERROR "No Python installation found! It is required by OpenCL codegen.")
+    endif ()
+
     if(SHARING_MEM_WITH_OPENGL)
         add_definitions(-DSHARING_MEM_WITH_OPENGL)
         add_definitions(-DCL_HPP_TARGET_OPENCL_VERSION=120)
