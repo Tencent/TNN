@@ -97,8 +97,6 @@ Status PoolingLayer::InferOutputShape() {
                 static_cast<int>(std::floor(float(height + pad_top + pad_down - kernel_h) / (float)stride_h + 1));
             width_out =
                 static_cast<int>(std::floor(float(width + pad_left + pad_right - kernel_w) / (float)stride_w + 1));
-            //LOGE("Before height is %d, pad_top is %d, pad_down is %d, kernel_h is %d, stride_h is %d, width is %d pad_down is %d, pad_right is %d kernel_w is %d stride_w is %d height_out is %d, width_out is %d\n", 
-            //    height, pad_top, pad_down, kernel_h, stride_h, width, pad_down, pad_right, kernel_w, stride_w, height_out, width_out);
         }
 
         int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
@@ -122,8 +120,6 @@ Status PoolingLayer::InferOutputShape() {
                     static_cast<int>(std::floor(float(height + pad_top + pad_down - kernel_h) / (float)stride_h + 1));
                 rectify_width_out =
                     static_cast<int>(std::floor(float(width + pad_down + pad_right - kernel_w) / (float)stride_w + 1));
-                //LOGE("After height is %d, pad_top is %d, pad_down is %d, kernel_h is %d, stride_h is %d, width is %d pad_down is %d, pad_right is %d kernel_w is %d stride_w is %d rec_height is %d, rec_width_out is %d\n", 
-                //height, pad_top, pad_down, kernel_h, stride_h, width, pad_down, pad_right, kernel_w, stride_w, rectify_height_out, rectify_width_out);
             }
 
             if (rectify_height_out != height_out || rectify_width_out != width_out) {

@@ -161,17 +161,13 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
         Blob *scales_blob = inputs[1];
         auto scales_data  = (float *)scales_blob->GetHandle().base;
         auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
-        LOGE("The scale blob name is %s\n", scales_blob->GetBlobDesc().name.c_str());
-        LOGE("The scale count is %d\n", scales_count);
         std::vector<float> scales;
         for (int i = 0; i < scales_count; ++i) {
             scales.push_back(scales_data[i]);
-            LOGE("The scale data %d value is %f\n", i, scales_data[i]);
         }
         // width_scale height_scale
         float w_scale = scales[scales.size() - 1];
         float h_scale = scales[scales.size() - 2];
-        LOGE("The wscale is %f, hscale is %f\n", w_scale, h_scale);
         layer_param->scales.push_back(w_scale);
         layer_param->scales.push_back(h_scale);
         if (layer_param->align_corners < 0) {
@@ -193,7 +189,6 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
             // floor is wrong for some model
             width_out  = int(round(width * layer_param->scales[0]));
             height_out = int(round(height * layer_param->scales[1]));
-            LOGE("The layer param pre is width_out is %d, height_out is %d, width is %d, scale0 is %f, height is %d, scale1 is %f\n", width_out, height_out, width, layer_param->scales[0], height, layer_param->scales[1]);
         } else {
             LOGE("Error: unsupport upsample type:%d", layer_param->mode);
             return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
@@ -206,7 +201,7 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
         }
 
         if (width_out <= 0 || height_out <= 0) {
-            LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
+            LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)\n", height_out, width_out);
             return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
         }
 

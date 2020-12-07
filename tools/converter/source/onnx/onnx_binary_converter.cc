@@ -28,10 +28,10 @@ TNN_NS::ActivationType OnnxBinaryConverter::ActivationType(const onnx::NodeProto
 }
 
 TNN_NS::Status OnnxBinaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
-                                            bool &quantized_model) {
+                                         const onnx::NodeProto &node,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                         bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::MultidirBroadcastLayerParam;
     auto cur_layer             = net_structure.layers.back();
@@ -41,9 +41,31 @@ TNN_NS::Status OnnxBinaryConverter::exec(tnn::NetStructure &net_structure, tnn::
     param->quantized           = false;
 
     param->weight_input_index = -1;
+    const auto &matrix_a_name = node.input(0);
+    const auto &matrix_b_name = node.input(1);
+    if (proxy_initializers_map.find(matrix_a_name) != proxy_initializers_map.end()) {
+        param->weight_input_index        = 0;
+        auto layer_resource              = new TNN_NS::EltwiseLayerResource;
+        layer_resource->name             = cur_layer->name;
+        const auto &tensor_proto         = proxy_initializers_map[matrix_a_name];
+        TNN_NS::RawBuffer *weight_handle = nullptr;
+        CreateRawBufferFromTensor(*tensor_proto, &weight_handle);
+        layer_resource->element_handle             = *weight_handle;
+        net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
 
+    } else if (proxy_initializers_map.find(matrix_b_name) != proxy_initializers_map.end()) {
+        param->weight_input_index        = 1;
+        auto layer_resource              = new TNN_NS::EltwiseLayerResource;
+        layer_resource->name             = cur_layer->name;
+        const auto &tensor_proto         = proxy_initializers_map[matrix_b_name];
+        TNN_NS::RawBuffer *weight_handle = nullptr;
+        CreateRawBufferFromTensor(*tensor_proto, &weight_handle);
+        layer_resource->element_handle             = *weight_handle;
+        net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    }
     cur_layer->inputs[0] = node.input(0);
     cur_layer->inputs[1] = node.input(1);
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 
