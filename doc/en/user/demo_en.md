@@ -193,7 +193,7 @@
 ##### MacOS
 * Environment Requirements  
    - Cmake (>=3.11)
-   - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
+   - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
 * Compile  
    Move to `examples/x86` directory and execute `build_macos.sh`:
    ```

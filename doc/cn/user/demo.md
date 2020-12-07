@@ -192,7 +192,7 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
 ##### MacOS
 * 环境要求
    - Cmake (>=3.11)
-   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到 
+   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)
 * 编译
    进入 `examples/x86` 目录执行 `build_macos.sh`:
    ```
