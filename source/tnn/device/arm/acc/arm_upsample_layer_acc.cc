@@ -204,6 +204,113 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
+// cubic interpolate weights
+static void get_cubic_weights(float coor, float *coeffs) {
+    // opencv uses -0.75
+    static const float A = -0.75f;
+    float x              = coor - std::floor(coor);
+
+    coeffs[0] = ((A * (x + 1) - 5 * A) * (x + 1) + 8 * A) * (x + 1) - 4 * A;
+    coeffs[1] = ((A + 2) * x - (A + 3)) * x * x + 1;
+    coeffs[2] = ((A + 2) * (1 - x) - (A + 3)) * (1 - x) * (1 - x) + 1;
+    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
+}
+
+static inline void get_cubic_pos_coeffs(int *h_pos_ptr, int *w_pos_ptr, float *h_coeffs_ptr, float *w_coeffs_ptr,
+                                        int ih, int iw, int oh, int ow, bool align_corners) {
+    if (align_corners) {
+        const float rheight = (oh > 1) ? (float)(ih - 1) / (oh - 1) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw - 1) / (ow - 1) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_pos_ptr[h] = std::floor(static_cast<float>(h * rheight));
+            get_cubic_weights(h * rheight, h_coeffs_ptr + h * 4);
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_pos_ptr[w] = std::floor(static_cast<float>(w * rwidth));
+            get_cubic_weights(w * rwidth, w_coeffs_ptr + w * 4);
+        }
+    } else {
+        const float rheight = (oh > 1) ? (float)(ih) / (oh) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw) / (ow) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_pos_ptr[h] = std::floor(static_cast<float>(rheight * (h + 0.5) - 0.5));
+            get_cubic_weights(rheight * (h + 0.5) - 0.5, h_coeffs_ptr + h * 4);
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_pos_ptr[w] = std::floor(static_cast<float>(rwidth * (w + 0.5) - 0.5));
+            get_cubic_weights(rwidth * (w + 0.5) - 0.5, w_coeffs_ptr + w * 4);
+        }
+    }
+}
+
+static inline int upsample_cubic2d(float *output_data, const float *input_data, int batch, int ih, int iw, int oh,
+                                   int ow, int c_4, bool align_corners) {
+    auto src_z_step = iw * ih * 4;
+    auto dst_z_step = ow * oh * 4;
+    auto src_y_step = iw * 4;
+    auto src_plane  = iw * ih * c_4 * 4;
+    auto dst_plane  = ow * oh * c_4 * 4;
+
+    RawBuffer h_coeffs(oh * sizeof(float) * 4);
+    RawBuffer w_coeffs(ow * sizeof(float) * 4);
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
+    RawBuffer h_pos(oh * sizeof(float));
+    RawBuffer w_pos(ow * sizeof(float));
+    auto h_pos_ptr = h_pos.force_to<int *>();
+    auto w_pos_ptr = w_pos.force_to<int *>();
+
+    get_cubic_pos_coeffs(h_pos_ptr, w_pos_ptr, h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
+
+#define ClipC4(x, X) (((x) >= 0 ? ((x) < (X) ? (x) : ((X)-1)) : 0) * 4)
+
+    for (int b = 0; b < batch; ++b) {
+        auto input_b  = input_data + b * src_plane;
+        auto output_b = output_data + b * dst_plane;
+
+        OMP_PARALLEL_FOR_
+        for (int h2 = 0; h2 < oh; ++h2) {
+            const int h1    = h_pos_ptr[h2];
+            const int hp[4] = {ClipC4(h1 - 1, ih), ClipC4(h1, ih), ClipC4(h1 + 1, ih), ClipC4(h1 + 2, ih)};
+            auto h_lambda   = Float4::load(h_coeffs_ptr + 4 * h2);
+            for (int w2 = 0; w2 < ow; ++w2) {
+                const int w1          = w_pos_ptr[w2];
+                const int wp[4]       = {ClipC4(w1 - 1, iw), ClipC4(w1, iw), ClipC4(w1 + 1, iw), ClipC4(w1 + 2, iw)};
+                auto w_lambda         = Float4::load(w_coeffs_ptr + 4 * w2);
+                const float *Xdata[4] = {input_b + hp[0] * iw, input_b + hp[1] * iw, input_b + hp[2] * iw,
+                                         input_b + hp[3] * iw};
+                float *Ydata          = output_b + h2 * ow * 4 + w2 * 4;
+                for (int z = 0; z < c_4; z++) {
+                    auto row_0 =
+                        Float4::load(Xdata[0] + wp[0]) * w_lambda[0] + Float4::load(Xdata[0] + wp[1]) * w_lambda[1] +
+                        Float4::load(Xdata[0] + wp[2]) * w_lambda[2] + Float4::load(Xdata[0] + wp[3]) * w_lambda[3];
+                    auto row_1 =
+                        Float4::load(Xdata[1] + wp[0]) * w_lambda[0] + Float4::load(Xdata[1] + wp[1]) * w_lambda[1] +
+                        Float4::load(Xdata[1] + wp[2]) * w_lambda[2] + Float4::load(Xdata[1] + wp[3]) * w_lambda[3];
+                    auto row_2 =
+                        Float4::load(Xdata[2] + wp[0]) * w_lambda[0] + Float4::load(Xdata[2] + wp[1]) * w_lambda[1] +
+                        Float4::load(Xdata[2] + wp[2]) * w_lambda[2] + Float4::load(Xdata[2] + wp[3]) * w_lambda[3];
+                    auto row_3 =
+                        Float4::load(Xdata[3] + wp[0]) * w_lambda[0] + Float4::load(Xdata[3] + wp[1]) * w_lambda[1] +
+                        Float4::load(Xdata[3] + wp[2]) * w_lambda[2] + Float4::load(Xdata[3] + wp[3]) * w_lambda[3];
+                    Float4::save(Ydata,
+                                 row_0 * h_lambda[0] + row_1 * h_lambda[1] + row_2 * h_lambda[2] + row_3 * h_lambda[3]);
+
+                    Xdata[0] += src_z_step;
+                    Xdata[1] += src_z_step;
+                    Xdata[2] += src_z_step;
+                    Xdata[3] += src_z_step;
+                    Ydata += dst_z_step;
+                }
+            }
+        }
+    }
+
+#undef ClipC4
+
+    return 0;
+}
+
 static void calculate_position_ratio(int length, double scale, int border, int channel, int *position, short *ratio,
                                      bool align_corners) {
     const int INTER_RESIZE_COEF_BITS  = 11;
@@ -745,6 +852,13 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
                                            buffer_scale_.force_to<float *>());
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample bilinear");
+        }
+    } else if (param->mode == 3) {  // cubic
+        if (data_type == DATA_TYPE_FLOAT) {
+            upsample_cubic2d(output_data, input_data, batch, dims_input[2], dims_input[3], dims_output[2],
+                             dims_output[3], oc_4, (bool)param->align_corners);
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample cubic");
         }
     } else {
         LOGE("Error: Upsample dont support resize mode\n");

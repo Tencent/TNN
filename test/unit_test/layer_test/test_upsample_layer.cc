@@ -52,9 +52,14 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (mode == 3 && dev != DEVICE_METAL) {
+    if (mode == 3) {
         // skip cubic upsample for now
-        GTEST_SKIP();
+        if (dev != DEVICE_METAL && dev != DEVICE_ARM) {
+            GTEST_SKIP();
+        }
+        if (data_type == DATA_TYPE_INT8) {
+            GTEST_SKIP();
+        }
     }
 
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
