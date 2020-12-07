@@ -34,7 +34,7 @@ class ReduceOpLayerTest
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
-                         ::testing::Combine(testing::Values(1), 
+                         ::testing::Combine(testing::Values(1, 2),
                                             testing::Values(2, 3, 9, 128),
                                             testing::Values(9, 10, 19, 128),
                                             testing::Values(9, 10, 19, 128),
