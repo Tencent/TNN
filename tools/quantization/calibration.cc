@@ -190,6 +190,7 @@ Status Calibration::Serialize(std::string proto_path, std::string model_path) {
     Status status = packer.Pack(proto_path, model_path);
     if (status != TNN_OK) {
         LOGE("pack the model falied!\n");
+        return status;
     }
 
     return TNN_OK;

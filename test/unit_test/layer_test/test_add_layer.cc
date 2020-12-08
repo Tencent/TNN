@@ -48,7 +48,6 @@ TEST_P(AddLayerTest, BinaryLayerTest) {
         }
     }
 
-    RunBinaryTest();
+    RunBinaryTest("Add");
 }
-
 }  // namespace TNN_NS

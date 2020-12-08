@@ -88,8 +88,8 @@ Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, 
             param.bias = std::vector<float>(channel, 0.0f);
         } else {
             LOGE("blob converter param is invalid, scale bias not match Mat channel,"
-                 "scale size: %lu, bias size: %lu, Mat channel: %d\n", param.scale.size(),
-                 param.bias.size(), image.GetChannel());
+                 "scale size: %d, bias size: %d, Mat channel: %d\n", (int)param.scale.size(),
+                (int)param.bias.size(), image.GetChannel());
             return Status(TNNERR_PARAM_ERR, "blob converter param is invalid!");
         }
     }

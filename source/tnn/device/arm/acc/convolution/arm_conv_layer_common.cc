@@ -124,6 +124,9 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<float>;
+        } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<float, false>
+                                                                    : PostAddBiasSwish<float, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<float>;
         } else {
@@ -132,6 +135,9 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<bfp16_t>;
+        } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<bfp16_t, false>
+                                                                    : PostAddBiasSwish<bfp16_t, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<bfp16_t>;
         } else {
@@ -189,7 +195,7 @@ Status ArmConvLayerCommon::Exec(const std::vector<Blob *> &inputs, const std::ve
 
     int x_count = UP_DIV(k_param_->ow, CONVOLUTION_TILED_NUMBER);
     int src_xc  = 1 + (CONVOLUTION_TILED_NUMBER - 1) * conv_param->strides[0] +
-                conv_param->dialations[0] * (conv_param->kernels[0] - 1);
+                 conv_param->dialations[0] * (conv_param->kernels[0] - 1);
     int workspace_per_thread = src_xc * conv_param->kernels[1] * ROUND_UP(dims_input[1], 4) * data_byte_size;
     RawBuffer i_buffer;
     RawBuffer o_buffer;

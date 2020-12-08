@@ -51,6 +51,7 @@ function build_android_bench() {
           -DTNN_ARM_ENABLE:BOOL=ON \
           -DTNN_OPENCL_ENABLE:BOOL=ON \
           -DTNN_TEST_ENABLE:BOOL=ON \
+          -DTNN_BENCHMARK_MODE:BOOL=ON \
           -DTNN_UNIT_TEST_ENABLE:BOOL=ON \
           -DTNN_UNIT_TEST_BENCHMARK:BOOL=ON \
           -DTNN_PROFILER_ENABLE:BOOL=ON \

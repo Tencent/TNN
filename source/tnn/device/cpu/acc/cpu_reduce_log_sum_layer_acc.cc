@@ -22,6 +22,7 @@ namespace TNN_NS {
 DECLARE_CPU_PRE_REDUCE_POST_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
 
 Status CpuReduceLogSumLayerAcc::PreCalculateReduce(float* dst, float* src, int count) {
+    memcpy(dst, src, count * sizeof(float));
     return TNN_OK;
 }
 
