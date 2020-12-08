@@ -263,49 +263,134 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
     get_cubic_pos_coeffs(h_pos_ptr, w_pos_ptr, h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
 
 #define ClipC4(x, X) (((x) >= 0 ? ((x) < (X) ? (x) : ((X)-1)) : 0) * 4)
+#define ROW_CAL_START                                                                                                  \
+    const int w1    = w_pos_ptr[w2];                                                                                   \
+    const int wp[4] = {ClipC4(w1 - 1, iw), ClipC4(w1, iw), ClipC4(w1 + 1, iw), ClipC4(w1 + 2, iw)};                    \
+    auto w_lambda   = Float4::load(w_coeffs_ptr + 4 * w2);
+#define ROW_CAL(src, dst)                                                                                              \
+    auto row_##dst = Float4::load(Xdata[src] + wp[0]) * w_lambda[0] + Float4::load(Xdata[src] + wp[1]) * w_lambda[1] + \
+                     Float4::load(Xdata[src] + wp[2]) * w_lambda[2] + Float4::load(Xdata[src] + wp[3]) * w_lambda[3];  \
+    Float4::save(rows##dst##_t[thread_id] + buf_offset, row_##dst);                                                    \
+    Xdata[src] += src_z_step;
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int buf_count       = ow * c_4 * 4 * max_num_threads;
+    RawBuffer workspace(4 * buf_count * sizeof(float));
+    float *rows0 = workspace.force_to<float *>();
+    float *rows1 = rows0 + buf_count;
+    float *rows2 = rows1 + buf_count;
+    float *rows3 = rows2 + buf_count;
+    float *rows0_t[max_num_threads];
+    float *rows1_t[max_num_threads];
+    float *rows2_t[max_num_threads];
+    float *rows3_t[max_num_threads];
+    int prev_h1[max_num_threads];
 
     for (int b = 0; b < batch; ++b) {
         auto input_b  = input_data + b * src_plane;
         auto output_b = output_data + b * dst_plane;
 
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_h1[t] = INT_MIN;
+            rows0_t[t] = rows0 + t * (ow * c_4 * 4);
+            rows1_t[t] = rows1 + t * (ow * c_4 * 4);
+            rows2_t[t] = rows2 + t * (ow * c_4 * 4);
+            rows3_t[t] = rows3 + t * (ow * c_4 * 4);
+        }
+
         OMP_PARALLEL_FOR_
         for (int h2 = 0; h2 < oh; ++h2) {
+            int thread_id   = OMP_TID_;
             const int h1    = h_pos_ptr[h2];
             const int hp[4] = {ClipC4(h1 - 1, ih), ClipC4(h1, ih), ClipC4(h1 + 1, ih), ClipC4(h1 + 2, ih)};
-            auto h_lambda   = Float4::load(h_coeffs_ptr + 4 * h2);
-            for (int w2 = 0; w2 < ow; ++w2) {
-                const int w1          = w_pos_ptr[w2];
-                const int wp[4]       = {ClipC4(w1 - 1, iw), ClipC4(w1, iw), ClipC4(w1 + 1, iw), ClipC4(w1 + 2, iw)};
-                auto w_lambda         = Float4::load(w_coeffs_ptr + 4 * w2);
-                const float *Xdata[4] = {input_b + hp[0] * iw, input_b + hp[1] * iw, input_b + hp[2] * iw,
-                                         input_b + hp[3] * iw};
-                float *Ydata          = output_b + h2 * ow * 4 + w2 * 4;
-                for (int z = 0; z < c_4; z++) {
-                    auto row_0 =
-                        Float4::load(Xdata[0] + wp[0]) * w_lambda[0] + Float4::load(Xdata[0] + wp[1]) * w_lambda[1] +
-                        Float4::load(Xdata[0] + wp[2]) * w_lambda[2] + Float4::load(Xdata[0] + wp[3]) * w_lambda[3];
-                    auto row_1 =
-                        Float4::load(Xdata[1] + wp[0]) * w_lambda[0] + Float4::load(Xdata[1] + wp[1]) * w_lambda[1] +
-                        Float4::load(Xdata[1] + wp[2]) * w_lambda[2] + Float4::load(Xdata[1] + wp[3]) * w_lambda[3];
-                    auto row_2 =
-                        Float4::load(Xdata[2] + wp[0]) * w_lambda[0] + Float4::load(Xdata[2] + wp[1]) * w_lambda[1] +
-                        Float4::load(Xdata[2] + wp[2]) * w_lambda[2] + Float4::load(Xdata[2] + wp[3]) * w_lambda[3];
-                    auto row_3 =
-                        Float4::load(Xdata[3] + wp[0]) * w_lambda[0] + Float4::load(Xdata[3] + wp[1]) * w_lambda[1] +
-                        Float4::load(Xdata[3] + wp[2]) * w_lambda[2] + Float4::load(Xdata[3] + wp[3]) * w_lambda[3];
-                    Float4::save(Ydata,
-                                 row_0 * h_lambda[0] + row_1 * h_lambda[1] + row_2 * h_lambda[2] + row_3 * h_lambda[3]);
+            int buf_offset  = 0;
 
-                    Xdata[0] += src_z_step;
-                    Xdata[1] += src_z_step;
-                    Xdata[2] += src_z_step;
-                    Xdata[3] += src_z_step;
+            int diff_h = h1 - prev_h1[thread_id];
+
+            if (diff_h == 0) {
+                // reuse all rows
+            } else if (diff_h == 1) {
+                auto rows_tmp      = rows0_t[thread_id];
+                rows0_t[thread_id] = rows1_t[thread_id];
+                rows1_t[thread_id] = rows2_t[thread_id];
+                rows2_t[thread_id] = rows3_t[thread_id];
+                rows3_t[thread_id] = rows_tmp;
+                for (int w2 = 0; w2 < ow; ++w2) {
+                    ROW_CAL_START;
+                    const float *Xdata[1] = {input_b + hp[3] * iw};
+                    for (int z = 0; z < c_4; z++) {
+                        ROW_CAL(0, 3);
+                        buf_offset += 4;
+                    }
+                }
+            } else if (diff_h == 2) {
+                auto rows_tmp      = rows0_t[thread_id];
+                rows0_t[thread_id] = rows2_t[thread_id];
+                rows2_t[thread_id] = rows_tmp;
+                rows_tmp           = rows1_t[thread_id];
+                rows1_t[thread_id] = rows3_t[thread_id];
+                rows3_t[thread_id] = rows_tmp;
+                for (int w2 = 0; w2 < ow; ++w2) {
+                    ROW_CAL_START;
+                    const float *Xdata[2] = {input_b + hp[2] * iw, input_b + hp[3] * iw};
+                    for (int z = 0; z < c_4; z++) {
+                        ROW_CAL(0, 2);
+                        ROW_CAL(1, 3);
+                        buf_offset += 4;
+                    }
+                }
+            } else if (diff_h == 3) {
+                auto rows_tmp      = rows0_t[thread_id];
+                rows0_t[thread_id] = rows3_t[thread_id];
+                rows3_t[thread_id] = rows2_t[thread_id];
+                rows2_t[thread_id] = rows1_t[thread_id];
+                rows1_t[thread_id] = rows_tmp;
+                for (int w2 = 0; w2 < ow; ++w2) {
+                    ROW_CAL_START;
+                    const float *Xdata[3] = {input_b + hp[1] * iw, input_b + hp[2] * iw, input_b + hp[3] * iw};
+                    for (int z = 0; z < c_4; z++) {
+                        ROW_CAL(0, 1);
+                        ROW_CAL(1, 2);
+                        ROW_CAL(2, 3);
+                        buf_offset += 4;
+                    }
+                }
+            } else {
+                for (int w2 = 0; w2 < ow; ++w2) {
+                    ROW_CAL_START;
+                    const float *Xdata[4] = {input_b + hp[0] * iw, input_b + hp[1] * iw, input_b + hp[2] * iw,
+                                             input_b + hp[3] * iw};
+                    for (int z = 0; z < c_4; z++) {
+                        ROW_CAL(0, 0);
+                        ROW_CAL(1, 1);
+                        ROW_CAL(2, 2);
+                        ROW_CAL(3, 3);
+                        buf_offset += 4;
+                    }
+                }
+            }
+            prev_h1[thread_id] = h1;
+
+            auto h_lambda = Float4::load(h_coeffs_ptr + 4 * h2);
+            buf_offset    = 0;
+            for (int w2 = 0; w2 < ow; ++w2) {
+                float *Ydata = output_b + h2 * ow * 4 + w2 * 4;
+                for (int z = 0; z < c_4; z++) {
+                    Float4::save(Ydata, Float4::load(rows0_t[thread_id] + buf_offset) * h_lambda[0] +
+                                            Float4::load(rows1_t[thread_id] + buf_offset) * h_lambda[1] +
+                                            Float4::load(rows2_t[thread_id] + buf_offset) * h_lambda[2] +
+                                            Float4::load(rows3_t[thread_id] + buf_offset) * h_lambda[3]);
+
+                    buf_offset += 4;
                     Ydata += dst_z_step;
                 }
             }
         }
     }
 
+#undef TROW_CAL
+#undef ROW_CAL_START
 #undef ClipC4
 
     return 0;
