@@ -158,6 +158,7 @@ cd <path_to_tnn>/scripts
   - 网络访问
 
 ### 2.编译步骤
+打开 `x64 Native Tools Command Prompt for VS 2017/2019`.
 1）切换到脚本目录
 ```
 cd <path_to_tnn>/scripts

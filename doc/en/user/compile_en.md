@@ -153,6 +153,7 @@ cd <path_to_tnn>/scripts
   - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
 
 ### 2. Compilation Steps
+Open `x64 Native Tools Command Prompt for VS 2017/2019`.
 1) switch to 'scripts' directory
 ```
 cd <path_to_tnn>/scripts
