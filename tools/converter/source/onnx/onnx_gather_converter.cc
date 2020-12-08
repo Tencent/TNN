@@ -53,23 +53,9 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
     if (proxy_initializers_map.find(indices_name) != proxy_initializers_map.end()) {
         param->indices_in_resource = true;
         auto indices_tensor        = proxy_initializers_map[indices_name];
-        auto &indices_dims         = indices_tensor->dims();
-        TNN_NS::DimsVector dims    = std::vector<int>(indices_dims.begin(), indices_dims.end());
-        auto indices_count         = TNN_NS::DimsVectorUtils::Count(dims);
-        auto indices_raw_buffer    = TNN_NS::RawBuffer(indices_count * sizeof(int32_t), dims);
-        indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
-        void *indices_data_ptr = GetDataFromTensor(*indices_tensor, onnx::TensorProto_DataType_INT64);
-        if (indices_data_ptr == nullptr) {
-            LOGE("Gather: can not get indices from onnx model, please check the model\n");
-            return TNN_NS::TNNERR_MODEL_ERR;
-        }
-        auto tmp = new int32_t[indices_count];
-        for (int i = 0; i < indices_count; ++i) {
-            tmp[i] = *((int64_t *)indices_data_ptr + i);
-        }
-        memcpy(indices_raw_buffer.force_to<int32_t *>(), tmp, indices_count);
-        resource->indices = indices_raw_buffer;
-        delete[] tmp;
+        TNN_NS::RawBuffer* indices_raw_buffer = nullptr;
+        CreateRawBufferFromTensor(*indices_tensor, &indices_raw_buffer);
+        resource->indices = *indices_raw_buffer;
     } else if (proxy_nodes.find(indices_name) != proxy_nodes.end() &&
                proxy_nodes.find(indices_name)->second->op_type == "Constant") {
         param->indices_in_resource            = true;

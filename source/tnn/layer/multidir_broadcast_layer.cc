@@ -88,9 +88,13 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         }
 
         DimsVector input_shape = input_blobs_[0]->GetBlobDesc().dims;
-        int input_count        = DimsVectorUtils::Count(input_shape, 1);
+        int input_count        = DimsVectorUtils::Count(input_shape,1);// 这个地方好像有问题
 
         DimsVector weight_shape = layer_res->element_handle.GetBufferDims();
+        if (input_shape.empty() && weight_shape.empty()) {
+            output_blobs_[0]->GetBlobDesc().dims = input_shape;
+            return TNN_OK;
+        }
         if (weight_shape.size() < 4) {
             weight_shape       = DimsVector(input_shape.size(), 1);
             int layer_res_size = layer_res->element_handle.GetDataCount();
