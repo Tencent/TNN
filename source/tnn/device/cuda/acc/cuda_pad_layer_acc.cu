@@ -20,7 +20,7 @@ namespace TNN_NS {
 DECLARE_CUDA_ACC(Pad, LAYER_PAD);
 
 __global__ void pad_default_kernel(const float* src, float* dst, int count, int input_channel, int output_channel,
-        int pad_c, int output_h, int output_w, int input_h, int input_w, int pad_h, int pad_w, float value) {
+        int pad_c, int output_h, int output_w, int input_h, int input_w, int pad_w, int pad_h, float value) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (output_channel * output_h * output_w);
         int dst_c = (idx / (output_h * output_w)) % output_channel;
@@ -39,7 +39,7 @@ __global__ void pad_default_kernel(const float* src, float* dst, int count, int 
 }
 
 __global__ void pad_symmetric_kernel(const float* src, float* dst, int count, int channels, int output_h,
-        int output_w, int input_h, int input_w, int pad_h, int pad_w) {
+        int output_w, int input_h, int input_w, int pad_w, int pad_h) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (channels * output_h * output_w);
         int dst_c = (idx / (output_h * output_w)) % channels;
@@ -53,7 +53,7 @@ __global__ void pad_symmetric_kernel(const float* src, float* dst, int count, in
 }
 
 __global__ void pad_reflect_kernel(const float* src, float* dst, int count, int channels, int output_h, int output_w,
-        int input_h, int input_w, int pad_h, int pad_w) {
+        int input_h, int input_w, int pad_w, int pad_h) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (channels * output_h * output_w);
         int dst_c = (idx / (output_h * output_w)) % channels;
@@ -67,7 +67,7 @@ __global__ void pad_reflect_kernel(const float* src, float* dst, int count, int 
 }
 
 __global__ void pad_reflect_kernel_fp16(const __half * src, __half * dst, int count, int channels, int output_h, int output_w,
-        int input_h, int input_w, int pad_h, int pad_w) {
+        int input_h, int input_w, int pad_w, int pad_h) {
     const float4 * src_l = reinterpret_cast<const float4*>(src);
     float4 * dst_l = reinterpret_cast<float4*>(dst);
 

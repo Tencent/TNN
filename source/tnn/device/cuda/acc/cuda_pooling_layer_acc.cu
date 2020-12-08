@@ -35,7 +35,7 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     if (params->pool_type == 0) {
         this->m_pooling_mode = CUDNN_POOLING_MAX;
     } else {
-        this->m_pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+        this->m_pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
     }
 
     this->m_tensor_format = CUDNN_TENSOR_NCHW;
