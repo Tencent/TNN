@@ -189,6 +189,31 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
    ```
 
+##### MacOS
+* 环境要求
+   - Cmake (>=3.11)
+   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)
+* 编译
+   进入 `examples/x86` 目录执行 `build_macos.sh`:
+   ```
+   cd <path_to_tnn>/examples/x86
+   ./build_macos.sh
+   ```
+* 运行
+   进入 `examples/x86/build_macos` 目录，然后运行Demo:
+   ```
+   cd build_macos
+   
+   图片分类Demo
+   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+
+   人脸检测Demo
+   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   摄像头人脸配准Demo
+   ./demo_x86_webcam
+   ```
+
 ##### Windows
 * 环境要求  
    - Visual Studio (>=2015)

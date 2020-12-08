@@ -1,111 +1,174 @@
-# TNN/scripts/
-# 判断 cmake version
-if !(command -v cmake > /dev/null 2>&1); then
-    echo "Cmake not found!"
-    exit 1
-fi
+#!/bin/bash
 
-for var in $(cmake --version | awk 'NR==1{print $3}')
-do
-    cmake_version=$var
-done
-function version_lt { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
-
-if (version_lt $cmake_version 3.11); then
-    echo "Cmake 3.11 or higher is required. You are running version ${cmake_version}"
-    exit 2
-fi
+set -euo pipefail
 
 TNN_DIR=$(pwd)/../
-thirdparty_dir=${TNN_DIR}/source/tnn/network/openvino/thirdparty/
+BUILD_DIR=${TNN_DIR}/scripts/build_linux
+TNN_INSTALL_DIR=${TNN_DIR}/scripts/linux_release
+OPENVINO_BUILD_SHARED="ON"
+
+OPENVINO_INSTALL_PATH=${BUILD_DIR}/openvinoInstallShared
+if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
+then
+    OPENVINO_INSTALL_PATH=${BUILD_DIR}/openvinoInstallStatic
+fi
+
+export OPENVINO_ROOT_DIR=${OPENVINO_INSTALL_PATH}
 export GIT_LFS_SKIP_SMUDGE=1
 
-if [ ! -d ${thirdparty_dir} ]
-then
-    mkdir ${thirdparty_dir}
-    mkdir ${thirdparty_dir}/openvino
-    mkdir ${thirdparty_dir}/openvino/lib
-    mkdir ${thirdparty_dir}/ngraph
-fi
+check_cmake() {
+    if !(command -v cmake > /dev/null 2>&1); then
+        echo "Cmake not found!"
+        exit 1
+    fi
 
-# 编译 openvino 库
-if [ ! -d ${TNN_DIR}/scripts/build_linux ]
-then
-mkdir build_linux
-fi
+    for var in $(cmake --version | awk 'NR==1{print $3}')
+    do
+        cmake_version=$var
+    done
+    function version_lt { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
 
-cd build_linux
+    if (version_lt $cmake_version 3.11); then
+        echo "Cmake 3.11 or higher is required. You are running version ${cmake_version}"
+        exit 2
+    fi
+}
 
-if [ ! -d ${TNN_DIR}/scripts/build_linux/openvinoInstall ]
-then
-# TNN/scripts/build_linux
-git clone https://github.com/openvinotoolkit/openvino.git
-cd openvino
-git reset --hard 9df6a8f
+clone_openvino() {
+    mkdir -p ${BUILD_DIR}
+    cd ${BUILD_DIR}
 
-# TNN/scripts/build_linux/openvino
-git submodule update --init --recursive
+    if [ ! -d openvino ]
+    then
+        git clone https://github.com/openvinotoolkit/openvino.git
+    fi
+    cd openvino
+    git reset --hard 9df6a8f
+    git submodule update --init --recursive
 
-# 编译静态库
-sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
-sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
-sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
-sed -i 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
-sed -i 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
+    # 编译静态库
+    if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
+    then
+        sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
+        sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
+        sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
+        sed -i 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
+        sed -i 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
+    fi
+}
 
-mkdir build && cd build
+build_openvino() {
 
-echo "Configuring Openvino ..."
-# TNN/scripts/build_linux/openvino/build
-cmake ../ \
--DENABLE_OPENCV=OFF \
--DCMAKE_INSTALL_PREFIX=${TNN_DIR}/scripts/build_linux/openvinoInstall \
--DENABLE_CLDNN=OFF \
--DENABLE_TBB_RELEASE_ONLY=OFF \
--DTHREADING=SEQ \
--DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
--DENABLE_MYRIAD=OFF \
--DNGRAPH_JSON_ENABLE=OFF \
--DENABLE_PROFILING_ITT=OFF \
+    if [ ! -d ${OPENVINO_INSTALL_PATH} ]
+    then
+        cd ${BUILD_DIR}/openvino
+        mkdir -p build && cd build
+        echo "Configuring Openvino ..."
+        cmake ../ \
+        -DENABLE_OPENCV=OFF \
+        -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
+        -DENABLE_CLDNN=OFF \
+        -DENABLE_TBB_RELEASE_ONLY=OFF \
+        -DTHREADING=SEQ \
+        -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
+        -DENABLE_MYRIAD=OFF \
+        -DNGRAPH_JSON_ENABLE=OFF \
+        -DENABLE_PROFILING_ITT=OFF \
 
-echo "Building Openvino ..."
-make -j4
-make install
-cd ../../
+        echo "Building Openvino ..."
+        make -j4
+        make install
+    fi
+}
 
-# TNN/scripts/build_linux/ 拷贝 lib 和 include 文件到 thirdparty 下
-cp -r openvinoInstall/deployment_tools/inference_engine/include/ ${thirdparty_dir}/openvino/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine.a ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy.a ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations.a ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations.a ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ${thirdparty_dir}/openvino/lib/
-cp -r openvinoInstall/deployment_tools/inference_engine/lib/intel64/plugins.xml ./
-cp -r openvinoInstall/deployment_tools/ngraph/include/ ${thirdparty_dir}/ngraph/
-if [ -d openvinoInstall/deployment_tools/ngraph/lib64/ ]
-then
-cp -r openvinoInstall/deployment_tools/ngraph/lib64/libngraph.a ${thirdparty_dir}/openvino/lib/
-else
-cp -r openvinoInstall/deployment_tools/ngraph/lib/libngraph.a ${thirdparty_dir}/openvino/lib/
-fi
-if [ -d openvinoInstall/lib64/ ]
-then
-cp openvinoInstall/lib64/libpugixml.a ${thirdparty_dir}/openvino/lib/
-else
-cp openvinoInstall/lib/libpugixml.a ${thirdparty_dir}/openvino/lib/
-fi
-fi # openvinoInstall
+copy_openvino_libraries() {
+
+    local LIB_EXT=".so"
+    if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
+    then
+        LIB_EXT=".a"
+    fi
+
+    cd ${BUILD_DIR}
+
+    if [ -d ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/ ]
+    then
+        mkdir -p ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/
+    fi
+
+    if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
+    then
+        mkdir -p ${OPENVINO_INSTALL_PATH}/lib
+        cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
+    fi
+
+    if [ ! -d ${TNN_INSTALL_DIR} ] 
+    then
+        mkdir -p ${TNN_INSTALL_DIR}
+    fi
+
+    if [ ! -d ${TNN_INSTALL_DIR}/bin ] 
+    then
+        mkdir -p ${TNN_INSTALL_DIR}/bin
+    fi
+
+    if [ ! -d ${TNN_INSTALL_DIR}/lib ] 
+    then
+        mkdir -p ${TNN_INSTALL_DIR}/lib
+    fi
+
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
+
+
+    if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
+    then
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+    fi
+}
+
+pack_tnn() {
+    cd ${BUILD_DIR}
+    mkdir -p ${TNN_INSTALL_DIR}/lib
+
+    if [ -d ${TNN_INSTALL_DIR}/include ]
+    then 
+        rm -rf ${TNN_INSTALL_DIR}/include
+    fi 
+
+    cp -RP ${TNN_DIR}/include ${TNN_INSTALL_DIR}/
+    cp -P libTNN.so* ${TNN_INSTALL_DIR}/lib
+    cp test/TNNTest ${TNN_INSTALL_DIR}/bin
+}
+
+# building procedure of TNN X86
+
+check_cmake
+
+clone_openvino
+
+build_openvino
+
+copy_openvino_libraries
 
 # 编译 TNN
 echo "Configuring TNN ..."
+cd ${BUILD_DIR}
 cmake ../../ \
 -DTNN_OPENVINO_ENABLE=ON \
 -DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \
 -DTNN_CPU_ENABLE=ON \
+-DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
 
 echo "Building TNN ..."
 make -j4
+
+pack_tnn
 
 echo "Done"

@@ -113,7 +113,8 @@ cd <path_to_tnn>/scripts
 ## 四、Linux 环境编译
 ### 1.环境要求
 依赖库
-  - cmake (使用3.7.2版本及以上)
+  - cmake (使用3.11版本及以上)
+  - 网络访问
 
 ### 2.编译步骤
 1）切换到脚本目录
@@ -152,8 +153,9 @@ cd <path_to_tnn>/scripts
 ## 六、Windows 环境编译
 ### 1.环境要求
 依赖库
-  - Visual Studio (2015 及更高版本)
-  - cmake (把3.7.2及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+  - Visual Studio (2017 及更高版本)
+  - cmake (把3.11及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+  - 网络访问
 
 ### 2.编译步骤
 1）切换到脚本目录
@@ -162,10 +164,29 @@ cd <path_to_tnn>/scripts
 ```
 2）执行编译脚本
 ```
-.\build_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc.bat [VS2017/VS2019]
 ```
 如遇不能识别 Visual Studio 请手动指定版本
 更多编译问题请参考 [FAQ](openvino.md)
+
+
+## 七、Macos 环境编译
+### 1.环境要求
+依赖库
+  - cmake 3.11 以上版本 
+  - xcode command line tools (需提前在应用商店安装好Xcode，然后再命令行执行xcode-select --install )
+  - automake, libtool (可通过brew安装，指令是brew install libtool, brew install automake)
+  - 网络访问
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+./build_macos.sh
+```
 
 ## 编译参数option说明
 
