@@ -78,7 +78,7 @@ Status MetalConvLayer1x1::ComputeThreadSize(const std::vector<Blob *> &inputs,
     auto dims_output  = outputs[0]->GetBlobDesc().dims;
     auto slice_per_group = UP_DIV(dims_output[1], 4) / layer_param->group;
     slice_per_group = slice_per_group > 0 ? slice_per_group : 1;
-    size = MTLSizeMake(dims_output[3]*dims_output[2], slice_per_group, dims_output[0]);
+    size = MTLSizeMake(dims_output[3]*dims_output[2], slice_per_group, 1);
     return TNN_OK;
 }
 
