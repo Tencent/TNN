@@ -24,8 +24,7 @@
 #include "tnn/device/rknpu/convert/rknpu_utils.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
-
-#define LOAD_CACHE
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -43,8 +42,8 @@ RknpuNetwork::~RknpuNetwork() {
 Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                           InputShapesMap inputs_shape) {
     if (net_config.device_type != DEVICE_RK_NPU || model_config.model_type != MODEL_TYPE_TNN) {
-        return Status(TNNERR_NULL_PARAM, "Rknpu not support device_type or model type");        
-    }    
+        return Status(TNNERR_NULL_PARAM, "Rknpu not support device_type or model type");
+    }
 
     device_ = GetDevice(net_config.device_type);
     if (device_ == nullptr) {
@@ -66,51 +65,43 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     auto instance_input_shapes_map = net_structure_->inputs_shape_map;
 
     // RKNPU IR Build
-    bool use_path_ = (net_config.cache_path.compare("") != 0);
+    bool use_path            = (net_config.cache_path.compare("") != 0);
+    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
+    model_name_              = NpuCommonUtils::GetFileHash(model_config) + model_suffix;
 
+    std::string model_save = use_path ? net_config.cache_path + "/" + model_name_ : "";
+
+    // delete in network deinit
     rk::nn::Graph *graph = new rk::nn::Graph();
+    if (use_path && !NpuCommonUtils::FileExits(model_save)) {
+        graph->EnableCreateCache(model_save);
+    }
 
-    OutputShapesMap output_shape_map;
-    GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
-    std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
-    std::vector<std::shared_ptr<rk::nn::Tensor>> outputs;
-    for (auto &iter : instance_input_shapes_map) {
-        printf("input blob name %s\n", iter.first.c_str());
-        for (auto dim : iter.second) {
-            printf("%d ", dim);
+    if (use_path && NpuCommonUtils::FileExits(model_save)) {
+        OutputShapesMap output_shape_map;
+        GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
+        std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
+        std::vector<std::shared_ptr<rk::nn::Tensor>> outputs;
+        for (auto &iter : instance_input_shapes_map) {
+            auto rk_input = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
+                                                         rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
+            inputs.push_back(rk_input);
         }
-        printf("\n");
-        auto rk_input = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
-                                                     rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
-        inputs.push_back(rk_input);
-    }
-    for (auto &iter : output_shape_map) {
-        printf("output blob name %s\n", iter.first.c_str());
-        for (auto dim : iter.second) {
-            printf("%d ", dim);
+        for (auto &iter : output_shape_map) {
+            auto rk_output = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
+                                                          rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
+            outputs.push_back(rk_output);
         }
-        printf("\n");
-        auto rk_output = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
-                                                     rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
-        outputs.push_back(rk_output);
+        graph->LoadCache(model_save, inputs, outputs);
+        exector_ = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
+    } else {
+        exector_         = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
+        Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
+        if (build_ret != TNN_OK) {
+            return build_ret;
+        }
     }
 
-    std::string model_save = "/work/graph.bin";
-#ifdef LOAD_CACHE
-    graph->LoadCache(model_save, inputs, outputs);
-#else
-    // graph->SetInputsOutputs(inputs, outputs); 
-    graph->EnableCreateCache(model_save);
-#endif
-
-    // printf("create tensor end!!!\n");
-    exector_             = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
-#ifndef LOAD_CACHE
-    Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
-    if (build_ret != TNN_OK) {
-        return build_ret;
-    }
-#endif
     int ret = exector_->Build();
     if (rk::nn::RK_SUCCESS != ret)
         return TNNERR_MODEL_ERR;
