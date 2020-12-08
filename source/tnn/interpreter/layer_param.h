@@ -370,6 +370,10 @@ struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
 };
 
+struct FusedReduceLayerParam: public LayerParam {
+    int axis = 1;
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

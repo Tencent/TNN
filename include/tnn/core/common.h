@@ -45,6 +45,9 @@ typedef enum {
     DATA_FORMAT_NC4HW4 = 3,
     DATA_FORMAT_NCDHW  = 4,
     DATA_FORMAT_NHC4W4 = 5,
+    DATA_FORMAT_CHW2   = 6,    // corresponding to TensorFormat::kCHW2 in TensorRT
+    DATA_FORMAT_CHW4   = 7,    // corresponding to TensorFormat::kCHW4 in TensorRT
+    DATA_FORMAT_CHW16  = 8,    // corresponding to TensorFormat::kCHW16 in TensorRT
 } DataFormat;
 
 typedef enum {
