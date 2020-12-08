@@ -33,15 +33,8 @@ namespace optimizer {
         virtual std::string Strategy();
         virtual bool IsSupported(const NetworkConfig &net_config);
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
-
-        void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
-                         NetStructure *structure,
-                         std::shared_ptr<LayerInfo>& cur_layer,
-                         std::shared_ptr<LayerInfo>& new_layer,
-                         std::vector<std::string>& reformat_outs,
-                         const std::string& reformat_name_suffix,
-                         const int index,
-                         const int count);
+    private:
+        std::shared_ptr<NetOptimizer> conv_post_opt_ = nullptr;
     };
 
 }  // namespace optimizer
