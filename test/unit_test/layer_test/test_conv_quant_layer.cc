@@ -21,8 +21,8 @@
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<
-                               std::tuple<int, int, int, int, int, int, DataType, ActivationType, FusionType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType,
+                                                                           ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
@@ -33,6 +33,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             testing::Values(1, 2),
                                             // group
                                             testing::Values(1, 2, 3, 8),
+                                            // dilation
+                                            testing::Values(1, 2),
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
                                             // activation_type
@@ -49,9 +51,10 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int kernel            = std::get<3>(GetParam());
     int stride            = std::get<4>(GetParam());
     int group             = std::get<5>(GetParam());
-    DataType data_type    = std::get<6>(GetParam());
-    auto activation_type  = std::get<7>(GetParam());
-    auto fusion_type      = std::get<8>(GetParam());
+    int dilation          = std::get<6>(GetParam());
+    DataType data_type    = std::get<7>(GetParam());
+    auto activation_type  = std::get<8>(GetParam());
+    auto fusion_type      = std::get<9>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
@@ -72,7 +75,7 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     param->output_channel  = channel;
     param->group           = group;
     param->kernels         = {kernel, kernel};
-    param->dialations      = {1, 1};
+    param->dialations      = {dilation, dilation};
     param->strides         = {stride, stride};
     param->pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
     param->bias            = 1;

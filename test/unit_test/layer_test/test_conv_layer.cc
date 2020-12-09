@@ -70,7 +70,8 @@ TEST_P(ConvLayerTest, ConvLayer) {
         }
     }
 
-    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+    bool is_depthwise = (group == channel);
+    if (!is_depthwise && ((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
         GTEST_SKIP();
     }
 

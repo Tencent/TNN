@@ -51,9 +51,9 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
 
     if (onnx_op == "Conv") {
         channel_output = (int)weight.dims(0);
-        channel_input  = (int)weight.dims(1);
+        channel_input  = (int)weight.dims(1) * group;
     } else if (onnx_op == "ConvTranspose") {
-        channel_input = (int)weight.dims(0) / group;
+        channel_input = (int)weight.dims(0);
         channel_output  = (int)weight.dims(1) * group;
     }
     int has_bias = node.input_size() == 3 ? 1 : 0;
