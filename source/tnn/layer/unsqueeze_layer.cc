@@ -14,12 +14,28 @@
 
 #include "base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
 
 Status UnsqueezeLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    //return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : input_blobs_) {
+        if (const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            flag |= DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+        }
+    }
+        
+    for (auto& iter : output_blobs_) {
+        if(flag & DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+            iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+        }
+    }
+    return TNN_OK;
 }
 
 Status UnsqueezeLayer::InferOutputShape() {

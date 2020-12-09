@@ -39,21 +39,6 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tn
     param->name      = cur_layer->name;
     param->quantized = false;
     param->axes      = GetAttributeIntVector(node, "axes");
-    auto& data_name  = node.input(0);
-    const auto& iter = proxy_initializers_map.find(data_name);
-    if (iter != proxy_initializers_map.end()) {
-        param->data_in_resource            = true;
-        auto& resource_map                 = net_resource.resource_map;
-        auto resource                      = std::make_shared<TNN_NS::UnsqueezeLayerResource>();
-        resource_map[cur_layer->name]      = resource;
-        auto data_tensor_proto             = iter->second;
-        TNN_NS::RawBuffer* data_raw_buffer = nullptr;
-        CreateRawBufferFromTensor(*data_tensor_proto, &data_raw_buffer);
-        resource->data = *data_raw_buffer;
-        //cur_layer->inputs.clear();
-    } else {
-        param->data_in_resource = false;
-    }
     for (const auto &input : node.input()) {
         if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
             auto const_tensor                   = proxy_initializers_map[input];
