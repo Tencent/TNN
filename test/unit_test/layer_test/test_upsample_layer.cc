@@ -54,9 +54,6 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     if (mode == 3) {
         // skip cubic upsample for now
-        if (dev != DEVICE_METAL && dev != DEVICE_ARM) {
-            GTEST_SKIP();
-        }
         if (data_type == DATA_TYPE_INT8) {
             GTEST_SKIP();
         }
