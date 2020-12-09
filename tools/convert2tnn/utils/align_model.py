@@ -17,7 +17,6 @@ from utils import cmd
 from utils import data
 from utils import convert_name
 from utils import return_code
-from utils import fix_tnn_output
 
 from converter import logging
 
@@ -292,7 +291,6 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
-    fix_tnn_output.fix_tnn_output(onnx_path, tnn_proto_path, reference_output_path)
     if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))
     if refer_path is None and os.path.exists(reference_output_path):
