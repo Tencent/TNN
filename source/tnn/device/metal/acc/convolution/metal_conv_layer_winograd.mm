@@ -220,7 +220,7 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
                 BREAK_IF(status != TNN_OK);
                 
                 [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                            offset:(NSUInteger)input->GetHandle().bytes_offset
+                            offset:(NSUInteger)input->GetHandle().bytes_offset+n*input_bytes
                            atIndex:0];
                 [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:1];
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
@@ -244,7 +244,7 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
                 
                 [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:0];
                 [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                            offset:(NSUInteger)output->GetHandle().bytes_offset
+                            offset:(NSUInteger)output->GetHandle().bytes_offset+n*output_bytes
                            atIndex:1];
                 [encoder setBuffer:buffer_bias_ offset:0 atIndex:2];
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
