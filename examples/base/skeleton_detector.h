@@ -21,6 +21,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 namespace TNN_NS {
 
@@ -32,11 +33,32 @@ public:
     virtual ~SkeletonDetectorInput(){}
 };
 
+/*
+ the output of the skeleton model is a list of 2d points:
+ point0: nose
+ point1: left  eye
+ point2: right eye
+ point3: left  ear
+ point4: right ear
+ point5: left  shoulder
+ point6: right shoulder
+ point7: left  elbow
+ point8: right elbow
+ point9: left  wrist
+ point10:right wrist
+ point11:left  hip
+ point12:right hip
+ point13:left  knee
+ point14:right knee
+ point15:left  ankle
+ point16:right ankle
+ */
 class SkeletonDetectorOutput : public TNNSDKOutput {
 public:
     SkeletonDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
     virtual ~SkeletonDetectorOutput() {};
-    std::vector<SkeletonInfo> keypoint_list;
+    SkeletonInfo keypoints;
+    std::vector<float> confidence_list;
 };
 
 class SkeletonDetectorOption : public TNNSDKOption {
@@ -61,13 +83,29 @@ public:
                                                             std::string name = kTNNSDKDefaultName);
     
 private:
-    void GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, std::shared_ptr<TNN_NS::Mat> heatmap, float threshold);
+    void GenerateSkeleton(SkeletonDetectorOutput* output, std::shared_ptr<TNN_NS::Mat> heatmap,
+                          float threshold);
     TNN_NS::Status GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
                       int kernel_h, int kernel_w,
                       float sigma_x, float sigma_y);
     // the input mat size
     int orig_input_width;
     int orig_input_height;
+    // lines connecting points
+    std::vector<std::pair<int, int>> lines = {
+        {5, 6},
+        {5, 7},
+        {5, 11},
+        {6, 8},
+        {6, 12},
+        {7, 9},
+        {8, 10},
+        {11, 12},
+        {11, 13},
+        {12, 14},
+        {13,15},
+        {14, 16}
+    };
 };
 
 }

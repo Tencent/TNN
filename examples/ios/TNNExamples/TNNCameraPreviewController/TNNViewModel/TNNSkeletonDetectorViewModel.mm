@@ -81,11 +81,9 @@ using namespace std;
     std::vector<std::shared_ptr<ObjectInfo> > object_list;
     if (sdk_output && dynamic_cast<SkeletonDetectorOutput *>(sdk_output.get())) {
         auto skeleton_output = dynamic_cast<SkeletonDetectorOutput *>(sdk_output.get());
-        for (auto item : skeleton_output->keypoint_list) {
-            auto skeleton = std::make_shared<SkeletonInfo>();
-            *skeleton = item;
-            object_list.push_back(skeleton);
-        }
+        auto skeleton = std::make_shared<SkeletonInfo>();
+        *skeleton = skeleton_output->keypoints;
+        object_list.push_back(skeleton);
     }
     return object_list;
 }

@@ -44,8 +44,8 @@ std::shared_ptr<Mat> SkeletonDetector::ProcessSDKInputMat(std::shared_ptr<Mat> i
 
 MatConvertParam SkeletonDetector::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
-    // for reduce model, rgb input
-    input_convert_param.scale = {0.01712475,  0.017507  ,  0.01742919, 0.0};
+    // rgb input required
+    input_convert_param.scale = {0.01712475,   0.017507,     0.01742919,  0.0};
     input_convert_param.bias  = {-2.11790393,  -2.03571429,  -1.80444444, 0.0};
 
     return input_convert_param;
@@ -68,22 +68,26 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     RETURN_VALUE_ON_NEQ(!heatmap, false,
                            Status(TNNERR_PARAM_ERR, "heatmap mat is nil"));
     
-    std::vector<SkeletonInfo> keypoints;
     //decode keypoints
-    GenerateSkeleton(keypoints, heatmap, option->min_threshold);
-    output->keypoint_list = keypoints;
+    GenerateSkeleton(output, heatmap, option->min_threshold);
     
     return status;
 }
 
-void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, std::shared_ptr<TNN_NS::Mat> heatmap,
-                                        float threshold) {
+void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
+                                        std::shared_ptr<TNN_NS::Mat> heatmap, float threshold) {
+    SkeletonInfo& skeleton = output->keypoints;
+    std::vector<float>& confidence_list = output->confidence_list;
+
     const int heatmap_channels = heatmap->GetChannel();
     const int heatmap_height   = heatmap->GetHeight();
     const int heatmap_width    = heatmap->GetWidth();
 
     float* heatmap_data = static_cast<float *>(heatmap->GetData());
     int idx = 0;
+    skeleton.key_points.resize(heatmap_channels);
+    confidence_list.resize(heatmap_channels);
+    std::vector<bool> detected(heatmap_channels);
 
     for(int c=0; c<heatmap_channels; ++c) {
         float* data_c = heatmap_data + c * heatmap_height * heatmap_width;
@@ -103,17 +107,20 @@ void SkeletonDetector::GenerateSkeleton(std::vector<SkeletonInfo> &skeleton, std
             }
         }
         if (max_val < threshold) {
-            continue;
+            skeleton.key_points[c] = std::make_pair(-1, -1);
+            detected[c] = false;
+        } else {
+            skeleton.key_points[c] = std::make_pair(max_pos_w, max_pos_h);
+            detected[c] = true;
         }
-        SkeletonInfo info;
-        info.score = max_val;
-        info.image_width  = this->orig_input_width;
-        info.image_height = this->orig_input_height;
-        info.key_points.emplace_back(max_pos_w, max_pos_h);
-        
-        skeleton.push_back(std::move(info));
+        confidence_list[c] = max_val;
     }
-    
+    for(const auto& line:this->lines) {
+        if (detected[line.first] && detected[line.second])
+            skeleton.lines.push_back(line);
+    }
+    skeleton.image_width  = this->orig_input_width;
+    skeleton.image_height = this->orig_input_height;
 }
 
 

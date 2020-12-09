@@ -299,7 +299,10 @@ typedef void(^CommonCallback)(Status);
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
     //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
-                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor]];
+                // When we need to draw lines connecting key points, we draw key points with circle.
+                // Otherwise, we draw cross-shaped points.
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor] circle:view_face.lines.size()!=0];
+                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:[UIColor redColor]];
             } else {
                 [_boundingBoxes[i] hide];
             }

@@ -46,6 +46,8 @@ struct ObjectInfo {
     std::vector<std::pair<float, float>> key_points = {};
     //key_points_3d <x y z>
     std::vector<triple<float,float,float>> key_points_3d = {};
+    //lines connecting key_points
+    std::vector<std::pair<int, int>> lines;
     
     float score = 0;
     int class_id = -1;
