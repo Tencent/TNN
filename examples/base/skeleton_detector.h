@@ -85,9 +85,6 @@ public:
 private:
     void GenerateSkeleton(SkeletonDetectorOutput* output, std::shared_ptr<TNN_NS::Mat> heatmap,
                           float threshold);
-    TNN_NS::Status GaussianBlur(std::shared_ptr<TNN_NS::Mat>src, std::shared_ptr<TNN_NS::Mat>,
-                      int kernel_h, int kernel_w,
-                      float sigma_x, float sigma_y);
     // the input mat size
     int orig_input_width;
     int orig_input_height;

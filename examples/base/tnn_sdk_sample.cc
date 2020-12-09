@@ -373,97 +373,6 @@ Status TNNSDKSample::GetCommandQueue(void **command_queue) {
     return Status(TNNERR_INST_ERR, "instance_ GetCommandQueue return nil");
 }
 
-template <typename WT>
-static void GetCubicWeights(float coor, std::vector<WT>& coeffs) {
-    // opencv uses -0.75
-    static const float A = -0.75f;
-    float x = coor - std::floor(coor);
-    // bicubic 1d has 4 weights
-    coeffs.resize(4);
-
-    coeffs[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
-    // devandong: should there be a std::abs() around x^3?
-    coeffs[1] = ((A + 2)*x - (A + 3))*x*x + 1;
-    coeffs[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
-    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
-}
-
-static void BicubicInterp(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst) {
-    const float h_scale = static_cast<float>(src->GetHeight()) / dst->GetHeight();
-    const float w_scale = static_cast<float>(src->GetWidth())  / dst->GetWidth();
-    
-    const float* src_data = static_cast<float *>(src->GetData());
-    float* dst_data = static_cast<float *>(dst->GetData());
-    auto channel = src->GetChannel();
-    
-    auto sw = src->GetWidth();
-    auto dw = dst->GetWidth();
-    auto sh = src->GetHeight();
-    auto dh = dst->GetHeight();
-#define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
-#define SrcValueAt(c, h, w) (src_data[c*sh*sw+(Clip(h,sh))*sw+(Clip(w,sw))])
-    
-    for(int c=0; c<channel; ++c) {
-        for(int i = 0; i < dh; ++i) {
-            float h = static_cast<float>((i + 0.5) *  h_scale - 0.5);
-            // get interp weights
-            std::vector<float> weights_h;
-            GetCubicWeights(h, weights_h);
-            int hh = std::floor(h);
-            for (int j = 0; j < dw; ++j) {
-                float w = static_cast<float>((j + 0.5) *  w_scale - 0.5);
-                // get interp weights
-                std::vector<float> weights_w;
-                GetCubicWeights(w, weights_w);
-                int ww = std::floor(w);
-                
-                float src_arr[4][4] = {
-                    {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
-                    {SrcValueAt(c, hh+0, ww-1), SrcValueAt(c, hh+0, ww), SrcValueAt(c, hh+0, ww+1), SrcValueAt(c, hh+0, ww+2)},
-                    {SrcValueAt(c, hh+1, ww-1), SrcValueAt(c, hh+1, ww), SrcValueAt(c, hh+1, ww+1), SrcValueAt(c, hh+1, ww+2)},
-                    {SrcValueAt(c, hh+2, ww-1), SrcValueAt(c, hh+2, ww), SrcValueAt(c, hh+2, ww+1), SrcValueAt(c, hh+2, ww+2)}
-                };
-                
-                float vals[4];
-                vals[0] = weights_w[0]*src_arr[0][0] + weights_w[1]*src_arr[0][1] + weights_w[2]*src_arr[0][2] + weights_w[3]*src_arr[0][3];
-                vals[1] = weights_w[0]*src_arr[1][0] + weights_w[1]*src_arr[1][1] + weights_w[2]*src_arr[1][2] + weights_w[3]*src_arr[1][3];
-                vals[2] = weights_w[0]*src_arr[2][0] + weights_w[1]*src_arr[2][1] + weights_w[2]*src_arr[2][2] + weights_w[3]*src_arr[2][3];
-                vals[3] = weights_w[0]*src_arr[3][0] + weights_w[1]*src_arr[3][1] + weights_w[2]*src_arr[3][2] + weights_w[3]*src_arr[3][3];
-                
-                float sum = weights_h[0]*vals[0] + weights_h[1]*vals[1] + weights_h[2]*vals[2] + weights_h[3]*vals[3];
-                
-                dst_data[(c * dh + i) * dw + j] = sum;
-            }
-        }
-    }
-#undef Clip
-#undef SrcValueAt
-}
-
-static Status ResizeFloatMat(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type) {
-    Status status = TNN_OK;
-    auto src_mat_type = src->GetMatType();
-    auto dst_mat_type = dst->GetMatType();
-    if (src_mat_type != dst_mat_type || src_mat_type != NCHW_FLOAT) {
-        return Status(TNNERR_PARAM_ERR, "invalid mat type");
-    }
-    
-    auto src_dev_type = src->GetDeviceType();
-    auto dst_dev_type = dst->GetDeviceType();
-    if (src_dev_type != dst_dev_type || ( src_dev_type != DEVICE_ARM && src_dev_type != DEVICE_NAIVE)) {
-        return Status(TNNERR_PARAM_ERR, "invalid device type");
-    }
-    
-    // only for cubic interp
-    if (interp_type == TNN_NS::TNNInterpCubic) {
-        BicubicInterp(src, dst);
-    } else {
-        return Status(TNNERR_PARAM_ERR, "invalid interp type");
-    }
-    
-    return status;
-}
-
 Status TNNSDKSample::Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type) {
     Status status = TNN_OK;
     
@@ -472,11 +381,6 @@ Status TNNSDKSample::Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TN
     if (status != TNN_NS::TNN_OK) {
         LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
         return status;
-    }
-    
-    // naive implementation for NCHW_FLOAT mat interp
-    if (src->GetMatType() == TNN_NS::NCHW_FLOAT) {
-        return ResizeFloatMat(src, dst, interp_type);
     }
     
     InterpType type = INTERP_TYPE_NEAREST;
