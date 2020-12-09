@@ -50,9 +50,17 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tn
         TNN_NS::RawBuffer* data_raw_buffer = nullptr;
         CreateRawBufferFromTensor(*data_tensor_proto, &data_raw_buffer);
         resource->data = *data_raw_buffer;
-        cur_layer->inputs.clear();
+        //cur_layer->inputs.clear();
     } else {
         param->data_in_resource = false;
+    }
+    for (const auto &input : node.input()) {
+        if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
+            auto const_tensor                   = proxy_initializers_map[input];
+            TNN_NS::RawBuffer *const_raw_buffer = nullptr;
+            CreateRawBufferFromTensor(*const_tensor, &const_raw_buffer);
+            net_resource.constant_map[input] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
+        }
     }
     return TNN_NS::TNN_CONVERT_OK;
 }
