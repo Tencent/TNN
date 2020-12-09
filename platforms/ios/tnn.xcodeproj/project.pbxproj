@@ -625,6 +625,8 @@
 		EC0BE18725144C4F009BD69A /* arm_signed_mul_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE18325144C4F009BD69A /* arm_signed_mul_layer_acc.cc */; };
 		EC0BE1BB251DBE65009BD69A /* mat_converter_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */; };
 		EC0BE1BC251DBE65009BD69A /* mat_converter_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */; };
+		EC10738F257E4402001D7A45 /* random_data_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = EC10738D257E4402001D7A45 /* random_data_utils.h */; };
+		EC107390257E4402001D7A45 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC10738E257E4402001D7A45 /* random_data_utils.cc */; };
 		EC2CF72525078C1200EE3899 /* metal_mat_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */; };
 		EC2CF72625078C1200EE3899 /* metal_mat_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */; };
 		EC2CF7502508A99C00EE3899 /* arm_deconv_layer_stride.h in Headers */ = {isa = PBXBuildFile; fileRef = EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */; };
@@ -1281,6 +1283,8 @@
 		EC0BE18325144C4F009BD69A /* arm_signed_mul_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_signed_mul_layer_acc.cc; sourceTree = "<group>"; };
 		EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_converter_utils.cc; sourceTree = "<group>"; };
 		EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_utils.h; sourceTree = "<group>"; };
+		EC10738D257E4402001D7A45 /* random_data_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random_data_utils.h; sourceTree = "<group>"; };
+		EC10738E257E4402001D7A45 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
 		EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_mat_converter.mm; sourceTree = "<group>"; };
 		EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_mat_converter.metal; sourceTree = "<group>"; };
 		EC2CF74E2508A99C00EE3899 /* arm_deconv_layer_stride.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_deconv_layer_stride.h; sourceTree = "<group>"; };
@@ -1445,6 +1449,8 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				EC10738E257E4402001D7A45 /* random_data_utils.cc */,
+				EC10738D257E4402001D7A45 /* random_data_utils.h */,
 				EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */,
 				EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */,
 				EC0BE13525144B5D009BD69A /* detection_post_process_utils.cc */,
@@ -2336,6 +2342,7 @@
 				9DD1FC89247CEA1400800139 /* arm_deconv_layer_acc.h in Headers */,
 				9DD1FC8A247CEA1400800139 /* arm_deconv_layer_depthwise.h in Headers */,
 				9DD1FB73247CE9BE00800139 /* metal_deconv_layer_acc.h in Headers */,
+				EC10738F257E4402001D7A45 /* random_data_utils.h in Headers */,
 				9D32FF6324557EED002DCDAB /* net_structure.h in Headers */,
 				9D32FCB224557EEC002DCDAB /* wingorad_generater.h in Headers */,
 				ECD9464F2558F4CD00BF9214 /* net_optimizer_insert_int8_reformat.h in Headers */,
@@ -2759,6 +2766,7 @@
 				9D32FCFD24557EEC002DCDAB /* reduce_layer.cc in Sources */,
 				9DD1FB90247CE9BE00800139 /* metal_concat_layer_acc.mm in Sources */,
 				9D32FF5D24557EED002DCDAB /* deconv_layer_interpreter.cc in Sources */,
+				EC107390257E4402001D7A45 /* random_data_utils.cc in Sources */,
 				EC0BE15025144BB8009BD69A /* ceil_layer.cc in Sources */,
 				9DD1FCCB247CEA1500800139 /* arm_permute_layer_acc.cc in Sources */,
 				9DD1FCC4247CEA1400800139 /* arm_abs_layer_acc.cc in Sources */,
