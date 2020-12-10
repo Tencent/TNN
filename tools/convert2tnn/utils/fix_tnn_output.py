@@ -11,8 +11,6 @@
 # under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
-import onnx
-
 import numpy as np
 
 
@@ -33,8 +31,7 @@ def find_target_layer(content: np.ndarray, target_name: str):
 
 
 def generate_transpose(input_name: str, output_name: str) -> str:
-    name = "Transpose{}" .format(input_name)
-    return "\"Permute {} 1 1 {} {} 4 0 3 1 2 ,\"" .format(name, input_name, output_name)
+    return "\"Permute {} 1 1 {} {} 4 0 3 1 2 ,\"" .format(output_name, input_name, output_name)
 
 
 def replace_output_name(layer_info: str, src_name: str, dst_name: str):
@@ -54,7 +51,7 @@ def fix_tnn_output(tnnproto_path: str):
     offset = 5
     for output_name in output_info:
         idx, name = find_target_layer(tnnproto[offset:], output_name)
-        inner_output_name = "__" + output_name
+        inner_output_name = "fix_output_name_from_tf2onnx_" + output_name
         tnnproto[offset + idx] = replace_output_name(tnnproto[offset + idx], output_name, inner_output_name)
         tnnproto = np.append(tnnproto, generate_transpose(inner_output_name, output_name))
 

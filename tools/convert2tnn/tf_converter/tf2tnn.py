@@ -98,7 +98,6 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
         version = "v1.0"
     checker.check_file_exist(onnx_path)
     onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
-
     if align is True:
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
@@ -113,6 +112,8 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
 
-    tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt.tnnproto' if optimize else ".tnnproto"
+    onnx_base_name = os.path.basename(onnx_path)
+    tnn_proto_name = onnx_base_name[:-len('.onnx')] + ('.opt.tnnproto' if optimize else ".tnnproto")
     tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+
     fix_tnn_output.fix_tnn_output(tnn_proto_path)
