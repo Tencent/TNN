@@ -123,7 +123,8 @@ copy_openvino_libraries() {
         mkdir -p ${TNN_INSTALL_DIR}/lib
     fi
 
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
 
 
