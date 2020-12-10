@@ -246,7 +246,7 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     }
     SmoothingLandmarks(detects);
     DeNormalize(detects);
-    // keep first 25 points for show
+    // upper body landmark model only have 25 points for show
     detects[0].key_points_3d.resize(25);
     output->body_list.push_back(std::move(detects[0]));
 
@@ -273,6 +273,7 @@ void BlazePoseLandmark::ProcessLandmarks(Mat& landmark_mat, std::vector<BlazePos
         //float visibility = landmark_data[offset + 3];
         info.key_points_3d[i] = std::make_tuple(x, y, z);
     }
+    info.lines = this->lines;
     detects.push_back(std::move(info));
 }
 

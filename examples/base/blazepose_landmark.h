@@ -121,6 +121,34 @@ private:
     int num_landmarks = 31;
     // hostory detect results
     std::vector<BlazePoseInfo> history;
+    // lines connecting points
+    std::vector<std::pair<int, int>> lines = {
+        {0, 1},
+        {0, 4},
+        {1, 2},
+        {2, 3},
+        {3, 7},
+        {4, 5},
+        {5, 6},
+        {6, 8},
+        {9, 10},
+        {11,12},
+        {11,13},
+        {11,23},
+        {12,14},
+        {12,24},
+        {13,15},
+        {14,16},
+        {15,17},
+        {15,19},
+        {15,21},
+        {16,18},
+        {16,20},
+        {16,22},
+        {17,19},
+        {18,20},
+        {23,24}
+    };
 };
 
 }
