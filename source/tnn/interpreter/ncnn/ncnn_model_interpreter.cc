@@ -79,7 +79,7 @@ namespace ncnn {
         NetStructure *structure      = GetNetStructure();
         structure->source_model_type = MODEL_TYPE_NCNN;
 
-        int size = static_cast<int>(content.size());
+        size_t size = content.size();
 
         char *proto_buffer = new char[size + 1];
         size_t fill        = 0;
@@ -118,7 +118,7 @@ namespace ncnn {
 
         auto &layer_interpreter_map = GetLayerInterpreterMap();
 
-        for (int i = layer_cfg_start_id; i < cfg_arr.size(); i++) {
+        for (size_t i = layer_cfg_start_id; i < cfg_arr.size(); i++) {
             str_arr layer_cfg_arr;
             std::string layer_str = cfg_arr.at(i);
             if (layer_str.empty()) {
