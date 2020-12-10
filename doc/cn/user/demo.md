@@ -155,9 +155,9 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
     
-## 三、Linux/Windows/ArmLinux/CudaLinux Demo 介绍
+## 三、Linux/Mac/Windows/ArmLinux/CudaLinux Demo 介绍
 ### 功能
-* 快速在 Linux/Windows/ArmLinux 环境下运行模型，展示 TNN 接口的使用方法。
+* 快速在 Linux/Mac/Windows/ArmLinux 环境下运行模型，展示 TNN 接口的使用方法。
 
 ### 使用步骤
 #### 1. 下载 Demo 模型
