@@ -22,6 +22,7 @@
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
+#import "TNNSkeletonDetectorViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -185,6 +186,21 @@ using namespace std;
             data.viewModel = [TNNPoseDetectLandmarkViewModel new];
             data.viewModel.title = @"BlazePose";
             data.viewModel.preferFrontCamera = false;
+        }
+        [examples addObject:data];
+    }
+
+    //人体关键点 - SkeletonDetector
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"人体关键点 - 腾讯微视";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNSkeletonDetectorViewModel new];
+            data.viewModel.title = @"人体关键点 - 腾讯微视";
+            data.viewModel.preferFrontCamera = false;
+            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }

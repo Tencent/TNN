@@ -47,6 +47,8 @@ struct ObjectInfo {
     std::vector<std::pair<float, float>> key_points = {};
     //key_points_3d <x y z>
     std::vector<triple<float,float,float>> key_points_3d = {};
+    //lines connecting key_points
+    std::vector<std::pair<int, int>> lines;
     
     float score = 0;
     int class_id = -1;
@@ -151,12 +153,16 @@ public:
 typedef enum {
     TNNInterpNearest = 0,
     TNNInterpLinear  = 1,
+    TNNInterpCubic   = 2,
 } TNNInterpType;
 
 typedef enum {
     TNNBorderConstant = 0,
     TNNBorderReflect  = 1,
     TNNBorderEdge     = 2,
+    TNNBorderReplicate = 3,
+    TNNBorderReflect101 = 4,
+    TNNBorderWrap = 5,
     
 } TNNBorderType;
 

@@ -122,3 +122,9 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/hair_segmentation/segmentation.tnnproto" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/hair_segmentation/segmentation.tnnmodel" \
     "hair_segmentation"
+
+# download skeleton tnn model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton.tnnmodel" \
+    "skeleton"

@@ -22,7 +22,7 @@
 #endif
 
 #ifndef TNN_METAL_FULL_PRECISION
-#define TNN_METAL_FULL_PRECISION 0
+#define TNN_METAL_FULL_PRECISION 1
 #endif
 
 #ifndef UP_DIV

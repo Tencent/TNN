@@ -13,25 +13,14 @@
 // specific language governing permissions and limitations under the License.
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-#include <memory>
-#include <vector>
+#import "TNNViewModel.h"
 
-@interface TNNBoundingBox : NSObject
-@property (nonatomic, strong, readonly) CAShapeLayer *boxLayer;
-@property (nonatomic, strong, readonly) CATextLayer *textLayer;
+@interface TNNSkeletonDetectorViewModel : TNNViewModel
 
-@property (nonatomic, strong, readonly) NSArray<CAShapeLayer *> *markLayer;
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
-- (instancetype)init;
-
--(void)addToLayer:(CALayer *)layer;
--(void)removeFromSuperLayer;
-
-- (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame;
-- (void)showMarkAtPoints:(std::vector<std::pair<float, float>>)points withColor:(UIColor *)color circle:(BOOL)circle;
-- (void)showLines:(std::vector<std::pair<float, float>>)points lines:(std::vector<std::pair<int, int>>)lines
-        withColor:(UIColor *)color;
-- (void)hide;
+//Object Detection
+-(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 @end
 

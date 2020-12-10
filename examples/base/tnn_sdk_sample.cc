@@ -86,6 +86,7 @@ ObjectInfo ObjectInfo::FlipX() {
     info.class_id = this->class_id;
     info.image_width = this->image_width;
     info.image_height = this->image_width;
+    info.lines = this->lines;
     
     info.x1 = this->image_width - this->x2;
     info.x2 = this->image_width - this->x1;
@@ -199,6 +200,7 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
                                                                      std::get<2>(item)));
     }
     info_orig.key_points_3d = key_points_3d;
+    info_orig.lines = lines;
     
     return info_orig;
 }
@@ -209,6 +211,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
     info.class_id = this->class_id;
     info.image_width = view_width;
     info.image_height = view_height;
+    info.lines = lines;
     
     float view_aspect = view_height/(float)(view_width + FLT_EPSILON);
     float object_aspect = this->image_height/(float)(this->image_width + FLT_EPSILON);
