@@ -61,6 +61,8 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     Status GetCommandQueue(void **command_queue);
+    // @brief share tnn command queue to another context
+    Status ShareCommandQueue(Context* context);
 
     virtual Status LoadLibrary(std::vector<std::string> path);
     virtual Status OnInstanceForwardBegin();

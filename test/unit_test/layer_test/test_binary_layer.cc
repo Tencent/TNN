@@ -28,22 +28,26 @@ bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceTyp
     if (batch > 1 && DEVICE_METAL == dev) {
         return true;
     }
+
     return false;
 }
 
-void BinaryLayerTest::RunBinaryTest() {
+void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_positive) {
     // get param
-    int batch            = std::get<0>(GetParam());
-    int channel          = std::get<1>(GetParam());
-    int input_size       = std::get<2>(GetParam());
-    int input_count      = std::get<3>(GetParam());
-    int param_size_type  = std::get<4>(GetParam());
-    int weight_idx       = std::get<5>(GetParam());
-    DataType data_type   = std::get<6>(GetParam());
-    LayerType layer_type = layer_type_;
-    DeviceType dev       = ConvertDeviceType(FLAGS_dt);
+    int batch           = std::get<0>(GetParam());
+    int channel         = std::get<1>(GetParam());
+    int input_size      = std::get<2>(GetParam());
+    int input_count     = std::get<3>(GetParam());
+    int param_size_type = std::get<4>(GetParam());
+    int weight_idx      = std::get<5>(GetParam());
+    DataType data_type  = std::get<6>(GetParam());
+    DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
     if (InputParamCheck(data_type, dev, batch)) {
+        GTEST_SKIP();
+    }
+
+    if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -65,25 +69,31 @@ void BinaryLayerTest::RunBinaryTest() {
 
     std::shared_ptr<EltwiseLayerResource> resource = nullptr;
     if (input_count == 1) {
-        resource.reset(new EltwiseLayerResource());
+        resource = std::shared_ptr<EltwiseLayerResource>(new EltwiseLayerResource());
         RawBuffer buffer(param_count * sizeof(float));
         float* buffer_data = buffer.force_to<float*>();
-        InitRandom(buffer_data, param_count, 1.0f);
+        if (resource_positive) {
+            InitRandom(buffer_data, param_count, 0.001f, 1.0f);
+        } else {
+            InitRandom(buffer_data, param_count, 1.0f);
+        }
         resource->element_handle = buffer;
         resource->element_shape  = param_dims;
     }
 
     // param
-    std::shared_ptr<MultidirBroadcastLayerParam> param;
+    std::shared_ptr<MultidirBroadcastLayerParam> param = nullptr;
     if (LAYER_HARDSWISH == layer_type_) {
-        param.reset(new HardSwishLayerParam());
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new HardSwishLayerParam());
     } else {
-        param.reset(new MultidirBroadcastLayerParam());
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new MultidirBroadcastLayerParam());
     }
 
     param->name               = "Binary";
     param->weight_input_index = weight_idx;
 
+    std::vector<int> input0_dims;
+    std::vector<int> input1_dims;
     // blob desc
     std::vector<BlobDesc> inputs_desc;
     if (1 == input_count) {
@@ -91,33 +101,33 @@ void BinaryLayerTest::RunBinaryTest() {
             // this case doesn't exist
             return;
         } else if (0 == weight_idx) {
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+            input0_dims = {batch, channel, input_size, input_size};
         } else if (1 == weight_idx) {
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+            input0_dims = {batch, channel, input_size, input_size};
         }
     } else if (2 == input_count) {
         if (-1 == weight_idx) {
             // the size of input are same
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 2, data_type);
+            input0_dims = {batch, channel, input_size, input_size};
+            input1_dims = {batch, channel, input_size, input_size};
         } else {
-            std::vector<BlobDesc> weight_desc;
+            std::vector<int> weight_dims;
             if (0 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, 1, 1, 1, data_type);
+                weight_dims = {1, 1, 1, 1};
             } else if (1 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, channel, 1, 1, data_type);
+                weight_dims = {1, channel, 1, 1};
             } else if (2 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, channel, input_size, 1, data_type);
+                weight_dims = {1, channel, input_size, input_size};
             } else if (3 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, 1, input_size, 1, data_type);
+                weight_dims = {1, 1, input_size, input_size};
             }
 
-            auto input_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
             if (0 == weight_idx) {
-                inputs_desc.push_back(weight_desc[0]);
-                inputs_desc.push_back(input_desc[0]);
+                input0_dims = weight_dims;
+                input1_dims = {batch, channel, input_size, input_size};
             } else if (1 == weight_idx) {
-                inputs_desc.push_back(input_desc[0]);
-                inputs_desc.push_back(weight_desc[0]);
+                input0_dims = {batch, channel, input_size, input_size};
+                input1_dims = weight_dims;
             }
         }
     } else {
@@ -125,9 +135,20 @@ void BinaryLayerTest::RunBinaryTest() {
         return;
     }
 
-    std::vector<BlobDesc> outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
 
-    Run(layer_type, param.get(), resource.get(), inputs_desc, outputs_desc);
+    std::shared_ptr<AbstractModelInterpreter> interpreter;
+    if (1 == input_count) {
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, param, resource);
+    } else if (2 == input_count) {
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims, input1_dims}, param);
+    }
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

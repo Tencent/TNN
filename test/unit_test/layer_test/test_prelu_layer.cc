@@ -35,24 +35,19 @@ TEST_P(PReluLayerTest, PReluLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    if (!share_channel && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     // param
-    PReluLayerParam param;
-    param.name           = "PRelu";
-    param.channel_shared = share_channel ? 1 : 0;
+    std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
+    param->name           = "PRelu";
+    param->channel_shared = share_channel ? 1 : 0;
 
-    // resource
-    PReluLayerResource resource;
-    int scope_count = share_channel ? 1 : channel;
-    RawBuffer scope(scope_count * sizeof(float));
-    float* scope_data = scope.force_to<float*>();
-    InitRandom(scope_data, scope_count, 1.0f);
-    resource.slope_handle = scope;
-
-    Run(LAYER_PRELU, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("PReLU", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

@@ -24,8 +24,7 @@ class SoftmaxLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(10, 12, 10, 12, 512),
-                                            testing::Values(10, 512),
-                                            testing::Values(10, 512),
+                                            testing::Values(10, 512), testing::Values(10, 512),
                                             // axis
                                             testing::Values(1, 2),
                                             // dtype
@@ -45,34 +44,28 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
+    if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (channel < 2) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    SoftmaxLayerParam param;
-    param.name = "Softmax";
-    param.axis = axis;
+    std::shared_ptr<SoftmaxLayerParam> param(new SoftmaxLayerParam());
+    param->name = "Softmax";
+    param->axis = axis;
 
-    Run(LAYER_SOFTMAX, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

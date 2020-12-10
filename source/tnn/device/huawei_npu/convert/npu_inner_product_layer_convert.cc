@@ -32,7 +32,7 @@ Status NpuInnerProductLayer::Convert() {
     // weight
     vector<int> input_shape = input_ops_[0]->GetShape();
     std::string weight_name = layer_name_ + "_weight";
-    ge::Shape weight_shape({param->num_output, input_shape[1], 1, 1});
+    ge::Shape weight_shape({param->num_output, input_shape[1], input_shape[2], input_shape[3]});
     auto weight_const = std::make_shared<ge::op::Const>(weight_name);
     NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->weight_handle);
     weight_ops_.push_back(weight_const);

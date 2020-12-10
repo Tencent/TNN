@@ -26,7 +26,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AbsLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
 
 TEST_P(AbsLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Abs");
 }
 
 }  // namespace TNN_NS

@@ -52,8 +52,6 @@ public:
 
     static int checkNpuVersion(const char *version);
 
-    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
-
     static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                              std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
 };

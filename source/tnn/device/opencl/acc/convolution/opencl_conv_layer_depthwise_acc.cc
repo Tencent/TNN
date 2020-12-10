@@ -45,6 +45,8 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
         build_options.emplace("-DRELU");
     } else if (conv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "DepthwiseConv2D";
     if (conv_params_.stride_x == 1 && conv_params_.stride_y == 1 && conv_params_.dilation_x == 1 &&

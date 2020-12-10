@@ -254,7 +254,7 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
 
     const auto model_length = model_content.length();
     if (model_length <= 0) {
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         LOGD("model content is empty, will generate random data\n");
         return TNN_OK;
 #else

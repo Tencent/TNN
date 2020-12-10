@@ -36,19 +36,19 @@ namespace TNN_NS {
 
 template <typename T>
 void GEMM_FUNC(T *dst, const T *src, const float *weight, int src_depth_quad, int dst_step, int dst_depth_quad,
-               int width, float *bias, int64_t relu) {
+               int width, float *bias, long relu) {
     LOGE("TYPE NOT IMPLEMENT");
 }
 
 template <>
 void GEMM_FUNC(bfp16_t *dst, const bfp16_t *src, const float *weight, int src_depth_quad, int dst_step,
-               int dst_depth_quad, int width, float *bias, int64_t relu) {
+               int dst_depth_quad, int width, float *bias, long relu) {
     GEMM_KERNEL_BFP16(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 
 template <>
 void GEMM_FUNC(float *dst, const float *src, const float *weight, int src_depth_quad, int dst_step, int dst_depth_quad,
-               int width, float *bias, int64_t relu) {
+               int width, float *bias, long relu) {
     GEMM_KERNEL_FLOAT(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 
@@ -190,10 +190,11 @@ void load_repack_A(T *dst, T *src, int width, int src_z_step, int ic4) {
 
 template <typename T>
 void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type) {
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post) {
     int loop                 = plane_num / a_block;
     int remain               = plane_num % a_block;
     int workspace_per_thread = a_block * ic4 * 4;
+    int do_relu = act_type == 1 || act_type == 2;
 
     OMP_PARALLEL_FOR_
     for (int db = 0; db <= loop; db++) {
@@ -219,7 +220,7 @@ void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
             for (int x_i = 0; x_i <= x_loop; x_i++) {
                 auto x_width = (x_i < x_loop) ? ARM_SGEMM_TILE_M : x_remain;
                 GEMM_FUNC(output_ptr + x_i * ARM_SGEMM_TILE_M * 4, dst_b + x_i * ARM_SGEMM_TILE_M * ic4 * 4, weight_ptr,
-                          ic4, dst_z_step, calc_b_block / 4, x_width, bias + c_o * b_block, act_type);
+                          ic4, dst_z_step, calc_b_block / 4, x_width, bias + c_o * b_block, do_relu);
             }
         }
     }
@@ -227,20 +228,28 @@ void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
     // only bias + relu6 here, bias and bias + relu has been fused to gemm kernel
     if (act_type == 2)
         PostClap<T>(dst, plane_num * oc4, 6);
+    else if (act_type == 0x0100) {
+        if (fast_post)
+            PostAddBiasSwish<T, true>(dst, nullptr, plane_num, oc4);
+        else
+            PostAddBiasSwish<T, false>(dst, nullptr, plane_num, oc4);
+    }
 }
 
 template void sgemm_repack_lhs(float *dst, float *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step,
-                               int a_block, int b_block, float *work_space, float *bias, int act_type);
+                               int a_block, int b_block, float *work_space, float *bias, int act_type, bool fast_post);
 
 template void sgemm_repack_lhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic4, int oc4, int plane_num,
                                int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias,
-                               int act_type);
+                               int act_type, bool fast_post);
 
 template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type) {
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post) {
     int loop   = plane_num / a_block;
     int remain = plane_num % a_block;
+    int do_relu = act_type == 1 || act_type == 2;
+
     for (int db = 0; db <= loop; db++) {
         auto src_b    = src + db * a_block * 4;
         auto dst_b    = work_space;
@@ -264,7 +273,7 @@ void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
             for (int x_i = 0; x_i <= x_loop; x_i++) {
                 auto x_width = (x_i < x_loop) ? ARM_SGEMM_TILE_M : x_remain;
                 GEMM_FUNC(output_ptr + x_i * ARM_SGEMM_TILE_M * 4, dst_b + x_i * ARM_SGEMM_TILE_M * ic4 * 4, weight_ptr,
-                          ic4, dst_z_step, calc_b_block / 4, x_width, bias + c_o * b_block, act_type);
+                          ic4, dst_z_step, calc_b_block / 4, x_width, bias + c_o * b_block, do_relu);
             }
         }
     }
@@ -272,13 +281,19 @@ void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
     // only bias + relu6 here, bias and bias + relu has been fused to gemm kernel
     if (act_type == 2)
         PostClap<T>(dst, plane_num * oc4, 6);
+    else if (act_type == 0x0100) {
+        if (fast_post)
+            PostAddBiasSwish<T, true>(dst, nullptr, plane_num, oc4);
+        else
+            PostAddBiasSwish<T, false>(dst, nullptr, plane_num, oc4);
+    }
 }
 
 template void sgemm_repack_rhs(float *dst, float *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step,
-                               int a_block, int b_block, float *work_space, float *bias, int act_type);
+                               int a_block, int b_block, float *work_space, float *bias, int act_type, bool fast_post);
 
 template void sgemm_repack_rhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic4, int oc4, int plane_num,
                                int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias,
-                               int act_type);
+                               int act_type, bool fast_post);
 
 }  // namespace TNN_NS
