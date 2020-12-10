@@ -50,11 +50,15 @@ Status ReshapeLayer::InferOutputShape() {
             auto dim_count = shape_buffer->GetDataCount();
             auto dim_data = (int *)shape_buffer->force_to<int *>();
             DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
+            for (int i=0; i< 4; i++) {
+                if (i < dim_count) {
+                    dims.push_back(dim_data[i]);
+                } else {
+                    dims.push_back(1);
+                }
             }
             reshape_param->shape = dims;
-            reshape_param->num_axes = dim_count;
+            reshape_param->num_axes = dims.size();
         }
     }
 

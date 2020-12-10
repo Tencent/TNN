@@ -13,8 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -25,24 +25,16 @@ Status CpuUnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 Status CpuUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    const auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
-    void *input_data = nullptr;
-    if (param->data_in_resource) {
-        auto resource = dynamic_cast<UnsqueezeLayerResource*>(resource_);
-        input_data = resource->data.force_to<void *>();
-    } else {
-        input_data = inputs[0]->GetHandle().base;
-    }
-    
+    void *input_data  = inputs[0]->GetHandle().base;
     void *output_data = outputs[0]->GetHandle().base;
-    auto dims = outputs[0]->GetBlobDesc().dims;
-    auto count = DimsVectorUtils::Count(dims);
-    auto ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-    
+    auto dims         = outputs[0]->GetBlobDesc().dims;
+    auto count        = DimsVectorUtils::Count(dims);
+    auto ele_size     = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+
     if (input_data != output_data) {
-        memcpy(output_data, input_data, count*ele_size);
+        memcpy(output_data, input_data, count * ele_size);
     }
-    
+
     return TNN_OK;
 }
 

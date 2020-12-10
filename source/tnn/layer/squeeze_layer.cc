@@ -19,42 +19,35 @@ namespace TNN_NS {
 DECLARE_LAYER(Squeeze, LAYER_SQUEEZE);
 
 Status SqueezeLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    auto status = BaseLayer::InferOutputDataType();
+    if (runtime_model_ != RUNTIME_MODE_CONST_FOLD) {
+        return status;
+    }
+    const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
+    const auto& const_res  = const_resource_;
+    if (const_res.find(input_name) != const_res.end()) {
+        output_blobs_[0]->flag = output_blobs_[0]->flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+    }
+    return status;
 }
 
 Status SqueezeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
-    
-    auto layer_param      = dynamic_cast<SqueezeLayerParam*>(param_);
-    auto layer_resource = dynamic_cast<SqueezeLayerResource*>(resource_);
-    
+    auto status = BaseLayer::InferOutputShape();
+    auto layer_param        = dynamic_cast<SqueezeLayerParam*>(param_);
     const auto& output_blob = output_blobs_[0];
-    
-    DimsVector input_dims;
-    if (layer_param->data_in_resource) {
-        input_dims = layer_resource->data_dims;
-    } else {
-        input_dims = input_blobs_[0]->GetBlobDesc().dims;
-    }
-    
-    DimsVector output_dims = input_dims;
-    RETURN_VALUE_ON_NEQ(input_dims.size()>0, true,
-                        Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input size"));
+    DimsVector input_dims   = input_blobs_[0]->GetBlobDesc().dims;
+    DimsVector output_dims  = input_dims;
+    RETURN_VALUE_ON_NEQ(input_dims.size() > 0, true, Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input size"));
     auto axes = layer_param->axes;
     for (auto axis : axes) {
-        if (axis < 0) {
-            axis += output_dims.size();
-        }
-        if (!(axis>=0 && axis<output_dims.size()) ||
-            output_dims[axis] != 1) {
+        axis = axis < 0 ? axis + output_dims.size() : axis;
+        if (axis < 0 || axis >= output_dims.size() || output_dims[axis] != 1) {
             return Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input axes");
         }
         output_dims.erase(output_dims.begin() + axis);
     }
-    
     output_blob->GetBlobDesc().dims = output_dims;
-    
-    return TNN_OK;
+    return status;
 }
 
 REGISTER_LAYER(Squeeze, LAYER_SQUEEZE);

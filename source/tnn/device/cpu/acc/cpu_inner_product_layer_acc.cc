@@ -38,7 +38,9 @@ Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
-
+    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
+        return status;
+    }
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource);
