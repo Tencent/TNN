@@ -220,10 +220,10 @@ static inline void get_cubic_pos_coeffs(int *h_pos_ptr, int *w_pos_ptr, float *h
                                         int ih, int iw, int oh, int ow, bool align_corners) {
 #define ClipC4(x, X) (((x) >= 0 ? ((x) < (X) ? (x) : ((X)-1)) : 0) * 4)
 #define SET_POS4(ptr, x, X)                                                                                            \
-    ptr[0] = ClipC4(x - 1, ih);                                                                                        \
-    ptr[1] = ClipC4(x, ih);                                                                                            \
-    ptr[2] = ClipC4(x + 1, ih);                                                                                        \
-    ptr[3] = ClipC4(x + 2, ih);                                                                                        \
+    ptr[0] = ClipC4(x - 1, X);                                                                                         \
+    ptr[1] = ClipC4(x, X);                                                                                             \
+    ptr[2] = ClipC4(x + 1, X);                                                                                         \
+    ptr[3] = ClipC4(x + 2, X);                                                                                         \
     ptr += 4;
 
     auto h_pos4_ptr = h_pos_ptr + oh;
@@ -297,7 +297,7 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
 
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int buf_count       = ow * c_4 * 4 * max_num_threads;
+    int buf_count       = ow * 4 * max_num_threads;
     RawBuffer workspace(4 * buf_count * sizeof(float));
     float *rows0 = workspace.force_to<float *>();
     float *rows1 = rows0 + buf_count;
@@ -315,10 +315,10 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
 
         for (int t = 0; t < max_num_threads; ++t) {
             prev_h1[t] = INT_MIN;
-            rows0_t[t] = rows0 + t * (ow * c_4 * 4);
-            rows1_t[t] = rows1 + t * (ow * c_4 * 4);
-            rows2_t[t] = rows2 + t * (ow * c_4 * 4);
-            rows3_t[t] = rows3 + t * (ow * c_4 * 4);
+            rows0_t[t] = rows0 + t * (ow * 4);
+            rows1_t[t] = rows1 + t * (ow * 4);
+            rows2_t[t] = rows2 + t * (ow * 4);
+            rows3_t[t] = rows3 + t * (ow * 4);
         }
 
         for (int z = 0; z < c_4; z++) {
