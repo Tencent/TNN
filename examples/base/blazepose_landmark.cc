@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "blazepose_landmark.h"
+#include "time_stamp.h"
 #include <sys/time.h>
 #include <cmath>
 #include <fstream>
@@ -130,6 +131,11 @@ Status BlazePoseLandmark::Init(std::shared_ptr<TNNSDKOption> option_i) {
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    landmark_filter = std::make_shared<VelocityFilter>(this->window_size,
+                                                       this->velocity_scale,
+                                                       this->min_allowed_object_scale,
+                                                       option->fps);
+
     auto input_dims = GetInputShape();
     option->input_height = input_dims[2];
     option->input_width  = input_dims[3];
@@ -240,6 +246,7 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     std::vector<BlazePoseInfo> detects;
     ProcessLandmarks(*(landmarks.get()), detects);
     RemoveLetterBoxAndProjection(detects);
+    //SmoothingLandmarks(detects);
     if (roi_from_prev_frame) {
         // generate roi for the next frame
         KeyPoints2RoI(detects[0].key_points_3d, this->roi_option);
@@ -318,28 +325,12 @@ void BlazePoseLandmark::DeNormalize(std::vector<BlazePoseInfo>& detects) {
 }
 
 void BlazePoseLandmark::SmoothingLandmarks(std::vector<BlazePoseInfo> &detects) {
-    constexpr float decay = 0.6f;
-    
-    using Point3D = std::tuple<float, float, float>;
-    auto weighted_sum = [](Point3D& a, Point3D& b) {
-        auto x = std::get<0>(a)*(1-decay) + std::get<0>(b)*decay;
-        auto y = std::get<1>(a)*(1-decay) + std::get<1>(b)*decay;
-        auto z = std::get<2>(a)*(1-decay) + std::get<2>(b)*decay;
-        return std::make_tuple(x, y, z);
-    };
-    
-    if (history.size() > 0) {
-        // smoothing using history
-        auto& cur_kp3d = detects[0].key_points_3d;
-        auto& his_kp3d = history[0].key_points_3d;
-        for(int i=0; i<cur_kp3d.size(); ++i) {
-            cur_kp3d[i] = weighted_sum(cur_kp3d[i], his_kp3d[i]);
-        }
-        his_kp3d = cur_kp3d;
-    } else {
-        history.push_back(detects[0]);
+    auto image_size = std::make_pair(this->origin_input_shape[2], this->origin_input_shape[3]);
+    std::vector<KeyPoint3D> out_landmarks;
+    landmark_filter->Apply(detects[0].key_points_3d, image_size, Now(), &out_landmarks);
+    if (out_landmarks.size() > 0) {
+        detects[0].key_points_3d = out_landmarks;
     }
-    return;
 }
 
 /*
@@ -348,7 +339,6 @@ void BlazePoseLandmark::SmoothingLandmarks(std::vector<BlazePoseInfo> &detects) 
  By setting keypoints_idx, we could merge SplitNormalizedLandmarkListCalculator
  and LandmarksToDetectionCalculator together.
 */
-
 // generate roi from the blazepose detection model
 void BlazePoseLandmark::Detection2RoI(BlazePoseInfo& detect, const RoIGenOptions& option) {
     roi_from_prev_frame = false;

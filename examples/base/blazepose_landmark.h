@@ -17,6 +17,7 @@
 
 #include "tnn_sdk_sample.h"
 #include "blazepose_detector.h"
+#include "landmark_smoothing_filter.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -61,6 +62,8 @@ public:
     // threshold for controlling whether to show the landmark
     // not used for now
     float landmark_visibility_threshold = 0.1;
+    // target fps, set it to the real fps of this app when running on your device
+    int fps = 30;
 };
 
 class BlazePoseLandmark : public TNNSDKSample {
@@ -149,6 +152,11 @@ private:
         {18,20},
         {23,24}
     };
+    // landmark filtering options
+    const int window_size = 5;
+    const float velocity_scale = 10.0;
+    const float min_allowed_object_scale = 1e-6;
+    std::shared_ptr<VelocityFilter> landmark_filter;
 };
 
 }
