@@ -51,7 +51,7 @@ def fix_tnn_output(tnnproto_path: str):
     offset = 5
     for output_name in output_info:
         idx, name = find_target_layer(tnnproto[offset:], output_name)
-        inner_output_name = "fix_output_name_from_tf2onnx_" + output_name
+        inner_output_name = output_name + "_fix_output_name_from_tf2onnx"
         tnnproto[offset + idx] = replace_output_name(tnnproto[offset + idx], output_name, inner_output_name)
         tnnproto = np.append(tnnproto, generate_transpose(inner_output_name, output_name))
 
