@@ -117,8 +117,40 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
             } else {
                 return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
             }
+        } else if ((DATA_FORMAT_NCHW == blob_dataformat || DATA_FORMAT_NHWC == blob_dataformat) && DATA_TYPE_INT64 == blob_datatype) {
+            if (DEVICE_NAIVE == mat.GetDeviceType()) {
+                if (nullptr == buffer_) {
+                    buffer_.reset(new char[blob_bytesize_], [](char *p) { delete[] p; });
+                }
+                tnn_ret = AtlasMemoryCopyAsync(buffer_.get(), blob_->GetHandle().base, DEVICE_NAIVE, blob_bytesize_,
+                                               atlas_cmd_queue->stream, false);
+                if (tnn_ret != TNN_OK)
+                    return tnn_ret;
+                // force sync
+                LOGD("force sync to get buffer data\n");
+                acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+                if (acl_ret != ACL_ERROR_NONE) {
+                    return Status(TNNERR_ATLAS_RUNTIME_ERROR, "stream sync failed");
+                }
+
+                LOGD("convert from int64 to fp32\n");
+                auto blob_dim = blob_->GetBlobDesc().dims;
+                if (DATA_FORMAT_NCHW == blob_dataformat) {
+                    DataFormatConverter::ConvertFromInt64ToFloatNCHW((int64_t *)buffer_.get(), (float *)mat.GetData(),
+                            blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
+                } else if (DATA_FORMAT_NHWC == blob_dataformat) {
+                    DataFormatConverter::ConvertFromInt64NHWCToFloatNCHW((int64_t *)buffer_.get(), (float *)mat.GetData(),
+                            blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
+                } else {
+                    return Status(TNNERR_PARAM_ERR, "not support this data format convert yet!");
+                }
+            } else {
+                return Status(TNNERR_PARAM_ERR, "not support this device type convert yet!");
+            }
         } else {
-            return Status(TNNERR_PARAM_ERR, "not support this dataformat type convert yet!");
+            char error_msg[256];
+            sprintf(error_msg, "not support this dataformat type convert yet! (data format: %d  data type: %d)", blob_dataformat, blob_datatype);
+            return Status(TNNERR_PARAM_ERR, error_msg);
         }
     } else {
         return Status(TNNERR_PARAM_ERR, "not support this mat type convert yet!");

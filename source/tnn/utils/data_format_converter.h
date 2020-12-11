@@ -56,6 +56,8 @@ public:
 
     static Status ConvertFromInt8ToFloatNHWC4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
+    static Status ConvertFromInt64ToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
 
     enum CVT_DIR { NHWC2NCHW, NCHW2NHWC };
 

@@ -33,7 +33,8 @@ typedef enum {
     DATA_TYPE_HALF  = 1,
     DATA_TYPE_INT8  = 2,
     DATA_TYPE_INT32 = 3,
-    DATA_TYPE_BFP16 = 4
+    DATA_TYPE_BFP16 = 4,
+    DATA_TYPE_INT64 = 5
 } DataType;
 
 typedef enum {
