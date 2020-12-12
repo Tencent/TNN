@@ -32,6 +32,11 @@ Status SkeletonDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     auto input_dims = GetInputShape();
     option->input_height = input_dims[2];
     option->input_width  = input_dims[3];
+    
+    landmark_filter = std::make_shared<VelocityFilter>(this->window_size,
+                                                       this->velocity_scale,
+                                                       this->min_allowed_object_scale,
+                                                       option->fps);
 
     return status;
 }
@@ -70,6 +75,8 @@ Status SkeletonDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_)
     
     //decode keypoints
     GenerateSkeleton(output, heatmap, option->min_threshold);
+    SmoothingLandmarks(output);
+    DeNormalize(output);
     
     return status;
 }
@@ -78,22 +85,27 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
                                         std::shared_ptr<TNN_NS::Mat> heatmap, float threshold) {
     SkeletonInfo& skeleton = output->keypoints;
     std::vector<float>& confidence_list = output->confidence_list;
+    std::vector<bool>& detected = output->detected;
 
     const int heatmap_channels = heatmap->GetChannel();
     const int heatmap_height   = heatmap->GetHeight();
     const int heatmap_width    = heatmap->GetWidth();
+    
+    const int src_height = this->orig_input_height;
+    const int src_width  = this->orig_input_width;
 
     float* heatmap_data = static_cast<float *>(heatmap->GetData());
     int idx = 0;
     skeleton.key_points.resize(heatmap_channels);
     confidence_list.resize(heatmap_channels);
-    std::vector<bool> detected(heatmap_channels);
+    //std::vector<bool> detected(heatmap_channels);
+    detected.resize(heatmap_channels);
 
     for(int c=0; c<heatmap_channels; ++c) {
         float* data_c = heatmap_data + c * heatmap_height * heatmap_width;
         // locate the max value inside a channel
-        int max_pos_h = -1;
-        int max_pos_w = -1;
+        float max_pos_h = -1;
+        float max_pos_w = -1;
         float max_val = -FLT_MAX;
         idx = 0;
         for(int h=0; h<heatmap_height; ++h) {
@@ -108,9 +120,13 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
         }
         if (max_val < threshold) {
             skeleton.key_points[c] = std::make_pair(-1, -1);
+            //skeleton.key_points[c] = Landmark2D(-1, -1);
             detected[c] = false;
         } else {
-            skeleton.key_points[c] = std::make_pair(max_pos_w, max_pos_h);
+            skeleton.key_points[c] = std::make_pair(max_pos_w/src_width,
+                                                    max_pos_h/src_height);
+            //skeleton.key_points[c] = Landmark2D(max_pos_w/src_width,
+            //                                    max_pos_h/src_height);
             detected[c] = true;
         }
         confidence_list[c] = max_val;
@@ -119,8 +135,35 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
         if (detected[line.first] && detected[line.second])
             skeleton.lines.push_back(line);
     }
-    skeleton.image_width  = this->orig_input_width;
-    skeleton.image_height = this->orig_input_height;
+    skeleton.image_width  = src_width;
+    skeleton.image_height = src_height;
+}
+
+void SkeletonDetector::SmoothingLandmarks(SkeletonDetectorOutput* output) {
+    std::vector<std::pair<float, float>> out_landmarks;
+    //std::vector<Landmark2D> out_landmarks;
+    landmark_filter->Apply2D(output->keypoints.key_points,
+                           std::make_pair(orig_input_height, orig_input_width),
+                           Now(),
+                           &out_landmarks);
+    if (out_landmarks.size() > 0) {
+        output->keypoints.key_points = out_landmarks;
+    }
+}
+
+void SkeletonDetector::DeNormalize(SkeletonDetectorOutput* output) {
+    const int src_height = this->orig_input_height;
+    const int src_width  = this->orig_input_width;
+
+    SkeletonInfo& skeleton = output->keypoints;
+    for(auto& lm2d: skeleton.key_points) {
+        float x = lm2d.first * src_width;
+        float y = lm2d.second * src_height;
+        lm2d = std::make_pair(x, y);
+        //lm2d.Scale(src_width, src_height);
+    }
+    skeleton.image_height = src_height;
+    skeleton.image_width  = src_width;
 }
 
 

@@ -16,6 +16,7 @@
 #define TNN_EXAMPLES_BASE_SKELETON_DETECTOR_H_
 
 #include "tnn_sdk_sample.h"
+#include "landmark_smoothing_filter.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -59,6 +60,7 @@ public:
     virtual ~SkeletonDetectorOutput() {};
     SkeletonInfo keypoints;
     std::vector<float> confidence_list;
+    std::vector<bool> detected;
 };
 
 class SkeletonDetectorOption : public TNNSDKOption {
@@ -69,6 +71,7 @@ public:
     int input_height;
     int num_thread = 1;
     float min_threshold = 0.15;
+    int fps = 20;
 };
 
 class SkeletonDetector : public TNNSDKSample {
@@ -85,9 +88,12 @@ public:
 private:
     void GenerateSkeleton(SkeletonDetectorOutput* output, std::shared_ptr<TNN_NS::Mat> heatmap,
                           float threshold);
+    void SmoothingLandmarks(SkeletonDetectorOutput* output);
+    void DeNormalize(SkeletonDetectorOutput* output);
     // the input mat size
     int orig_input_width;
     int orig_input_height;
+    std::vector<SkeletonInfo> history;
     // lines connecting points
     std::vector<std::pair<int, int>> lines = {
         {5, 6},
@@ -103,6 +109,11 @@ private:
         {13,15},
         {14,16}
     };
+    // landmark filtering options
+    const int window_size = 5;
+    const float velocity_scale = 10.0;
+    const float min_allowed_object_scale = 1e-6;
+    std::shared_ptr<VelocityFilter> landmark_filter;
 };
 
 }
