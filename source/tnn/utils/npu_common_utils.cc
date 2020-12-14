@@ -60,6 +60,26 @@ std::string NpuCommonUtils::GetFileHash(ModelConfig &model_config) {
     return ToString(hash ^ (hash >> 16));
 }
 
+std::string NpuCommonUtils::modifyModelInputSize(InputShapesMap &inputs_shape,
+                                                 InputShapesMap &instance_input_shapes_map) {
+    std::stringstream model_suffix_stream("");
+    for (auto iter : inputs_shape) {
+        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
+            instance_input_shapes_map[iter.first] = iter.second;
+            model_suffix_stream << "_" << iter.first << "[";
+            DimsVector value = iter.second;
+            for (size_t i = 0; i < value.size(); ++i) {
+                if (i != 0) {
+                    model_suffix_stream << "x";
+                }
+                model_suffix_stream << value[i];
+            }
+            model_suffix_stream << "]";
+        }
+    }
+    return model_suffix_stream.str();
+}
+
 bool NpuCommonUtils::FileExits(std::string model_path) {
     std::ifstream infile(model_path);
     return infile.good();
