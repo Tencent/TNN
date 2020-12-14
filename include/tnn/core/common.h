@@ -65,13 +65,15 @@ typedef enum {
 
 typedef enum {
     // decided by device
-    DATA_FORMAT_AUTO   = -1,
-    DATA_FORMAT_NCHW   = 0,
-    DATA_FORMAT_NHWC   = 1,
-    DATA_FORMAT_NHWC4  = 2,
-    DATA_FORMAT_NC4HW4 = 3,
-    DATA_FORMAT_NCDHW  = 4,
-    DATA_FORMAT_NHC4W4 = 5,
+    DATA_FORMAT_AUTO     = -1,
+    DATA_FORMAT_NCHW     = 0,
+    DATA_FORMAT_NHWC     = 1,
+    DATA_FORMAT_NHWC4    = 2,
+    DATA_FORMAT_NC2HW2   = 3,
+    DATA_FORMAT_NC4HW4   = 4,
+    DATA_FORMAT_NC16HW16 = 5,
+    DATA_FORMAT_NCDHW    = 6,
+    DATA_FORMAT_NHC4W4   = 7,
 } DataFormat;
 
 typedef enum {

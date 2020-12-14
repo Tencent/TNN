@@ -36,6 +36,11 @@ public:
 
     // @brief add layer to tensorRT network
     virtual ILayer* AddToNetwork(INetworkDefinition* network) = 0;
+
+protected:
+    ILayer* AddInt8OutputQDQLayers(ITensor* tensor, float quant_scale, float dequant_scale);
+
+    ILayer* AddInt8WeightQDQLayers(RawBuffer weight, RawBuffer bias, float scale, std::vector<int> dims);
 };
 
 //@brief TensorRTTypeLayerBuilderRegister register TypeLayerBuilderCreator

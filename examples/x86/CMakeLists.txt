@@ -27,27 +27,18 @@ set(TNNRoot ${CMAKE_SOURCE_DIR}/../../)
 set(TNNInclude ${TNNRoot}/include)
 
 include_directories(${TNNInclude})
-include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/../base)
-include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories(${TNN_LIB_PATH})
 if (${TNN_OPENVINO_ENABLE})
     link_directories(${TNN_OPENVINO_LIB_PATH})
 endif()
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    link_libraries(TNN)
-elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    link_libraries(-Wl,--whole-archive TNN MKLDNNPlugin -Wl,--no-whole-archive)
-else()
-    link_libraries(TNN MKLDNNPlugin)
-endif()
+link_libraries(TNN)
 
 file(GLOB_RECURSE BASE_SRC 
-                    "${CMAKE_SOURCE_DIR}/../base/*.cc"
-                    "${CMAKE_SOURCE_DIR}/utils/*.cc")
+                    "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
-add_executable(demo_x86_imagecalssify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
+add_executable(demo_x86_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
 add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC})
 
 if (TNN_DEMO_WITH_WEBCAM) 

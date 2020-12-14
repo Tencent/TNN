@@ -110,6 +110,8 @@ typedef enum {
     TNNComputeUnitsHuaweiNPU = 2,
     // run on openvino
     TNNComputeUnitsOpenvino = 3,
+    // run on TensorRT
+    TNNComputeUnitsTensorRT = 4,
 } TNNComputeUnits;
 
 struct RGBA{

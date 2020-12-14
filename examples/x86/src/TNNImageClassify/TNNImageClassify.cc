@@ -52,13 +52,8 @@ int main(int argc, char** argv) {
     char* temp_p;
     char line[256];
     FILE *fp_label;
-#ifdef _WIN32
-    if((fp_label = fopen("../../../assets/synset.txt", "r")) == NULL)
-        return -1;
-#else
     if((fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
         return -1;
-#endif
     static unsigned char labels[1000][256];
     for(int i = 0; i < 1000; i++){
         temp_p = fgets(line, 256 ,fp_label);
@@ -69,17 +64,17 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
-#ifdef _WIN32
-        strncpy(input_imgfn, "../../../assets/tiger_cat.jpg", 256);
-#else
         strncpy(input_imgfn, "../../assets/tiger_cat.jpg", 256);
-#endif
     else
         strncpy(input_imgfn, argv[5], 256);
-    printf("Classify is about to start, and the picrture is %s\n",input_imgfn);
+    printf("Classify is about to start, and the picture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+    if (!data) {
+        fprintf(stderr, "ImageClassifier open file %s failed.\n", input_imgfn);
+    }
+
     std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
     //Init

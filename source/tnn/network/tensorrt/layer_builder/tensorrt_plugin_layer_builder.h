@@ -78,7 +78,7 @@ protected:
     std::shared_ptr<AbstractLayerAcc> plugin_layer_acc_;
     std::string m_plugin_namespace;
     nvinfer1::DataType m_type;
-    PluginFormat m_format;
+    TensorFormat m_format;
     Context* context_;
 
 private:

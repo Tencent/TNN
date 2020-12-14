@@ -15,15 +15,21 @@
 #ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
 #define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
 
+#include "tnn/core/common.h"
+
 namespace TNN_NS {
 
-std::string get_gpu_type(int gpu_id);
+std::string GetGpuType(int gpu_id);
 
-std::string get_gpu_arch(int gpu_id);
+std::string GetGpuArch(int gpu_id);
 
-std::string get_cuda_version();
+std::string GetCudaVersion();
 
-std::string get_trt_version();
+std::string GetTrtVersion();
+
+DataType ConvertTRTDataType(nvinfer1::DataType type);
+
+DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
 
 }  //  namespace TNN_NS
 

@@ -23,7 +23,7 @@
 
 namespace TNN_NS {
 
-std::string get_gpu_type(int gpu_id) {
+std::string GetGpuType(int gpu_id) {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, gpu_id);
     int length = strlen(prop.name);
@@ -39,7 +39,7 @@ std::string get_gpu_type(int gpu_id) {
     return std::string(prop.name);
 }
 
-std::string get_gpu_arch(int gpu_id) {
+std::string GetGpuArch(int gpu_id) {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, gpu_id);
     char ss[50];
@@ -47,7 +47,7 @@ std::string get_gpu_arch(int gpu_id) {
     return std::string(ss);
 }
 
-std::string get_cuda_version() {
+std::string GetCudaVersion() {
     int version_num;
 
 #ifndef CUDART_VERSION
@@ -62,7 +62,7 @@ std::string get_cuda_version() {
     return std::string(ss);
 }
 
-std::string get_trt_version() {
+std::string GetTrtVersion() {
     int version_num;
 
 #ifndef NV_TENSORRT_MAJOR
@@ -75,6 +75,32 @@ std::string get_trt_version() {
     sprintf(ss, "%3d", version_num);
 
     return std::string(ss);
+}
+
+DataType ConvertTRTDataType(nvinfer1::DataType type) {
+    switch (type) {
+        case nvinfer1::DataType::kFLOAT :
+            return DATA_TYPE_FLOAT;
+        case nvinfer1::DataType::kHALF :
+            return DATA_TYPE_HALF;
+        default:
+            return DATA_TYPE_FLOAT;
+    }
+}
+
+DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format) {
+    switch (format) {
+        case nvinfer1::TensorFormat::kNCHW :
+            return DATA_FORMAT_NCHW;
+        case nvinfer1::TensorFormat::kCHW2 :
+            return DATA_FORMAT_NC2HW2;
+        case nvinfer1::TensorFormat::kCHW4 :
+            return DATA_FORMAT_NC4HW4;
+        case nvinfer1::TensorFormat::kCHW16 :
+            return DATA_FORMAT_NC16HW16;
+        default:
+            return DATA_FORMAT_NCHW;
+    }
 }
 
 }  //  namespace TNN_NS

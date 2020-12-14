@@ -20,8 +20,7 @@ BinaryTRTLayerBuilder::BinaryTRTLayerBuilder(LayerType ignore) : TensorRTLayerBu
 }
 
 ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetInt8Mode();
+    IElementWiseLayer* layer;
     if (input_blobs_.size() == 2) {
         auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
@@ -29,66 +28,12 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto input_tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
         auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
 
-        ILayer* last_layer;
-        IElementWiseLayer* layer = network->addElementWise(*input_tensor1, *input_tensor2, m_op);
+        layer = network->addElementWise(*input_tensor1, *input_tensor2, m_op);
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
-            last_layer = layer;
         }
-
-        if (int8) {
-            float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-            Weights output_quant_shift;
-            output_quant_shift.type = nvinfer1::DataType::kFLOAT;
-            output_quant_shift.values = nullptr;
-            output_quant_shift.count = 0;
-
-            Weights output_quant_scale;
-            output_quant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* output_quant_scale_data = (float*)malloc(sizeof(float));
-            int8_weight_data.push_back(output_quant_scale_data);
-            *output_quant_scale_data = output_scale_value;
-            output_quant_scale.values = (void*)output_quant_scale_data;
-            output_quant_scale.count = 1;
-
-            Weights output_quant_power;
-            output_quant_power.type = nvinfer1::DataType::kFLOAT;
-            output_quant_power.values = nullptr;
-            output_quant_power.count = 0;
-
-            auto output_quant_layer = network->addScale(*(layer->getOutput(0)), ScaleMode::kUNIFORM,
-                output_quant_shift, output_quant_scale, output_quant_power);
-            std::string output_quant_layer_name = layer_name_ + "_output_quant_";
-            output_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
-            output_quant_layer->setName(output_quant_layer_name.c_str());
-
-            Weights output_dequant_shift;
-            output_dequant_shift.type = nvinfer1::DataType::kFLOAT;
-            output_dequant_shift.values = nullptr;
-            output_dequant_shift.count = 0;
-
-            Weights output_dequant_scale;
-            output_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* output_dequant_scale_data = (float*)malloc(sizeof(float));
-            int8_weight_data.push_back(output_dequant_scale_data);
-            *output_dequant_scale_data = 1 / output_scale_value;
-            output_dequant_scale.values = (void*)output_dequant_scale_data;
-            output_dequant_scale.count = 1;
-
-            Weights output_dequant_power;
-            output_dequant_power.type = nvinfer1::DataType::kFLOAT;
-            output_dequant_power.values = nullptr;
-            output_dequant_power.count = 0;
-
-            auto output_dequant_layer = network->addScale(*(output_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
-                output_dequant_shift, output_dequant_scale, output_dequant_power);
-            std::string output_dequant_layer_name = layer_name_ + "_output_dequant_";
-            output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
-            output_dequant_layer->setName(output_dequant_layer_name.c_str());
-            last_layer = output_dequant_layer;
-        }
-        return last_layer;
     } else {
+        auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto paramlist = dynamic_cast<MultidirBroadcastLayerParam*>(param_);
         Weights weight;
         auto resource = dynamic_cast<EltwiseLayerResource*>(resource_);
@@ -141,12 +86,12 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         if (paramlist->weight_input_index == 0) {
             std::swap(src_a, src_b);
         }
-        IElementWiseLayer* layer = network->addElementWise(*src_a, *src_b, m_op);
+        layer = network->addElementWise(*src_a, *src_b, m_op);
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
         }
-        return layer;
     }
+    return layer;
 }
 
 }  //  namespace TNN_NS

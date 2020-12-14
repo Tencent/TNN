@@ -18,7 +18,7 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
-
+#include "tnn/network/tensorrt/utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -144,6 +144,9 @@ const char* TensorRTPluginLayerBuilder::getPluginNamespace() const {
 
 void TensorRTPluginLayerBuilder::configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
         const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs) {
+    input_blobs_[0]->GetBlobDesc().data_type = ConvertTRTDataType(in[0].desc.type);
+    output_blobs_[0]->GetBlobDesc().data_type = ConvertTRTDataType(out[0].desc.type);
+    input_blobs_[0]->GetBlobDesc().data_format = ConvertTRTDataFormat(in[0].desc.format);
 }
 
 nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin() {
@@ -153,7 +156,7 @@ nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin() {
 nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin(const void* data, size_t length) {
     const char* d = reinterpret_cast<const char*>(data);
     m_type = read<nvinfer1::DataType>(d);
-    m_format = read<PluginFormat>(d);
+    m_format = read<TensorFormat>(d);
     return this;
 }
 

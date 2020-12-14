@@ -62,17 +62,16 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
-#ifdef _WIN32
-        strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
-#else
         strncpy(input_imgfn, "../../assets/test_face.jpg", 256);
-#endif
     else
         strncpy(input_imgfn, argv[5], 256);
     printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+    if (!data) {
+        fprintf(stderr, "Face-detector open file %s failed.\n", input_imgfn);
+    }
 
     //Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();

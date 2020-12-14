@@ -219,6 +219,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedSigmoid", LAYER_SIGMOID},
     {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
     {"Erf", LAYER_ERF},
+
+    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

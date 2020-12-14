@@ -31,14 +31,14 @@ class TRTLogger : public nvinfer1::ILogger {
 public:
     void log(nvinfer1::ILogger::Severity severity, const char* msg) override {
         // suppress info-level messages
-        if (severity == Severity::kINFO) return;
-        switch (severity)
-        {
+        if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
+        switch (severity) {
             case Severity::kINTERNAL_ERROR: std::cerr << "INTERNAL_ERROR: "; break;
             case Severity::kERROR: std::cerr << "ERROR: "; break;
             case Severity::kWARNING: std::cerr << "WARNING: "; break;
             case Severity::kINFO: break;
-            default: std::cerr << "UNKNOWN: "; break;
+            case Severity::kVERBOSE: std::cerr << "VERBOSE: "; break;
+            default: break;
         }
         std::cerr << msg << std::endl;
     }
@@ -81,6 +81,8 @@ public:
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+
+    Status InitWithoutCache();
 
     Status CreateExecuteContext();
 

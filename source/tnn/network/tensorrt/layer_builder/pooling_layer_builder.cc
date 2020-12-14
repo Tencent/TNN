@@ -12,18 +12,38 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Pooling, LAYER_POOLING);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
-ILayer* PoolingTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kHALF || inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
+        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+}
+
+const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
+    return "Pooling";
+}
+
+nvinfer1::DataType PoolingTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
+}
+
+ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
+    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
+    if (int8 && paramlist->pool_type == 1) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    }
+
     DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
-    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
     PoolingType type;
     if (paramlist->pool_type == 0) {
@@ -32,7 +52,7 @@ ILayer* PoolingTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         type = PoolingType::kAVERAGE;
     }
 
-    IPoolingLayer* layer = network->addPooling(*tensor, type, kernelSize);
+    IPoolingLayer* layer = network->addPooling(*input_tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
@@ -53,9 +73,18 @@ ILayer* PoolingTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             layer->setName(layer_name_.c_str());
         }
     }
-
+    if (int8 && std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetInt8Mode()) {
+        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        return AddInt8OutputQDQLayers(layer->getOutput(0), output_scale_value, 1 / output_dequant_scale);
+    }
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Pooling, LAYER_POOLING);
+const char* PoolingPluginCreator::getPluginName() const {
+    return "Pooling";
+}
+
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
+
 }  //  namespace TNN_NS

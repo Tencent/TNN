@@ -310,7 +310,12 @@ namespace test {
 
         // use model type instead, may change later for same model type with
         // different network type
-        config.network_type = ConvertNetworkType(FLAGS_nt);
+        if (config.device_type == DEVICE_CUDA) {
+            config.network_type = NETWORK_TYPE_TENSORRT;
+        } else {
+            config.network_type = ConvertNetworkType(FLAGS_nt);
+        }
+
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
