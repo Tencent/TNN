@@ -123,7 +123,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (false == file_lock->Ready()) {
-        ret = InitWithoutCache();
+        ret = InitWithoutCache(inputs, outputs, cache_file_name);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -319,7 +319,7 @@ Status TensorRTNetwork_::CreateExecuteContext() {
     return TNN_OK;
 }
 
-Status TensorRTNetwork_::InitWithoutCache() {
+Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name) {
     this->m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
     NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);

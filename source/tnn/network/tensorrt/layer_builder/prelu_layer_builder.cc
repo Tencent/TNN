@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TRT_ACTIVATION_LAYER_BUILDER(PReLU);
 
 PReLUTRTLayerBuilder::PReLUTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
-    m_type = ActivationType::kLEAKY_RELU;
+    m_type = nvinfer1::ActivationType::kLEAKY_RELU;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(PReLU, LAYER_PRELU);

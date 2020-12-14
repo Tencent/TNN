@@ -40,7 +40,7 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         if (m_type == nvinfer1::ActivationType::kLEAKY_RELU) {
             auto resource = dynamic_cast<PReluLayerResource*>(resource_);
             auto scope = resource->slope_handle.force_to<float*>();
-            layer->setAlpha(*scope);
+            activation_layer->setAlpha(*scope);
         }
         last_layer = activation_layer;
     }

@@ -16,12 +16,12 @@
 
 namespace TNN_NS {
 
-DECLARE_TRT_ACTIVATION_LAYER_BUILDER(kRELU);
+DECLARE_TRT_ACTIVATION_LAYER_BUILDER(ReLU);
 
 ReLUTRTLayerBuilder::ReLUTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
-    m_type = ActivationType::kRELU;
+    m_type = nvinfer1::ActivationType::kRELU;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(kRELU, LAYER_RELU);
+REGISTER_TENSORRT_LAYER_BUILDER(ReLU, LAYER_RELU);
 
 }  //  namespace TNN_NS

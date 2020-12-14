@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TRT_ACTIVATION_LAYER_BUILDER(Tanh);
 
 TanhTRTLayerBuilder::TanhTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
-    m_type = ActivationType::kTANH;
+    m_type = nvinfer1::ActivationType::kTANH;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Tanh, LAYER_TANH);
