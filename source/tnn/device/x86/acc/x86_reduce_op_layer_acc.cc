@@ -37,9 +37,12 @@ Status X86ReduceOpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto input_dim = input_blob->GetBlobDesc().dims;
     auto output_dim = output_blob->GetBlobDesc().dims;
 
+    auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
+
     X86_REDUCE_CALCULATE(static_cast<float *>(input_blob->GetHandle().base),
                          static_cast<float *>(output_blob->GetHandle().base),
-                         input_dim, output_dim, op_);
+                         layer_param->axis,
+                         input_dim, output_dim, op_type_);
 
     return TNN_OK;
 }

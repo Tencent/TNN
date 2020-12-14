@@ -24,7 +24,7 @@ X86BinaryOpLayerAcc::~X86BinaryOpLayerAcc() {}
 Status X86BinaryOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     RETURN_ON_NEQ(X86LayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    return op_->Init(param);
+    return TNN_OK;
 }
 
 Status X86BinaryOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -73,13 +73,19 @@ Status X86BinaryOpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     return status;
 }
 
-Status X86BinaryOpLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
-                                      const std::vector<DimsVector> &input_shapes, Blob *output){
+Status X86BinaryOpLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, 
+                                      const std::vector<void *> &input_ptrs,
+                                      const std::vector<DimsVector> &input_shapes, 
+                                      Blob *output) {
+
+    void * output_ptr = output->GetHandle().base;
+    DimsVector output_shape = output->GetBlobDesc().dims;
+
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        return X86_BINARY_CALCULATE(input_ptrs, input_shapes, output, op_);
+        return X86_BINARY_CALCULATE(input_ptrs, input_shapes, output_ptr, output_shape, op_type_);
     } else {
-        LOGE("Error: X86AddLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: X86AddLayerAcc don't support data type");
+        LOGE("Error: X86BinaryLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: X86BinaryLayerAcc don't support data type");
     }
 }
 

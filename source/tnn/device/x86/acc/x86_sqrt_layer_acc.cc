@@ -12,19 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/core/macro.h"
-#include "tnn/utils/blob_converter_default.h"
-#include "tnn/utils/blob_converter.h"
+#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+
+#include <cmath>
 
 namespace TNN_NS {
 
-class X86BlobConverterAcc : public DefaultBlobConverterAcc {
-public:
-    X86BlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
-    ~X86BlobConverterAcc() {}
-};
+typedef struct x86_sqrt_operator : x86_unary_operator {
+    virtual float operator()(const float v) {
+        return sqrt(v);
+    }
+} X86_SQRT_OP;
 
-DECLARE_BLOB_CONVERTER_CREATER(X86);
-REGISTER_BLOB_CONVERTER(X86, DEVICE_X86);
+DECLARE_X86_UNARY_ACC(Sqrt, X86_SQRT_OP);
 
-}  // namespace TNN_NS
+REGISTER_X86_ACC(Sqrt, LAYER_SQRT);
+
+}   // namespace TNN_NS

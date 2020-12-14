@@ -22,18 +22,12 @@
 
 namespace TNN_NS {
 
-typedef struct x86_binary_operator {
-public:
-    virtual Status Init(LayerParam *param = nullptr) {
-        param_ = param;
-        return TNN_OK;
-    }
-
-    virtual float operator()(const float v1, const float v2) { return v1;}
-
-protected:
-    LayerParam *param_ = nullptr;
-} X86_BINARY_OP;
+enum class X86BinaryOpType : int {
+    kADD = 0,
+    kSUB = 1,
+    kMUL = 2,
+    kDIV = 3,
+};
 
 class X86BinaryOpLayerAcc : public X86LayerAcc {
 public:
@@ -50,17 +44,17 @@ protected:
     // Calculate Function
     Status Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                      const std::vector<DimsVector> &input_shapes, Blob *output);
-    std::shared_ptr<X86_BINARY_OP> op_;
+    X86BinaryOpType op_type_;
 };
 
 #define DECLARE_X86_BINARY_OP_ACC(type_string, op_type)                                                                 \
     class X86##type_string##LayerAcc : public X86BinaryOpLayerAcc {                                                     \
     public:                                                                                                             \
         X86##type_string##LayerAcc() {                                                                                  \
-            X86BinaryOpLayerAcc::op_ = std::make_shared<op_type>();                                                     \
+            X86BinaryOpLayerAcc::op_type_ = op_type;                                                                    \
         }                                                                                                               \
         virtual ~X86##type_string##LayerAcc(){};                                                                        \
-                                                                                                                       \
+                                                                                                                        \
     }
 }  // namespace TNN_NS
 

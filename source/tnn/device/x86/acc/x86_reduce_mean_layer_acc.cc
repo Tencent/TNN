@@ -22,27 +22,7 @@
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_mean_operator : x86_reduce_operator {
-#ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) {
-        return _mm256_add_ps(v1_, v2_);
-    }
-    __m256 PostProcess(const __m256 v_, int channel) {
-        float f_channel = channel;
-        __m256 f_channel_ = _mm256_set1_ps(f_channel);
-        return _mm256_div_ps(v_, f_channel_);
-    }
-#else
-    float operator()(const float v1, const float v2) {
-        return v1 + v2;
-    }
-    float PostProcess(const float v, int channel) {
-        return v / channel;
-    }
-#endif
-} X86_REDUCE_MEAN_OP;
-
-DECLARE_X86_REDUCE_OP_ACC(ReduceMean, X86_REDUCE_MEAN_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceMean, X86ReduceOpType::kMEAN);
 
 REGISTER_X86_ACC(ReduceMean, LAYER_REDUCE_MEAN);
 

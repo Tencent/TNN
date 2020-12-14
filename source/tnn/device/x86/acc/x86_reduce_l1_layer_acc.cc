@@ -22,21 +22,7 @@
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_l1_operator : x86_reduce_operator {
-#ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) {
-        __m256 tmp_ = _mm256_set1_ps(-0.f);
-        tmp_ = _mm256_andnot_ps(tmp_, v2_);
-        return _mm256_add_ps(tmp_, v1_);
-    }
-#else
-    float operator()(const float v1, const float v2) {
-        return v1 + fabs(v2);
-    }
-#endif
-} X86_REDUCE_L1_OP;
-
-DECLARE_X86_REDUCE_OP_ACC(ReduceL1, X86_REDUCE_L1_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceL1, X86ReduceOpType::kL1);
 
 REGISTER_X86_ACC(ReduceL1, LAYER_REDUCE_L1);
 

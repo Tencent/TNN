@@ -27,7 +27,7 @@ namespace TNN_NS {
 
 // binary
 Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, 
-                            Blob *output, std::shared_ptr<X86_BINARY_OP> op);
+                            void *output, DimsVector output_shape, X86BinaryOpType op_type);
 
 // @brief store by row
 Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 
@@ -46,8 +46,8 @@ Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, Di
 Status X86_FMA(float *input, float *output, float *scale, float *bias,
                bool shared_channel, bool has_bias, DimsVector output_dim);
 
-// @brief allow 2 ops for instanceNorm
-Status X86_REDUCE_CALCULATE(float *input, float *output, DimsVector input_dim, DimsVector output_dim, std::shared_ptr<X86_REDUCE_OP> op);
+Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
+                            DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type);
 
 }   // namespace TNN_NS
 

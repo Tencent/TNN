@@ -69,6 +69,9 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         mat_type = RESERVED_INT8_TEST;
     }
 #endif
+    if(blob_desc.data_type == DATA_TYPE_INT32) {
+        mat_type = NC_INT32;
+    }
 
     Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void *data_ptr = cpu_mat.GetData();

@@ -14,6 +14,7 @@
 
 #include "tnn/device/x86/acc/x86_unary_layer_acc.h"
 #include "tnn/device/x86/x86_context.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -31,8 +32,7 @@ Status X86UnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 
     auto dims = output->GetBlobDesc().dims;
 
-    // int count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
-    int count = dims[0] * dims[1] * dims[2] * dims[3];
+    int count = DimsVectorUtils::Count(dims);
     auto input_data  = static_cast<float*>(input->GetHandle().base);
     auto output_data = static_cast<float*>(output->GetHandle().base);
 

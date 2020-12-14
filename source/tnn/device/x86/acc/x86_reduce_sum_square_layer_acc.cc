@@ -22,20 +22,7 @@
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_sum_square_operator : x86_reduce_operator {
-#ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) {
-        return _mm256_fmadd_ps(v2_, v2_, v1_);
-    }
-#else
-    float operator()(const float v1, const float v2) {
-        return v1 + v2 * v2;
-    }
-
-#endif
-} X86_REDUCE_SUM_SQUARE_OP;
-
-DECLARE_X86_REDUCE_OP_ACC(ReduceSumSquare, X86_REDUCE_SUM_SQUARE_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceSumSquare, X86ReduceOpType::kSUMSQUARE);
 
 REGISTER_X86_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
 

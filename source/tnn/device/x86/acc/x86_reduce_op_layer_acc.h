@@ -18,24 +18,21 @@
 #include <vector>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-#include <iostream>
-#include "immintrin.h"
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_operator {
-public:
-#ifdef __AVX2__
-    // for some special reduce_op that need auxiliary variable
-    virtual __m256 Init() { return _mm256_setzero_ps(); };
-    virtual __m256 PostProcess(const __m256 v_, const int channel = 1) { return v_; };
-    virtual __m256 operator()(const __m256 v1_, const __m256 v2_) {};
-#else
-    virtual float Init() { return 0.f; }
-    virtual float PostProcess(const float v, int channel = 1) { return v; };
-    virtual float operator()(const float v1, const float v2) {};
-#endif
-} X86_REDUCE_OP;
+enum class X86ReduceOpType : int {
+    kL1     = 0,
+    kL2     = 1,
+    kMAX    = 2,
+    kMIN    = 3,
+    kMEAN   = 4,
+    kSUM    = 5,
+    kPROD   = 6,
+    kSUMSQUARE  = 7,
+    kLOGSUM     = 8,
+    kLOGSUMEXP  = 9
+};
 
 class X86ReduceOpLayerAcc : public X86LayerAcc {
 public:
@@ -47,14 +44,14 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
-    std::shared_ptr<X86_REDUCE_OP> op_;
+    X86ReduceOpType op_type_;
 };
 
 #define DECLARE_X86_REDUCE_OP_ACC(type_string, op_type)                                                                 \
     class X86##type_string##LayerAcc : public X86ReduceOpLayerAcc {                                                     \
     public:                                                                                                             \
         X86##type_string##LayerAcc() {                                                                                  \
-            X86ReduceOpLayerAcc::op_ = std::make_shared<op_type>();                                                     \
+            X86ReduceOpLayerAcc::op_type_ = op_type;                                                                    \
         }                                                                                                               \
         virtual ~X86##type_string##LayerAcc(){};                                                                        \
                                                                                                                        \

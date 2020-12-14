@@ -188,6 +188,11 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }
+    } else if (desc.data_type == DATA_TYPE_INT32) {
+        if (image.GetMatType() == NC_INT32) {
+            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t));
+            return TNN_OK;
+        }
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {

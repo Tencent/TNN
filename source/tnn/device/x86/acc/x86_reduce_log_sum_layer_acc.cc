@@ -22,30 +22,7 @@
 
 namespace TNN_NS {
 
-typedef struct x86_reduce_log_sum_operator : x86_reduce_operator {
-#ifdef __AVX2__
-    __m256 operator()(const __m256 v1_, const __m256 v2_) {
-        return _mm256_add_ps(v1_, v2_);
-    }
-    __m256 PostProcess(const __m256 v_, int) {
-        float v[8];
-        _mm256_storeu_ps(v, v_);
-        for (int i = 0; i < 8; i++) {
-            v[i] = log(v[i]);
-        }
-        return _mm256_loadu_ps(v);
-    }
-#else
-    float operator()(const float v1, const float v2) {
-        return v1 + v2;
-    }
-    float PostProcess(const float v, int) {
-        return log(v);
-    }
-#endif
-} X86_REDUCE_LOG_SUM_OP;
-
-DECLARE_X86_REDUCE_OP_ACC(ReduceLogSum, X86_REDUCE_LOG_SUM_OP);
+DECLARE_X86_REDUCE_OP_ACC(ReduceLogSum, X86ReduceOpType::kLOGSUM);
 
 REGISTER_X86_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
 

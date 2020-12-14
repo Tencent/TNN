@@ -12,19 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "cpu_layer_acc.h"
+#include "x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Cast, LAYER_CAST);
+DECLARE_X86_ACC(Cast, LAYER_CAST);
 
-Status CpuCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86CastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CpuCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86CastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<CastLayerParam*>(param_);
     void *input_data = inputs[0]->GetHandle().base;
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
@@ -58,5 +58,5 @@ Status CpuCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
-REGISTER_CPU_ACC(Cast, LAYER_CAST);
+REGISTER_X86_ACC(Cast, LAYER_CAST);
 }  // namespace TNN_NS

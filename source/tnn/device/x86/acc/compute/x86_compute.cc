@@ -20,47 +20,133 @@
 #include <type_traits>
 namespace TNN_NS {
 
-Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes,
-                            Blob *output, std::shared_ptr<X86_BINARY_OP> op) {
-    if (input_shapes.size() != 2) {
-        return Status(TNNERR_MODEL_ERR, "Error: add layer is invalid.");
-    }
-
-    const int batch         = output->GetBlobDesc().dims[0];
-    const int channel       = output->GetBlobDesc().dims[1];
-    const int height        = output->GetBlobDesc().dims[2];
-    const int width         = output->GetBlobDesc().dims[3];
-    const int channel_size  = height * width;
-    const int count         = batch * channel * channel_size;
-    float *output_data      = static_cast<float*>(output->GetHandle().base);
-    float *input_data0      = static_cast<float*>(input_ptrs[0]);
-    float *input_data1      = static_cast<float*>(input_ptrs[1]);
-    auto input_shape0 = input_shapes[0], input_shape1 = input_shapes[1];
-    for (int b = 0; b < batch; b++) {
-        int output_index_b = b * channel * channel_size;
-        int input_index0_b = std::min(b, input_shape0[0] - 1) * input_shape0[1] * input_shape0[2] * input_shape0[3];
-        int input_index1_b = std::min(b, input_shape1[0] - 1) * input_shape1[1] * input_shape1[2] * input_shape1[3];
-
-        for (int c = 0; c < channel; c++) {
-            int output_index_c = c * channel_size + output_index_b;
-            int input_index0_c = std::min(c, input_shape0[1] - 1) * input_shape0[2] * input_shape0[3] + input_index0_b;
-            int input_index1_c = std::min(c, input_shape1[1] - 1) * input_shape1[2] * input_shape1[3] + input_index1_b;
-            
-            for (int h = 0; h < height; h++) {
-                int output_index_h = h * width + output_index_c;
-                int input_index0_h = std::min(h, input_shape0[2] - 1) * input_shape0[3] + input_index0_c;
-                int input_index1_h = std::min(h, input_shape1[2] - 1) * input_shape1[3] + input_index1_c;
-
-                for (int w = 0; w < width; w++) {
-                    int output_index = w + output_index_h;
-                    int input_index0 = std::min(w, input_shape0[3] - 1) + input_index0_h;
-                    int input_index1 = std::min(w, input_shape1[3] - 1) + input_index1_h;
-                    output_data[output_index] = (*op)(input_data0[input_index0], input_data1[input_index1]);
-                }
-            }
+static std::vector<int> dims_to_steps(std::vector<int> dims) {
+    std::vector<int> ret(dims.size(), 1);
+    int cnt = 1;
+    for(int i=dims.size() - 1;i>=0;i--) {
+        if (dims[i] == 1) {
+            ret[i] = 0;
+        } else {
+            ret[i] = cnt;
+            cnt *= dims[i];
         }
     }
-    return TNN_OK;
+    return ret;
+}
+
+template<X86BinaryOpType type>
+float binary_op(const float a, const float b) {
+    return a;
+}
+
+template<> float binary_op<X86BinaryOpType::kADD>(const float a, const float b) {
+    return a + b;
+}
+
+template<> float binary_op<X86BinaryOpType::kSUB>(const float a, const float b) {
+    return a - b;
+}
+
+template<> float binary_op<X86BinaryOpType::kMUL>(const float a, const float b) {
+    return a * b;
+}
+
+template<> float binary_op<X86BinaryOpType::kDIV>(const float a, const float b) {
+    return a / b;
+}
+
+
+template<X86BinaryOpType type>
+void binary_kernel(std::vector<int> output_dims, const float * a, std::vector<int> steps_a, const float * b, std::vector<int> steps_b, 
+                    float * c, std::vector<int> steps_c) 
+{
+
+    size_t idx_a = 0;
+    size_t idx_b = 0;
+    size_t idx_c = 0;
+
+    const int MAX_DIM = 5;
+
+    int d[MAX_DIM] = {1, 1, 1 ,1 ,1};
+    int step_a[MAX_DIM] = {0, 0, 0, 0, 0};
+    int step_b[MAX_DIM] = {0, 0, 0, 0, 0};
+    int step_c[MAX_DIM] = {0, 0, 0, 0, 0};
+
+    int offset = MAX_DIM - output_dims.size();
+    memcpy(d + offset, &output_dims[0], output_dims.size() * sizeof(float));
+    memcpy(step_a + offset, &steps_a[0], steps_a.size() * sizeof(float));
+    memcpy(step_b + offset, &steps_b[0], steps_b.size() * sizeof(float));
+    memcpy(step_c + offset, &steps_c[0], steps_c.size() * sizeof(float));
+
+    for(int d0=0;d0<d[0];d0++) {
+        for(int d1=0;d1<d[1];d1++) {
+            for(int d2=0;d2<d[2];d2++) {
+                for(int d3=0;d3<d[3];d3++) {
+                    for(int d4=0;d4<d[4];d4++) {
+                        c[idx_c] = binary_op<type>(a[idx_a], b[idx_b]);
+                        idx_a += step_a[4];
+                        idx_b += step_b[4];
+                        idx_c += step_c[4];
+                    }
+                    idx_a += (step_a[3] - d[4] * step_a[4]);
+                    idx_b += (step_b[3] - d[4] * step_b[4]);
+                    idx_c += (step_c[3] - d[4] * step_c[4]);
+                }
+                idx_a += (step_a[2] - d[3] * step_a[3]);
+                idx_b += (step_b[2] - d[3] * step_b[3]);
+                idx_c += (step_c[2] - d[3] * step_c[3]);
+            }
+            idx_a += (step_a[1] - d[2] * step_a[2]);
+            idx_b += (step_b[1] - d[2] * step_b[2]);
+            idx_c += (step_c[1] - d[2] * step_c[2]);
+        }
+        idx_a += (step_a[0] - d[1] * step_a[1]);
+        idx_b += (step_b[0] - d[1] * step_b[1]);
+        idx_c += (step_c[0] - d[1] * step_c[1]);
+    }
+
+
+}
+
+using binary_kernel_func_t = decltype(&binary_kernel<X86BinaryOpType::kADD>);
+
+Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, 
+                            void *output, DimsVector output_shape,  X86BinaryOpType op_type) {
+
+
+    if (input_shapes[0].size() != input_shapes[1].size() || 
+        input_shapes[0].size() != output_shape.size()) {
+        LOGE("Error, shape len not equal\n");
+        return TNNERR_LAYER_ERR;
+    }
+
+    std::vector<int> steps_a = dims_to_steps(input_shapes[0]);
+    std::vector<int> steps_b = dims_to_steps(input_shapes[1]);
+    std::vector<int> steps_c = dims_to_steps(output_shape);
+    
+    binary_kernel_func_t binary_kernel_function = nullptr;
+
+    switch(op_type) {
+        case X86BinaryOpType::kADD :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kADD>;
+            break;
+        case X86BinaryOpType::kSUB :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kSUB>;
+            break;
+        case X86BinaryOpType::kMUL :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kMUL>;
+            break;
+        case X86BinaryOpType::kDIV :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kDIV>;
+            break;
+        default :
+            LOGE("Error, unknown binary op_type\n");
+            return TNNERR_LAYER_ERR;
+    }
+
+    binary_kernel_function(output_shape, (const float *)input_ptrs[0], steps_a, (const float *)input_ptrs[1], steps_b, (float *)output, steps_c);
+
+    return TNN_OK; 
 }
 
 Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, 
@@ -85,25 +171,6 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
             }
         }
     }
-
-    // for (int c = 0; c < channel; c++) {
-    //     for (int h = 0; h < height_col; h++) {
-    //         for (int w = 0; w < width_col; w++) {
-    //             for (int kh = 0; kh < kernelh; kh++) {
-    //                 for (int kw = 0; kw < kernelw; kw++) {
-    //                     int h_pad = h * strideh - padh + kh;
-    //                     int w_pad = w * stridew - padw + kw;
-    //                     if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width) {
-    //                         *dst = src[(c * height + h_pad) * width + w_pad];
-    //                         std::cout << (c * height + h_pad) * width + w_pad << std::endl;}
-    //                     else
-    //                         *dst = 0;
-    //                     dst++;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 
     return TNN_OK;
 }
@@ -290,51 +357,116 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
     return TNN_OK;
 }
 
-Status X86_REDUCE_CALCULATE(float *input, float *output, DimsVector input_dim, DimsVector output_dim, std::shared_ptr<X86_REDUCE_OP> op) {
 
-    int channel = input_dim[1];
-    int channel_size = DimsVectorUtils::Count(input_dim, 2);
-#ifdef __AVX2__
-    int tail = channel_size - channel_size % 8;
-    register __m256 src_, tmp_;
-    for (int b = 0; b < output_dim[0]; b++) {
-        for (int index = 0; index < tail; index += 8) {
-            tmp_ = op->Init();
-            for (int c = 0; c < channel; c++) {
-                src_ = _mm256_loadu_ps(input + (b * channel + c) * channel_size + index);
-                tmp_ = (*op)(tmp_, src_);
-            }
-            tmp_ = op->PostProcess(tmp_, channel);
-            _mm256_storeu_ps(output + b * channel_size + index, tmp_);
-        }
+template<X86ReduceOpType type>
+float reduce_iter_op(const float acc, const float v) {
+    return acc;
+}
 
-        // build mask
-        float a[8] = {0.f};
-        for (int i = 0; i < channel_size % 8; i++) a[i] = -0.f;
-        __m256i mask_ = _mm256_loadu_si256((__m256i*)a);
-        
-        for (int index = tail; index < channel_size; index += 8) {
-            tmp_ = op->Init();
-            for (int c = 0; c < channel; c++) {
-                src_ = _mm256_maskload_ps(input + (b * channel + c) * channel_size + index, mask_);
-                tmp_ = (*op)(tmp_, src_);
+template<X86ReduceOpType type>
+float reduce_final_op(const float acc, const float num) {
+    return acc;
+}
+
+template<> float reduce_iter_op<X86ReduceOpType::kMEAN>(const float acc, const float v) {return acc + v; }
+template<> float reduce_iter_op<X86ReduceOpType::kL1>(const float acc, const float v) {return acc + std::abs(v); }
+template<> float reduce_iter_op<X86ReduceOpType::kL2>(const float acc, const float v) {return acc + v * v; }
+template<> float reduce_iter_op<X86ReduceOpType::kMIN>(const float acc, const float v) {return std::min(acc, v); }
+template<> float reduce_iter_op<X86ReduceOpType::kMAX>(const float acc, const float v) {return std::max(acc, v); }
+template<> float reduce_iter_op<X86ReduceOpType::kSUM>(const float acc, const float v) {return acc + v; }
+template<> float reduce_iter_op<X86ReduceOpType::kPROD>(const float acc, const float v) {return acc * v; }
+template<> float reduce_iter_op<X86ReduceOpType::kLOGSUM>(const float acc, const float v) {return acc + v; }
+template<> float reduce_iter_op<X86ReduceOpType::kLOGSUMEXP>(const float acc, const float v) {return acc + std::exp(v); }
+template<> float reduce_iter_op<X86ReduceOpType::kSUMSQUARE>(const float acc, const float v) {return acc + v * v; }
+
+template<> float reduce_final_op<X86ReduceOpType::kMEAN>(const float acc, const float num) {return acc / num; }
+template<> float reduce_final_op<X86ReduceOpType::kL1>(const float acc, const float num) {return acc; }
+template<> float reduce_final_op<X86ReduceOpType::kL2>(const float acc, const float num) {return sqrt(acc); }
+template<> float reduce_final_op<X86ReduceOpType::kMIN>(const float acc, const float num) {return acc; }
+template<> float reduce_final_op<X86ReduceOpType::kMAX>(const float acc, const float num) {return acc; }
+template<> float reduce_final_op<X86ReduceOpType::kSUM>(const float acc, const float num) {return acc; }
+template<> float reduce_final_op<X86ReduceOpType::kPROD>(const float acc, const float num) {return acc; }
+template<> float reduce_final_op<X86ReduceOpType::kLOGSUM>(const float acc, const float num) {return std::log(acc); }
+template<> float reduce_final_op<X86ReduceOpType::kLOGSUMEXP>(const float acc, const float num) {return std::log(acc); }
+template<> float reduce_final_op<X86ReduceOpType::kSUMSQUARE>(const float acc, const float num) {return acc; }
+
+
+template<X86ReduceOpType type>
+void reduce_kernel(float * input, float * output, size_t outer_size, size_t inner_size, size_t reduce_size) 
+{
+    for(size_t outer_idx=0;outer_idx<outer_size;outer_idx++) {
+        for(size_t inner_idx=0;inner_idx<inner_size;inner_idx++) {
+            float acc = 0;
+            for(int i=0;i<reduce_size;i++) {
+                acc = reduce_iter_op<type>(acc, input[i * inner_size + inner_idx]);
             }
-            tmp_ = op->PostProcess(tmp_, channel);
-            _mm256_maskstore_ps(output + b * channel_size + index, mask_, tmp_);
+            output[inner_idx] = reduce_final_op<type>(acc, float(reduce_size));
         }
+        input += reduce_size * inner_size;
+        output += inner_size;
     }
-#else
-    for (int b = 0; b < output_dim[0]; b++) {
-        for (int index = 0; index < channel_size; index++) {
-            float tmp = op->Init();
-            for (int c = 0; c < channel; c++) {
-                tmp = (*op)(tmp, input[(b * channel + c) * channel_size + index]);
-            }
-            tmp = op->PostProcess(tmp, channel);
-            output[b * channel_size + index] = tmp;
-        }
+}
+
+using reduce_kernel_ptr_t  = decltype(&reduce_kernel<X86ReduceOpType::kMEAN>);
+
+Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
+                            DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type) 
+{
+    int outer_begin = 0;
+    int outer_end = input_dim.size() - 1;
+    int inner_begin = 0;
+    int inner_end = input_dim.size() - 1;
+    for(int axis : axes) {
+        inner_begin = std::max(inner_begin, axis);
+        outer_end = std::min(outer_end, axis);
     }
-#endif
+
+    size_t outer_size = DimsVectorUtils::Count(input_dim, outer_begin, outer_end);
+    size_t inner_size = DimsVectorUtils::Count(input_dim, inner_begin, inner_end);
+    size_t reduce_size = 1;
+    for(int axis : axes) {
+        reduce_size *= input_dim[axis];
+    }
+
+    reduce_kernel_ptr_t reduce_kernel_ptr = nullptr;
+    switch (op_type) {
+        case X86ReduceOpType::kMEAN:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMEAN>;
+            break;
+        case X86ReduceOpType::kL1:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kL1>;
+            break;
+        case X86ReduceOpType::kL2:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kL2>;
+            break;
+        case X86ReduceOpType::kMIN:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMIN>;
+            break;
+        case X86ReduceOpType::kMAX:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMAX>;
+            break;
+        case X86ReduceOpType::kSUM:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kSUM>;
+            break;
+        case X86ReduceOpType::kPROD:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kPROD>;
+            break;
+        case X86ReduceOpType::kLOGSUM:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kLOGSUM>;
+            break;
+        case X86ReduceOpType::kLOGSUMEXP:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kLOGSUMEXP>;
+            break;
+        case X86ReduceOpType::kSUMSQUARE:
+            reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kSUMSQUARE>;
+            break;
+        default:
+            LOGE("Error, unknown binary op_type\n");
+            return TNNERR_LAYER_ERR;
+    }
+
+    reduce_kernel_ptr(input, output, outer_size, inner_size, reduce_size);
+
     return TNN_OK;
 }
 
