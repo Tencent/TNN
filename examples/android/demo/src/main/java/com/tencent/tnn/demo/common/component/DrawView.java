@@ -28,9 +28,11 @@ public class DrawView extends SurfaceView
     private static String TAG = DrawView.class.getSimpleName();
     private Paint paint = new Paint();
     private Paint key_paint = new Paint();
+    private Paint line_paint = new Paint();
     private ArrayList<String> labels = new ArrayList<String>();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
     private ArrayList<float[]> points_list = new ArrayList<float[]>();
+    private ArrayList<float[]> point_lines_list = new ArrayList<float[]>();
     private ArrayList<ImageInfo> image_info_list = new ArrayList<ImageInfo>();
 
     public DrawView(Context context, AttributeSet attrs)
@@ -41,6 +43,9 @@ public class DrawView extends SurfaceView
         paint.setStyle(Paint.Style.STROKE);
         key_paint.setStyle(Paint.Style.STROKE);
         key_paint.setStrokeWidth(5);
+        line_paint.setARGB(255, 255, 0, 0);
+        line_paint.setStyle(Paint.Style.STROKE);
+        line_paint.setStrokeWidth(3);
         setWillNotDraw(false);
     }
 
@@ -84,6 +89,40 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
+    public void addObjectRect(ObjectInfo[] objectstatus)
+    {
+        points_list.clear();
+        point_lines_list.clear();
+        if (objectstatus != null && objectstatus.length != 0)
+        {
+            for (int i = 0; i < objectstatus.length; i++) {
+                float[][] key_points = objectstatus[i].key_points;
+                if (key_points != null && key_points.length != 0) {
+                    float[] points = new float[key_points.length * 2];
+                    for (int j = 0; j < key_points.length; ++j) {
+                        points[j * 2] = key_points[j][0];
+                        points[j * 2 + 1] = key_points[j][1];
+                    }
+                    points_list.add(points);
+                }
+
+                int[][] lines = objectstatus[i].lines;
+                if (lines != null && lines.length != 0) {
+                    float[] point_lines = new float[lines.length * 4];
+                    for (int j = 0; j < lines.length; ++j) {
+                        point_lines[j * 4] = key_points[objectstatus[i].lines[j][0]][0];
+                        point_lines[j * 4 + 1] = key_points[objectstatus[i].lines[j][0]][1];
+                        point_lines[j * 4 + 2] = key_points[objectstatus[i].lines[j][1]][0];
+                        point_lines[j * 4 + 3] = key_points[objectstatus[i].lines[j][1]][1];
+                    }
+                    point_lines_list.add(point_lines);
+                }
+            }
+        }
+
+        postInvalidate();
+    }
+
     public void addImageInfo(ImageInfo imageInfo)
     {
         image_info_list.clear();
@@ -108,10 +147,17 @@ public class DrawView extends SurfaceView
 
         }
 
-        if(points_list.size() > 0) {
-            for(int i = 0; i < points_list.size(); ++i) {
+        if (points_list.size() > 0) {
+            for (int i = 0; i < points_list.size(); ++i) {
                 float[] points = points_list.get(i);
                 canvas.drawPoints(points, key_paint);
+            }
+        }
+
+        if (point_lines_list.size() > 0) {
+            for (int i = 0; i < point_lines_list.size(); ++i) {
+                float[] point_lines = point_lines_list.get(i);
+                canvas.drawLines(point_lines, line_paint);
             }
         }
 
