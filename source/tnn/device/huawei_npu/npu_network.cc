@@ -70,7 +70,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // modify the inputShapeMap
     // if reshape, add a suffix to the model name to create a new model
-    std::string model_suffix = NpuUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
+    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
     model_name_              = model_name_ + model_suffix + "_" + std::to_string(version_num_);
 
     // init the path to store/read om
