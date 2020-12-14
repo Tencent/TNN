@@ -82,7 +82,7 @@ public:
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
-    Status InitWithoutCache();
+    Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name);
 
     Status CreateExecuteContext();
 

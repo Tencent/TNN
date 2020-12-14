@@ -18,8 +18,8 @@ namespace TNN_NS {
 
 DECLARE_TRT_ACTIVATION_LAYER_BUILDER(Clip);
 
-ClipTRTLayerBuilder::SigmoidTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
-    m_type = ActivationType::kCLIP;
+ClipTRTLayerBuilder::ClipTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
+    m_type = nvinfer1::ActivationType::kCLIP;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Clip, LAYER_CLIP);

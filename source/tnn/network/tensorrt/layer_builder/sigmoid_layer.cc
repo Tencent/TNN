@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TRT_ACTIVATION_LAYER_BUILDER(Sigmoid);
 
 SigmoidTRTLayerBuilder::SigmoidTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
-    m_type = ActivationType::kSIGMOID;
+    m_type = nvinfer1::ActivationType::kSIGMOID;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Sigmoid, LAYER_SIGMOID);

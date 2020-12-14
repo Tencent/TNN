@@ -25,7 +25,7 @@ public:
     virtual ILayer* AddToNetwork(INetworkDefinition* network);
 
 protected:
-    ActivationType m_type;
+    nvinfer1::ActivationType m_type;
 };
 
 #define DECLARE_TRT_ACTIVATION_LAYER_BUILDER(type_string)                                                                  \
