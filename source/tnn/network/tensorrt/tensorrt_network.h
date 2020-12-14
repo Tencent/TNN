@@ -82,6 +82,8 @@ public:
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
+    Status InitWithoutCache();
+
     Status CreateExecuteContext();
 
     bool int8_mode;
