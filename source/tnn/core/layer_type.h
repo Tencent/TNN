@@ -196,7 +196,7 @@ enum LayerType {
     LAYER_INT8_RANGE                                        = 700,
     LAYER_TRT_ENGINE                                        = 701,
 
-    LAYER_FUSED_REDUCE                                      = 800
+    LAYER_CBAM_FUSED_REDUCE                                 = 800
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);

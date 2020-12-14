@@ -213,7 +213,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ArgMaxOrMin", LAYER_ARG_MAX_OR_MIN},
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
 
-    {"FusedReduce", LAYER_FUSED_REDUCE}
+    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

@@ -18,6 +18,7 @@
 
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
@@ -74,6 +75,15 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     Status ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {
         return ret;
+    }
+
+    {
+        // use mutex to protect net_resource and net_structure in multi-thread
+        std::unique_lock<std::mutex> lck(optimize_mtx_);
+        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
+        if (ret != TNN_OK) {
+            return ret;
+        }
     }
 
     blob_manager_ = new TensorRTBlobManager(device_);
@@ -357,6 +367,9 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         bool is_int8_blob = layer_info->param->quantized;
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (config_.precision == PRECISION_LOW) {
+                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
+            }
             if (is_int8_blob) {
                 auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
                 auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
@@ -375,9 +388,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            if (config_.precision == PRECISION_LOW) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
-            }
             if (is_int8_blob) {
                 auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
                 auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
@@ -449,7 +459,7 @@ std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string mode
 
     std::string cache_file_name = "." +  md5(md5_source) + precision
         + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
-        + "-" + get_gpu_type(device_id) + "-" + get_trt_version() + get_cuda_version()
+        + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
         + ".cache";
     return cache_file_name;
 }

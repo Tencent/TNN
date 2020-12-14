@@ -12,25 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-
-#include "tnn/core/common.h"
+#include "tnn/device/cuda/utils.cuh"
 
 namespace TNN_NS {
 
-std::string GetGpuType(int gpu_id);
+//template<typename T>
+//__device__ float get_float_value(T value) { return value; }
+template<> __device__ float get_float_value<__half>(__half value) { return __half2float(value); }
 
-std::string GetGpuArch(int gpu_id);
+//template<typename T>
+//__device__ T convert_float_value(float value) { return T(value); }
+template<> __device__ __half convert_float_value<__half>(float value) { return __float2half(value); }
 
-std::string GetCudaVersion();
+}  //  namespace TNN_NS;
 
-std::string GetTrtVersion();
-
-DataType ConvertTRTDataType(nvinfer1::DataType type);
-
-DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
-
-}  //  namespace TNN_NS
-
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_

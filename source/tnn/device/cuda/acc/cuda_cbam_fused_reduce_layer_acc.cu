@@ -6,72 +6,74 @@
 #include <cuda_fp16.h>
 #include <iostream>
 
+namespace TNN_NS {
+
+DECLARE_CUDA_ACC(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
+
 typedef uint32_t uint32;
 
-
 template <typename T>
-__device__ __forceinline__ T getMin()
-{
+__device__ __forceinline__ T getMin() {
     return -std::numeric_limits<T>::infinity();
 }   
 
-
-__global__ void fused_reduce_C(float *in, float *out, int n, int c, int h, int w){
+__global__ void cbam_fused_reduce_kernel(float *in, float *out, int n, int c, int h, int w) {
     // each thread processes one output element
     int stride = h * w;
     int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     int sample_idx = tidx / (h * w);
 
-    if(sample_idx >= n) return;
+    if (sample_idx >= n) return;
 
     int sample_offset = tidx  % (h * w);
     int src_offset = sample_idx * (c * h * w) + sample_offset;
     int dst_offset = sample_idx * (2 * h * w) + sample_offset;
-    
+
     float accumulate = 0;
     float max = getMin<float>();
-    
-    for(int i = 0; i < c; i ++){
+
+    for (int i = 0; i < c; i ++) {
         float in_value = in[src_offset + i * stride];
         accumulate += in_value;
         max = fmaxf(max, in_value);
     }
-    
+
     out[dst_offset] = accumulate / c;
     out[dst_offset + stride] = max;
 }
 
-
-__global__ void fused_reduce_C_half(__half *in, __half *out, int n, int c, int h, int w){
+template<typename T>
+__global__ void cbam_fused_reduce_half_kernel(__half *in, T *out, int n, int c, int h, int w) {
     // each thread processes one output element
     int stride = h * w;
     int tidx = blockDim.x * blockIdx.x + threadIdx.x;
     int sample_idx = tidx / (h * w);
 
-    if(sample_idx >= n) return;
+    if (sample_idx >= n) return;
 
     int sample_offset = tidx  % (h * w);
     int src_offset = sample_idx * (c * h * w) + sample_offset;
     int dst_offset = sample_idx * (2 * h * w) + sample_offset;
-    
+
     float accumulate = 0;
     float max = getMin<float>();
-    
-    for(int i = 0; i < c; i ++){
+
+    for(int i = 0; i < c; i ++) {
         float in_value = __half2float(in[src_offset + i * stride]);
         accumulate += in_value;
         max = fmaxf(max, in_value);
     }
-    
-    out[dst_offset] = __float2half(accumulate / c);
-    out[dst_offset + stride] = __float2half(max);
+
+    out[dst_offset] = convert_float_value<T>(accumulate / c);//__float2half(accumulate / c);
+    out[dst_offset + stride] = convert_float_value<T>(max);// __float2half(max);
 }
 
 
 // for fp16, N(c/x)HWx  formats
 // only process cases where 2 <= x <= 16, and c <= 1024
-__global__ void fused_reduce_C_packed(__half *in, __half *out,
-                                      int n, int c, int h, int w, int pack_num){
+template<typename T>
+__global__ void cbam_fused_reduce_packed_kernel(__half *in, T *out,
+        int n, int c, int h, int w, int pack_num) {
 
     // Each block process blockDim.x fp16 spatial elements of the input map (include all the channels)
     int data_stride_c = h * w * pack_num;
@@ -98,16 +100,16 @@ __global__ void fused_reduce_C_packed(__half *in, __half *out,
     float accumulate = 0;
     float max = getMin<float>();
 
-    if(pixel_idx <  h * w && channel_idx < c){
+    if (pixel_idx <  h * w && channel_idx < c) {
         int count = 0;
-        while(channel_idx < c){
+        while (channel_idx < c) {
             float in_value = __half2float(in[element_offset]);
             accumulate += in_value;
             max = fmaxf(max, in_value);
             channel_idx += pack_num;
             element_offset += data_stride_c;            
         }
-        
+
         reduction_results[threadIdx.x] = accumulate / count;
         reduction_results[threadIdx.x + MAX_NUM_PIXELS_PER_BLOCK] = max;
     }
@@ -116,45 +118,41 @@ __global__ void fused_reduce_C_packed(__half *in, __half *out,
     
     // use the first (blockDim.x / pack_num) threads to do the final reduction
     // each thread processes one pixel in the output image/feature
-    if(threadIdx.x < blockDim.x / pack_num){
-
+    if (threadIdx.x < blockDim.x / pack_num) {
         float accumulate = 0;
         float count = 0;
         int mean_value_offset = threadIdx.x * pack_num;
         int max_value_offset = threadIdx.x * pack_num + MAX_NUM_PIXELS_PER_BLOCK;
         float max = reduction_results[max_value_offset];
-        
+
         for(int idx = threadIdx.x; idx < pack_num && idx < c; idx ++){
             accumulate =+ reduction_results[mean_value_offset + idx];
             max = fmaxf(max, reduction_results[max_value_offset + idx]);
             count += 1;                        
         }
-        
+
         accumulate /= count;
         
         // write to output buffer
         int output_sample_stride = pack_num * h * w;
         int output_pixel_idx = (element_idx - threadIdx.x + threadIdx.x * pack_num) / pack_num;
         int offset = sample_idx * output_sample_stride + pack_num * output_pixel_idx;
-        out[offset] = __float2half(accumulate);
-        out[offset+1] = __float2half(max);
+        out[offset] = convert_float_value<T>(accumulate);//__float2half(accumulate);
+        out[offset+1] = convert_float_value<T>(max);//__float2half(max);
     }
 }
 
-namespace TNN_NS {
 
-DECLARE_CUDA_ACC(FusedReduce, LAYER_FUSED_REDUCE);
-
-Status CudaFusedReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaCbamFusedReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaFusedReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaCbamFusedReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaFusedReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaCbamFusedReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
 
@@ -166,60 +164,51 @@ Status CudaFusedReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const
     int inp_H = input_blob->GetBlobDesc().dims[2];
     int inp_W = input_blob->GetBlobDesc().dims[3];
 
-    if (type == DataType::DATA_TYPE_FLOAT)
-    {
+    if (type == DataType::DATA_TYPE_FLOAT) {
         float* input_ptr = static_cast<float*>(input_blob->GetHandle().base);
         float* output_ptr = static_cast<float*>(output_blob->GetHandle().base);
 
         int thread_num = 32;
         int block_num = (inp_H * inp_W * batch_size + thread_num - 1) / thread_num;
-        fused_reduce_C<<<block_num, thread_num, 0, context_->GetStream()>>>(static_cast<float *>(input_ptr), 
+        cbam_fused_reduce_kernel<<<block_num, thread_num, 0, context_->GetStream()>>>(static_cast<float *>(input_ptr), 
             static_cast<float *>(output_ptr), 
             batch_size, nchannels, inp_H, inp_W);
-    }
-    else if (type == DataType::DATA_TYPE_HALF)
-    {
-        __half* input_ptr = static_cast<__half*>(input_blob->GetHandle().base);
-        __half* output_ptr = static_cast<__half*>(output_blob->GetHandle().base);
+    } else if (type == DataType::DATA_TYPE_HALF) {
+        void* input_ptr = input_blob->GetHandle().base;
+        void* output_ptr = output_blob->GetHandle().base;
         int thread_num = 64;
-
-        if (format == DataFormat::DATA_FORMAT_NCHW)
-        {
+        if (format == DataFormat::DATA_FORMAT_NCHW) {
             int block_num = (inp_H * inp_W * batch_size + thread_num - 1) / thread_num;
-            fused_reduce_C_half<<<block_num, thread_num, 0, context_->GetStream()>>>(static_cast<__half *>(input_ptr), 
-                static_cast<__half *>(output_ptr), 
-                batch_size, nchannels, inp_H, inp_W);
-        }
-        else if (format == DataFormat::DATA_FORMAT_CHW2 || format == DataFormat::DATA_FORMAT_CHW4 || format == DataFormat::DATA_FORMAT_CHW16)
-        {
-            int pack_num;
-            switch (format){
-                case DataFormat::DATA_FORMAT_CHW2: pack_num = 2; break;
-                case DataFormat::DATA_FORMAT_CHW4: pack_num = 4; break;
-                case DataFormat::DATA_FORMAT_CHW16: pack_num = 16; break;
+            if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT)
+                cbam_fused_reduce_half_kernel<float><<<block_num, thread_num, 0, context_->GetStream()>>>(
+                    static_cast<__half *>(input_ptr), static_cast<float *>(output_ptr), batch_size, nchannels, inp_H, inp_W);
+            else
+                cbam_fused_reduce_half_kernel<__half><<<block_num, thread_num, 0, context_->GetStream()>>>(
+                    static_cast<__half *>(input_ptr), static_cast<__half *>(output_ptr), batch_size, nchannels, inp_H, inp_W);
+        } else if (format == DataFormat::DATA_FORMAT_NC2HW2 || format == DataFormat::DATA_FORMAT_NC4HW4 ||
+                format == DataFormat::DATA_FORMAT_NC16HW16) {
+            int pack_num = 2;
+            switch (format) {
+                case DataFormat::DATA_FORMAT_NC2HW2: pack_num = 2; break;
+                case DataFormat::DATA_FORMAT_NC4HW4: pack_num = 4; break;
+                case DataFormat::DATA_FORMAT_NC16HW16: pack_num = 16; break;
                 default: pack_num = 2;
             }
             int blocks_per_sample = (inp_H * inp_W * pack_num + thread_num - 1) / thread_num;
             int blocks_num = blocks_per_sample * batch_size;
-            fused_reduce_C_packed<<<blocks_num, thread_num, 0, context_->GetStream()>>>(static_cast<__half *>(input_ptr), 
-                static_cast<__half *>(output_ptr),
-                batch_size, nchannels, inp_H, inp_W, pack_num);
-        }
-        else 
-        {
+            cbam_fused_reduce_packed_kernel<__half><<<blocks_num, thread_num, 0, context_->GetStream()>>>(static_cast<__half *>(input_ptr), 
+                static_cast<__half *>(output_ptr), batch_size, nchannels, inp_H, inp_W, pack_num);
+        } else {
             LOGE("Error: layer acc dont support data format: %d\n", input_blob->GetBlobDesc().data_format);
             return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support data format");
         }
-    }
-    else 
-    {
+    } else {
         LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
     }
-
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(FusedReduce, LAYER_FUSED_REDUCE);
+REGISTER_CUDA_ACC(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
 
 }   // namespace TNN_NS

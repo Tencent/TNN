@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cuda/utils/cuda_blob_converter_kernel.cuh"
+#include "tnn/device/cuda/cuda_blob_converter_kernel.cuh"
 
 namespace TNN_NS {
 

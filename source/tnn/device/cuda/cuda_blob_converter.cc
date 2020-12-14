@@ -15,7 +15,7 @@
 #include "tnn/device/cuda/cuda_blob_converter.h"
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/device/cuda/cuda_device.h"
-#include "tnn/device/cuda/utils/cuda_blob_converter_kernel.cuh"
+#include "tnn/device/cuda/cuda_blob_converter_kernel.cuh"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {

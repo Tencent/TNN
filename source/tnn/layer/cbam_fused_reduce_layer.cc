@@ -5,13 +5,13 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER(FusedReduce, LAYER_FUSED_REDUCE);
+DECLARE_LAYER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
 
-Status FusedReduceLayer::InferOutputDataType() {
+Status CbamFusedReduceLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status FusedReduceLayer::InferOutputShape() {
+Status CbamFusedReduceLayer::InferOutputShape() {
     Blob* input_blob = input_blobs_[0];
 
     auto dims_input = input_blob->GetBlobDesc().dims;
@@ -32,6 +32,6 @@ Status FusedReduceLayer::InferOutputShape() {
     return TNN_OK;
 }
 
-REGISTER_LAYER(FusedReduce, LAYER_FUSED_REDUCE);
+REGISTER_LAYER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
 
 }  // namespace TNN_NS

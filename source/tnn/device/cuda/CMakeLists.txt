@@ -17,7 +17,7 @@ message(${TARGET_ARCH})
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" "${CUDA_OPT_FLAG}" "-Xcompiler -fPIC --compiler-options -fno-strict-aliasing -lineinfo -Xptxas
     -dlcm=cg -use_fast_math" "${TARGET_ARCH}")
 
-file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu utils/*.cu)
+file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu)
 message(${CUDA_SRCS})
 
 add_library(TNNCuda OBJECT ${CUDA_SRCS})
