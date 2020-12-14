@@ -47,12 +47,13 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     const auto &weight_name = node.input(1);
     const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
     auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
+    auto group              = GetAttributeInt(node, "group", 1);
     const int co            = weight_shape[0];
     const int kh            = weight_shape[1];
     const int kw            = weight_shape[2];
     const int ci            = weight_shape[3];
     const int weight_count  = co * kw * kw * ci;
-    param->input_channel    = ci;
+    param->input_channel    = ci * group;
     param->output_channel   = co;
     param->kernels.push_back(kw);
     param->kernels.push_back(kh);
@@ -65,7 +66,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     auto dilations = GetAttributeIntVector(node, "dilations");
     ASSERT(dilations.size() == 2);
     param->dialations = {dilations[1], dilations[0]};
-    param->group      = GetAttributeInt(node, "group", 1);
+    param->group      = group;
     // parse pads type
     auto pads = GetAttributeIntVector(node, "pads");
     if (!pads.empty()) {
