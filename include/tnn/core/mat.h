@@ -58,6 +58,8 @@ public:
 
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
+    //empty mat
+    Mat(DeviceType device_type, MatType mat_type);
 
     DEPRECATED("use Mat(DeviceType, MatType, DimsVector, void*) instead")
     Mat(DeviceType device_type, MatType mat_type, void* data) : Mat(device_type, mat_type, {1,0,0,0}, data) {};
@@ -72,9 +74,6 @@ public:
     int GetWidth();
     int GetDim(int index);
     DimsVector GetDims();
-
-    //    Mat(const Mat&) = delete;
-    //    Mat& operator=(const Mat&) = delete;
 
 private:
     Mat(){};

@@ -191,8 +191,7 @@ Status RknpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterp
         return ret;
     }
 
-    blob_manager_ = new BlobManager(device_);
-    ret           = blob_manager_->Init(net_config, net_structure_, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure_, inputs_shape, GetNetResourceDataType(net_resource));
     if (ret != TNN_OK) {
         return ret;
     }

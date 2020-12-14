@@ -101,4 +101,11 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims, void* data) 
     data_        = data;
 }
 
+Mat::Mat(DeviceType device_type, MatType mat_type) {
+    device_type_ = device_type;
+    mat_type_    = mat_type;
+    data_ = nullptr;
+    data_alloc_ = nullptr;
+}
+
 }  // namespace TNN_NS
