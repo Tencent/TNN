@@ -49,12 +49,27 @@ def fix_tnn_output(tnnproto_path: str):
     tnnproto = np.loadtxt(tnnproto_path, dtype=np.str, delimiter="\n")
     output_info = get_output_info(tnnproto)
     offset = 5
+    add_layers = []
     for output_name in output_info:
         idx, name = find_target_layer(tnnproto[offset:], output_name)
         inner_output_name = output_name + "_fix_output_name_from_tf2onnx"
+        add_layers.append(inner_output_name)
         tnnproto[offset + idx] = replace_output_name(tnnproto[offset + idx], output_name, inner_output_name)
         tnnproto = np.append(tnnproto, generate_transpose(inner_output_name, output_name))
 
+    # fix op
+    op_name_list = tnnproto[2].split(" ")
+    new_ops_name_list = op_name_list[:1] + add_layers + op_name_list[1:]
+    new_ops_name = " ".join(new_ops_name_list)
+    tnnproto = tnnproto.astype("<U{}" .format(len(new_ops_name) + 1))
+    tnnproto[2] = new_ops_name
+
+    info = tnnproto[0].split(" ")
+    total_ops = int(info[1]) + len(add_layers)
+    info[1] = str(total_ops)
+    tnnproto[0] = " ".join(info)
+
+    # fix layer cnt
     layer_cnt = tnnproto[offset:].shape[0]
     tnnproto[4] = "\" {} ,\"" .format(layer_cnt)
     np.savetxt(tnnproto_path, tnnproto, delimiter="\n", fmt="%s")
