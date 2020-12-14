@@ -67,12 +67,17 @@ build_openvino() {
         cmake ../ \
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
-        -DENABLE_CLDNN=OFF \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
         -DTHREADING=SEQ \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
         -DENABLE_MYRIAD=OFF \
+        -DENABLE_CLDNN=OFF \
+        -DENABLE_GNA=OFF \
+        -DENABLE_VPU=OFF \
+        -DENABLE_SAMPLES=OFF \
         -DNGRAPH_JSON_ENABLE=OFF \
+        -DENABLE_SPEECH_DEMO=OFF \
+        -DNGRAPH_ONNX_IMPORT_ENABLE=OFF \
         -DENABLE_PROFILING_ITT=OFF \
 
         echo "Building Openvino ..."
@@ -118,7 +123,8 @@ copy_openvino_libraries() {
         mkdir -p ${TNN_INSTALL_DIR}/lib
     fi
 
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
 
 

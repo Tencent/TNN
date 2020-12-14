@@ -30,6 +30,11 @@ OpenvinoTensor::OpenvinoTensor() {
     node_ = std::make_shared<EmptyNode>();
 }
 
+//@brief create OpenvinoTensor with ngraph::Node
+OpenvinoTensor::OpenvinoTensor(std::shared_ptr<ngraph::Node> node) {
+    node_ = node;
+}
+
 //@brief OpenvinoTensor destructor
 OpenvinoTensor::~OpenvinoTensor() {
 }

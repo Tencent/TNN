@@ -154,10 +154,10 @@
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
    
-## III. Introduction to Linux/Windows/Armlinux/CudaLinux Demo
+## III. Introduction to Linux/Mac/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Windows/ArmLinux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux environment.
 
 ### Running Steps
 #### 1. Downloand demo models

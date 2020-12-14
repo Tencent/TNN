@@ -69,7 +69,8 @@ goto :eof
 
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\MKLDNNPlugin.dll %TNN_INSTALL_DIR%\bin\
-    copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %TNN_INSTALL_DIR%\bin\
+    copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %TNN_INSTALL_DIR%\lib\
+    copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %BUILD_DIR%\
 
     if %OPENVINO_BUILD_SHARED% == "ON" (
         copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\inference_engine.dll %TNN_INSTALL_DIR%\bin\
@@ -101,13 +102,13 @@ goto :eof
     -DCMAKE_CROSSCOMPILING=OFF ^
     -DENABLE_OPENCV=OFF ^
     -DCMAKE_INSTALL_PREFIX="!OPENVINO_INSTALL_DIR!" ^
-    -DENABLE_CLDNN=OFF ^
     -DENABLE_TBB_RELEASE_ONLY=OFF ^
     -DTHREADING=SEQ ^
     -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" ^
-    -DENABLE_MYRIAD=OFF ^
     -DNGRAPH_JSON_ENABLE=OFF ^
     -DENABLE_PROFILING_ITT=OFF ^
+    -DENABLE_MYRIAD=OFF ^
+    -DENABLE_CLDNN=OFF ^
     -DENABLE_GNA=OFF ^
     -DENABLE_VPU=OFF ^
     -DTREAT_WARNING_AS_ERROR=OFF ^
