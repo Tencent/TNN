@@ -150,16 +150,6 @@ struct TNNVector {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
         }
     }
-    static void mla_lane0(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const Float2& v3) {
-        for (int i = 0; i < len; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[0];
-        }
-    }
-    static void mla_lane1(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const Float2& v3) {
-        for (int i = 0; i < len; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
-        }
-    }
     static TNNVector<T, len> neg(const TNNVector<T, len>& v) {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {

@@ -394,6 +394,26 @@ struct Half8 : TNNVector<fp16_t, 8> {
         dst.value[7] = v2.value[3];
         return dst;
     }
+    static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[0];
+        }
+    }
+    static void mla_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
+        }
+    }
+    static void mla_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[2];
+        }
+    }
+    static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[3];
+        }
+    }
 };
 
 #endif
