@@ -358,6 +358,7 @@ struct Half4 : TNNVector<fp16_t, 4> {
 
 struct Half8 : TNNVector<fp16_t, 8> {
     using TNNVector<fp16_t, 8>::TNNVector;
+    Half8() {}
     Half8(const Half8& lr) {
         for (int i = 0; i < 8; ++i) {
             value[i] = lr.value[i];
