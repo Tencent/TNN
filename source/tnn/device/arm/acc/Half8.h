@@ -19,16 +19,20 @@
 #include "tnn/core/macro.h"
 #include "tnn/utils/half.hpp"
 #include "tnn/utils/half_utils.h"
+#include "tnn/device/arm/acc/TNNVector.h"
 #ifdef TNN_USE_NEON
 #include <arm_neon.h>
 #include "tnn/device/arm/acc/neon_mathfun.h"
 #endif
 
 namespace TNN_NS {
-#if defined(TNN_USE_NEON) && defined(TNN_ARM82)
+#if defined(TNN_USE_NEON) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
 
 struct Half4 {
     float16x4_t value;
+    const __fp16 operator[](const int i) const {
+        return value[i];
+    }
 };
 
 struct Half8 {
@@ -51,11 +55,13 @@ struct Half8 {
     }
 
     void set_lane(__fp16 v, const int i) {
-        vsetq_lane_f16(v, value, i);
+        // vsetq_lane_f16(v, value, i);
+        value[i] = v;
     }
 
     const __fp16 operator[](const int i) const {
-        return vgetq_lane_f16(value, i);
+        // return vgetq_lane_f16(value, i);
+        return value[i];
     }
 
     static Half8 load(const __fp16* addr) {
@@ -67,13 +73,13 @@ struct Half8 {
         vst1q_f16(addr, v.value);
     }
 
-    static void get_low(Half8& v1, Half4& v2) {
+    static void get_low(const Half8& v1, Half4& v2) {
         v2.value = vget_low_f16(v1.value);
     }
-    static void get_high(Half8& v1, Half4& v2) {
+    static void get_high(const Half8& v1, Half4& v2) {
         v2.value = vget_high_f16(v1.value);
     }
-    static Half8 combine(Half4& v1, Half4& v2) {
+    static Half8 combine(const Half4& v1, const Half4& v2) {
         return vcombine_f16(v1.value, v2.value);
     }
     static Half8 extract(const Half8& v1, const Half8& v2, const int n) {
@@ -218,8 +224,10 @@ struct Half8 {
         Half8 dst;
         float32x4_t v_low  = vcvt_f32_f16(vget_low_f16(v.value));
         float32x4_t v_high = vcvt_f32_f16(vget_high_f16(v.value));
-        v_low = pow_ps(v_low);
-        v_high = pow_ps(v_high);
+        float32x4_t e_low  = vcvt_f32_f16(vget_low_f16(e.value));
+        float32x4_t e_high = vcvt_f32_f16(vget_high_f16(e.value));
+        v_low = pow_ps(v_low, e_low);
+        v_high = pow_ps(v_high, e_high);
         dst.value = vcombine_f16(vcvt_f16_f32(v_low), vcvt_f16_f32(v_high));
         return dst;
     }
@@ -344,129 +352,36 @@ struct Half8 {
 
 #else
 
-struct Half4 {
-    fp16_t value[4];
+struct Half4 : TNNVector<fp16_t, 4> {
+    using TNNVector<fp16_t, 4>::TNNVector;
 };
 
-struct Half8 {
-    fp16_t value[8];
-    Half8 operator+(const Half8& lr) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = value[i] + lr.value[i];
-        }
-        return dst;
-    }
-    Half8 operator-(const Half8& lr) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = value[i] - lr.value[i];
-        }
-        return dst;
-    }
-    Half8 operator*(const Half8& lr) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = value[i] * lr.value[i];
-        }
-        return dst;
-    }
-    Half8 operator*(fp16_t lr) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = value[i] * lr;
-        }
-        return dst;
-    }
-
-    Half8& operator=(const Half8& lr) {
-        for (int i = 0; i < 8; ++i) {
-            value[i] = lr.value[i];
-        }
-        return *this;
-    }
-    Half8 operator-() {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = -value[i];
-        }
-        return dst;
-    }
-    Half8() {}
-    Half8(const fp16_t v) {
-        for (int i = 0; i < 8; ++i) {
-            value[i] = v;
-        }
-    }
-
+struct Half8 : TNNVector<fp16_t, 8> {
+    using TNNVector<fp16_t, 8>::TNNVector;
     Half8(const Half8& lr) {
         for (int i = 0; i < 8; ++i) {
             value[i] = lr.value[i];
         }
     }
-
-    void set_lane(fp16_t v, int i) {
-        value[i] = v;
-    }
-
-    const fp16_t operator[](const int i) const {
-        return value[i];
+    Half8(const TNNVector<fp16_t, 8>& lr) {
+        for (int i = 0; i < 8; ++i) {
+            value[i] = lr.value[i];
+        }
     }
 
-    static Half8 load(const fp16_t* addr) {
-        Half8 v;
-        for (int i = 0; i < 8; ++i) {
-            v.value[i] = addr[i];
-        }
-        return v;
-    }
-    static void save(fp16_t* addr, const Half8& v) {
-        for (int i = 0; i < 8; ++i) {
-            addr[i] = v.value[i];
-        }
-    }
-    static Half8 bsl_cle(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = c1.value[i] <= c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Half8 bsl_clt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = c1.value[i] < c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Half8 bsl_cge(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = c1.value[i] >= c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Half8 bsl_cgt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = c1.value[i] > c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-
-    static void get_low(Half8& v1, Half4& v2) {
+    static void get_low(const Half8& v1, Half4& v2) {
         v2.value[0] = v1.value[0];
         v2.value[1] = v1.value[1];
         v2.value[2] = v1.value[2];
         v2.value[3] = v1.value[3];
     }
-    static void get_high(Half8& v1, Half4& v2) {
+    static void get_high(const Half8& v1, Half4& v2) {
         v2.value[0] = v1.value[4];
         v2.value[1] = v1.value[5];
         v2.value[2] = v1.value[6];
         v2.value[3] = v1.value[7];
     }
-    static Half8 combine(Half4& v1, Half4& v2) {
+    static Half8 combine(const Half4& v1, const Half4& v2) {
         Half8 dst;
         dst.value[0] = v1.value[0];
         dst.value[1] = v1.value[1];
@@ -476,167 +391,6 @@ struct Half8 {
         dst.value[5] = v2.value[1];
         dst.value[6] = v2.value[2];
         dst.value[7] = v2.value[3];
-        return dst;
-    }
-    static Half8 extract(const Half8& v1, const Half8& v2, const int n) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = (n + i < 8) ? v1[n + i] : v2[n + i - 8];
-        }
-        return dst;
-    }
-    static Half8 pad(const Half8& v1, const Half8& v2, const int n) {
-        Half8 dst;
-        for (int i = 0; i < 8 - n; ++i) {
-            dst.value[i] = v1[i];
-        }
-        for (int i = 8 - n; i < 8; ++i) {
-            dst.value[i] = v2[i];
-        }
-        return dst;
-    }
-    static void mla(Half8& v1, const Half8& v2, const Half8& v3) {
-        for (int i = 0; i < 8; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
-        }
-    }
-    static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
-        for (int i = 0; i < 8; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[0];
-        }
-    }
-    static void mla_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
-        for (int i = 0; i < 8; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
-        }
-    }
-    static void mla_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
-        for (int i = 0; i < 8; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[2];
-        }
-    }
-    static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
-        for (int i = 0; i < 8; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[3];
-        }
-    }
-    static Half8 neg(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = -v.value[i];
-        }
-        return dst;
-    }
-    static Half8 floor(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::floor(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 ceil(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::ceil(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 max(const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::max(v1.value[i], v2.value[i]);
-        }
-        return dst;
-    }
-    static Half8 min(const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::min(v1.value[i], v2.value[i]);
-        }
-        return dst;
-    }
-    static Half8 div(const Half8& v1, const Half8& v2) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = v1.value[i] / v2.value[i];
-        }
-        return dst;
-    }
-    static Half8 exp(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::exp(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 pow(const Half8& v, const Half8& e) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            if (v.value[i] <= 0) {
-                LOGE("%s\n", "neon pow does not support zero or negative input value");
-            }
-            dst.value[i] = std::pow(v.value[i], e.value[i]);
-        }
-        return dst;
-    }
-    static Half8 sqrt(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::sqrt(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 tanh(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::tanh(v.value[i]);
-        }
-        return dst;
-    }
-
-    static Half8 tan(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::tan(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 sin(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::sin(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 cos(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::cos(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 sigmoid(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = 1.0f / (1.0f + std::exp(-v.value[i]));
-        }
-        return dst;
-    }
-    static Half8 fast_sigmoid(const Half8& v) {
-        return Half8::sigmoid(v);
-    }
-    static Half8 log(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::log(v.value[i]);
-        }
-        return dst;
-    }
-    static Half8 abs(const Half8& v) {
-        Half8 dst;
-        for (int i = 0; i < 8; ++i) {
-            dst.value[i] = std::fabs(v.value[i]);
-        }
         return dst;
     }
 };

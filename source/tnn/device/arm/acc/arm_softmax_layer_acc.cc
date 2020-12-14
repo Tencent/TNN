@@ -130,25 +130,25 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
 
 #if TNN_ARM82
 template <>
-Status ArmSoftmaxLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmSoftmaxLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    int data_byte_size = sizeof(__fp16);
+    int data_byte_size = sizeof(fp16_t);
     SoftmaxPreparation();
 
     size_t reorder_size   = dims[1] * dims[2] * dims[3];
     size_t max_value_size = inside;
     size_t sum_value_size = inside;
 
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(
         context_->GetSharedWorkSpace((reorder_size + max_value_size + sum_value_size) * data_byte_size));
 
-    __fp16 *reorder_buffer_ptr = work_space;
-    __fp16 *max_value_ptr      = reorder_buffer_ptr + reorder_size;
-    __fp16 *sum_value_ptr      = max_value_ptr + max_value_size;
+    fp16_t *reorder_buffer_ptr = work_space;
+    fp16_t *max_value_ptr      = reorder_buffer_ptr + reorder_size;
+    fp16_t *sum_value_ptr      = max_value_ptr + max_value_size;
 
-    __fp16 *input_origin  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *output_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *input_origin  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *output_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         auto input_ptr  = input_origin + batch_idx * width * height * ROUND_UP(dims[1], 8);
@@ -159,40 +159,35 @@ Status ArmSoftmaxLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const
         for (int y = 0; y < outside; y++) {
             auto src_y = output_ptr + y * step_y;
             auto dst_y = reorder_buffer_ptr + y * step_y;
-            memcpy(max_value_ptr, src_y, sizeof(__fp16) * inside);
+            memcpy(max_value_ptr, src_y, sizeof(fp16_t) * inside);
 
             auto src = src_y + inside;
             for (int c = 1; c < channel; ++c, src += inside) {
                 int x = 0;
                 for (; x <= inside - 8; x += 8) {
-                    float16x8_t src_v = vld1q_f16(src + x);
-                    float16x8_t max_v = vld1q_f16(max_value_ptr + x);
-                    max_v = vmaxq_f16(src_v, max_v);
-                    vst1q_f16(max_value_ptr + x, max_v);
+                    Half8 src_v = Half8::load(src + x);
+                    Half8 max_v = Half8::load(max_value_ptr + x);
+                    max_v = Half8::max(src_v, max_v);
+                    Half8::save(max_value_ptr + x, max_v);
                 }
                 for (; x < inside; ++x) {
                     max_value_ptr[x] = src[x] > max_value_ptr[x] ? src[x] : max_value_ptr[x];
                 }
             }
 
-            memset(sum_value_ptr, 0, sizeof(__fp16) * inside);
+            memset(sum_value_ptr, 0, sizeof(fp16_t) * inside);
             src        = src_y;
-            __fp16 *dst = dst_y;
+            fp16_t *dst = dst_y;
             for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
                 int x = 0;
                 for (; x <= inside - 8; x += 8) {
-                    float16x8_t src_v    = vld1q_f16(src + x);
-                    float16x8_t max_v    = vld1q_f16(max_value_ptr + x);
-                    float16x8_t sum_v    = vld1q_f16(sum_value_ptr + x);
-                    float16x8_t dst_v    = vsubq_f16(src_v, max_v);
-                    float32x4_t dst_low  = vcvt_f32_f16(vget_low_f16(dst_v));
-                    float32x4_t dst_high = vcvt_f32_f16(vget_high_f16(dst_v));
-                    dst_low  = exp_ps(dst_low);
-                    dst_high = exp_ps(dst_high);
-                    dst_v = vcombine_f16(vcvt_f16_f32(dst_low), vcvt_f16_f32(dst_high));
-                    sum_v = vaddq_f16(sum_v, dst_v);
-                    vst1q_f16(dst + x, dst_v);
-                    vst1q_f16(sum_value_ptr + x, sum_v);
+                    Half8 src_v = Half8::load(src + x);
+                    Half8 max_v = Half8::load(max_value_ptr + x);
+                    Half8 sum_v = Half8::load(sum_value_ptr + x);
+                    Half8 dst_v = Half8::exp(src_v - max_v);
+                    sum_v = sum_v + dst_v;
+                    Half8::save(dst + x, dst_v);
+                    Half8::save(sum_value_ptr + x, sum_v);
                 }
                 for (; x < inside; ++x) {
                     dst[x] = std::exp(src[x] - max_value_ptr[x]);
@@ -208,10 +203,10 @@ Status ArmSoftmaxLayerAcc::Exec<__fp16>(const std::vector<Blob *> &inputs, const
             for (int c = 0; c < channel; ++c, dst += inside) {
                 int x = 0;
                 for (; x < inside - 8; x += 8) {
-                    float16x8_t dst_v = vld1q_f16(dst + x);
-                    float16x8_t sum_v = vld1q_f16(sum_value_ptr + x);
-                    dst_v = vmulq_f16(dst_v, sum_v);
-                    vst1q_f16(dst + x, dst_v);
+                    Half8 dst_v = Half8::load(dst + x);
+                    Half8 sum_v = Half8::load(sum_value_ptr + x);
+                    dst_v = dst_v * sum_v;
+                    Half8::save(dst + x, dst_v);
                 }
                 for (; x < inside; ++x) {
                     dst[x] *= sum_value_ptr[x];
@@ -242,7 +237,7 @@ Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     } 
 #if TNN_ARM82
     else if (in_data_type == DATA_TYPE_HALF) {
-        return Exec<__fp16>(inputs, outputs);
+        return Exec<fp16_t>(inputs, outputs);
     }
 #endif
     else {

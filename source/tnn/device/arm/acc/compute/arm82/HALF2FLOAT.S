@@ -20,8 +20,8 @@
 .text
 .align 5
 
-asm_function Half2Float
-//void Half2Float(float* dst, const __fp16* src, const size_t length)
+asm_function Half2FloatKernel
+//void Half2FloatKernel(float* dst, const __fp16* src, const size_t length)
 //Auto Load:
 //x0:dst, x1:src, x2:length
 cmp x2, #15

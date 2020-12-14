@@ -898,19 +898,14 @@ template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale,
     for (int z = 0; z < UP_DIV(channel, 8); ++z) {
         auto src_z   = src + z * hw * 8;
         auto dst_z   = dst + z * hw * 8;
-#ifdef TNN_ARM82
-        auto v_scale = vld1q_f16(local_scale + z * 8);
-        auto v_bias = vld1q_f16(local_bias + z * 8);
+
+        auto v_scale = Half8::load(local_scale + z * 8);
+        auto v_bias  = Half8::load(local_bias + z * 8);
         for (int s = 0; s < hw; ++s) {
-            vst1q_f16(dst_z + s * 8, vfmaq_f16(v_bias, vld1q_f16(src_z + s * 8), v_scale));
+            Half8 dst_v = v_bias;
+            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
+            Half8::save(dst_z + s * 8, dst_v);
         }
-#else
-        for (int s = 0; s < hw; ++s) {
-            for (int i = 0; i < 8; i++) {
-                dst_z[s * 8 + i] = src_z[s * 8 + i] * local_scale[z * 8 + i] + local_bias[z * 8 + i];
-            }
-        }
-#endif
     }
 }
 

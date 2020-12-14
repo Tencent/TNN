@@ -95,7 +95,9 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                            param->strides[1], param->pads[0], param->pads[2]);
             }
         }
-    } else if (input->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+    }
+#if TNN_ARM82
+    else if (input->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         auto oc_8       = UP_DIV(dims_output[1], 8);
         auto input_plane_stride  = 8 * k_param_->iw * k_param_->ih;
         auto output_plane_stride = 8 * k_param_->ow * k_param_->oh;
@@ -113,7 +115,9 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                                param->strides[1], param->pads[0], param->pads[2]);
             }
         }
-    } else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+    }
+#endif
+    else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         // INT8
         for (int n = 0; n < batch; n++) {
             auto input_batch_stride  = k_param_->iw * k_param_->ih * oc_4 * 4;

@@ -61,15 +61,15 @@ Status ArmConvFp16LayerDepthwise::allocateBufferWeight(const std::vector<Blob *>
         if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
             size_t weight_nchw_count = group * kh * kw;
             RawBuffer filter_half(weight_nchw_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-            Float2Half(filter_half.force_to<__fp16 *>(), conv_res->filter_handle.force_to<float *>(),
+            Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            PackC8(temp_buffer.force_to<__fp16 *>(), 
-                   filter_half.force_to<__fp16 *>(),
+            PackC8(temp_buffer.force_to<fp16_t *>(),
+                   filter_half.force_to<fp16_t *>(),
                    kh * kw, group);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            PackC8(temp_buffer.force_to<__fp16 *>(), 
-                   conv_res->filter_handle.force_to<__fp16 *>(),
+            PackC8(temp_buffer.force_to<fp16_t *>(),
+                   conv_res->filter_handle.force_to<fp16_t *>(),
                    kh * kw, group);
         } else {
             LOGE("Error: DataType %d not support\n", conv_res->filter_handle.GetDataType());
@@ -109,7 +109,7 @@ Status ArmConvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         ;
 
     // lamda function to process left/right/top/bottom corner
-    auto RunCorner = [=](__fp16 *dst_z, const __fp16 *src_z, const __fp16 *weight_dz, int left, int top, int right, int bottom) {
+    auto RunCorner = [=](fp16_t *dst_z, const fp16_t *src_z, const fp16_t *weight_dz, int left, int top, int right, int bottom) {
         for (int dy = top; dy < bottom; ++dy) {
             auto *dst_y        = dst_z + dy * k_param_->ow * 8;
             int srcStartY      = dy * param->strides[1] - param->pads[2];
@@ -130,8 +130,8 @@ Status ArmConvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         }
     };
 
-    auto *src_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    auto *dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    auto *src_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    auto *dst_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         auto src_ptr = src_origin + batch_idx * k_param_->iw * k_param_->ih * k_param_->ic_r8;
@@ -141,8 +141,8 @@ Status ArmConvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
         for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
             auto *dst_z     = dst_ptr + dst_z_step * dz;
             auto *src_z     = src_ptr + src_z_step * dz;
-            auto *weight_dz = reinterpret_cast<__fp16 *>(k_param_->fil_ptr) + dz * weight_z_step;
-            auto *bias_z    = reinterpret_cast<__fp16 *>(k_param_->bias) + dz;
+            auto *weight_dz = reinterpret_cast<fp16_t *>(k_param_->fil_ptr) + dz * weight_z_step;
+            auto *bias_z    = reinterpret_cast<fp16_t *>(k_param_->bias) + dz;
 
             RunCorner(dst_z, src_z, weight_dz, 0, 0, k_param_->ow, t);
             RunCorner(dst_z, src_z, weight_dz, 0, b, k_param_->ow, k_param_->oh);
@@ -158,7 +158,7 @@ Status ArmConvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
             }
         }
     }
-    PostExec<__fp16>(outputs);
+    PostExec<fp16_t>(outputs);
 
     return TNN_OK;
 }

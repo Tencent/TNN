@@ -76,7 +76,7 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
-#if TNN_ARM82
+#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
 #define transpose_4x4(v0, v1, v2, v3, v_zero)       \
 {                                                   \
     float32x4x2_t q01 = vtrnq_f32(v0, v1);          \
@@ -94,7 +94,7 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     v2 = vcombine_f32(d01, d21);                    \
     v3 = vcombine_f32(d11, d31);                    \
 }
-int PackNeonC3(__fp16 *dst, const float *src, size_t hw, size_t channel) {
+int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
     auto src0 = src;
     auto src1 = src + hw;
     auto src2 = src + hw * 2;
@@ -249,10 +249,10 @@ template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel)
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82)
+#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
         if (channel == 3) {
-            return PackNeonC3((__fp16*)dst, (const float*)src, hw, channel);
+            return PackNeonC3((fp16_t*)dst, (const float*)src, hw, channel);
         }
     }
 #endif
@@ -625,7 +625,7 @@ int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_
     return 0;
 }
 #if TNN_ARM82
-template int ConvertWeightsFromGIOHWToGOHWI64(const __fp16 *src, __fp16 *dst, int group, int input_channel, int output_channel,
+template int ConvertWeightsFromGIOHWToGOHWI64(const fp16_t *src, fp16_t *dst, int group, int input_channel, int output_channel,
                                               int height, int width);
 #endif
 
@@ -755,7 +755,7 @@ int ConvertWeightsFromOI3HWToOHW24(const T *src, T *dst, int input_channel, int 
     return 0;
 }
 #if TNN_ARM82
-template int ConvertWeightsFromOI3HWToOHW24(const __fp16 *src, __fp16 *dst, int input_channel, int output_channel, int height, int width);
+template int ConvertWeightsFromOI3HWToOHW24(const fp16_t *src, fp16_t *dst, int input_channel, int output_channel, int height, int width);
 #endif
 
 // to   [g][o/8][i/8][h][w][i8][o8]
@@ -800,7 +800,7 @@ int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_
     return 0;
 }
 #if TNN_ARM82
-template int ConvertWeightsFromGOIHWToGOIHW64(const __fp16 *src, __fp16 *dst, int group, int input_channel, int output_channel, int height,
+template int ConvertWeightsFromGOIHWToGOIHW64(const fp16_t *src, fp16_t *dst, int group, int input_channel, int output_channel, int height,
                                      int width);
 #endif
 

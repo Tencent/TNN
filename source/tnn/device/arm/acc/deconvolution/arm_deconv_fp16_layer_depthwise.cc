@@ -80,17 +80,17 @@ Status ArmDeconvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs,
     for (; (b - 1) * stride_y - pad_y + kernel_y * dilate_y > src_height && b > t; b--) {
         // do nothing
     }
-    auto RunCorner = [=](__fp16 *dst_z, __fp16 *src_z, const __fp16 *weight_dz, int Left, int Top, int Right, int Bot) {
+    auto RunCorner = [=](fp16_t *dst_z, fp16_t *src_z, const fp16_t *weight_dz, int Left, int Top, int Right, int Bot) {
         for (int dy = Top; dy < Bot; ++dy) {
-            __fp16 *dst_y  = dst_z + dy * dst_y_step;
+            fp16_t *dst_y  = dst_z + dy * dst_y_step;
             int srcStartY  = dy * stride_y - pad_y;
-            __fp16 *src_dy = src_z + srcStartY * src_y_step;
+            fp16_t *src_dy = src_z + srcStartY * src_y_step;
             int sfy        = MAX(0, (UP_DIV(-srcStartY, dilate_y)));
             int efy        = MIN(kernel_y, UP_DIV(src_height - srcStartY, dilate_y));
             for (int dx = Left; dx < Right; ++dx) {
-                __fp16 *dst_x  = dst_y + 8 * dx;
+                fp16_t *dst_x  = dst_y + 8 * dx;
                 int srcStartX  = dx * stride_x - pad_x;
-                __fp16 *src_dx = src_dy + srcStartX * 8;
+                fp16_t *src_dx = src_dy + srcStartX * 8;
                 int sfx        = MAX(0, (UP_DIV(-srcStartX, dilate_x)));
                 int efx        = MIN(kernel_x, UP_DIV(src_width - srcStartX, dilate_x));
                 DepthwiseUnitDeconv(dst_x, src_dx + (sfx * dilate_x + sfy * dilate_y * src_width) * 8,
@@ -100,19 +100,19 @@ Status ArmDeconvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs,
         }
     };
 
-    __fp16 *src_orign = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *dst_orign = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *src_orign = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *dst_orign = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         auto src_ptr = src_orign + batch_idx * src_width * src_height * ROUND_UP(dims_input[1], 8);
         auto dst_ptr = dst_orign + batch_idx * dst_width * dst_height * ROUND_UP(dims_output[1], 8);
 
-        memset(src_ptr, 0, src_width * src_height * dst_depth_div8 * 8 * sizeof(__fp16));
+        memset(src_ptr, 0, src_width * src_height * dst_depth_div8 * 8 * sizeof(fp16_t));
 
         for (int dz = 0; dz < dst_depth_div8; dz++) {
-            __fp16 *dst_z     = dst_ptr + dst_z_step * dz;
-            __fp16 *src_z     = src_ptr + src_z_step * dz;
-            __fp16 *weight_dz = buffer_weight_.force_to<__fp16 *>() + dz * weight_z_step;
+            fp16_t *dst_z     = dst_ptr + dst_z_step * dz;
+            fp16_t *src_z     = src_ptr + src_z_step * dz;
+            fp16_t *weight_dz = buffer_weight_.force_to<fp16_t *>() + dz * weight_z_step;
 
             RunCorner(dst_z, src_z, weight_dz, 0, 0, dst_width, t);
             RunCorner(dst_z, src_z, weight_dz, 0, b, dst_width, dst_height);
@@ -121,9 +121,9 @@ Status ArmDeconvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs,
 
             if (r > l) {
                 for (int dy = t; dy < b; dy++) {
-                    __fp16 *dst_y  = dst_z + dy * dst_y_step;
+                    fp16_t *dst_y  = dst_z + dy * dst_y_step;
                     int srcStartY  = dy * stride_y - pad_y;
-                    __fp16 *src_dy = src_z + srcStartY * src_y_step;
+                    fp16_t *src_dy = src_z + srcStartY * src_y_step;
                     DepthwiseDeconv(dst_y + l * 8, src_dy + (l * stride_x - pad_x) * 8, weight_dz, r - l, stride_x * 8,
                                     kernel_x, kernel_y, dilate_x_step, dilate_y_step);
                 }
@@ -131,7 +131,7 @@ Status ArmDeconvFp16LayerDepthwise::DoForward(const std::vector<Blob *> &inputs,
         }
     }
 
-    PostExec<__fp16>(outputs);
+    PostExec<fp16_t>(outputs);
 
     return TNN_OK;
 }

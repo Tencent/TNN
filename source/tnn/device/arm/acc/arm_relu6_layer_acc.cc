@@ -16,18 +16,15 @@
 
 namespace TNN_NS {
 
-typedef struct arm_relu6_operator : arm_unary_operator{virtual Float4 operator()(const Float4 &v){
-                                        return Float4::min(Float4(6.0), Float4::max(Float4(0.0), v));
-}
+typedef struct arm_relu6_operator : arm_unary_operator{
+    virtual Float4 operator()(const Float4 &v){
+        return Float4::min(Float4(6.0), Float4::max(Float4(0.0), v));
+    }
 
 #ifdef TNN_ARM82
-virtual float16x8_t operator()(const float16x8_t &v) {
-    return (vminq_f16(vmaxq_f16(v, vdupq_n_f16(0.f)), vdupq_n_f16(6.f)));
-}
-#else
-virtual fp16_t operator()(const fp16_t &v) {
-    return (half_float::fmin(half_float::fmax(v, fp16_t(0.f)), fp16_t(6.f)));
-}
+    virtual Half8 operator()(const Half8 &v) {
+        return Half8::min(Half8(fp16_t(6.0)), Half8::max(Half8(fp16_t(0.0)), v));
+    }
 #endif
 }
 ARM_RELU6_OP;

@@ -245,7 +245,7 @@ int concat_channel_c8(Blob *output, const std::vector<Blob *> &inputs) {
     auto dims_output   = output->GetBlobDesc().dims;
     auto output_stride = dims_output[2] * dims_output[3] * ROUND_UP(dims_output[1], 8);
 
-    __fp16 *output_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *output_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int n = 0; n < dims_output[0]; n++) {
         auto *output_ptr = output_origin + n * output_stride;
@@ -253,8 +253,8 @@ int concat_channel_c8(Blob *output, const std::vector<Blob *> &inputs) {
             auto input        = inputs[b];
             auto dims_input   = input->GetBlobDesc().dims;
             auto input_stride = dims_input[2] * dims_input[3] * ROUND_UP(dims_input[1], 8);
-            auto input_ptr    = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
-            memcpy(output_ptr, input_ptr, input_stride * sizeof(__fp16));
+            auto input_ptr    = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
+            memcpy(output_ptr, input_ptr, input_stride * sizeof(fp16_t));
             output_ptr += input_stride;
         }
     }
@@ -265,13 +265,13 @@ int concat_channel_c8(Blob *output, const std::vector<Blob *> &inputs) {
 need extra buf to pack and unpack, channel not align with 8, nc8hw8 format
 */
 template <>
-int concat_channel<__fp16>(Blob *output, const std::vector<Blob *> &inputs, __fp16 *unpack_buf) {
+int concat_channel<fp16_t>(Blob *output, const std::vector<Blob *> &inputs, fp16_t *unpack_buf) {
     auto dims_output   = output->GetBlobDesc().dims;
     auto output_stride = dims_output[2] * dims_output[3] * ROUND_UP(dims_output[1], 8);
     auto output_width  = dims_output[3];
     auto output_height = dims_output[2];
 
-    __fp16 *output_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *output_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int n = 0; n < dims_output[0]; n++) {
         auto *output_ptr = output_origin + n * output_stride;
@@ -281,7 +281,7 @@ int concat_channel<__fp16>(Blob *output, const std::vector<Blob *> &inputs, __fp
             auto input      = inputs[b];
             auto dims_input = input->GetBlobDesc().dims;
             auto c_r8       = ROUND_UP(dims_input[1], 8);
-            auto input_ptr  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle())) + n * c_r8 * area;
+            auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle())) + n * c_r8 * area;
             UnpackC8(unpack_ptr, input_ptr, area, dims_input[1]);
             unpack_ptr += dims_input[1] * area;
         }
@@ -295,12 +295,12 @@ int concat_channel<__fp16>(Blob *output, const std::vector<Blob *> &inputs, __fp
 concat channel common(float & bf16), nc4hw4 format
 */
 template <>
-int concat_common<__fp16>(Blob *output, const std::vector<Blob *> &inputs, int axis) {
+int concat_common<fp16_t>(Blob *output, const std::vector<Blob *> &inputs, int axis) {
     auto output_dims             = output->GetBlobDesc().dims;
     DimsVector round_output_dims = {output_dims[0], UP_DIV(output_dims[1], 8), output_dims[2], output_dims[3], 8};
     auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis);
     auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis);
-    __fp16 *output_origin        = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *output_origin        = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int n = 0; n < slice_count; n++) {
         auto output_ptr = output_origin + n * output_stride;
@@ -309,8 +309,8 @@ int concat_common<__fp16>(Blob *output, const std::vector<Blob *> &inputs, int a
             auto input_dims             = input->GetBlobDesc().dims;
             DimsVector round_input_dims = {input_dims[0], UP_DIV(input_dims[1], 8), input_dims[2], input_dims[3], 8};
             auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis);
-            __fp16 *input_ptr           = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
-            memcpy(output_ptr, input_ptr, input_stride * sizeof(__fp16));
+            fp16_t *input_ptr           = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
+            memcpy(output_ptr, input_ptr, input_stride * sizeof(fp16_t));
             output_ptr += input_stride;
         }
     }
@@ -378,9 +378,9 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 } else {
                     auto dims_output   = outputs[0]->GetBlobDesc().dims;
                     auto output_stride = dims_output[2] * dims_output[3] * ROUND_UP(dims_output[1], 8);
-                    __fp16 *unpack_buf =
-                        static_cast<__fp16 *>(context_->GetSharedWorkSpace(output_stride * sizeof(__fp16)));
-                    concat_channel<__fp16>(outputs[0], inputs, unpack_buf);
+                    fp16_t *unpack_buf =
+                        static_cast<fp16_t *>(context_->GetSharedWorkSpace(output_stride * sizeof(fp16_t)));
+                    concat_channel<fp16_t>(outputs[0], inputs, unpack_buf);
                 }
             }
 #endif
@@ -399,7 +399,7 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             }
 #if TNN_ARM82
             else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-                concat_common<__fp16>(outputs[0], inputs, concat_param->axis);
+                concat_common<fp16_t>(outputs[0], inputs, concat_param->axis);
             }
 #endif
             else {

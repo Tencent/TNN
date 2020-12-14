@@ -14,6 +14,7 @@
 
 #include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/interpreter/raw_buffer.h"
@@ -120,16 +121,22 @@ Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
         if (!shared_channel_) {
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
-                                     Float4::load(b_data + dz * 4));
+                    Float4 input_v  = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
+                    Float4 k_data_v = Float4::load(k_data + dz * 4);
+                    Float4 b_data_v = Float4::load(b_data + dz * 4);
+                    Float4::mla(b_data_v, input_v, k_data_v);
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4, b_data_v);
                 }
             }
         } else {
+            Float4 k_data_v = Float4(k_data[0]);
+            Float4 b_data_v = Float4(b_data[0]);
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+                    Float4 input_v = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
+                    Float4 dst_v = b_data_v;
+                    Float4::mla(dst_v, input_v, k_data_v);
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4, dst_v);
                 }
             }
         }
@@ -169,19 +176,22 @@ Status ArmBatchNormLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, con
         if (!shared_channel_) {
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    float16x8_t input_v  = vld1q_f16(input_ptr + dz * src_z_step + x_i * 8);
-                    float16x8_t k_data_v = vld1q_f16(k_data + dz * 8);
-                    float16x8_t b_data_v = vld1q_f16(b_data + dz * 8);
-                    vst1q_f16(output_ptr + dz * dst_z_step + x_i * 8, vfmaq_f16(b_data_v, input_v, k_data_v));
+                    Half8 input_v  = Half8::load(input_ptr + dz * src_z_step + x_i * 8);
+                    Half8 k_data_v = Half8::load(k_data + dz * 8);
+                    Half8 b_data_v = Half8::load(b_data + dz * 8);
+                    Half8::mla(b_data_v, input_v, k_data_v);
+                    Half8::save(output_ptr + dz * dst_z_step + x_i * 8, b_data_v);
                 }
             }
         } else {
-            float16x8_t k_data_v = vdupq_n_f16(k_data[0]);
-            float16x8_t b_data_v = vdupq_n_f16(b_data[0]);
+            Half8 k_data_v = Half8(k_data[0]);
+            Half8 b_data_v = Half8(b_data[0]);
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    float16x8_t input_v = vld1q_f16(input_ptr + dz * src_z_step + x_i * 8);
-                    vst1q_f16(output_ptr + dz * dst_z_step + x_i * 8, vfmaq_f16(b_data_v, input_v, k_data_v));
+                    Half8 input_v = Half8::load(input_ptr + dz * src_z_step + x_i * 8);
+                    Half8 dst_v = b_data_v;
+                    Half8::mla(dst_v, input_v, k_data_v);
+                    Half8::save(output_ptr + dz * dst_z_step + x_i * 8, dst_v);
                 }
             }
         }

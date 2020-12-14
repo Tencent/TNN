@@ -57,14 +57,14 @@ Status ArmDeconvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> 
         if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
             size_t weight_nchw_count = group * goc * gic * kh * kw;
             RawBuffer filter_half(weight_nchw_count * data_byte_size);
-            Float2Half(filter_half.force_to<__fp16 *>(), conv_res->filter_handle.force_to<float *>(),
+            Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<__fp16 *>(), temp_buffer.force_to<__fp16 *>(), group,
+            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<__fp16 *>(),
-                                             temp_buffer.force_to<__fp16 *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<fp16_t *>(),
+                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
@@ -104,8 +104,8 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int kernel_x = conv_param->kernels[0];
     int kernel_y = conv_param->kernels[1];
 
-    const __fp16 *src_origin = reinterpret_cast<const __fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *dst_origin       = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    const fp16_t *src_origin = reinterpret_cast<const fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *dst_origin       = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     int dst_w_pad = output_width + conv_param->pads[0] + conv_param->pads[2];
     int dst_h_pad = output_height + conv_param->pads[1] + conv_param->pads[3] + 1;
@@ -115,11 +115,11 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     size_t trans_buf_size = group * (MAX(input_size_per_group, output_size_per_group));
     size_t pad_img_size   = dst_w_pad * dst_h_pad * goc_8 * 8;
 
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(
         context_->GetSharedWorkSpace((i_buf_size + o_buf_size + trans_buf_size + pad_img_size) * data_byte_size));
 
-    const __fp16 *input_fp16 = src_origin;
-    __fp16 *output_fp16      = dst_origin;
+    const fp16_t *input_fp16 = src_origin;
+    fp16_t *output_fp16      = dst_origin;
 
     auto i_buffer = work_space;
     auto o_buffer = i_buffer + i_buf_size;
@@ -159,8 +159,8 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int remain = input_width % CONVOLUTION_TILED_NUMBER;
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        const __fp16 *input_ptr;
-        __fp16 *output_ptr;
+        const fp16_t *input_ptr;
+        fp16_t *output_ptr;
 
         /*
         first unpack input tensor to nchw data format
@@ -192,7 +192,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
         for (int g = 0; g < group; g++) {
             auto input_g_ptr  = input_ptr + g * input_width * input_height * ic_step;
             auto output_g_ptr = output_ptr + g * output_width * output_height * goc_8 * 8;
-            auto weight_ptr   = buffer_weight_.force_to<__fp16 *>() + g * goc_8 * weight_z_step;
+            auto weight_ptr   = buffer_weight_.force_to<fp16_t *>() + g * goc_8 * weight_z_step;
 
             // prepare init value
             memset(p_buffer, 0, pad_img_size * data_byte_size);
@@ -209,7 +209,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
                         auto x_count = MIN(CONVOLUTION_TILED_NUMBER, k_param_->iw - x_idx);
                         auto src_x   = input_g_ptr + dy * k_param_->iw * w_step + x_idx * w_step;
                         auto dst_x   = dst_y + x_idx * conv_param->strides[0] * 8;
-                        DeconvFunc(dst_x, src_x, weight_z, x_count, dst_w_step, ic_counter, src_z_step,
+                        DeconvFunc((__fp16*)dst_x, (const __fp16*)src_x, (const __fp16*)weight_z, x_count, dst_w_step, ic_counter, src_z_step,
                                      conv_param->kernels[0], conv_param->kernels[1], dilate_x_step, dilate_y_step);
                     }
                 }
@@ -242,7 +242,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
         }
     }
 
-    PostExec<__fp16>(outputs);
+    PostExec<fp16_t>(outputs);
 
     return TNN_OK;
 }

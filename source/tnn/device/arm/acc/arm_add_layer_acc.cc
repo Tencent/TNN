@@ -103,7 +103,7 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
 
 #if TNN_ARM82
 template <>
-void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input1_ptr, DimsVector &dims0,
+void _operator_add<fp16_t>(fp16_t *output_ptr, fp16_t *input0_ptr, fp16_t *input1_ptr, DimsVector &dims0,
                                   DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
     AddOpType type = ADD_ELEMENT;
@@ -117,16 +117,15 @@ void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input
     if (type == ADD_SINGLE) {
         // broadcast single
         count_div8 *= dims[0];
-        float16x8_t _input1_vec = vdupq_n_f16(_input1[0]);
         for (int n = 0; n < count_div8; n++) {
-            vst1q_f16(output_ptr + n * 8, vaddq_f16(vld1q_f16(_input0 + n * 8), _input1_vec));
+            Half8::save(output_ptr + n * 8, Half8::load(_input0 + n * 8) + Half8(_input1[0]));
         }
     } else if (type == ADD_ELEMENT) {
         // no broadcast
         if (dims0[0] == dims1[0] && dims0[1] == dims1[1]) {
             count_div8 *= dims[0];
             for (int n = 0; n < count_div8; n++) {
-                vst1q_f16(output_ptr + n * 8, vaddq_f16(vld1q_f16(_input0 + n * 8), vld1q_f16(_input1 + n * 8)));
+                Half8::save(output_ptr + n * 8, Half8::load(_input0 + n * 8) + Half8::load(_input1 + n * 8));
             }
         } else if (dims0[1] == dims1[1]) {
             // broadcast chw
@@ -134,7 +133,8 @@ void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input
                 auto input0_batch_ = _input0 + count * batch;
                 auto output_batch_ = output_ptr + count * batch;
                 for (int n = 0; n < count_div8; n++) {
-                    vst1q_f16(output_batch_ + n * 8, vaddq_f16(vld1q_f16(input0_batch_ + n * 8), vld1q_f16(_input1 + n * 8)));
+                    Half8::save(output_batch_ + n * 8,
+                                Half8::load(input0_batch_ + n * 8) + Half8::load(_input1 + n * 8));
                 }
             }
         } else {
@@ -144,8 +144,8 @@ void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input
                 auto output_batch_ = output_ptr + count * batch;
                 for (int n = 0; n < count_div8; n++) {
                     auto hw_index = n % (dims[2] * dims[3]);
-                    vst1q_f16(output_batch_ + n * 8,
-                              vaddq_f16(vld1q_f16(input0_batch_ + n * 8), vdupq_n_f16(_input1[hw_index * 8])));
+                    Half8::save(output_batch_ + n * 8,
+                                Half8::load(input0_batch_ + n * 8) + Half8(_input1[hw_index * 8]));
                 }
             }
         }
@@ -155,8 +155,8 @@ void _operator_add<__fp16>(__fp16 *output_ptr, __fp16 *input0_ptr, __fp16 *input
         for (int n = 0; n < count_div8; n++) {
             int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 8));
             int channel_8_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 8);
-            vst1q_f16(output_ptr + n * 8,
-                      vaddq_f16(vld1q_f16(_input0 + n * 8), vld1q_f16(_input1 + channel_8_index * 8)));
+            Half8::save(output_ptr + n * 8,
+                        Half8::load(_input0 + n * 8) + Half8::load(_input1 + channel_8_index * 8));
         }
     } else {
         LOGE("Error: invalid add type\n");
@@ -230,10 +230,10 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
             }
 #if TNN_ARM82
             if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-                auto buffer_size = ROUND_UP(bias_shape_[1], 8) * bias_shape_[2] * bias_shape_[3] * sizeof(__fp16);
+                auto buffer_size = ROUND_UP(bias_shape_[1], 8) * bias_shape_[2] * bias_shape_[3] * sizeof(fp16_t);
                 RawBuffer temp(buffer_size);
                 // pack bias from nchw to nc8hw8
-                __fp16 *b_dst            = temp.force_to<__fp16 *>();
+                fp16_t *b_dst            = temp.force_to<fp16_t *>();
                 RawBuffer element_handle = layer_res->element_handle;
                 if (element_handle.GetDataType() == DATA_TYPE_HALF)
                     element_handle = ConvertHalfHandle(element_handle);
@@ -349,15 +349,15 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     }
 #if TNN_ARM82
     else if (output->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        auto output_ptr = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
-        auto input0_ptr = reinterpret_cast<__fp16 *>(input_ptrs[0]);
-        auto input1_ptr = reinterpret_cast<__fp16 *>(input_ptrs[1]);
+        auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
+        auto input0_ptr = reinterpret_cast<fp16_t *>(input_ptrs[0]);
+        auto input1_ptr = reinterpret_cast<fp16_t *>(input_ptrs[1]);
 
-        _operator_add<__fp16>(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);
+        _operator_add<fp16_t>(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);
 
         for (int i = 2; i < input_ptrs.size(); i++) {
-            auto input_ptr = reinterpret_cast<__fp16 *>(input_ptrs[i]);
-            _operator_add<__fp16>(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
+            auto input_ptr = reinterpret_cast<fp16_t *>(input_ptrs[i]);
+            _operator_add<fp16_t>(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
         }
     }
 #endif

@@ -163,7 +163,7 @@ Status ArmConvFp16LayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs,
         }
     }
 
-    PostExec<__fp16>(outputs);
+    PostExec<fp16_t>(outputs);
 
     return TNN_OK;
 }

@@ -394,9 +394,9 @@ void ArmConvLayerGroup::TransformInput(char *packed, char *unpacked, char *src,
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
         // FP16 NC8HW8
-        __fp16 *packed_data = reinterpret_cast<__fp16 *>(packed);
-        __fp16 *unpacked_data = reinterpret_cast<__fp16 *>(unpacked);
-        __fp16 *src_data = reinterpret_cast<__fp16 *>(src);
+        fp16_t *packed_data = reinterpret_cast<fp16_t *>(packed);
+        fp16_t *unpacked_data = reinterpret_cast<fp16_t *>(unpacked);
+        fp16_t *src_data = reinterpret_cast<fp16_t *>(src);
         UnpackC8(unpacked_data, src_data, dims[2] * dims[3], dims[1]);
         for (int g = 0; g < group_; g++) {
             PackC8(packed_data + g * group_step_align, 
@@ -449,9 +449,9 @@ void ArmConvLayerGroup::TransformOutput(char *packed, char *unpacked, char *dst,
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
         // FP16 NC8HW8
-        __fp16 *packed_data = reinterpret_cast<__fp16 *>(packed);
-        __fp16 *unpacked_data = reinterpret_cast<__fp16 *>(unpacked);
-        __fp16 *dst_data = reinterpret_cast<__fp16 *>(dst);
+        fp16_t *packed_data = reinterpret_cast<fp16_t *>(packed);
+        fp16_t *unpacked_data = reinterpret_cast<fp16_t *>(unpacked);
+        fp16_t *dst_data = reinterpret_cast<fp16_t *>(dst);
         for (int g = 0; g < group_; g++) {
             UnpackC8(unpacked_data + g * group_step,
                      packed_data + g * group_step_align,

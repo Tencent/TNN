@@ -115,6 +115,12 @@ if(TNN_ARM82_ENABLE)
     add_definitions(-DTNN_ARM82)
 endif()
 
+# only used to simulate arm82 computation in the unit test
+option(TNN_ARM82_SIMU "Enable arm82 simulation" OFF)
+if(TNN_ARM82_SIMU)
+    add_definitions(-DTNN_ARM82_SIMU)
+endif()
+
 if(TNN_METAL_FLOAT32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTNN_METAL_FULL_PRECISION=1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTNN_METAL_FULL_PRECISION=1")

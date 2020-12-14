@@ -125,38 +125,26 @@ Status ArmPReluLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const s
     fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     if (layer_param->channel_shared) {
-        float16x8_t v_slope = vdupq_n_f16(slope_data[0]);
+        Half8 v_slope = Half8(slope_data[0]);
+        Half8 v_zero  = Half8((fp16_t)(0.f));
         for (int n = 0; n < count; n += 8) {
-            asm volatile (
-                "ld1 {v0.8h}, [%0]\n\t"
-                "fmul v1.8h, v0.8h, %2.8h\n\t"
-                "fcmlt v2.8h, v0.8h, #0.0\n\t"
-                "bsl v2.16b, v1.16b, v0.16b\n\t"
-                "st1 {v2.8h}, [%1]\n\t"
-                :
-                :"r"(input_data + n), "r"(output_data + n), "w"(v_slope)
-                :"cc","memory","v0","v1","v2"
-            );
+            Half8 v_data = Half8::load(input_data + n);
+            Half8 v_res  = Half8::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
+            Half8::save(output_data + n, v_res);
         }
     } else {
+        Half8 v_zero = Half8((fp16_t)(0.f));
         for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
             auto input_ptr  = input_data + batch_idx * width * height * ROUND_UP(channel, 8);
             auto output_ptr = output_data + batch_idx * width * height * ROUND_UP(channel, 8);
             for (int dz = 0; dz < UP_DIV(channel, 8); ++dz) {
                 auto *src_z         = input_ptr + dz * width * height * 8;
                 auto *dst_z         = output_ptr + dz * width * height * 8;
-                float16x8_t v_slope = vld1q_f16(slope_data + dz * 8);
+                Half8 v_slope = Half8::load(slope_data + dz * 8);
                 for (int p = 0; p < width * height; p++) {
-                    asm volatile (
-                        "ld1 {v0.8h}, [%0]\n\t"
-                        "fmul v1.8h, v0.8h, %2.8h\n\t"
-                        "fcmlt v2.8h, v0.8h, #0.0\n\t"
-                        "bsl v2.16b, v1.16b, v0.16b\n\t"
-                        "st1 {v2.8h}, [%1]\n\t"
-                        :
-                        :"r"(src_z + p * 8), "r"(dst_z + p * 8), "w"(v_slope)
-                        :"cc","memory","v0","v1","v2"
-                    );
+                    Half8 v_data = Half8::load(src_z + p * 8);
+                    Half8 v_res  = Half8::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
+                    Half8::save(dst_z + p * 8, v_res);
                 }
             }
         }

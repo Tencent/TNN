@@ -473,14 +473,14 @@ Status ArmConvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
         if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
             size_t weight_nchw_count = group * oc * ic * kh * kw;
             RawBuffer filter_half(weight_nchw_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-            Float2Half(filter_half.force_to<__fp16 *>(), conv_res->filter_handle.force_to<float *>(),
+            Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<__fp16 *>(), temp_buffer.force_to<__fp16 *>(), group,
+            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<__fp16 *>(),
-                                             temp_buffer.force_to<__fp16 *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<fp16_t *>(),
+                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
@@ -505,11 +505,11 @@ Status ArmConvFp16LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
         if (conv_param->bias) {
             if (conv_res->bias_handle.GetDataType() == DATA_TYPE_FLOAT) {
                 RawBuffer bias_nchw(dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-                Float2Half(bias_nchw.force_to<__fp16 *>(), conv_res->bias_handle.force_to<float *>(), dims_output[1]);
-                memcpy(temp_buffer.force_to<__fp16 *>(), bias_nchw.force_to<__fp16 *>(),
+                Float2Half(bias_nchw.force_to<fp16_t *>(), conv_res->bias_handle.force_to<float *>(), dims_output[1]);
+                memcpy(temp_buffer.force_to<fp16_t *>(), bias_nchw.force_to<fp16_t *>(),
                        dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             } else if (conv_res->bias_handle.GetDataType() == DATA_TYPE_HALF) {
-                memcpy(temp_buffer.force_to<__fp16 *>(), conv_res->bias_handle.force_to<__fp16 *>(),
+                memcpy(temp_buffer.force_to<fp16_t *>(), conv_res->bias_handle.force_to<fp16_t *>(),
                        dims_output[1] * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             } else {
                 LOGE("BIAS DATATYPE NOT SUPPORTED NOW\n");
@@ -568,30 +568,30 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     tile_blk_size = tile_blk;
 
     if (conv_param->activation_type == ActivationType_ReLU) {
-        post_func_ = PostAddBiasRelu<__fp16, __fp16>;
+        post_func_ = PostAddBiasRelu<fp16_t, fp16_t>;
     } else if (conv_param->activation_type == ActivationType_ReLU6) {
-        post_func_ = PostAddBiasRelu6<__fp16, __fp16>;
+        post_func_ = PostAddBiasRelu6<fp16_t, fp16_t>;
     } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
         post_func_ = context_->GetPrecision() == PRECISION_NORMAL ? PostAddBiasSwish<fp16_t, fp16_t, false>
                                                                   : PostAddBiasSwish<fp16_t, fp16_t, true>;
     } else {
-        post_func_ = PostAddBias<__fp16, __fp16>;
+        post_func_ = PostAddBias<fp16_t, fp16_t>;
     }
 
     return TNN_OK;
 }
 
 template <>
-void ArmConvFp16LayerCommon::PostExec<__fp16>(const std::vector<Blob *> &outputs) {
+void ArmConvFp16LayerCommon::PostExec<fp16_t>(const std::vector<Blob *> &outputs) {
     const int batch = outputs[0]->GetBlobDesc().dims[0];
-    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    auto dst_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     if (post_func_) {
         OMP_PARALLEL_FOR_
         for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
             auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r8;
             for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
                 auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
-                __fp16 *bias_z = reinterpret_cast<__fp16 *>(k_param_->bias) + dz;
+                fp16_t *bias_z = reinterpret_cast<fp16_t *>(k_param_->bias) + dz;
                 post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
             }
         }
@@ -600,7 +600,7 @@ void ArmConvFp16LayerCommon::PostExec<__fp16>(const std::vector<Blob *> &outputs
 
 void ArmConvFp16LayerCommon::PostExecNoBias(const std::vector<Blob *> &outputs) {
     const int batch = outputs[0]->GetBlobDesc().dims[0];
-    auto dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    auto dst_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     if (post_func_) {
         OMP_PARALLEL_FOR_
         for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {

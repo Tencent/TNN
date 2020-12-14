@@ -362,7 +362,7 @@ Status ArmConvFp16Layer3x3::allocateBufferWeight(const std::vector<Blob *> &inpu
 
         const size_t weight_nchw_count = oc * ic * kh * kw;
         RawBuffer filter_half(weight_nchw_count * data_byte_size);
-        Float2Half(filter_half.force_to<__fp16 *>(), src, weight_nchw_count);
+        Float2Half(filter_half.force_to<fp16_t *>(), src, weight_nchw_count);
 
         switch (dst_unit_) {
             case 2:
@@ -614,7 +614,7 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
         }
     }
 
-    PostExec<__fp16>(outputs);
+    PostExec<fp16_t>(outputs);
 
     return TNN_OK;
 }

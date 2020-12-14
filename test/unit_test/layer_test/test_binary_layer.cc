@@ -30,11 +30,7 @@ bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceTyp
         return true;
     }
 
-#if TNN_ARM82
-    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
-        return true;
-    }
-#else
+#ifndef TNN_ARM82
     if (data_type == DATA_TYPE_HALF) {
         return true;
     }

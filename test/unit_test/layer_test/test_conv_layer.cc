@@ -69,7 +69,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-#if TNN_ARM82
+#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
     if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
         GTEST_SKIP();
     }

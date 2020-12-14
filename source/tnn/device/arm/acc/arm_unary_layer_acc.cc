@@ -63,6 +63,7 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
     return TNN_OK;
 }
 
+#if TNN_ARM82
 template <>
 Status ArmUnaryLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input  = inputs[0];
@@ -76,32 +77,26 @@ Status ArmUnaryLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const s
     auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
     auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
-#ifdef TNN_ARM82
     OMP_PARALLEL_FOR_
     for (int n = 0; n < count_div8; n++) {
-        float16x8_t val = vld1q_f16(input_ptr + n * 8);
-        vst1q_f16(output_ptr + n * 8, (*op_)(val));
+        Half8::save(output_ptr + n * 8, (*op_)(Half8::load(input_ptr + n * 8)));
     }
-#else
-    OMP_PARALLEL_FOR_
-    for (int n = 0; n < count_div8; n++) {
-        for (int c = 0; c < 8; c++) {
-            output_ptr[n*8 + c] = (*op_)(input_ptr[n*8 + c]);
-        }
-    }
-#endif
 
     return TNN_OK;
 }
+#endif
 
 Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         return Exec<float>(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
-    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+    }
+#if TNN_ARM82
+    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         return Exec<fp16_t>(inputs, outputs);
     }
+#endif
     return TNNERR_LAYER_ERR;
 }
 

@@ -24,13 +24,8 @@ typedef struct arm_sigmoid_operator : arm_unary_operator {
         return Float4::fast_sigmoid(v);
     }
 #ifdef TNN_ARM82
-    virtual float16x8_t operator()(const float16x8_t &v) {
-        Float4 v_low  = vcvt_f32_f16(vget_low_f16(v));
-        Float4 v_high = vcvt_f32_f16(vget_high_f16(v));
-        v_low  = Float4::sigmoid(v_low);
-        v_high = Float4::sigmoid(v_high);
-        float16x8_t ans = vcombine_f16(vcvt_f16_f32(v_low.value), vcvt_f16_f32(v_high.value));
-        return ans;
+    virtual Half8 operator()(const Half8 &v) {
+        return Half8::sigmoid(v);
     }
 #endif
 } ARM_SIGMOID_OP;

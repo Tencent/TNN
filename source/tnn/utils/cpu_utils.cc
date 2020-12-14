@@ -326,7 +326,7 @@ Status CpuUtils::SetCpuAffinity(const std::vector<int>& cpu_list) {
 bool CpuUtils::CpuSupportFp16() {
     bool fp16arith = false;
 
-#ifdef __aarch64__
+#if defined(__aarch64__) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
 
 #if defined(__ANDROID__) || defined(__linux__)
     unsigned int hwcap = getauxval(AT_HWCAP);
@@ -342,6 +342,10 @@ bool CpuUtils::CpuSupportFp16() {
                 cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER;
 #endif  // __IOS__
+
+#elif defined(__aarch64__) && defined(TNN_ARM82) && defined(TNN_ARM82_SIMU)
+
+    fp16arith = true;
 
 #endif  // __aarch64__
 
