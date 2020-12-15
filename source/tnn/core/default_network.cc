@@ -368,7 +368,7 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
 }
 
 Status DefaultNetwork::DeInit() {
-    for (int i = 0; i < layers_.size(); i++) {
+    for (size_t i = 0; i < layers_.size(); i++) {
         if (layers_[i] != NULL) {
             delete layers_[i];
         }
