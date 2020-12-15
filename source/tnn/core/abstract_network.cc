@@ -29,6 +29,16 @@ Status AbstractNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareCommandQueue");
 }
 
+Status AbstractNetwork::SetCommandBufferCommitDepth(int depth) {
+    LOGE("Subclass of AbstractNetwork must implement this func SetCommandBufferCommitDepth\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func SetCommandBufferCommitDepth");
+}
+
+Status AbstractNetwork::GetCommandBufferCommitDepth(int *depth) {
+    LOGE("Subclass of AbstractNetwork must implement this func GetCommandBufferCommitDepth\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func GetCommandBufferCommitDepth");
+}
+
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
     return TNN_OK;
 }

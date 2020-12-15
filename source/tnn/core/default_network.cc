@@ -48,6 +48,20 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
         return Status(TNNERR_CONTEXT_ERR, "context is nil");
 }
 
+Status DefaultNetwork::SetCommandBufferCommitDepth(int depth) {
+    if (!context_) {
+        return Status(TNNERR_CONTEXT_ERR, "context is nil");
+    }
+    return context_->SetCommandBufferCommitDepth(depth);
+}
+
+Status DefaultNetwork::GetCommandBufferCommitDepth(int *depth) {
+    if (!context_) {
+        return Status(TNNERR_CONTEXT_ERR, "context is nil");
+    }
+    return context_->GetCommandBufferCommitDepth(depth);
+}
+
 /*
  * The Network holds blob, blobmanager, layers etc.
  * Those object is initialized in this function.

@@ -89,6 +89,12 @@ public:
     // @brief get all output blobs
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
+    // @brief set tnn command buffer commit depth (frequency).
+    virtual Status SetCommandBufferCommitDepth(int depth);
+
+    // @brief get tnn command buffer commit depth (frequency).
+    virtual Status GetCommandBufferCommitDepth(int *depth);
+
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
 

@@ -64,6 +64,11 @@ public:
     // @brief share tnn command queue to another context
     Status ShareCommandQueue(Context* context);
 
+    // @brief set tnn command buffer commit depth (frequency).
+    Status SetCommandBufferCommitDepth(int depth);
+    // @brief get tnn command buffer commit depth (frequency).
+    Status GetCommandBufferCommitDepth(int *depth);
+
     virtual Status LoadLibrary(std::vector<std::string> path);
     virtual Status OnInstanceForwardBegin();
     virtual Status OnInstanceForwardEnd();
@@ -88,6 +93,7 @@ private:
 @property(strong, nonatomic, readonly) id<MTLLibrary> library;
 @property(strong, nonatomic) TNNMetalCommandQueueImpl *commandQueue;
 @property(strong, nonatomic) id<MTLCommandBuffer> commandBuffer;
+@property(assign, nonatomic) NSUInteger commandBufferCommitDepth;
 
 /**
  * @brief load metal library

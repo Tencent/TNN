@@ -45,6 +45,16 @@ Precision Context::GetPrecision() {
     return precision_;
 }
 
+Status Context::SetCommandBufferCommitDepth(int depth) {
+    LOGE("Subclass of Context must implement this func SetCommandBufferCommitDepth\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of Context must implement this func");
+}
+
+Status Context::GetCommandBufferCommitDepth(int *depth) {
+    LOGE("Subclass of Context must implement this func GetCommandBufferCommitDepth\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of Context must implement this func");
+}
+
 #if TNN_PROFILE
 void Context::StartProfile() {
     profile_layer     = true;

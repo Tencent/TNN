@@ -89,6 +89,12 @@ public:
     // get all output blobs
     Status GetAllOutputBlobs(BlobMap& blobs);
 
+    // @brief set tnn command buffer commit depth (frequency).
+    Status SetCommandBufferCommitDepth(int depth);
+
+    // @brief get tnn command buffer commit depth (frequency).
+    Status GetCommandBufferCommitDepth(int *depth);
+
     // set threads run on cpu
     virtual Status SetCpuNumThreads(int num_threads);
 #if TNN_PROFILE

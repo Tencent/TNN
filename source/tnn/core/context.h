@@ -55,6 +55,12 @@ public:
     // @brief set precision to run on device
     virtual Status SetPrecision(Precision precision);
 
+    // @brief set tnn command buffer commit depth (frequency).
+    virtual Status SetCommandBufferCommitDepth(int depth);
+
+    // @brief get tnn command buffer commit depth (frequency).
+    virtual Status GetCommandBufferCommitDepth(int *depth);
+
     // @brief get precision to run on device
     virtual Precision GetPrecision();
 

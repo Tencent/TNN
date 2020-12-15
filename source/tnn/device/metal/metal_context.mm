@@ -21,7 +21,7 @@
 #define kMetalCommandBufferDepth 1
 #else
 //for balance of cpu uage and perfermence, suggest 32 or 64
-#define kMetalCommandBufferDepth 32000
+#define kMetalCommandBufferDepth 32
 #endif
 
 static NSUInteger smallest_log2(NSUInteger integer) {
@@ -66,6 +66,24 @@ Status MetalContext::ShareCommandQueue(Context* context) {
     
     metal_context_impl_ = context_target->getMetalContextImpl();
     
+    return TNN_OK;
+}
+
+Status MetalContext::SetCommandBufferCommitDepth(int depth) {
+    if (!metal_context_impl_) {
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "metal context is nil");
+    }
+    metal_context_impl_.commandBufferCommitDepth = depth > 0 ? depth : kMetalCommandBufferDepth;
+    return TNN_OK;
+}
+
+Status MetalContext::GetCommandBufferCommitDepth(int *depth) {
+    if (!metal_context_impl_) {
+        return Status(TNNERR_DEVICE_LIBRARY_LOAD, "metal context is nil");
+    }
+    if (depth) {
+        *depth = (int)metal_context_impl_.commandBufferCommitDepth;
+    }
     return TNN_OK;
 }
 
@@ -125,6 +143,7 @@ Status MetalContext::Synchronize() {
             _pipeLineCaches                = [[NSMutableDictionary alloc] init];
             _waitingCommandBufferes        = [[NSMutableArray alloc] init];
             _commitCount                   = 0;
+            _commandBufferCommitDepth      = kMetalCommandBufferDepth;
         } else {
             LOGE("Error: only support iOS 9.0+\n");
             self = nil;
@@ -344,7 +363,7 @@ Status MetalContext::Synchronize() {
 
 - (void)commit:(BOOL)force_commit {
     _commitCount++;
-    if (!force_commit && _commitCount % kMetalCommandBufferDepth != 0) {
+    if (!force_commit && _commitCount % _commandBufferCommitDepth != 0) {
         return;
     }
     _commitCount = (!force_commit) ? _commitCount : 0;

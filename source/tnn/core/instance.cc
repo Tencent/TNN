@@ -114,6 +114,14 @@ Status Instance::GetAllOutputBlobs(BlobMap &blobs) {
     return network_->GetAllOutputBlobs(blobs);
 }
 
+Status Instance::SetCommandBufferCommitDepth(int depth) {
+    return network_->SetCommandBufferCommitDepth(depth);
+}
+
+Status Instance::GetCommandBufferCommitDepth(int *depth) {
+    return network_->GetCommandBufferCommitDepth(depth);
+}
+
 Status Instance::SetCpuNumThreads(int num_threads) {
     return network_->SetCpuNumThreads(num_threads);
 }
