@@ -30,6 +30,9 @@
 
 namespace TNN_NS {
 
+//reserved for uncompatible
+const std::string CACHE_VERSION = "cache_v1_";
+
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
     NETWORK_TYPE_DEFAULT);
 
@@ -81,7 +84,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     if(!net_config.cache_path.empty()) {
-        context_->SetCacheFilePath(net_config.cache_path + md5(model_config.params[0]));
+        context_->SetCacheFilePath(net_config.cache_path + CACHE_VERSION + md5(model_config.params[0]));
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
