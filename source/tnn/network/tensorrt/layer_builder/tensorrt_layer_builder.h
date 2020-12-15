@@ -44,7 +44,7 @@ template <typename T>
 class TensorRTTypeLayerBuilderRegister {
 public:
     explicit TensorRTTypeLayerBuilderRegister(LayerType type) {
-        GetTensorRTLayerBuilderCreatorMap()[type] = shared_ptr<T>(new T(type));
+        GetTRTLayerBuilderCreatorMap()[type] = shared_ptr<T>(new T(type));
     }
 };
 
