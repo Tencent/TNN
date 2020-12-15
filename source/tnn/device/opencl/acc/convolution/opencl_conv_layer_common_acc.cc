@@ -169,7 +169,7 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
 
     if (ocl_context_->GetEnableTuneKernel()) {
-            execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_->TuneCommandQueue());
+            execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
 
     return TNN_OK;

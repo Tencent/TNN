@@ -127,7 +127,7 @@ std::vector<uint32_t> LocalWS2DDefault(OpenCLExecuteUnit &unit);
 std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
                                        const uint32_t subgroup_size = 0);
 
-std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, cl::CommandQueue *command_queue);
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key);
 
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,
                          const cl::Image &image, int w, int h, bool need_wait = false);

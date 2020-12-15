@@ -184,7 +184,7 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
             execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);
 
     if (ocl_context_->GetEnableTuneKernel()) {
-        execute_units_[1].local_work_size = LocalTune(execute_units_[1], ocl_context_->TuneCommandQueue());
+        execute_units_[1].local_work_size = LocalTune(execute_units_[1], ocl_context_, GenerateTuneKernelKey(execute_units_[1]));
     }
 
     return TNN_OK;

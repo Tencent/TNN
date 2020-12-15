@@ -62,6 +62,14 @@ bool Context::GetEnableTuneKernel() {
     return enable_tune_kernel_;
 }
 
+void Context::SetCacheFilePath(std::string cache_file_path) {
+    cache_file_path_ = cache_file_path;
+}
+
+std::string Context::GetCacheFilePath() {
+    return cache_file_path_;
+}
+
 #if TNN_PROFILE
 void Context::StartProfile() {
     profile_layer     = true;

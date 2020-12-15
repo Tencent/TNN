@@ -60,6 +60,7 @@ protected:
 
     std::vector<uint32_t> Conv2dCommonLocalWS3DKernel3x3(std::vector<uint32_t> &gws, const uint32_t kernel_size,
                                                 const uint32_t max_workgroup_size);
+    std::string GenerateTuneKernelKey(OpenCLExecuteUnit &unit);
 
 private:
     Status ConvertWeights(float *weights_data_ptr);

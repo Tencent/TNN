@@ -86,6 +86,10 @@ public:
     // @brief add flush_count_ and return val
     unsigned int AddAndGetFlushCount();
 
+    std::map<std::string, std::vector<uint32_t>>& GetLocalSizeTuneMap();
+
+    Status StoreLocalSizeTuneMap();
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile() override;
@@ -105,6 +109,10 @@ private:
     unsigned int flush_count_ = 0;
     cl_command_queue_properties properties_ = 0;
 
+    bool ReadStatusCheck(std::ifstream& is);
+
+    std::map<std::string, std::vector<uint32_t>> local_size_tune_map_;
+    uint32_t tune_map_size_;
 };
 
 }  // namespace TNN_NS

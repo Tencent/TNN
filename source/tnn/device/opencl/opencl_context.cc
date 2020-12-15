@@ -17,6 +17,8 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/utils/string_format.h"
 
+#include <fstream>
+
 #include "sys/time.h"
 
 namespace TNN_NS {
@@ -170,13 +172,67 @@ Status OpenCLContext::OnInstanceReshapeBegin() {
             LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
             return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
         }
+
+        //read tune map
+        if(!cache_file_path_.empty() && local_size_tune_map_.empty()) {
+            std::ifstream cache_stream(cache_file_path_);
+            std::string key;
+            uint32_t cache_map_size;
+            uint32_t local_size_length;
+            uint32_t local_value;
+            bool tune_file_error = false;
+            if (cache_stream.is_open() && cache_stream.good()) {
+                cache_stream >> cache_map_size;
+                if(cache_stream.good()) {
+                    for (int i = 0; i < cache_map_size; ++i) {
+                        std::vector<uint32_t> local_size;
+                        cache_stream >> key >> local_size_length;
+                        for (int i = 0; i < local_size_length; ++i) {
+                            cache_stream >> local_value;
+                            local_size.push_back(local_value);
+                        }
+                        if(cache_stream.good()) {
+                            local_size_tune_map_.insert(make_pair(key, local_size));
+                        } else {
+                            local_size_tune_map_.clear();
+                            break;
+                        }
+                    }
+                }
+                cache_stream.close();
+            }
+        }
+
+        tune_map_size_ = local_size_tune_map_.size();
     }
     return TNN_OK;
 }
 
 // this function is called after Reshape by Network.
 Status OpenCLContext::OnInstanceReshapeEnd() {
-    tune_command_queue_ = nullptr;
+    if (enable_tune_kernel_) {
+        tune_command_queue_ = nullptr;
+        if (!cache_file_path_.empty() && local_size_tune_map_.size() > tune_map_size_) {
+            tune_map_size_ = local_size_tune_map_.size();
+            std::ofstream cache_stream(cache_file_path_);
+            if (cache_stream.is_open()) {
+                cache_stream << local_size_tune_map_.size() << std::endl;
+                for (auto element : local_size_tune_map_) {
+                    std::string key                  = element.first;
+                    std::vector<uint32_t> local_size = element.second;
+                    cache_stream << key << " " << local_size.size();
+                    for (int i = 0; i < local_size.size(); ++i) {
+                        cache_stream << " " << local_size[i];
+                    }
+                    cache_stream << std::endl;
+                    if(!cache_stream.good()) {
+                        break;
+                    }
+                }
+                cache_stream.close();
+            }
+        }
+    }
     return TNN_OK;
 }
 
@@ -234,5 +290,10 @@ Status OpenCLContext::Init() {
 std::shared_ptr<cl::CommandQueue> OpenCLContext::GetCommandQueue() {
     return command_queue_; 
 }
+
+std::map<std::string, std::vector<uint32_t>>& OpenCLContext::GetLocalSizeTuneMap() {
+    return local_size_tune_map_;
+}
+
 
 }  // namespace TNN_NS

@@ -20,6 +20,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
 #include "tnn/utils/half_utils.h"
+#include "tnn/utils/string_utils.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
 #include <sys/system_properties.h>
@@ -305,69 +306,75 @@ std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const u
     return lws;
 }
 
-std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, cl::CommandQueue *command_queue) {
-    std::vector<uint32_t> &gws = unit.global_work_size;
-    uint32_t workgroupsize_max = unit.workgroupsize_max;
-    cl::Kernel& kernel = unit.ocl_kernel;
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key) {
+    std::map<std::string, std::vector<uint32_t>> &tune_map = context->GetLocalSizeTuneMap();
+    if (tune_map.count(tune_key) > 0) {
+        std::vector<uint32_t> lws = tune_map[tune_key];
+        return lws;
+    } else {
+        cl::CommandQueue *tune_command_queue = context->TuneCommandQueue();
+        std::vector<uint32_t> &gws           = unit.global_work_size;
+        uint32_t workgroupsize_max           = unit.workgroupsize_max;
+        cl::Kernel &kernel                   = unit.ocl_kernel;
 
-    std::vector<uint32_t> opt_lws = unit.local_work_size;
-    std::vector<uint32_t> lws(gws.size(), 1);
+        std::vector<uint32_t> opt_lws = unit.local_work_size;
+        std::vector<uint32_t> lws(gws.size(), 1);
 
-    double kernel_min_time;
-    OpenCLProfilingData data;
-    RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "tune", &data);
-    GetKernelTime(&data.event, kernel_min_time);
+        double kernel_min_time;
+        OpenCLProfilingData data;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_min_time);
 
-    if (gws.size() == 2) {
-        for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
-            for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
-                if (lws[0] * lws[1] <= workgroupsize_max) {
-                    double kernel_time;
-                    RunKernel(unit.ocl_kernel, unit.global_work_size, lws, command_queue, "tune", &data);
-                    GetKernelTime(&data.event, kernel_time);
-                    if (kernel_time < kernel_min_time) {
-                        kernel_min_time = kernel_time;
-                        opt_lws.resize(2);
-                        opt_lws[0]      = lws[0];
-                        opt_lws[1]      = lws[1];
-                    }
-                }
-            }
-        }
-    } else if (gws.size() == 3) {
-        for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
-            for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
-                for (lws[2] = 1; lws[2] < gws[2] * 2; lws[2] *= 2) {
-                    if (lws[0] * lws[1] * lws[2] <= workgroupsize_max) {
+        if (gws.size() == 2) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    if (lws[0] * lws[1] <= workgroupsize_max) {
                         double kernel_time;
-                        RunKernel(unit.ocl_kernel, unit.global_work_size, lws, command_queue, "tune",
-                                  &data);
+                        RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
                         GetKernelTime(&data.event, kernel_time);
                         if (kernel_time < kernel_min_time) {
                             kernel_min_time = kernel_time;
-                            opt_lws.resize(3);
-                            opt_lws[0]      = lws[0];
-                            opt_lws[1]      = lws[1];
-                            opt_lws[2]      = lws[2];
+                            opt_lws.resize(2);
+                            opt_lws[0] = lws[0];
+                            opt_lws[1] = lws[1];
+                        }
+                    }
+                }
+            }
+        } else if (gws.size() == 3) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    for (lws[2] = 1; lws[2] < gws[2] * 2; lws[2] *= 2) {
+                        if (lws[0] * lws[1] * lws[2] <= workgroupsize_max) {
+                            double kernel_time;
+                            RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
+                            GetKernelTime(&data.event, kernel_time);
+                            if (kernel_time < kernel_min_time) {
+                                kernel_min_time = kernel_time;
+                                opt_lws.resize(3);
+                                opt_lws[0] = lws[0];
+                                opt_lws[1] = lws[1];
+                                opt_lws[2] = lws[2];
+                            }
                         }
                     }
                 }
             }
         }
+
+        // double check
+        double kernel_time;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_time);
+
+        if (kernel_time < kernel_min_time) {
+            tune_map.insert(make_pair(tune_key, unit.local_work_size));
+            return unit.local_work_size;
+        } else {
+            tune_map.insert(make_pair(tune_key, opt_lws));
+            return opt_lws;
+        }
     }
-
-    //double check
-    double kernel_time;
-    RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, command_queue, "tune", &data);
-    GetKernelTime(&data.event, kernel_time);
-
-    if(kernel_time < kernel_min_time) {
-        return unit.local_work_size;
-    } else {
-        return opt_lws;
-    }
-
-    return opt_lws;
 }
 
 
@@ -505,6 +512,9 @@ uint32_t gcd(uint32_t number1, uint32_t number2) {
 Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_name, const std::string &kernel_name,
                          const std::set<std::string> &build_opt) {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+
+    unit.program_name = program_name;
+    unit.kernel_name = kernel_name;
 
     Status ret = opencl_runtime->BuildKernel(unit.ocl_kernel, program_name, kernel_name, build_opt);
     if (ret != TNN_OK) {

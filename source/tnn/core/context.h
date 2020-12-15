@@ -66,6 +66,10 @@ public:
 
     bool GetEnableTuneKernel();
 
+    void SetCacheFilePath(std::string cache_file_path);
+
+    std::string GetCacheFilePath();
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -81,6 +85,7 @@ protected:
 protected:
     Precision precision_ = PRECISION_AUTO;
     bool enable_tune_kernel_ = true;
+    std::string cache_file_path_ = "";
 };
 
 }  // namespace TNN_NS

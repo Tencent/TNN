@@ -15,6 +15,7 @@
 #include "tnn/device/opencl/acc/deconvolution/opencl_deconv_layer_common_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -156,7 +157,7 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
 
     if (ocl_context_->GetEnableTuneKernel()) {
-        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_->TuneCommandQueue());
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
 
     return TNN_OK;
@@ -261,5 +262,16 @@ double OpenCLDeconvLayerAccImpl::GetFlops() {
            deconv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif
+
+std::string OpenCLDeconvLayerAccImpl::GenerateTuneKernelKey(OpenCLExecuteUnit &unit) {
+    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param_" + ToString(deconv_params_.kernel_x) + "_" + ToString(deconv_params_.kernel_y) + "_" 
+    + ToString(deconv_params_.pad_x) + "_" + ToString(deconv_params_.pad_y ) + "_" + ToString(deconv_params_.stride_x) + "_" 
+    + ToString(deconv_params_.stride_y ) + "_" + ToString(deconv_params_.dilation_x) + "_"+ ToString(deconv_params_.dilation_y) + "_"
+    + ToString(deconv_params_.pad_type) + "_" + ToString(deconv_params_.group) + "_global";
+    for(auto size : unit.global_work_size) {
+        tune_key += "_" + ToString(size);
+    }
+    return tune_key;
+} 
 
 }  // namespace TNN_NS

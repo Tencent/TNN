@@ -304,6 +304,7 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         config.enable_tune_kernel = FLAGS_et;
+        config.cache_path = "/data/local/tmp/";
 
         // Device Type: ARM, OPENECL, ...
         config.device_type = ConvertDeviceType(FLAGS_dt);
@@ -314,9 +315,6 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
-        //add for cache; When using Huawei NPU, 
-	//it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
-        config.cache_path = "";
         return config;
     }
 

@@ -26,6 +26,7 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
@@ -79,6 +80,9 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+    if(!net_config.cache_path.empty()) {
+        context_->SetCacheFilePath(net_config.cache_path + md5(model_config.params[0]));
+    }
 
     ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {

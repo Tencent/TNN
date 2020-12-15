@@ -15,6 +15,7 @@
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -309,5 +310,17 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DGeneral(std::
          lws[1], lws[2]);
     return lws;
 }
+
+std::string OpenCLConvLayerAccImpl::GenerateTuneKernelKey(OpenCLExecuteUnit &unit) {
+    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param_" + ToString(conv_params_.kernel_x) + "_" + ToString(conv_params_.kernel_y) + "_" 
+    + ToString(conv_params_.pad_x) + "_" + ToString(conv_params_.pad_y ) + "_" + ToString(conv_params_.stride_x) + "_" 
+    + ToString(conv_params_.stride_y ) + "_" + ToString(conv_params_.dilation_x) + "_"+ ToString(conv_params_.dilation_y) + "_"
+    + ToString(conv_params_.pad_type) + "_" + ToString(conv_params_.group) + "_global";
+    for(auto size : unit.global_work_size) {
+        tune_key += "_" + ToString(size);
+    }
+    return tune_key;
+} 
+
 
 }  // namespace TNN_NS
