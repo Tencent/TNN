@@ -23,6 +23,8 @@
 
 namespace TNN_NS {
 
+std::mutex OpenCLContext::s_mutex_;
+
 OpenCLContext::OpenCLContext() : Context() {
     // Get OpenCL Runtime
     opencl_runtime_ = OpenCLRuntime::GetInstance();
@@ -175,6 +177,7 @@ Status OpenCLContext::OnInstanceReshapeBegin() {
 
         //read tune map
         if(!cache_file_path_.empty() && local_size_tune_map_.empty()) {
+            std::lock_guard<std::mutex> lock(s_mutex_);
             std::ifstream cache_stream(cache_file_path_);
             std::string key;
             uint32_t cache_map_size;
@@ -213,6 +216,7 @@ Status OpenCLContext::OnInstanceReshapeEnd() {
     if (enable_tune_kernel_) {
         tune_command_queue_ = nullptr;
         if (!cache_file_path_.empty() && local_size_tune_map_.size() > tune_map_size_) {
+            std::lock_guard<std::mutex> lock(s_mutex_);
             tune_map_size_ = local_size_tune_map_.size();
             std::ofstream cache_stream(cache_file_path_);
             if (cache_stream.is_open()) {

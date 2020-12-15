@@ -16,6 +16,8 @@
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_CONTEXT_H_
 
 #include <memory>
+#include <thread>
+#include <mutex>
 
 #include "tnn/core/context.h"
 #include "tnn/core/profile.h"
@@ -113,6 +115,9 @@ private:
 
     std::map<std::string, std::vector<uint32_t>> local_size_tune_map_;
     uint32_t tune_map_size_;
+
+    static std::mutex s_mutex_;
+
 };
 
 }  // namespace TNN_NS
