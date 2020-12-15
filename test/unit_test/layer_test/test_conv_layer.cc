@@ -78,10 +78,10 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 #endif
-
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, dtype);
-    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
+    bool is_depthwise = (group == channel);
+    if (!is_depthwise && ((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
 
     if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();

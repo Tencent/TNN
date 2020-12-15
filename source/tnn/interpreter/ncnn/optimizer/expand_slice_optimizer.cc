@@ -56,7 +56,7 @@ namespace ncnn {
         std::vector<int> zeros = {0, 0, 0, 0};
 
         int begin_acc = 0;
-        for (int i = 0; i < layer->outputs.size(); i++) {
+        for (size_t i = 0; i < layer->outputs.size(); i++) {
             auto out_name = layer->outputs[i];
 
             LayerInfo *new_layer = new LayerInfo();
