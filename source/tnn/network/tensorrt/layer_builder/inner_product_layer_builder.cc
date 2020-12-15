@@ -41,8 +41,9 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         dims.push_back(input_blobs_[0]->GetBlobDesc().dims[1]);
         dims.push_back(1);
         dims.push_back(1);
-        weight_layer = AddInt8WeightQDQLayers(&(resource->scale_handle), paramlist->has_bias ? &(resource->bias_handle) : nullptr,
-            output_scale_value / (weight_scale_value / input_scale_value), dims);
+        weight_layer = AddInt8WeightQDQLayers(network, &(resource->scale_handle), kernelWeights,
+            paramlist->has_bias ? &(resource->bias_handle) : nullptr,
+            biasWeights, output_scale_value / (weight_scale_value / input_scale_value), dims);
 
         if (!std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->IsQuantized()) {
             Weights input_quant_shift;
@@ -110,7 +111,8 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         }
     }
 
-    IFullyConnectedLayer* layer = network->addFullyConnected(*input_tensor, paramlist->num_output, kernelWeights, biasWeights);
+    IFullyConnectedLayer* layer = network->addFullyConnected(*input_tensor, paramlist->num_output,
+        kernelWeights, biasWeights);
     if (int8) {
         layer->setInput(1, *(weight_layer->getOutput(0)));
         layer->setPrecision(nvinfer1::DataType::kINT8);
@@ -123,7 +125,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (int8) {
         float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
             output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(layer->getOutput(0), 1, 1 / output_dequant_scale);
+        return AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, 1, 1 / output_scale_value);
     }
 
     return layer;

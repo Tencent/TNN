@@ -39,16 +39,22 @@ namespace optimizer {
         return device == DEVICE_CUDA;
     }
 
-    static bool NeedCbamReduceFusion(std::shared_ptr<LayerInfo> current, std::shared_ptr<LayerInfo> next, std::shared_ptr<LayerInfo> next_next) {
-        if (current->type != LayerType::LAYER_REDUCE_MEAN || next->type != LayerType::LAYER_REDUCE_MAX || next_next->type != LayerType::LAYER_CONCAT) {
+    static bool NeedCbamReduceFusion(std::shared_ptr<LayerInfo> current, std::shared_ptr<LayerInfo> next,
+            std::shared_ptr<LayerInfo> next_next) {
+        if (current->type != LayerType::LAYER_REDUCE_MEAN || next->type != LayerType::LAYER_REDUCE_MAX ||
+                next_next->type != LayerType::LAYER_CONCAT) {
             return false;
         }
         auto reduce_mean_param = dynamic_cast<ReduceLayerParam *>(current->param.get());
         auto reduce_max_param = dynamic_cast<ReduceLayerParam *>(next->param.get());
         auto concat_param = dynamic_cast<ConcatLayerParam *>(next_next->param.get());
+        if (!reduce_mean_param || !reduce_max_param || !concat_param) {
+            return false;
+        }
         if (concat_param->axis != 1 || (reduce_mean_param->axis.size() != 1 && reduce_mean_param->axis[0] != 1) ||
-                (reduce_max_param->axis.size() != 1 && reduce_max_param->axis[0] != 1) || current->inputs[0] != next->inputs[0] ||
-                current->outputs[0] != next_next->inputs[0] || next->outputs[0] != next_next->inputs[1]) {
+                (reduce_max_param->axis.size() != 1 && reduce_max_param->axis[0] != 1) ||
+                current->inputs[0] != next->inputs[0] || current->outputs[0] != next_next->inputs[0] ||
+                next->outputs[0] != next_next->inputs[1]) {
             return false;
         }
         return true;

@@ -33,7 +33,7 @@ TensorRTBlobManager::~TensorRTBlobManager() {
 }
 
 Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
-                         DataType input_data_type) {
+        DataType input_data_type) {
     if (net_structure->blobs.empty()) {
         LOGE("net_structure blobs is empty\n");
         return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");

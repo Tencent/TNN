@@ -75,11 +75,12 @@ protected:
     // @brief Build the foreign network
     virtual Status Build();
 
-    ILayer* AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor, std::shared_ptr<ForeignTensor> foreign_tensor,
-        float quant_scale, float dequant_scale);
+    ILayer* AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
+        std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale);
 
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
-        nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights, float scale, std::vector<int> dims);
+        nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
+        float scale, std::vector<int> dims);
 
     std::shared_ptr<BaseLayer> m_layer;
     std::vector<float*> int8_weight_data;
@@ -93,10 +94,10 @@ class TensorRTLayerPluginBuilder;
 TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type);
 
 // @brief TensorRTLayerBuilderCreator register map
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTLayerBuilderCreatorMap();
+std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap();
 
 // @brief TensorRTPluginLayerBuilderCreator register map
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTPluginLayerBuilderCreatorMap();
+std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap();
 
 }  //  TNN_NS
 
