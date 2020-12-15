@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_binary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -24,6 +25,16 @@ bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceTyp
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         return true;
     }
+
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        return true;
+    }
+
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        return true;
+    }
+#endif
 
     if (batch > 1 && DEVICE_METAL == dev) {
         return true;
@@ -135,13 +146,12 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
         return;
     }
 
-    Precision precision = PRECISION_AUTO;
+
+    Precision precision = SetPrecision(dev, data_type);
     if (DATA_TYPE_INT8 == data_type) {
         param->quantized = true;
-    } else if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
-    }
-
+    } 
+    
     std::shared_ptr<AbstractModelInterpreter> interpreter;
     if (1 == input_count) {
         interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, param, resource);
