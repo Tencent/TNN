@@ -24,7 +24,8 @@
  *
  *  (this is the zlib license)
  */
-
+#ifndef neon_mathfun_h
+#define neon_mathfun_h
 #include <arm_neon.h>
 
 #define c_inv_mant_mask ~0x7f800000u
@@ -460,3 +461,4 @@ static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
     
     return result;
 }
+#endif

@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_add_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/interpreter/raw_buffer.h"
@@ -23,35 +24,36 @@ namespace TNN_NS {
 
 enum AddOpType { ADD_SINGLE = 1, ADD_CHANNEL = 2, ADD_ELEMENT = 3 };
 
+#define OperatorAddPreparation()                                      \
+    DimsVector dims_broadcast;                                        \
+    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {                    \
+        dims_broadcast.clear();                                       \
+        type = ADD_ELEMENT;                                           \
+        if (dims0[0] != dims[0] || dims0[1] != dims[1])               \
+            std::swap(_input0, _input1);                              \
+    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {              \
+        dims_broadcast = dims1;                                       \
+    } else {                                                          \
+        dims_broadcast = dims0;                                       \
+        std::swap(_input0, _input1);                                  \
+    }                                                                 \
+    if (dims_broadcast.size()) {                                      \
+        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;   \
+    }
+
 template <typename T>
 static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVector &dims0, DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
-    DimsVector dims_broadcast;
     AddOpType type = ADD_ELEMENT;
     auto _input0   = input0_ptr;
     auto _input1   = input1_ptr;
-
-    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {
-        dims_broadcast.clear();
-        type = ADD_ELEMENT;
-        if (dims0[0] != dims[0] || dims0[1] != dims[1])
-            std::swap(_input0, _input1);
-    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {
-        dims_broadcast = dims1;
-    } else {
-        dims_broadcast = dims0;
-        std::swap(_input0, _input1);
-    }
-
-    if (dims_broadcast.size()) {
-        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;
-    }
+    OperatorAddPreparation();
 
     int count      = ROUND_UP(dims[1], 4) * dims[2] * dims[3];
     int count_quad = UP_DIV(count, 4);
 
     if (type == ADD_SINGLE) {
-        // broadcast sigle
+        // broadcast single
         count_quad *= dims[0];
         for (int n = 0; n < count_quad; n++) {
             Float4::save(output_ptr + n * 4, Float4::load(_input0 + n * 4) + Float4(_input1[0]));
@@ -66,22 +68,22 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
         } else if (dims0[1] == dims1[1]) {
             // broadcast chw
             for (int batch = 0; batch < dims[0]; batch++) {
-                auto intput0_batch_ = _input0 + count * batch;
-                auto output_batch_  = output_ptr + count * batch;
+                auto input0_batch_ = _input0 + count * batch;
+                auto output_batch_ = output_ptr + count * batch;
                 for (int n = 0; n < count_quad; n++) {
                     Float4::save(output_batch_ + n * 4,
-                                 Float4::load(intput0_batch_ + n * 4) + Float4::load(_input1 + n * 4));
+                                 Float4::load(input0_batch_ + n * 4) + Float4::load(_input1 + n * 4));
                 }
             }
         } else {
             // broadcast hw
             for (int batch = 0; batch < dims[0]; batch++) {
-                auto intput0_batch_ = _input0 + count * batch;
-                auto output_batch_  = output_ptr + count * batch;
+                auto input0_batch_ = _input0 + count * batch;
+                auto output_batch_ = output_ptr + count * batch;
                 for (int n = 0; n < count_quad; n++) {
                     auto hw_index = n % (dims[2] * dims[3]);
                     Float4::save(output_batch_ + n * 4,
-                                 Float4::load(intput0_batch_ + n * 4) + Float4(_input1[hw_index * 4]));
+                                 Float4::load(input0_batch_ + n * 4) + Float4(_input1[hw_index * 4]));
                 }
             }
         }
@@ -98,6 +100,69 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
         LOGE("Error: invalid add type\n");
     }
 }
+
+#if TNN_ARM82
+template <>
+void _operator_add<fp16_t>(fp16_t *output_ptr, fp16_t *input0_ptr, fp16_t *input1_ptr, DimsVector &dims0,
+                                  DimsVector &dims1) {
+    DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
+    AddOpType type = ADD_ELEMENT;
+    auto _input0   = input0_ptr;
+    auto _input1   = input1_ptr;
+    OperatorAddPreparation();
+
+    int count      = ROUND_UP(dims[1], 8) * dims[2] * dims[3];
+    int count_div8 = UP_DIV(count, 8);
+
+    if (type == ADD_SINGLE) {
+        // broadcast single
+        count_div8 *= dims[0];
+        for (int n = 0; n < count_div8; n++) {
+            Half8::save(output_ptr + n * 8, Half8::load(_input0 + n * 8) + Half8(_input1[0]));
+        }
+    } else if (type == ADD_ELEMENT) {
+        // no broadcast
+        if (dims0[0] == dims1[0] && dims0[1] == dims1[1]) {
+            count_div8 *= dims[0];
+            for (int n = 0; n < count_div8; n++) {
+                Half8::save(output_ptr + n * 8, Half8::load(_input0 + n * 8) + Half8::load(_input1 + n * 8));
+            }
+        } else if (dims0[1] == dims1[1]) {
+            // broadcast chw
+            for (int batch = 0; batch < dims[0]; batch++) {
+                auto input0_batch_ = _input0 + count * batch;
+                auto output_batch_ = output_ptr + count * batch;
+                for (int n = 0; n < count_div8; n++) {
+                    Half8::save(output_batch_ + n * 8,
+                                Half8::load(input0_batch_ + n * 8) + Half8::load(_input1 + n * 8));
+                }
+            }
+        } else {
+            // broadcast hw
+            for (int batch = 0; batch < dims[0]; batch++) {
+                auto input0_batch_ = _input0 + count * batch;
+                auto output_batch_ = output_ptr + count * batch;
+                for (int n = 0; n < count_div8; n++) {
+                    auto hw_index = n % (dims[2] * dims[3]);
+                    Half8::save(output_batch_ + n * 8,
+                                Half8::load(input0_batch_ + n * 8) + Half8(_input1[hw_index * 8]));
+                }
+            }
+        }
+    } else if (type == ADD_CHANNEL) {
+        // broadcast channel
+        count_div8 *= dims[0];
+        for (int n = 0; n < count_div8; n++) {
+            int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 8));
+            int channel_8_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 8);
+            Half8::save(output_ptr + n * 8,
+                        Half8::load(_input0 + n * 8) + Half8::load(_input1 + channel_8_index * 8));
+        }
+    } else {
+        LOGE("Error: invalid add type\n");
+    }
+}
+#endif
 
 ArmAddLayerAcc::~ArmAddLayerAcc() {}
 
@@ -163,6 +228,29 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
             } else {
                 return Status(TNNERR_MODEL_ERR, "Error: unsupported broadcast type");
             }
+#if TNN_ARM82
+            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+                auto buffer_size = ROUND_UP(bias_shape_[1], 8) * bias_shape_[2] * bias_shape_[3] * sizeof(fp16_t);
+                RawBuffer temp(buffer_size);
+                // pack bias from nchw to nc8hw8
+                fp16_t *b_dst            = temp.force_to<fp16_t *>();
+                RawBuffer element_handle = layer_res->element_handle;
+                if (element_handle.GetDataType() == DATA_TYPE_HALF)
+                    element_handle = ConvertHalfHandle(element_handle);
+                float *b_src = element_handle.force_to<float *>();
+                auto hw     = bias_shape_[2] * bias_shape_[3];
+                memset(b_dst, 0, buffer_size);
+                for (int c = 0; c < bias_shape_[1]; c++) {
+                    int ci = c % 8;
+                    int co = c / 8;
+                    for (int cur_hw = 0; cur_hw < hw; cur_hw++) {
+                        b_dst[co * 8 * hw + cur_hw * 8 + ci] = b_src[c * hw + cur_hw];
+                    }
+                }
+                output_bias_ = temp;
+                return TNN_OK;
+            }
+#endif
             auto buffer_size = ROUND_UP(bias_shape_[1], 4) * bias_shape_[2] * bias_shape_[3] * sizeof(float);
             RawBuffer temp(buffer_size);
             // pack bias from nchw to nc4hw4
@@ -197,7 +285,7 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     std::vector<DimsVector> input_shapes;
     input_ptrs.reserve(4);
     input_shapes.reserve(4);
-    
+
     AddOpType type;
     auto output = outputs[0];
     auto dims   = output->GetBlobDesc().dims;
@@ -258,7 +346,22 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
             auto input_ptr = reinterpret_cast<bfp16_t *>(input_ptrs[i]);
             _operator_add(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
         }
-    } else {
+    }
+#if TNN_ARM82
+    else if (output->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
+        auto input0_ptr = reinterpret_cast<fp16_t *>(input_ptrs[0]);
+        auto input1_ptr = reinterpret_cast<fp16_t *>(input_ptrs[1]);
+
+        _operator_add<fp16_t>(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);
+
+        for (int i = 2; i < input_ptrs.size(); i++) {
+            auto input_ptr = reinterpret_cast<fp16_t *>(input_ptrs[i]);
+            _operator_add<fp16_t>(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
+        }
+    }
+#endif
+    else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
         return TNNERR_LAYER_ERR;
     }
@@ -267,5 +370,6 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_ARM_ACC(Add, LAYER_ADD)
+REGISTER_ARM_PRECISION_FP16(LAYER_ADD)
 
 }  // namespace TNN_NS
