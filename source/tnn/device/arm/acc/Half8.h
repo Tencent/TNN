@@ -160,10 +160,10 @@ struct Half8 {
     static Half8 bsl_clt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
         asm volatile (
-            "fcmlt %0.8h, %2.8h, %3.8h\n\t"
-            "bsl %0.16b, %4.16b, %5.16b\n\t"
+            "fcmlt %0.8h, %2.8h, #0.0\n\t"
+            "bsl %0.16b, %3.16b, %4.16b\n\t"
             :"=w"(dst.value)
-            :"0"(dst.value), "w"(c1.value), "w"(c2.value), "w"(v1.value), "w"(v2.value)
+            :"0"(dst.value), "w"(c1.value), "w"(v1.value), "w"(v2.value)
             :"cc", "memory"
         );
         return dst;
