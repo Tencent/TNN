@@ -32,11 +32,6 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-private:
-    void GetImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    void GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
 protected:
     std::shared_ptr<ArmLayerAcc> conv_acc_impl_           = nullptr;
     std::shared_ptr<LayerResource> conv_acc_f32_resource_ = nullptr;
