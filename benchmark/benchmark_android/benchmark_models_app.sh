@@ -10,7 +10,7 @@ SLEEP_INTERVAL=3
 
 benchmark_model_list=(
 #test.tnnproto \
-mobilenet_v2_1.0_224.tnnproto
+mobilenet_v2.tnnproto
 )
 
 function usage() {
