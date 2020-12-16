@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="TitleBarAttr">
+        <attr name="left_text" format="string"/>
+        <attr name="right_text" format="string"/>
+        <attr name="bar_title" format="string"/>
+        <attr name="left_image" format="reference"/>
+        <attr name="left_image_visible" format="boolean"/>
+        <attr name="right_image_visible" format="boolean"/>
+    </declare-styleable>
+</resources>

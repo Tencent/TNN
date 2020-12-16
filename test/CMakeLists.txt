@@ -12,17 +12,34 @@ if(TNN_BUILD_SHARED)
         TNN
         gflags
     )
+
+    if(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE)
+        add_library(TNNBenchmarkTest SHARED ${TEST_SRCS})
+
+        target_link_libraries(TNNBenchmarkTest
+            TNN
+            gflags
+        )
+    endif()
 elseif(SYSTEM.iOS OR SYSTEM.Darwin)
     target_link_libraries(TNNTest
         -Wl,-force_load TNN
         gflags
     )
+
+    if(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE)
+        add_library(TNNBenchmarkTest STATIC ${TEST_SRCS})
+    endif()
 else()
     message("target link libraries whole-archive")
     target_link_libraries(TNNTest
         -Wl,--whole-archive TNN -Wl,--no-whole-archive
         gflags
     )
+
+    if(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE)
+        add_library(TNNBenchmarkTest STATIC ${TEST_SRCS})
+    endif()
 endif()
 
 if(TNN_UNIT_TEST_ENABLE)

@@ -1,0 +1,26 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AlertButton_Yes">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/sdk_base_blue</item>
+    </style>
+
+    <style name="AlertButton_No">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/dlg_no_btn_text</item>
+    </style>
+
+    <style name="white_text_16sp_style">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+</resources>

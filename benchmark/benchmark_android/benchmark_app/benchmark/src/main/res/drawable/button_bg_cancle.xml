@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按钮可用，并且处于正常状态时显示这个状态 -->
+    <item android:drawable="@drawable/round_corner_bg_cancel" />
+</selector>
