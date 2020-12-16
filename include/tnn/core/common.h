@@ -46,6 +46,7 @@ typedef enum {
     DATA_FORMAT_NC4HW4 = 3,
     DATA_FORMAT_NCDHW  = 4,
     DATA_FORMAT_NHC4W4 = 5,
+    DATA_FORMAT_NC8HW8 = 6,
 } DataFormat;
 
 typedef enum {

@@ -20,6 +20,7 @@
 #include "tnn/core/blob_int8.h"
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/compute/compute.h"
 #include "tnn/device/arm/acc/compute/compute_int8.h"
 #include "tnn/device/arm/arm_util.h"
