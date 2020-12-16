@@ -1,0 +1,91 @@
+# Sets the minimum version of CMake required to build the native
+# library. You should either keep the default value or only pass a
+# value of 3.4.0 or lower.
+
+cmake_minimum_required(VERSION 3.4.1)
+
+# Creates and names a library, sets it as either STATIC
+# or SHARED, and provides the relative paths to its source code.
+# You can define multiple libraries, and CMake builds it for you.
+# Gradle automatically packages shared libraries with your APK.
+
+set(TNN_ROOT ../../../../)
+set(BASE_SRC ../../../base)
+include_directories(${TNN_ROOT}/include)
+include_directories(${TNN_ROOT}/test)
+include_directories(${TNN_ROOT}/third_party/opencl/include)
+include_directories(../benchmark/src/main/jni/thirdparty)
+include_directories(../benchmark/src/main/jni/thirdparty/kannarotate-android-lib/include)
+include_directories(../benchmark/src/main/jni/thirdparty/kannarotate-android-lib/src)
+include_directories(${BASE_SRC}/)
+include_directories(../benchmark/src/main/jni/cc/)
+
+set(CMAKE_BUILD_TYPE Release)
+
+set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
+set(TNN_TEST_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_BENCHMARK_MODE ON CACHE BOOL "" FORCE)
+set(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE ON CACHE BOOL "" FORCE)
+
+add_subdirectory(${TNN_ROOT}/ ../build)
+
+file(GLOB_RECURSE WRAPPER_SRCS ../benchmark/src/main/jni/cc/*.cc)
+file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
+file(GLOB_RECURSE THIRDPARTY_SRCS ../benchmark/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
+add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS})
+
+if(TNN_HUAWEI_NPU_ENABLE)
+    add_library(hiai
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai.so)
+
+    add_library(hiai_ir
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir.so)
+
+    add_library(hiai_ir_build
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir_build
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir_build.so)
+
+endif()
+
+
+find_library( # Sets the name of the path variable.
+              log-lib
+
+              # Specifies the name of the NDK library that
+              # you want CMake to locate.
+              log)
+
+# Specifies libraries CMake should link to your target library. You
+# can link multiple libraries, such as libraries you define in the
+# build script, prebuilt third-party libraries, or system libraries.
+
+target_link_libraries( # Specifies the target library.
+                        tnn_wrapper
+                        -ljnigraphics
+                        -Wl,--whole-archive TNN TNNBenchmarkTest -Wl,--no-whole-archive
+                        gflags
+                       # Links the target library to the log library
+                       # included in the NDK.
+                       ${log-lib})
+
+if(TNN_HUAWEI_NPU_ENABLE)
+    target_link_libraries( # Specifies the target library.
+            tnn_wrapper hiai hiai_ir hiai_ir_build)
+endif()

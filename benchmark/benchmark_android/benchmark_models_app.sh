@@ -28,6 +28,8 @@ function exit_with_msg() {
 }
 
 function set_up_environment() {
+    echo -e "Java environment:\nJAVA_HOME: ${JAVA_HOME}, JRE_HOME: ${JRE_HOME}"
+    echo -e "Android environment:\nANDROID_HOME: ${ANDROID_HOME}"
     cd ${BENCHMARK_DIR}
     ./gradlew installDebug
 }
