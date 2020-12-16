@@ -297,7 +297,12 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             blob = foreign_blob;
             outputs.push_back(blob);
         }
-        LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
+
+        LayerResource *layer_resource = nullptr;
+        auto resouce_it = net_resource->resource_map.find(layer_name);
+        if (resouce_it != net_resource->resource_map.end()) {
+            layer_resource = resouce_it->second.get();
+        }
         
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
