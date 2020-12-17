@@ -363,6 +363,35 @@ static void GrayToBlob(const uint8_t *src, float *dst, const float scale, const 
 }
 
 /*
+convert data type from uint8 to half, data format from nhw1 2 nc8hw8
+*/
+static void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const float bias, int hw) {
+    int i = 0;
+    memset(dst, 0, hw * 8 * sizeof(fp16_t));
+#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+    float16x8_t scale_neon = vdupq_n_f16(fp16_t(scale));
+    float16x8_t bias_neon  = vdupq_n_f32(fp16_t(bias));
+    for (; i < hw - 7; i += 8) {
+        uint8x8_t v_u8   = vld1_u8(src + i);
+        float16x8_t vf16 = vcvtq_f16_u16(vmovl_u8(v_u8));
+        float16x8_t rf16 = vaddq_f16(bias_neon, vmulq_f16(scale_neon, vf16));
+
+        dst[(i + 0) * 8] = vgetq_lane_f16(rf16, 0);
+        dst[(i + 1) * 8] = vgetq_lane_f16(rf16, 1);
+        dst[(i + 2) * 8] = vgetq_lane_f16(rf16, 2);
+        dst[(i + 3) * 8] = vgetq_lane_f16(rf16, 3);
+        dst[(i + 4) * 8] = vgetq_lane_f16(rf16, 4);
+        dst[(i + 5) * 8] = vgetq_lane_f16(rf16, 5);
+        dst[(i + 6) * 8] = vgetq_lane_f16(rf16, 6);
+        dst[(i + 7) * 8] = vgetq_lane_f16(rf16, 7);
+    }
+#endif
+    for (; i < hw; ++i) {
+        dst[8 * i] = scale * src[i] + bias;
+    }
+}
+
+/*
 convert data type from uint8 to int8, data format from nhw1 2 nhwc
 */
 static void GrayToBlob(const uint8_t *src, int8_t *dst, const float scale, const float bias, int hw) {
@@ -996,6 +1025,18 @@ static Status ConvertNGRAYToFloatBlob(Mat& image, char* handle_ptr,
     return TNN_OK;
 }
 
+static Status ConvertNGRAYToHalfBlob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    for (int n = 0; n < dims[0]; n++) {
+        GrayToBlob(reinterpret_cast<uint8_t *>(image.GetData()) + n * 1 * hw,
+                   reinterpret_cast<fp16_t *>(handle_ptr) + n * 8 * hw,
+                   param.scale[0], param.bias[0], hw);
+    }
+    return TNN_OK;
+}
+
 static Status ConvertNNV12ToInt8Blob(Mat& image, char* handle_ptr,
                                      const MatConvertParam& param, const DimsVector& dims,
                                      const int hw, const int c_r4,
@@ -1099,6 +1140,7 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_INT8,  CVT_DIR_MAT
 REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertN8UC3ToFloatBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNGRAYToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNGRAYToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertNGRAYToHalfBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV12ToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV12ToFloatBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV21ToInt8Blob)
