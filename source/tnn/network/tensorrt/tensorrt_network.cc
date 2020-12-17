@@ -326,19 +326,18 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);
     this->m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
     this->m_trt_config = this->m_trt_builder->createBuilderConfig();
+    auto profile = this->m_trt_builder->createOptimizationProfile();
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
         nvinfer1::ITensor* in_tensor = this->m_trt_network->addInput(desc.name.c_str(),
             ConvertToTRTDataType(desc.data_type), ConvertToTRTDims(desc.dims));
-        auto profile = this->m_trt_builder->createOptimizationProfile();
         auto min_dims = ConvertToTRTDims(desc.dims);
         auto max_dims = min_dims;
         auto opt_dims = min_dims;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);
-        this->m_trt_config->addOptimizationProfile(profile);
         auto foreign_tensor = foreign_blob->GetForeignTensor();
         auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
         if (int8_mode) {
@@ -393,6 +392,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             tensorrt_tensor->SetTensor(in_tensor);
         }
     }
+    this->m_trt_config->addOptimizationProfile(profile);
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];

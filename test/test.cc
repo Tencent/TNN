@@ -287,10 +287,10 @@ namespace test {
                     config.params.push_back("");
                     return config;
                 }
-                auto model_content =
-                    std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
+                std::stringstream model_content;
+                model_content << model_stream.rdbuf();
 
-                config.params.push_back(model_content);
+                config.params.push_back(model_content.str());
             } else {
                 config.params.push_back(model_path);
             }
@@ -357,6 +357,10 @@ namespace test {
                 data_type = DATA_TYPE_INT32;
             }
 
+            if (blob_desc.data_type == DATA_TYPE_INT32) {
+                mat_type = NC_INT32;
+            }
+
             int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
             void* mat_data = malloc(bytes);
             auto mat = std::make_shared<Mat>(DEVICE_NAIVE, mat_type, blob_desc.dims, mat_data);
@@ -378,6 +382,8 @@ namespace test {
                 for (int i = 0; i < data_count; i++) {
                     if (mat_type == NCHW_FLOAT) {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
+                    } else if (mat_type == NC_INT32) {
+                        reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 256;
                     } else {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
                     }
@@ -439,7 +445,8 @@ namespace test {
                 f << output.first;
                 auto mat      = output.second;
                 DimsVector dims = mat->GetDims();
-                f << " " << dims.size();
+                f << " mat_type: " << mat->GetMatType() ;
+                f << " dims: " << dims.size();
                 for (auto dim : dims) {
                     f << " " << dim;
                 }
@@ -461,9 +468,16 @@ namespace test {
         for (auto output : outputs) {
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
-            float* data = reinterpret_cast<float*>(mat->GetData());
-            for (int c = 0; c < data_count; ++c) {
-                f << std::fixed << std::setprecision(6) << data[c] << std::endl;
+            if (mat->GetMatType() == NC_INT32 ) {
+                int * data = reinterpret_cast<int*>(mat->GetData());
+                for (int c = 0; c < data_count; ++c) {
+                    f << data[c] << std::endl;
+                }
+            } else {
+                float* data = reinterpret_cast<float*>(mat->GetData());
+                for (int c = 0; c < data_count; ++c) {
+                    f << std::fixed << std::setprecision(6) << data[c] << std::endl;
+                }
             }
         }
         f.close();
