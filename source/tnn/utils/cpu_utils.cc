@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include "tnn/utils/cpu_info.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -29,10 +30,10 @@
 
 #if defined(__ANDROID__) || defined(__linux__)
 #include <sys/auxv.h>
-#define AT_HWCAP  16
+#define AT_HWCAP 16
 #define AT_HWCAP2 26
 // from arch/arm64/include/uapi/asm/hwcap.h
-#define HWCAP_FPHP    (1 << 9)
+#define HWCAP_FPHP (1 << 9)
 #define HWCAP_ASIMDHP (1 << 10)
 #endif  // __ANDROID__
 
@@ -79,7 +80,7 @@ static int GetMaxFreqOfCpu(int cpuid) {
             int max_freq_khz = 0;
             while (!feof(fp)) {
                 int freq_khz = 0;
-                int nscan = fscanf(fp, "%d %*d", &freq_khz);
+                int nscan    = fscanf(fp, "%d %*d", &freq_khz);
                 if (nscan != 1)
                     break;
 
@@ -115,7 +116,7 @@ static int GetMaxFreqOfCpu(int cpuid) {
     int max_freq_khz = 0;
     while (!feof(fp)) {
         int freq_khz = 0;
-        int nscan = fscanf(fp, "%d %*d", &freq_khz);
+        int nscan    = fscanf(fp, "%d %*d", &freq_khz);
         if (nscan != 1)
             break;
 
@@ -330,16 +331,21 @@ bool CpuUtils::CpuSupportFp16() {
 
 #if defined(__ANDROID__) || defined(__linux__)
     unsigned int hwcap = getauxval(AT_HWCAP);
-    fp16arith = hwcap & HWCAP_FPHP &&
-                hwcap & HWCAP_ASIMDHP;
+    fp16arith          = hwcap & HWCAP_FPHP && hwcap & HWCAP_ASIMDHP;
 #endif  // __ANDROID__ || __linux__
+
+#ifdef __ANDROID__
+    if (cpuinfo_arm_android_match_exynos_9810()) {
+        /* Exynos 9810 reports that it supports FP16 compute, but in fact only little cores do */
+        return false;
+    }
+#endif
 
 #ifdef __IOS__
     unsigned int cpu_family = 0;
-    size_t len = sizeof(cpu_family);
+    size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
-    fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL ||
-                cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
+    fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER;
 #endif  // __IOS__
 
