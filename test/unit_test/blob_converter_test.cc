@@ -50,7 +50,7 @@ bool BlobConverterTest::TestFilterCheck(
         return true;
     }
     if (blob_data_type == DATA_TYPE_HALF &&
-        (mat_type != NGRAY && mat_type != NCHW_FLOAT && mat_type != N8UC4)) {
+        (mat_type != NGRAY && mat_type != NCHW_FLOAT && mat_type != N8UC4 && mat_type != N8UC3)) {
         return true;
     }
 
