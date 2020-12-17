@@ -332,14 +332,17 @@ python3 converter.py onnx2tnn -h
 ```
 usage 信息如下：
 ```text
-usage: convert onnx2tnn [-h] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR]
+usage: convert onnx2tnn [-h] [-in input_name] [-optimize] [-half] [-v v1.0.0]
+                        [-o OUTPUT_DIR] [-align] [-input_file INPUT_FILE_PATH]
+                        [-ref_file REFER_FILE_PATH]
                         onnx_path
 
 positional arguments:
-  onnx_path      the path for onnx file
+  onnx_path             the path for onnx file
 
 optional arguments:
   -h, --help            show this help message and exit
+  -in input_name        specify the shape of input. e.g. -in name[1,3,28,28]
   -optimize             optimize the model
   -half                 save model using half
   -v v1.0.0             the version for model
