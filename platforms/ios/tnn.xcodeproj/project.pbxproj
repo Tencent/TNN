@@ -633,6 +633,8 @@
 		EC2CF7832511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF7812511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal */; };
 		EC88054A255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h in Headers */ = {isa = PBXBuildFile; fileRef = EC880548255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h */; };
 		EC88054B255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC880549255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.cc */; };
+		EC9FB2B7258B9846000D6E8F /* random_data_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = EC9FB2B5258B9845000D6E8F /* random_data_utils.h */; };
+		EC9FB2B8258B9846000D6E8F /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC9FB2B6258B9846000D6E8F /* random_data_utils.cc */; };
 		ECD9459A254ADCF500BF9214 /* arm_conv_layer_acc_factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD94596254ADCF500BF9214 /* arm_conv_layer_acc_factory.cc */; };
 		ECD9459B254ADCF500BF9214 /* arm_conv_int8_layer_1x1.h in Headers */ = {isa = PBXBuildFile; fileRef = ECD94597254ADCF500BF9214 /* arm_conv_int8_layer_1x1.h */; };
 		ECD9459C254ADCF500BF9214 /* arm_conv_layer_acc_factory.h in Headers */ = {isa = PBXBuildFile; fileRef = ECD94598254ADCF500BF9214 /* arm_conv_layer_acc_factory.h */; };
@@ -1289,6 +1291,8 @@
 		EC2CF7812511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_arg_max_or_min_layer_acc.metal; sourceTree = "<group>"; };
 		EC880548255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_fuse_conv_post.h; sourceTree = "<group>"; };
 		EC880549255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_fuse_conv_post.cc; sourceTree = "<group>"; };
+		EC9FB2B5258B9845000D6E8F /* random_data_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random_data_utils.h; sourceTree = "<group>"; };
+		EC9FB2B6258B9846000D6E8F /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
 		ECD94596254ADCF500BF9214 /* arm_conv_layer_acc_factory.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_layer_acc_factory.cc; sourceTree = "<group>"; };
 		ECD94597254ADCF500BF9214 /* arm_conv_int8_layer_1x1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_layer_1x1.h; sourceTree = "<group>"; };
 		ECD94598254ADCF500BF9214 /* arm_conv_layer_acc_factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_layer_acc_factory.h; sourceTree = "<group>"; };
@@ -1445,6 +1449,8 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				EC9FB2B6258B9846000D6E8F /* random_data_utils.cc */,
+				EC9FB2B5258B9845000D6E8F /* random_data_utils.h */,
 				EC0BE1B9251DBE65009BD69A /* mat_converter_utils.cc */,
 				EC0BE1BA251DBE65009BD69A /* mat_converter_utils.h */,
 				EC0BE13525144B5D009BD69A /* detection_post_process_utils.cc */,
@@ -2336,6 +2342,7 @@
 				9DD1FC89247CEA1400800139 /* arm_deconv_layer_acc.h in Headers */,
 				9DD1FC8A247CEA1400800139 /* arm_deconv_layer_depthwise.h in Headers */,
 				9DD1FB73247CE9BE00800139 /* metal_deconv_layer_acc.h in Headers */,
+				EC9FB2B7258B9846000D6E8F /* random_data_utils.h in Headers */,
 				9D32FF6324557EED002DCDAB /* net_structure.h in Headers */,
 				9D32FCB224557EEC002DCDAB /* wingorad_generater.h in Headers */,
 				ECD9464F2558F4CD00BF9214 /* net_optimizer_insert_int8_reformat.h in Headers */,
@@ -2759,6 +2766,7 @@
 				9D32FCFD24557EEC002DCDAB /* reduce_layer.cc in Sources */,
 				9DD1FB90247CE9BE00800139 /* metal_concat_layer_acc.mm in Sources */,
 				9D32FF5D24557EED002DCDAB /* deconv_layer_interpreter.cc in Sources */,
+				EC9FB2B8258B9846000D6E8F /* random_data_utils.cc in Sources */,
 				EC0BE15025144BB8009BD69A /* ceil_layer.cc in Sources */,
 				9DD1FCCB247CEA1500800139 /* arm_permute_layer_acc.cc in Sources */,
 				9DD1FCC4247CEA1400800139 /* arm_abs_layer_acc.cc in Sources */,
