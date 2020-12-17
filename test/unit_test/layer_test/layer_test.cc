@@ -249,6 +249,9 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         // the value is initialized as int8
         mat_type = RESERVED_INT8_TEST;
+    } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
+        // the value is initialized as half
+        mat_type = RESERVED_FP16_TEST;
     }
     TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void* input_data = source.GetData();
@@ -258,6 +261,13 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
             InitRandom(static_cast<float*>(input_data), blob_count, 0.0001f, 1.0f + (float)magic_num);
         } else {
             InitRandom(static_cast<float*>(input_data), blob_count, 1.0f + (float)magic_num);
+        }
+    } else if (mat_type == RESERVED_FP16_TEST) {
+        if (ensure_input_positive_) {
+            // some layers only supports positive values as input
+            InitRandom(static_cast<fp16_t*>(input_data), blob_count, (fp16_t)0.0f, (fp16_t)(1.0f + magic_num));
+        } else {
+            InitRandom(static_cast<fp16_t*>(input_data), blob_count, (fp16_t)(1.0f + magic_num));
         }
     } else if (mat_type == RESERVED_INT8_TEST) {
         if (ensure_input_positive_) {
@@ -331,10 +341,10 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     int cmp_result = 0;
     if (blob_desc_device.data_type == DATA_TYPE_FLOAT) {
         cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()), static_cast<float*>(dev_cpu_mat.GetData()),
-                                  count, 0.01);
+                                  count, 0.01, 0.0001);
     } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
         cmp_result |= CompareData(static_cast<float*>(cpu_mat.GetData()), static_cast<float*>(dev_cpu_mat.GetData()),
-                                  count, 0.01);
+                                  count, 0.01, 0.001);
     } else if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
         cmp_result |= CompareData(static_cast<bfp16_t*>(cpu_mat.GetData()),
                                   static_cast<bfp16_t*>(dev_cpu_mat.GetData()), count, 0.05);
