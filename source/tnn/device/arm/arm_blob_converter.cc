@@ -408,14 +408,14 @@ static void GrayToBlob(const uint8_t *src, float *dst, const float scale, const 
         float32x4_t rf32_0 = vaddq_f32(bias_neon, vmulq_f32(scale_neon, vf32_0));
         float32x4_t rf32_1 = vaddq_f32(bias_neon, vmulq_f32(scale_neon, vf32_1));
 
-        dst[(i + 0) * 4] = vgetq_lane_f32(rf32_0, 0);
-        dst[(i + 1) * 4] = vgetq_lane_f32(rf32_0, 1);
-        dst[(i + 2) * 4] = vgetq_lane_f32(rf32_0, 2);
-        dst[(i + 3) * 4] = vgetq_lane_f32(rf32_0, 3);
-        dst[(i + 4) * 4] = vgetq_lane_f32(rf32_1, 0);
-        dst[(i + 5) * 4] = vgetq_lane_f32(rf32_1, 1);
-        dst[(i + 6) * 4] = vgetq_lane_f32(rf32_1, 2);
-        dst[(i + 7) * 4] = vgetq_lane_f32(rf32_1, 3);
+        vst1q_lane_f32(dst + (i + 0) * 4, rf32_0, 0);
+        vst1q_lane_f32(dst + (i + 1) * 4, rf32_0, 1);
+        vst1q_lane_f32(dst + (i + 2) * 4, rf32_0, 2);
+        vst1q_lane_f32(dst + (i + 3) * 4, rf32_0, 3);
+        vst1q_lane_f32(dst + (i + 4) * 4, rf32_1, 0);
+        vst1q_lane_f32(dst + (i + 5) * 4, rf32_1, 1);
+        vst1q_lane_f32(dst + (i + 6) * 4, rf32_1, 2);
+        vst1q_lane_f32(dst + (i + 7) * 4, rf32_1, 3);
     }
 #endif
     for (; i < hw; ++i) {
@@ -439,14 +439,14 @@ static void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const
         float16x8_t vf16 = vcvtq_f16_u16(vmovl_u8(v_u8));
         float16x8_t rf16 = vaddq_f16(bias_neon, vmulq_f16(scale_neon, vf16));
 
-        dst[(i + 0) * 8] = vgetq_lane_f16(rf16, 0);
-        dst[(i + 1) * 8] = vgetq_lane_f16(rf16, 1);
-        dst[(i + 2) * 8] = vgetq_lane_f16(rf16, 2);
-        dst[(i + 3) * 8] = vgetq_lane_f16(rf16, 3);
-        dst[(i + 4) * 8] = vgetq_lane_f16(rf16, 4);
-        dst[(i + 5) * 8] = vgetq_lane_f16(rf16, 5);
-        dst[(i + 6) * 8] = vgetq_lane_f16(rf16, 6);
-        dst[(i + 7) * 8] = vgetq_lane_f16(rf16, 7);
+        vst1q_lane_f16(dst + (i + 0) * 8, rf16, 0);
+        vst1q_lane_f16(dst + (i + 1) * 8, rf16, 1);
+        vst1q_lane_f16(dst + (i + 2) * 8, rf16, 2);
+        vst1q_lane_f16(dst + (i + 3) * 8, rf16, 3);
+        vst1q_lane_f16(dst + (i + 4) * 8, rf16, 4);
+        vst1q_lane_f16(dst + (i + 5) * 8, rf16, 5);
+        vst1q_lane_f16(dst + (i + 6) * 8, rf16, 6);
+        vst1q_lane_f16(dst + (i + 7) * 8, rf16, 7);
     }
 #endif
     for (; i < hw; ++i) {
