@@ -552,7 +552,7 @@ static void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, c
     float16x8x4_t vf16;
     vf16.val[3] = vzero;
     for (; i < hw - 7; i += 8) {
-        uint8x8x3_t v_u8 = vld4_u8(src + i * 3);
+        uint8x8x3_t v_u8 = vld3_u8(src + i * 3);
         uint16x8_t b_u16 = vmovl_u8(v_u8.val[0]);
         uint16x8_t g_u16 = vmovl_u8(v_u8.val[1]);
         uint16x8_t r_u16 = vmovl_u8(v_u8.val[2]);
@@ -1288,6 +1288,14 @@ static Status ConvertNNV12ToFloatBlob(Mat& image, char* handle_ptr,
     return ConvertN8UC3ToFloatBlob(bgr, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
 }
 
+static Status ConvertNNV12ToHalfBlob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    Mat bgr = GetBGRFromYUV(image, dims, hw, true);
+    return ConvertN8UC3ToHalfBlob(bgr, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
+}
+
 static Status ConvertNNV21ToInt8Blob(Mat& image, char* handle_ptr,
                                      const MatConvertParam& param, const DimsVector& dims,
                                      const int hw, const int c_r4,
@@ -1302,6 +1310,14 @@ static Status ConvertNNV21ToFloatBlob(Mat& image, char* handle_ptr,
                                       std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     Mat bgr = GetBGRFromYUV(image, dims, hw, false);
     return ConvertN8UC3ToFloatBlob(bgr, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
+}
+
+static Status ConvertNNV21ToHalfBlob(Mat& image, char* handle_ptr,
+                                     const MatConvertParam& param, const DimsVector& dims,
+                                     const int hw, const int c_r4,
+                                     std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    Mat bgr = GetBGRFromYUV(image, dims, hw, false);
+    return ConvertN8UC3ToHalfBlob(bgr, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
 }
 
 static Status ConvertNCHWFloatToInt8Blob(Mat& image, char* handle_ptr,
@@ -1380,8 +1396,10 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_FLOAT, CVT_DIR_MAT
 REGISTER_ARM_BLOB_CONVERT_FUNC(NGRAY,               DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertNGRAYToHalfBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV12ToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV12ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertNNV12ToHalfBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNNV21ToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV21ToFloatBlob)
+REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertNNV21ToHalfBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNCHWFloatToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float,float>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float, bfp16_t>))

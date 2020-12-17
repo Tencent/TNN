@@ -49,10 +49,6 @@ bool BlobConverterTest::TestFilterCheck(
     if (blob_data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         return true;
     }
-    if (blob_data_type == DATA_TYPE_HALF &&
-        (mat_type != NGRAY && mat_type != NCHW_FLOAT && mat_type != N8UC4 && mat_type != N8UC3)) {
-        return true;
-    }
 
     if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
         return true;
