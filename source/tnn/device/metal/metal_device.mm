@@ -123,7 +123,7 @@ Status MetalDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobD
 }
 
 AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
-    std::map<LayerType, LayerAccCreator *> &layer_creator_map = GetLayerCreatorMap();
+    std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
     } else {
@@ -136,14 +136,14 @@ Context *MetalDevice::CreateContext(int device_id) {
     return new MetalContext();
 }
 
-std::map<LayerType, LayerAccCreator *> &MetalDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, LayerAccCreator *> layer_creator_map;
+std::map<LayerType, std::shared_ptr<LayerAccCreator>> &MetalDevice::GetLayerCreatorMap() {
+    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
 Status MetalDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
-    std::map<LayerType, LayerAccCreator *> &layer_creator_map = GetLayerCreatorMap();
-    layer_creator_map[type]                                   = creator;
+    std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
+    layer_creator_map[type]                                   = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;
 }
 

@@ -46,7 +46,7 @@ string OnnxOpConverterGemm::TNNOpType(NodeProto& node,
     float beta  = get_node_attr_f(node, "beta", 1.f);
     int transA  = (int)get_node_attr_i(node, "transA", 0);
     int transB  = (int)get_node_attr_i(node, "transB", 0);
-    if (alpha == 1.f) {
+    if (std::abs(alpha - 1.f) <= 1e-6) {
         // InnerProduct-like A * B + C
         if (transA == 0) {
             return "InnerProduct";

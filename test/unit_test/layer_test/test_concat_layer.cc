@@ -16,6 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -23,13 +24,13 @@ class ConcatLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
-                        ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
                                             testing::Values(1, 2, 3),
                                             // input cnt
                                             testing::Values(2, 3),
                                             // dtype
-                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(ConcatLayerTest, ConcatLayer) {
     // get param
@@ -41,20 +42,35 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
+
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, input_count, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    ConcatLayerParam param;
-    param.name = "Concat";
-    param.axis = axis;
+    std::shared_ptr<ConcatLayerParam> param(new ConcatLayerParam());
+    param->name = "Concat";
+    param->axis = axis;
 
-    Run(LAYER_CONCAT, &param, nullptr, inputs_desc, outputs_desc);
+    Precision precision = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+
+    // generate interpreter
+    std::vector<std::vector<int>> input_dims_vec;
+    for (int i = 0; i < input_count; ++i)
+        input_dims_vec.push_back({batch, channel, input_size, input_size});
+    auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

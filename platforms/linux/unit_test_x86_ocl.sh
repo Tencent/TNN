@@ -10,6 +10,7 @@ DUMP_DIR=$WORK_DIR/dump_data
 
 function usage() {
     echo "-c\tClean up build folders."
+    echo "-b\tBuild only."
 }
 function die() {
     echo $1

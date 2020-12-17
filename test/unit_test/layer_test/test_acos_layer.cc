@@ -22,10 +22,10 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, AcosLayerTest,
-                        ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(AcosLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Acos");
 }
 
 }  // namespace TNN_NS

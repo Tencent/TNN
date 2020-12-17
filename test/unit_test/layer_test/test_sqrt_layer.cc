@@ -25,7 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SqrtLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(SqrtLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Sqrt");
 }
 
 }  // namespace TNN_NS

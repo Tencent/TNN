@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_SOURCE_TNN_INTERPRETER_NCNN_SERIALIZER_H_
@@ -56,14 +56,14 @@ namespace ncnn {
 
             ncnn_header_t flag_struct;
 
-            _istream.read((char*)&flag_struct, 
+            _istream.read((char*)&flag_struct,
                 static_cast<std::streamsize>(sizeof(ncnn_header_t)));
             if (_istream.eof()) {
                 return;
             }
-            unsigned int flag = flag_struct.f0 + 
-                                flag_struct.f1 + 
-                                flag_struct.f2 + 
+            unsigned int flag = flag_struct.f0 +
+                                flag_struct.f1 +
+                                flag_struct.f2 +
                                 flag_struct.f3;
 
             size_t read_size;
@@ -86,33 +86,33 @@ namespace ncnn {
                 // float
                 read_size = w * sizeof(float);
                 data_type = DATA_TYPE_FLOAT;
-            } 
-            else if (flag !=0) 
+            }
+            else if (flag !=0)
             {
                 // quantized data
                 float quantization_value[256];
-                _istream.read(reinterpret_cast<char *>(quantization_value), 
+                _istream.read(reinterpret_cast<char *>(quantization_value),
                     static_cast<std::streamsize>(256 * sizeof(float)));
 
                 size_t index_size = AlignSize(w, 4);
                 std::vector<unsigned char> index_array;
                 index_array.resize(index_size);
 
-                _istream.read(reinterpret_cast<char *>(index_array.data()), 
+                _istream.read(reinterpret_cast<char *>(index_array.data()),
                     static_cast<std::streamsize>(256 * sizeof(uint8_t)));
 
                 value = RawBuffer(256 * sizeof(float));
                 value.SetDataType(DATA_TYPE_FLOAT);
 
                 float* ptr = value.force_to<float *>();
-                for (int i = 0; i < w; i++)
+                for (size_t i = 0; i < w; i++)
                 {
                     ptr[i] = quantization_value[ index_array[i] ];
                 }
 
                 return;
-            } 
-            else if (flag_struct.f0 == 0) 
+            }
+            else if (flag_struct.f0 == 0)
             {
                 // float
                 read_size = w * sizeof(float);

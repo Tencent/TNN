@@ -38,7 +38,8 @@ void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
             DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
-            int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len);
+            int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len,
+            int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr);
 
 // float fc
 template <typename T>
@@ -52,7 +53,7 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
  * @brief Permute the input blob by changing the memory order of the data.
  **/
 template <typename T>
-void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
+void NaivePermute(const int count, DimsVector dims, T *bottom_data, const std::vector<int> &permute_order,
                 const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes, T *top_data);
 
 void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int reverse, int mode, float *top_data);

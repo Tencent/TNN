@@ -39,34 +39,26 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     int has_bias       = std::get<4>(GetParam());
     DataType dtype     = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev)) {
+    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev || DEVICE_HUAWEI_NPU == dev)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, input_channel, input_size, 1, dtype);
-    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
-
     // param
-    InnerProductLayerParam param;
-    param.name       = "InnerProduct";
-    param.num_output = output_channel;
-    param.has_bias   = has_bias;
-    param.axis       = 1;
+    std::shared_ptr<InnerProductLayerParam> param(new InnerProductLayerParam());
+    param->name       = "InnerProduct";
+    param->num_output = output_channel;
+    param->has_bias   = has_bias;
+    param->axis       = 1;
 
-    // resource
-    InnerProductLayerResource resource;
-    int filter_count = output_channel * input_channel * input_size * input_size;
-    RawBuffer filter(filter_count * sizeof(float));
-    float* filter_data = filter.force_to<float*>();
-    RawBuffer bias(output_channel * sizeof(float));
-    float* bias_data = bias.force_to<float*>();
-    InitRandom(filter_data, filter_count, 1.0f);
-    InitRandom(bias_data, output_channel, 1.0f);
-    resource.weight_handle = filter;
-    resource.bias_handle   = bias;
+    // generate interpreter
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
 
-    Run(LAYER_INNER_PRODUCT, &param, &resource, inputs_desc, outputs_desc);
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == dtype) {
+        precision = PRECISION_LOW;
+    }
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS
