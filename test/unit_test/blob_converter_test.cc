@@ -46,6 +46,9 @@ bool BlobConverterTest::TestFilterCheck(
     if (blob_data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         return true;
     }
+    if (blob_data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        return true;
+    }
 
     if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
         return true;
@@ -149,7 +152,7 @@ INSTANTIATE_TEST_SUITE_P(BlobConverterTest, BlobConverterTest,
                             // mat type
                             testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21,
                                             NCHW_FLOAT),  // datatype
-                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)
+                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8, DATA_TYPE_HALF)
                             ));
 
 TEST_P(BlobConverterTest, BlobConverterTest) {
@@ -235,6 +238,11 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     if (blob_data_type == DATA_TYPE_FLOAT) {
         cpu_blob    = new Blob(cpu_blob_desc);
         device_blob = new Blob(device_blob_desc);
+    } else if (blob_data_type == DATA_TYPE_HALF) {
+        // compare with naive fp32 results
+        cpu_blob_desc.data_type = DATA_TYPE_FLOAT;
+        cpu_blob                = new Blob(cpu_blob_desc);
+        device_blob             = new Blob(device_blob_desc);
     } else {
         int_scale = CreateIntScale(channel);
         auto scaleptr  = int_scale->scale_handle.force_to<float*>();
