@@ -52,7 +52,8 @@ Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_t
     const auto& cvt_map = GetBlobConvertFuncMap();
     const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_dir);
     if (cvt_map.find(cvt_key) == cvt_map.end() || cvt_map.at(cvt_key) == nullptr) {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        LOGE("ArmBlobConverterAcc::GetBlobConvertFunc, convert type not support yet. mat_type: %d data_type:%d cvt_dir:%d\n", mat_type, data_type, cvt_dir);
+        return Status(TNNERR_PARAM_ERR, "ArmBlobConverterAcc::GetBlobConvertFunc, convert type not support yet");
     }
     cvt_func = cvt_map.at(cvt_key);
     return TNN_OK;
