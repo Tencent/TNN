@@ -85,17 +85,24 @@ bool ConvertPermFormatTFLite(std::vector<int32_t>& perm) {
     int perm_size = perm.size();
     if (perm_size > 4) {
         LOGE("TNN Transpose do not support perm's size larger than 4!\n");
+        return false;
     }
 
     for (int i = perm_size; i < 4; i++) {
         perm.emplace_back(i);
     }
 
-    const std::vector<int32_t> nchw = {0, 3, 1, 2};
-    std::vector<int32_t> perm_T     = {perm[0], perm[3], perm[1], perm[2]};
-    for (int i = 0; i < 4; i++) {
-        perm[i] = std::find(nchw.begin(), nchw.end(), perm_T[i]) - nchw.begin();
+    std::map<int, int> nhwc_to_nchw;
+    nhwc_to_nchw[0] = 0;
+    nhwc_to_nchw[1] = 2;
+    nhwc_to_nchw[2] = 3;
+    nhwc_to_nchw[3] = 1;
+
+    for (auto& v: perm) {
+        v = nhwc_to_nchw[v];
     }
+    ConvertShapeFormatTFLite(perm);
+
     return true;
 }
 

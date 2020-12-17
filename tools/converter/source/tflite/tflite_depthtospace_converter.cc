@@ -45,14 +45,15 @@ TNN_NS::Status TFLiteDepthToSpaceConverter::exec(
     param->type      = cur_layer->type_str;
     param->quantized = false;
 
-    param->forward = 0;
-    param->mode    = 0;
+    param->mode = 0;
     switch (tf_lite_op_type) {
         case tflite::BuiltinOperator_DEPTH_TO_SPACE:
-            param->stride = tf_lite_operator->builtin_options.AsDepthToSpaceOptions()->block_size;
+            param->forward = true;
+            param->stride  = tf_lite_operator->builtin_options.AsDepthToSpaceOptions()->block_size;
             break;
         case tflite::BuiltinOperator_SPACE_TO_DEPTH:
-            param->stride = tf_lite_operator->builtin_options.AsSpaceToDepthOptions()->block_size;
+            param->forward = false;
+            param->stride  = tf_lite_operator->builtin_options.AsSpaceToDepthOptions()->block_size;
             break;
         default:
             LOGE("TNN Reorg unknown op type\n");
