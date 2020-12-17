@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <memory>
+#include <sstream>
 
 #include "thirdparty/md5/md5.h"
 
@@ -155,7 +156,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
         auto dims = iter.second->GetBlobDesc().dims;
-        nvinfer1::Dims4 inputDims(dims[0], dims[1], dims[2], dims[3]);
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
     }
 
@@ -197,7 +198,7 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         auto dims = iter.second;
-        nvinfer1::Dims4 inputDims(dims[0], dims[1], dims[2], dims[3]);
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
     }
 
@@ -329,11 +330,14 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
         nvinfer1::ITensor* in_tensor = this->m_trt_network->addInput(desc.name.c_str(),
-            nvinfer1::DataType::kFLOAT, Dims4{-1, desc.dims[1], -1, -1});
+            ConvertToTRTDataType(desc.data_type), ConvertToTRTDims(desc.dims));
         auto profile = this->m_trt_builder->createOptimizationProfile();
-        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, Dims4{1, desc.dims[1], desc.dims[2], desc.dims[3]});
-        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
-        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, Dims4{desc.dims[0], desc.dims[1], desc.dims[2], desc.dims[3]});
+        auto min_dims = ConvertToTRTDims(desc.dims);
+        auto max_dims = min_dims;
+        auto opt_dims = min_dims;
+        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
+        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
+        profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);
         this->m_trt_config->addOptimizationProfile(profile);
         auto foreign_tensor = foreign_blob->GetForeignTensor();
         auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
@@ -393,6 +397,10 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
         nvinfer1::ILayer *cur_trt_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(this->m_trt_network);
+        if (cur_trt_layer == nullptr ) {
+            LOGE("build trt layer for \"%s\" failed\n", cur_layer->GetLayerName().c_str());
+            return TNNERR_LAYER_ERR;
+        }
         for (int out_id = 0; out_id < cur_layer->GetOutputBlobs().size(); out_id++) {
             auto output = cur_layer->GetOutputBlobs()[out_id];
             auto foreign_blob = dynamic_cast<ForeignBlob*>(output);
@@ -401,6 +409,10 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             auto foreign_tensor = foreign_blob->GetForeignTensor();
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
             tensorrt_tensor->SetTensor(output_tensor);
+            if (output_tensor->getDimensions().nbDims <= 0) {
+                LOGE("build trt layer for \"%s\" failed, tensor shape error.\n", cur_layer->GetLayerName().c_str());
+                return TNNERR_LAYER_ERR;
+            }
         }
     }
 
@@ -421,6 +433,10 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         m_trt_config->setFlag(BuilderFlag::kINT8);
     }
     m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
+    if (!m_trt_engine) {
+        LOGE("create tensorrt engine failed\n");
+        return TNNERR_CUDA_TENSORRT_ERROR;
+    }
     Status ret = CreateExecuteContext();
     if (ret != TNN_OK)
         return ret;
@@ -441,10 +457,12 @@ std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string mode
     std::string md5_source = md5(cfg) + md5(model);
 
     for (auto iter : input_map) {
-        char input_hw[2000];
-        sprintf(input_hw, "chw:%d%d%d", iter.second->GetBlobDesc().dims[1], iter.second->GetBlobDesc().dims[2],
-            iter.second->GetBlobDesc().dims[3]);
-        md5_source += input_hw;
+        std::stringstream ss;
+        ss << "chw:";
+        for( int d :iter.second->GetBlobDesc().dims) {
+            ss << d << ",";
+        }
+        md5_source += ss.str();
     }
     for (auto iter : output_map) {
         md5_source += iter.first;

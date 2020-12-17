@@ -12,30 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/reshape_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-ReshapeTRTLayerBuilder::ReshapeTRTLayerBuilder(LayerType type) : TensorRTLayerBuilder(type) {
-}
+DECLARE_TENSORRT_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
 
-ReshapeTRTLayerBuilder::~ReshapeTRTLayerBuilder() {
-}
-
-Status ReshapeTRTLayerBuilder::Reshape() {
-    Blob* output_blob  = output_blobs_[0];
-    Status ret = m_layer->Reshape();
-    if (ret != TNN_OK) {
-        return ret;
-    }
-    auto output_dims = output_blob->GetBlobDesc().dims;
-    printf("%d %d %d %d\n", output_dims[0], output_dims[1], output_dims[2],
-        output_dims[3]);
-    return TNN_OK;
-}
-
-ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* UnsqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     Blob* output_blob  = output_blobs_[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
     Dims reshape_dims = ConvertToTRTDims(output_dims);
@@ -54,6 +38,6 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
+REGISTER_TENSORRT_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
 
 }  //  namespace TNN_NS

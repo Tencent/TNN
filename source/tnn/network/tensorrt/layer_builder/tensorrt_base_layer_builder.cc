@@ -15,6 +15,8 @@
 #include <mutex>
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_base_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -222,6 +224,69 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
     weight_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
     weight_dequant_layer->setName(weight_dequant_layer_name.c_str());
     return weight_dequant_layer;
+}
+
+ILayer* TensorRTBaseLayerBuilder::ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf,
+                                                            DimsVector recommend_dims) {
+
+    size_t buf_size_in_bytes = buf->GetDataCount() * DataTypeUtils::GetBytesSize(buf->GetDataType());
+    float* host_weight = (float*)malloc(buf_size_in_bytes);
+    int8_weight_data.push_back(host_weight);
+    memcpy(host_weight, buf->force_to<void*>(), buf_size_in_bytes);
+    
+    Weights const_weight;
+    const_weight.type = ConvertToTRTDataType(buf->GetDataType());
+    const_weight.values = (void*)host_weight;
+    const_weight.count = buf->GetDataCount();
+
+    DimsVector buf_dims = buf->GetBufferDims();
+    if (recommend_dims.size() > 0 ) {
+        buf_dims = recommend_dims;
+    }
+    if (buf_dims.size() == 0) {
+        LOGE("TensorRTBaseLayerBuilder::ConvertWeightToConstLayer got empty shapes\n");
+        return nullptr;
+    }
+
+    Dims weightDims = ConvertToTRTDims(buf_dims);
+    ILayer* constant_layer = network->addConstant(weightDims, const_weight); 
+    return constant_layer;
+}
+
+std::vector<ITensor*> TensorRTBaseLayerBuilder::GetInputITensors() {
+    std::vector<ITensor *> inputs;
+    for(auto blob : input_blobs_) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+        if (foreign_tensor) {
+            auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+            if (tensorrt_tensor) {
+                inputs.push_back(tensorrt_tensor->GetTensor());
+            } else {
+                LOGE("GetInputITensors got non-TensorRTTensor\n");
+            }
+        } else {
+            LOGE("GetInputITensors got non-ForeignBlob\n");
+        }
+    }
+    return inputs;
+}
+
+std::vector<ITensor*> TensorRTBaseLayerBuilder::GetOutputITensors() {
+    std::vector<ITensor *> outputs;
+    for(auto blob : output_blobs_) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+        if (foreign_tensor) {
+            auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+            if (tensorrt_tensor) {
+                outputs.push_back(tensorrt_tensor->GetTensor());
+            } else {
+                LOGE("GetOutputITensors got non-TensorRTTensor\n");
+            }
+        } else {
+            LOGE("GetOutputITensors got non-ForeignBlob\n");
+        }
+    }
+    return outputs;   
 }
 
 }  //  namespace TNN_NS

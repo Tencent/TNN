@@ -12,29 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-
-#include "tnn/core/common.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-std::string GetGpuType(int gpu_id);
+DECLARE_TENSORRT_LAYER_BUILDER(Erf, LAYER_ERF);
 
-std::string GetGpuArch(int gpu_id);
+ILayer* ErfTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto tensor = GetInputITensors()[0];
+    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kERF);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
 
-std::string GetCudaVersion();
+    return layer;
+}
 
-std::string GetTrtVersion();
-
-DataType ConvertTRTDataType(nvinfer1::DataType type);
-
-DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
-
-nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
-
-nvinfer1::DataType ConvertToTRTDataType(DataType type);
+REGISTER_TENSORRT_LAYER_BUILDER(Erf, LAYER_ERF);
 
 }  //  namespace TNN_NS
-
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_

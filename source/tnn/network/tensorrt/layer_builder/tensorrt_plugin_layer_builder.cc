@@ -52,6 +52,9 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
+    m_format = nvinfer1::TensorFormat::kLINEAR;
+    m_type = nvinfer1::DataType::kFLOAT;
+
     return TNN_OK;
 }
 
@@ -65,12 +68,12 @@ int TensorRTPluginLayerBuilder::getNbOutputs() const {
 
 DimsExprs TensorRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
         nvinfer1::IExprBuilder& exprBuilder) {
-    nvinfer1::DimsExprs output;
-    output.nbDims = 4;
-    output.d[0] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[0]);
-    output.d[1] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[1]);
-    output.d[2] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[2]);
-    output.d[3] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[3]);
+    auto blob_dims = output_blobs_[index]->GetBlobDesc().dims;
+    nvinfer1::DimsExprs output; 
+    output.nbDims = blob_dims.size();
+    for(int i=0;i<blob_dims.size();i++) {
+        output.d[i] = exprBuilder.constant(blob_dims[i]);
+    }
     return output;
 }
 

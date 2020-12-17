@@ -21,15 +21,15 @@
 namespace TNN_NS {
 
 CudaBlobConverterAcc::CudaBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
-    scale_ptr = nullptr;
-    bias_ptr = nullptr;
-    image_ptr = nullptr;
+    scale_ptr_ = nullptr;
+    bias_ptr_ = nullptr;
+    image_ptr_ = nullptr;
 }
 
 CudaBlobConverterAcc::~CudaBlobConverterAcc() {
-    if (scale_ptr) cudaFree(scale_ptr);
-    if (bias_ptr) cudaFree(bias_ptr);
-    if (image_ptr) cudaFree(image_ptr);
+    if (scale_ptr_) cudaFree(scale_ptr_);
+    if (bias_ptr_) cudaFree(bias_ptr_);
+    if (image_ptr_) cudaFree(image_ptr_);
 }
 
 Status CudaBlobConverterAcc::ConvertToMat(Mat& image, MatConvertParam param, void* command_queue) {
@@ -55,51 +55,61 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
     auto blob_data = reinterpret_cast<float*>(blob_->GetHandle().base);
     auto desc = blob_->GetBlobDesc();
     auto dims = desc.dims;
-    auto hw = dims[2] * dims[3];
+    auto hw = DimsVectorUtils::Count(dims, 2);
     auto chw = dims[1] * hw;
     auto nchw = dims[0] * chw;
 
     if (image.GetMatType() == NCHW_FLOAT) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, dims[1] * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, dims[1] * sizeof(float));
-        if (!image_ptr || DimsVectorUtils::Count(dims) * sizeof(float) > image_size) {
-            if (image_ptr) cudaFree(image_ptr);
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(float));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(float);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, dims[1] * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, dims[1] * sizeof(float));
+        if (!image_ptr_ || DimsVectorUtils::Count(dims) * sizeof(float) > image_size_) {
+            if (image_ptr_) cudaFree(image_ptr_);
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(float));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(float);
         }
-        cudaMemcpy(scale_ptr, param.scale.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
-        ScaleBias(blob_data, (float*)image_ptr, stream, scale_ptr, bias_ptr, dims[0], dims[1], hw);
-        cudaMemcpy(image.GetData(), image_ptr, DimsVectorUtils::Count(dims) * sizeof(float), cudaMemcpyDeviceToHost);
+        if (param.scale.size() == dims[1]) {
+            cudaMemcpy(scale_ptr_, param.scale.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(bias_ptr_, param.bias.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
+            ScaleBias(blob_data, (float*)image_ptr_, stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+            cudaMemcpy(image.GetData(), image_ptr_, DimsVectorUtils::Count(dims) * sizeof(float), cudaMemcpyDeviceToHost);
+        } else {
+            cudaMemcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(float), cudaMemcpyDeviceToHost);
+        }
     } else if (image.GetMatType() == N8UC4) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, 4 * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, 4 * sizeof(float));
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
-            image_size = dims[0] * 4 * hw * sizeof(unsigned char);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, 4 * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, 4 * sizeof(float));
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
+            image_size_ = dims[0] * 4 * hw * sizeof(unsigned char);
         }
-        cudaMemcpy(scale_ptr, param.scale.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
-        BlobToBGR(dims[0], chw, hw, blob_data, (unsigned char*)image_ptr, stream, 4, scale_ptr, bias_ptr, param.reverse_channel);
-        cudaMemcpy(image.GetData(), image_ptr, dims[0] * 4 * hw * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scale_ptr_, param.scale.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(bias_ptr_, param.bias.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
+        BlobToBGR(dims[0], chw, hw, blob_data, (unsigned char*)image_ptr_, stream, 4, scale_ptr_, bias_ptr_, param.reverse_channel);
+        cudaMemcpy(image.GetData(), image_ptr_, dims[0] * 4 * hw * sizeof(unsigned char), cudaMemcpyDeviceToHost);
     } else if (image.GetMatType() == N8UC3) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, 4 * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, 4 * sizeof(float));
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, 4 * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, 4 * sizeof(float));
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
         }
-        cudaMemcpy(scale_ptr, param.scale.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
-        BlobToBGR(dims[0], chw, hw, blob_data, (unsigned char*)image_ptr, stream, 3, scale_ptr, bias_ptr, param.reverse_channel);
-        cudaMemcpy(image.GetData(), image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scale_ptr_, param.scale.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(bias_ptr_, param.bias.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
+        BlobToBGR(dims[0], chw, hw, blob_data, (unsigned char*)image_ptr_, stream, 3, scale_ptr_, bias_ptr_, param.reverse_channel);
+        cudaMemcpy(image.GetData(), image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyDeviceToHost);
     } else if (image.GetMatType() == NGRAY) {
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
         }
-        BlobToGray(nchw, blob_data, (unsigned char*)image_ptr, stream, param.scale[0], param.bias[0]);
-        cudaMemcpy(image.GetData(), image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+        BlobToGray(nchw, blob_data, (unsigned char*)image_ptr_, stream, param.scale[0], param.bias[0]);
+        cudaMemcpy(image.GetData(), image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+    } else if (desc.data_type == DATA_TYPE_INT32) {
+        if (image.GetMatType() == NC_INT32) {
+            cudaMemcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t), cudaMemcpyDeviceToHost);
+        } else {
+            ret = Status(TNNERR_PARAM_ERR, "blob.data_type and mat.type not match");
+        }
     } else {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -134,46 +144,50 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
     auto nchw = dims[0] * chw;
 
     if (image.GetMatType() == NCHW_FLOAT) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, dims[1] * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, dims[1] * sizeof(float));
-        if (!image_ptr || DimsVectorUtils::Count(dims) * sizeof(float) > image_size) {
-            if (image_ptr) cudaFree(image_ptr);
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(float));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(float);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, dims[1] * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, dims[1] * sizeof(float));
+        if (!image_ptr_ || DimsVectorUtils::Count(dims) * sizeof(float) > image_size_) {
+            if (image_ptr_) cudaFree(image_ptr_);
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(float));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(float);
         }
-        cudaMemcpy(scale_ptr, param.scale.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(image_ptr, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float), cudaMemcpyHostToDevice);
-        ScaleBias((float*)image_ptr, blob_data, stream, scale_ptr, bias_ptr, dims[0], dims[1], hw);
+        cudaMemcpy(scale_ptr_, param.scale.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(bias_ptr_, param.bias.data(), dims[1] * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(image_ptr_, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float), cudaMemcpyHostToDevice);
+        ScaleBias((float*)image_ptr_, blob_data, stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
     } else if (image.GetMatType() == N8UC4) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, 4 * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, 4 * sizeof(float));
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, dims[0] * 4 * hw * sizeof(unsigned char));
-            image_size = dims[0] * 4 * hw * sizeof(unsigned char);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, 4 * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, 4 * sizeof(float));
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, dims[0] * 4 * hw * sizeof(unsigned char));
+            image_size_ = dims[0] * 4 * hw * sizeof(unsigned char);
         }
-        cudaMemcpy(image_ptr, image.GetData(), dims[0] * 4 * hw * sizeof(unsigned char), cudaMemcpyHostToDevice);
-        cudaMemcpy(scale_ptr, param.scale.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
-        BGRToBlob(dims[0], chw, hw, (unsigned char*)image_ptr, blob_data, stream, 4, scale_ptr, bias_ptr, param.reverse_channel);
+        cudaMemcpy(image_ptr_, image.GetData(), dims[0] * 4 * hw * sizeof(unsigned char), cudaMemcpyHostToDevice);
+        cudaMemcpy(scale_ptr_, param.scale.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(bias_ptr_, param.bias.data(), 4 * sizeof(float), cudaMemcpyHostToDevice);
+        BGRToBlob(dims[0], chw, hw, (unsigned char*)image_ptr_, blob_data, stream, 4, scale_ptr_, bias_ptr_, param.reverse_channel);
     } else if (image.GetMatType() == N8UC3) {
-        if (!scale_ptr) cudaMalloc((void**)&scale_ptr, 4 * sizeof(float));
-        if (!bias_ptr) cudaMalloc((void**)&bias_ptr, 4 * sizeof(float));
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
+        if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, 4 * sizeof(float));
+        if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, 4 * sizeof(float));
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
         }
-        cudaMemcpy(image_ptr, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyHostToDevice);
-        cudaMemcpy(scale_ptr, param.scale.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(bias_ptr, param.bias.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
-        BGRToBlob(dims[0], chw, hw, (unsigned char*)image_ptr, blob_data, stream, 3, scale_ptr, bias_ptr, param.reverse_channel);
+        cudaMemcpy(image_ptr_, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyHostToDevice);
+        cudaMemcpy(scale_ptr_, param.scale.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(bias_ptr_, param.bias.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
+        BGRToBlob(dims[0], chw, hw, (unsigned char*)image_ptr_, blob_data, stream, 3, scale_ptr_, bias_ptr_, param.reverse_channel);
     } else if (image.GetMatType() == NGRAY) {
-        if (!image_ptr) {
-            cudaMalloc((void**)&image_ptr, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
-            image_size = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
+        if (!image_ptr_) {
+            cudaMalloc((void**)&image_ptr_, DimsVectorUtils::Count(dims) * sizeof(unsigned char));
+            image_size_ = DimsVectorUtils::Count(dims) * sizeof(unsigned char);
         }
-        cudaMemcpy(image_ptr, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyHostToDevice);
-        GrayToBlob(nchw, (unsigned char*)image_ptr, blob_data, stream, param.scale[0], param.bias[0]);
+        cudaMemcpy(image_ptr_, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(unsigned char), cudaMemcpyHostToDevice);
+        GrayToBlob(nchw, (unsigned char*)image_ptr_, blob_data, stream, param.scale[0], param.bias[0]);
+    } else if (image.GetMatType() == NC_INT32 ) {
+        desc.data_type = DATA_TYPE_INT32;
+        blob_->SetBlobDesc(desc);
+        cudaMemcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(int32_t), cudaMemcpyHostToDevice);
     } else {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }

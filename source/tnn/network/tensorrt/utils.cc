@@ -83,6 +83,8 @@ DataType ConvertTRTDataType(nvinfer1::DataType type) {
             return DATA_TYPE_FLOAT;
         case nvinfer1::DataType::kHALF :
             return DATA_TYPE_HALF;
+        case nvinfer1::DataType::kINT32 :
+            return DATA_TYPE_INT32;
         default:
             return DATA_TYPE_FLOAT;
     }
@@ -101,6 +103,35 @@ DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format) {
         default:
             return DATA_FORMAT_NCHW;
     }
+}
+
+nvinfer1::Dims ConvertToTRTDims(DimsVector dims) {
+    int nbdims = dims.size();
+    switch  (nbdims) {
+        case 2:
+            return nvinfer1::Dims2(dims[0], dims[1]);
+        case 3:
+            return nvinfer1::Dims3(dims[0], dims[1], dims[2]);
+        case 4:
+            return nvinfer1::Dims4(dims[0], dims[1], dims[2], dims[3]);
+        case 5: 
+            return nvinfer1::Dims4(dims[0], dims[1], dims[2], dims[3]);
+        default:
+            return nvinfer1::Dims();
+    }
+}
+
+nvinfer1::DataType ConvertToTRTDataType(DataType type) {
+    switch (type) {
+        case DATA_TYPE_FLOAT:
+            return nvinfer1::DataType::kFLOAT;
+        case DATA_TYPE_HALF: 
+            return nvinfer1::DataType::kHALF;
+        case DATA_TYPE_INT32: 
+            return nvinfer1::DataType::kINT32;
+        default:
+            return nvinfer1::DataType::kFLOAT;
+    } 
 }
 
 }  //  namespace TNN_NS

@@ -59,12 +59,6 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         input_dims = std::max(input_dims, dims);
     }
 
-    // only supports dims >=4 .
-    if (input_dims < 4) {
-        LOGE("invalid input shape\n");
-        return Status(TNNERR_PARAM_ERR, "invalid input shape");
-    }
-
     for (auto node_name : net_structure_->blobs) {
         BlobDesc desc;
         desc.device_type = config.device_type;
@@ -90,6 +84,17 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         std::string current_blob_name         = iter.first;
         Blob *current_blob                    = blobs_[current_blob_name];
         current_blob->GetBlobDesc().data_type = input_data_type;
+        input_blobs_[current_blob_name]       = current_blob;
+    }
+
+    // intput data types
+    const auto& input_data_type_map = net_structure->input_data_type_map;
+    for (auto iter : instance_input_shapes_map) {
+        std::string current_blob_name         = iter.first;
+        Blob *current_blob                    = blobs_[current_blob_name];
+        if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
+            current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
+        }
         input_blobs_[current_blob_name]       = current_blob;
     }
 

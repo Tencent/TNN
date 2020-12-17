@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -107,6 +108,18 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             biasWeights.type = nvinfer1::DataType::kFLOAT;
             biasWeights.values = nullptr;
             biasWeights.count = 0;
+        }
+    }
+
+    if (input_tensor->getDimensions().nbDims < 4) {
+        IShuffleLayer* shuffle_layer = network->addShuffle(*input_tensor);
+        if (shuffle_layer != nullptr) {
+            DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+            while(unsqueeze_dims.size() < 4) unsqueeze_dims.push_back(1);
+            shuffle_layer->setReshapeDimensions(ConvertToTRTDims(unsqueeze_dims));
+            input_tensor = shuffle_layer->getOutput(0);
+        } else {
+            return nullptr;
         }
     }
 

@@ -32,10 +32,10 @@ public:
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = nullptr);
 
 private:
-    float* scale_ptr;
-    float* bias_ptr;
-    void* image_ptr;
-    uint64_t image_size = 0;
+    float* scale_ptr_;
+    float* bias_ptr_;
+    void* image_ptr_;
+    uint64_t image_size_ = 0;
 };
 
 }  //  namespace TNN_NS

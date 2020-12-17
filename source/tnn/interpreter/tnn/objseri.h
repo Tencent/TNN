@@ -142,6 +142,9 @@ namespace TNN_NS {
                 return;
             }
 
+            value = TNN_NS::RawBuffer(length);
+            value.SetDataType(data_type);
+
             DimsVector dims;
             if(magic_number == g_version_magic_number_v2) {
                 int size = GetInt();
@@ -149,9 +152,10 @@ namespace TNN_NS {
                     dims.push_back(GetInt());
                 }
             }
- 
-            value = TNN_NS::RawBuffer(length);
-            value.SetDataType(data_type);
+
+            if (dims.size() == 0) {
+                dims.push_back(value.GetDataCount());
+            }
             value.SetBufferDims(dims);
 
             char *buffer = value.force_to<char *>();

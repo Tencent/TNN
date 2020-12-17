@@ -12,29 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
-
-#include "tnn/core/common.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-std::string GetGpuType(int gpu_id);
+DECLARE_CUDA_ACC(MatMul, LAYER_MATMUL);
 
-std::string GetGpuArch(int gpu_id);
+Status CudaMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-std::string GetCudaVersion();
+Status CudaMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-std::string GetTrtVersion();
+Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-DataType ConvertTRTDataType(nvinfer1::DataType type);
+REGISTER_CUDA_ACC(MatMul, LAYER_MATMUL);
 
-DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
-
-nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
-
-nvinfer1::DataType ConvertToTRTDataType(DataType type);
-
-}  //  namespace TNN_NS
-
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
+}  // namespace TNN_NS

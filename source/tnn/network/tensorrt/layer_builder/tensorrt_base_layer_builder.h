@@ -81,6 +81,12 @@ protected:
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
         nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights, float scale, std::vector<int> dims);
 
+    ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf, DimsVector recommend_dims=DimsVector());
+
+    std::vector<ITensor*> GetInputITensors();
+
+    std::vector<ITensor*> GetOutputITensors();
+
     std::shared_ptr<BaseLayer> m_layer;
     std::vector<float*> int8_weight_data;
     bool is_plugin;
