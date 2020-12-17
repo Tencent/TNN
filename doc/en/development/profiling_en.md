@@ -138,26 +138,32 @@ The result is shown in the figure and saved to `benchmark_models_result.txt`：
 
 #### 1.1 Compile
 
-Please refer to [TNN Compile Document](../user/compile_en.md):Compile for Android, to check if the environment meets the requirements.
+Please refer to [TNN Compile Document](../user/compile_en.md): Compile for Android, to check if the environment meets the requirements.
 
 #### 1.2 Execute
 
 ##### 1.2.1 JDK
-Download[JDK](https://www.oracle.com/hk/java/technologies/javase-downloads.html), set `$JAVA_HOME`
+
+Download [JDK](https://www.oracle.com/hk/java/technologies/javase-downloads.html), set `$JAVA_HOME`
+
 PS: If the jdk version is too old, the script might fail to work, current jdk verison：15.0.1
 ```
 export JAVA_HOME=<path_to_jdk>/
 ```
 
 ##### 1.2.2 Android SDK
-Download[Android SDK](https://developer.android.com/studio), set `$ANDROID_HOME`
+
+Download [Android SDK](https://developer.android.com/studio), set `$ANDROID_HOME`
+
 PS: If the Android sdk version is too old, the script might fail to work, current sdk verison：28.0.3
 ```
 export ANDROID_HOME=<path_to_android_sdk>/
 ```
 
 ##### 1.2.3 adb command configuration
-Download[Android  tool](https://developer.android.com/studio/releases/platform-tools), export `platform-tool` directory to`$PATH`。
+
+Download [Android  tool](https://developer.android.com/studio/releases/platform-tools), export `platform-tool` directory to`$PATH`
+
 PS: If the adb version is too old，the script might fail to work, current adb verison：29.0.5-5949299
 ```
 export PATH=<path_to_android_sdk>/platform-tools:$PATH
@@ -191,7 +197,7 @@ Parameters：
     -d    run with specified device
     -t    CPU/GPU specify the platform to run
 ```
-P.S. If -t is not set, the programme would run on CPU and GPU by default, "-t HUAWEI_NPU" needs to be specified to obtain Huawei NPU benchmark.
+P.S. If -t is not set, the programme would run on CPU and GPU by default.
 
 #### 4.1 Overall Network Performance Analysis：
 
@@ -199,7 +205,7 @@ Prepare and run the benchmark app to analyze the overall network time-consuming 
 Execute the script：
 
 ```
-./benchmark_models_app.sh -c
+./benchmark_models_app.sh
 ```
 
 The result is reported as:
@@ -215,10 +221,13 @@ benchmark device: OPENCL
 
 ### 5. Special Instructions
 #### 5.1 View Results
+
 The benchmark app obtain the performance report through `logcat` after running for a few seconds. You can also view the results using the `logcat` command manually:
+
 ```
 adb logcat | grep "TNN Benchmark time cost"
 ```
 
 #### 5.2 Performance Notes
+
 Compared with executing binaries directly via `adb shell`, the foreground benchmark app gets closer performance with an actual Android app. Due to Android's scheduler tailors behavior, it can result in observable differences in performance. Therefore, the benchmark app is preferred for performance measurement.
