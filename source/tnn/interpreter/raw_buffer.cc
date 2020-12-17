@@ -54,8 +54,8 @@ template <typename T>
 void permute(void *in, void *out, size_t outter, size_t inner) {
     T *in_ptr  = static_cast<T *>(in);
     T *out_ptr = static_cast<T *>(out);
-    for (int i = 0; i < outter; i++) {
-        for (int j = 0; j < inner; j++) {
+    for (size_t i = 0; i < outter; i++) {
+        for (size_t j = 0; j < inner; j++) {
             out_ptr[j * outter + i] = in_ptr[i * inner + j];
         }
     }
@@ -165,6 +165,9 @@ std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();
     int bytes        = raw_buffer.GetBytesSize();
+    if (0 == bytes)
+        return nullptr;
+
     std::shared_ptr<float> float_data;
     if (type == DATA_TYPE_FLOAT) {
         element_size = bytes / sizeof(float);

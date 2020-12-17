@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <gtest/gtest.h>
+#include <sys/time.h>
 #include "test/flags.h"
 #include "test/test_utils.h"
 #include "test/unit_test/unit_test_common.h"
@@ -42,6 +43,11 @@ bool ParseAndCheckCommandLine(int argc, char *argv[]) {
 }  // namespace TNN_NS
 
 GTEST_API_ int main(int argc, char **argv) {
+    struct timezone zone;
+    struct timeval time1;
+    struct timeval time2;
+    gettimeofday(&time1, &zone);
+
     int result = 0;
     try {
         ::testing::InitGoogleTest(&argc, argv);
@@ -52,5 +58,10 @@ GTEST_API_ int main(int argc, char **argv) {
     } catch (std::exception e) {
         LOGE("unit test catches an exception: %s \n", e.what());
     }
+
+    gettimeofday(&time2, &zone);
+    float cost_sec = (time2.tv_sec - time1.tv_sec) + (time2.tv_usec - time1.tv_usec) / 1000000.0;
+    printf("=== Unit Test Cost: %f s ===\n", cost_sec);
+
     return result;
 }

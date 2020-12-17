@@ -50,11 +50,34 @@ Status NpuCommonUtils::CalculateBroadcastSize(std::vector<int> &weight, EltwiseL
 }
 
 std::string NpuCommonUtils::GetFileHash(ModelConfig &model_config) {
+    if (model_config.params.size() < 2) {
+        return "empty_model_config";
+    }
     std::string file_content = model_config.params[1] + model_config.params[0];
     int hash                 = 0;
     for (size_t i = 0; i < file_content.length(); ++i)
         hash = 65599 * hash + file_content.at(i);
     return ToString(hash ^ (hash >> 16));
+}
+
+std::string NpuCommonUtils::modifyModelInputSize(InputShapesMap &inputs_shape,
+                                                 InputShapesMap &instance_input_shapes_map) {
+    std::stringstream model_suffix_stream("");
+    for (auto iter : inputs_shape) {
+        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
+            instance_input_shapes_map[iter.first] = iter.second;
+            model_suffix_stream << "_" << iter.first << "[";
+            DimsVector value = iter.second;
+            for (size_t i = 0; i < value.size(); ++i) {
+                if (i != 0) {
+                    model_suffix_stream << "x";
+                }
+                model_suffix_stream << value[i];
+            }
+            model_suffix_stream << "]";
+        }
+    }
+    return model_suffix_stream.str();
 }
 
 bool NpuCommonUtils::FileExits(std::string model_path) {

@@ -99,25 +99,6 @@ int NpuUtils::checkNpuVersion(const char *version) {
     return 0;
 }
 
-std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
-            }
-            model_suffix_stream << "]";
-        }
-    }
-    return model_suffix_stream.str();
-}
-
 void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                             std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map) {
     std::vector<shared_ptr<LayerInfo>> layers;

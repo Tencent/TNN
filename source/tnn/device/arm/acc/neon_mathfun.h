@@ -24,7 +24,8 @@
  *
  *  (this is the zlib license)
  */
-
+#ifndef neon_mathfun_h
+#define neon_mathfun_h
 #include <arm_neon.h>
 
 #define c_inv_mant_mask ~0x7f800000u
@@ -429,11 +430,11 @@ static inline float32x4_t sigmoid_ps(float32x4_t v)
 /* sigmoid() computed for 4 float at once: small error*/
 static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
 {
-    float32x4_t const16 = vdupq_n_f32(16.0f);
+    float32x4_t const16 = vdupq_n_f32(256.0f);
     uint32x4_t mask = vcgeq_f32(x, const16);
     
     float32x4_t const1 = vdupq_n_f32(1.0f);
-    float32x4_t const025 = vdupq_n_f32(0.25f*0.25f);
+    float32x4_t const025 = vdupq_n_f32(0.25f*0.25f*0.25f*0.25f);
     
     //y = 1-x/16
     float32x4_t temp = vmlsq_f32(const1, const025, x);
@@ -445,6 +446,12 @@ static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
     temp = vmulq_f32(temp, temp);
     //y16
     temp = vmulq_f32(temp, temp);
+
+    //y256 
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
     
     temp = vaddq_f32(temp, const1);
     float32x4_t result = vrecpeq_f32(temp);
@@ -454,3 +461,4 @@ static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
     
     return result;
 }
+#endif

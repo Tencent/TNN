@@ -31,27 +31,14 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
     // param
-    LayerParam param;
-    param.name = "InstanceNorm";
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "InstanceNorm";
 
-    // resource
-    InstanceNormLayerResource resource;
-    int k_count = channel;
-    RawBuffer filter_k(k_count * sizeof(float));
-    float* k_data = filter_k.force_to<float*>();
-    InitRandom(k_data, k_count, 1.0f);
-    resource.scale_handle = filter_k;
-    RawBuffer bias(k_count * sizeof(float));
-    float* bias_data = bias.force_to<float*>();
-    InitRandom(bias_data, k_count, 1.0f);
-    resource.bias_handle = bias;
-
-    Run(LAYER_INST_BATCH_NORM, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

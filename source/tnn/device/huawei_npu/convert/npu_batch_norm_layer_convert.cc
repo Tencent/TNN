@@ -22,18 +22,27 @@ namespace TNN_NS {
 
 DECLARE_NPU_LAYER_WEIGHT(BatchNorm, LAYER_BATCH_NORM)
 
-void InitVectorData(std::vector<float> &mean_data, std::vector<float> &variance_data,
-                            std::vector<float> &share_scale_data, std::vector<float> &share_bias_data,
-                            float *scale_data, float *bias_data,
-                            int channel, bool share_channel) {
+Status InitBnVectorData(std::vector<float> &mean_data, std::vector<float> &variance_data,
+                        std::vector<float> &scale_data, std::vector<float> &bias_data, float *scale_data_fp32,
+                        float *bias_data_fp32, int channel, bool share_channel) {
+    if (nullptr == scale_data_fp32) {
+        return Status(TNNERR_NULL_PARAM, "scale data ptr is null");
+    }
     for (int i = 0; i < channel; i++) {
         mean_data.push_back(0.0f);
         variance_data.push_back(1.0f);
+        int index = i;
         if (share_channel) {
-            share_scale_data.push_back(scale_data[0]);
-            share_bias_data.push_back(bias_data[0]);
+            index = 0;
+        }
+        scale_data.push_back(scale_data_fp32[index]);
+        if (nullptr == bias_data_fp32) {
+            bias_data.push_back(0.0f);
+        } else {
+            bias_data.push_back(bias_data_fp32[index]);
         }
     }
+    return TNN_OK;
 }
 
 Status NpuBatchNormLayer::Convert() {
@@ -42,52 +51,49 @@ Status NpuBatchNormLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
     }
 
+    Status ret = TNN_OK;
+
     // channel is the second element of NCHW
     int channel = input_ops_[0]->GetShape()[1];
     bool share_channel =
         resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
-    //fixed - set to be 0 and 1
+    // fixed - set to be 0 and 1
     std::vector<float> mean_data;
     std::vector<float> variance_data;
-    //here needs to consider float 16
-    std::vector<float> share_scale_data;
-    std::vector<float> share_bias_data;
+    // here needs to consider float 16
+    std::vector<float> scale_data;
+    std::vector<float> bias_data;
 
     if (resource->scale_handle.GetDataType() != DATA_TYPE_FLOAT) {
         // if filter handle is half,it needs to be converted to float first.
-        auto scale_data = GetFloatFromRawBuffer(resource->scale_handle);
-        auto bias_data = GetFloatFromRawBuffer(resource->bias_handle);
+        auto scale_data_fp32 = GetFloatFromRawBuffer(resource->scale_handle);
+        auto bias_data_fp32  = GetFloatFromRawBuffer(resource->bias_handle);
 
-        if (scale_data == nullptr || bias_data == nullptr) {
+        if (scale_data_fp32 == nullptr) {
             return Status(TNNERR_NPU_LOAD_ERROR, "In NPU, when convert to 16, pointer is null");
         }
-        InitVectorData(mean_data, variance_data, share_scale_data, share_bias_data, scale_data.get(), bias_data.get(),
-                       channel, share_channel);
+        ret = InitBnVectorData(mean_data, variance_data, scale_data, bias_data, scale_data_fp32.get(),
+                               bias_data_fp32.get(), channel, share_channel);
     } else {
-        InitVectorData(mean_data, variance_data, share_scale_data, share_bias_data,
-                       resource->scale_handle.force_to<float *>(), resource->bias_handle.force_to<float *>(), channel,
-                       share_channel);
+        ret = InitBnVectorData(mean_data, variance_data, scale_data, bias_data,
+                               resource->scale_handle.force_to<float *>(), resource->bias_handle.force_to<float *>(),
+                               channel, share_channel);
     }
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     ge::Shape shape({channel});
     ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
 
     auto mean_const = std::make_shared<ge::op::Const>(layer_name_ + "_mean");
-    NpuUtils::CreateAttrArray(mean_const, mean_data, desc, channel);
+    RETURN_ON_NEQ(NpuUtils::CreateAttrArray(mean_const, mean_data, desc, channel), TNN_OK);
 
     auto variance_const = std::make_shared<ge::op::Const>(layer_name_ + "_variance");
-    NpuUtils::CreateAttrArray(variance_const, variance_data, desc, channel);
+    RETURN_ON_NEQ(NpuUtils::CreateAttrArray(variance_const, variance_data, desc, channel), TNN_OK);
 
     auto scale_const = std::make_shared<ge::op::Const>(layer_name_ + "_scale");
     auto bias_const  = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
-
-    if (share_channel) {
-        NpuUtils::CreateAttrArray(scale_const, share_scale_data, desc, channel);
-        NpuUtils::CreateAttrArray(bias_const, share_bias_data, desc, channel);
-    } else {
-        NpuUtils::CreateAttrValue(scale_const, shape, resource->scale_handle);
-        NpuUtils::CreateAttrValue(bias_const, shape, resource->bias_handle);
-    }
+    RETURN_ON_NEQ(NpuUtils::CreateAttrArray(scale_const, scale_data, desc, channel), TNN_OK);
+    RETURN_ON_NEQ(NpuUtils::CreateAttrArray(bias_const, bias_data, desc, channel), TNN_OK);
 
     weight_ops_.push_back(mean_const);
     weight_ops_.push_back(variance_const);
@@ -105,5 +111,6 @@ Status NpuBatchNormLayer::Convert() {
 }
 
 REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_NPU_LAYER(BatchNorm, LAYER_SCALE)
 
 }  // namespace TNN_NS

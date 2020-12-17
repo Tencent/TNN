@@ -34,6 +34,8 @@
 
 namespace TNN_NS {
 
+using OutputShapesMap = std::map<std::string, DimsVector>;
+
 class RknpuNetwork : public AbstractNetwork {
 public:
     // @brief default constructor
@@ -102,6 +104,9 @@ private:
     Status CreateGraphInputs(InputShapesMap &input_shape_map);
 
     Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map);
+
+    Status GetOutputShapeMap(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
+                             InputShapesMap &input_shape, OutputShapesMap &output_shape);
 
     AbstractDevice *device_ = nullptr;
 

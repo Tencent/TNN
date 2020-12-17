@@ -30,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AddLayerTest,
                                             // weight index
                                             testing::Values(-1, 0, 1),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8, DATA_TYPE_HALF)));
 
 TEST_P(AddLayerTest, BinaryLayerTest) {
     int batch               = std::get<0>(GetParam());
@@ -48,7 +48,6 @@ TEST_P(AddLayerTest, BinaryLayerTest) {
         }
     }
 
-    RunBinaryTest();
+    RunBinaryTest("Add");
 }
-
 }  // namespace TNN_NS

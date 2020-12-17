@@ -45,25 +45,23 @@ TEST_P(StrideSliceLayerTest, StrideSliceLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
-
     // param
-    StrideSliceLayerParam param;
-    param.name    = "StrideSlice";
-    param.begins  = {begin_offset, begin_offset, begin_offset, 0};
-    param.strides = {wh_stride, wh_stride, channel_stride, 1};
-    param.ends    = {input_size + end_offset, input_size + end_offset, channel + end_offset, batch};
+    std::shared_ptr<StrideSliceLayerParam> param(new StrideSliceLayerParam());
+    param->name    = "StrideSlice";
+    param->begins  = {begin_offset, begin_offset, begin_offset, 0};
+    param->strides = {wh_stride, wh_stride, channel_stride, 1};
+    param->ends    = {input_size + end_offset, input_size + end_offset, channel + end_offset, batch};
 
-    for (int i = 0; i < param.begins.size(); ++i) {
-        if (param.begins[i] >= param.ends[i]) {
+    for (int i = 0; i < param->begins.size(); ++i) {
+        if (param->begins[i] >= param->ends[i]) {
             GTEST_SKIP();
         }
     }
 
-    // resource
-    Run(LAYER_STRIDED_SLICE, &param, NULL, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("StridedSlice", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

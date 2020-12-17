@@ -14,6 +14,7 @@
 
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PoolingLayerTest,
                                             // pool type
                                             testing::Values(0, 1),
                                             // datatype
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF)));
 
 TEST_P(PoolingLayerTest, PoolingLayer) {
     // get param
@@ -49,26 +50,38 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
 
     // param
-    PoolingLayerParam param;
-    param.name           = "Pooling";
-    param.kernels_params = {kernel, kernel};
-    param.kernels        = {kernel, kernel};
-    param.strides        = {stride, stride};
+    std::shared_ptr<PoolingLayerParam> param(new PoolingLayerParam());
+    param->name           = "Pooling";
+    param->kernels_params = {kernel, kernel};
+    param->kernels        = {kernel, kernel};
+    param->strides        = {stride, stride};
     if (kernel == 3)
-        param.pads = {1, 1, 1, 1};
+        param->pads = {1, 1, 1, 1};
     else
-        param.pads = {0, 0, 0, 0};
-    param.pad_type  = -1;
-    param.pool_type = pool_type;
-    param.kernel_indexs.push_back(-1);
-    param.kernel_indexs.push_back(-1);
+        param->pads = {0, 0, 0, 0};
+    param->pad_type  = -1;
+    param->pool_type = pool_type;
+    param->kernel_indexs.push_back(-1);
+    param->kernel_indexs.push_back(-1);
 
-    Run(LAYER_POOLING, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, param);
+    Precision precision         = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } 
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

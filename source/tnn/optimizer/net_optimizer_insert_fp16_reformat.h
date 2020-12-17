@@ -37,7 +37,7 @@ namespace optimizer {
 
         void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
                          NetStructure *structure,
-                         std::shared_ptr<LayerInfo>& cur_layer,
+                         bool is_cur_layer_fp16,
                          std::shared_ptr<LayerInfo>& new_layer,
                          std::vector<std::string>& reformat_outs,
                          const std::string& reformat_name_suffix,

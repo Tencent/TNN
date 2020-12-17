@@ -35,10 +35,10 @@ Status ArmPriorBoxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         auto prior_box = GeneratePriorBox(inputs, outputs, param);
         memcpy(nchw_blob_out[0]->GetHandle().base, reinterpret_cast<void *>(prior_box.data()),
                prior_box.size() * sizeof(float));
+        PackOutputs<float>(outputs);
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT data type");
     }
-    PackOutputs(outputs);
 
     return TNN_OK;
 }
