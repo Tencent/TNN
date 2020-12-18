@@ -76,7 +76,7 @@ namespace ncnn {
 
             weights = const_res->weight_handle;
         } else {
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
             // generate weights in benchmark mode
             int weight_size = 1;
             for (auto dim_i : const_param->dims) {

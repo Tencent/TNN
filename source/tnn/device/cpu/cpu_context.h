@@ -32,7 +32,7 @@ public:
     virtual Status GetCommandQueue(void** command_queue) override;
 
     // @brief share tnn command queue to another context
-    Status ShareCommandQueue(Context* context);
+    Status ShareCommandQueue(Context* context) override;
     
     // @brief befor instace forword
     virtual Status OnInstanceForwardBegin() override;

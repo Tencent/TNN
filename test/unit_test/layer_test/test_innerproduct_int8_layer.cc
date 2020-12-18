@@ -19,8 +19,7 @@
 
 namespace TNN_NS {
 
-class InnerProductInt8LayerTest : public LayerTest,
-                                  public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
+class InnerProductInt8LayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductInt8LayerTest,
                          ::testing::Combine(testing::Values(1), testing::Values(3, 4, 8, 9, 16),
@@ -38,38 +37,18 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, input_channel, input_size, 1, DATA_TYPE_INT8);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_INT8);
-    // assign output dims to ensure output resourse be created correctly
-    outputs_desc[0].dims.push_back(batch);
-    outputs_desc[0].dims.push_back(output_channel);
-    outputs_desc[0].dims.push_back(1);
-    outputs_desc[0].dims.push_back(1);
-
     // param
-    InnerProductLayerParam param;
-    param.name       = "InnerProduct";
-    param.num_output = output_channel;
-    param.has_bias   = 0;
-    param.axis       = 1;
+    std::shared_ptr<InnerProductLayerParam> param(new InnerProductLayerParam());
+    param->name       = "InnerProduct";
+    param->num_output = output_channel;
+    param->has_bias   = 0;
+    param->axis       = 1;
+    param->quantized  = true;
 
-    // resource
-    InnerProductLayerResource resource;
-    size_t filter_count = output_channel * input_channel * input_size * input_size;
-    RawBuffer filter(filter_count * sizeof(int8_t));
-    int8_t* filter_data = filter.force_to<int8_t*>();
-    InitRandom<int8_t>(filter_data, filter_count, 4);
-    RawBuffer scale(output_channel * sizeof(float));
-    InitRandom(scale.force_to<float*>(), output_channel, 1.0f);
-    for (int i = 0; i < output_channel; i++) {
-        scale.force_to<float*>()[i] =
-            std::fabs(scale.force_to<float*>()[i] - 0.f) < FLT_EPSILON ? 1.f : scale.force_to<float*>()[i];
-    }
-    resource.weight_handle = filter;
-    resource.weight_handle.SetDataType(DATA_TYPE_INT8);
-    resource.scale_handle = scale;
-    Run(LAYER_INNER_PRODUCT, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

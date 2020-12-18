@@ -171,7 +171,7 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     }
 }
 
-Context* OpenCLDevice::CreateContext(int) {
+Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
 }
 
