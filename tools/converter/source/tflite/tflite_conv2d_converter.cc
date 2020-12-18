@@ -34,6 +34,34 @@ tflite::ActivationFunctionType TFLiteConv2DConverter::ActivationType(
             return tflite::ActivationFunctionType_NONE;
     }
 }
+void CalculatePadSize(const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                      const tflite::BuiltinOptionsUnion& option, const int kernel_h, const int kernel_w,
+                      TNN_NS::ConvLayerParam* param) {
+    auto input_index         = tf_lite_operator->inputs[0];
+    const auto& input_tensor = tf_lite_tensors[input_index];
+    const auto input_shape   = input_tensor->shape;
+    const auto& conv_option  = option.AsConv2DOptions();
+    const int input_height   = input_shape[1];
+    const int input_wight    = input_shape[2];
+    const int dilation_h     = conv_option->dilation_h_factor;
+    const int dilation_w     = conv_option->dilation_w_factor;
+    const int stride_h       = conv_option->stride_h;
+    const int stride_w       = conv_option->stride_w;
+    int kernel_extent_h      = dilation_h * (kernel_h - 1) + 1;
+    int kernel_extent_w      = dilation_w * (kernel_w - 1) + 1;
+    int total_pad_h          = (input_height - 1) * stride_h + kernel_extent_h - input_height;
+    int total_pad_w          = (input_wight - 1) * stride_w + kernel_extent_w - input_wight;
+    int pad_left = total_pad_w / 2;
+    int pad_right = total_pad_w - pad_left;
+    int pad_top = total_pad_h / 2;
+    int pad_bottom = total_pad_h - pad_top;
+    param->pads.clear();
+    param->pads.push_back(pad_left);
+    param->pads.push_back(pad_right);
+    param->pads.push_back(pad_top);
+    param->pads.push_back(pad_bottom);
+}
 
 TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
@@ -73,10 +101,9 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->dialations.push_back(option->dilation_w_factor);
         param->dialations.push_back(option->dilation_h_factor);
         param->group    = 1;
-        param->pad_type = 0;
         if (option->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
-            param->pad_type = -1;
+            param->pad_type = 1;
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
@@ -87,6 +114,10 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
+        }
+        if (param->dialations[0] != 1 && param->dialations[1] != 1) {
+            param->pad_type = -1;
+            TNN_CONVERTER::CalculatePadSize(tf_lite_operator, tf_lite_tensors, tf_lite_operator->builtin_options, kh, kw, param);
         }
         const auto activation = option->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {
