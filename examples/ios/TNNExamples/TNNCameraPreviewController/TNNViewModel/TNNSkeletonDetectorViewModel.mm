@@ -17,6 +17,14 @@
 
 using namespace std;
 
+@interface TNNSkeletonDetectorViewModel ()
+@property (nonatomic, strong) UISwitch *modelSwitch;
+@property (nonatomic, strong) UILabel *modelLabel;
+@property (nonatomic, assign) bool useThinModel;
+@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> bigPredictor;
+@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> thinPredictor;
+@end
+
 @implementation TNNSkeletonDetectorViewModel
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
@@ -31,11 +39,24 @@ using namespace std;
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
     // fused model, no post-processing required, gaussian blur->2 conv layers
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
+    //auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
+    //                                                  ofType:nil];
+    //auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnproto"
+    //                                                  ofType:nil];
+    //auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
+    //                                                  ofType:nil];
+    //auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_noresize.tnnproto"
+    //                                                  ofType:nil];
+
+    // new efficient model
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d_thin.tnnproto"
                                                       ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnproto"
+    auto thin_proto_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d_thin_noresize.tnnproto"
                                                       ofType:nil];
-    if (model_path.length <= 0 || proto_path.length <= 0) {
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d.tnnmodel"
+                                                      ofType:nil];
+
+    if (model_path.length <= 0 || proto_path.length <= 0 || thin_proto_path.length <= 0) {
         status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
         NSLog(@"Error: proto or model path is invalid");
         return status;
@@ -44,7 +65,11 @@ using namespace std;
     NSString *protoFormat = [NSString stringWithContentsOfFile:proto_path
                                                    encoding:NSUTF8StringEncoding
                                                       error:nil];
+    NSString *thinProtoFormat = [NSString stringWithContentsOfFile:thin_proto_path
+                                                          encoding:NSUTF8StringEncoding
+                                                             error:nil];
     string proto_content = protoFormat.UTF8String;
+    string thin_proto_content = thinProtoFormat.UTF8String;
     NSData *data = [NSData dataWithContentsOfFile:model_path];
     string model_content = [data length] > 0 ? string((const char *)[data bytes], [data length]) : "";
     if (proto_content.size() <= 0 || model_content.size() <=0) {
@@ -63,16 +88,35 @@ using namespace std;
         option->min_threshold = 0.15f;
     }
     
-    auto predictor = std::make_shared<SkeletonDetector>();
-    status = predictor->Init(option);
+    auto bigPredictor = std::make_shared<SkeletonDetector>();
+    status = bigPredictor->Init(option);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    auto thinOption = std::make_shared<SkeletonDetectorOption>();
+    {
+        thinOption->proto_content = thin_proto_content;
+        thinOption->model_content = model_content;
+        thinOption->library_path = library_path.UTF8String;
+        thinOption->compute_units = units;
+
+        thinOption->min_threshold = 0.15f;
+    }
+    auto thinPredictor = std::make_shared<SkeletonDetector>();
+    status = thinPredictor->Init(thinOption);
     
     BenchOption bench_option;
     bench_option.forward_count = 1;
-    predictor->SetBenchOption(bench_option);
-    
+    bigPredictor->SetBenchOption(bench_option);
+    thinPredictor->SetBenchOption(bench_option);
+
+    self.bigPredictor = bigPredictor;
+    self.thinPredictor = thinPredictor;
+
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
-    self.predictor = predictor;
+    auto useThinModel = self.useThinModel;
+    self.predictor =  useThinModel? thinPredictor : bigPredictor;
+
     return status;
 }
 
@@ -93,6 +137,35 @@ using namespace std;
         return [NSString stringWithFormat:@"%.2f", object->score];
     }
     return nil;
+}
+
+#pragma mark - UI control
+- (void)setupCustomView:(UIView *)view
+           layoutHeight:(NSLayoutConstraint *)viewLayoutHeight {
+    viewLayoutHeight.constant = 60;
+
+    auto mySwitch = [[UISwitch alloc] initWithFrame:CGRectMake(55 + 200,
+                                                            12, 36, 36)];
+    [mySwitch addTarget:self action:@selector(onSwitchModel:) forControlEvents:UIControlEventValueChanged];
+    [view addSubview:mySwitch];
+    [mySwitch setOn:NO];
+
+    auto myLabel = [[UILabel alloc] initWithFrame:CGRectMake(55 + 200,
+                                                            40, 100, 45)];
+    [myLabel setText:@"thin model"];
+    [view addSubview:myLabel];
+
+    self.modelSwitch = mySwitch;
+    self.modelLabel = myLabel;
+}
+
+- (void)onSwitchModel:(UISwitch *)switchModel {
+    auto useThinModel = switchModel.on;
+    self.useThinModel = useThinModel;
+    if (useThinModel)
+        self.predictor = self.thinPredictor;
+    else
+        self.predictor = self.bigPredictor;
 }
 
 @end

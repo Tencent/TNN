@@ -89,6 +89,10 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
     confidence_list.resize(heatmap_channels);
     std::vector<bool> detected(heatmap_channels);
 
+    float scale_h = static_cast<float>(orig_input_height) / heatmap_height;
+    float scale_w = static_cast<float>(orig_input_width) / heatmap_width;
+    bool coord_need_scale = (scale_h!=1) || (scale_w!=1);
+
     for(int c=0; c<heatmap_channels; ++c) {
         float* data_c = heatmap_data + c * heatmap_height * heatmap_width;
         // locate the max value inside a channel
@@ -110,7 +114,13 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
             skeleton.key_points[c] = std::make_pair(-1, -1);
             detected[c] = false;
         } else {
-            skeleton.key_points[c] = std::make_pair(max_pos_w, max_pos_h);
+            if (coord_need_scale) {
+                //printf("scale with:%.4f, %.4f\n", scale_h, scale_w);
+                skeleton.key_points[c] = std::make_pair(max_pos_w * scale_w,
+                                                      max_pos_h * scale_h);
+            } else {
+                skeleton.key_points[c] = std::make_pair(max_pos_w, max_pos_h);
+            }
             detected[c] = true;
         }
         confidence_list[c] = max_val;

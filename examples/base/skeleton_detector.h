@@ -53,6 +53,29 @@ public:
  point15:left  ankle
  point16:right ankle
  */
+/*
+ the output of the efficient pose2d model is a list of 2d points:
+ the output of the skeleton model is a list of 2d points:
+ point0: nose
+ point1: center between left shoulder and right shoulder
+ point2: left  shoulder
+ point3: left  elbow
+ point4: left  wrist
+ point5: right shoulder
+ point6: right elbow
+ point7: right wrist
+ point8: left  hip
+ point9: left  knee
+ point10:left  ankle
+ point11:right hip
+ point12:right knee
+ point13:right ankle
+ point14:left eye
+ point15:right eye
+ point16: left  ear
+ point17: right ear
+ */
+
 class SkeletonDetectorOutput : public TNNSDKOutput {
 public:
     SkeletonDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
@@ -88,7 +111,8 @@ private:
     // the input mat size
     int orig_input_width;
     int orig_input_height;
-    // lines connecting points
+    // lines for skeleton model:
+    /*
     std::vector<std::pair<int, int>> lines = {
         {5, 6},
         {5, 7},
@@ -102,6 +126,27 @@ private:
         {12,14},
         {13,15},
         {14,16}
+    };
+    */
+    // lines for the efficient pose2d model
+    std::vector<std::pair<int, int>> lines = {
+        {0, 14},
+        {0, 15},
+        {1, 2},
+        {1, 5},
+        {2, 3},
+        {2, 8},
+        {3, 4},
+        {5, 6},
+        {5, 11},
+        {6, 7},
+        {8, 11},
+        {8, 9},
+        {9, 10},
+        {11,12},
+        {12,13},
+        {14, 16},
+        {15, 17}
     };
 };
 
