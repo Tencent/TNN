@@ -10,7 +10,7 @@
 
 namespace parser{
     static const uint32_t g_version_magic_number_tnn = 0x0FABC0002;
-    static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0003;
+    static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0004;
 
     //keep same with tnn/common.h
     typedef enum {
