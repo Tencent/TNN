@@ -27,7 +27,7 @@
 
 namespace TNN_NS {
     static const uint32_t g_version_magic_number = 0x0FABC0002;
-    static const uint32_t g_version_magic_number_v2 = 0x0FABC0003;
+    static const uint32_t g_version_magic_number_v2 = 0x0FABC0004;
 
     class Serializer {
     public:
