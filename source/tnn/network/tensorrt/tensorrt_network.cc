@@ -29,7 +29,8 @@ namespace TNN_NS {
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
 #define TENSORRT_SERIALIZE_VERSION "v1.0"
 
-NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>> g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
+NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
+    g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
 
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
 
@@ -49,8 +50,8 @@ TensorRTNetwork_::~TensorRTNetwork_() {
     }
 }
 
-Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter* interpreter,
-        InputShapesMap inputs_shape) {
+Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
+        AbstractModelInterpreter* interpreter, InputShapesMap inputs_shape) {
     cudaSetDevice(net_config.device_id);
     config_ = net_config;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -119,8 +120,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
        return ret;
     }
 
-    std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1],
-        inputs, outputs, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+    std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1], inputs, outputs,
+        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (false == file_lock->Ready()) {
@@ -322,7 +323,8 @@ Status TensorRTNetwork_::CreateExecuteContext() {
 
 Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name) {
     this->m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
-    NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+    NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(
+        NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);
     this->m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
     this->m_trt_config = this->m_trt_builder->createBuilderConfig();
@@ -360,7 +362,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             input_quant_power.values = nullptr;
             input_quant_power.count = 0;
 
-            auto input_quant_layer = this->m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM, input_quant_shift, input_quant_scale, input_quant_power);
+            auto input_quant_layer = this->m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM,
+                input_quant_shift, input_quant_scale, input_quant_power);
             std::string input_quant_layer_name = desc.name + "_input_quant_";
             input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
             input_quant_layer->setName(input_quant_layer_name.c_str());
@@ -382,8 +385,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             input_dequant_power.values = nullptr;
             input_dequant_power.count = 0;
 
-            auto input_dequant_layer = this->m_trt_network->addScale(*(input_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
-                input_dequant_shift, input_dequant_scale, input_dequant_power);
+            auto input_dequant_layer = this->m_trt_network->addScale(*(input_quant_layer->getOutput(0)),
+                ScaleMode::kUNIFORM, input_dequant_shift, input_dequant_scale, input_dequant_power);
             std::string input_dequant_layer_name = desc.name + "_input_dequant_";
             input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
             input_dequant_layer->setName(input_dequant_layer_name.c_str());
@@ -396,7 +399,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
-        nvinfer1::ILayer *cur_trt_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(this->m_trt_network);
+        nvinfer1::ILayer *cur_trt_layer = 
+            dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(this->m_trt_network);
         if (cur_trt_layer == nullptr ) {
             LOGE("build trt layer for \"%s\" failed\n", cur_layer->GetLayerName().c_str());
             return TNNERR_LAYER_ERR;
@@ -420,7 +424,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(output.second)->GetForeignTensor();
         auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
         //Do not delete, may cause trt bug
-        LOGD("shape: %d %d %d\n", tensor->getDimensions().d[0], tensor->getDimensions().d[1], tensor->getDimensions().d[2]);
+        LOGD("shape: %d %d %d\n", tensor->getDimensions().d[0], tensor->getDimensions().d[1],
+            tensor->getDimensions().d[2]);
         this->m_trt_network->markOutput(*tensor);
     }
 
@@ -452,8 +457,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     return TNN_OK;
 }
 
-std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map, BlobMap output_map,
-        int device_id, int batchsize, bool int8_mode, bool use_fp16) {
+std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
+        BlobMap output_map, int device_id, int batchsize, bool int8_mode, bool use_fp16) {
     std::string md5_source = md5(cfg) + md5(model);
 
     for (auto iter : input_map) {

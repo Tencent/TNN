@@ -36,7 +36,7 @@ Status CudaContext::Setup(int device_id) {
 Status CudaContext::LoadLibrary(std::vector<std::string> path) {
     return TNN_OK;
 }
- 
+
 Status CudaContext::GetCommandQueue(void** command_queue) {
     *command_queue = stream_;
     return TNN_OK;

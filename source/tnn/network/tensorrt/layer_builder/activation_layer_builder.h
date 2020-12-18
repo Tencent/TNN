@@ -28,10 +28,10 @@ protected:
     nvinfer1::ActivationType m_type;
 };
 
-#define DECLARE_TRT_ACTIVATION_LAYER_BUILDER(type_string)                                                                  \
-    class type_string##TRTLayerBuilder : public ActivationTRTLayerBuilder {                                                \
-    public:                                                                                                            \
-        type_string##TRTLayerBuilder(LayerType ignore);                                                                \
+#define DECLARE_TRT_ACTIVATION_LAYER_BUILDER(type_string)                               \
+    class type_string##TRTLayerBuilder : public ActivationTRTLayerBuilder {             \
+    public:                                                                             \
+        type_string##TRTLayerBuilder(LayerType ignore);                                 \
     }
 
 }  //  namespace TNN_NS

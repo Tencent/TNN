@@ -36,8 +36,12 @@ private:
     float* bias_ptr_;
     void* image_ptr_;
     uint64_t image_size_ = 0;
+
+    void prepareImagePtr(Mat& image, MatConvertParam param, DimsVector dims, void* command_queue);
+    void prepareParamPtr(MatConvertParam param, MatType type, void* command_queue);
 };
 
 }  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_BLOB_CONVERTER_H_
+

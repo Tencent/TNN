@@ -6,17 +6,17 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
 
 bool CbamFusedReduceTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
-        (inOut[pos].type == nvinfer1::DataType::kFLOAT ||
-        inOut[pos].type == nvinfer1::DataType::kHALF);
+    return nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs &&
+        inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
+        (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
 }
 
 const char* CbamFusedReduceTRTPluginLayerBuilder::getPluginType() const {
     return "CbamFusedReduce";
 }
 
-nvinfer1::DataType CbamFusedReduceTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+nvinfer1::DataType CbamFusedReduceTRTPluginLayerBuilder::getOutputDataType(int index,
+        const nvinfer1::DataType* inputTypes, int nbInputs) const {
     return inputTypes[0];
 }
 

@@ -23,8 +23,8 @@ TensorRTLayerBuilder::TensorRTLayerBuilder(LayerType type) : TensorRTBaseLayerBu
 TensorRTLayerBuilder::~TensorRTLayerBuilder() {
 }
 
-Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
-        std::vector<Blob*>& output_blobs, AbstractDevice* device) {
+Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource,
+        std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, AbstractDevice* device) {
     Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_CUDA));
     if (ret != TNN_OK) {
         return ret;

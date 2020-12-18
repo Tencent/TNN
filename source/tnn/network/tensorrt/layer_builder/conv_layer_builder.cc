@@ -39,8 +39,9 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         dims.push_back(input_blobs_[0]->GetBlobDesc().dims[1] / paramlist->group);
         dims.push_back(paramlist->kernels[1]);
         dims.push_back(paramlist->kernels[0]);
-        last_layer = AddInt8WeightQDQLayers(network, &(resource->filter_handle), kernelWeights, paramlist->bias ? &(resource->bias_handle) : nullptr,
-            biasWeights, 1 / (weight_scale_value / input_scale_value), dims);
+        last_layer = AddInt8WeightQDQLayers(network, &(resource->filter_handle), kernelWeights,
+            paramlist->bias ? &(resource->bias_handle) : nullptr, biasWeights,
+            1 / (weight_scale_value / input_scale_value), dims);
     } else {
         kernelWeights.type = nvinfer1::DataType::kFLOAT;
         kernelWeights.values = resource->filter_handle.force_to<void*>();
@@ -59,7 +60,8 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
     IConvolutionLayer* conv_layer;
     if (paramlist->pad_type == -1) {
-        conv_layer = network->addConvolution(*input_tensor, paramlist->output_channel, kernelSize, kernelWeights, biasWeights);
+        conv_layer = network->addConvolution(*input_tensor, paramlist->output_channel, kernelSize,
+            kernelWeights, biasWeights);
         if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if (conv_layer != nullptr) {
             conv_layer->setName(layer_name_.c_str());
@@ -71,7 +73,8 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     } else {
         IPaddingLayer* padding_layer = network->addPadding(*input_tensor, DimsHW{0, 0}, DimsHW{1, 1});
         ITensor* pad_tensor = padding_layer->getOutput(0);
-        conv_layer = network->addConvolution(*pad_tensor, paramlist->output_channel, kernelSize, kernelWeights, biasWeights);
+        conv_layer = network->addConvolution(*pad_tensor, paramlist->output_channel, kernelSize,
+            kernelWeights, biasWeights);
         if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if(conv_layer != NULL) {
             conv_layer->setName(layer_name_.c_str());
@@ -96,7 +99,8 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (int8) {
         float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
             output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor, output_scale_value, 1 / output_scale_value);
+        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
+            output_scale_value, 1 / output_scale_value);
     }
 
     return last_layer;

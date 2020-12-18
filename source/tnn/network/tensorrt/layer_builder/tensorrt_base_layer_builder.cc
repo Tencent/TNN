@@ -56,7 +56,7 @@ void TensorRTBaseLayerBuilder::SetBatchSize(int value) {
     this->trt_batchsize = value;
 }
 
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTLayerBuilderCreatorMap() {
+std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
     static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
@@ -64,7 +64,7 @@ std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTLayerBuild
     return *creators;
 }
 
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTPluginLayerBuilderCreatorMap() {
+std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
     static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
@@ -74,8 +74,8 @@ std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTensorRTPluginLaye
 
 TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type) {
     TensorRTBaseLayerBuilder* cur_layer = nullptr;
-    auto& trt_map = GetTensorRTLayerBuilderCreatorMap();
-    auto& plugin_map = GetTensorRTPluginLayerBuilderCreatorMap();
+    auto& trt_map = GetTRTLayerBuilderCreatorMap();
+    auto& plugin_map = GetTRTPluginLayerBuilderCreatorMap();
     if (trt_map.count(type) > 0) {
         auto base_layer = trt_map[type]->CreateLayerBuilder();
         cur_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(base_layer);
@@ -138,8 +138,9 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
     std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
 }
 
-ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
-        nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights, float scale, std::vector<int> dims) {
+ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network,
+        RawBuffer* weight, nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
+        float scale, std::vector<int> dims) {
     kernelWeights.type = nvinfer1::DataType::kFLOAT;
     kernelWeights.values = nullptr;
     kernelWeights.count = 0;
