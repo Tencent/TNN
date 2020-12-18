@@ -1,4 +1,4 @@
-package com.tencent.tnn.demo.StreamObjectDetector;
+package com.tencent.tnn.demo.StreamSkeletonDetector;
 
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -12,7 +12,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.tencent.tnn.demo.ObjectDetector;
+import com.tencent.tnn.demo.SkeletonDetector;
 import com.tencent.tnn.demo.FpsCounter;
 import com.tencent.tnn.demo.FileUtils;
 import com.tencent.tnn.demo.Helper;
@@ -26,9 +26,9 @@ import com.tencent.tnn.demo.common.sufaceHolder.DemoSurfaceHolder;
 import java.io.IOException;
 
 
-public class StreamObjectDetectFragment extends BaseFragment {
+public class StreamSkeletonDetectFragment extends BaseFragment {
 
-    private final static String TAG = StreamObjectDetectFragment.class.getSimpleName();
+    private final static String TAG = StreamSkeletonDetectFragment.class.getSimpleName();
 
     /**********************************     Define    **********************************/
 
@@ -42,14 +42,14 @@ public class StreamObjectDetectFragment extends BaseFragment {
     int mOpenedCameraId = 0;
     DemoSurfaceHolder mDemoSurfaceHolder = null;
 
-    private static final int NET_H_INPUT = 448;
-    private static final int NET_W_INPUT = 640;
+    private static final int NET_H_INPUT = 352;
+    private static final int NET_W_INPUT = 192;
 
     int mCameraFacing = -1;
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
 
-    private ObjectDetector mObjectDetector = new ObjectDetector();
+    private SkeletonDetector mSkeletonDetector = new SkeletonDetector();
     private boolean mIsDetectingObject = false;
     private FpsCounter mFpsCounter = new FpsCounter();
     private boolean mIsCountFps = false;
@@ -73,7 +73,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
-        NpuEnable = mObjectDetector.checkNpu(modelPath);
+        NpuEnable = mSkeletonDetector.checkNpu(modelPath);
     }
 
     private String initModel()
@@ -83,14 +83,14 @@ public class StreamObjectDetectFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "yolov5s.tnnmodel",
-                "yolov5s-permute.tnnproto",
+                "skeleton.tnnmodel",
+                "skeleton.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "yolov5/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "skeleton/" + modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
@@ -303,12 +303,12 @@ public class StreamObjectDetectFragment extends BaseFragment {
                     } else if (mUseGPU) {
                         device = 1;
                     }
-                    int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+                    int ret = mSkeletonDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, device);
                     if (ret == 0) {
                         mIsDetectingObject = true;
                     } else {
                         mIsDetectingObject = false;
-                        Log.e(TAG, "Face detector init failed " + ret);
+                        Log.e(TAG, "Skeleton detector init failed " + ret);
                     }
 
                     ret = mFpsCounter.init();
@@ -347,7 +347,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
-                                int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
+                                int ret = mSkeletonDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, device);
                                 if (ret == 0) {
                                     mIsDetectingObject = true;
                                     mFpsCounter.init();
@@ -358,12 +358,12 @@ public class StreamObjectDetectFragment extends BaseFragment {
                                 mDeviceSwiched = false;
                             }
                             if (mIsCountFps) {
-                                mFpsCounter.begin("ObjectDetect");
+                                mFpsCounter.begin("SkeletonDetect");
                             }
-                            objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+                            objectInfoList = mSkeletonDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {
-                                mFpsCounter.end("ObjectDetect");
-                                double fps = mFpsCounter.getFps("ObjectDetect");
+                                mFpsCounter.end("SkeletonDetect");
+                                double fps = mFpsCounter.getFps("SkeletonDetect");
                                 String monitorResult = "device: ";
                                 if (mUseGPU) {
                                     monitorResult += "opencl\n";
@@ -381,7 +381,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                             if (objectInfoList != null) {
                                 objectCount = objectInfoList.length;
                             }
-                            mDrawView.addObjectRect(objectInfoList,  ObjectDetector.label_list);
+                            mDrawView.addObjectRect(objectInfoList);
                         }
                         else {
                             Log.i(TAG,"No object");
@@ -421,7 +421,7 @@ public class StreamObjectDetectFragment extends BaseFragment {
                 mOpenedCamera = null;
             }
         }
-        mObjectDetector.deinit();
+        mSkeletonDetector.deinit();
     }
 
 }

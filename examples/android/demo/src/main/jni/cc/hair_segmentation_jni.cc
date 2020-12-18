@@ -135,7 +135,6 @@ JNIEXPORT JNICALL jobjectArray TNN_HAIR_SEGMENTATION(predictFromStream)(JNIEnv *
 
     TNN_NS::Status status = asyncRefSegmentator->Predict(input, output);
 
-    asyncRefSegmentator->ProcessSDKOutput(output);
     imageInfoList.push_back(dynamic_cast<TNN_NS::HairSegmentationOutput *>(output.get())->hair_mask);
     imageInfoList.push_back(dynamic_cast<TNN_NS::HairSegmentationOutput *>(output.get())->merged_image);
     delete [] yuvData;
