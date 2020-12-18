@@ -323,5 +323,4 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
     return TNN_OK;
 }
 
-
 }  // namespace TNN_NS
