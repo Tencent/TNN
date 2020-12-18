@@ -312,10 +312,13 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DGeneral(std::
 }
 
 std::string OpenCLConvLayerAccImpl::GenerateTuneKernelKey(OpenCLExecuteUnit &unit) {
-    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param_" + ToString(conv_params_.kernel_x) + "_" + ToString(conv_params_.kernel_y) + "_" 
-    + ToString(conv_params_.pad_x) + "_" + ToString(conv_params_.pad_y ) + "_" + ToString(conv_params_.stride_x) + "_" 
-    + ToString(conv_params_.stride_y ) + "_" + ToString(conv_params_.dilation_x) + "_"+ ToString(conv_params_.dilation_y) + "_"
-    + ToString(conv_params_.pad_type) + "_" + ToString(conv_params_.group) + "_global";
+    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param[" + 
+    "kernel_" + ToString(conv_params_.kernel_x) + "_" + ToString(conv_params_.kernel_y) + "_" 
+    "pad_" + ToString(conv_params_.pad_x) + "_" + ToString(conv_params_.pad_y ) + "_" 
+    "stride_" + ToString(conv_params_.stride_x) + "_" + ToString(conv_params_.stride_y ) + "_" 
+    "dilation_" + ToString(conv_params_.dilation_x) + "_"+ ToString(conv_params_.dilation_y) + "_"
+    "pad_" + ToString(conv_params_.pad_type) + "_" + 
+    "group_" + ToString(conv_params_.group) + "]_global";
     for(auto size : unit.global_work_size) {
         tune_key += "_" + ToString(size);
     }
