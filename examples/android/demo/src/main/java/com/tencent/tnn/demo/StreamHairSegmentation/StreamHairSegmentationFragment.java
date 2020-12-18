@@ -388,9 +388,6 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsSegmentingHair) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            if (mIsCountFps) {
-                                mFpsCounter.begin("HairSegmentation");
-                            }
                             ImageInfo[] imageInfoList;
                             // reinit
                             if (mDeviceSwiched) {
@@ -404,11 +401,15 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                                 int ret = mHairSegmentation.init(modelPath, mCameraHeight, mCameraWidth, device);
                                 if (ret == 0) {
                                     mIsSegmentingHair = true;
+                                    mFpsCounter.init();
                                 } else {
                                     mIsSegmentingHair = false;
                                     Log.e(TAG, "Hair Segmentation init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
+                            }
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("HairSegmentation");
                             }
                             imageInfoList = mHairSegmentation.predictFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             if (mIsCountFps) {
