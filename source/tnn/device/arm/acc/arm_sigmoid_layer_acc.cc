@@ -23,7 +23,7 @@ typedef struct arm_sigmoid_operator : arm_unary_operator {
     virtual Float4 fast_op(const Float4& v) {
         return Float4::fast_sigmoid(v);
     }
-#ifdef TNN_ARM82
+#if TNN_ARM82
     virtual Half8 operator()(const Half8 &v) {
         return Half8::sigmoid(v);
     }
