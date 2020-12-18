@@ -142,7 +142,7 @@ private:
     bool use_path_ = true;
     // the name of the model
     std::string model_name_;
-    int version_num_ = 0;
+    std::string version_str_ = "";
     std::shared_ptr<hiai::AiModelMngerClient> client_;
     std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
     std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;

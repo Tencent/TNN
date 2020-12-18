@@ -72,6 +72,9 @@ public:
     //@brief set laye name
     void SetLayerName(std::string layer_name);
 
+    //@brief set npu rom version
+    void SetNpuVersion(std::string version);
+
     // add for huawei_npu
     //@brief get output operators
     std::vector<std::shared_ptr<OperatorInfo>> &GetOutputOps();
@@ -82,7 +85,8 @@ public:
 
 protected:
     LayerType type_;
-    std::string layer_name_;
+    std::string layer_name_ = "";
+    std::string npu_version_ = "";
     // add for huawei_npu
     std::vector<std::shared_ptr<OperatorInfo>> input_ops_;
     std::vector<std::shared_ptr<OperatorInfo>> output_ops_;

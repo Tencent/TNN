@@ -34,12 +34,20 @@ protected:
         if (!resource) {
             return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
         }
-        if (resource->bias_handle.GetDataCount() > 0) {
-            LOGE("Current IR deconv does not support bias \n");
-            return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
+
+        if (!(NpuUtils::VersionCompare(npu_version_, "100.320.xxx.xxx", VCT_BIGEQUAL) &&
+              ((NpuUtils::VersionCompare(npu_version_, "100.320.010.023", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.010.999", VCT_SMALLER)) ||
+               (NpuUtils::VersionCompare(npu_version_, "100.320.011.019", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.011.999", VCT_SMALLER)) ||
+               (NpuUtils::VersionCompare(npu_version_, "100.320.012.011", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.012.999", VCT_SMALLER))))) {
+            if (resource->bias_handle.GetDataCount() > 0) {
+                LOGE("Current IR deconv does not support bias \n");
+                return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
+            }
         }
 
-        // build now
         const int input_channel = input_ops_[0]->GetShape()[1];
         int pad_mode            = 0;
         ret                     = NpuUtils::GetPadMode(pad_mode, pad_type_);
@@ -59,6 +67,16 @@ protected:
             return ret;
         }
 
+        // bias
+        int bias_count  = resource->bias_handle.GetDataCount();
+        auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
+        if (bias_count != 0) {
+            // bias
+            ge::Shape bias_shape({1, bias_count, 1, 1});
+            NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
+            weight_ops_.push_back(bias_const);
+        }
+
         // input size
         std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
         ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_INT32);
@@ -67,6 +85,9 @@ protected:
         auto output = std::make_shared<ge::op::Deconvolution>(outputs_name_[0]);
         output->set_input_input_sizes(*input_size_const);
         output->set_input_filter(*filter_const);
+        if (bias_count != 0) {
+            output->set_input_bias(*bias_const);
+        }
         output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_attr_group(group_);
         output->set_attr_num_output(output_channel_);
