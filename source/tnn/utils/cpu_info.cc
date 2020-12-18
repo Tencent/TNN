@@ -1,3 +1,17 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
 #include "cpu_info.h"
 
 #ifdef __ANDROID__
@@ -10,37 +24,16 @@
 
 #define BUFFER_SIZE 1024
 
-typedef bool (*cpuinfo_line_callback)(const char*, const char*, void*, uint64_t);
+typedef bool (*cpuinfo_line_callback)(const char *, const char *, void *, uint64_t);
 
+/* Only contain hardware now. */
 struct proc_cpuinfo_parser_state {
-    char* hardware;
+    char *hardware;
 };
 
-/*
- *	Decode a single line of /proc/cpuinfo information.
- *	Lines have format <words-with-spaces>[ ]*:[ ]<space-separated words>
- *	An example of /proc/cpuinfo (from Pandaboard-ES):
- *
- *		Processor       : ARMv7 Processor rev 10 (v7l)
- *		processor       : 0
- *		BogoMIPS        : 1392.74
- *
- *		processor       : 1
- *		BogoMIPS        : 1363.33
- *
- *		Features        : swp half thumb fastmult vfp edsp thumbee neon vfpv3
- *		CPU implementer : 0x41
- *		CPU architecture: 7
- *		CPU variant     : 0x2
- *		CPU part        : 0xc09
- *		CPU revision    : 10
- *
- *		Hardware        : OMAP4 Panda board
- *		Revision        : 0020
- *		Serial          : 0000000000000000
- */
-/* Only decode Hardware now*/
-static bool parse_line(const char* line_start, const char* line_end, struct proc_cpuinfo_parser_state* state,
+/* Decode a single line of /proc/cpuinfo information. */
+/* Only decode Hardware now. */
+static bool parse_line(const char *line_start, const char *line_end, struct proc_cpuinfo_parser_state *state,
                        uint64_t line_number) {
     /* Empty line. Skip. */
     if (line_start == line_end) {
@@ -48,7 +41,7 @@ static bool parse_line(const char* line_start, const char* line_end, struct proc
     }
 
     /* Search for ':' on the line. */
-    const char* separator = line_start;
+    const char *separator = line_start;
     for (; separator != line_end; separator++) {
         if (*separator == ':') {
             break;
@@ -60,7 +53,7 @@ static bool parse_line(const char* line_start, const char* line_end, struct proc
     }
 
     /* Skip trailing spaces in key part. */
-    const char* key_end = separator;
+    const char *key_end = separator;
     for (; key_end != line_start; key_end--) {
         if (key_end[-1] != ' ' && key_end[-1] != '\t') {
             break;
@@ -72,7 +65,7 @@ static bool parse_line(const char* line_start, const char* line_end, struct proc
     }
 
     /* Skip leading spaces in value part. */
-    const char* value_start = separator + 1;
+    const char *value_start = separator + 1;
     for (; value_start != line_end; value_start++) {
         if (*value_start != ' ') {
             break;
@@ -84,7 +77,7 @@ static bool parse_line(const char* line_start, const char* line_end, struct proc
     }
 
     /* Skip trailing spaces in value part (if any) */
-    const char* value_end = line_end;
+    const char *value_end = line_end;
     for (; value_end != value_start; value_end--) {
         if (value_end[-1] != ' ') {
             break;
@@ -117,11 +110,11 @@ static bool parse_line(const char* line_start, const char* line_end, struct proc
     }                                                                                                                  \
     return status;
 
-bool cpuinfo_linux_parse_multiline_file(const char* filename, size_t buffer_size, cpuinfo_line_callback callback,
-                                        void* context) {
+bool cpuinfo_linux_parse_multiline_file(const char *filename, size_t buffer_size, cpuinfo_line_callback callback,
+                                        void *context) {
     int file     = -1;
     bool status  = false;
-    char* buffer = (char*)alloca(buffer_size);
+    char *buffer = (char *)alloca(buffer_size);
 
     file = open(filename, O_RDONLY);
     if (file == -1) {
@@ -131,8 +124,8 @@ bool cpuinfo_linux_parse_multiline_file(const char* filename, size_t buffer_size
     /* Only used for error reporting */
     size_t position        = 0;
     uint64_t line_number   = 1;
-    const char* buffer_end = &buffer[buffer_size];
-    char* data_start       = buffer;
+    const char *buffer_end = &buffer[buffer_size];
+    char *data_start       = buffer;
     ssize_t bytes_read;
     do {
         bytes_read = read(file, data_start, (size_t)(buffer_end - data_start));
@@ -141,17 +134,17 @@ bool cpuinfo_linux_parse_multiline_file(const char* filename, size_t buffer_size
         }
 
         position += (size_t)bytes_read;
-        const char* data_end   = data_start + (size_t)bytes_read;
-        const char* line_start = buffer;
+        const char *data_end   = data_start + (size_t)bytes_read;
+        const char *line_start = buffer;
 
         if (bytes_read == 0) {
             /* No more data in the file: process the remaining text in the buffer as a single entry */
-            const char* line_end = data_end;
+            const char *line_end = data_end;
             if (!callback(line_start, line_end, context, line_number)) {
                 CLEAN_UP;
             }
         } else {
-            const char* line_end;
+            const char *line_end;
             do {
                 /* Find the end of the entry, as indicated by newline character ('\n') */
                 for (line_end = line_start; line_end != data_end; line_end++) {
@@ -188,14 +181,14 @@ bool cpuinfo_linux_parse_multiline_file(const char* filename, size_t buffer_size
 #undef CLEAN_UP
 
 /* Only get hardware now*/
-bool cpuinfo_arm_linux_parse_proc_cpuinfo(char* hardware) {
+bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware) {
     struct proc_cpuinfo_parser_state state = {
         .hardware = hardware,
     };
     return cpuinfo_linux_parse_multiline_file("/proc/cpuinfo", BUFFER_SIZE, (cpuinfo_line_callback)parse_line, &state);
 }
 
-void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties* properties) {
+void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties *properties) {
     __system_property_get("ro.product.board", properties->ro_product_board);
     __system_property_get("ro.board.platform", properties->ro_board_platform);
     __system_property_get("ro.mediatek.platform", properties->ro_mediatek_platform);
@@ -215,12 +208,12 @@ enum cpuinfo_android_chipset_property {
     cpuinfo_android_chipset_property_max,
 };
 
-static inline uint32_t load_u32le(const void* ptr) {
-    return *((const uint32_t*)ptr);
+static inline uint32_t load_u32le(const void *ptr) {
+    return *((const uint32_t *)ptr);
 }
 
-static inline uint16_t load_u16le(const void* ptr) {
-    return *((const uint16_t*)ptr);
+static inline uint16_t load_u16le(const void *ptr) {
+    return *((const uint16_t *)ptr);
 }
 
 /**
@@ -233,7 +226,7 @@ static inline uint16_t load_u16le(const void* ptr) {
  *
  * @returns true if signature matched, false otherwise.
  */
-static bool match_samsung_exynos(const char* start, const char* end, struct cpuinfo_arm_chipset* chipset) {
+static bool match_samsung_exynos(const char *start, const char *end, struct cpuinfo_arm_chipset *chipset) {
     /*
      * Expect at 18-19 symbols:
      * - "Samsung" (7 symbols) + space + "Exynos" (6 symbols) + optional space 4-digit model number
@@ -269,7 +262,7 @@ static bool match_samsung_exynos(const char* start, const char* end, struct cpui
         return false;
     }
 
-    const char* pos = start + 14;
+    const char *pos = start + 14;
 
     /* There can be a space ' ' following the "Exynos" string */
     if (*pos == ' ') {
@@ -311,7 +304,7 @@ static bool match_samsung_exynos(const char* start, const char* end, struct cpui
  *
  * @returns true if signature matched, false otherwise.
  */
-static bool match_exynos(const char* start, const char* end, struct cpuinfo_arm_chipset* chipset) {
+static bool match_exynos(const char *start, const char *end, struct cpuinfo_arm_chipset *chipset) {
     /* Expect exactly 10 symbols: "exynos" (6 symbols) + 4-digit model number */
     if (start + 10 != end) {
         return false;
@@ -361,7 +354,7 @@ static bool match_exynos(const char* start, const char* end, struct cpuinfo_arm_
  *
  * @returns true if signature matched, false otherwise.
  */
-static bool match_universal(const char* start, const char* end, struct cpuinfo_arm_chipset* chipset) {
+static bool match_universal(const char *start, const char *end, struct cpuinfo_arm_chipset *chipset) {
     /* Expect exactly 13 symbols: "universal" (9 symbols) + 4-digit model number */
     if (start + 13 != end) {
         return false;
@@ -405,10 +398,10 @@ static bool match_universal(const char* start, const char* end, struct cpuinfo_a
     return true;
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_linux_decode_chipset_from_proc_cpuinfo_hardware(const char* hardware) {
+struct cpuinfo_arm_chipset cpuinfo_arm_linux_decode_chipset_from_proc_cpuinfo_hardware(const char *hardware) {
     struct cpuinfo_arm_chipset chipset;
     const size_t hardware_length = strnlen(hardware, CPUINFO_HARDWARE_VALUE_MAX);
-    const char* hardware_end     = hardware + hardware_length;
+    const char *hardware_end     = hardware + hardware_length;
 
     /* Check Samsung Exynos signature */
     if (match_samsung_exynos(hardware, hardware_end, &chipset)) {
@@ -426,11 +419,11 @@ struct cpuinfo_arm_chipset cpuinfo_arm_linux_decode_chipset_from_proc_cpuinfo_ha
     };
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_product_board(const char* ro_product_board) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_product_board(const char *ro_product_board) {
     struct cpuinfo_arm_chipset chipset;
-    const char* board         = ro_product_board;
+    const char *board         = ro_product_board;
     const size_t board_length = strnlen(ro_product_board, CPUINFO_BUILD_PROP_VALUE_MAX);
-    const char* board_end     = ro_product_board + board_length;
+    const char *board_end     = ro_product_board + board_length;
 
     /* Check universaXXXX (Samsung Exynos) signature */
     if (match_universal(board, board_end, &chipset)) {
@@ -443,10 +436,10 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_product_bo
     };
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_board_platform(const char* platform) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_board_platform(const char *platform) {
     struct cpuinfo_arm_chipset chipset;
     const size_t platform_length = strnlen(platform, CPUINFO_BUILD_PROP_VALUE_MAX);
-    const char* platform_end     = platform + platform_length;
+    const char *platform_end     = platform + platform_length;
 
     /* Check exynosXXXX (Samsung Exynos) signature */
     if (match_exynos(platform, platform_end, &chipset)) {
@@ -460,9 +453,9 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_board_plat
     };
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_mediatek_platform(const char* platform) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_mediatek_platform(const char *platform) {
     struct cpuinfo_arm_chipset chipset;
-    const char* platform_end = platform + strnlen(platform, CPUINFO_BUILD_PROP_VALUE_MAX);
+    const char *platform_end = platform + strnlen(platform, CPUINFO_BUILD_PROP_VALUE_MAX);
 
     return (struct cpuinfo_arm_chipset){
         .vendor = cpuinfo_arm_chipset_vendor_unknown,
@@ -470,9 +463,9 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_mediatek_p
     };
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_arch(const char* arch) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_arch(const char *arch) {
     struct cpuinfo_arm_chipset chipset;
-    const char* arch_end = arch + strnlen(arch, CPUINFO_BUILD_PROP_VALUE_MAX);
+    const char *arch_end = arch + strnlen(arch, CPUINFO_BUILD_PROP_VALUE_MAX);
 
     /* Check Samsung exynosXXXX signature */
     if (match_exynos(arch, arch_end, &chipset)) {
@@ -485,10 +478,10 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_arch(const
     };
 }
 
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_chipname(const char* chipname) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_chipname(const char *chipname) {
     struct cpuinfo_arm_chipset chipset;
     const size_t chipname_length = strnlen(chipname, CPUINFO_BUILD_PROP_VALUE_MAX);
-    const char* chipname_end     = chipname + chipname_length;
+    const char *chipname_end     = chipname + chipname_length;
 
     /* Check exynosXXXX (Samsung Exynos) signature */
     if (match_exynos(chipname, chipname_end, &chipset)) {
@@ -507,7 +500,7 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset_from_ro_chipname(c
 }
 
 /* Only detect Samsung Exynos chipsets now*/
-struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuinfo_android_properties* properties) {
+struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuinfo_android_properties *properties) {
     struct cpuinfo_arm_chipset chipset = {
         .vendor = cpuinfo_arm_chipset_vendor_unknown,
         .series = cpuinfo_arm_chipset_series_unknown,
