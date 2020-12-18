@@ -190,7 +190,7 @@ Append model name to `benchmark_model_list` in `benchmark_models_app.sh`, such a
 ### 4. Execute the script
 
 ```
-./benchmark_models_app.sh [-th] <thread-num> [-n] [-d] <device-id> [-t] <CPU/GPU>
+./benchmark_models.sh -app [-th] <thread-num> [-n] [-d] <device-id> [-t] <CPU/GPU>
 Parameters：
     -th   num of threads to run, default: 1
     -n    use ncnn model, default: off
@@ -205,7 +205,7 @@ Prepare and run the benchmark app to analyze the overall network time-consuming 
 Execute the script：
 
 ```
-./benchmark_models_app.sh
+./benchmark_models.sh -app
 ```
 
 The result is reported as:

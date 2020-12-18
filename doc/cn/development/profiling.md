@@ -169,7 +169,7 @@ cp mobilenet_v1.tnnproto .
 
 ### 4. 执行脚本
 ```
-./benchmark_models_app.sh [-th] <thread-num> [-n] [-d] <device-id> [-t] <CPU/GPU>
+./benchmark_models.sh -app [-th] <thread-num> [-n] [-d] <device-id> [-t] <CPU/GPU>
 参数说明：
     -th   CPU执行的线程数，默认为1
     -n    使用ncnn的模型，默认关闭
@@ -181,7 +181,7 @@ P.S. 不指定 -t, 默认跑CPU和GPU.
 构建并安装安卓耗时测试app，运行app，分析整体网络耗时，执行多次，获取平均性能。
 执行脚本：
 ```
-./benchmark_models_app.sh
+./benchmark_models.sh -app
 ```
 结果类似：
 ```

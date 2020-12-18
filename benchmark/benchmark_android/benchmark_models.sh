@@ -13,6 +13,9 @@ MODEL_TYPE=TNN
 USE_NCNN_MODEL=0
 THREAD_NUM=1
 ADB=adb
+BENCHMARK_APP_TYPE=""
+BENCHMARK_APP_DIR=benchmark_app/benchmark/
+SLEEP_INTERVAL=3
 
 WORK_DIR=`pwd`
 BENCHMARK_MODEL_DIR=$WORK_DIR/../benchmark-model
@@ -36,6 +39,9 @@ function usage() {
     echo "        -f    build profiling targets "
     echo "        -d    run with specified device"
     echo "        -t    CPU/GPU/HUAWEI_NPU specify the platform to run"
+    echo "        -th   num of threads to run, default: 1"
+    echo "        -n    use ncnn model"
+    echo "        -app  use benchmark app"
 }
 
 function exit_with_msg() {
@@ -170,6 +176,64 @@ function bench_android() {
     cat ${WORK_DIR}/$OUTPUT_LOG_FILE
 }
 
+function build_android_bench_app() {
+    echo -e "##### Java environment #####\nJAVA_HOME: ${JAVA_HOME}\n##### Java environment #####\n"
+    echo -e "##### Android environment #####\nANDROID_HOME: ${ANDROID_HOME}\n##### Android environment #####\n"
+    cd ${BENCHMARK_APP_DIR}
+    ./gradlew installDebug
+}
+
+function bench_android_app() {
+    build_android_bench_app
+
+    if [ $? != 0 ];then
+        exit_with_msg "set up environment failed"
+    fi
+
+    cd ${BENCHMARK_MODEL_DIR}
+    if [ ${#benchmark_model_list[*]} == 0 ];then
+        benchmark_model_list=`ls *.tnnproto`
+    fi
+
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ]; then
+        DEVICE_TYPE=""
+    fi
+
+    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ]; then
+        device=ARM
+        echo -e "\nbenchmark device: ${device}\n"
+
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            echo "arm: ${benchmark_model}"
+            TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
+            $ADB shell am start -S \
+                -n com.tencent.tnn.benchmark/.MainActivity \
+                --es args \'${TEST_ARGS}\' 1 > /dev/null
+
+            sleep $SLEEP_INTERVAL
+            $ADB logcat -d | grep "TNN Benchmark time cost" | tail -n 1
+        done
+    fi
+
+    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ]; then
+        device=OPENCL
+        echo -e "\nbenchmark device: ${device}\n"
+
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            echo "opencl: ${benchmark_model}"
+            TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
+            $ADB shell am start -S \
+                -n com.tencent.tnn.benchmark/.MainActivity \
+                --es args \'${TEST_ARGS}\' 1 > /dev/null
+
+            sleep $SLEEP_INTERVAL
+            $ADB logcat -d | grep "TNN Benchmark time cost" | tail -n 1
+        done
+    fi
+}
+
 while [ "$1" != "" ]; do
     case $1 in
         -32)
@@ -207,10 +271,18 @@ while [ "$1" != "" ]; do
             THREAD_NUM=$1
             shift
             ;;
+        -app)
+            shift
+            BENCHMARK_APP_TYPE="APP"
+            ;;
         *)
             usage
             exit 1
     esac
 done
 
-bench_android
+if [ "$BENCHMARK_APP_TYPE" == "APP" ]; then
+    bench_android_app
+else
+    bench_android
+fi
