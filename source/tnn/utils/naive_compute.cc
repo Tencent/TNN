@@ -36,6 +36,14 @@ uint8_t float2uint8(float val) {
     return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
 }
 
+int8_t half2int8(fp16_t val) {
+    return static_cast<int8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 127.0f), -128.0f));
+}
+
+uint8_t half2uint8(fp16_t val) {
+    return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
+}
+
 /*
  * Computes max pooling or average pooling
  * blob data format must be NCHW

@@ -42,7 +42,7 @@ public:
         return v;
     }
 
-#ifdef TNN_ARM82
+#if TNN_ARM82
     virtual Half8 operator()(const Half8 &v) {
         return v;
     }
