@@ -115,7 +115,7 @@ if(TNN_MODEL_CHECK_ENABLE)
 endif()
 
 if(TNN_ARM82_ENABLE)
-    add_definitions(-DTNN_ARM82)
+    add_definitions(-DTNN_ARM82=1)
 endif()
 
 # only used to simulate arm82 computation in the unit test

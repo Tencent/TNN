@@ -76,7 +76,7 @@ int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
 #define transpose_4x4(v0, v1, v2, v3, v_zero)       \
 {                                                   \
     float32x4x2_t q01 = vtrnq_f32(v0, v1);          \
@@ -249,7 +249,7 @@ template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel)
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
         if (channel == 3) {
             return PackNeonC3((fp16_t*)dst, (const float*)src, hw, channel);
