@@ -16,6 +16,7 @@
 
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 
@@ -36,6 +37,16 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         for (auto blob : outputs) {
             blob->GetBlobDesc().data_format = DATA_FORMAT_NHWC4;
         }
+    } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_HALF) {
+        reformat_param->type = NC4HW4FP32_2_NC8HW8FP16;
+        for (auto blob : outputs) {
+            blob->GetBlobDesc().data_format = DATA_FORMAT_NC8HW8;
+        }
+    } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_FLOAT) {
+        reformat_param->type = NC8HW8FP16_2_NC4HW4FP32;
+        for (auto blob : outputs) {
+            blob->GetBlobDesc().data_format = DATA_FORMAT_NC4HW4;
+        }
     } else {
         if (reformat_param->src_type == DATA_TYPE_BFP16 || reformat_param->dst_type == DATA_TYPE_BFP16) {
             LOGE("unsupport precision mode, please dont use precision = low for int8");
@@ -50,6 +61,9 @@ ArmReformatLayerAcc::~ArmReformatLayerAcc() {}
 Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReformatLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
+    if (param->type == NC4HW4FP32_2_NC8HW8FP16 || param->type == NC8HW8FP16_2_NC4HW4FP32) {
+        return TNN_OK;
+    }
 
     if (param->src_type != param->dst_type && !scale_buffer_.GetBytesSize()) {
         auto dims_output    = outputs[0]->GetBlobDesc().dims;
@@ -91,6 +105,14 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         FloatToInt8(reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
                     reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())), 
                     scale_buffer_.force_to<float *>(), dims[0], dims[1], dims[2] * dims[3]);
+    } else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
+        FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
+                        reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
+                        dims[0], dims[1], dims[2] * dims[3]);
+    } else if (param->type == NC8HW8FP16_2_NC4HW4FP32) {
+        HalfC8ToFloatC4(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
+                        reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
+                        dims[0], dims[1], dims[2] * dims[3]);
     }
     return TNN_OK;
 }

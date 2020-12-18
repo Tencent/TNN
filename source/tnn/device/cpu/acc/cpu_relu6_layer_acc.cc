@@ -30,7 +30,7 @@ Status CpuRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count         = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {
