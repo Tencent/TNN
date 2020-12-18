@@ -24,6 +24,7 @@
 #define NEON_FP16CONV_TILE_HW (16)
 
 static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
+#ifdef __aarch64__
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0], #64\n\t"
@@ -67,9 +68,13 @@ static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
         "v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20",
         "v21","v22","v23"
     );
+#else
+
+#endif
 }
 
 static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
+#ifdef __aarch64__
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0]\n\t"
@@ -94,9 +99,13 @@ static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#else
+
+#endif
 }
 
 static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
+#ifdef __aarch64__
     asm volatile (
         "ld4 {v0.4h, v1.4h, v2.4h, v3.4h}, [%0], #32\n\t"
         "ld4 {v4.4h, v5.4h, v6.4h, v7.4h}, [%0]\n\t"
@@ -121,6 +130,9 @@ static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#else
+
+#endif
 }
 
 static void load_repack_half_align(

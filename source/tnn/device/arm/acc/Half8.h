@@ -141,16 +141,32 @@ struct Half8 {
         v1.value = vfmaq_f16(v1.value, v2.value, v3.value);
     }
     static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 0);
+#else
+
+#endif
     }
     static void mla_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 1);
+#else
+
+#endif
     }
     static void mla_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 2);
+#else
+
+#endif
     }
     static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 3);
+#else
+
+#endif
     }
     static Half8 bsl_cle(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
@@ -159,6 +175,7 @@ struct Half8 {
     }
     static Half8 bsl_clt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
+#ifdef __aarch64__    
         asm volatile (
             "fcmlt %0.8h, %2.8h, #0.0\n\t"
             "bsl %0.16b, %3.16b, %4.16b\n\t"
@@ -166,6 +183,9 @@ struct Half8 {
             :"0"(dst.value), "w"(c1.value), "w"(v1.value), "w"(v2.value)
             :"cc", "memory"
         );
+#else
+
+#endif
         return dst;
     }
     static Half8 bsl_cge(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
