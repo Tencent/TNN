@@ -52,7 +52,8 @@ Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_t
     const auto& cvt_map = GetBlobConvertFuncMap();
     const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_dir);
     if (cvt_map.find(cvt_key) == cvt_map.end() || cvt_map.at(cvt_key) == nullptr) {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        LOGE("ArmBlobConverterAcc::GetBlobConvertFunc, convert type not support yet. mat_type: %d data_type:%d cvt_dir:%d\n", mat_type, data_type, cvt_dir);
+        return Status(TNNERR_PARAM_ERR, "ArmBlobConverterAcc::GetBlobConvertFunc, convert type not support yet");
     }
     cvt_func = cvt_map.at(cvt_key);
     return TNN_OK;
@@ -256,7 +257,7 @@ static void BGRAToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, 
     int i = 0;
     fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
     fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -431,7 +432,7 @@ static void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const
     fp16_t scale_half = fp16_t(scale);
     fp16_t bias_half  = fp16_t(bias);
     memset(dst, 0, hw * 8 * sizeof(fp16_t));
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     float16x8_t scale_neon = vdupq_n_f16(scale_half);
     float16x8_t bias_neon  = vdupq_n_f16(bias_half);
     for (; i < hw - 7; i += 8) {
@@ -544,7 +545,7 @@ static void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, c
     int i = 0;
     fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
     fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -739,7 +740,7 @@ static void BlobToBGRAImpl(const fp16_t *src, uint8_t *dst, const float *scale, 
     int i = 0;
     fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
     fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -918,7 +919,7 @@ static void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, c
     int i = 0;
     fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
     fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (defined TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
