@@ -21,7 +21,7 @@ typedef struct arm_relu6_operator : arm_unary_operator{
         return Float4::min(Float4(6.0), Float4::max(Float4(0.0), v));
     }
 
-#ifdef TNN_ARM82
+#if TNN_ARM82
     virtual Half8 operator()(const Half8 &v) {
         return Half8::min(Half8(fp16_t(6.0)), Half8::max(Half8(fp16_t(0.0)), v));
     }

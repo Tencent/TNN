@@ -26,7 +26,7 @@
 #endif
 
 namespace TNN_NS {
-#if defined(TNN_USE_NEON) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if defined(TNN_USE_NEON) && TNN_ARM82 && !defined(TNN_ARM82_SIMU)
 
 struct Half4 {
     float16x4_t value;
