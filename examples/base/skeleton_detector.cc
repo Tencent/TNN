@@ -123,8 +123,8 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
             //skeleton.key_points[c] = Landmark2D(-1, -1);
             detected[c] = false;
         } else {
-            skeleton.key_points[c] = std::make_pair(max_pos_w/src_width,
-                                                    max_pos_h/src_height);
+            skeleton.key_points[c] = std::make_pair(max_pos_w / heatmap_width,
+                                                    max_pos_h / heatmap_height);
             //skeleton.key_points[c] = Landmark2D(max_pos_w/src_width,
             //                                    max_pos_h/src_height);
             detected[c] = true;
