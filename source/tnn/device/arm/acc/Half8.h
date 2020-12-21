@@ -372,9 +372,27 @@ struct Half8 {
 
 #elif defined(TNN_USE_NEON) && defined(__arm__) && !defined(__aarch64__)
 
+struct Half4 {
+    // use int16x4 to store the d register, avoiding compile error 
+    int16x4_t value;
+    const fp16_t operator[](const int i) const {
+        int16_t tmp_v;
+        if (i == 0) {
+            tmp_v = vget_lane_s16(value, 0);
+        } else if (i == 1) {
+            tmp_v = vget_lane_s16(value, 1);
+        } else if (i == 2) {
+            tmp_v = vget_lane_s16(value, 2);
+        } else if (i == 3) {
+            tmp_v = vget_lane_s16(value, 3);
+        }
+        return *((fp16_t*)(&tmp_v));
+    }
+};
+
 struct Half8 {
-    // use f32x4 to store q register, avoiding compile error 
-    float32x4_t value;
+    // use int16x8 to store the q register, avoiding compile error 
+    int16x8_t value;
     Half8() {}
     Half8(const fp16_t v) {
         asm volatile(
@@ -384,10 +402,10 @@ struct Half8 {
             :
         );
     }
-    Half8(const float32x4_t& v) {
+    Half8(const int16x8_t& v) {
         value = v;
     }
-    Half8(const float32x4_t&& v) {
+    Half8(const int16x8_t&& v) {
         value = std::move(v);
     }
     Half8(const Half8& lr) {
@@ -396,6 +414,50 @@ struct Half8 {
     Half8(const Half8&& lr) {
         value = std::move(lr.value);
     }
+
+    void set_lane(fp16_t v, const int i) {
+        fp16_t tmp_v = v;
+        if (i == 0) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 0);
+        } else if (i == 1) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 1);
+        } else if (i == 2) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 2);
+        } else if (i == 3) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 3);
+        } else if (i == 4) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 4);
+        } else if (i == 5) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 5);
+        } else if (i == 6) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 6);
+        } else if (i == 7) {
+            value = vsetq_lane_s16(*((int16_t*)(&tmp_v)), value, 7);
+        }
+    }
+
+    const fp16_t operator[](const int i) const {
+        int16_t tmp_v;
+        if (i == 0) {
+            tmp_v = vgetq_lane_s16(value, 0);
+        } else if (i == 1) {
+            tmp_v = vgetq_lane_s16(value, 1);
+        } else if (i == 2) {
+            tmp_v = vgetq_lane_s16(value, 2);
+        } else if (i == 3) {
+            tmp_v = vgetq_lane_s16(value, 3);
+        } else if (i == 4) {
+            tmp_v = vgetq_lane_s16(value, 4);
+        } else if (i == 5) {
+            tmp_v = vgetq_lane_s16(value, 5);
+        } else if (i == 6) {
+            tmp_v = vgetq_lane_s16(value, 6);
+        } else if (i == 7) {
+            tmp_v = vgetq_lane_s16(value, 7);
+        }
+        return *((fp16_t*)(&tmp_v));
+    }
+
     static Half8 load(const fp16_t* addr) {
         Half8 v;
         asm volatile(
@@ -414,6 +476,70 @@ struct Half8 {
             :
         );
     }
+    static void get_low(const Half8& v1, Half4& v2) {
+        v2.value = vget_low_s16(v1.value);
+    }
+    static void get_high(const Half8& v1, Half4& v2) {
+        v2.value = vget_high_s16(v1.value);
+    }
+    static Half8 combine(const Half4& v1, const Half4& v2) {
+        return vcombine_s16(v1.value, v2.value);
+    }
+    static Half8 extract(const Half8& v1, const Half8& v2, const int n) {
+        Half8 dst;
+        if (n == 0) {
+            dst.value = v1.value;
+        } else if (n == 1) {
+            dst.value = vextq_s16(v1.value, v2.value, 1);
+        } else if (n == 2) {
+            dst.value = vextq_s16(v1.value, v2.value, 2);
+        } else if (n == 3) {
+            dst.value = vextq_s16(v1.value, v2.value, 3);
+        } else if (n == 4) {
+            dst.value = vextq_s16(v1.value, v2.value, 4);
+        } else if (n == 5) {
+            dst.value = vextq_s16(v1.value, v2.value, 5);
+        } else if (n == 6) {
+            dst.value = vextq_s16(v1.value, v2.value, 6);
+        } else if (n == 7) {
+            dst.value = vextq_s16(v1.value, v2.value, 7);
+        } else if (n == 8) {
+            dst.value = v2.value;
+        }
+        return dst;
+    }
+    static Half8 pad(const Half8& v1, const Half8& v2, const int n) {
+        static const uint16_t select  = uint16_t(-1);
+        static const uint16x8_t mask1 = {select,select,select,select,select,select,select,0};
+        static const uint16x8_t mask2 = {select,select,select,select,select,select,0,0};
+        static const uint16x8_t mask3 = {select,select,select,select,select,0,0,0};
+        static const uint16x8_t mask4 = {select,select,select,select,0,0,0,0};
+        static const uint16x8_t mask5 = {select,select,select,0,0,0,0,0};
+        static const uint16x8_t mask6 = {select,select,0,0,0,0,0,0};
+        static const uint16x8_t mask7 = {select,0,0,0,0,0,0,0};
+
+        Half8 dst;
+        if (n == 0) {
+            dst.value = v1.value;
+        } else if (n == 1) {
+            dst.value = vbslq_s16(mask1, v1.value, v2.value);
+        } else if (n == 2) {
+            dst.value = vbslq_s16(mask2, v1.value, v2.value);
+        } else if (n == 3) {
+            dst.value = vbslq_s16(mask3, v1.value, v2.value);
+        } else if (n == 4) {
+            dst.value = vbslq_s16(mask4, v1.value, v2.value);
+        } else if (n == 5) {
+            dst.value = vbslq_s16(mask5, v1.value, v2.value);
+        } else if (n == 6) {
+            dst.value = vbslq_s16(mask6, v1.value, v2.value);
+        } else if (n == 7) {
+            dst.value = vbslq_s16(mask7, v1.value, v2.value);
+        } else if (n == 8) {
+            dst.value = v2.value;
+        }
+        return dst;
+    }
     static void mla(Half8& v1, const Half8& v2, const Half8& v3) {
         asm volatile (
             "vmla.f16 %0, %2, %3\n\t"
@@ -422,12 +548,253 @@ struct Half8 {
             :
         );
     }
+    static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmla.f16 %q0, %q2, %P3[0]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mla_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmla.f16 %q0, %q2, %P3[1]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mla_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmla.f16 %q0, %q2, %P3[2]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmla.f16 %q0, %q2, %P3[3]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static Half8 bsl_cle(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        uint16x8_t cmp_vec;
+        asm volatile(
+            "vcle.f16 %0, %2, %3\n\t"
+            :"=w"(cmp_vec)
+            :"0"(cmp_vec),"w"(c1.value),"w"(c2.value)
+            :
+        );
+        dst.value = vbslq_s16(cmp_vec, v1.value, v2.value);
+        return dst;
+    }
+    static Half8 bsl_clt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        uint16x8_t cmp_vec;
+        asm volatile(
+            "vclt.f16 %0, %2, %3\n\t"
+            :"=w"(cmp_vec)
+            :"0"(cmp_vec),"w"(c1.value),"w"(c2.value)
+            :
+        );
+        dst.value = vbslq_s16(cmp_vec, v1.value, v2.value);
+        return dst;
+    }
+    static Half8 bsl_cge(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        uint16x8_t cmp_vec;
+        asm volatile(
+            "vcge.f16 %0, %2, %3\n\t"
+            :"=w"(cmp_vec)
+            :"0"(cmp_vec),"w"(c1.value),"w"(c2.value)
+            :
+        );
+        dst.value = vbslq_s16(cmp_vec, v1.value, v2.value);
+        return dst;
+    }
+    static Half8 bsl_cgt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        uint16x8_t cmp_vec;
+        asm volatile(
+            "vcgt.f16 %0, %2, %3\n\t"
+            :"=w"(cmp_vec)
+            :"0"(cmp_vec),"w"(c1.value),"w"(c2.value)
+            :
+        );
+        dst.value = vbslq_s16(cmp_vec, v1.value, v2.value);
+        return dst;
+    }
+    static Half8 neg(const Half8& v) {
+        Half8 dst;
+        asm volatile(
+            "vneg.f16 %0, %2\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v.value)
+            :
+        );
+        return dst;
+    }
     static Half8 max(const Half8& v1, const Half8& v2) {
         Half8 dst;
         asm volatile(
             "vmax.f16 %0, %2, %3\n\t"
             :"=w"(dst.value)
             :"0"(dst.value),"w"(v1.value),"w"(v2.value)
+            :
+        );
+        return dst;
+    }
+    static Half8 min(const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        asm volatile(
+            "vmin.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v1.value),"w"(v2.value)
+            :
+        );
+        return dst;
+    }
+    static Half8 div(const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        asm volatile(
+            "vrecpe.f16 q5, %3\n\t"
+            "vrecps.f16 q6, %3, q5\n\t"
+            "vmul.f16 q5, q6, q5\n\t"
+            "vrecps.f16 q6, %3, q5\n\t"
+            "vmul.f16 q5, q6, q5\n\t"
+            "vmul.f16 %0, %2, q5\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v1.value),"w"(v2.value)
+            :"q5","q6"
+        );
+        return dst;
+    }
+    static Half8 exp(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = exp_ps(v_low);
+        v_high = exp_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 pow(const Half8& v, const Half8& e) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        float32x4_t e_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(e.value)));
+        float32x4_t e_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(e.value)));
+        v_low = pow_ps(v_low, e_low);
+        v_high = pow_ps(v_high, e_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 sqrt(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = sqrt_ps(v_low);
+        v_high = sqrt_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+
+        uint16x8_t cmp_vec;
+        int16x8_t zero = vdupq_n_s16(0);
+        asm volatile(
+            "vceq.f16 %0, %2, #0\n\t"
+            :"=w"(cmp_vec)
+            :"0"(cmp_vec),"w"(v.value)
+            :
+        );
+        dst.value = vbslq_s16(cmp_vec, zero, dst.value);
+        return dst;
+    }
+    static Half8 tanh(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = tanh_ps(v_low);
+        v_high = tanh_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 tan(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        float32x4_t ysin_low, ycos_low;
+        float32x4_t ysin_high, ycos_high;
+        sincos_ps(v_low, &ysin_low, &ycos_low);
+        sincos_ps(v_high, &ysin_high, &ycos_high);
+        v_low = div_ps(ysin_low, ycos_low);
+        v_high = div_ps(ysin_high, ycos_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 sin(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = sin_ps(v_low);
+        v_high = sin_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 cos(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = cos_ps(v_low);
+        v_high = cos_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 sigmoid(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = sigmoid_ps(v_low);
+        v_high = sigmoid_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 fast_sigmoid(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = fast_sigmoid_ps(v_low);
+        v_high = fast_sigmoid_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 log(const Half8& v) {
+        Half8 dst;
+        float32x4_t v_low  = vcvt_f32_f16(vreinterpret_f16_s16(vget_low_s16(v.value)));
+        float32x4_t v_high = vcvt_f32_f16(vreinterpret_f16_s16(vget_high_s16(v.value)));
+        v_low = log_ps(v_low);
+        v_high = log_ps(v_high);
+        dst.value = vcombine_s16(vreinterpret_s16_f16(vcvt_f16_f32(v_low)),
+                        vreinterpret_s16_f16(vcvt_f16_f32(v_high)));
+        return dst;
+    }
+    static Half8 abs(const Half8& v) {
+        Half8 dst;
+        asm volatile(
+            "vabs.f16 %0, %2\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v.value)
             :
         );
         return dst;
@@ -469,6 +836,16 @@ struct Half8 {
     Half8& operator=(const Half8&& lr) {
         value = std::move(lr.value);
         return *this;
+    }
+    Half8 operator-() {
+        Half8 dst;
+        asm volatile(
+            "vsub.f16 %0, %2\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value)
+            :
+        );
+        return dst;
     }
 };
 
