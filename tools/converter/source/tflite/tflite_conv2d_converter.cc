@@ -144,7 +144,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->pad_type = 0;
         if (depthwise_option->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
-            param->pad_type = -1;
+            param->pad_type = 1;
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
@@ -155,6 +155,10 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
+        }
+        if (param->dialations[0] != 1 && param->dialations[1] != 1) {
+            param->pad_type = -1;
+            TNN_CONVERTER::CalculatePadSize(tf_lite_operator, tf_lite_tensors, tf_lite_operator->builtin_options, kh, kw, param);
         }
         const auto activation = depthwise_option->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {
