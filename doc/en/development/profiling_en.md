@@ -220,14 +220,4 @@ benchmark device: OPENCL
 ```
 
 ### 5. Special Instructions
-#### 5.1 View Results
-
-The benchmark app obtain the performance report through `logcat` after running for a few seconds. You can also view the results using the `logcat` command manually:
-
-```
-adb logcat | grep "TNN Benchmark time cost"
-```
-
-#### 5.2 Performance Notes
-
 Compared with executing binaries directly via `adb shell`, the foreground benchmark app gets closer performance with an actual Android app. Due to Android's scheduler tailors behavior, it can result in observable differences in performance. Therefore, the benchmark app is preferred for performance measurement.

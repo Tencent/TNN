@@ -195,10 +195,4 @@ benchmark device: OPENCL
 ```
 
 ### 5. 特殊说明
-#### 5.1 结果查看
-安卓耗时测试通过运行app一段时间后`logcat`获取结果，如果性能结果未正常输出，可通过logcat手动获取
-```
-adb logcat | grep "TNN Benchmark time cost"
-```
-#### 5.2 性能说明
 相比后台`adb shell`执行耗时测试的方式，app耗时测试的性能更贴近真实安卓app执行的性能。受安卓调度策略的影响，两种方式的性能可能有明显差异。综上所诉，安卓app耗时测试更为推荐。
