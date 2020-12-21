@@ -20,10 +20,10 @@ static float GetObjectScale(const NormalizedLandmarkList& landmarks, int image_w
                             int image_height) {
     const auto& lm_min_x = std::min_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return std::get<0>(a) < std::get<0>(b); });
+                                            [](const NormalizedLandmark& a, const NormalizedLandmark& b) { return std::get<0>(a) < std::get<0>(b); });
     const auto& lm_max_x = std::max_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return std::get<0>(a) > std::get<0>(b); });
+                                            [](const NormalizedLandmark& a, const NormalizedLandmark& b) { return std::get<0>(a) > std::get<0>(b); });
     
     if (landmarks.size() <= 0)
         return 0;
@@ -33,10 +33,10 @@ static float GetObjectScale(const NormalizedLandmarkList& landmarks, int image_w
     
     const auto& lm_min_y = std::min_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return std::get<1>(a) < std::get<1>(b); });
+                                            [](const NormalizedLandmark& a, const NormalizedLandmark& b) { return std::get<1>(a) < std::get<1>(b); });
     const auto& lm_max_y = std::max_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return std::get<1>(a) > std::get<1>(b); });
+                                            [](const NormalizedLandmark& a, const NormalizedLandmark& b) { return std::get<1>(a) > std::get<1>(b); });
     
     const float y_min = std::get<1>(*lm_min_y);
     const float y_max = std::get<1>(*lm_max_y);
@@ -51,10 +51,10 @@ static float GetObjectScale(const Normalized2DLandmarkList& landmarks, int image
                             int image_height) {
     const auto& lm_min_x = std::min_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return a.first < b.first; });
+                                            [](const Normalized2DLandmark& a, const Normalized2DLandmark& b) { return a.first < b.first; });
     const auto& lm_max_x = std::max_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return a.first > b.first; });
+                                            [](const Normalized2DLandmark& a, const Normalized2DLandmark& b) { return a.first > b.first; });
     
     if (landmarks.size() <= 0)
         return 0;
@@ -64,10 +64,10 @@ static float GetObjectScale(const Normalized2DLandmarkList& landmarks, int image
     
     const auto& lm_min_y = std::min_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return a.second < b.second; });
+                                            [](const Normalized2DLandmark& a, const Normalized2DLandmark& b) { return a.second < b.second; });
     const auto& lm_max_y = std::max_element(
                                             landmarks.begin(), landmarks.end(),
-                                            [](const auto& a, const auto& b) { return a.second > b.second; });
+                                            [](const Normalized2DLandmark& a, const Normalized2DLandmark& b) { return a.second > b.second; });
     
     const float y_min = lm_min_y->second;
     const float y_max = lm_max_y->second;
