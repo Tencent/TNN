@@ -209,20 +209,33 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     if (ret != TNN_OK)
         return ret;
 
-    if (type == COLOR_CONVERT_NV12TOBGR) {
-        NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV21TOBGR) {
-        NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV12TOBGRA) {
-        NV12ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV21TOBGRA) {
-        NV21ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_BGRTOGRAY) {
-        BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_BGRATOGRAY) {
-        BGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else {
-        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
+    switch (type) {
+        case COLOR_CONVERT_NV12TOBGR:
+            NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV21TOBGR:
+            NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV12TOBGRA:
+            NV12ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV21TOBGRA:
+            NV21ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_BGRTOGRAY:
+            BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_BGRATOGRAY:
+            BGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_RGBTOGRAY:
+            RGBToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_RGBATOGRAY:
+            RGBAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        default:
+            return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::CvtColor, color conversion type not support yet");
     }
 
     return ret;
