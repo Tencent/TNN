@@ -173,6 +173,7 @@ function bench_android() {
 
     $ADB pull $ANDROID_DIR/$OUTPUT_LOG_FILE ${WORK_DIR}/$OUTPUT_LOG_FILE
     cat ${WORK_DIR}/$OUTPUT_LOG_FILE
+
 }
 
 function build_android_bench_app() {
@@ -223,6 +224,8 @@ function bench_android_app() {
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
+
+    $ADB uninstall com.tencent.tnn.benchmark
 }
 
 while [ "$1" != "" ]; do
