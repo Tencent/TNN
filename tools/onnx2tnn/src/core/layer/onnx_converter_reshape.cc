@@ -31,11 +31,11 @@ string OnnxOpConverterReshape::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_i
         auto shape_data      = (const int64_t *)get_tensor_proto_data(shape_tp);
         int data_size        = get_tensor_proto_data_size(shape_tp);
         int start_axis       = 0;
-//        int end_axis         = data_size < 4 ? 4 : data_size;
-//        int shape_size       = data_size < 4 ? 4 : data_size;
+        int end_axis         = data_size < 4 ? 4 : data_size;
+        int shape_size       = data_size < 4 ? 4 : data_size;
 
-        int end_axis = data_size;
-        int shape_size = data_size;
+//        int end_axis = data_size;
+//        int shape_size = data_size;
 
         layer_param << start_axis << " ";
         layer_param << end_axis << " ";
