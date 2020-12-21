@@ -1578,12 +1578,12 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 
 #ifdef TNN_USE_NEON
 
-#define CVTGRAYIMPL(n)                                                  \
+#define CVTGRAYIMPL(n, bgr_order)                                       \
     uint8x8x##n##_t _Src;                                               \
     _Src  = vld##n##_u8(Sp);                                            \
-    _Bh   = vmovl_u8(_Src.val[0]);                                      \
+    _Bh   = vmovl_u8(_Src.val[bgr_order ? 0 : 2]);                      \
     _Gh   = vmovl_u8(_Src.val[1]);                                      \
-    _Rh   = vmovl_u8(_Src.val[2]);                                      \
+    _Rh   = vmovl_u8(_Src.val[bgr_order ? 2 : 0]);                      \
     _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));                \
     _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));                \
     _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));                \
@@ -1602,10 +1602,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 
 #endif  // TNN_USE_NEON
 
-template <int channel>
-void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+template <int channel, bool bgr_order>
+void ColorToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
 #ifndef TNN_USE_NEON
-    NaiveBGROrBGRAToGray(bgr, gray, h, w, channel);
+    NaiveColorToGray(bgr, gray, h, w, channel, bgr_order);
 #else
     int offset = 0;
     int plane  = h * w;
@@ -1620,9 +1620,9 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
     uint16x4_t _acc0, _acc1;
     for (; offset < plane>>3<<3; offset += 8) {
         if (channel == 3) {
-            CVTGRAYIMPL(3);
+            CVTGRAYIMPL(3, bgr_order);
         } else {
-            CVTGRAYIMPL(4);
+            CVTGRAYIMPL(4, bgr_order);
         }
         Sp   += 8 * channel;
         Dp   += 8;
@@ -1632,9 +1632,9 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
     }
 
     for (; offset < plane; ++offset) {
-        unsigned b = bgr[offset * channel + 0];
+        unsigned b = bgr[offset * channel + (bgr_order ? 0 : 2)];
         unsigned g = bgr[offset * channel + 1];
-        unsigned r = bgr[offset * channel + 2];
+        unsigned r = bgr[offset * channel + (bgr_order ? 2 : 0)];
         float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
         gray[offset] = gray_color;
     }
@@ -1642,11 +1642,19 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
 }
 
 void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
-    BGROrBGRAToGray<3>(bgr, gray, h, w);
+    ColorToGray<3, true>(bgr, gray, h, w);
 }
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
-    BGROrBGRAToGray<4>(bgra, gray, h, w);
+    ColorToGray<4, true>(bgra, gray, h, w);
+}
+
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int h, int w) {
+    ColorToGray<3, false>(rgb, gray, h, w);
+}
+
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int h, int w) {
+    ColorToGray<4, false>(rgba, gray, h, w);
 }
 
 #ifdef TNN_USE_NEON
