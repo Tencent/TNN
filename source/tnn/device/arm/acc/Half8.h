@@ -26,7 +26,7 @@
 #endif
 
 namespace TNN_NS {
-#if defined(TNN_USE_NEON) && TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+#if defined(TNN_USE_NEON) && TNN_ARM82 && !defined(TNN_ARM82_SIMU) && defined(__aarch64__)
 
 struct Half4 {
     float16x4_t value;
@@ -367,6 +367,108 @@ struct Half8 {
         Half8 dst;
         dst.value = -value;
         return dst;
+    }
+};
+
+#elif defined(TNN_USE_NEON) && defined(__arm__) && !defined(__aarch64__)
+
+struct Half8 {
+    // use f32x4 to store q register, avoiding compile error 
+    float32x4_t value;
+    Half8() {}
+    Half8(const fp16_t v) {
+        asm volatile(
+            "vdup.16 %0, %2\n\t"
+            :"=w"(value)
+            :"0"(value),"r"(v)
+            :
+        );
+    }
+    Half8(const float32x4_t& v) {
+        value = v;
+    }
+    Half8(const float32x4_t&& v) {
+        value = std::move(v);
+    }
+    Half8(const Half8& lr) {
+        value = lr.value;
+    }
+    Half8(const Half8&& lr) {
+        value = std::move(lr.value);
+    }
+    static Half8 load(const fp16_t* addr) {
+        Half8 v;
+        asm volatile(
+            "vld1.16 {%0}, [%2]\n\t"
+            :"=w"(v.value)
+            :"0"(v.value),"r"(addr)
+            :
+        );
+        return v;
+    }
+    static void save(fp16_t* addr, const Half8& v) {
+        asm volatile(
+            "vst1.16 {%0}, [%1]\n\t"
+            :
+            :"w"(v.value),"r"(addr)
+            :
+        );
+    }
+    static void mla(Half8& v1, const Half8& v2, const Half8& v3) {
+        asm volatile (
+            "vmla.f16 %0, %2, %3\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static Half8 max(const Half8& v1, const Half8& v2) {
+        Half8 dst;
+        asm volatile(
+            "vmax.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v1.value),"w"(v2.value)
+            :
+        );
+        return dst;
+    }
+    Half8 operator+(const Half8& lr) {
+        Half8 dst;
+        asm volatile(
+            "vadd.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half8 operator-(const Half8& lr) {
+        Half8 dst;
+        asm volatile(
+            "vsub.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half8 operator*(const Half8& lr) {
+        Half8 dst;
+        asm volatile(
+            "vmul.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half8& operator=(const Half8& lr) {
+        value = lr.value;
+        return *this;
+    }
+    Half8& operator=(const Half8&& lr) {
+        value = std::move(lr.value);
+        return *this;
     }
 };
 

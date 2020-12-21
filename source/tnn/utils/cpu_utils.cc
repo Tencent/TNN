@@ -324,7 +324,8 @@ Status CpuUtils::SetCpuAffinity(const std::vector<int>& cpu_list) {
 }
 
 bool CpuUtils::CpuSupportFp16() {
-    bool fp16arith = false;
+    // bool fp16arith = false;
+    bool fp16arith = true;
 
 #if defined(__aarch64__) && TNN_ARM82 && !defined(TNN_ARM82_SIMU)
 

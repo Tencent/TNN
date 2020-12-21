@@ -110,6 +110,10 @@ public:
 #define REGISTER_ARM_PRECISION_FP16(layer_type)
 #endif  // TNN_ARM82
 
+#define REGISTER_ARM_PRECISION_FP16_TEST(layer_type)                                                                   \
+    ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(layer_type,                             \
+        ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_LAYER_ACC_H_
