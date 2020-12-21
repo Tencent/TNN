@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
@@ -366,6 +367,8 @@ std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context,
         double kernel_time;
         RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
         GetKernelTime(&data.event, kernel_time);
+
+        usleep(10000);
 
         if (kernel_time < kernel_min_time) {
             tune_map.insert(make_pair(tune_key, unit.local_work_size));
