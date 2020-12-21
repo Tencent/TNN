@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -184,6 +185,20 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+    }
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param[" +
+                               "kernel_" + ToString(pooling_param->kernels[0]) + "_" + ToString(pooling_param->kernels[1]) + "_" +
+                               "pad_" + ToString(pooling_param->pads[0]) + "_" + ToString(pooling_param->pads[1]) + "_" +
+                               "stride_" + ToString(pooling_param->strides[0]) + "_" + ToString(pooling_param->strides[1]) + "_" +
+                               "pool_type_" + ToString(pooling_param->pool_type) + "_" + 
+                               "ceil_mode_" + ToString(pooling_param->ceil_mode) + "_" + 
+                               "pad_type_" + ToString(pooling_param->pad_type) + "]_global";
+        for (auto size : unit.global_work_size) {
+            tune_key += "_" + ToString(size);
+        }
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, tune_key);
     }
 
     return TNN_OK;

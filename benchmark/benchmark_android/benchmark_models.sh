@@ -11,6 +11,7 @@ PUSH_MODEL=""
 DEVICE_TYPE=""
 MODEL_TYPE=TNN
 USE_NCNN_MODEL=0
+KERNEL_TUNE="-et"
 THREAD_NUM=1
 ADB=adb
 BENCHMARK_APP_TYPE=""
@@ -23,7 +24,7 @@ ANDROID_DIR=/data/local/tmp/tnn-benchmark
 ANDROID_DATA_DIR=$ANDROID_DIR/benchmark-model
 OUTPUT_LOG_FILE=benchmark_models_result.txt
 LOOP_COUNT=16
-WARM_UP_COUNT=8
+WARM_UP_COUNT=5
 
 benchmark_model_list=(
 #test.tnnproto \
@@ -135,8 +136,9 @@ function bench_android() {
 
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | tail -n 1 >> $OUTPUT_LOG_FILE"
+            sleep 5
         done
     fi
 
@@ -150,8 +152,9 @@ function bench_android() {
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | tail -n 1 >> $OUTPUT_LOG_FILE"
+            sleep 5
         done
     fi
 
@@ -163,8 +166,9 @@ function bench_android() {
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -nt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -nt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | tail -n 1 >> $OUTPUT_LOG_FILE"
+            sleep 5
         done
     fi
 
