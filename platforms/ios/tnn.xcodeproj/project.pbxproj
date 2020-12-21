@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6178F34B2590AA8C00B4B153 /* winograd_generator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6178F3472590AA8C00B4B153 /* winograd_generator.cc */; };
+		6178F34C2590AA8C00B4B153 /* winograd_generator.h in Headers */ = {isa = PBXBuildFile; fileRef = 6178F3482590AA8C00B4B153 /* winograd_generator.h */; };
+		6178F34D2590AA8C00B4B153 /* md5.h in Headers */ = {isa = PBXBuildFile; fileRef = 6178F3492590AA8C00B4B153 /* md5.h */; };
+		6178F34E2590AA8C00B4B153 /* md5.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6178F34A2590AA8C00B4B153 /* md5.cc */; };
 		9D29E25122DC89310050DC63 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D29E25022DC89300050DC63 /* Foundation.framework */; };
 		9D2DB1D622D759C8000C508F /* tnn.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D2DB1D422D759C8000C508F /* tnn.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9D31636023169B1600531250 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D31635F23169B1600531250 /* CoreML.framework */; };
@@ -58,13 +62,11 @@
 		9D32FCAE24557EEC002DCDAB /* blob_dump_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */; };
 		9D32FCAF24557EEC002DCDAB /* blob_transfer_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */; };
 		9D32FCB124557EEC002DCDAB /* data_format_converter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99424557EE7002DCDAB /* data_format_converter.h */; };
-		9D32FCB224557EEC002DCDAB /* wingorad_generater.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99524557EE7002DCDAB /* wingorad_generater.h */; };
 		9D32FCB324557EEC002DCDAB /* data_format_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99624557EE7002DCDAB /* data_format_converter.cc */; };
 		9D32FCB424557EEC002DCDAB /* blob_converter_internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99724557EE7002DCDAB /* blob_converter_internal.h */; };
 		9D32FCB624557EEC002DCDAB /* blob_converter_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99924557EE7002DCDAB /* blob_converter_internal.cc */; };
 		9D32FCB724557EEC002DCDAB /* dims_vector_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99A24557EE7002DCDAB /* dims_vector_utils.cc */; };
 		9D32FCB824557EEC002DCDAB /* blob_memory_size_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99B24557EE7002DCDAB /* blob_memory_size_utils.cc */; };
-		9D32FCB924557EEC002DCDAB /* wingorad_generater.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99C24557EE7002DCDAB /* wingorad_generater.cc */; };
 		9D32FCBA24557EEC002DCDAB /* data_type_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99D24557EE7002DCDAB /* data_type_utils.cc */; };
 		9D32FCBB24557EEC002DCDAB /* split_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D32F99E24557EE7002DCDAB /* split_utils.cc */; };
 		9D32FCBC24557EEC002DCDAB /* string_format.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D32F99F24557EE7002DCDAB /* string_format.h */; };
@@ -692,6 +694,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		6178F3472590AA8C00B4B153 /* winograd_generator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = winograd_generator.cc; sourceTree = "<group>"; };
+		6178F3482590AA8C00B4B153 /* winograd_generator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = winograd_generator.h; sourceTree = "<group>"; };
+		6178F3492590AA8C00B4B153 /* md5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md5.h; sourceTree = "<group>"; };
+		6178F34A2590AA8C00B4B153 /* md5.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = md5.cc; sourceTree = "<group>"; };
 		9D24B9562351FFE1000E1F04 /* tnn copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "tnn copy-Info.plist"; path = "/Volumes/BANQ/Projects/MLProjects/tnn-open2/platforms/ios/tnn copy-Info.plist"; sourceTree = "<absolute>"; };
 		9D29E25022DC89300050DC63 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.2.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		9D2DB1D122D759C8000C508F /* tnn.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = tnn.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -746,13 +752,11 @@
 		9D32F99124557EE7002DCDAB /* blob_dump_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_dump_utils.cc; sourceTree = "<group>"; };
 		9D32F99224557EE7002DCDAB /* blob_transfer_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_transfer_utils.cc; sourceTree = "<group>"; };
 		9D32F99424557EE7002DCDAB /* data_format_converter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = data_format_converter.h; sourceTree = "<group>"; };
-		9D32F99524557EE7002DCDAB /* wingorad_generater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wingorad_generater.h; sourceTree = "<group>"; };
 		9D32F99624557EE7002DCDAB /* data_format_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_format_converter.cc; sourceTree = "<group>"; };
 		9D32F99724557EE7002DCDAB /* blob_converter_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_converter_internal.h; sourceTree = "<group>"; };
 		9D32F99924557EE7002DCDAB /* blob_converter_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_converter_internal.cc; sourceTree = "<group>"; };
 		9D32F99A24557EE7002DCDAB /* dims_vector_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dims_vector_utils.cc; sourceTree = "<group>"; };
 		9D32F99B24557EE7002DCDAB /* blob_memory_size_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_memory_size_utils.cc; sourceTree = "<group>"; };
-		9D32F99C24557EE7002DCDAB /* wingorad_generater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = wingorad_generater.cc; sourceTree = "<group>"; };
 		9D32F99D24557EE7002DCDAB /* data_type_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_type_utils.cc; sourceTree = "<group>"; };
 		9D32F99E24557EE7002DCDAB /* split_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = split_utils.cc; sourceTree = "<group>"; };
 		9D32F99F24557EE7002DCDAB /* string_format.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string_format.h; sourceTree = "<group>"; };
@@ -1508,6 +1512,10 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				6178F34A2590AA8C00B4B153 /* md5.cc */,
+				6178F3492590AA8C00B4B153 /* md5.h */,
+				6178F3472590AA8C00B4B153 /* winograd_generator.cc */,
+				6178F3482590AA8C00B4B153 /* winograd_generator.h */,
 				9DF54444258B162F006CEC97 /* blob_converter_default.cc */,
 				9DF54445258B162F006CEC97 /* blob_converter_default.h */,
 				9DF54446258B162F006CEC97 /* npu_common_utils.cc */,
@@ -1550,8 +1558,6 @@
 				9D32F99024557EE7002DCDAB /* string_format.cc */,
 				9D32F99F24557EE7002DCDAB /* string_format.h */,
 				9D32F98D24557EE7002DCDAB /* string_utils_inner.h */,
-				9D32F99C24557EE7002DCDAB /* wingorad_generater.cc */,
-				9D32F99524557EE7002DCDAB /* wingorad_generater.h */,
 			);
 			path = utils;
 			sourceTree = "<group>";
@@ -2448,7 +2454,6 @@
 				9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */,
 				9DD1FB73247CE9BE00800139 /* metal_deconv_layer_acc.h in Headers */,
 				9D32FF6324557EED002DCDAB /* net_structure.h in Headers */,
-				9D32FCB224557EEC002DCDAB /* wingorad_generater.h in Headers */,
 				ECD9464F2558F4CD00BF9214 /* net_optimizer_insert_int8_reformat.h in Headers */,
 				9D32FF3824557EED002DCDAB /* raw_buffer.h in Headers */,
 				9DD1FB81247CE9BE00800139 /* metal_reduce_layer_acc.h in Headers */,
@@ -2458,6 +2463,7 @@
 				9DF54438258B1367006CEC97 /* arm_upsample_layer_acc.h in Headers */,
 				9DD1FBB5247CE9BE00800139 /* metal_conv_layer_common.h in Headers */,
 				9DF543A5258B1366006CEC97 /* TNNVector.h in Headers */,
+				6178F34D2590AA8C00B4B153 /* md5.h in Headers */,
 				9D32FCA124557EEC002DCDAB /* share_one_thread_memory_mode_state.h in Headers */,
 				9D32FC9124557EEC002DCDAB /* blob_memory_pool_factory.h in Headers */,
 				9D32FCA724557EEC002DCDAB /* omp_utils.h in Headers */,
@@ -2490,6 +2496,7 @@
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
 				9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */,
 				9D32FC8324557EEC002DCDAB /* optimizer_const.h in Headers */,
+				6178F34C2590AA8C00B4B153 /* winograd_generator.h in Headers */,
 				9D32FF3B24557EED002DCDAB /* net_resource.h in Headers */,
 				9D32FC7E24557EEB002DCDAB /* net_optimizer_remove_layers.h in Headers */,
 				9DD1FBBE247CE9BE00800139 /* metal_inner_product_layer_acc.h in Headers */,
@@ -2571,6 +2578,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6178F34E2590AA8C00B4B153 /* md5.cc in Sources */,
 				9D32FCF824557EEC002DCDAB /* elu_layer.cc in Sources */,
 				9DD1FB4D247CE9BE00800139 /* metal_common.metal in Sources */,
 				9D32FF2724557EED002DCDAB /* pooling_3d_layer_interpreter.cc in Sources */,
@@ -2618,7 +2626,6 @@
 				9D32FF5124557EED002DCDAB /* pooling_layer_interpreter.cc in Sources */,
 				9DF5442F258B1367006CEC97 /* arm_conv_layer_group.cc in Sources */,
 				9D32FCC724557EEC002DCDAB /* reduce_sum_square_layer.cc in Sources */,
-				9D32FCB924557EEC002DCDAB /* wingorad_generater.cc in Sources */,
 				9D32FF2024557EED002DCDAB /* elu_layer_interpreter.cc in Sources */,
 				9D32FF1524557EED002DCDAB /* stride_slice_layer_interpreter.cc in Sources */,
 				9D32FF4124557EED002DCDAB /* ncnn_model_interpreter.cc in Sources */,
@@ -2713,6 +2720,7 @@
 				9DF543FE258B1366006CEC97 /* arm_binary_layer_acc.cc in Sources */,
 				EC0BE17B25144C10009BD69A /* reduce_op_layer_interpreter.cc in Sources */,
 				EC0BE15125144BB8009BD69A /* signed_mul_layer.cc in Sources */,
+				6178F34B2590AA8C00B4B153 /* winograd_generator.cc in Sources */,
 				9D32FCF724557EEC002DCDAB /* pooling_layer.cc in Sources */,
 				9DD1FB66247CE9BE00800139 /* metal_atan_layer_acc.mm in Sources */,
 				9D32FF3324557EED002DCDAB /* conv_3d_layer_interpreter.cc in Sources */,
