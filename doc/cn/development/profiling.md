@@ -137,7 +137,7 @@ export JAVA_HOME=<path_to_jdk>/
 ```
 
 ##### 1.2.2 安卓SDK
-下载[安卓SDK](https://developer.android.com/studio)，配置`$ANDROID_HOME`环境变量。
+下载[安卓SDK](https://developer.android.com/studio/releases/build-tools)，配置`$ANDROID_HOME`环境变量。
 PS: 如果安卓sdk版本过低，可能执行脚本会失败。当时测试的sdk版本为：28.0.3
 ```
 export ANDROID_HOME=<path_to_android_sdk>/

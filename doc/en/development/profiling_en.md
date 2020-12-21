@@ -153,7 +153,7 @@ export JAVA_HOME=<path_to_jdk>/
 
 ##### 1.2.2 Android SDK
 
-Download [Android SDK](https://developer.android.com/studio), set `$ANDROID_HOME`
+Download [Android SDK](https://developer.android.com/studio/releases/build-tools), set `$ANDROID_HOME`
 
 PS: If the Android sdk version is too old, the script might fail to work, current sdk verison：28.0.3
 ```
