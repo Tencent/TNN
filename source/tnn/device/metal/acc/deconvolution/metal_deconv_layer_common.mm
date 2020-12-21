@@ -108,13 +108,6 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     auto dims_output             = output->GetBlobDesc().dims;
     auto context_impl            = context_->getMetalContextImpl();
 
-    /*
-    if (dims_input[0] != 1) {
-        LOGE("Error: batch size or group is not support\n");
-        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
-    }
-    */
-
     auto encoder = [context_impl encoder];
     encoder.label = GetKernelLabel();
 
@@ -158,7 +151,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
         supported = true;
         status    = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
     } else {
-        //注意此处先特殊处理
+        //special case
         if (group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) {
             supported              = true;
             status                 = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
