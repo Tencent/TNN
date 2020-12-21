@@ -40,7 +40,6 @@ JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv* env, jobject thiz,
     bool model_path_option = false;
     argv.push_back(const_cast<char*>(arg0.data()));
     for (auto& arg : args_split) {
-        LOGE("dlmeng: benchmark arg: %s\n", arg.c_str());
         // Deal with the model path
         if (!model_path_option) {
             argv.push_back(const_cast<char*>(arg.data()));
