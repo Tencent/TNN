@@ -17,7 +17,7 @@
 
 #include "tnn/core/macro.h"
 
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
 
 #include <cstdint>
 typedef __fp16 fp16_t;
