@@ -14,10 +14,7 @@
 
 #import "TNNSkeletonDetectorViewModel.h"
 #import "skeleton_detector.h"
-
 #import <array>
-
-#define ENABLE_GAUSSIAN_BLUR 0
 
 using namespace std;
 
@@ -26,66 +23,40 @@ using namespace std;
 @property (nonatomic, strong) NSArray<UIButton *> *modelButtons;
 @property (nonatomic, strong) NSArray<UILabel *> *modelLabels;
 @property (nonatomic, assign) NSInteger activeModel;
-
 @property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 3> predictors;
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> bigPredictor;
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> middlePredictor;
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> smallPredictor;
+
+-(std::shared_ptr<TNNSDKSample>)loadSkeletonModel:(TNNComputeUnits)units path:(NSString *)proto_path;
 @end
 
 @implementation TNNSkeletonDetectorViewModel
 
--(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
-    Status status = TNN_OK;
-    
-    // check release mode at Product->Scheme when running
-    //运行时请在Product->Scheme中确认已经调整到release模式
-
+-(std::shared_ptr<TNNSDKSample>)loadSkeletonModel:(TNNComputeUnits)units path:(NSString *)proto_path {
     // Get metallib path from app bundle
     // PS：A script(Build Phases -> Run Script) is added to copy the metallib
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
 
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big.tnnproto"
-                                                      ofType:nil];
-    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle.tnnproto"
-                                                             ofType:nil];
-    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small.tnnproto"
-                                                            ofType:nil];
-
     auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
                                                       ofType:nil];
-
-    if (proto_path.length <= 0 || middle_proto_path.length <= 0 || small_proto_path.length <= 0) {
-        status = Status(TNNERR_NET_ERR, "Error: proto path is invalid");
+    if (proto_path.length <= 0) {
         NSLog(@"Error: proto path is invalid");
-        return status;
+        return nullptr;
     }
     if (model_path.length <= 0) {
-        status = Status(TNNERR_NET_ERR, "Error: model path is invalid");
         NSLog(@"Error: model path is invalid");
-        return status;
+        return nullptr;
     }
 
     NSString *protoFormat = [NSString stringWithContentsOfFile:proto_path
                                                    encoding:NSUTF8StringEncoding
                                                       error:nil];
-    NSString *middleProtoFormat = [NSString stringWithContentsOfFile:middle_proto_path
-                                                          encoding:NSUTF8StringEncoding
-                                                             error:nil];
-    NSString *smallProtoFormat = [NSString stringWithContentsOfFile:small_proto_path
-                                                          encoding:NSUTF8StringEncoding
-                                                             error:nil];
     string proto_content = protoFormat.UTF8String;
-    string middle_proto_content = middleProtoFormat.UTF8String;
-    string small_proto_content = smallProtoFormat.UTF8String;
     NSData *data = [NSData dataWithContentsOfFile:model_path];
     string model_content = [data length] > 0 ? string((const char *)[data bytes], [data length]) : "";
     if (proto_content.size() <= 0 || model_content.size() <=0) {
-        status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
         NSLog(@"Error: proto or model path is invalid");
-        return status;
+        return nullptr;
     }
     
     auto option = std::make_shared<SkeletonDetectorOption>();
@@ -98,44 +69,43 @@ using namespace std;
         option->min_threshold = 0.15f;
     }
     
-    auto bigPredictor = std::make_shared<SkeletonDetector>();
-    status = bigPredictor->Init(option);
-    RETURN_ON_NEQ(status, TNN_OK);
+    auto predictor = std::make_shared<SkeletonDetector>();
+    auto status = predictor->Init(option);
+    RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
     
-    auto middleOption = std::make_shared<SkeletonDetectorOption>();
-    {
-        middleOption->proto_content = middle_proto_content;
-        middleOption->model_content = model_content;
-        middleOption->library_path = library_path.UTF8String;
-        middleOption->compute_units = units;
+    return predictor;
+}
 
-        middleOption->min_threshold = 0.15f;
-    }
-    auto middlePredictor = std::make_shared<SkeletonDetector>();
-    status = middlePredictor->Init(middleOption);
-    RETURN_ON_NEQ(status, TNN_OK);
+-(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
+    Status status = TNN_OK;
 
-    auto smallOption = std::make_shared<SkeletonDetectorOption>();
-    {
-        smallOption->proto_content = small_proto_content;
-        smallOption->model_content = model_content;
-        smallOption->library_path = library_path.UTF8String;
-        smallOption->compute_units = units;
+    // check release mode at Product->Scheme when running
+    //运行时请在Product->Scheme中确认已经调整到release模式
 
-        smallOption->min_threshold = 0.15f;
-    }
-    auto smallPredictor = std::make_shared<SkeletonDetector>();
-    status = smallPredictor->Init(smallOption);
-    
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big.tnnproto"
+                                                      ofType:nil];
+    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle.tnnproto"
+                                                             ofType:nil];
+    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small.tnnproto"
+                                                            ofType:nil];
+
+    auto bigPredictor = [self loadSkeletonModel:units path:proto_path];
+    RETURN_VALUE_ON_NEQ(!bigPredictor, false,
+                        Status(TNNERR_NET_ERR, "Error: proto or model path is invalid"));
+
+    auto middlePredictor = [self loadSkeletonModel:units path:middle_proto_path];
+    RETURN_VALUE_ON_NEQ(!middlePredictor, false,
+                        Status(TNNERR_NET_ERR, "Error: proto or model path is invalid"));
+
+    auto smallPredictor = [self loadSkeletonModel:units path:small_proto_path];
+    RETURN_VALUE_ON_NEQ(!smallPredictor, false,
+                        Status(TNNERR_NET_ERR, "Error: proto or model path is invalid"));
+
     BenchOption bench_option;
     bench_option.forward_count = 1;
     bigPredictor->SetBenchOption(bench_option);
     middlePredictor->SetBenchOption(bench_option);
     smallPredictor->SetBenchOption(bench_option);
-
-    self.bigPredictor = bigPredictor;
-    self.middlePredictor = middlePredictor;
-    self.smallPredictor = smallPredictor;
 
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
@@ -144,7 +114,6 @@ using namespace std;
 
     return status;
 }
-
 
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)sdk_output {
     std::vector<std::shared_ptr<ObjectInfo> > object_list;

@@ -93,7 +93,7 @@ bool VelocityFilter::isValidLandMark(const NormalizedLandmark& m) {
 }
 
 bool VelocityFilter::isValidLandMark(const Normalized2DLandmark& m) {
-    bool valid = (m.first >=0) && (m.second >= 0);
+    bool valid = (m.first >= 0) && (m.second >= 0);
     return valid;
 }
 
