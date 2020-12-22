@@ -68,6 +68,7 @@
 		ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */; };
 		ECAD84FD24D7F0AE0074EA95 /* face_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
+		ECBA3C6225920A37001BC0A7 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = ECBA3C6125920A37001BC0A7 /* assets */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
 		ECD9465B2559266D00BF9214 /* hair_segmentation.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD9465A2559266D00BF9214 /* hair_segmentation.cc */; };
@@ -206,6 +207,7 @@
 		ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_mesh.cc; sourceTree = "<group>"; };
 		ECAD84FC24D7F0AE0074EA95 /* face_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_mesh.h; sourceTree = "<group>"; };
 		ECAD84FE24D801690074EA95 /* test_facemesh.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_facemesh.jpg; sourceTree = "<group>"; };
+		ECBA3C6125920A37001BC0A7 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../assets; sourceTree = "<group>"; };
 		ECD14A002505F88C00271443 /* face_detect_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_detect_mesh.cc; sourceTree = "<group>"; };
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
 		ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectMeshViewModel.mm; sourceTree = "<group>"; };
@@ -361,6 +363,7 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
+				ECBA3C6125920A37001BC0A7 /* assets */,
 				EC9EC4F42583948F0090AEEA /* utils */,
 				ECD9467B2559306700BF9214 /* logo@2x.png */,
 				ECD946632559295A00BF9214 /* Component */,
@@ -615,6 +618,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ECBA3C6225920A37001BC0A7 /* assets in Resources */,
 				9D71E7A324C4F35A00074C1A /* gray_00001.jpg in Resources */,
 				EC4E1B5024C97A0600B88179 /* test_blazeface.jpg in Resources */,
 				9DD579FD23B5A20E00A96E63 /* LaunchScreen.storyboard in Resources */,

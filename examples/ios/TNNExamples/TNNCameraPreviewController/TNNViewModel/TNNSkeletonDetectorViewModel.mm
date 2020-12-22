@@ -181,9 +181,13 @@ using namespace std;
     
     auto modeButtons = [NSMutableArray new];
     auto modeLabels = [NSMutableArray new];
+    NSString* iconDir = @"assets/";
     for(int i=0; i<modeCnt; ++i) {
         // set button
-        NSString* imagePath = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:modeNames[i].c_str()]
+        NSString *iconName = [NSString stringWithUTF8String:modeNames[i].c_str()];
+        NSMutableString *iconPath = [NSMutableString stringWithString:iconDir];
+        [iconPath appendString: iconName];
+        NSString *imagePath = [[NSBundle mainBundle] pathForResource:iconPath
                                                               ofType:@"png"];
         UIImage *btnImage = [UIImage imageNamed:imagePath];
         UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
