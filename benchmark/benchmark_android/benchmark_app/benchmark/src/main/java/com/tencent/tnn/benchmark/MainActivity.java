@@ -40,12 +40,12 @@ public class MainActivity extends Activity {
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
         String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
-        String load_list = bundle.getString(ARGS_INTENT_KEY_LOAD_LIST, "libtnn_wrapper.so");
+        String[] load_list = bundle.getStringArray(ARGS_INTENT_KEY_LOAD_LIST);
         Log.e("benchmark", benchmark_dir);
-        Log.e("benchmark", load_list);
-        for(String element : load_list.split(";")) {
+        for(String element : load_list) {
+            Log.e("benchmark", element);
             FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
-            System.load(getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
+            System.load(getFilesDir().getAbsolutePath() + "/" + element);
         }
         String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
         String fileDir = initModel();

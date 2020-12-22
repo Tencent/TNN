@@ -22,6 +22,33 @@ file(GLOB_RECURSE WRAPPER_SRCS ../benchmark/src/main/jni/cc/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../benchmark/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${THIRDPARTY_SRCS})
 
+if(TNN_HUAWEI_NPU_ENABLE)
+    add_library(hiai
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${TNN_ROOT}/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai.so)
+
+    add_library(hiai_ir
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${TNN_ROOT}/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir.so)
+
+    add_library(hiai_ir_build
+            SHARED
+            IMPORTED)
+    set_target_properties(hiai_ir_build
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${TNN_ROOT}/thirdparty/hiai_ddk/${ANDROID_ABI}/libhiai_ir_build.so)
+
+endif()
+
 find_library( # Sets the name of the path variable.
               log-lib
 
@@ -36,10 +63,8 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                         tnn_wrapper
                         -ljnigraphics
-                        -Wl,--whole-archive
-                        ${CMAKE_CURRENT_SOURCE_DIR}/../../build/libTNN.a
-                        ${CMAKE_CURRENT_SOURCE_DIR}/../../build/test/libTNNBenchmarkTest.a
-                        -Wl,--no-whole-archive
+                        ${CMAKE_CURRENT_SOURCE_DIR}/../../build/libTNN.so
+                        ${CMAKE_CURRENT_SOURCE_DIR}/../../build/test/libTNNBenchmarkTest.so
                         ${CMAKE_CURRENT_SOURCE_DIR}/../../build/third_party/gflags/libgflags_nothreads.a
                        # Links the target library to the log library
                        # included in the NDK.

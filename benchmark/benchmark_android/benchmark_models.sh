@@ -3,11 +3,10 @@
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 ABI="arm64-v8a"
-STL="c++_static"
+STL="c++_shared"
 SHARED_LIB="ON"
 PROFILING="OFF"
 CLEAN=""
-PUSH_MODEL=""
 DEVICE_TYPE=""
 MODEL_TYPE=TNN
 USE_NCNN_MODEL=0
@@ -181,7 +180,7 @@ function bench_android() {
 function build_android_bench_app() {
     echo -e "##### Java environment #####\nJAVA_HOME: ${JAVA_HOME}\n##### Java environment #####\n"
     echo -e "##### Android environment #####\nANDROID_HOME: ${ANDROID_HOME}\n##### Android environment #####\n"
-
+ 
     rm -rf $BUILD_APP_DIR
     mkdir $BUILD_APP_DIR
     cd $BUILD_APP_DIR
@@ -202,7 +201,6 @@ function build_android_bench_app() {
 }
 
 function bench_android_app() {
-    SHARED_LIB=OFF
     build_android_bench
     build_android_bench_app
 
@@ -221,7 +219,7 @@ function bench_android_app() {
         benchmark_model_list=`ls *.tnnproto`
     fi
 
-    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ]; then
+    if [ "$DEVICE_TYPE" != "GPU" ] && [ "$DEVICE_TYPE" != "CPU" ] && [ "$DEVICE_TYPE" != "HUAWEI_NPU" ]; then
         DEVICE_TYPE=""
     fi
 
@@ -233,7 +231,8 @@ function bench_android_app() {
             TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
-                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} --es load-list "libtnn_wrapper.so" 1 > /dev/null
+                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
+                --esa load-list "libc++_shared.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
@@ -246,7 +245,24 @@ function bench_android_app() {
             TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
-                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} --es load-list "libtnn_wrapper.so" 1 > /dev/null
+                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
+                --esa load-list "libc++_shared.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
+            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
+        done
+    fi
+
+    if [ "$DEVICE_TYPE" = "HUAWEI_NPU" ];then
+        device=HUAWEI_NPU
+        echo -e "\nbenchmark device: ${device}\n"
+        $ADB push ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/${ABI}/* $ANDROID_DIR/
+        $ADB push ${WORK_DIR}/../../third_party/huawei_npu/hiai_ddk_latest/${ABI}/* $ANDROID_DIR/
+        for benchmark_model in ${benchmark_model_list[*]}
+        do
+            TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -nt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
+            $ADB shell am start -S -W \
+                -n com.tencent.tnn.benchmark/.MainActivity \
+                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
+                --esa load-list "libc++_shared.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
