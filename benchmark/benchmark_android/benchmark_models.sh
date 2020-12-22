@@ -233,7 +233,7 @@ function bench_android_app() {
             TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
-                --es args \'${TEST_ARGS}\' 1 > /dev/null
+                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} --es load-list "libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
@@ -246,7 +246,7 @@ function bench_android_app() {
             TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
-                --es args \'${TEST_ARGS}\' 1 > /dev/null
+                --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} --es load-list "libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi

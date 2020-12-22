@@ -21,8 +21,10 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "TNN_BenchmarkModelActivity";
     private BenchmarkModel benchmark = new BenchmarkModel();
-    private static final String ARGS_INTENT_KEY_0 = "args";
-    private static final String ARGS_INTENT_KEY_1 = "--args";
+    private static final String ARGS_INTENT_KEY_ARGS_0 = "args";
+    private static final String ARGS_INTENT_KEY_ARGS_1 = "--args";
+    private static final String ARGS_INTENT_KEY_BENCHMARK_DIR = "benchmark-dir";
+    private static final String ARGS_INTENT_KEY_LOAD_LIST = "load-list";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,11 +37,17 @@ public class MainActivity extends Activity {
     }
 
     private void init() {
-        FileUtils.copyFile("/data/local/tmp/tnn-benchmark/libtnn_wrapper.so", getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
-        System.load(getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
-        String args = bundle.getString(ARGS_INTENT_KEY_0, bundle.getString(ARGS_INTENT_KEY_1));
+        String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
+        String load_list = bundle.getString(ARGS_INTENT_KEY_LOAD_LIST, "libtnn_wrapper.so");
+        Log.e("benchmark", benchmark_dir);
+        Log.e("benchmark", load_list);
+        for(String element : load_list.split(";")) {
+            FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
+            System.load(getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
+        }
+        String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
         String fileDir = initModel();
 
         Log.i(TAG, "Running TNN Benchmark with args: " + args);
