@@ -42,9 +42,7 @@ public class MainActivity extends Activity {
         Bundle bundle = intent.getExtras();
         String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
         String[] load_list = bundle.getStringArray(ARGS_INTENT_KEY_LOAD_LIST);
-        Log.e("benchmark", benchmark_dir);
         for(String element : load_list) {
-            Log.e("benchmark", element);
             FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
             System.load(getFilesDir().getAbsolutePath() + "/" + element);
         }
