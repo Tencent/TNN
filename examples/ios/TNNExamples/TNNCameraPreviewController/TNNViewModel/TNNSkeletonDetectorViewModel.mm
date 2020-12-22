@@ -15,14 +15,22 @@
 #import "TNNSkeletonDetectorViewModel.h"
 #import "skeleton_detector.h"
 
+#import <array>
+
+#define ENABLE_GAUSSIAN_BLUR 0
+
 using namespace std;
 
 @interface TNNSkeletonDetectorViewModel ()
-@property (nonatomic, strong) UISwitch *modelSwitch;
-@property (nonatomic, strong) UILabel *modelLabel;
-@property (nonatomic, assign) bool useThinModel;
+@property (nonatomic, strong) UILabel *label;
+@property (nonatomic, strong) NSArray<UIButton *> *modelButtons;
+@property (nonatomic, strong) NSArray<UILabel *> *modelLabels;
+@property (nonatomic, assign) NSInteger activeModel;
+
+@property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 3> predictors;
 @property (nonatomic, assign) std::shared_ptr<TNNSDKSample> bigPredictor;
-@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> thinPredictor;
+@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> middlePredictor;
+@property (nonatomic, assign) std::shared_ptr<TNNSDKSample> smallPredictor;
 @end
 
 @implementation TNNSkeletonDetectorViewModel
@@ -49,27 +57,51 @@ using namespace std;
     //                                                  ofType:nil];
 
     // new efficient model
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d_thin.tnnproto"
+#if ENABLE_GAUSSIAN_BLUR
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big_wb.tnnproto"
                                                       ofType:nil];
-    auto thin_proto_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d_thin_noresize.tnnproto"
-                                                      ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/weishi_2dpose/pose2d.tnnmodel"
-                                                      ofType:nil];
+    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle_wb.tnnproto"
+                                                             ofType:nil];
+    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small_wb.tnnproto"
+                                                            ofType:nil];
 
-    if (model_path.length <= 0 || proto_path.length <= 0 || thin_proto_path.length <= 0) {
-        status = Status(TNNERR_NET_ERR, "Error: proto or model path is invalid");
-        NSLog(@"Error: proto or model path is invalid");
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
+                                                      ofType:nil];
+#else
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big.tnnproto"
+                                                      ofType:nil];
+    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle.tnnproto"
+                                                             ofType:nil];
+    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small.tnnproto"
+                                                            ofType:nil];
+
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
+                                                      ofType:nil];
+#endif
+
+    if (proto_path.length <= 0 || middle_proto_path.length <= 0 || small_proto_path.length <= 0) {
+        status = Status(TNNERR_NET_ERR, "Error: proto path is invalid");
+        NSLog(@"Error: proto path is invalid");
+        return status;
+    }
+    if (model_path.length <= 0) {
+        status = Status(TNNERR_NET_ERR, "Error: model path is invalid");
+        NSLog(@"Error: model path is invalid");
         return status;
     }
 
     NSString *protoFormat = [NSString stringWithContentsOfFile:proto_path
                                                    encoding:NSUTF8StringEncoding
                                                       error:nil];
-    NSString *thinProtoFormat = [NSString stringWithContentsOfFile:thin_proto_path
+    NSString *middleProtoFormat = [NSString stringWithContentsOfFile:middle_proto_path
+                                                          encoding:NSUTF8StringEncoding
+                                                             error:nil];
+    NSString *smallProtoFormat = [NSString stringWithContentsOfFile:small_proto_path
                                                           encoding:NSUTF8StringEncoding
                                                              error:nil];
     string proto_content = protoFormat.UTF8String;
-    string thin_proto_content = thinProtoFormat.UTF8String;
+    string middle_proto_content = middleProtoFormat.UTF8String;
+    string small_proto_content = smallProtoFormat.UTF8String;
     NSData *data = [NSData dataWithContentsOfFile:model_path];
     string model_content = [data length] > 0 ? string((const char *)[data bytes], [data length]) : "";
     if (proto_content.size() <= 0 || model_content.size() <=0) {
@@ -91,31 +123,46 @@ using namespace std;
     auto bigPredictor = std::make_shared<SkeletonDetector>();
     status = bigPredictor->Init(option);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    auto thinOption = std::make_shared<SkeletonDetectorOption>();
+    
+    auto middleOption = std::make_shared<SkeletonDetectorOption>();
     {
-        thinOption->proto_content = thin_proto_content;
-        thinOption->model_content = model_content;
-        thinOption->library_path = library_path.UTF8String;
-        thinOption->compute_units = units;
+        middleOption->proto_content = middle_proto_content;
+        middleOption->model_content = model_content;
+        middleOption->library_path = library_path.UTF8String;
+        middleOption->compute_units = units;
 
-        thinOption->min_threshold = 0.15f;
+        middleOption->min_threshold = 0.15f;
     }
-    auto thinPredictor = std::make_shared<SkeletonDetector>();
-    status = thinPredictor->Init(thinOption);
+    auto middlePredictor = std::make_shared<SkeletonDetector>();
+    status = middlePredictor->Init(middleOption);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    auto smallOption = std::make_shared<SkeletonDetectorOption>();
+    {
+        smallOption->proto_content = small_proto_content;
+        smallOption->model_content = model_content;
+        smallOption->library_path = library_path.UTF8String;
+        smallOption->compute_units = units;
+
+        smallOption->min_threshold = 0.15f;
+    }
+    auto smallPredictor = std::make_shared<SkeletonDetector>();
+    status = smallPredictor->Init(smallOption);
     
     BenchOption bench_option;
     bench_option.forward_count = 1;
     bigPredictor->SetBenchOption(bench_option);
-    thinPredictor->SetBenchOption(bench_option);
+    middlePredictor->SetBenchOption(bench_option);
+    smallPredictor->SetBenchOption(bench_option);
 
     self.bigPredictor = bigPredictor;
-    self.thinPredictor = thinPredictor;
+    self.middlePredictor = middlePredictor;
+    self.smallPredictor = smallPredictor;
 
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
-    auto useThinModel = self.useThinModel;
-    self.predictor =  useThinModel? thinPredictor : bigPredictor;
+    self.predictors = {bigPredictor, middlePredictor, smallPredictor};
+    self.predictor = self.predictors[self.activeModel];
 
     return status;
 }
@@ -142,30 +189,78 @@ using namespace std;
 #pragma mark - UI control
 - (void)setupCustomView:(UIView *)view
            layoutHeight:(NSLayoutConstraint *)viewLayoutHeight {
-    viewLayoutHeight.constant = 60;
-
-    auto mySwitch = [[UISwitch alloc] initWithFrame:CGRectMake(55 + 200,
-                                                            12, 36, 36)];
-    [mySwitch addTarget:self action:@selector(onSwitchModel:) forControlEvents:UIControlEventValueChanged];
-    [view addSubview:mySwitch];
-    [mySwitch setOn:NO];
-
-    auto myLabel = [[UILabel alloc] initWithFrame:CGRectMake(55 + 200,
-                                                            40, 100, 45)];
-    [myLabel setText:@"thin model"];
-    [view addSubview:myLabel];
-
-    self.modelSwitch = mySwitch;
-    self.modelLabel = myLabel;
+    viewLayoutHeight.constant = 75;
+    
+    // initialize buttons
+    auto label = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, 80, viewLayoutHeight.constant)];
+    label.font = [UIFont systemFontOfSize:14];
+    label.text = @"选择模式：";
+    label.textColor = [UIColor whiteColor];
+    [view addSubview:label];
+    
+    const int modeCnt = 3;
+    std::array<std::string, modeCnt> modeNames = {"full", "balance", "lite"};
+    
+    auto modeButtons = [NSMutableArray new];
+    auto modeLabels = [NSMutableArray new];
+    for(int i=0; i<modeCnt; ++i) {
+        // set button
+        NSString* imagePath = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:modeNames[i].c_str()]
+                                                              ofType:@"png"];
+        UIImage *btnImage = [UIImage imageNamed:imagePath];
+        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [btn setBackgroundImage:btnImage forState:UIControlStateNormal];
+        btn.tag = i;
+        [btn addTarget:self action:@selector(onButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+        auto btnFrame = CGRectMake(15 + 80 + i*(45 + 20),
+                                    12, 45, 45);
+        btn.frame = btnFrame;
+        btn.selected = i == 0;
+        if (btn.selected) {
+            [btn setBackgroundColor:[UIColor redColor]];
+        }
+        [modeButtons addObject:btn];
+        
+        // set label
+        auto labelFrame = CGRectMake(btnFrame.origin.x, btnFrame.origin.y+50, btnFrame.size.width, 10);
+        UILabel *label = [[UILabel alloc] initWithFrame:labelFrame];
+        label.font = [UIFont systemFontOfSize:12];
+        label.text = [NSString stringWithUTF8String:modeNames[i].c_str()];
+        label.textColor = [UIColor whiteColor];
+        label.textAlignment = NSTextAlignmentCenter;
+        [modeLabels addObject:label];
+        
+        [view addSubview:btn];
+        [view addSubview:label];
+    }
+    
+    self.modelButtons = modeButtons;
+    self.modelLabels = modeLabels;
+    self.label = label;
+    // use big mode for default
+    self.activeModel = 0;
 }
 
-- (void)onSwitchModel:(UISwitch *)switchModel {
-    auto useThinModel = switchModel.on;
-    self.useThinModel = useThinModel;
-    if (useThinModel)
-        self.predictor = self.thinPredictor;
-    else
-        self.predictor = self.bigPredictor;
+- (void) onButtonClick:(UIButton *)button {
+    auto selected = button.selected;
+    if (selected) {
+        for(UIButton *item in self.modelButtons) {
+            item.selected = NO;
+        }
+    } else {
+        for(UIButton *item in self.modelButtons) {
+            item.selected = NO;
+            [item setBackgroundColor:[UIColor clearColor]];
+        }
+        button.selected = YES;
+        [button setBackgroundColor:[UIColor redColor]];
+    }
+    
+    if (button.selected) {
+        self.predictor = self.predictors[button.tag];
+        self.activeModel = button.tag;
+    }
+    
 }
 
 @end

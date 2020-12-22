@@ -22,5 +22,8 @@
 //Object Detection
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+//Custom UI control
+- (void)setupCustomView:(UIView *)view
+           layoutHeight:(NSLayoutConstraint *)viewLayoutHeight;
 @end
 
