@@ -59,6 +59,10 @@ void ProfilingData::Add(ProfilingData* data) {
     if (dilation_shape.size() <= 0) {
         dilation_shape = data->dilation_shape;
     }
+
+    if (group <= 0) {
+        group = data->group;
+    }
 }
 
 #if TNN_PROFILE
@@ -111,7 +115,7 @@ std::string ProfileResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",         "Op Type", "Kernel(ms)", "Input Dims", "Output Dims",
-                                             "Filter(OIHW)", "Stride",  "Pad",        "Dilation"};
+                                             "Filter(OIHW)", "Group", "Stride",  "Pad",        "Dilation"};
 
     std::vector<std::vector<std::string>> data;
 
@@ -127,6 +131,7 @@ std::string ProfileResult::GetProfilingDataInfo() {
         tuple.push_back(VectorToString(p->input_dims));
         tuple.push_back(VectorToString(p->output_dims));
         tuple.push_back(VectorToString(p->kernel_shape));
+        tuple.push_back(IntToStringFilter(p->group));
         tuple.push_back(VectorToString(p->stride_shape));
         tuple.push_back(VectorToString(p->pad_shape));
         tuple.push_back(VectorToString(p->dilation_shape));
