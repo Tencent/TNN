@@ -48,6 +48,7 @@ struct ProfilingData {
     std::vector<int> stride_shape   = {};
     std::vector<int> pad_shape      = {};
     std::vector<int> dilation_shape = {};
+    int group                       = 0;
 
     int count = 1;
 
