@@ -54,7 +54,7 @@ JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv* env, jobject thiz,
         model_path_option = (arg.find("-mp") != std::string::npos);
     }
 
-    TNN_NS::benchmark::Run(static_cast<int>(argv.size()), argv.data());
+    TNN_NS::test::Run(static_cast<int>(argv.size()), argv.data());
 
     env->ReleaseStringUTFChars(args_obj, args_chars);
 }

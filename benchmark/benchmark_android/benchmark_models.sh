@@ -19,6 +19,7 @@ BENCHMARK_APP_DIR=benchmark_app/benchmark/
 WORK_DIR=`pwd`
 BENCHMARK_MODEL_DIR=$WORK_DIR/../benchmark-model
 BUILD_DIR=build
+BUILD_APP_DIR=build_app
 ANDROID_DIR=/data/local/tmp/tnn-benchmark
 ANDROID_DATA_DIR=$ANDROID_DIR/benchmark-model
 OUTPUT_LOG_FILE=benchmark_models_result.txt
@@ -87,8 +88,9 @@ function build_android_bench() {
           -DTNN_ARM_ENABLE:BOOL=ON \
           -DTNN_OPENCL_ENABLE:BOOL=ON \
           -DTNN_HUAWEI_NPU_ENABLE:BOOL=${HUAWEI_NPU_ENABLE} \
-          -DTNN_OPENMP_ENABLE:BOOL=ON \
+          -DTNN_OPENMP_ENABLE:BOOL=OFF \
           -DTNN_TEST_ENABLE:BOOL=ON \
+          -DTNN_BUILD_BENCHMARK_TEST_LIB_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
           -DTNN_PROFILER_ENABLE:BOOL=${PROFILING} \
           -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB \
@@ -179,12 +181,34 @@ function bench_android() {
 function build_android_bench_app() {
     echo -e "##### Java environment #####\nJAVA_HOME: ${JAVA_HOME}\n##### Java environment #####\n"
     echo -e "##### Android environment #####\nANDROID_HOME: ${ANDROID_HOME}\n##### Android environment #####\n"
+
+    rm -rf $BUILD_APP_DIR
+    mkdir $BUILD_APP_DIR
+    cd $BUILD_APP_DIR
+
+    cmake ../../benchmark_app/benchmark/ \
+          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DANDROID_ABI="${ABI}" \
+          -DANDROID_STL=${STL}\
+          -DANDROID_NATIVE_API_LEVEL=android-14  \
+          -DANDROID_TOOLCHAIN=clang
+    make -j4
+    cd ../..
+
     cd ${BENCHMARK_APP_DIR}
     ./gradlew installDebug
 }
 
 function bench_android_app() {
+    SHARED_LIB=OFF
+    build_android_bench
     build_android_bench_app
+
+    $ADB shell "mkdir -p $ANDROID_DIR"
+    find . -name "*.so" | while read solib; do
+        $ADB push $solib  $ANDROID_DIR
+    done
 
     if [ $? != 0 ];then
         exit_with_msg "set up environment failed"

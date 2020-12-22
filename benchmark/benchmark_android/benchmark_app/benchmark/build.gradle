@@ -28,12 +28,6 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
-        }
-    }
-
     sourceSets {
         main {
             jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']

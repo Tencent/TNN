@@ -11,8 +11,9 @@ import android.widget.TextView;
 import android.util.Log;
 import com.tencent.tnn.benchmark.BenchmarkModel;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-
 
 public class MainActivity extends Activity {
 
@@ -34,8 +35,8 @@ public class MainActivity extends Activity {
     }
 
     private void init() {
-
-        System.loadLibrary("tnn_wrapper");
+        FileUtils.copyFile("/data/local/tmp/tnn-benchmark/libtnn_wrapper.so", getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
+        System.load(getFilesDir().getAbsolutePath() + "/libtnn_wrapper.so");
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
         String args = bundle.getString(ARGS_INTENT_KEY_0, bundle.getString(ARGS_INTENT_KEY_1));

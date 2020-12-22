@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +29,26 @@ public class FileUtils {
             in = assetManager.open(fromAssetPath);
             new File(toPath).createNewFile();
             out = new FileOutputStream(toPath);
+            copyFile(in, out);
+            in.close();
+            in = null;
+            out.flush();
+            out.close();
+            out = null;
+            return true;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean copyFile(String input_path, String out_path) {
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = new FileInputStream(input_path);
+            new File(out_path).createNewFile();
+            out = new FileOutputStream(out_path);
             copyFile(in, out);
             in.close();
             in = null;
