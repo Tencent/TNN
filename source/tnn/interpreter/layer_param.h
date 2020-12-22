@@ -272,7 +272,10 @@ typedef enum {
     DEQUANT_ONLY = 1,
     // data_type + layout for arm
     QUANT_NCHW4_2_NHWC   = 2,
-    DEQUANT_NHWC_2_NCHW4 = 3
+    DEQUANT_NHWC_2_NCHW4 = 3,
+    // data_type + layout for half data type in armv8.2
+    NC4HW4FP32_2_NC8HW8FP16 = 4,
+    NC8HW8FP16_2_NC4HW4FP32 = 5
     // to be continued
 } ReformatType;
 

@@ -19,6 +19,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
+#include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -27,7 +28,7 @@ class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
                             std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
                                             testing::Values(1, 2, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
@@ -44,7 +45,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             // output_pads
                                             testing::Values(0),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF),
                                             // activation_type
                                             testing::Values(ActivationType_None, ActivationType_ReLU,
                                                             ActivationType_ReLU6, ActivationType_SIGMOID_MUL)));
@@ -69,6 +70,19 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
+
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
+#else
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
 
     if (DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
         !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
@@ -114,18 +128,7 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
-    Precision precision = PRECISION_AUTO;
-    if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
-    }
-
-    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
-        if (DATA_TYPE_FLOAT == data_type) {
-            precision = PRECISION_HIGH;
-        } else {
-            GTEST_SKIP();
-        }
-    }
+    Precision precision = SetPrecision(dev, data_type);
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};

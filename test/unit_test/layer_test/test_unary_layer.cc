@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_unary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -28,6 +29,14 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     DataType data_type = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
@@ -38,13 +47,12 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "Unary";
 
-    Precision precision = PRECISION_AUTO;
+    Precision precision = SetPrecision(dev, data_type);
+    
     // generate proto string
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (DATA_TYPE_INT8 == data_type) {
         param->quantized = true;
-    } else if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
     }
 
     auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);

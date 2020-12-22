@@ -26,6 +26,14 @@
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise_s1.h"
 
+#if TNN_ARM82
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise_s1.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_3x3.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_c3.h"
+#endif
+
 namespace TNN_NS {
 
 class ArmConvLayerAccFactory {
@@ -36,8 +44,10 @@ public:
     static void CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
                             std::shared_ptr<ArmLayerAcc> &conv_acc_impl);
 
+#if TNN_ARM82
     static void CreateImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
                               std::shared_ptr<ArmLayerAcc> &conv_acc_impl);
+#endif
 };
 
 }  // namespace TNN_NS

@@ -24,6 +24,7 @@
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 
@@ -32,6 +33,14 @@ int8_t float2int8(float val) {
 }
 
 uint8_t float2uint8(float val) {
+    return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
+}
+
+int8_t half2int8(fp16_t val) {
+    return static_cast<int8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 127.0f), -128.0f));
+}
+
+uint8_t half2uint8(fp16_t val) {
     return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
 }
 
@@ -293,27 +302,51 @@ template void NaiveConv<bfp16_t, float, float, bfp16_t>(void *input_ptr, void *o
                                                         int scale_len, int fusion_type, void *add_input, float *add_scale);
 
 template <typename T>
-void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
-                  const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                  T *top_data) {
-    for (int i = 0; i < count; ++i) {
-        int old_idx = 0;
-        int idx     = i;
-        for (int j = 0; j < num_axes; ++j) {
-            int order = permute_order[j];
-            old_idx += (idx / new_steps[j]) * old_steps[order];
-            idx %= new_steps[j];
+void NaivePermute(const int count, DimsVector dims, T *bottom_data, const std::vector<int> &permute_order,
+                const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                T *top_data) {
+    if (num_axes == 4) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            for (int c = 0; c < dims[1]; ++c) {
+                int idx_c     = idx + c * new_steps[1];
+                int old_idx_c = old_idx + c * old_steps[permute_order[1]];
+                for (int h = 0; h < dims[2]; ++h) {
+                    int idx_h     = idx_c + h * new_steps[2];
+                    int old_idx_h = old_idx_c + h * old_steps[permute_order[2]];
+                    for (int w = 0; w < dims[3]; ++w) {
+                        int idx_w     = idx_h + w * new_steps[3];
+                        int old_idx_w = old_idx_h + w * old_steps[permute_order[3]];
+                        top_data[idx_w] = bottom_data[old_idx_w];
+                    }
+                }
+            }
         }
-        top_data[i] = bottom_data[old_idx];
+    } else {
+        for (int i = 0; i < count; ++i) {
+            int old_idx = 0;
+            int idx     = i;
+            for (int j = 0; j < num_axes; ++j) {
+                int order = permute_order[j];
+                old_idx += (idx / new_steps[j]) * old_steps[order];
+                idx %= new_steps[j];
+            }
+            top_data[i] = bottom_data[old_idx];
+        }
     }
 };
-template void NaivePermute(const int count, float *bottom_data, const std::vector<int> &permute_order,
-                           const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                           float *top_data);
+template void NaivePermute(const int count, DimsVector dims, float *bottom_data, const std::vector<int> &permute_order,
+                        const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                        float *top_data);
 
-template void NaivePermute(const int count, int8_t *bottom_data, const std::vector<int> &permute_order,
-                           const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
-                           int8_t *top_data);
+template void NaivePermute(const int count, DimsVector dims, int8_t *bottom_data, const std::vector<int> &permute_order,
+                        const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                        int8_t *top_data);
+
+template void NaivePermute(const int count, DimsVector dims, fp16_t *bottom_data, const std::vector<int> &permute_order,
+                        const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                        fp16_t *top_data);
 
 void NaiveReorg(float *bottom_data, int width, int height, int channel, int number, int stride, int forward, int mode,
                 float *top_data) {
@@ -679,18 +712,29 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
 }
 
-void NaiveBGROrBGRAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order) {
     int offset = 0;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
-            unsigned b       = src[offset * channel + 0];
-            unsigned g       = src[offset * channel + 1];
-            unsigned r       = src[offset * channel + 2];
+            unsigned c1      = src[offset * channel + 0];
+            unsigned c2      = src[offset * channel + 1];
+            unsigned c3      = src[offset * channel + 2];
+            unsigned b       = bgr_order ? c1 : c3;
+            unsigned g       = c2;
+            unsigned r       = bgr_order ? c3 : c1;
             float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
             dst[offset]      = gray_color;
             offset += 1;
         }
     }
+}
+
+void NaiveBGROrBGRAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+    return NaiveColorToGray(src, dst, h, w, channel, true);
+}
+
+void NaiveRGBOrRGBAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+    return NaiveColorToGray(src, dst, h, w, channel, false);
 }
 
 void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
