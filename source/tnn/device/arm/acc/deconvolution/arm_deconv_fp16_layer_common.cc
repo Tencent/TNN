@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_common.h"
 #include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/arm_common.h"

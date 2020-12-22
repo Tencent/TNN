@@ -45,7 +45,7 @@ void DstTransformInOne4x2BFP16(const void *src, void *dst, int w_stride, int h_s
 void SrcTransformInOne6x6BFP16(const void *src, void *dst, int w_stride, int h_stride);
 void DstTransformInOne6x4BFP16(const void *src, void *dst, int w_stride, int h_stride, int ey);
 
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 void WeightTransform4x4(const __fp16 *src, __fp16 *dst, int kernel_size, int in_channel, int out_channel);
 void WeightTransform6x6(const __fp16 *src, __fp16 *dst, int kernel_size, int in_channel, int out_channel);
 

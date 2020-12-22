@@ -33,6 +33,8 @@ typedef struct arm_sigmoid_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Sigmoid, ARM_SIGMOID_OP);
 
 REGISTER_ARM_ACC(Sigmoid, LAYER_SIGMOID)
+#if TNN_ARM82
 REGISTER_ARM_PRECISION_FP16(LAYER_SIGMOID)
+#endif
 
 }  // namespace TNN_NS

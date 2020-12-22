@@ -96,7 +96,7 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
             }
         }
     }
-// #if TNN_ARM82
+#if TNN_ARM82
     else if (input->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         auto oc_8       = UP_DIV(dims_output[1], 8);
         auto input_plane_stride  = 8 * k_param_->iw * k_param_->ih;
@@ -116,7 +116,7 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
             }
         }
     }
-// #endif
+#endif
     else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         // INT8
         for (int n = 0; n < batch; n++) {
@@ -143,6 +143,6 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
 REGISTER_ARM_ACC(Pooling, LAYER_POOLING)
 REGISTER_ARM_PRECISION_FP16(LAYER_POOLING)
-REGISTER_ARM_PRECISION_FP16_TEST(LAYER_POOLING)
+//REGISTER_ARM_PRECISION_FP16_TEST(LAYER_POOLING)
 
 }  // namespace TNN_NS

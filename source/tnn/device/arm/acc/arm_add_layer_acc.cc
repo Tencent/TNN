@@ -101,7 +101,7 @@ static void _operator_add(T *output_ptr, T *input0_ptr, T *input1_ptr, DimsVecto
     }
 }
 
-// #if TNN_ARM82
+#if TNN_ARM82
 template <>
 void _operator_add<fp16_t>(fp16_t *output_ptr, fp16_t *input0_ptr, fp16_t *input1_ptr, DimsVector &dims0,
                                   DimsVector &dims1) {
@@ -162,7 +162,7 @@ void _operator_add<fp16_t>(fp16_t *output_ptr, fp16_t *input0_ptr, fp16_t *input
         LOGE("Error: invalid add type\n");
     }
 }
-// #endif
+#endif
 
 ArmAddLayerAcc::~ArmAddLayerAcc() {}
 
@@ -228,7 +228,7 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
             } else {
                 return Status(TNNERR_MODEL_ERR, "Error: unsupported broadcast type");
             }
-// #if TNN_ARM82
+#if TNN_ARM82
             if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
                 auto buffer_size = ROUND_UP(bias_shape_[1], 8) * bias_shape_[2] * bias_shape_[3] * sizeof(fp16_t);
                 RawBuffer temp(buffer_size);
@@ -250,7 +250,7 @@ Status ArmAddLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, co
                 output_bias_ = temp;
                 return TNN_OK;
             }
-// #endif
+#endif
             auto buffer_size = ROUND_UP(bias_shape_[1], 4) * bias_shape_[2] * bias_shape_[3] * sizeof(float);
             RawBuffer temp(buffer_size);
             // pack bias from nchw to nc4hw4
@@ -347,7 +347,7 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
             _operator_add(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
         }
     }
-// #if TNN_ARM82
+#if TNN_ARM82
     else if (output->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
         auto input0_ptr = reinterpret_cast<fp16_t *>(input_ptrs[0]);
@@ -360,7 +360,7 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
             _operator_add<fp16_t>(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
         }
     }
-// #endif
+#endif
     else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
         return TNNERR_LAYER_ERR;
@@ -371,6 +371,6 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 
 REGISTER_ARM_ACC(Add, LAYER_ADD)
 REGISTER_ARM_PRECISION_FP16(LAYER_ADD)
-REGISTER_ARM_PRECISION_FP16_TEST(LAYER_ADD)
+//REGISTER_ARM_PRECISION_FP16_TEST(LAYER_ADD)
 
 }  // namespace TNN_NS

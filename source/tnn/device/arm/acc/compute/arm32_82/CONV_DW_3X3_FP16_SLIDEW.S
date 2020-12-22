@@ -77,9 +77,9 @@ vmla.f16 q9, q11, w_21
 subs width, width, #1
 beq LoopDwEnd
 LoopDw:
-    vld1.f16 {q11}, [line0]!
-    vld1.f16 {q12}, [line1]!
-    vld1.f16 {q13}, [line2]!
+    vld1.16 {q11}, [line0]!
+    vld1.16 {q12}, [line1]!
+    vld1.16 {q13}, [line2]!
 
     vmul.f16 q14, q11, w_00
     vmla.f16 q10, q11, w_01
@@ -100,9 +100,9 @@ LoopDw:
 
     bne LoopDw
 LoopDwEnd:
-vld1.f16 {q11}, [line0]!
-vld1.f16 {q12}, [line1]!
-vld1.f16 {q13}, [line2]!
+vld1.16 {q11}, [line0]!
+vld1.16 {q12}, [line1]!
+vld1.16 {q13}, [line2]!
 vmla.f16 q9, q11, w_02
 vmla.f16 q9, q12, w_12
 vmla.f16 q9, q13, w_22

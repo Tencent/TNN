@@ -151,16 +151,16 @@ void ConvDw5x5FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, 
 void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 
 #if TNN_ARM82
-void Half2FloatKernel(float* dst, const __fp16* src, const size_t length);
-void Float2HalfKernel(__fp16* dst, const float* src, const size_t length);
-void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, long src_depth,
-                           long dst_step, long dst_depth, long width, __fp16 *bias, long relu);
+void Half2FloatKernel(float* dst, const fp16_t* src, const size_t length);
+void Float2HalfKernel(fp16_t* dst, const float* src, const size_t length);
+void GEMM_FP16_N8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long src_depth,
+                           long dst_step, long dst_depth, long width, fp16_t *bias, long relu);
 void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
-void GemmFp16SlidewC3(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long src_w_setup, long fw,
+void GemmFp16SlidewC3(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long src_w_setup, long fw,
                        long fh, long dilateX_step, long dilateY_step);
-void DeconvFp16O8(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
                    long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
-void DeconvFp16O8C1(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
                    long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
 #endif
 

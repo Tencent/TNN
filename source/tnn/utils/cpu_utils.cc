@@ -344,7 +344,7 @@ bool CpuUtils::CpuSupportFp16() {
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER;
 #endif  // __IOS__
 
-#elif defined(__aarch64__) && TNN_ARM82 && defined(TNN_ARM82_SIMU)
+#elif TNN_ARM82 && defined(TNN_ARM82_SIMU)
 
     fp16arith = true;
 

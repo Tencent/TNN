@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_c3.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
@@ -88,14 +88,14 @@ Status ArmConvFp16LayerC3::DoForward(const std::vector<Blob *> &inputs, const st
 
     int weight_z_step = kernel_y * kernel_x * 3;
 
-    const __fp16 *src_origin = reinterpret_cast<const __fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *dst_origin       = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    const fp16_t *src_origin = reinterpret_cast<const fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *dst_origin       = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     int max_num_threads = OMP_MAX_THREADS_NUM_;
 
     int src_xc = 1 + (k_param_->ow - 1) * conv_param->strides[0] + conv_param->dialations[0] * (kernel_x - 1);
     int workspace_per_thread = src_xc * kernel_y * k_param_->ic_r8 * data_byte_size;
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         auto input_ptr  = src_origin + batch_idx * k_param_->iw * k_param_->ih * k_param_->ic_r8;
@@ -130,7 +130,7 @@ Status ArmConvFp16LayerC3::DoForward(const std::vector<Blob *> &inputs, const st
             }
             for (int dz = 0; dz <= k_param_->oc_r8 - 8; dz += 8) {
                 auto dst_z = output_ptr + dz * k_param_->ow * k_param_->oh + k_param_->ow * 8 * dy;
-                auto weight_dz = reinterpret_cast<__fp16 *>(k_param_->fil_ptr) + dz * weight_z_step;
+                auto weight_dz = reinterpret_cast<fp16_t *>(k_param_->fil_ptr) + dz * weight_z_step;
                 GemmFp16SlidewC3(dst_z, work_space_t, weight_dz, k_param_->ow, 
                                  conv_param->strides[0] * 8, kernel_x, kernel_y, dilate_x_step, src_xc * 8);
             }

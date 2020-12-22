@@ -56,7 +56,7 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
         if (data_type == DATA_TYPE_INT8) {
             ArmConvLayerAccFactory::CreateImpInt8(inputs, outputs, param_, conv_acc_impl_);
         }
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
         else if (data_type == DATA_TYPE_HALF) {
             ArmConvLayerAccFactory::CreateImpHalf(inputs, outputs, param_, conv_acc_impl_);
         }
@@ -87,7 +87,7 @@ Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Conv, LAYER_CONVOLUTION)
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 REGISTER_ARM_PRECISION_FP16(LAYER_CONVOLUTION)
 #endif
 

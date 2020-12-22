@@ -22,7 +22,7 @@
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_stride.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_common.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_layer_depthwise.h"
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_common.h"
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_depthwise.h"
 #endif
@@ -63,7 +63,7 @@ Status ArmDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16) {
         GetImpFP(inputs, outputs);
     }
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
     else if (data_type == DATA_TYPE_HALF) {
         GetImpHalf(inputs, outputs);
     }
@@ -97,7 +97,7 @@ void ArmDeconvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::v
     }
 }
 
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
 void ArmDeconvLayerAcc::GetImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (ArmDeconvFp16LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
         if (!deconv_acc_impl_ || !dynamic_cast<ArmDeconvFp16LayerDepthwise *>(deconv_acc_impl_.get())) {
@@ -125,6 +125,8 @@ Status ArmDeconvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_ARM_ACC(Deconv, LAYER_DECONVOLUTION)
+#if TNN_ARM82 && __aarch64__
 REGISTER_ARM_PRECISION_FP16(LAYER_DECONVOLUTION)
+#endif
 
 }  // namespace TNN_NS

@@ -73,7 +73,7 @@ Status ArmConvLayerGroup::Init(Context *context, LayerParam *param, LayerResourc
             // CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
             ArmConvLayerAccFactory::CreateImpFP(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
         } 
-#if TNN_ARM82
+#if TNN_ARM82 && __aarch64__
         else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
             ArmConvLayerAccFactory::CreateImpHalf(local_inputs, local_outputs, group_conv_param_.get(), tmp_acc);
         }

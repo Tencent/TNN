@@ -100,17 +100,29 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
     auto src2 = src + hw * 2;
     int cur_hw = 0;
     float32x4_t v_zero_f32 = vdupq_n_f32(0.f);
+#ifdef __aarch64__
     float16x4_t v_zero_f16 = vdup_n_f16(0.f);
+#else
+    uint16x4_t v_zero_u16  = vdup_n_u16(0x0);
+    uint16_t *dst_u16 = reinterpret_cast<uint16_t *>(dst);
+#endif
     for (; cur_hw + 3 < hw; cur_hw += 4) {
         float32x4_t v0 = vld1q_f32(src0 + cur_hw);
         float32x4_t v1 = vld1q_f32(src1 + cur_hw);
         float32x4_t v2 = vld1q_f32(src2 + cur_hw);
         float32x4_t v3;
         transpose_4x4(v0, v1, v2, v3, v_zero_f32);
+#ifdef __aarch64__
         vst1q_f16(dst + cur_hw * 8,      vcombine_f16(vcvt_f16_f32(v0), v_zero_f16));
         vst1q_f16(dst + cur_hw * 8 + 8,  vcombine_f16(vcvt_f16_f32(v1), v_zero_f16));
         vst1q_f16(dst + cur_hw * 8 + 16, vcombine_f16(vcvt_f16_f32(v2), v_zero_f16));
         vst1q_f16(dst + cur_hw * 8 + 24, vcombine_f16(vcvt_f16_f32(v3), v_zero_f16));
+#else
+        vst1q_u16(dst_u16 + cur_hw * 8,      vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v0)), v_zero_u16));
+        vst1q_u16(dst_u16 + cur_hw * 8 + 8,  vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v1)), v_zero_u16));
+        vst1q_u16(dst_u16 + cur_hw * 8 + 16, vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v2)), v_zero_u16));
+        vst1q_u16(dst_u16 + cur_hw * 8 + 24, vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v3)), v_zero_u16));        
+#endif
     }
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 8 + 0] = src0[cur_hw];
