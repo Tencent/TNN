@@ -64,47 +64,16 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     // build ngraph network
     BuildNgraphNetwork(net_structure);
     //////////////////////////////////////////////////////////////
-    ie_.SetConfig({{CONFIG_KEY(CPU_BIND_THREAD), "NO"}}, "CPU");
+    std::map<std::string, std::string> config = {
+        {CONFIG_KEY(CPU_THREADS_NUM), "1"},
+        {CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "0"},
+        {CONFIG_KEY(CPU_BIND_THREAD), "NO"},
+    };
+
+    ie_.SetConfig(config, "CPU");
     InferenceEngine::IExtensionPtr extensionPtr;
     extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
     ie_.AddExtension(extensionPtr, "CPU");
-
-    
-    executable_network_ = ie_.LoadNetwork(*network_, "CPU");
-    
-    infer_request_ = executable_network_.CreateInferRequest();
-
-    auto input_map = executable_network_.GetInputsInfo();
-    for(auto item : input_map) {
-        std::string key = item.first;
-        auto blob_ptr = infer_request_.GetBlob(key);
-        BlobDesc desc;
-        desc.data_format = DATA_FORMAT_NCHW;
-        desc.name = key;
-        auto dims = blob_ptr->getTensorDesc().getDims();
-        for(int index = 0; index<dims.size(); index++) {
-            desc.dims.push_back(dims[index]);
-        }
-        BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        input_blob_map_[key] = new Blob(desc, handle);  
-    }
-
-    auto output_map = executable_network_.GetOutputsInfo();
-    for(auto item : output_map) {
-        std::string key = item.first;
-        auto blob_ptr = infer_request_.GetBlob(key);
-        BlobDesc desc;
-        desc.data_format = DATA_FORMAT_NCHW;
-        desc.name = key;
-        auto dims = blob_ptr->getTensorDesc().getDims();
-        for(int index = 0; index<dims.size(); index++) {
-            desc.dims.push_back(dims[index]);
-        }
-        BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        output_blob_map_[key] = new Blob(desc, handle); 
-    }
 
     return Reshape(inputs_shape);
 }
@@ -206,35 +175,44 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         std::string key = item.first;
         auto blob_ptr = infer_request_.GetBlob(key);
 
+        BlobDesc desc;
+        desc.data_format = DATA_FORMAT_NCHW;
+        desc.name = key;
         auto dims = blob_ptr->getTensorDesc().getDims();
-        DimsVector blob_dims;
         for(int index = 0; index<dims.size(); index++) {
-            blob_dims.push_back(dims[index]);
+            desc.dims.push_back(dims[index]);
         }
-        input_blob_map_[key]->GetBlobDesc().dims = blob_dims;
 
-        auto handle = input_blob_map_[key]->GetHandle();
-        handle.base = blob_ptr->buffer()
-            .as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        input_blob_map_[key]->SetHandle(handle);
+        BlobHandle handle;
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+
+        if (input_blob_map_.find(key) != input_blob_map_.end())  {
+            input_blob_map_[key]->SetBlobDesc(desc);
+            input_blob_map_[key]->SetHandle(handle);
+        } else {
+            input_blob_map_[key] = new Blob(desc, handle);  
+        }
     }
 
     auto output_map = executable_network_.GetOutputsInfo();
     for(auto item : output_map) {
         std::string key = item.first;
         auto blob_ptr = infer_request_.GetBlob(key);
-
+        BlobDesc desc;
+        desc.data_format = DATA_FORMAT_NCHW;
+        desc.name = key;
         auto dims = blob_ptr->getTensorDesc().getDims();
-        DimsVector blob_dims;
         for(int index = 0; index<dims.size(); index++) {
-            blob_dims.push_back(dims[index]);
+            desc.dims.push_back(dims[index]);
         }
-        output_blob_map_[key]->GetBlobDesc().dims = blob_dims;
-
-        auto handle = output_blob_map_[key]->GetHandle();
-        handle.base = blob_ptr->buffer()
-            .as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        output_blob_map_[key]->SetHandle(handle);
+        BlobHandle handle;
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+        if (output_blob_map_.find(key) != output_blob_map_.end())  {
+            output_blob_map_[key]->SetBlobDesc(desc);
+            output_blob_map_[key]->SetHandle(handle);
+        } else {
+            output_blob_map_[key] = new Blob(desc, handle);  
+        }
     }
 
     return TNN_OK;
