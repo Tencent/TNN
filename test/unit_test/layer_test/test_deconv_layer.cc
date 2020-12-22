@@ -28,7 +28,7 @@ class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
                             std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
                                             testing::Values(1, 2, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
