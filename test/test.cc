@@ -356,29 +356,38 @@ namespace test {
 
 
     void InitInputMatMap(MatMap& mat_map) {
+        bool first_input = true;
         for (auto iter : mat_map) {
             auto name = iter.first;
             auto mat = iter.second;
-            void* mat_data = mat->GetData();       
+            void* mat_data = mat->GetData();
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
             auto mat_type = mat->GetMatType();
- 
-            if (FLAGS_ip.empty()) {
-                for (int i = 0; i < data_count; i++) {
-                    if (mat_type == NCHW_FLOAT) {
-                        reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
-                    } else {
-                        reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
+            if (first_input) {
+                if (FLAGS_ip.empty()) {
+                    for (int i = 0; i < data_count; i++) {
+                        if (mat_type == NCHW_FLOAT) {
+                            reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
+                        } else {
+                            reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
+                        }
+                    }
+                } else {
+                    LOGD("input path: %s\n", FLAGS_ip.c_str());
+                    std::ifstream input_stream(FLAGS_ip);
+                    for (int i = 0; i < data_count; i++) {
+                        if (mat_type == NCHW_FLOAT) {
+                            input_stream >> reinterpret_cast<float*>(mat_data)[i];
+                        } else {
+                            input_stream >> reinterpret_cast<uint8_t*>(mat_data)[i];
+                        }
                     }
                 }
+                first_input = false;
             } else {
-                LOGD("input path: %s\n", FLAGS_ip.c_str());
-                std::ifstream input_stream(FLAGS_ip);
                 for (int i = 0; i < data_count; i++) {
                     if (mat_type == NCHW_FLOAT) {
-                        input_stream >> reinterpret_cast<float*>(mat_data)[i];
-                    } else {
-                        input_stream >> reinterpret_cast<uint8_t*>(mat_data)[i];
+                        reinterpret_cast<float*>(mat_data)[i] = (float)1.0f;
                     }
                 }
             }
