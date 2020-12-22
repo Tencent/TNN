@@ -19,6 +19,7 @@ import com.tencent.tnn.demo.ImageObjectDetector.ImageObjectDetectActivity;
 import com.tencent.tnn.demo.StreamHairSegmentation.StreamHairSegmentationActivity;
 import com.tencent.tnn.demo.StreamObjectDetector.StreamObjectDetectActivity;
 import com.tencent.tnn.demo.StreamObjectDetectorSSD.StreamObjectDetectSSDActivity;
+import com.tencent.tnn.demo.StreamPoseDetectLandmark.StreamPoseDetectLandmarkActivity;
 import com.tencent.tnn.demo.StreamSkeletonDetector.StreamSkeletonDetectActivity;
 
 
@@ -175,6 +176,19 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, StreamHairSegmentationActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.stream_pose_detect_landmark_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, StreamPoseDetectLandmarkActivity.class);
                     activity.startActivity(intent);
                 }
             }
