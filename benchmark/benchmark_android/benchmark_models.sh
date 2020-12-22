@@ -198,6 +198,7 @@ function build_android_bench_app() {
 
     cd ${BENCHMARK_APP_DIR}
     ./gradlew installDebug
+    cd ../..
 }
 
 function bench_android_app() {
@@ -205,6 +206,7 @@ function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
+    cd ${BUILD_DIR}
     $ADB shell "mkdir -p $ANDROID_DIR"
     find . -name "*.so" | while read solib; do
         $ADB push $solib  $ANDROID_DIR
