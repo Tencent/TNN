@@ -26,7 +26,7 @@ class HardSwishLayerTest
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSwishLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 6, 8, 13),
                              testing::Values(1, 6, 8, 13),
                              // size Values(1, 6, 8, 13),
