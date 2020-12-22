@@ -244,6 +244,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             LOGE("Error: CreateLayer failed, type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
+
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
         // set layer nodes
@@ -251,6 +252,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<std::string> &input_names = layer_info->inputs;
         // get input nodes
         bool is_int8_blob = layer_info->param->quantized;
+
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
             if (config_.precision == PRECISION_LOW) {
@@ -269,6 +271,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             }
             inputs.push_back(blob);
         }
+
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 

@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_REDUCE_H_
-#define TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_REDUCE_H_
+#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_POOLING_H_
+#define TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_POOLING_H_
 
 #include <string>
 
@@ -27,8 +27,8 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    //@brief net optimize: fuse reduce max and reduce mean into fused reduce op
-    class NetOptimizerCbamFusedReduce : public NetOptimizer {
+    //@brief net optimize: fuse ave pool and max pool into one op
+    class NetOptimizerCbamFusedPooling : public NetOptimizer {
     public:
         virtual std::string Strategy();
         virtual bool IsSupported(const NetworkConfig &net_config);
@@ -39,5 +39,5 @@ namespace optimizer {
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_REDUCE_H_
+#endif  // TNN_SOURCE_TNN_NET_OPTIMIZER_CBAM_FUSED_POOLING_H_
 

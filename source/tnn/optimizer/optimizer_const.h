@@ -25,6 +25,9 @@ static const std::string kNetOptimizerFuseConvRelu =
 static const std::string kNetOptimizerCbamFusedReduce =
     "net_optimizer_cbam_fused_reduce";
 
+static const std::string kNetOptimizerCbamFusedPooling =
+    "net_optimizer_cbam_fused_pooling";
+
 static const std::string kNetOptimizerInsertInt8Reformat =
     "net_optimizer_insert_int8_reformat";
 

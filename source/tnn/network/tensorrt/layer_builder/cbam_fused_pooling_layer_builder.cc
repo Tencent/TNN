@@ -16,35 +16,35 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedPooling, LAYER_CBAM_FUSED_POOLING);
 
-bool CbamFusedReduceTRTPluginLayerBuilder::supportsFormatCombination(
+bool CbamFusedPoolingTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs &&
+    return nbInputs == 1 && nbOutputs == 2 && pos < nbInputs + nbOutputs &&
         inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
         (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
 }
 
-const char* CbamFusedReduceTRTPluginLayerBuilder::getPluginType() const {
-    return "CbamFusedReduce";
+const char* CbamFusedPoolingTRTPluginLayerBuilder::getPluginType() const {
+    return "CbamFusedPooling";
 }
 
-nvinfer1::DataType CbamFusedReduceTRTPluginLayerBuilder::getOutputDataType(int index,
+nvinfer1::DataType CbamFusedPoolingTRTPluginLayerBuilder::getOutputDataType(int index,
         const nvinfer1::DataType* inputTypes, int nbInputs) const {
     return inputTypes[0];
 }
 
-ILayer* CbamFusedReduceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* CbamFusedPoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-const char* CbamFusedReducePluginCreator::getPluginName() const {
-    return "CbamFusedReduce";
+const char* CbamFusedPoolingPluginCreator::getPluginName() const {
+    return "CbamFusedPooling";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedPooling, LAYER_CBAM_FUSED_POOLING);
 
 }  //  namespace TNN_NS
