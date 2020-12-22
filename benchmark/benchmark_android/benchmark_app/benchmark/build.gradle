@@ -32,7 +32,6 @@ android {
         main {
             jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']
             jni.srcDirs = ['src/main/jni']
-            assets.srcDirs = ['src/main/assets', '../../../benchmark-model']
         }
     }
 }

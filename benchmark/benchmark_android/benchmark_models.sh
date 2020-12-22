@@ -3,7 +3,7 @@
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 ABI="arm64-v8a"
-STL="c++_shared"
+STL="c++_static"
 SHARED_LIB="ON"
 PROFILING="OFF"
 CLEAN=""
@@ -204,6 +204,9 @@ function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
+    $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
+    $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
+
     cd ${BUILD_DIR}
     $ADB shell "mkdir -p $ANDROID_DIR"
     find . -name "*.so" | while read solib; do
@@ -232,7 +235,8 @@ function bench_android_app() {
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
-                --esa load-list "libc++_shared.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
+                --es model ${benchmark_model} \
+                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
@@ -246,7 +250,8 @@ function bench_android_app() {
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
-                --esa load-list "libc++_shared.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
+                --es model ${benchmark_model} \
+                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done
     fi
@@ -262,6 +267,7 @@ function bench_android_app() {
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
+                --es model ${benchmark_model} \
                 --esa load-list "libc++_shared.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
         done

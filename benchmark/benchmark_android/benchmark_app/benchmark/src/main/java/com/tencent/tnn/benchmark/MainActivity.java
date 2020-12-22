@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
     private static final String ARGS_INTENT_KEY_ARGS_1 = "--args";
     private static final String ARGS_INTENT_KEY_BENCHMARK_DIR = "benchmark-dir";
     private static final String ARGS_INTENT_KEY_LOAD_LIST = "load-list";
+    private static final String ARGS_INTENT_KEY_MODEL = "model";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,31 +48,13 @@ public class MainActivity extends Activity {
             FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
             System.load(getFilesDir().getAbsolutePath() + "/" + element);
         }
+        String model = bundle.getString(ARGS_INTENT_KEY_MODEL);
+        FileUtils.copyFile(benchmark_dir + "/" + "benchmark-model/" + model, getFilesDir().getAbsolutePath() + "/" + model);
+
         String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
-        String fileDir = initModel();
 
         Log.i(TAG, "Running TNN Benchmark with args: " + args);
-        benchmark.nativeRun(args, fileDir);
-    }
-
-    private String initModel() {
-
-        String targetDir = this.getFilesDir().getAbsolutePath();
-        String[] files;
-        try {
-            files = this.getResources().getAssets().list("");
-        } catch (IOException exception){
-            Log.e(TAG, "Get TNN Benchmark assets failed");
-            return targetDir;
-        }
-
-        for (int i = 0; i < files.length; i++) {
-            if (files[i].contains(".tnnproto") || files[i].contains(".tnnmodel")) {
-                String interModelFilePath = targetDir + "/" + files[i];
-                boolean ret = FileUtils.copyAsset(this.getResources().getAssets(), files[i], interModelFilePath);
-            }
-        }
-        return targetDir;
+        benchmark.nativeRun(args, this.getFilesDir().getAbsolutePath());
     }
 
     @Override
