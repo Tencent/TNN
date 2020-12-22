@@ -18,9 +18,11 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -29,11 +31,11 @@ namespace TNN_NS {
 /*
 add bias
 */
-template <typename T>
-void PostAddBias(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBias(void* dst, const void* bias, long area, long oc4) {
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -45,18 +47,18 @@ void PostAddBias(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBias<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBias<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBias<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBias<bfp16_t>(void* dst, const void* bias, long area, long oc4);
 
 /*
 bias + relu
 */
-template <typename T>
-void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBiasRelu(void* dst, const void* bias, long area, long oc4) {
     Float4 vzero(0.f);
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -70,19 +72,19 @@ void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBiasRelu<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasRelu<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasRelu<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasRelu<bfp16_t>(void* dst, const void* bias, long area, long oc4);
 
 /*
 bias + relu6
 */
-template <typename T>
-void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBiasRelu6(void* dst, const void* bias, long area, long oc4) {
     Float4 vzero(0.f);
     Float4 vrelu6(6.f);
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -96,16 +98,111 @@ void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBiasRelu6<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasRelu6<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasRelu6<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasRelu6<bfp16_t>(void* dst, const void* bias, long area, long oc4);
 
-template <typename T, bool Fast>
-void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
+#if TNN_ARM82
+template <>
+void PostAddBias<fp16_t, fp16_t>(void* dst, const void* bias, long area, long oc8) {
+    for (long z = oc8 - 1; z >= 0; --z) {
+        Half8 vbias = Half8::load(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+        auto dst_z  = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+        long p      = 0;
+        for (; p < area - 3; p += 4) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            Half8 dst_1 = Half8::load(dst_p + 8);
+            Half8 dst_2 = Half8::load(dst_p + 16);
+            Half8 dst_3 = Half8::load(dst_p + 24);
+            dst_0 = dst_0 + vbias;
+            dst_1 = dst_1 + vbias;
+            dst_2 = dst_2 + vbias;
+            dst_3 = dst_3 + vbias;
+            Half8::save(dst_p, dst_0);
+            Half8::save(dst_p + 8, dst_1);
+            Half8::save(dst_p + 16, dst_2);
+            Half8::save(dst_p + 24, dst_3);
+        }
+        for (; p < area; ++p) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            dst_0 = dst_0 + vbias;
+            Half8::save(dst_p, dst_0);
+        }
+    }
+}
+
+template <>
+void PostAddBiasRelu<fp16_t, fp16_t>(void* dst, const void* bias, long area, long oc8) {
+    Half8 vzero = Half8((fp16_t)0.f);
+    for (long z = oc8 - 1; z >= 0; --z) {
+        Half8 vbias = Half8::load(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+        auto dst_z  = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+        long p      = 0;
+        for (; p < area - 3; p += 4) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            Half8 dst_1 = Half8::load(dst_p + 8);
+            Half8 dst_2 = Half8::load(dst_p + 16);
+            Half8 dst_3 = Half8::load(dst_p + 24);
+            dst_0 = Half8::max(dst_0 + vbias, vzero);
+            dst_1 = Half8::max(dst_1 + vbias, vzero);
+            dst_2 = Half8::max(dst_2 + vbias, vzero);
+            dst_3 = Half8::max(dst_3 + vbias, vzero);
+            Half8::save(dst_p, dst_0);
+            Half8::save(dst_p + 8, dst_1);
+            Half8::save(dst_p + 16, dst_2);
+            Half8::save(dst_p + 24, dst_3);
+        }
+        for (; p < area; ++p) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            dst_0 = Half8::max(dst_0 + vbias, vzero);
+            Half8::save(dst_p, dst_0);
+        }
+    }
+}
+
+template <>
+void PostAddBiasRelu6<fp16_t, fp16_t>(void* dst, const void* bias, long area, long oc8) {
+    Half8 vzero = Half8((fp16_t)0.f);
+    Half8 vrelu6 = Half8((fp16_t)6.f);
+    for (long z = oc8 - 1; z >= 0; --z) {
+        Half8 vbias = Half8::load(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+        auto dst_z   = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+        long p       = 0;
+        for (; p < area - 3; p += 4) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            Half8 dst_1 = Half8::load(dst_p + 8);
+            Half8 dst_2 = Half8::load(dst_p + 16);
+            Half8 dst_3 = Half8::load(dst_p + 24);
+            dst_0 = Half8::min(Half8::max(dst_0 + vbias, vzero), vrelu6);
+            dst_1 = Half8::min(Half8::max(dst_1 + vbias, vzero), vrelu6);
+            dst_2 = Half8::min(Half8::max(dst_2 + vbias, vzero), vrelu6);
+            dst_3 = Half8::min(Half8::max(dst_3 + vbias, vzero), vrelu6);
+            Half8::save(dst_p, dst_0);
+            Half8::save(dst_p + 8, dst_1);
+            Half8::save(dst_p + 16, dst_2);
+            Half8::save(dst_p + 24, dst_3);
+        }
+        for (; p < area; ++p) {
+            auto dst_p = dst_z + 8 * p;
+            Half8 dst_0 = Half8::load(dst_p);
+            dst_0 = Half8::min(Half8::max(dst_0 + vbias, vzero), vrelu6);
+            Half8::save(dst_p, dst_0);
+        }
+    }
+}
+#endif
+
+template <typename T1, typename T2, bool Fast>
+void PostAddBiasSwish(void* dst, const void* bias, long area, long oc4) {
     auto f = Fast? Float4::fast_sigmoid : Float4::sigmoid;
 
     if (!bias) {
         for (long z = oc4 - 1; z >= 0; --z) {
-            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
             for (long p = 0; p < area; ++p) {
                 auto dst_p = dst_z + 4 * p;
                 Float4 val = Float4::load(dst_p);
@@ -114,8 +211,8 @@ void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
         }
     } else {
         for (long z = oc4 - 1; z >= 0; --z) {
-            Float4 vbias = Float4::load(bias + 4 * z);
-            auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+            Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+            auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
             for (long p = 0; p < area; ++p) {
                 auto dst_p = dst_z + 4 * p;
                 Float4 val = Float4::load(dst_p) + vbias;
@@ -124,10 +221,61 @@ void PostAddBiasSwish(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBiasSwish<float, false>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasSwish<float, true>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasSwish<bfp16_t, false>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasSwish<bfp16_t, true>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasSwish<float, float, false>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<float, float, true>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, float, false>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, float, true>(void* dst, const void* bias, long area, long oc4);
+
+#if TNN_ARM82
+template <>
+void PostAddBiasSwish<fp16_t, fp16_t, true>(void* dst, const void* bias, long area, long oc8) {
+    if (!bias) {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            fp16_t* dst_z  = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 8 * p;
+                Half8 val = Half8::load(dst_p);
+                Half8::save(dst_p, val * Half8::fast_sigmoid(val));
+            }
+        }
+    } else {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            Half8 vbias = Half8::load(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+            fp16_t* dst_z = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 8 * p;
+                Half8 val = Half8::load(dst_p);
+                val = val + vbias;
+                Half8::save(dst_p, val * Half8::fast_sigmoid(val));
+            }
+        }
+    }
+}
+template <>
+void PostAddBiasSwish<fp16_t, fp16_t, false>(void* dst, const void* bias, long area, long oc8) {
+    if (!bias) {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            fp16_t* dst_z  = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 8 * p;
+                Half8 val = Half8::load(dst_p);
+                Half8::save(dst_p, val * Half8::sigmoid(val));
+            }
+        }
+    } else {
+        for (long z = oc8 - 1; z >= 0; --z) {
+            Half8 vbias = Half8::load(reinterpret_cast<const fp16_t*>(bias) + 8 * z);
+            fp16_t* dst_z     = reinterpret_cast<fp16_t*>(dst) + area * 8 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 8 * p;
+                Half8 val = Half8::load(dst_p);
+                val = val + vbias;
+                Half8::save(dst_p, val * Half8::sigmoid(val));
+            }
+        }
+    }
+}
+#endif
 
 /*
 min(x, clap)
@@ -422,6 +570,41 @@ void GEMM_FLOAT_N4(float* dst, const float* src, const float* weight, long src_d
                    long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
+
+#if TNN_ARM82
+/*
+general deconv micro kernel fp16_t
+*/
+void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
+                   long src_depth_step, long fw, long fh, long dilate_x_step, long dilate_y_step) {
+    long dx, sz, fx, fy;
+    for (dx = 0; dx < width; ++dx) {
+        auto dst_dx = dst + dx * dst_w_step;
+        for (fy = 0; fy < fh; ++fy) {
+            auto dst_y    = dst_dx + fy * dilate_y_step;
+            auto weight_y = weight + fy * fw * src_depth_quad * 64;
+            for (fx = 0; fx < fw; ++fx) {
+                auto dst_x    = dst_y + fx * dilate_x_step;
+                auto weight_x = weight_y + fx * src_depth_quad * 64;
+                fp16_t temp[8] = {0};
+                for (sz = 0; sz < src_depth_quad; ++sz) {
+                    auto weight_z = weight_x + sz * 64;
+                    auto src_z    = src + dx * 8 + sz * src_depth_step;
+                    for (long i = 0; i < 8; ++i) {
+                        for (long j = 0; j < 8; ++j) {
+                            temp[j] = temp[j] + src_z[i] * weight_z[8 * i + j];
+                        }
+                    }
+                }
+                for (long j = 0; j < 8; ++j) {
+                    dst_x[j] = dst_x[j] + temp[j];
+                }
+            }
+        }
+    }
+}
+#endif
+
 #endif
 
 #ifdef TNN_USE_NEON
@@ -602,11 +785,68 @@ template void AvgPooling(const float* src, long iw, long ih, float* dst, long ow
 template void AvgPooling(const bfp16_t* src, long iw, long ih, bfp16_t* dst, long ow, long oh, long kw, long kh,
                          long stride_w, long stride_h, long pad_w, long pad_h);
 
+#if TNN_ARM82
+void MaxPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, long oh, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX = ox * stride_w - pad_w;
+            const long srcOriginY = oy * stride_h - pad_h;
+            const long kxs        = MAX(0, -srcOriginX);
+            const long kxe        = MIN(kw, iw - srcOriginX);
+            const long kys        = MAX(0, -srcOriginY);
+            const long kye        = MIN(kh, ih - srcOriginY);
+            const auto src_ptr    = src + (srcOriginY * iw + srcOriginX) * 8;
+            auto dst_ptr          = dst + (oy * ow + ox) * 8;
+
+            Half8 vmax = Half8(HALF_LOWEST);
+
+            for (long ky = kys; ky < kye; ++ky) {
+                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                for (long kx = kxs; kx < kxe; kx++) {
+                    vmax = Half8::max(vmax, Half8::load(src_ptr_h + kx * 8));
+                }
+            }
+
+            Half8::save(dst_ptr, vmax);
+        }
+    }
+}
+
+void AvgPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, long oh, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX    = ox * stride_w - pad_w;
+            const long srcOriginY    = oy * stride_h - pad_h;
+            const long kxs           = MAX(0, -srcOriginX);
+            const long kxe           = MIN(kw, iw - srcOriginX);
+            const long kys           = MAX(0, -srcOriginY);
+            const long kye           = MIN(kh, ih - srcOriginY);
+            const float kernel_count = 1.0 / ((kxe - kxs) * (kye - kys));
+            const auto src_ptr       = src + (srcOriginY * iw + srcOriginX) * 8;
+            auto dst_ptr             = dst + (oy * ow + ox) * 8;
+
+            Half8 vavg = Half8(fp16_t(0.f));
+
+            for (long ky = kys; ky < kye; ++ky) {
+                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                for (long kx = kxs; kx < kxe; kx++) {
+                    vavg = vavg + Half8::load(src_ptr_h + kx * 8);
+                }
+            }
+
+            Half8::save(dst_ptr, vavg * Half8(fp16_t(kernel_count)));
+        }
+    }
+}
+#endif
+
 /*
 convdw unit, used in four cornels calc
 */
-template <typename T>
-void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, long weight_y_step, long dilate_x_step,
+template <typename T1, typename T2>
+void DepthwiseUnit(T1* dst, const T1* src, const T2* weight, long fw, long fh, long weight_y_step, long dilate_x_step,
                    long dilate_y_step) {
     long fx, fy;
     Float4 dst_v(0.0f);
@@ -623,16 +863,36 @@ void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, 
     }
     Float4::save(dst, dst_v);
 }
-template void DepthwiseUnit(float* dst, const float* src, const float* weight, long fw, long fh, long weight_y_step,
+template void DepthwiseUnit<float>(float* dst, const float* src, const float* weight, long fw, long fh, long weight_y_step,
                             long dilate_x_step, long dilate_y_step);
-template void DepthwiseUnit(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh, long weight_y_step,
+template void DepthwiseUnit<bfp16_t>(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh, long weight_y_step,
                             long dilate_x_step, long dilate_y_step);
+#if TNN_ARM82
+template <>
+void DepthwiseUnit<fp16_t, fp16_t>(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long fw, long fh, long weight_y_step, long dilate_x_step,
+                   long dilate_y_step) {
+    long fx, fy;
+    Half8 dst_v = Half8((fp16_t)0.0f);
+    const auto* src_z    = src;
+    const auto* weight_z = weight;
+    for (fy = 0; fy < fh; ++fy) {
+        const auto* src_y    = src_z + fy * dilate_y_step;
+        const auto* weight_y = weight_z + fy * weight_y_step;
+        for (fx = 0; fx < fw; ++fx) {
+            Half8 src_v = Half8::load(src_y + fx * dilate_x_step);
+            Half8 weight_v = Half8::load(weight_y + 8 * fx);
+            Half8::mla(dst_v, src_v, weight_v);
+        }
+    }
+    Half8::save(dst, dst_v);
+}
+#endif
 
 /*
 general convdw func
 */
-template <typename T>
-void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long src_w_step, long fw, long fh,
+template <typename T1, typename T2>
+void DepthwiseConv(T1* dst, const T1* src, const T2* weight, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
     long dx, fx, fy;
     for (long y = 0; y < height; ++y) {
@@ -682,10 +942,64 @@ void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long s
         }
     }
 }
-template void DepthwiseConv(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw,
+template void DepthwiseConv<float, float>(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw,
                             long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
-template void DepthwiseConv(bfp16_t* dst, const bfp16_t* src, const float* weight, long width, long src_w_step, long fw,
+template void DepthwiseConv<bfp16_t, float>(bfp16_t* dst, const bfp16_t* src, const float* weight, long width, long src_w_step, long fw,
                             long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+#if TNN_ARM82
+template <>
+void DepthwiseConv<fp16_t, fp16_t>(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long src_w_step, long fw, long fh,
+                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
+    long dx, fx, fy;
+    for (long y = 0; y < height; ++y) {
+        auto srcY = src + y * srcHStep;
+        auto dstY = dst + y * dstHStep;
+        dx        = 0;
+        for (; dx + 3 < width; dx += 4) {
+            Half8 dst_v[4];
+            for (long i = 0; i < 4; i++) {
+                dst_v[i] = Half8((fp16_t)0.0f);
+            }
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 8;
+                for (fx = 0; fx < fw; ++fx) {
+                    Half8 weight_v = Half8::load(weight_y + 8 * fx);
+                    Half8 src_v0   = Half8::load(src_y + fx * dilate_x_step);
+                    Half8 src_v1   = Half8::load(src_y + fx * dilate_x_step + src_w_step);
+                    Half8 src_v2   = Half8::load(src_y + fx * dilate_x_step + 2 * src_w_step);
+                    Half8 src_v3   = Half8::load(src_y + fx * dilate_x_step + 3 * src_w_step);
+                    Half8::mla(dst_v[0], src_v0, weight_v);
+                    Half8::mla(dst_v[1], src_v1, weight_v);
+                    Half8::mla(dst_v[2], src_v2, weight_v);
+                    Half8::mla(dst_v[3], src_v3, weight_v);
+                }
+            }
+            Half8::save(dstY + (dx + 0) * 8, dst_v[0]);
+            Half8::save(dstY + (dx + 1) * 8, dst_v[1]);
+            Half8::save(dstY + (dx + 2) * 8, dst_v[2]);
+            Half8::save(dstY + (dx + 3) * 8, dst_v[3]);
+        }
+        for (; dx < width; ++dx) {
+            Half8 dst_v = Half8((fp16_t)0.0f);
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 8;
+                for (fx = 0; fx < fw; ++fx) {
+                    Half8 src_v    = Half8::load(src_y + fx * dilate_x_step);
+                    Half8 weight_v = Half8::load(weight_y + 8 * fx);
+                    Half8::mla(dst_v, src_v, weight_v);
+                }
+            }
+            Half8::save(dstY + dx * 8, dst_v);
+        }
+    }
+}
+#endif
 
 /*
 convdw3x3 center func
@@ -771,15 +1085,15 @@ template void FloatConvert(const bfp16_t* src, float* dst, long area_quad);
 /*
 deconv dw unit
 */
-template <typename T>
-void DepthwiseUnitDeconv(const T* dst, T* src, const float* weight, long fw, long fh, long weight_y_step,
+template <typename T1, typename T2>
+void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilate_x_step, long dilate_y_step) {
     long fx, fy;
-    T* src_z              = src;
+    T1* src_z              = src;
     const float* weight_z = weight;
     Float4 dstV           = Float4::load(dst);
     for (fy = 0; fy < fh; ++fy) {
-        T* src_y              = src_z + fy * dilate_y_step;
+        T1* src_y              = src_z + fy * dilate_y_step;
         const float* weight_y = weight_z + fy * weight_y_step;
         for (fx = 0; fx < fw; ++fx) {
             Float4 weight_x = Float4::load(weight_y + 4 * fx);
@@ -797,13 +1111,13 @@ template void DepthwiseUnitDeconv(const bfp16_t* dst, bfp16_t* src, const float*
 /*
 general deconv dw func
 */
-template <typename T>
-void DepthwiseDeconv(const T* dst, T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2>
+void DepthwiseDeconv(const T1* dst, T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                      long dilate_x_step, long dilate_y_step) {
     long dx;
     for (dx = 0; dx < width; ++dx) {
-        const T* dst_x = dst + dx * 4;
-        T* src_dx      = src + src_w_setup * dx;
+        const T1* dst_x = dst + dx * 4;
+        T1* src_dx      = src + src_w_setup * dx;
         DepthwiseUnitDeconv(dst_x, src_dx, weight, fw, fh, fw * 4, dilate_x_step, dilate_y_step);
     }
 }
@@ -812,5 +1126,110 @@ template void DepthwiseDeconv(const float* dst, float* src, const float* weight,
                               long fh, long dilate_x_step, long dilate_y_step);
 template void DepthwiseDeconv(const bfp16_t* dst, bfp16_t* src, const float* weight, long width, long src_w_setup,
                               long fw, long fh, long dilate_x_step, long dilate_y_step);
+
+#if TNN_ARM82
+
+template <>
+void DepthwiseUnitDeconv<fp16_t, fp16_t>(const fp16_t* dst, fp16_t* src, const fp16_t* weight, long fw, long fh, long weight_y_step,
+                         long dilate_x_step, long dilate_y_step) {
+    long fx, fy;
+    fp16_t* src_z              = src;
+    const fp16_t* weight_z = weight;
+    Half8 dstV = Half8::load(dst);
+    for (fy = 0; fy < fh; ++fy) {
+        fp16_t* src_y = src_z + fy * dilate_y_step;
+        const fp16_t* weight_y = weight_z + fy * weight_y_step;
+        for (fx = 0; fx < fw; ++fx) {
+            Half8 weight_x = Half8::load(weight_y + 8 * fx);
+            Half8 src_x    = Half8::load(src_y + fx * dilate_x_step);
+            Half8::mla(src_x, weight_x, dstV);
+            Half8::save(src_y + fx * dilate_x_step, src_x);
+        }
+    }
+}
+
+template <>
+void DepthwiseDeconv<fp16_t, fp16_t>(const fp16_t* dst, fp16_t* src, const fp16_t* weight, long width, long src_w_setup, long fw, long fh,
+                     long dilate_x_step, long dilate_y_step) {
+    long dx;
+    for (dx = 0; dx < width; ++dx) {
+        const fp16_t* dst_x = dst + dx * 8;
+        fp16_t* src_dx      = src + src_w_setup * dx;
+        DepthwiseUnitDeconv(dst_x, src_dx, weight, fw, fh, fw * 8, dilate_x_step, dilate_y_step);
+    }
+}
+
+#endif
+
+void Half2Float(float* dst, const fp16_t* src, const size_t length) {
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+    Half2FloatKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
+void Float2Half(fp16_t* dst, const float* src, const size_t length) {
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+    Float2HalfKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
+
+void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
+    long c_r4 = UP_DIV(channel, 4);
+    long c_r8 = UP_DIV(channel, 8);
+    for (long n = 0; n < batch; n++) {
+        auto dst_n = dst + n * c_r8 * hw * 8;
+        auto src_n = src + n * c_r4 * hw * 4;
+        OMP_PARALLEL_FOR_GUIDED_
+        for (long ci = 0; ci < c_r4; ++ci) {
+            long co         = ci / 2;
+            long dst_offset = (ci % 2) ? 4 : 0;
+            auto dst_c      = dst_n + co * hw * 8 + dst_offset;
+            auto src_c      = src_n + ci * hw * 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw4 to nchw8
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+                vst1_f16(dst_c + cnt * 8, vcvt_f16_f32(vld1q_f32(src_c + cnt * 4)));
+#else
+                for (long idx = 0; idx < 4; idx++) {
+                    dst_c[cnt * 8 + idx] = src_c[cnt * 4 + idx];
+                }
+#endif
+            }
+        }
+    }
+}
+
+void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw) {
+    long c_r4 = UP_DIV(channel, 4);
+    long c_r8 = UP_DIV(channel, 8);
+    for (long n = 0; n < batch; n++) {
+        auto src_n = src + n * c_r8 * hw * 8;
+        auto dst_n = dst + n * c_r4 * hw * 4;
+        OMP_PARALLEL_FOR_GUIDED_
+        for (long co = 0; co < c_r4; ++co) {
+            long ci         = co / 2;
+            long src_offset = (co % 2) ? 4 : 0;
+            auto src_c      = src_n + ci * hw * 8 + src_offset;
+            auto dst_c      = dst_n + co * hw * 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw8 to nchw4
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+                vst1q_f32(dst_c + cnt * 4, vcvt_f32_f16(vld1_f16(src_c + cnt * 8)));
+#else
+                for (long idx = 0; idx < 4; idx++) {
+                    dst_c[cnt * 4 + idx] = src_c[cnt * 8 + idx];
+                }
+#endif
+            }
+        }
+    }
+}
 
 }  // namespace TNN_NS

@@ -46,16 +46,22 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     } else {
         ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     }
-    if (ret != TNN_OK)
+    if (ret != TNN_OK) {
         return ret;
-
+    }
     auto data_type = inputs[0]->GetBlobDesc().data_type;
     if (conv_param->group != 1 && conv_param->group != inputs[0]->GetBlobDesc().dims[1]) {
         conv_acc_impl_ = std::make_shared<ArmConvLayerGroup>();
     } else {
         if (data_type == DATA_TYPE_INT8) {
             ArmConvLayerAccFactory::CreateImpInt8(inputs, outputs, param_, conv_acc_impl_);
-        } else {
+        }
+#if TNN_ARM82
+        else if (data_type == DATA_TYPE_HALF) {
+            ArmConvLayerAccFactory::CreateImpHalf(inputs, outputs, param_, conv_acc_impl_);
+        }
+#endif
+        else {
             ArmConvLayerAccFactory::CreateImpFP(inputs, outputs, param_, conv_acc_impl_);
         }
     }
@@ -81,5 +87,8 @@ Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Conv, LAYER_CONVOLUTION)
+#if TNN_ARM82
+REGISTER_ARM_PRECISION_FP16(LAYER_CONVOLUTION)
+#endif
 
 }  // namespace TNN_NS

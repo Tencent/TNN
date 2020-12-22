@@ -168,6 +168,7 @@ struct BenchResult {
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto pathLibrary = [[NSBundle mainBundle] pathForResource:@"tnn.metallib"
                                                        ofType:nil];
+    pathLibrary = pathLibrary ? pathLibrary : @"";
     
     NSString *allResult = [NSString string];
     for (auto model : allModels) {

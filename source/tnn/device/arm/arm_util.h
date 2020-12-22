@@ -48,12 +48,24 @@ template <typename Tin, typename Tout>
 int PackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
+int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackCX(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, float *scale);
 
 template <typename Tin, typename Tout>
 int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackCX(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
@@ -74,7 +86,18 @@ int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channe
                                      int width);
 
 template <typename T>
+int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
+
+template <typename T>
 int ConvertWeightsFromOI3HWToOHW12(T *src, T *dst, int input_channel, int output_channel, int height, int width);
+
+template <typename T>
+int ConvertWeightsFromOI3HWToOHW24(const T *src, T *dst, int input_channel, int output_channel, int height, int width);
+
+template <typename T>
+int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
 
 int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int output_channel, int height, int width);
 
@@ -89,6 +112,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int height, int 
 void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width);
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width);
+
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width);
+
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width);
 
 }  // namespace TNN_NS
 

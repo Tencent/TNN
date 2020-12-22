@@ -108,16 +108,13 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     auto dims_output             = output->GetBlobDesc().dims;
     auto context_impl            = context_->getMetalContextImpl();
 
-    if (dims_input[0] != 1) {
-        LOGE("Error: batch size or group is not support\n");
-        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
-    }
-
     auto encoder = [context_impl encoder];
     encoder.label = GetKernelLabel();
 
     DataType data_type = output->GetBlobDesc().data_type;
     int data_byte_size = DataTypeUtils::GetBytesSize(data_type);
+
+    auto batch = dims_output[0];
 
     auto input_width             = dims_input[3];
     auto input_height            = dims_input[2];
@@ -154,7 +151,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
         supported = true;
         status    = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
     } else {
-        //注意此处先特殊处理
+        //special case
         if (group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) {
             supported              = true;
             status                 = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
@@ -178,16 +175,37 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     }
 
     if (!(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
-        for (int g = 0; g < group; g++) {
+        for(int n=0; n<batch; ++n) {
+            for (int g = 0; g < group; g++) {
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
+                            offset:(NSUInteger)input->GetHandle().bytes_offset + g * input_bytes_per_group + n * input_bytes
+                           atIndex:0];
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                            offset:(NSUInteger)output->GetHandle().bytes_offset + g * output_bytes_per_group + n * output_bytes
+                           atIndex:1];
+                [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+                [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
+                [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+
+                status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+
+                if (status != TNN_OK) {
+                    [encoder endEncoding];
+                    return status;
+                }
+            }
+        }
+    } else {
+        for(int n=0; n<batch; ++n) {
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                        offset:(NSUInteger)input->GetHandle().bytes_offset + g * input_bytes_per_group
+                        offset:(NSUInteger)input->GetHandle().bytes_offset + n * input_bytes
                        atIndex:0];
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                        offset:(NSUInteger)output->GetHandle().bytes_offset + g * output_bytes_per_group
+                        offset:(NSUInteger)output->GetHandle().bytes_offset + n * output_bytes
                        atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-            [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
-            [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+            [encoder setBuffer:buffer_weight_ offset:0 atIndex:3];
+            [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
 
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
@@ -195,23 +213,6 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
                 [encoder endEncoding];
                 return status;
             }
-        }
-    } else {
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                    offset:(NSUInteger)input->GetHandle().bytes_offset
-                   atIndex:0];
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                    offset:(NSUInteger)output->GetHandle().bytes_offset
-                   atIndex:1];
-        [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-        [encoder setBuffer:buffer_weight_ offset:0 atIndex:3];
-        [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
-
-        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-
-        if (status != TNN_OK) {
-            [encoder endEncoding];
-            return status;
         }
     }
     [encoder endEncoding];

@@ -16,6 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -25,7 +26,7 @@ class ConvLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel
                              testing::Values(1, 2, 3, 4, 10, 32),
                              // hw
@@ -41,7 +42,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                              // pads
                              testing::Values(0, 1),
                              // data_type
-                             testing::Values(DATA_TYPE_FLOAT),
+                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF),
                              // activation_type
                              testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6,
                                              ActivationType_SIGMOID_MUL)));
@@ -61,15 +62,22 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int activation_type   = std::get<9>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    auto precision = PRECISION_AUTO;
-    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
-        if (DATA_TYPE_FLOAT == dtype) {
-            precision = PRECISION_HIGH;
-        } else {
-            GTEST_SKIP();
-        }
+    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+        GTEST_SKIP();
     }
 
+    if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+    if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
+        GTEST_SKIP();
+    }
+#else
+    if (dtype == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
     bool is_depthwise = (group == channel);
     if (!is_depthwise && ((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
         GTEST_SKIP();
@@ -93,6 +101,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param->activation_type = activation_type;
 
     // generate interpreter
+    Precision precision = SetPrecision(dev, dtype);
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter, precision);
