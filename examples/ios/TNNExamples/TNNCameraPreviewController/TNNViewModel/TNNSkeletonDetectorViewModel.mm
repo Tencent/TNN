@@ -46,28 +46,7 @@ using namespace std;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    // fused model, no post-processing required, gaussian blur->2 conv layers
-    //auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
-    //                                                  ofType:nil];
-    //auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnproto"
-    //                                                  ofType:nil];
-    //auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
-    //                                                  ofType:nil];
-    //auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_noresize.tnnproto"
-    //                                                  ofType:nil];
 
-    // new efficient model
-#if ENABLE_GAUSSIAN_BLUR
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big_wb.tnnproto"
-                                                      ofType:nil];
-    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle_wb.tnnproto"
-                                                             ofType:nil];
-    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small_wb.tnnproto"
-                                                            ofType:nil];
-
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
-                                                      ofType:nil];
-#else
     auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big.tnnproto"
                                                       ofType:nil];
     auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle.tnnproto"
@@ -77,7 +56,6 @@ using namespace std;
 
     auto model_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton.tnnmodel"
                                                       ofType:nil];
-#endif
 
     if (proto_path.length <= 0 || middle_proto_path.length <= 0 || small_proto_path.length <= 0) {
         status = Status(TNNERR_NET_ERR, "Error: proto path is invalid");

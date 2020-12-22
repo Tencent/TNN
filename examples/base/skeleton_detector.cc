@@ -98,7 +98,6 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
     int idx = 0;
     skeleton.key_points.resize(heatmap_channels);
     confidence_list.resize(heatmap_channels);
-    //std::vector<bool> detected(heatmap_channels);
     detected.resize(heatmap_channels);
 
     for(int c=0; c<heatmap_channels; ++c) {
@@ -120,13 +119,10 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
         }
         if (max_val < threshold) {
             skeleton.key_points[c] = std::make_pair(-1, -1);
-            //skeleton.key_points[c] = Landmark2D(-1, -1);
             detected[c] = false;
         } else {
             skeleton.key_points[c] = std::make_pair(max_pos_w / heatmap_width,
                                                     max_pos_h / heatmap_height);
-            //skeleton.key_points[c] = Landmark2D(max_pos_w/src_width,
-            //                                    max_pos_h/src_height);
             detected[c] = true;
         }
         confidence_list[c] = max_val;
@@ -141,7 +137,6 @@ void SkeletonDetector::GenerateSkeleton(SkeletonDetectorOutput* output,
 
 void SkeletonDetector::SmoothingLandmarks(SkeletonDetectorOutput* output) {
     std::vector<std::pair<float, float>> out_landmarks;
-    //std::vector<Landmark2D> out_landmarks;
     landmark_filter->Apply2D(output->keypoints.key_points,
                            std::make_pair(orig_input_height, orig_input_width),
                            Now(),
@@ -160,7 +155,6 @@ void SkeletonDetector::DeNormalize(SkeletonDetectorOutput* output) {
         float x = lm2d.first * src_width;
         float y = lm2d.second * src_height;
         lm2d = std::make_pair(x, y);
-        //lm2d.Scale(src_width, src_height);
     }
     skeleton.image_height = src_height;
     skeleton.image_width  = src_width;

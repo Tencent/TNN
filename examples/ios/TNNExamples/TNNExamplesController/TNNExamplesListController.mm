@@ -23,7 +23,6 @@
 #import "TNNHairSegmentationViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
-#import "TNNPose2dViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -190,31 +189,16 @@ using namespace std;
         }
         [examples addObject:data];
     }
-
-    //人体关键点 - SkeletonDetector
-    {
-        auto data = [TNNExampleData new];
-        data.title = @"人体关键点(小模型) - 腾讯微视";
-        data.desc = @"摄像头 - 单输入单输出";
-        data.viewControllerID = @"TNNCameraPreviewController";
-        {
-            data.viewModel = [TNNPose2dViewModel new];
-            data.viewModel.title = @"人体关键点(小模型) - 腾讯微视";
-            data.viewModel.preferFrontCamera = false;
-            data.viewModel.preferGPU = false;
-        }
-        [examples addObject:data];
-    }
     
     //人体关键点 - SkeletonDetector
     {
         auto data = [TNNExampleData new];
-        data.title = @"人体关键点(大模型) - 腾讯微视";
+        data.title = @"人体关键点 - 腾讯微视";
         data.desc = @"摄像头 - 单输入单输出";
         data.viewControllerID = @"TNNCameraPreviewController";
         {
             data.viewModel = [TNNSkeletonDetectorViewModel new];
-            data.viewModel.title = @"人体关键点(大模型) - 腾讯微视";
+            data.viewModel.title = @"人体关键点 - 腾讯微视";
             data.viewModel.preferFrontCamera = false;
             data.viewModel.preferGPU = false;
         }
