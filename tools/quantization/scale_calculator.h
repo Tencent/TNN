@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_TOOLS_QUANTIZATION_SCALE_CALCULATOR_H_
@@ -39,8 +39,7 @@ public:
     // param 0 : input_blob, can be a device blob
     // param 1 : flag to merge_channel
     // param 2 : method, kl, minmax or admm
-    int Init(Blob* blob, bool merge_channel = true,
-             CalibrationMethod method = MIN_MAX);
+    int Init(Blob* blob, bool merge_channel = true, CalibrationMethod method = MIN_MAX);
 
     // @brief: set the quantize method
     // param 0 : method, the method to set
@@ -69,8 +68,7 @@ public:
     int CalculateScale(std::vector<float>& val);
 
 private:
-    int CalculateScalePerDis(std::vector<float>& distribute, float interval,
-                             float& output);
+    int CalculateScalePerDis(std::vector<float>& distribute, float interval, float& output);
 
     Blob* origin_blob_;
     bool merge_channel_;
