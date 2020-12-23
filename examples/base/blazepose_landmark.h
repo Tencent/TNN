@@ -64,6 +64,8 @@ public:
     float landmark_visibility_threshold = 0.1;
     // target fps, set it to the real fps of this app when running on your device
     int fps = 30;
+    // if full-body model
+    bool full_body = false;
 };
 
 class BlazePoseLandmark : public TNNSDKSample {
@@ -95,6 +97,11 @@ public:
         this->origin_input_shape[2] = height;
         this->origin_input_shape[3] = width;
     }
+    bool isFullBody() {
+        auto option = dynamic_cast<BlazePoseLandmarkOption *>(option_.get());
+        RETURN_VALUE_ON_NEQ(!option, false, false);
+        return option->full_body;
+    }
 private:
     void GetCropMatrix(float trans_mat[2][3], std::vector<float>& target_size);
     void ProcessLandmarks(Mat& landmark_mat, std::vector<BlazePoseInfo>& detects);
@@ -122,6 +129,7 @@ private:
     // pads for remove latterbox from detection
     std::array<float, 4> letterbox_pads;
     int num_landmarks = 31;
+    int num_visible_landmarks = 25;
     // hostory detect results
     std::vector<BlazePoseInfo> history;
     // lines connecting points
@@ -151,6 +159,19 @@ private:
         {17,19},
         {18,20},
         {23,24}
+    };
+    // extra lines for full-body landmark model
+    std::vector<std::pair<int, int>> extended_lines_fb = {
+        {23, 25},
+        {24, 26},
+        {25, 27},
+        {26, 28},
+        {27, 29},
+        {27, 31},
+        {28, 30},
+        {28, 32},
+        {29, 31},
+        {30, 32}
     };
     // landmark filtering options
     const int window_size = 5;

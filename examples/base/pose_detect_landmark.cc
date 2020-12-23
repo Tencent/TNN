@@ -26,6 +26,14 @@ Status PoseDetectLandmark::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks)
 
     predictor_detect_ = sdks[0];
     predictor_landmark_ = sdks[1];
+    auto predictor_landmark_cast = dynamic_cast<BlazePoseLandmark *>(predictor_landmark_.get());
+    if (predictor_landmark_cast->isFullBody()) {
+        this->detect2roi_option.keypoints_start_idx = 0;
+        this->detect2roi_option.keypoints_end_idx = 1;
+    } else {
+        this->detect2roi_option.keypoints_start_idx = 2;
+        this->detect2roi_option.keypoints_end_idx = 3;
+    }
     return TNNSDKComposeSample::Init(sdks);
 }
 
@@ -66,7 +74,7 @@ Status PoseDetectLandmark::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         // set the original input shape
         predictor_landmark_cast->SetOrigianlInputShape(input_height, input_width);
         // only use the first detect
-        predictor_landmark_cast->Detection2RoI((*detects)[0], this->detect2toi_option);
+        predictor_landmark_cast->Detection2RoI((*detects)[0], this->detect2roi_option);
     }
     // phase2: blazepose landmark
     {

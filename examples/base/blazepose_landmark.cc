@@ -141,6 +141,19 @@ Status BlazePoseLandmark::Init(std::shared_ptr<TNNSDKOption> option_i) {
     option->input_width  = input_dims[3];
     roi_from_prev_frame = false;
 
+    if (option->full_body) {
+        // keypoints used to compute roi
+        this->roi_option.keypoints_start_idx = 33;
+        this->roi_option.keypoints_end_idx = 34;
+        // number of total landmarks
+        this->num_landmarks = 39;
+        // number of visible landmarks
+        this->num_visible_landmarks = 33;
+        // add lines only for the full-body landmark model
+        this->lines.insert(this->lines.end(),
+                           this->extended_lines_fb.begin(),
+                           this->extended_lines_fb.end());
+    }
     return status;
 }
 
@@ -254,7 +267,7 @@ Status BlazePoseLandmark::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     SmoothingLandmarks(detects);
     DeNormalize(detects);
     // upper body landmark model only have 25 points for show
-    detects[0].key_points_3d.resize(25);
+    detects[0].key_points_3d.resize(num_visible_landmarks);
     output->body_list.push_back(std::move(detects[0]));
 
     return status;

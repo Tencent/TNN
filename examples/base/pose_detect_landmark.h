@@ -35,12 +35,27 @@ public:
     virtual ~PoseDetectLandmark() {}
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
     virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
+    Status SwitchLandmarkModel(std::shared_ptr<TNNSDKSample> newLandmarkmodel, bool switchToFullBody) {
+        auto predictor_landmark_cast = dynamic_cast<BlazePoseLandmark *>(newLandmarkmodel.get());
+        RETURN_VALUE_ON_NEQ(!predictor_landmark_cast, false, Status(TNNERR_PARAM_ERR, "invalid landmark model!"));
+        this->predictor_landmark_ = newLandmarkmodel;
+        this->sdks_[1] = newLandmarkmodel;
+        bool isFullBody = predictor_landmark_cast->isFullBody();
+        if (isFullBody) {
+            this->detect2roi_option.keypoints_start_idx = 0;
+            this->detect2roi_option.keypoints_end_idx = 1;
+        } else {
+            this->detect2roi_option.keypoints_start_idx = 2;
+            this->detect2roi_option.keypoints_end_idx = 3;
+        }
+        return TNN_OK;
+    }
 protected:
     std::shared_ptr<TNNSDKSample> predictor_detect_ = nullptr;
     std::shared_ptr<TNNSDKSample> predictor_landmark_ = nullptr;
 private:
     DimsVector origin_input_shape;
-    BlazePoseLandmark::RoIGenOptions detect2toi_option = {
+    BlazePoseLandmark::RoIGenOptions detect2roi_option = {
         2,     // keypoints_start_idx
         3,     // keypoints_end_idx
         90.0f, // rotation_target_angle, in degree
