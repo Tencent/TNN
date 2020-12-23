@@ -34,7 +34,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                             AbstractModelInterpreter* interpreter,
                             InputShapesMap inputs_shape) {
 
-    Status ret                                   = TNN_OK;
+    Status ret  = TNN_OK;
 
     // RETURN_ON_NEQ(DefaultNetwork::Init(net_config, model_config, interpreter, inputs_shape), TNN_OK);
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -64,53 +64,24 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     // build ngraph network
     BuildNgraphNetwork(net_structure);
     //////////////////////////////////////////////////////////////
-    ie_.SetConfig({{CONFIG_KEY(CPU_BIND_THREAD), "NO"}}, "CPU");
+    std::map<std::string, std::string> config = {
+        {CONFIG_KEY(CPU_THREADS_NUM), "1"},
+        {CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "0"},
+        {CONFIG_KEY(CPU_BIND_THREAD), "NO"},
+    };
+
+    ie_.SetConfig(config, "CPU");
     InferenceEngine::IExtensionPtr extensionPtr;
     extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
     ie_.AddExtension(extensionPtr, "CPU");
-
-    
-    executable_network_ = ie_.LoadNetwork(*network_, "CPU");
-    
-    infer_request_ = executable_network_.CreateInferRequest();
-
-    auto input_map = executable_network_.GetInputsInfo();
-    for(auto item : input_map) {
-        std::string key = item.first;
-        auto blob_ptr = infer_request_.GetBlob(key);
-        BlobDesc desc;
-        desc.data_format = DATA_FORMAT_NCHW;
-        desc.name = key;
-        auto dims = blob_ptr->getTensorDesc().getDims();
-        for(int index = 0; index<dims.size(); index++) {
-            desc.dims.push_back(dims[index]);
-        }
-        BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        input_blob_map_[key] = new Blob(desc, handle);  
-    }
-
-    auto output_map = executable_network_.GetOutputsInfo();
-    for(auto item : output_map) {
-        std::string key = item.first;
-        auto blob_ptr = infer_request_.GetBlob(key);
-        BlobDesc desc;
-        desc.data_format = DATA_FORMAT_NCHW;
-        desc.name = key;
-        auto dims = blob_ptr->getTensorDesc().getDims();
-        for(int index = 0; index<dims.size(); index++) {
-            desc.dims.push_back(dims[index]);
-        }
-        BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        output_blob_map_[key] = new Blob(desc, handle); 
-    }
 
     return Reshape(inputs_shape);
 }
 
 Status OpenVINONetwork_::SetNetInputNode(NetStructure *net_structure, NetResource* net_resource) {
     
+    // TODO: deal models with multiple inputs
+
     std::string input_name = net_structure->layers.at(0)->inputs.at(0);
     std::vector<int> input_node_shape = net_structure->inputs_shape_map.begin()->second;
     ngraph::Shape ngraphInputShape;
@@ -124,10 +95,7 @@ Status OpenVINONetwork_::SetNetInputNode(NetStructure *net_structure, NetResourc
 
     auto blob = blob_manager_->GetBlob(input_name);
     auto foreign_blob = new ForeignBlob(blob);
-    auto openvinoTensor = std::make_shared<OpenvinoTensor>();
-    
-    openvinoTensor->SetNode(input_node);
-    foreign_blob->SetForeignTensor(openvinoTensor);
+    foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(input_node));
     blob_manager_->ReplaceBlob(input_name, foreign_blob);
 
     return TNN_OK;
@@ -207,35 +175,44 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         std::string key = item.first;
         auto blob_ptr = infer_request_.GetBlob(key);
 
+        BlobDesc desc;
+        desc.data_format = DATA_FORMAT_NCHW;
+        desc.name = key;
         auto dims = blob_ptr->getTensorDesc().getDims();
-        DimsVector blob_dims;
         for(int index = 0; index<dims.size(); index++) {
-            blob_dims.push_back(dims[index]);
+            desc.dims.push_back(dims[index]);
         }
-        input_blob_map_[key]->GetBlobDesc().dims = blob_dims;
 
-        auto handle = input_blob_map_[key]->GetHandle();
-        handle.base = blob_ptr->buffer()
-            .as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        input_blob_map_[key]->SetHandle(handle);
+        BlobHandle handle;
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+
+        if (input_blob_map_.find(key) != input_blob_map_.end())  {
+            input_blob_map_[key]->SetBlobDesc(desc);
+            input_blob_map_[key]->SetHandle(handle);
+        } else {
+            input_blob_map_[key] = new Blob(desc, handle);  
+        }
     }
 
     auto output_map = executable_network_.GetOutputsInfo();
     for(auto item : output_map) {
         std::string key = item.first;
         auto blob_ptr = infer_request_.GetBlob(key);
-
+        BlobDesc desc;
+        desc.data_format = DATA_FORMAT_NCHW;
+        desc.name = key;
         auto dims = blob_ptr->getTensorDesc().getDims();
-        DimsVector blob_dims;
         for(int index = 0; index<dims.size(); index++) {
-            blob_dims.push_back(dims[index]);
+            desc.dims.push_back(dims[index]);
         }
-        output_blob_map_[key]->GetBlobDesc().dims = blob_dims;
-
-        auto handle = output_blob_map_[key]->GetHandle();
-        handle.base = blob_ptr->buffer()
-            .as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-        output_blob_map_[key]->SetHandle(handle);
+        BlobHandle handle;
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+        if (output_blob_map_.find(key) != output_blob_map_.end())  {
+            output_blob_map_[key]->SetBlobDesc(desc);
+            output_blob_map_[key]->SetHandle(handle);
+        } else {
+            output_blob_map_[key] = new Blob(desc, handle);  
+        }
     }
 
     return TNN_OK;
@@ -268,33 +245,6 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         // get input nodes
         for (auto name : input_names) {
             ForeignBlob* blob = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name));
-            // auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(blob.GetForeignTensor());
-            // openvino_tensor->GetNode();
-            /*
-            // Check for int8
-            bool is_int8_blob = layer_info->param->quantized;
-            if (is_int8_blob && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
-                auto dest                   = blob->GetBlobDesc();
-                std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
-                if (net_resource->resource_map.count(blob_scale_name) == 0) {
-                    LayerResource *layer_res  = nullptr;
-                    std::vector<Blob *> blobs = {blob};
-                    GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-                    net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-                }
-#endif
-                new_blob->SetIntResource(
-                    reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
-                blob_manager_->ReplaceBlob(name, new_blob);
-                blob = new_blob;
-            }
-            // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
-            }
-            */
             inputs.push_back(blob);
         }
         std::vector<Blob *> outputs;
@@ -323,37 +273,14 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>());
             blob_manager_->ReplaceBlob(name, foreign_blob);
             blob = foreign_blob;
-            /*
-            // Check for int8
-            bool is_int8_blob =
-                layer_info->param->quantized ||
-                (type == LAYER_REFORMAT &&
-                 reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->dst_type == DATA_TYPE_INT8);
-
-            if (is_int8_blob) {
-                auto new_blob               = new BlobInt8(blob->GetBlobDesc(), blob->GetHandle());
-                std::string blob_scale_name = name + "_scale_data_";
-#ifdef BENCHMARK
-                if (net_resource->resource_map.count(blob_scale_name) == 0) {
-                    LayerResource *layer_res  = nullptr;
-                    std::vector<Blob *> blobs = {blob};
-                    GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-                    net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-                }
-#endif
-                new_blob->SetIntResource(
-                    reinterpret_cast<IntScaleResource *>(net_resource->resource_map[blob_scale_name].get()));
-                blob_manager_->ReplaceBlob(name, new_blob);
-                blob = new_blob;
-            }
-            // Check for bfp16
-            if (_config.precision == PRECISION_LOW && blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_BFP16;
-            }
-            */
-           outputs.push_back(blob);
+            outputs.push_back(blob);
         }
-        LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
+
+        LayerResource *layer_resource = nullptr;
+        auto resouce_it = net_resource->resource_map.find(layer_name);
+        if (resouce_it != net_resource->resource_map.end()) {
+            layer_resource = resouce_it->second.get();
+        }
         
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);

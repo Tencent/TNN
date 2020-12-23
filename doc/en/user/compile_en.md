@@ -150,9 +150,10 @@ cd <path_to_tnn>/scripts
 ### 1. Environment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
-  - cmake (vsrsion 3.7.2 or higher; Or use build-in cmake in Visual Studio)
+  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
 
 ### 2. Compilation Steps
+Open `x64 Native Tools Command Prompt for VS 2017/2019`.
 1) switch to 'scripts' directory
 ```
 cd <path_to_tnn>/scripts
@@ -163,6 +164,25 @@ cd <path_to_tnn>/scripts
 ```
 If Visual Studio cannot be recognized, please refer to a version manually
 More problems refer to [FAQ](openvino_en.md)
+
+
+## VII. Compile(Macos)
+### 1. Environment requirements
+#### Dependencies
+  - cmake 3.11 or above
+  - xcode command line tools (Xcode shall be installed in AppStore，then execute ``xcode-select --install`` in terminal) 
+  - automake, libtool (can be installed with brew, ```brew install libtool automake```)
+  - Network access
+
+### 2. Compilation Steps
+1）switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2）execute the building scripts
+```
+./build_macos.sh
+```
 
 ## Description for build options 
 

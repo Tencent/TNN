@@ -33,7 +33,7 @@ TensorRTBlobManager::~TensorRTBlobManager() {
 }
 
 Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
-                         DataType input_data_type) {
+        DataType input_data_type) {
     if (net_structure->blobs.empty()) {
         LOGE("net_structure blobs is empty\n");
         return Status(TNNERR_PARAM_ERR, "net_structure blobs is empty");
@@ -110,6 +110,7 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
     for (auto iter : input_blobs_) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
+        info.data_type = DATA_TYPE_FLOAT;
         if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {
             return Status(TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
         }
@@ -123,6 +124,7 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
     for (auto iter : output_blobs_) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
+        info.data_type = DATA_TYPE_FLOAT;
         if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {
             return Status(TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
         }

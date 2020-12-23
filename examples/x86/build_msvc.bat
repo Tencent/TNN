@@ -1,75 +1,54 @@
 @echo off
-SETLOCAL EnableDelayedExpansion
 
-set "ROOT_DIR=%~dp0"
-set "TNN_LIB_PATH=!ROOT_DIR!\..\..\scripts\build_msvc\Release\"
-set "TNN_OPENVINO_LIB_PATH=!ROOT_DIR!\..\..\source\tnn\network\openvino\thirdparty\openvino\lib"
-set "OPENCV_ROOT_PATH=OPENCV_INSTALL_PATH"
+set ROOT_DIR=%~dp0
+set TNN_LIB_PATH=%ROOT_DIR%\..\..\scripts\msvc_release\lib\
+set TNN_BIN_PATH=%ROOT_DIR%\..\..\scripts\msvc_release\bin\
+set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\release
 
 cd ..\..\scripts
 call build_msvc.bat
 echo !cd!
 cd ..\examples\x86\
 
-rmdir /s /q build_windows
-mkdir build_windows
-cd build_windows
+rmdir /s /q build_msvc
+mkdir build_msvc
+cd build_msvc
 
-set VS_FLAG=
-set VS_VERSION=
-set VSWHERE=
+cmake -G Ninja .. ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_SYSTEM_NAME=Windows ^
+    -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
+    -DTNN_LIB_PATH=%TNN_LIB_PATH% ^
+    -DTNN_OPENVINO_LIB_PATH=%OPENVINO_LIB_PATH% ^
+    -DTNN_DEMO_WITH_WEBCAM=ON ^
+    -DOpenCV_DIR=%OpenCV_DIR%
 
-if not "%1" == "" (
-    if "%1"=="VS2015" (
-        set "VS_VERSION=2015"
-    ) else if "%1" == "VS2017" (
-        set "VS_VERSION=2017"
-    ) else if "%1" == "VS2019" (
-        set "VS_VERSION=2019"
-    )
-) else (
-    if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
-        set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-    ) else if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
-        set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
-    ) else (
-        echo "Visual Studio not found"
-        goto errorHandle
-    )
-    echo Searching Visual Studio !VS_VERSION!...
-    for /f "usebackq tokens=*" %%i in (`"!VSWHERE!" -products * -requires Microsoft.Component.MSBuild -property catalog_productLineVersion`) do (
-        set "VS_VERSION=%%i"
-    )
-)
-
-if "!VS_VERSION!"=="2019" (
-    set "VS_FLAG="Visual Studio 16 2019""
-) else if "!VS_VERSION!"=="2017" (
-    set "VS_FLAG="Visual Studio 15 2017""
-) else if "!VS_VERSION!"=="2015" (
-    set "VS_FLAG="Visual Studio 14 2015""
-) else (
-    echo "Visual Studio version too low, require VS2015 at least"
+if !errorlevel! == 1 (
+    echo Building TNN Examples Failed
     goto errorHandle
 )
 
-cmake -G !VS_FLAG! -A x64 .. ^
-    -DCMAKE_SYSTEM_NAME=Windows ^
-    -DTNN_LIB_PATH=!TNN_LIB_PATH! ^
-    -DTNN_DEMO_WITH_WEBCAM=ON ^
-    -DTNN_OPENVINO_LIB_PATH=!TNN_OPENVINO_LIB_PATH! ^
-    -DOpenCV_DIR=!OPENCV_ROOT_PATH!
-
 cmake --build . --config Release -j4
 
-echo "!TNN_LIB_PATH!"
-copy "!TNN_LIB_PATH!\TNN.dll" Release\ 
-copy "!TNN_LIB_PATH!\..\test\Release\MKLDNNPlugin.dll" Release\
-copy "!TNN_LIB_PATH!\..\test\Release\plugins.xml" Release\
+if !errorlevel! == 1 (
+    echo Building TNN Examples Failed
+    goto errorHandle
+)
 
-:success
-    echo Build Successfully!
-    goto :eof
+if not exist %EXAMPLE_INSTALL_PATH% (
+    mkdir %EXAMPLE_INSTALL_PATH%
+)
+
+for %%e in (.\*.exe) do copy "%%e" %EXAMPLE_INSTALL_PATH%
+for %%e in (%TNN_BIN_PATH%\*.dll) do copy "%%e" %EXAMPLE_INSTALL_PATH%
+for /R %OpenCV_DIR% %%e in (*.dll) do copy "%%e" %EXAMPLE_INSTALL_PATH%
+copy %TNN_BIN_PATH%\plugins.xml  %EXAMPLE_INSTALL_PATH%
+
+cd %ROOT_DIR%
+echo Build Successfully!
+goto :eof
 
 :errorHandle
+    cd %ROOT_DIR%
     echo Build Failed !
+

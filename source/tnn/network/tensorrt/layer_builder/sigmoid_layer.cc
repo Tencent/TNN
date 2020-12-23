@@ -12,20 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/activation_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Sigmoid, LAYER_SIGMOID);
+DECLARE_TRT_ACTIVATION_LAYER_BUILDER(Sigmoid);
 
-ILayer* SigmoidTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kSIGMOID);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-    }
-    return layer;
+SigmoidTRTLayerBuilder::SigmoidTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
+    m_type = nvinfer1::ActivationType::kSIGMOID;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Sigmoid, LAYER_SIGMOID);

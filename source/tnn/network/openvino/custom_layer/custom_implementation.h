@@ -17,6 +17,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <mutex>
 
 #include <ie_layouts.h>
 #include <ie_iextension.h>
@@ -211,6 +212,9 @@ public:
     }
 
     std::map<std::string, ngraph::OpSet> getOpSets() override {
+        static std::mutex g_mutex;
+        const std::lock_guard<std::mutex> lock(g_mutex);
+
         static std::map<std::string, ngraph::OpSet> opsets;
         if (opsets.empty()) {
             opsets["tnnCustom"] = getCustomOpSet();

@@ -259,6 +259,7 @@ if(TNN_METAL_ENABLE)
 endif()
 
 if(TNN_CUDA_ENABLE)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
     add_subdirectory(source/tnn/device/cuda)
     if(TNN_TENSORRT_ENABLE)
         add_subdirectory(source/tnn/network/tensorrt)

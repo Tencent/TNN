@@ -9,5 +9,9 @@ else ()
 endif()
 add_definitions(-mavx2 -mavx -mfma)
 
-include_directories(thirdparty/openvino/include)
-include_directories(thirdparty/ngraph/include)
+if(NOT DEFINED ENV{OPENVINO_ROOT_DIR})
+    message(FATAL_ERROR "not defined environment variable:OPENVINO_ROOT_DIR")
+endif()
+
+include_directories($ENV{OPENVINO_ROOT_DIR}/deployment_tools/inference_engine/include)
+include_directories($ENV{OPENVINO_ROOT_DIR}/deployment_tools/ngraph/include)

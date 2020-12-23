@@ -21,6 +21,7 @@
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/device/cuda/cuda_device.h"
 #include "tnn/device/cuda/cuda_macro.h"
+#include "tnn/device/cuda/utils.cuh"
 
 namespace TNN_NS {
 

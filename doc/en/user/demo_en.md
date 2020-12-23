@@ -154,10 +154,10 @@
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
    
-## III. Introduction to Linux/Windows/Armlinux/CudaLinux Demo
+## III. Introduction to Linux/Mac/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Windows/ArmLinux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux environment.
 
 ### Running Steps
 #### 1. Downloand demo models
@@ -193,7 +193,7 @@
 ##### MacOS
 * Environment Requirements  
    - Cmake (>=3.11)
-   - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
+   - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
 * Compile  
    Move to `examples/x86` directory and execute `build_macos.sh`:
    ```
@@ -219,28 +219,28 @@
 * Environment Requirements  
    - Visual Studio (>=2015)
    - Cmake (>=3.11; Or run scripts with Visual Studio Prompt)
-   - OpenCV3, compiled by the same version of VC, set the install path in examples\x86\build_msvc.bat (7th line OPENCV_ROOT_PATH) 
+   - OpenCV3, compiled by the same version of VC.
 * Comiple  
+   Open `x64 Native Tools Command Prompt for VS 2017/2019`.
    Move to `examples\x86` directory and execute `build_msvc.bat`:
    ```
+   set OpenCV_DIR=`OPENCV_INSTALL_DIR`
    cd <path_to_tnn>\examples\x86
-   .\build_msvc.bat [VS2017/VS2019]
+   .\build_msvc.bat 
    ```
-   If Visual Studio not found, please refer to Visual Studio Version manually
 * Execute  
-   Move to `examples\x86\build_windows\Release` directory and execute：
+   Move to `examples\x86\release` directory and execute：
    ```
-   cd build_windows\Release
+   cd release
 
    image-classification demo
-   .\demo_x86_imageclassify ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
+   .\demo_x86_imageclassify ..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   .\demo_x86_facedetector ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
-   ```
+   .\demo_x86_facedetector ..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
 
    webcam base face alignment demo
-   ./demo_x86_webcam
+   .\demo_x86_webcam
    ```
 
 ##### ArmLinux

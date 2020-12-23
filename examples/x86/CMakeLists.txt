@@ -33,13 +33,7 @@ if (${TNN_OPENVINO_ENABLE})
     link_directories(${TNN_OPENVINO_LIB_PATH})
 endif()
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    link_libraries(TNN)
-elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    link_libraries(-Wl,--whole-archive TNN MKLDNNPlugin -Wl,--no-whole-archive)
-else()
-    link_libraries(TNN MKLDNNPlugin)
-endif()
+link_libraries(TNN)
 
 file(GLOB_RECURSE BASE_SRC 
                     "${CMAKE_SOURCE_DIR}/../base/*.cc")

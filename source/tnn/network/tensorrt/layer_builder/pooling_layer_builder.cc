@@ -20,10 +20,8 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
 bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    int channels = inOut[0].dims.d[1];
-    bool is_pad_8 = (channels % 8 == 0);
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::PluginFormat::kNCHW) ||
-        (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::PluginFormat::kNHWC8 && is_pad_8));
+    return ((inOut[pos].type == nvinfer1::DataType::kHALF || inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
+        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
 const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
@@ -54,7 +52,6 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         type = PoolingType::kAVERAGE;
     }
 
-    ILayer* last_layer;
     IPoolingLayer* layer = network->addPooling(*input_tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
@@ -74,62 +71,14 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         }
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
-            last_layer = layer;
         }
     }
     if (int8 && std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetInt8Mode()) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        Weights output_quant_shift;
-        output_quant_shift.type = nvinfer1::DataType::kFLOAT;
-        output_quant_shift.values = nullptr;
-        output_quant_shift.count = 0;
-
-        Weights output_quant_scale;
-        output_quant_scale.type = nvinfer1::DataType::kFLOAT;
-        float* output_quant_scale_data = (float*)malloc(sizeof(float));
-        int8_weight_data.push_back(output_quant_scale_data);
-        *output_quant_scale_data = output_scale_value;
-        output_quant_scale.values = (void*)output_quant_scale_data;
-        output_quant_scale.count = 1;
-
-        Weights output_quant_power;
-        output_quant_power.type = nvinfer1::DataType::kFLOAT;
-        output_quant_power.values = nullptr;
-        output_quant_power.count = 0;
-
-        auto output_quant_layer = network->addScale(*(layer->getOutput(0)), ScaleMode::kUNIFORM,
-            output_quant_shift, output_quant_scale, output_quant_power);
-        std::string output_quant_layer_name = layer_name_ + "_output_quant_";
-        output_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
-        output_quant_layer->setName(output_quant_layer_name.c_str());
-
-        Weights output_dequant_shift;
-        output_dequant_shift.type = nvinfer1::DataType::kFLOAT;
-        output_dequant_shift.values = nullptr;
-        output_dequant_shift.count = 0;
-
-        Weights output_dequant_scale;
-        output_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-        float* output_dequant_scale_data = (float*)malloc(sizeof(float));
-        int8_weight_data.push_back(output_dequant_scale_data);
-        *output_dequant_scale_data = 1 / output_scale_value;
-        output_dequant_scale.values = (void*)output_dequant_scale_data;
-        output_dequant_scale.count = 1;
-
-        Weights output_dequant_power;
-        output_dequant_power.type = nvinfer1::DataType::kFLOAT;
-        output_dequant_power.values = nullptr;
-        output_dequant_power.count = 0;
-
-        auto output_dequant_layer = network->addScale(*(output_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
-            output_dequant_shift, output_dequant_scale, output_dequant_power);
-        std::string output_dequant_layer_name = layer_name_ + "_output_dequant_";
-        output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
-        output_dequant_layer->setName(output_dequant_layer_name.c_str());
-        last_layer = output_dequant_layer;
-        std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->SetQuantized();
+        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        return AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, output_scale_value, 1 / output_scale_value);
     }
-    return last_layer;
+    return layer;
 }
 
 const char* PoolingPluginCreator::getPluginName() const {

@@ -42,6 +42,8 @@ class OpenvinoTensor: public ForeignTensor {
 public:
     explicit OpenvinoTensor();
 
+    explicit OpenvinoTensor(std::shared_ptr<ngraph::Node> node);
+
     // @brief virtual destructor
     virtual ~OpenvinoTensor();
 
