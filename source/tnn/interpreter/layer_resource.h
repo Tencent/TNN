@@ -35,13 +35,13 @@ struct LayerResource {
 // @brief conv layer filter format
 typedef enum { OIHW = 0, IHWO = 1, OIDHW = 2 } ConvLayerFilterFormat;
 
-// @brief ConvLayerResource different device hold different handle
+// @brief ConvLayerResource different device holds different handle
 struct ConvLayerResource : public LayerResource {
     // conv layer filter format
     ConvLayerFilterFormat filter_format = OIHW;
 
     // conv layer handle
-    // NOTE: for deconv, the weight's default format is  [n][i][o][h][w]
+    // NOTE: for deconv, the weight's default format is [n][i][o][h][w]
     RawBuffer filter_handle;
 
     // bias handle
@@ -91,7 +91,7 @@ struct IntScaleResource : public LayerResource {
     RawBuffer bias_handle;
 };
 
-// @brief HdrGuideLayerResource different device hold different handle
+// @brief HdrGuideLayerResource different device holds different handle
 struct HdrGuideLayerResource : public LayerResource {
     // ccm weight
     RawBuffer ccm_weight_handle;
