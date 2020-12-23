@@ -27,10 +27,9 @@ RawBuffer::~RawBuffer() {
     buff_ = nullptr;
 }
 
-RawBuffer::RawBuffer() {
-    bytes_size_ = 0;
-    data_type_  = DATA_TYPE_FLOAT;
-}
+RawBuffer::RawBuffer() :
+  bytes_size_(0),
+  data_type_(DATA_TYPE_FLOAT) {}
 
 RawBuffer::RawBuffer(int bytes_size) {
     buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
@@ -54,8 +53,8 @@ template <typename T>
 void permute(void *in, void *out, size_t outter, size_t inner) {
     T *in_ptr  = static_cast<T *>(in);
     T *out_ptr = static_cast<T *>(out);
-    for (int i = 0; i < outter; i++) {
-        for (int j = 0; j < inner; j++) {
+    for (size_t i = 0; i < outter; i++) {
+        for (size_t j = 0; j < inner; j++) {
             out_ptr[j * outter + i] = in_ptr[i * inner + j];
         }
     }

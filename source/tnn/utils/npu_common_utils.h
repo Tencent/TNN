@@ -33,6 +33,8 @@ public:
 
     static bool FileExits(std::string model_path);
 
+    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
+
     static Status CalculateOutputShape(LayerType type, std::vector<Blob *> &input_blobs,
                                        std::vector<Blob *> &output_blobs, LayerParam *param, LayerResource *resource,
                                        std::vector<std::string> &outputs_name,

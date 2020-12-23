@@ -70,20 +70,33 @@ std::string MetalConvLayer1x1::KernelName(const std::vector<Blob *> &inputs, con
     return "convolution_1x1";
 }
 
+Status MetalConvLayer1x1::SetKernelEncoderParam(
+                                                 id<MTLComputeCommandEncoder> encoder,
+                                            const std::vector<Blob *> &inputs,
+                                            const std::vector<Blob *> &outputs) {
+    MetalLayerAcc::SetKernelEncoderParam(encoder, inputs, outputs);
+    [encoder setBuffer:buffer_weight_
+                offset:0
+               atIndex:3];
+    [encoder setBuffer:buffer_bias_
+                offset:0
+               atIndex:4];
+    return TNN_OK;
+}
+
 Status MetalConvLayer1x1::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     auto layer_param = dynamic_cast<ConvLayerParam *>(param_);
     
     auto dims_output  = outputs[0]->GetBlobDesc().dims;
-    auto slice_per_group = UP_DIV(dims_output[1], 4) / layer_param->group;
-    slice_per_group = slice_per_group > 0 ? slice_per_group : 1;
-    size = MTLSizeMake(dims_output[3]*dims_output[2], slice_per_group, dims_output[0]);
+    auto output_slice = UP_DIV(dims_output[1], 4);
+    size = MTLSizeMake(dims_output[3]*dims_output[2], output_slice, dims_output[0]);
     return TNN_OK;
 }
 
 Status MetalConvLayer1x1::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return MetalConvLayerCommon::Forward(inputs, outputs);
+    return MetalLayerAcc::Forward(inputs, outputs);
 }
 
 } // namespace TNN_NS

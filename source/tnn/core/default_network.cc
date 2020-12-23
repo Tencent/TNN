@@ -269,6 +269,7 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         return TNN_OK;
     }
     static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -361,7 +362,7 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
 }
 
 Status DefaultNetwork::DeInit() {
-    for (int i = 0; i < layers_.size(); i++) {
+    for (size_t i = 0; i < layers_.size(); i++) {
         if (layers_[i] != NULL) {
             delete layers_[i];
         }
