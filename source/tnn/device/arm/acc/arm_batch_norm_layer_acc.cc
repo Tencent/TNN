@@ -219,6 +219,8 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)
+#if TNN_ARM82
 REGISTER_ARM_PRECISION_FP16(LAYER_BATCH_NORM)
+#endif
 
 }  // namespace TNN_NS

@@ -142,7 +142,9 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(Pooling, LAYER_POOLING)
+#if TNN_ARM82
 REGISTER_ARM_PRECISION_FP16(LAYER_POOLING)
+#endif
 //REGISTER_ARM_PRECISION_FP16_TEST(LAYER_POOLING)
 
 }  // namespace TNN_NS
