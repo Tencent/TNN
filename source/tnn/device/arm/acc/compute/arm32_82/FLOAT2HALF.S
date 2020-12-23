@@ -25,6 +25,7 @@ asm_function Float2HalfKernel
 //void Half2FloatKernel(__fp16* dst, const float* src, const size_t length)
 //Auto Load:
 //r0:dst, r1:src, r2:length
+push {r4-r11, lr}
 vpush {q4-q7}
 
 cmp r2, #15
@@ -81,6 +82,6 @@ L1:
 L1END:
 
 vpop {q4-q7}
-
+pop {r4-r11, pc}
 #endif
 #endif
