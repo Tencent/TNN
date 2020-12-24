@@ -60,6 +60,12 @@
 #ifndef CPUFAMILY_ARM_FIRESTORM_ICESTORM
 #define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1B588BB3
 #endif
+#elif TARGET_OS_OSX
+#define __OSX__ 1
+// M1
+#ifndef CPUFAMILY_AARCH64_FIRESTORM_ICESTORM
+#define CPUFAMILY_AARCH64_FIRESTORM_ICESTORM 458787763
+#endif
 #endif  // TARGET_OS_IPHONE
 #endif  // __APPLE__
 
@@ -405,6 +411,19 @@ bool CpuUtils::CpuSupportFp16() {
     return fp16arith;
 #else
     LOGD("CpuUtils::CpuSupportFp16, linux and arm32, fp16arith = 0.\n");
+    return false;
+#endif
+
+#elif defined(__OSX__)
+#ifdef __aarch64__
+    unsigned int cpu_family = 0;
+    size_t len              = sizeof(cpu_family);
+    sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
+    fp16arith = cpu_family == CPUFAMILY_AARCH64_FIRESTORM_ICESTORM;
+    LOGD("CpuUtils::CpuSupportFp16, OSX and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
+    return fp16arith;
+#else
+    LOGD("CpuUtils::CpuSupportFp16, OSX and arm32, fp16arith = 0.\n");
     return false;
 #endif
 
