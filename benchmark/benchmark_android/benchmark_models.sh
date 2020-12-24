@@ -86,7 +86,7 @@ function build_android_bench() {
           -DTNN_ARM_ENABLE:BOOL=ON \
           -DTNN_OPENCL_ENABLE:BOOL=ON \
           -DTNN_HUAWEI_NPU_ENABLE:BOOL=${HUAWEI_NPU_ENABLE} \
-          -DTNN_OPENMP_ENABLE:BOOL=OFF \
+          -DTNN_OPENMP_ENABLE:BOOL=ON \
           -DTNN_TEST_ENABLE:BOOL=ON \
           -DTNN_BUILD_BENCHMARK_TEST_LIB_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
@@ -320,7 +320,7 @@ while [ "$1" != "" ]; do
     esac
 done
 
-if [ "$BENCHMARK_TYPE" == "APP" and $PROFILING == "OFF" ]; then
+if [[ "$BENCHMARK_TYPE" == "APP" && "$PROFILING" == "OFF" ]]; then
     bench_android_app
 else
     bench_android_shell
