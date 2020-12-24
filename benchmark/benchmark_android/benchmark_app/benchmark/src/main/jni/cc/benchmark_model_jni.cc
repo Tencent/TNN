@@ -19,6 +19,7 @@
 #include <fstream>
 
 #include "benchmark_model_jni.h"
+#include "test.h"
 
 #ifdef __ANDROID__
 #include <android/log.h>
