@@ -50,10 +50,28 @@ struct cpuinfo_arm_chipset {
     uint32_t model;
 };
 
-bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware);
+#define CPUINFO_ARM_MIDR_IMPLEMENTER_MASK UINT32_C(0xFF000000)
+#define CPUINFO_ARM_MIDR_VARIANT_MASK UINT32_C(0x00F00000)
+#define CPUINFO_ARM_MIDR_ARCHITECTURE_MASK UINT32_C(0x000F0000)
+#define CPUINFO_ARM_MIDR_PART_MASK UINT32_C(0x0000FFF0)
+#define CPUINFO_ARM_MIDR_REVISION_MASK UINT32_C(0x0000000F)
+
+#define CPUINFO_ARM_MIDR_IMPLEMENTER_OFFSET 24
+#define CPUINFO_ARM_MIDR_VARIANT_OFFSET 20
+#define CPUINFO_ARM_MIDR_ARCHITECTURE_OFFSET 16
+#define CPUINFO_ARM_MIDR_PART_OFFSET 4
+#define CPUINFO_ARM_MIDR_REVISION_OFFSET 0
+
+struct cpuinfo_arm_linux_processor {
+    /**
+     * Main ID Register value.
+     */
+    uint32_t midr = 0;
+};
+
+bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware, struct cpuinfo_arm_linux_processor *processor);
 void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties *properties);
 struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuinfo_android_properties *properties);
-bool cpuinfo_arm_android_match_exynos_9810();
 
 #endif  // __ANDROID__
 

@@ -26,10 +26,104 @@
 
 typedef bool (*cpuinfo_line_callback)(const char *, const char *, void *, uint64_t);
 
-/* Only contain hardware now. */
+/* Only contain hardware and midr now. */
 struct proc_cpuinfo_parser_state {
     char *hardware;
+    struct cpuinfo_arm_linux_processor *processor;
 };
+
+inline static uint32_t midr_set_part(uint32_t midr, uint32_t part) {
+    return (midr & ~CPUINFO_ARM_MIDR_PART_MASK) | ((part << CPUINFO_ARM_MIDR_PART_OFFSET) & CPUINFO_ARM_MIDR_PART_MASK);
+}
+
+inline static uint32_t midr_set_implementer(uint32_t midr, uint32_t implementer) {
+    return (midr & ~CPUINFO_ARM_MIDR_IMPLEMENTER_MASK) |
+           ((implementer << CPUINFO_ARM_MIDR_IMPLEMENTER_OFFSET) & CPUINFO_ARM_MIDR_IMPLEMENTER_MASK);
+}
+
+static void parse_cpu_part(const char *cpu_part_start, const char *cpu_part_end,
+                           struct cpuinfo_arm_linux_processor *processor) {
+    const size_t cpu_part_length = (size_t)(cpu_part_end - cpu_part_start);
+
+    /*
+     * CPU part should contain hex prefix (0x) and one to three hex digits.
+     * I have never seen less than three digits as a value of this field,
+     * but I don't think it is impossible to see such values in future.
+     * Value can not contain more than three hex digits since
+     * Main ID Register (MIDR) assigns only a 12-bit value for CPU part.
+     */
+    if (cpu_part_length < 3 || cpu_part_length > 5) {
+        return;
+    }
+
+    /* Verify the presence of hex prefix */
+    if (cpu_part_start[0] != '0' || cpu_part_start[1] != 'x') {
+        return;
+    }
+
+    /* Verify that characters after hex prefix are hexadecimal digits and decode them */
+    uint32_t cpu_part = 0;
+    for (const char *digit_ptr = cpu_part_start + 2; digit_ptr != cpu_part_end; digit_ptr++) {
+        const char digit_char = *digit_ptr;
+        uint32_t digit;
+        if (digit_char >= '0' && digit_char <= '9') {
+            digit = digit_char - '0';
+        } else if ((uint32_t)(digit_char - 'A') < 6) {
+            digit = 10 + (digit_char - 'A');
+        } else if ((uint32_t)(digit_char - 'a') < 6) {
+            digit = 10 + (digit_char - 'a');
+        } else {
+            return;
+        }
+        cpu_part = cpu_part * 16 + digit;
+    }
+
+    processor->midr = midr_set_part(processor->midr, cpu_part);
+}
+
+static void parse_cpu_implementer(const char *cpu_implementer_start, const char *cpu_implementer_end,
+                                  struct cpuinfo_arm_linux_processor *processor) {
+    const size_t cpu_implementer_length = cpu_implementer_end - cpu_implementer_start;
+
+    /*
+     * Value should contain hex prefix (0x) and one or two hex digits.
+     * I have never seen single hex digit as a value of this field,
+     * but I don't think it is impossible in future.
+     * Value can not contain more than two hex digits since
+     * Main ID Register (MIDR) assigns only an 8-bit value for CPU implementer.
+     */
+    switch (cpu_implementer_length) {
+        case 3:
+        case 4:
+            break;
+        default:
+            return;
+    }
+
+    /* Verify the presence of hex prefix */
+    if (cpu_implementer_start[0] != '0' || cpu_implementer_start[1] != 'x') {
+        return;
+    }
+
+    /* Verify that characters after hex prefix are hexadecimal digits and decode them */
+    uint32_t cpu_implementer = 0;
+    for (const char *digit_ptr = cpu_implementer_start + 2; digit_ptr != cpu_implementer_end; digit_ptr++) {
+        const char digit_char = *digit_ptr;
+        uint32_t digit;
+        if (digit_char >= '0' && digit_char <= '9') {
+            digit = digit_char - '0';
+        } else if ((uint32_t)(digit_char - 'A') < 6) {
+            digit = 10 + (digit_char - 'A');
+        } else if ((uint32_t)(digit_char - 'a') < 6) {
+            digit = 10 + (digit_char - 'a');
+        } else {
+            return;
+        }
+        cpu_implementer = cpu_implementer * 16 + digit;
+    }
+
+    processor->midr = midr_set_implementer(processor->midr, cpu_implementer);
+}
 
 /* Decode a single line of /proc/cpuinfo information. */
 /* Only decode Hardware now. */
@@ -87,7 +181,9 @@ static bool parse_line(const char *line_start, const char *line_end, struct proc
     const size_t key_length = key_end - line_start;
     switch (key_length) {
         case 8:
-            if (memcmp(line_start, "Hardware", key_length) == 0) {
+            if (memcmp(line_start, "CPU part", key_length) == 0) {
+                parse_cpu_part(value_start, value_end, state->processor);
+            } else if (memcmp(line_start, "Hardware", key_length) == 0) {
                 size_t value_length = value_end - value_start;
                 if (value_length > CPUINFO_HARDWARE_VALUE_MAX) {
                     value_length = CPUINFO_HARDWARE_VALUE_MAX;
@@ -97,6 +193,12 @@ static bool parse_line(const char *line_start, const char *line_end, struct proc
                 memcpy(state->hardware, value_start, value_length);
             }
             break;
+        case 15:
+            if (memcmp(line_start, "CPU implementer", key_length) == 0) {
+                parse_cpu_implementer(value_start, value_end, state->processor);
+            } else if (memcmp(line_start, "CPU implementor", key_length) == 0) {
+                parse_cpu_implementer(value_start, value_end, state->processor);
+            }
         default:
             break;
     }
@@ -180,10 +282,11 @@ bool cpuinfo_linux_parse_multiline_file(const char *filename, size_t buffer_size
 
 #undef CLEAN_UP
 
-/* Only get hardware now*/
-bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware) {
+/* Only get hardware and midr now*/
+bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware, struct cpuinfo_arm_linux_processor *processor) {
     struct proc_cpuinfo_parser_state state = {
-        .hardware = hardware,
+        .hardware  = hardware,
+        .processor = processor,
     };
     return cpuinfo_linux_parse_multiline_file("/proc/cpuinfo", BUFFER_SIZE, (cpuinfo_line_callback)parse_line, &state);
 }
@@ -547,17 +650,6 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuin
     }
 
     return chipset;
-}
-
-bool cpuinfo_arm_android_match_exynos_9810() {
-    cpuinfo_android_properties cpu_prop;
-    cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware);
-    cpuinfo_arm_android_parse_properties(&cpu_prop);
-    const struct cpuinfo_arm_chipset chipset = cpuinfo_arm_android_decode_chipset(&cpu_prop);
-    if (chipset.series == cpuinfo_arm_chipset_series_samsung_exynos && chipset.model == 9810) {
-        return true;
-    }
-    return false;
 }
 
 #endif  // __ANDROID__

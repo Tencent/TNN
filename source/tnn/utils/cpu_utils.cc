@@ -325,38 +325,92 @@ Status CpuUtils::SetCpuAffinity(const std::vector<int>& cpu_list) {
 }
 
 bool CpuUtils::CpuSupportFp16() {
-    // bool fp16arith = false;
-    bool fp16arith = true;
+    bool fp16arith = false;
 
-#if defined(__aarch64__) && TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+#if !TNN_ARM82
+    LOGD("CpuUtils::CpuSupportFp16, TNN_ARM82 is off, fp16arith = 0.\n");
+    return false;
+#else
 
-#if defined(__ANDROID__) || defined(__linux__)
-    unsigned int hwcap = getauxval(AT_HWCAP);
-    fp16arith          = hwcap & HWCAP_FPHP && hwcap & HWCAP_ASIMDHP;
-#endif  // __ANDROID__ || __linux__
+// TNN_ARM82_SIMU
+#if defined(TNN_ARM82_SIMU)
+    LOGD("CpuUtils::CpuSupportFp16, TNN_ARM82_SIMU is on, fp16arith = 1.\n");
+    return true;
 
-#ifdef __ANDROID__
-    if (cpuinfo_arm_android_match_exynos_9810()) {
-        /* Exynos 9810 reports that it supports FP16 compute, but in fact only little cores do */
-        return false;
-    }
-#endif
-
-#ifdef __IOS__
+// IOS
+#elif defined(__IOS__)
+#ifdef __aarch64__
     unsigned int cpu_family = 0;
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER;
-#endif  // __IOS__
-
-#elif TNN_ARM82 && defined(TNN_ARM82_SIMU)
-
-    fp16arith = true;
-
-#endif  // __aarch64__
-
+    LOGD("CpuUtils::CpuSupportFp16, IOS and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
+#else
+    LOGD("CpuUtils::CpuSupportFp16, IOS and arm32, fp16arith = 0.\n");
+    return false;
+#endif
+
+// ANDROID
+#elif defined(__ANDROID__)
+    cpuinfo_android_properties cpu_prop;
+    cpuinfo_arm_linux_processor processor;
+    cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware, &processor);
+    cpuinfo_arm_android_parse_properties(&cpu_prop);
+    auto chipset = cpuinfo_arm_android_decode_chipset(&cpu_prop);
+    LOGD("CpuUtils::CpuSupportFp16, ANDROID, vendor = %d, series = %d, model = %d.\n", chipset.vendor, chipset.series,
+         chipset.model);
+    if (chipset.series == cpuinfo_arm_chipset_series_samsung_exynos && chipset.model == 9810) {
+        LOGD("Big cores of Exynos 9810 do not support FP16 compute, fp16arith = 0.\n");
+        return false;
+    }
+#ifdef __aarch64__
+    unsigned int hwcap = getauxval(AT_HWCAP);
+    fp16arith          = hwcap & HWCAP_FPHP && hwcap & HWCAP_ASIMDHP;
+    LOGD("CpuUtils::CpuSupportFp16, ANDROID and arm64, hwcap = %x, fp16arith = %d.\n", hwcap, fp16arith);
+    return fp16arith;
+#else
+    switch (processor.midr & (CPUINFO_ARM_MIDR_IMPLEMENTER_MASK | CPUINFO_ARM_MIDR_PART_MASK)) {
+        case UINT32_C(0x4100D050): /* Cortex-A55 */
+        case UINT32_C(0x4100D060): /* Cortex-A65 */
+        case UINT32_C(0x4100D0B0): /* Cortex-A76 */
+        case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D0D0): /* Cortex-A77 */
+        case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
+        case UINT32_C(0x4800D400): /* Cortex-A76 (HiSilicon) */
+        case UINT32_C(0x51008020): /* Kryo 385 Gold (Cortex-A75) */
+        case UINT32_C(0x51008030): /* Kryo 385 Silver (Cortex-A55) */
+        case UINT32_C(0x51008040): /* Kryo 485 Gold (Cortex-A76) */
+        case UINT32_C(0x51008050): /* Kryo 485 Silver (Cortex-A55) */
+        case UINT32_C(0x53000030): /* Exynos M4 */
+        case UINT32_C(0x53000040): /* Exynos M5 */
+            fp16arith = true;
+            break;
+    }
+    LOGD("CpuUtils::CpuSupportFp16, ANDROID and arm32, midr = %x, fp16arith = %d.\n", processor.midr, fp16arith);
+    return fp16arith;
+#endif
+
+// linux
+#elif defined(__linux__)
+#ifdef __aarch64__
+    unsigned int hwcap = getauxval(AT_HWCAP);
+    fp16arith          = hwcap & HWCAP_FPHP && hwcap & HWCAP_ASIMDHP;
+    LOGD("CpuUtils::CpuSupportFp16, linux and arm64, hwcap = %x, fp16arith = %d.\n", hwcap, fp16arith);
+    return fp16arith;
+#else
+    LOGD("CpuUtils::CpuSupportFp16, linux and arm32, fp16arith = 0.\n");
+    return false;
+#endif
+
+// unknown
+#else
+    LOGE("CpuUtils::CpuSupportFp16, unknown platform, fp16arith = 0.\n");
+    return false;
+#endif
+
+#endif  // TNN_ARM82
 }
 
 }  // namespace TNN_NS
