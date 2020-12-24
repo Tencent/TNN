@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#if TNN_ARM82 && __aarch64__
+#if TNN_ARM82
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise_s1.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
@@ -92,8 +92,8 @@ Status ArmConvFp16LayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs,
     int pad_b          = conv_param->pads[3];
     int weight_z_step  = conv_param->kernels[0] * conv_param->kernels[1];
 
-    const __fp16 *src_origin = reinterpret_cast<const __fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *dst_origin       = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    const fp16_t *src_origin = reinterpret_cast<const fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *dst_origin       = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
     int max_num_threads      = OMP_MAX_THREADS_NUM_;
     int workspace_per_thread = conv_param->kernels[1] * (k_param_->iw + pad_l + pad_r) * 8 * data_byte_size;
 
@@ -107,7 +107,7 @@ Status ArmConvFp16LayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs,
         return Status(TNNERR_LAYER_ERR, "ERROR: ConvDw pad_t must small than kernel_h");
     }
 
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
 
     /*
     [ATTENTION]
@@ -122,10 +122,10 @@ Status ArmConvFp16LayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs,
         for (int dz = 0; dz < k_param_->oc_r8; dz += 8) {
             auto *dst_z                       = dst_ptr + dst_z_step * dz;
             auto *src_z                       = src_ptr + src_z_step * dz;
-            const auto *weight_dz             = reinterpret_cast<__fp16 *>(k_param_->fil_ptr) + dz * weight_z_step;
+            const auto *weight_dz             = reinterpret_cast<fp16_t *>(k_param_->fil_ptr) + dz * weight_z_step;
             int thread_id                     = OMP_TID_;
             auto thread_work_space            = work_space + thread_id * workspace_per_thread / data_byte_size;
-            __fp16 *cache_line[MAX_CACHE_LINE_NUM] = {nullptr};
+            fp16_t *cache_line[MAX_CACHE_LINE_NUM] = {nullptr};
             for (int i = 0; i < conv_param->kernels[1]; i++) {
                 cache_line[i] = thread_work_space + i * (k_param_->iw + pad_l + pad_r) * 8;
             }

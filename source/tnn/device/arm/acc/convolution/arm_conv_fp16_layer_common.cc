@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#if TNN_ARM82 && __aarch64__
+#if TNN_ARM82
 
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
 
@@ -23,7 +23,7 @@
 
 #define NEON_FP16CONV_TILE_HW (16)
 
-static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
+static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
 #ifdef __aarch64__
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
@@ -73,7 +73,7 @@ static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
 #endif
 }
 
-static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
+static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
 #ifdef __aarch64__
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
@@ -104,7 +104,7 @@ static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
 #endif
 }
 
-static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
+static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
 #ifdef __aarch64__
     asm volatile (
         "ld4 {v0.4h, v1.4h, v2.4h, v3.4h}, [%0], #32\n\t"
@@ -136,8 +136,8 @@ static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
 }
 
 static void load_repack_half_align(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     int dst_cnt, 
     int ic,
     int kernel_size) {
@@ -160,8 +160,8 @@ static void load_repack_half_align(
 }
 
 static void load_repack_half(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     int dst_cnt, 
     int ic,
     int kernel_size) {
@@ -248,8 +248,8 @@ ArmConvFp16LayerCommon::~ArmConvFp16LayerCommon() {}
 f1s1p0 img2col func
 */
 static void img2col_f1s1p0(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     const ConvLayerParam *param, 
     size_t x_start, 
     size_t dst_cnt, 
@@ -259,7 +259,7 @@ static void img2col_f1s1p0(
     for (int c = 0; c <= kparam->ic_r8 - 8; c += 8) {
         auto src_c = src_s + c * kparam->ih * kparam->iw;
         auto dst_c = dst + c * NEON_FP16CONV_TILE_HW;
-        memcpy(dst_c, src_c, dst_cnt * 8 * sizeof(__fp16));
+        memcpy(dst_c, src_c, dst_cnt * 8 * sizeof(fp16_t));
     }
 }
 
@@ -267,8 +267,8 @@ static void img2col_f1s1p0(
 general img2col func
 */
 static void img2col(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     const ConvLayerParam *param, 
     size_t x_start, 
     size_t dst_cnt, 
@@ -285,7 +285,7 @@ static void img2col(
         int efw;
         int sfh;
         int efh;
-        const __fp16 *src;
+        const fp16_t *src;
     };
 
     tile_info tiles_info[16];
@@ -339,7 +339,9 @@ static void img2col(
                     auto src_fw = src_fh + fw * param->dialations[0] * 8;
                     for (int i = 0; i < dst_cnt; i++) {
                         auto src_i = src_fw + i * 8 * param->strides[0];
+#if __aarch64__
                         vst1q_f16(dst_c + i * 8, vld1q_f16(src_i));
+#endif
                     }
                     dst_c += NEON_FP16CONV_TILE_HW * 8;
                 }
@@ -349,7 +351,7 @@ static void img2col(
     // img2col memcpy normal mode
     else {
         // memset padding 0
-        memset(dst, 0, kparam->ic_r8 * kh * kw * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
+        memset(dst, 0, kparam->ic_r8 * kh * kw * NEON_FP16CONV_TILE_HW * sizeof(fp16_t));
         for (int i = 0; i < dst_cnt; i++) {
             auto dst_i = dst + i * 8;
             for (int c = 0; c <= kparam->ic_r8 - 8; c += 8) {
@@ -361,7 +363,9 @@ static void img2col(
                     for (int fw = tiles_info[i].sfw; fw < tiles_info[i].efw; ++fw) {
                         auto src_fw = src_fh + fw * param->dialations[0] * 8;
                         auto dst_fw = dst_fh + fw * NEON_FP16CONV_TILE_HW * 8;
+#if __aarch64__
                         vst1q_f16(dst_fw, vld1q_f16(src_fw));
+#endif
                     }
                 }
             }
@@ -485,7 +489,7 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     }
 
     // set tile blk size, which be limit to 16KB
-    // 16 * 1024 / sizeof(__fp16)
+    // 16 * 1024 / sizeof(fp16_t)
     int tile_blk = 8192 / (k_param_->ic_r8 * kernel_x * kernel_y);
     tile_blk = ROUND_UP(tile_blk, NEON_FP16CONV_TILE_HW);
     if (tile_blk < NEON_FP16CONV_TILE_HW) {
@@ -553,8 +557,8 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     const int batch  = dims_output[0];
     auto ic          = dims_input[1];
 
-    __fp16 *input_data  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *output_data = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     const int crs = ic * conv_param->kernels[1] * conv_param->kernels[0];
     const int crs_r8 = k_param_->ic_r8 * conv_param->kernels[1] * conv_param->kernels[0];
@@ -564,8 +568,8 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     size_t img2col_size = tile_blk_size * crs_r8;
     size_t repack_size = NEON_FP16CONV_TILE_HW * crs_r8;
     size_t workspace_size_per_thread = img2col_size + repack_size + NEON_KERNEL_EXTRA_LOAD;
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(
-        context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(
+        context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(fp16_t)));
 
     long act_type = conv_param->activation_type;
     if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
@@ -604,14 +608,14 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             }
             if (real_hw_tile > i) {
                 int tile_eff = real_hw_tile - i;
-                memcpy(repack_tmp, repack_src + crs_r8 * i, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
+                memcpy(repack_tmp, repack_src + crs_r8 * i, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(fp16_t));
                 load_repack_half(repack_dst + crs * i, repack_tmp,
                                 tile_eff, ic, conv_param->kernels[1] * conv_param->kernels[0]);
             }
 
-            GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
+            GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<fp16_t *>(k_param_->fil_ptr),
                         crs, 8 * k_param_->ow * k_param_->oh, k_param_->oc_r8, real_hw_tile, 
-                        reinterpret_cast<__fp16 *>(k_param_->bias), act_type);
+                        reinterpret_cast<fp16_t *>(k_param_->bias), act_type);
         }
     }
 

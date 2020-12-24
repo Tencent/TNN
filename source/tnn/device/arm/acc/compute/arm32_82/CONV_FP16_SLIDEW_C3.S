@@ -76,14 +76,14 @@ L8Loop:
     vmov.i32 d14[0], width
     mov width, #8
     mul width, src_w_step, width
-    vmov.i32 q8,  #0
-    vmov.i32 q9,  #0
-    vmov.i32 q10, #0
-    vmov.i32 q11, #0
-    vmov.i32 q12, #0
-    vmov.i32 q13, #0
-    vmov.i32 q14, #0
-    vmov.i32 q15, #0
+    vmov.i16 q8,  #0
+    vmov.i16 q9,  #0
+    vmov.i16 q10, #0
+    vmov.i16 q11, #0
+    vmov.i16 q12, #0
+    vmov.i16 q13, #0
+    vmov.i16 q14, #0
+    vmov.i16 q15, #0
     mov r11, fh
     L8LoopFY:
         mov r12, fw
@@ -100,19 +100,19 @@ L8Loop:
 
             vld1.16 {q2}, [src], src_w_step
 
-            vmla.f16 q8, q6, d1[0]
+            vmla.f16 q8, q6, d0[2]
             vmla.f16 q9, q5, d2[1]
             vmla.f16 q10, q4, d4[0]
 
             vld1.16 {q3}, [src], src_w_step
 
-            vmla.f16 q9, q6, d3[0]
+            vmla.f16 q9, q6, d2[2]
             vmla.f16 q10, q5, d4[1]
             vmla.f16 q11, q5, d6[1]
             
             vld1.16 {q0}, [src], src_w_step
-            vmla.f16 q11, q6, d7[0]
-            vmla.f16 q10, q6, d5[0]
+            vmla.f16 q11, q6, d6[2]
+            vmla.f16 q10, q6, d4[2]
             vmla.f16 q11, q4, d6[0]
 
 
@@ -123,16 +123,16 @@ L8Loop:
             
             vld1.16 {q2}, [src], src_w_step
 
-            vmla.f16 q12, q6, d1[0]
+            vmla.f16 q12, q6, d0[2]
             vmla.f16 q13, q5, d2[1]
             vmla.f16 q14, q4, d4[0]
 
             vld1.16 {q3}, [src], src_w_step
-            vmla.f16 q13, q6, d3[0]
+            vmla.f16 q13, q6, d2[2]
             vmla.f16 q14, q5, d4[1]
             vmla.f16 q15, q5, d6[1]
-            vmla.f16 q15, q6, d7[0]
-            vmla.f16 q14, q6, d5[0]
+            vmla.f16 q15, q6, d6[2]
+            vmla.f16 q14, q6, d4[2]
             vmla.f16 q15, q4, d6[0]
 
             sub src, src, width
@@ -164,13 +164,13 @@ ble L1
 L4Loop:
     mov r5, src
     mov r6, weight
-    vmov.i32 d14[0], width
+    vmov.i16 d14[0], width
     mov width, #4
     mul width, src_w_step, width
-    vmov.i32 q8, #0
-    vmov.i32 q9, #0
-    vmov.i32 q10, #0
-    vmov.i32 q11, #0
+    vmov.i16 q8, #0
+    vmov.i16 q9, #0
+    vmov.i16 q10, #0
+    vmov.i16 q11, #0
     mov r11, fh
     L4LoopFY:
         mov r12, fw
@@ -186,17 +186,17 @@ L4Loop:
             vmla.f16 q9, q4, d2[0]
 
             vld1.16 {q2}, [src], src_w_step
-            vmla.f16 q8, q6, d1[0]
+            vmla.f16 q8, q6, d0[2]
             vmla.f16 q9, q5, d2[1]
             vmla.f16 q10, q4, d4[0]
 
             vld1.16 {q3}, [src], src_w_step
 
-            vmla.f16 q9, q6, d3[0]
+            vmla.f16 q9, q6, d2[2]
             vmla.f16 q10, q5, d4[1]
             vmla.f16 q11, q5, d6[1]
-            vmla.f16 q11, q6, d7[0]
-            vmla.f16 q10, q6, d5[0]
+            vmla.f16 q11, q6, d6[2]
+            vmla.f16 q10, q6, d4[2]
             vmla.f16 q11, q4, d6[0]
 
             sub src, src, width
@@ -224,8 +224,8 @@ ble End
 L1Loop:
     mov r5, src
     mov r6, weight
-    vmov.i32 q0, #0
-    vmov.i32 q1, #0
+    vmov.i16 q0, #0
+    vmov.i16 q1, #0
     mov r11, fh
     L1LoopFY:
         mov r12, fw
@@ -235,7 +235,7 @@ L1Loop:
             vmla.f16 q0, q4, d6[0]
             vmla.f16 q1, q5, d6[1]
             vld1.16 {q6}, [weight]!
-            vmla.f16 q0, q6, d7[0]
+            vmla.f16 q0, q6, d6[2]
             subs fw, fw, #1
             bne L1LoopFX
         subs fh, fh, #1
