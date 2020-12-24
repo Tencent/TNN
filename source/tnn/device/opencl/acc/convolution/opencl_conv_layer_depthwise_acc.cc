@@ -36,12 +36,6 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
-    if (!run_3d_ndrange_) {
-        if (MALI_T == gpu_info_.type || (MALI_G == gpu_info_.type && gpu_info_.model_num < 76)) {
-            use_buffer_ = true;
-        }
-    }
-
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 

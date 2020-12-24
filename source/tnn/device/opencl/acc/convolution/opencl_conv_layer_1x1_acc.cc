@@ -201,7 +201,7 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
     }
     if (!width_blocking_is_1_) {
-        // set value (output widht / 4)
+        // set value (output width / 4)
         execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_dims[3], 4));
     }
 
@@ -210,7 +210,7 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
     }
 
-    if (ocl_context_->GetEnableTuneKernel()) {
+    if (!run_local_work_ && ocl_context_->GetEnableTuneKernel()) {
         execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
 

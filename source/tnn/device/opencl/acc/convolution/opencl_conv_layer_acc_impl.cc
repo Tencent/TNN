@@ -249,11 +249,6 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS2D(std::vector<
 
     if (ADRENO == gpu_info_.type) {
         lws = AdrenoLocalSize2D(gws, gpu_info_, compute_units, max_workgroup_size, subgroup_size);
-    } else if (MALI == gpu_info_.type || MALI_T == gpu_info_.type || MALI_G == gpu_info_.type) {
-        if (gws.size() == 2 && gws[1] == 1) {
-            uint32_t max_workgroup_size = execute_units_[0].workgroupsize_max;
-            // lws = {8, max_workgroup_size / 8};
-        }
     }
 
     return lws;
