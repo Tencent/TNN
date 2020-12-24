@@ -22,7 +22,7 @@ namespace TNN_NS {
 class PermuteLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PermuteLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1, 2, 3)));
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1, 2, 3, 4, 5)));
 
 TEST_P(PermuteLayerTest, PermuteLayer) {
     // get param
@@ -46,6 +46,10 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
         param->orders = {0, 3, 1, 2};
     } else if (3 == order_type) {
         param->orders = {1, 2, 3, 0};
+    } else if (4 == order_type) {
+        param->orders = {0, 3, 2, 1};
+    } else if (5 == order_type) {
+        param->orders = {0, 2, 1, 3};
     }
 
     // generate interpreter

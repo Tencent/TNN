@@ -25,7 +25,7 @@ class ClipLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, ClipLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 8),
                              testing::Values(1, 4, 15),
                              // size Values(16, 19),
