@@ -31,7 +31,7 @@ __kernel void ShuffleChannel(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
     int4 output_channel_idx = (channel_block_idx << 2) + (int4)(0, 1, 2, 3);
     int4 input_channel_idx =
         output_channel_idx % group * group_size + output_channel_idx / group;
-    input_channel_idx            = min(input_channel_idx, channels - 1);
+    input_channel_idx            = min(input_channel_idx, (int4)(channels - 1));
     int4 input_channel_block_idx = input_channel_idx >> 2;
     int4 input_channel_sub_idx   = input_channel_idx % 4;
 

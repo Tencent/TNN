@@ -30,8 +30,10 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
                                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Deconv Common Acc\n");
 
-    op_name_     = "Deconv2D";
-    deconv_type_ = CT_DECONV_COMMON;
+    op_name_            = "Deconv2D";
+    deconv_type_        = CT_DECONV_COMMON;
+    auto output         = outputs[0];
+    auto output_dims    = output->GetBlobDesc().dims;
 
     Status ret = OpenCLDeconvLayerAccImpl::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
@@ -42,8 +44,17 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
         build_options.emplace("-DRELU");
     } else if (deconv_params_.activation_type == ActivationType_ReLU6) {
         build_options.emplace("-DRELU6");
+    } else if (deconv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options.emplace("-DSIGMOID_MUL");
     }
     std::string kernel_name = "Deconv2D";
+    if (deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
+               deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
+               deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
+               deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && output_dims[3] % 4 == 0) {
+        kernel_name = "Deconv2D4x4s2p1wb4";
+    }
+
     ret                     = CreateExecuteUnit(execute_units_[0], "deconvolution", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
@@ -60,11 +71,9 @@ void OpenCLDeconvLayerCommonAcc::SetExtraKernelParameters(uint32_t idx, const st
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int output_channel_blocks = UP_DIV(output_dims[1], 4);
     const int input_channel_blocks  = UP_DIV(input_dims[1], 4);
 
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(input_channel_blocks));
-    execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_channel_blocks));
 }
 
 }  // namespace TNN_NS

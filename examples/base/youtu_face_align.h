@@ -148,7 +148,7 @@ private:
     float net_scale;
     std::vector<float> mean;
     // current pts data
-    std::shared_ptr<tnn::Mat> pre_pts;
+    std::shared_ptr<TNN_NS::Mat> pre_pts;
     // warpAffine trans matrix
     std::vector<float> M;
 };

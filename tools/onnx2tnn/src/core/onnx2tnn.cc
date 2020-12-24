@@ -51,13 +51,14 @@ std::vector<int> GetNextIndexNode(std::vector<IndexNode>& index_nodes, int index
 int RemoveIndexNode(std::vector<IndexNode>& index_nodes, int index) {
     auto node                     = index_nodes[index].node;
     auto node_input               = node->input(0);
-    auto node_output              = node->output(0);
     std::vector<int> next_indexes = GetNextIndexNode(index_nodes, index);
     for (auto index : next_indexes) {
         auto next_node = index_nodes[index].node;
-        for (int ii = 0; ii < next_node->input_size(); ii++) {
-            if (node_output == next_node->input(ii)) {
-                next_node->set_input(ii, node_input);
+        for (int output_index = 0; output_index < node->output_size(); output_index++) {
+            for (int ii = 0; ii < next_node->input_size(); ii++) {
+                if (node->output(output_index) == next_node->input(ii)) {
+                    next_node->set_input(ii, node_input);
+                }
             }
         }
     }
@@ -555,6 +556,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseInstanceNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseSpaceToDepth(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);

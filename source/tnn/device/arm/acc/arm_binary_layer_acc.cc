@@ -21,20 +21,8 @@
 
 namespace TNN_NS {
 
-/*
-Binary func with different opreator,
-set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
-*/
-template <typename Tout, typename Tin1, typename Tin2>
-Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0,
-                                     DimsVector &dims1) {
-    DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
-    DimsVector dims_broadcast;
-    BroadcastType type = BroadcastTypeUnknown;
-    auto _input0       = input0_ptr;
-    auto _input1       = input1_ptr;
-    bool swap_flag     = false;
-
+static void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const DimsVector &dims1, BroadcastType &type,
+                          DimsVector &dims_broadcast, bool &swap_flag) {
     if (DimsVectorUtils::Equal(dims0, dims1)) {
         type = BroadcastTypeNormal;
         dims_broadcast.clear();
@@ -59,6 +47,23 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         dims_broadcast = dims0;
         swap_flag      = true;
     }
+}
+
+/*
+Binary func with different opreator,
+set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
+*/
+template <typename Tout, typename Tin1, typename Tin2>
+Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0,
+                                     DimsVector &dims1) {
+    DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
+    DimsVector dims_broadcast;
+    BroadcastType type = BroadcastTypeUnknown;
+    auto _input0       = input0_ptr;
+    auto _input1       = input1_ptr;
+    bool swap_flag     = false;
+
+    BroadCastInit(dims, dims0, dims1, type, dims_broadcast, swap_flag);
 
     if (swap_flag) {
         std::swap(_input0, _input1);
@@ -71,56 +76,106 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
     int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
     int count_quad = UP_DIV(count, 4);
 
-    if (type == BroadcastTypeSingle) {
-        // broadcast single
-        for (int n = 0; n < count_quad; n++) {
-            auto v1 = Float4::load(_input0 + n * 4);
-            auto v2 = Float4(_input1[0]);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
-        }
-    } else if (type == BroadcastTypeNormal) {
-        // no broadcast
+    if (type == BroadcastTypeNormal) {
         for (int n = 0; n < count_quad; n++) {
             auto v1 = Float4::load(_input0 + n * 4);
             auto v2 = Float4::load(_input1 + n * 4);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
+            Float4::save(output_ptr + n * 4, _Operator(v1, v2));
         }
-    } else if (type == BroadcastTypeChannel) {
-        // broadcast channel
-        for (int n = 0; n < count_quad; n++) {
-            int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
-            int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
-            auto v1             = Float4::load(_input0 + n * 4);
-            auto v2             = Float4::load(_input1 + channel_4_index * 4);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
-        }
-    } else if (type == BroadcastTypeElement) {
-        // broadcast chw
-        for (int n = 0; n < count_quad; n++) {
-            int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
-            auto v1             = Float4::load(_input0 + n * 4);
-            auto v2             = Float4::load(_input1 + channel_4_index * 4);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
-        }
-    } else if (type == BroadcastTypeHeightWidth) {
-        // broadcast hw
-        for (int n = 0; n < count_quad; n++) {
-            int hw_index = n % (dims[2] * dims[3]);
-            auto v1      = Float4::load(_input0 + n * 4);
-            auto v2      = Float4(_input1[hw_index * 4]);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
-        }
-    } else if (type == BroadcastTypeWidth) {
-        // broadcast w
-        for (int n = 0; n < count_quad; n++) {
-            int hw_index = n % (dims[3]);
-            auto v1      = Float4::load(_input0 + n * 4);
-            auto v2      = Float4(_input1[hw_index * 4]);
-            Float4::save(output_ptr + n * 4, _Operator(v1, v2, swap_flag));
+
+        return TNN_OK;
+    }
+
+    if (swap_flag) {
+        if (type == BroadcastTypeSingle) {
+            // broadcast single
+            for (int n = 0; n < count_quad; n++) {
+                auto v1 = Float4::load(_input0 + n * 4);
+                auto v2 = Float4(_input1[0]);
+                Float4::save(output_ptr + n * 4, _Operator(v2, v1));
+            }
+        } else if (type == BroadcastTypeChannel) {
+            // broadcast channel
+            for (int n = 0; n < count_quad; n++) {
+                int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
+                auto v1             = Float4::load(_input0 + n * 4);
+                auto v2             = Float4::load(_input1 + channel_4_index * 4);
+                Float4::save(output_ptr + n * 4, _Operator(v2, v1));
+            }
+        } else if (type == BroadcastTypeElement) {
+            // broadcast chw
+            for (int n = 0; n < count_quad; n++) {
+                int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                auto v1             = Float4::load(_input0 + n * 4);
+                auto v2             = Float4::load(_input1 + channel_4_index * 4);
+                Float4::save(output_ptr + n * 4, _Operator(v2, v1));
+            }
+        } else if (type == BroadcastTypeHeightWidth) {
+            // broadcast hw
+            for (int n = 0; n < count_quad; n++) {
+                int hw_index = n % (dims[2] * dims[3]);
+                auto v1      = Float4::load(_input0 + n * 4);
+                auto v2      = Float4(_input1[hw_index * 4]);
+                Float4::save(output_ptr + n * 4, _Operator(v2, v1));
+            }
+        } else if (type == BroadcastTypeWidth) {
+            // broadcast w
+            for (int n = 0; n < count_quad; n++) {
+                int hw_index = n % (dims[3]);
+                auto v1      = Float4::load(_input0 + n * 4);
+                auto v2      = Float4(_input1[hw_index * 4]);
+                Float4::save(output_ptr + n * 4, _Operator(v2, v1));
+            }
+        } else {
+            LOGE("Error: invalid add type\n");
+            return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unsupported broadcast type");
         }
     } else {
-        LOGE("Error: invalid add type\n");
-        return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unsupported broadcast type");
+        if (type == BroadcastTypeSingle) {
+            // broadcast single
+            for (int n = 0; n < count_quad; n++) {
+                auto v1 = Float4::load(_input0 + n * 4);
+                auto v2 = Float4(_input1[0]);
+                Float4::save(output_ptr + n * 4, _Operator(v1, v2));
+            }
+        } else if (type == BroadcastTypeChannel) {
+            // broadcast channel
+            for (int n = 0; n < count_quad; n++) {
+                int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
+                auto v1             = Float4::load(_input0 + n * 4);
+                auto v2             = Float4::load(_input1 + channel_4_index * 4);
+                Float4::save(output_ptr + n * 4, _Operator(v1, v2));
+            }
+        } else if (type == BroadcastTypeElement) {
+            // broadcast chw
+            for (int n = 0; n < count_quad; n++) {
+                int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                auto v1             = Float4::load(_input0 + n * 4);
+                auto v2             = Float4::load(_input1 + channel_4_index * 4);
+                Float4::save(output_ptr + n * 4, _Operator(v1, v2));
+            }
+        } else if (type == BroadcastTypeHeightWidth) {
+            // broadcast hw
+            for (int n = 0; n < count_quad; n++) {
+                int hw_index = n % (dims[2] * dims[3]);
+                auto v1      = Float4::load(_input0 + n * 4);
+                auto v2      = Float4(_input1[hw_index * 4]);
+                Float4::save(output_ptr + n * 4, _Operator(v1, v2));
+            }
+        } else if (type == BroadcastTypeWidth) {
+            // broadcast w
+            for (int n = 0; n < count_quad; n++) {
+                int hw_index = n % (dims[3]);
+                auto v1      = Float4::load(_input0 + n * 4);
+                auto v2      = Float4(_input1[hw_index * 4]);
+                Float4::save(output_ptr + n * 4, _Operator(v1, v2));
+            }
+        } else {
+            LOGE("Error: invalid add type\n");
+            return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unsupported broadcast type");
+        }
     }
 
     return TNN_OK;

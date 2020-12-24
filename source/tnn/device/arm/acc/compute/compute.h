@@ -23,51 +23,68 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 struct ArmKernelParam {
     long ic_r4;
+    long ic_r8;
     long ih;
     long iw;
     long oc_r4;
+    long oc_r8;
     long oh;
     long ow;
     void* fil_ptr;
     float* scale;
     void* bias;
+    void set_dims(long ic_r4_, long ic_r8_, long ih_, long iw_,
+                  long oc_r4_, long oc_r8_, long oh_, long ow_) {
+                       this->ic_r4 = ic_r4_;
+                       this->ic_r8 = ic_r8_;
+                       this->ih    = ih_;
+                       this->iw    = iw_;
+                       this->oc_r4 = oc_r4_;
+                       this->oc_r8 = oc_r8_;
+                       this->oh    = oh_;
+                       this->ow    = ow_;
+                   }
 };
 
-typedef void (*PostFunc)(void* dst, const float* bias, long area, long oc4);
+typedef void (*PostFunc)(void* dst, const void* bias, long area, long oc4);
 typedef void (*ConvDwSliceFunc)(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 
-template <typename T>
-void PostAddBias(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBias(void* dst, const void* bias, long area, long oc4);
 
-template <typename T>
-void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBiasRelu(void* dst, const void* bias, long area, long oc4);
 
-template <typename T>
-void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4);
+template <typename T1, typename T2 = float>
+void PostAddBiasRelu6(void* dst, const void* bias, long area, long oc4);
+
+template <typename T1, typename T2 = float, bool Fast>
+void PostAddBiasSwish(void* dst, const void* bias, long area, long oc4);
 
 template <typename T>
 void PostClap(void* dst, long size4, float val);
 
-template <typename T>
-void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, long weight_y_step, long dilateX_step,
+template <typename T1, typename T2 = float>
+void DepthwiseUnit(T1* dst, const T1* src, const T2* weight, long fw, long fh, long weight_y_step, long dilateX_step,
                    long dilateY_step);
-template <typename T>
-void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2 = float>
+void DepthwiseConv(T1* dst, const T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                    long dilateX_step, long dilateY_step, long height, long srcHStep, long dstHStep);
 template <typename T>
 void DepthwiseConv3x3(T* dst, const T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
                       long dilateX_step, long dilateY_step, long height, long srcHStep, long dstHStep);
 
-template <typename T>
-void DepthwiseUnitDeconv(const T* dst, T* src, const float* weight, long fw, long fh, long weight_y_step,
+template <typename T1, typename T2 = float>
+void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilateX_step, long dilateY_step);
 
-template <typename T>
-void DepthwiseDeconv(const T* dst, T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2 = float>
+void DepthwiseDeconv(const T1* dst, T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                      long dilateX_step, long dilateY_step);
 
 template <typename T>
@@ -80,12 +97,25 @@ void AvgPooling(const T* src, long inputWidth, long inputHeight, T* dst, long ou
                 long kernelWidth, long kernelHeight, long strideWidth, long strideHeight, long padWidth,
                 long padHeight);
 
+void MaxPoolingHalf(const fp16_t* src, long inputWidth, long inputHeight, fp16_t* dst, long outputWidth,
+                    long outputHeight, long kernelWidth, long kernelHeight, long strideWidth, long strideHeight,
+                    long padWidth, long padHeight);
+
+void AvgPoolingHalf(const fp16_t* src, long inputWidth, long inputHeight, fp16_t* dst, long outputWidth,
+                    long outputHeight, long kernelWidth, long kernelHeight, long strideWidth, long strideHeight,
+                    long padWidth, long padHeight);
+
 template <typename T>
 void ConvCommonO4(T* dst, const T* src, const float* weight, long width, long src_w_step, long src_depth_quad,
                   long src_depth_step, long fw, long fh, long dilate_x_step, long dilate_y_step);
 
 template <typename Tin, typename Tout>
 void FloatConvert(const Tin* src, Tout* dst, long area_quad);
+
+void Half2Float(float* dst, const fp16_t* src, const size_t length);
+void Float2Half(fp16_t* dst, const float* src, const size_t length);
+void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);
+void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw);
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,19 +136,33 @@ void GemmBfp16SlidewC3(bfp16_t* dst, const bfp16_t* src, const float* weight, lo
                        long fh, long dilateX_step, long dilateY_step);
 
 void GEMM_FLOAT_N8(float* dst, const float* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu);
+                   long dst_depth_quad, long width, float* bias, long relu);
 void GEMM_BFP16_N8(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu);
+                   long dst_depth_quad, long width, float* bias, long relu);
 
 void GEMM_FLOAT_N4(float* dst, const float* src, const float* weight, long src_depth_quad, long dst_step,
                    long dst_depth_quad, long width, float* bias, long relu);
 void GEMM_BFP16_N4(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu);
+                   long dst_depth_quad, long width, float* bias, long relu);
 
 void ConvDw3x3FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw3x3Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
+
+#if TNN_ARM82
+void Half2FloatKernel(float* dst, const __fp16* src, const size_t length);
+void Float2HalfKernel(__fp16* dst, const float* src, const size_t length);
+void GEMM_FP16_N8(__fp16* dst, const __fp16* src, const __fp16* weight, long src_depth,
+                           long dst_step, long dst_depth, long width, __fp16 *bias, long relu);
+void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
+void GemmFp16SlidewC3(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long src_w_setup, long fw,
+                       long fh, long dilateX_step, long dilateY_step);
+void DeconvFp16O8(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+                   long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
+void DeconvFp16O8C1(__fp16* dst, const __fp16* src, const __fp16* weight, long width, long dst_w_step, long src_depth_quad,
+                   long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
+#endif
 
 #ifdef __cplusplus
 }

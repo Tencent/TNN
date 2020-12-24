@@ -21,7 +21,6 @@
 #include <string>
 #include <typeinfo>
 #include "tnn/core/common.h"
-#include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
@@ -39,6 +38,7 @@ public:
 
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
+
 
     DataType GetDataType();
     int GetBytesSize();
@@ -60,6 +60,7 @@ private:
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
+std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
 
 }  // namespace TNN_NS
 

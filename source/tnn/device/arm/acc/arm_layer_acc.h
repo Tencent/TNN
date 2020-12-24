@@ -90,6 +90,26 @@ private:
     ArmTypeLayerAccRegister<TypeLayerAccCreator<Arm##type_string##LayerAcc>> g_arm_##layer_type##_acc_register(        \
         layer_type);
 
+class ArmTypeLayerFp16PrecisionCreator {
+public:
+    static std::shared_ptr<ImplementedPrecision> UpdateImplementedPrecision(LayerType layer_type) {
+        // make sure arm device has been registered
+        TypeDeviceRegister<ArmDevice> arm_device_register(DEVICE_ARM);
+        auto implemented_precision = GetDevice(DEVICE_ARM)->GetImplementedPrecision(layer_type);
+        auto updated_precision     = std::make_shared<ImplementedPrecision>(*implemented_precision);
+        updated_precision->fp16_implemented = true;
+        return updated_precision;
+    };
+};
+
+#if TNN_ARM82
+#define REGISTER_ARM_PRECISION_FP16(layer_type)                                                                        \
+    ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(layer_type,                             \
+        ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
+#else
+#define REGISTER_ARM_PRECISION_FP16(layer_type)
+#endif  // TNN_ARM82
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_LAYER_ACC_H_

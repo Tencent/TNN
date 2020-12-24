@@ -14,9 +14,9 @@
 
 #ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
 #define TNN_SOURCE_TNN_DEVICE_RK_NPU_CONVERT_MATH_RKNPU_BINARY_LAYER__H_
-#include <tnn/device/rknpu/convert/rknpu_base_layer.h>
-#include <tnn/device/rknpu/convert/rknpu_utils.h>
-#include <tnn/layer/base_layer.h>
+#include "tnn/device/rknpu/convert/rknpu_base_layer.h"
+#include "tnn/device/rknpu/convert/rknpu_utils.h"
+#include "tnn/layer/base_layer.h"
 
 #include <map>
 #include <memory>
@@ -30,6 +30,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -62,7 +63,7 @@ protected:
             for (auto dim : input_ops_[0]->GetDims()) {
                 input_shape.push_back((int)dim);
             }
-            Status calculate_ret = RknpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
+            Status calculate_ret = NpuCommonUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
             if (calculate_ret != TNN_OK) {
                 return calculate_ret;
             }

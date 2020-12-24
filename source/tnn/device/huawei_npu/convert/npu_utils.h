@@ -38,26 +38,19 @@ public:
 
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
-                                  ge::TensorDesc input_desc, int shape) {
+                                  ge::TensorDesc input_desc, int length) {
         ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
-        input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * shape);
+        //since 1-d array total size = sizeof(datatype) * length
+        input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * length);
         attr_value->set_attr_value(input_size_tensor);
         return TNN_OK;
     }
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
-    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
-                                         std::vector<int> &input_shape);
-    static std::string GetFileHash(ModelConfig &model_config);
-
-    static bool FileExits(std::string model_path);
-
     static Status GetPadMode(int &pad_mode, int pad_type);
 
     static int checkNpuVersion(const char *version);
-
-    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
 
     static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                              std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);

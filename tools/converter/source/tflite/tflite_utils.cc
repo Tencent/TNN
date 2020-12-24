@@ -57,7 +57,7 @@ bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW
 }
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
-    if (shape.empty()){
+    if (shape.empty()) {
         LOGE("TNN Converter do not support wrong shape!\n");
         return false;
     }
@@ -73,6 +73,36 @@ bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
         shape[2] = h;
         shape[3] = w;
     }
+    return true;
+}
+
+bool ConvertPermFormatTFLite(std::vector<int32_t>& perm) {
+    if (perm.empty()) {
+        LOGE("TNN Converter do not support wrong perm!\n");
+        return false;
+    }
+
+    int perm_size = perm.size();
+    if (perm_size > 4) {
+        LOGE("TNN Transpose do not support perm's size larger than 4!\n");
+        return false;
+    }
+
+    for (int i = perm_size; i < 4; i++) {
+        perm.emplace_back(i);
+    }
+
+    std::map<int, int> nhwc_to_nchw;
+    nhwc_to_nchw[0] = 0;
+    nhwc_to_nchw[1] = 2;
+    nhwc_to_nchw[2] = 3;
+    nhwc_to_nchw[3] = 1;
+
+    for (auto& v: perm) {
+        v = nhwc_to_nchw[v];
+    }
+    ConvertShapeFormatTFLite(perm);
+
     return true;
 }
 
@@ -138,16 +168,24 @@ void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
     ASSERT(mask <= 15 && mask >= 0);
     if (upper == 0) {
         // 处理的是 begin，取的是 0
-        if (mask & 0x1) v[0] = 0;
-        if (mask & 0x2) v[1] = 0;
-        if (mask & 0x4) v[2] = 0;
-        if (mask & 0x8) v[3] = 0;
+        if (mask & 0x1)
+            v[0] = 0;
+        if (mask & 0x2)
+            v[1] = 0;
+        if (mask & 0x4)
+            v[2] = 0;
+        if (mask & 0x8)
+            v[3] = 0;
     } else {
         // 处理的是 ends， 取最大值
-        if (mask & 0x1) v[0] = shape[0];
-        if (mask & 0x2) v[1] = shape[1];
-        if (mask & 0x4) v[2] = shape[2];
-        if (mask & 0x8) v[3] = shape[3];
+        if (mask & 0x1)
+            v[0] = shape[0];
+        if (mask & 0x2)
+            v[1] = shape[1];
+        if (mask & 0x4)
+            v[2] = shape[2];
+        if (mask & 0x8)
+            v[3] = shape[3];
     }
 }
 }  // namespace TNN_CONVERTER

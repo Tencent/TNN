@@ -44,7 +44,12 @@ ArmDevice::~ArmDevice() {}
 BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int count      = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * desc.dims[2] * desc.dims[3];
+    int count      = 0;
+    if (desc.data_type == DATA_TYPE_HALF) {
+        count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * desc.dims[2] * desc.dims[3];
+    } else {
+        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * desc.dims[2] * desc.dims[3];
+    }
     info.dims.push_back(count);
     return info;
 }
@@ -108,6 +113,14 @@ AbstractLayerAcc *ArmDevice::CreateLayerAcc(LayerType type) {
     return NULL;
 }
 
+std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(LayerType type) {
+    auto &layer_precision_map = GetLayerPrecisionMap();
+    if (layer_precision_map.count(type) > 0) {
+        return layer_precision_map[type];
+    }
+    return std::make_shared<ImplementedPrecision>();
+}
+
 Context *ArmDevice::CreateContext(int device_id) {
     return new ArmContext();
 }
@@ -121,6 +134,16 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>> &ArmDevice::GetLayerCreato
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
+
+Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<ImplementedPrecision> precision) {
+    GetLayerPrecisionMap()[type] = precision;
+    return TNN_OK;
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
+    return layer_precision_map;
+};
 
 TypeDeviceRegister<ArmDevice> g_arm_device_register(DEVICE_ARM);
 

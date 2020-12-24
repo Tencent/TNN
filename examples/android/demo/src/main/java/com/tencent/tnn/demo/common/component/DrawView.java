@@ -8,16 +8,19 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.graphics.Bitmap;
 
 import com.tencent.tnn.demo.BlazeFaceDetector;
 import com.tencent.tnn.demo.FaceDetector;
 import com.tencent.tnn.demo.FaceInfo;
+import com.tencent.tnn.demo.ImageInfo;
 import com.tencent.tnn.demo.ObjectDetector;
 import com.tencent.tnn.demo.ObjectDetectorSSD;
 import com.tencent.tnn.demo.ObjectInfo;
 
 
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
 
 
 public class DrawView extends SurfaceView
@@ -28,6 +31,7 @@ public class DrawView extends SurfaceView
     private ArrayList<String> labels = new ArrayList<String>();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
     private ArrayList<float[]> points_list = new ArrayList<float[]>();
+    private ArrayList<ImageInfo> image_info_list = new ArrayList<ImageInfo>();
 
     public DrawView(Context context, AttributeSet attrs)
     {
@@ -40,24 +44,21 @@ public class DrawView extends SurfaceView
         setWillNotDraw(false);
     }
 
-    public void addFaceRect(FaceInfo[] facestatus, int w, int h)
+    public void addFaceRect(FaceInfo[] facestatus)
     {
         rects.clear();
         points_list.clear();
-        Log.d(TAG, "canvas " + getWidth() + "x" + getHeight() + " wh " + w + "x" +h);
-        float scalew = getWidth() / (float)w;
-        float scaleh = getHeight() / (float)h;
         if (facestatus != null && facestatus.length!=0)
         {
             for (int i=0; i<facestatus.length; i++)
             {
-                rects.add(new Rect((int)(facestatus[i].x1 * scalew), (int)(facestatus[i].y1 * scaleh), (int)(facestatus[i].x2 * scalew), (int)(facestatus[i].y2 * scaleh)));
+                rects.add(new Rect((int)facestatus[i].x1, (int)facestatus[i].y1, (int)facestatus[i].x2, (int)facestatus[i].y2));
                 float[][] keypoints = facestatus[i].keypoints;
                 if(keypoints != null) {
                     float[] points = new float[facestatus[i].keypoints.length * 2];
                     for(int j = 0; j < keypoints.length; ++j) {
-                        points[j * 2] = facestatus[i].keypoints[j][0] * scalew;
-                        points[j * 2 + 1] = facestatus[i].keypoints[j][1] * scaleh;
+                        points[j * 2] = facestatus[i].keypoints[j][0];
+                        points[j * 2 + 1] = facestatus[i].keypoints[j][1];
                     }
                     points_list.add(points);
                 }
@@ -67,21 +68,26 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list, int w, int h)
+    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list)
     {
         rects.clear();
         labels.clear();
-        Log.d(TAG, "canvas " + getWidth() + "x" + getHeight() + " wh " + w + "x" +h);
-        float scalew = getWidth() / (float)w;
-        float scaleh = getHeight() / (float)h;
         if (objectstatus != null && objectstatus.length!=0)
         {
             for (int i=0; i<objectstatus.length; i++)
             {
-                rects.add(new Rect((int)(objectstatus[i].x1 * scalew), (int)(objectstatus[i].y1 * scaleh), (int)(objectstatus[i].x2 * scalew), (int)(objectstatus[i].y2 * scaleh)));
+                rects.add(new Rect((int)objectstatus[i].x1, (int)objectstatus[i].y1, (int)objectstatus[i].x2, (int)objectstatus[i].y2));
                 labels.add(String.format("%s : %f", label_list[objectstatus[i].class_id], objectstatus[i].score));
             }
         }
+
+        postInvalidate();
+    }
+
+    public void addImageInfo(ImageInfo imageInfo)
+    {
+        image_info_list.clear();
+        image_info_list.add(imageInfo);
 
         postInvalidate();
     }
@@ -106,6 +112,22 @@ public class DrawView extends SurfaceView
             for(int i = 0; i < points_list.size(); ++i) {
                 float[] points = points_list.get(i);
                 canvas.drawPoints(points, key_paint);
+            }
+        }
+
+        if (image_info_list.size() > 0) {
+            for (int i = 0; i < image_info_list.size(); i++) {
+                ImageInfo imageInfo = image_info_list.get(i);
+                if (imageInfo.image_channel != 4) {
+                    Log.e(TAG, "canvas get invalid image info, image_channel: " + imageInfo.image_channel);
+                } else {
+                    Bitmap bitmap = Bitmap.createBitmap(imageInfo.image_width, imageInfo.image_height, Bitmap.Config.ARGB_8888);
+                    ByteBuffer buffer = ByteBuffer.wrap(imageInfo.data);
+                    bitmap.copyPixelsFromBuffer(buffer);
+                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() -1);
+                    canvas.drawBitmap(bitmap, null, rect, null);
+                    bitmap.recycle();
+                }
             }
         }
     }

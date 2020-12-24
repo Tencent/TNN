@@ -216,7 +216,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     DimsVector imageshape{(int)(UP_DIV(output_desc.dims[1], 4)), output_desc.dims[0]};
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl_int err            = CL_SUCCESS;
     reshape_output_image_ = std::make_shared<cl::Image2D>(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
@@ -279,7 +279,7 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
     // create ocl_weights_
     DimsVector weight_imageshape{(int)(UP_DIV(weight_w, 4)), weight_h};
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),

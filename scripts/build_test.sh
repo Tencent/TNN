@@ -22,7 +22,6 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_CPU_ENABLE=OFF \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
-    -DCMAKE_BUILD_TYPE=Debug \
     -DTNN_ARM_ENABLE:BOOL=$ARM \
     -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
     -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
@@ -34,5 +33,11 @@ cmake ${TNN_ROOT_PATH} \
 
 
 make -j4
+
+# check compile error, or ci will not stop
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
 
 ctest --output-on-failure -j 2

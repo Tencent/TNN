@@ -20,12 +20,19 @@
 namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
-    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
-
+    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     tensor_ptr->SetTensorDesc(desc);
-    tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
-
+    if (raw_buffer.GetDataType() != DATA_TYPE_FLOAT) {
+        // if filter handle is half, need convert to float first.
+        std::shared_ptr<float> float_data_ptr = GetFloatFromRawBuffer(raw_buffer);
+        if (float_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+        tensor_ptr->SetData((uint8_t *)float_data_ptr.get(), raw_buffer.GetDataCount() * sizeof(float));
+    } else {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    }
     attr_value->set_attr_value(tensor_ptr);
     return TNN_OK;
 }
@@ -55,45 +62,6 @@ Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::s
     file.write(static_cast<char *>(model_buffer_data.data), model_buffer_data.length);
     file.close();
     return TNN_OK;
-}
-
-Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res, vector<int> &input) {
-    int input_count = DimsVectorUtils::Count(input, 1);
-    if (weight.size() < 4) {
-        weight             = {1, 1, 1, 1};
-        int layer_res_size = layer_res->element_handle.GetDataCount();
-        if (layer_res_size == 1) {
-            // single element
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input[1]) {
-            // channel broadcast
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input_count) {
-            // element broadcast
-            weight[1] = input[1];
-            weight[2] = input[2];
-            weight[3] = input[3];
-        } else if (layer_res_size == input[3]) {
-            weight[3] = input[3];
-        } else {
-            return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
-        }
-        layer_res->element_shape = weight;
-    }
-    return TNN_OK;
-}
-
-std::string NpuUtils::GetFileHash(ModelConfig &model_config) {
-    std::string file_content = model_config.params[1] + model_config.params[0];
-    int hash                 = 0;
-    for (size_t i = 0; i < file_content.length(); ++i)
-        hash = 65599 * hash + file_content.at(i);
-    return std::to_string(hash ^ (hash >> 16));
-}
-
-bool NpuUtils::FileExits(std::string model_path) {
-    std::ifstream infile(model_path);
-    return infile.good();
 }
 
 Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
@@ -129,25 +97,6 @@ int NpuUtils::checkNpuVersion(const char *version) {
         count++;
     }
     return 0;
-}
-
-std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
-            }
-            model_suffix_stream << "]";
-        }
-    }
-    return model_suffix_stream.str();
 }
 
 void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,

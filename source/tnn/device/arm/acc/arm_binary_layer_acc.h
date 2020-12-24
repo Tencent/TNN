@@ -41,7 +41,7 @@ protected:
 
     virtual bool DataTypeSupported(DataType data_type) override;
     
-    std::function<Float4(const Float4 &v1, const Float4 &v2, bool swap_flag)> _Operator = nullptr;
+    std::function<Float4(const Float4 &v1, const Float4 &v2)> _Operator = nullptr;
 
 private:
     RawBuffer broadcast_;

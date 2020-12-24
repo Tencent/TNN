@@ -14,6 +14,7 @@
 
 #include "npu_network.h"
 
+#include <sys/time.h>
 #include <tnn/device/huawei_npu/convert/npu_base_layer_convert.h>
 #include <tnn/interpreter/layer_resource_generator.h>
 
@@ -25,6 +26,7 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/data_format_converter.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -41,9 +43,13 @@ NpuNetwork::~NpuNetwork() {
     DeInit();
 }
 
+bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
+    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN;
+}
+
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
-    if (net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN) {
+    if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
     }
     // init check whether the rom version is compatible
@@ -55,7 +61,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // add interpreter
     auto *default_interpreter                = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     net_structure_                           = default_interpreter->GetNetStructure();
-    model_name_                              = NpuUtils::GetFileHash(model_config);
+    model_name_                              = NpuCommonUtils::GetFileHash(model_config);
     InputShapesMap instance_input_shapes_map = net_structure_->inputs_shape_map;
     InputShapesMap cpu_input_shape;
 
@@ -64,7 +70,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // modify the inputShapeMap
     // if reshape, add a suffix to the model name to create a new model
-    std::string model_suffix = NpuUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
+    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
     model_name_              = model_name_ + model_suffix + "_" + std::to_string(version_num_);
 
     // init the path to store/read om
@@ -79,7 +85,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     domi::HiaiIrBuild ir_build;
     domi::ModelBufferData om_model_buff;
 
-    if (use_path_ && NpuUtils::FileExits(model_path)) {
+    if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
     } else {
         // NPU IR build
@@ -127,8 +133,8 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     }
 
     std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
-        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE,
-        hiai::HIAI_MODELTYPE_ONLINE, hiai::AiModelDescription_DeviceType_NPU);
+        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE, hiai::HIAI_MODELTYPE_ONLINE,
+        hiai::AiModelDescription_DeviceType_NPU);
 
     desc->SetModelBuffer(model_mem_buffer->GetMemBufferData(), model_mem_buffer->GetMemBufferSize());
     // only load one model
@@ -173,7 +179,7 @@ Status NpuNetwork::InitCheck() {
     const char *version = client_->GetVersion();
     if (version == nullptr) {
         return Status(TNNERR_NPU_LOAD_ERROR,
-                      "ERROR: GetRomVersion(ROM): huawei_npu is not installed or rom version is too low");
+                      "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
     }
     // check if NPU version is greater than 300
     version_num_ = NpuUtils::checkNpuVersion(version);
@@ -234,7 +240,7 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
         return ret;
     }
 
-    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config.device_type);
+    ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -284,19 +290,19 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         std::vector<Blob *> input_blobs;
         BlobDesc blob_desc;
 #endif
         for (std::string &name : layer_info->inputs) {
             input_ops.push_back(global_operator_map_[name]);
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
             blob_desc.dims = global_operator_map_[name]->GetShape();
             Blob *blob     = new Blob(blob_desc);
             input_blobs.push_back(blob);
 #endif
         }
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
@@ -314,11 +320,11 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
          */
         ret =
             cur_layer->Init(context_, layer_info->param.get(), layer_resource, input_ops, device_, layer_info->outputs);
-        layers_.push_back(cur_layer);
         if (ret != TNN_OK) {
-            LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
+            LOGE("Error Init layer %s (%s)\n", cur_layer->GetLayerName().c_str(), ret.description().c_str());
             return ret;
         }
+        layers_.push_back(cur_layer);
 
         for (auto &op : cur_layer->GetOutputOps()) {
             visited_.insert(op->GetOperator()->GetName());
@@ -423,6 +429,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         char layer_name[name.size() + 1];
         strcpy(layer_name, name.c_str());
         BlobDesc desc;
+        desc.device_type = DEVICE_HUAWEI_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name        = layer_name;
         desc.dims.push_back(n);
@@ -470,6 +477,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             int h                      = dims.GetHeight();
             int w                      = dims.GetWidth();
             // add blob
+            desc.device_type = DEVICE_HUAWEI_NPU;
             desc.data_format = DATA_FORMAT_NCHW;
             desc.name        = layer_name;
             desc.dims.push_back(n);
@@ -571,10 +579,24 @@ Status NpuNetwork::Forward() {
     std::string value = model_name_;
     context.AddPara(key, value);
     int istamp;
+#if TNN_PROFILE
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+#endif
     hiai::AIStatus ret = client_->Process(context, input_tensor_, output_tensor_, 1000, istamp);
     if (ret != hiai::AI_SUCCESS) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "Forward failed!");
     }
+#if TNN_PROFILE
+    gettimeofday(&end, NULL);
+    float delta = (end.tv_sec - start.tv_sec) * 1000.f + (end.tv_usec - start.tv_usec) / 1000.f;
+    std::shared_ptr<ProfilingData> pdata(new ProfilingData());
+    pdata->kernel_time = delta;
+    pdata->layer_name  = "NPU Forward";
+    pdata->op_name     = "NPU Execute";
+    context_->AddProfilingData(pdata);
+#endif
+
     if (use_subnet_) {
         for (auto iterator = npu_inter_out_blobmap_.begin(); iterator != npu_inter_out_blobmap_.end(); iterator++) {
             std::string name = iterator->first;
@@ -597,4 +619,23 @@ Status NpuNetwork::Forward() {
 Status NpuNetwork::ForwardAsync(Callback call_back) {
     return NpuNetwork::Forward();
 }
+
+#if TNN_PROFILE
+void NpuNetwork::StartProfile() {
+    context_->StartProfile();
+    if (nullptr != sub_network_) {
+        sub_network_->StartProfile();
+    }
+}
+
+std::shared_ptr<ProfileResult> NpuNetwork::FinishProfile() {
+    auto result = context_->FinishProfile();
+    if (nullptr != sub_network_) {
+        auto sub_result = sub_network_->FinishProfile();
+        result->AddProfileResult(sub_result);
+    }
+    return result;
+}
+#endif
+
 }  // namespace TNN_NS

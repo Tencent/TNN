@@ -25,10 +25,14 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 
 int8_t float2int8(float val);
+uint8_t float2uint8(float val);
+int8_t half2int8(fp16_t val);
+uint8_t half2uint8(fp16_t val);
 
 template <typename T, typename Tacc>
 void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
@@ -37,7 +41,8 @@ void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
             DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
-            int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len);
+            int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len,
+            int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr);
 
 // float fc
 template <typename T>
@@ -51,10 +56,10 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
  * @brief Permute the input blob by changing the memory order of the data.
  **/
 template <typename T>
-void NaivePermute(const int count, T *bottom_data, const std::vector<int> &permute_order,
+void NaivePermute(const int count, DimsVector dims, T *bottom_data, const std::vector<int> &permute_order,
                 const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes, T *top_data);
 
-void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int forward, float *top_data);
+void NaiveReorg(float *bottom_data, int w, int h, int c, int batch, int stride, int reverse, int mode, float *top_data);
 
 void NaivePriorbox(PriorBoxLayerParam *param, int output_h, int output_w, float *output_data, int layer_height,
                    int layer_width, int img_height, int img_width, float step_h, float step_w);
@@ -63,6 +68,26 @@ void priorbox_set_value(const int N, const float alpha, float *Y);
 
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param);
+
+void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order);
+
+void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+
+void NaiveRGBOrRGBAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+
+void NaiveYUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12);
+
+void NaiveYUVToBGRA(const unsigned char* yuv, unsigned char* bgra, int h, int w, bool is_nv12);
+
+void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,
+                             unsigned char* rgb0, unsigned char* rgb1, int remain, bool is_nv12, int channel);
+
+void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
+
+void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims);
+
+void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_UTILS_NAIVE_COMPUTE_H_

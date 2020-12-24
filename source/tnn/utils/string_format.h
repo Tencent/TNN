@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <type_traits>
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -26,6 +27,23 @@ namespace TNN_NS {
 std::string DoubleToString(double val);
 
 std::string DoubleToStringFilter(double val);
+
+template <typename Int>
+std::string IntToString(Int val) {
+    static_assert(std::is_integral<Int>::value, "Integral type required!");
+    std::stringstream stream;
+    stream << val;
+    return stream.str();
+}
+
+template <typename Int>
+std::string IntToStringFilter(Int val) {
+    if (static_cast<Int>(0) == val) {
+        return "";
+    } else {
+        return IntToString(val);
+    }
+}
 
 template <typename T>
 std::string VectorToString(std::vector<T> val) {

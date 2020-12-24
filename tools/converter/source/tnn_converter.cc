@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "onnx/onnx_converter.h"
 #include "optimizer/tnn_optimizer.h"
 #include "tflite/tflite_converter.h"
 #include "tnn/interpreter/net_resource.h"
@@ -32,23 +33,26 @@ int Run(int argc, char* argv[]) {
     if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_TF_LITE) {
         TFLite2Tnn tf_lite_2_tnn(model_config.model_path_);
         status = tf_lite_2_tnn.Convert2Tnn(net_structure, net_resource);
+    } else if (model_config.model_type_ == TNN_CONVERTER::MODEL_TYPE_ONNX) {
+        Onnx2Tnn onnx_2_tnn(model_config.model_path_);
+        status = onnx_2_tnn.Converter2Tnn(net_structure, net_resource);
     }
     if (status != TNN_NS::TNN_CONVERT_OK) {
-        LOGE("TFLite converter %s failed!\n", FLAGS_mp.c_str());
+        LOGE("Converter: converter %s failed!\n", FLAGS_mp.c_str());
         return status;
     }
     // TODO optimize the model
     TnnOptimizer tnn_optimizer;
     status = tnn_optimizer.Optimize(net_structure, net_resource);
     if (status != TNN_NS::TNN_CONVERT_OK) {
-        LOGE("TFLite converter optimize %s failed!\n", FLAGS_mp.c_str());
+        LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());
         return status;
     }
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
-    status = GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
+    status                = GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);
     if (status != TNN_NS::TNN_CONVERT_OK) {
-        LOGE("TFLite converter generate tnn model failed!\n");
+        LOGE("Converter: generate tnn model failed!\n");
         return status;
     }
     return 0;

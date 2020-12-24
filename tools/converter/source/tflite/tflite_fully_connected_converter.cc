@@ -30,7 +30,7 @@ tflite::ActivationFunctionType TFLiteFullyConnectedConverter::ActivationType(
 }
 
 TNN_NS::Status TFLiteFullyConnectedConverter::exec(
-    tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+    TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
@@ -67,7 +67,8 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             auto tmp         = new float[weight_size]();
             for (int i = 0; i < co; ++i) {
                 auto data_ptr = weight_ptr + (i * feature_size);
-                TNN_NS::DataFormatConverter::ConvertFromNHWCToNCHW<float>(data_ptr, &tmp[i * feature_size], n, c, h, w);
+                TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<float>(
+                    data_ptr, &tmp[i * feature_size], n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
             }
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
             ::memcpy(weight_handle.force_to<float *>(), tmp, weight_size * sizeof(float));

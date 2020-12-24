@@ -26,7 +26,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReluLayerTest,
                                             testing::Values(DATA_TYPE_BFP16, DATA_TYPE_FLOAT)));
 
 TEST_P(ReluLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Relu");
 }
 
 }  // namespace TNN_NS
