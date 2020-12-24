@@ -814,6 +814,8 @@ int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_
 #if TNN_ARM82
 template int ConvertWeightsFromGOIHWToGOIHW64(const fp16_t *src, fp16_t *dst, int group, int input_channel, int output_channel, int height,
                                      int width);
+template int ConvertWeightsFromGOIHWToGOIHW64(const int16_t *src, int16_t *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
 #endif
 
 //float

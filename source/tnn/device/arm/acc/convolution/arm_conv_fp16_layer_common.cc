@@ -21,10 +21,14 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
 
+#if defined(__aarch64__) // aarch64 fp16
 #define NEON_FP16CONV_TILE_HW (16)
+#else // aarch32 fp16 or fp16 simu
+#define NEON_FP16CONV_TILE_HW (8)
+#endif
 
+#if defined(__aarch64__)
 static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
-#ifdef __aarch64__
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0], #64\n\t"
@@ -68,13 +72,11 @@ static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
         "v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20",
         "v21","v22","v23"
     );
-#else
-
-#endif
 }
+#endif
 
 static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
-#ifdef __aarch64__
+#if defined(__aarch64__)
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0]\n\t"
@@ -99,13 +101,39 @@ static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#elif defined(__arm__) && !defined(__aarch64__)
+    asm volatile (
+        "vld4.16 {d0, d2,  d4,  d6},  [%0]!\n\t"
+        "vld4.16 {d1, d3,  d5,  d7},  [%0]!\n\t"
+        "vld4.16 {d8, d10, d12, d14}, [%0]!\n\t"
+        "vld4.16 {d9, d11, d13, d15}, [%0]\n\t"
+        "vuzp.16 q0, q4\n\t"
+        "vuzp.16 q1, q5\n\t"
+        "vuzp.16 q2, q6\n\t"
+        "vuzp.16 q3, q7\n\t"
+        "vstr d0,  [%2, #0]\n\t"   "vstr d1,  [%2, #8]\n\t"
+        "vstr d2,  [%2, #16]\n\t"  "vstr d3,  [%2, #24]\n\t"
+        "vstr d4,  [%2, #32]\n\t"  "vstr d5,  [%2, #40]\n\t"
+        "vstr d6,  [%2, #48]\n\t"  "vstr d7,  [%2, #56]\n\t"
+        "vstr d8,  [%2, #64]\n\t"  "vstr d9,  [%2, #72]\n\t"
+        "vstr d10, [%2, #80]\n\t"  "vstr d11, [%2, #88]\n\t"
+        "vstr d12, [%2, #96]\n\t"  "vstr d13, [%2, #104]\n\t"
+        "vstr d14, [%2, #112]\n\t" "vstr d15, [%2, #120]\n\t"
+        :"=r"(src_b)
+        :"0"(src_b),"r"(dst_b)
+        :"cc","memory","q0","q1","q2","q3","q4","q5","q6","q7"
+    );
 #else
-
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            dst_b[j * 8 + i] = src_b[i * 8 + j];
+        }
+    }
 #endif
 }
 
 static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
-#ifdef __aarch64__
+#if defined(__aarch64__)
     asm volatile (
         "ld4 {v0.4h, v1.4h, v2.4h, v3.4h}, [%0], #32\n\t"
         "ld4 {v4.4h, v5.4h, v6.4h, v7.4h}, [%0]\n\t"
@@ -130,8 +158,28 @@ static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#elif defined(__arm__) && !defined(__aarch64__)
+    asm volatile (
+        "vld4.16 {d0, d1, d2, d3}, [%0]!\n\t"
+        "vld4.16 {d4, d5, d6, d7}, [%0]\n\t"
+        "vuzp.16 d0, d4\n\t"
+        "vuzp.16 d1, d5\n\t"
+        "vuzp.16 d2, d6\n\t"
+        "vuzp.16 d3, d7\n\t"
+        "vstr d0,  [%2, #0]\n\t"   "vstr d1,  [%2, #8]\n\t"
+        "vstr d2,  [%2, #16]\n\t"  "vstr d3,  [%2, #24]\n\t"
+        "vstr d4,  [%2, #32]\n\t"  "vstr d5,  [%2, #40]\n\t"
+        "vstr d6,  [%2, #48]\n\t"  "vstr d7,  [%2, #56]\n\t"
+        :"=r"(src_b)
+        :"0"(src_b),"r"(dst_b)
+        :"cc","memory","q0","q1","q2","q3"
+    );
 #else
-
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            dst_b[j * 4 + i] = src_b[i * 8 + j];
+        }
+    }
 #endif
 }
 
@@ -144,7 +192,11 @@ static void load_repack_half_align(
     int c = 0;
     for (; c <= ic - 8; c += 8) {
         for (int k = 0; k < kernel_size; k++) {
+#if defined(__aarch64__)
             _repack_half_16(dst, src);
+#else
+            _repack_half_8(dst, src);
+#endif
             src += 8 * NEON_FP16CONV_TILE_HW;
             dst += 8 * NEON_FP16CONV_TILE_HW;
         }
@@ -152,7 +204,11 @@ static void load_repack_half_align(
     if (c < ic) {
         int c_eff = ic - c;
         for (int k = 0; k < kernel_size; k++) {
+#if defined(__aarch64__)
             _repack_half_16(dst, src);
+#else
+            _repack_half_8(dst, src);
+#endif
             src += 8 * NEON_FP16CONV_TILE_HW;
             dst += c_eff * NEON_FP16CONV_TILE_HW;
         }
@@ -166,6 +222,7 @@ static void load_repack_half(
     int ic,
     int kernel_size) {
     int dst_i = 0;
+#if defined(__aarch64__)
     if (dst_cnt >= dst_i + 8) {
         auto src_p = src;
         int c = 0;
@@ -187,6 +244,7 @@ static void load_repack_half(
         src += 8 * 8;
         dst_i += 8;
     }
+#endif
     if (dst_cnt >= dst_i + 4) {
         auto src_p = src;
         int c = 0;
@@ -288,7 +346,7 @@ static void img2col(
         const fp16_t *src;
     };
 
-    tile_info tiles_info[16];
+    tile_info tiles_info[NEON_FP16CONV_TILE_HW];
     tile_info *tiles_info_ptr = tiles_info;
     size_t dst_cnt_tmp = dst_cnt;
     int fast_mode_cnt = 0;
@@ -339,9 +397,7 @@ static void img2col(
                     auto src_fw = src_fh + fw * param->dialations[0] * 8;
                     for (int i = 0; i < dst_cnt; i++) {
                         auto src_i = src_fw + i * 8 * param->strides[0];
-#if __aarch64__
-                        vst1q_f16(dst_c + i * 8, vld1q_f16(src_i));
-#endif
+                        Half8::save(dst_c + i * 8, Half8::load(src_i));
                     }
                     dst_c += NEON_FP16CONV_TILE_HW * 8;
                 }
@@ -363,9 +419,7 @@ static void img2col(
                     for (int fw = tiles_info[i].sfw; fw < tiles_info[i].efw; ++fw) {
                         auto src_fw = src_fh + fw * param->dialations[0] * 8;
                         auto dst_fw = dst_fh + fw * NEON_FP16CONV_TILE_HW * 8;
-#if __aarch64__
-                        vst1q_f16(dst_fw, vld1q_f16(src_fw));
-#endif
+                        Half8::save(dst_fw, Half8::load(src_fw));
                     }
                 }
             }
@@ -408,12 +462,13 @@ Status ArmConvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
             RawBuffer filter_half(weight_nchw_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
+            // use int16_t to copy data, avoiding bad performance cased by fp16_t datatype in aarch32 fp16
+            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<int16_t *>(), temp_buffer.force_to<int16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<fp16_t *>(),
-                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<int16_t *>(),
+                                             temp_buffer.force_to<int16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
