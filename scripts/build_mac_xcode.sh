@@ -49,7 +49,7 @@ if [[ $DEVICE_PLATFORM == iPhone* ]]; then
 elif [ $DEVICE_PLATFORM == "Mac" ]; then
   echo ' '
   echo '******************** Build Mac SDK ********************'
-  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch x86_64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx OTHER_CFLAGS="-march=x86-64" EXCLUDED_ARCHS=arm64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   cp -r build/$CONFIGURATION/$TARGET_NAME.framework build
 fi
 
@@ -59,7 +59,11 @@ if [ $DEVICE_PLATFORM == "iPhone+Simulator" ]; then
   echo '******************** Build Simulator SDK ********************'
   # 指定 i386
   # xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator -arch i386 build
-  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  if [ $XCODE_MAJOR_VERSION -ge 12 ]; then
+      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="-march=x86-64" EXCLUDED_ARCHS=arm64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  else
+      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="-march=x86-64" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  fi
   # merge lib
   lipo -create "build/$CONFIGURATION-iphonesimulator/$TARGET_NAME.framework/$TARGET_NAME" "build/$CONFIGURATION-iphoneos/$TARGET_NAME.framework/$TARGET_NAME" -output "build/$TARGET_NAME.framework/$TARGET_NAME"
   # copy metallib
