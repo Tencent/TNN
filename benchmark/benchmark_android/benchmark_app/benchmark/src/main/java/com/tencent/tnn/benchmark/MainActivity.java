@@ -38,20 +38,28 @@ public class MainActivity extends Activity {
     }
 
     private void init() {
-        Intent intent = getIntent();
-        Bundle bundle = intent.getExtras();
-        String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
-        String[] load_list = bundle.getStringArray(ARGS_INTENT_KEY_LOAD_LIST);
-        for(String element : load_list) {
-            FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
-            System.load(getFilesDir().getAbsolutePath() + "/" + element);
+        try {
+            Intent intent = getIntent();
+            Bundle bundle = intent.getExtras();
+            String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
+            String[] load_list = bundle.getStringArray(ARGS_INTENT_KEY_LOAD_LIST);
+            for(String element : load_list) {
+                FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
+                System.load(getFilesDir().getAbsolutePath() + "/" + element);
+            }
+            String model = bundle.getString(ARGS_INTENT_KEY_MODEL);
+            String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
+            String output_path = getFilesDir().getAbsolutePath() + "/" + model;
+            File model_file = new  File(output_path);
+            if(model_file.exists()) {
+                model_file.delete();
+            }
+            model_file.createNewFile();
+
+            FileUtils.copyFile(benchmark_dir + "/" + "benchmark-model/" + model, output_path);
+            benchmark.nativeRun(args, this.getFilesDir().getAbsolutePath());
+        } catch(Exception e) {
         }
-        String model = bundle.getString(ARGS_INTENT_KEY_MODEL);
-        FileUtils.copyFile(benchmark_dir + "/" + "benchmark-model/" + model, getFilesDir().getAbsolutePath() + "/" + model);
-
-        String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
-
-        benchmark.nativeRun(args, this.getFilesDir().getAbsolutePath());
     }
 
     @Override

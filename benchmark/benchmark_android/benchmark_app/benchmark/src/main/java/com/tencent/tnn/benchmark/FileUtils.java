@@ -21,33 +21,11 @@ public class FileUtils {
         throw new AssertionError();
     }
 
-    public static boolean copyAsset(AssetManager assetManager,
-                                     String fromAssetPath, String toPath) {
-        InputStream in = null;
-        OutputStream out = null;
-        try {
-            in = assetManager.open(fromAssetPath);
-            new File(toPath).createNewFile();
-            out = new FileOutputStream(toPath);
-            copyFile(in, out);
-            in.close();
-            in = null;
-            out.flush();
-            out.close();
-            out = null;
-            return true;
-        } catch(Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
     public static boolean copyFile(String input_path, String out_path) {
         InputStream in = null;
         OutputStream out = null;
         try {
             in = new FileInputStream(input_path);
-            new File(out_path).createNewFile();
             out = new FileOutputStream(out_path);
             copyFile(in, out);
             in.close();
@@ -69,36 +47,6 @@ public class FileUtils {
             out.write(buffer, 0, read);
         }
     }
-
-    public static Bitmap readBitmapFromFile(AssetManager assetManager, String filePath) {
-        InputStream istr = null;
-        try {
-            istr = assetManager.open(filePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Bitmap bitmap = BitmapFactory.decodeStream(istr);
-        return bitmap;
-    }
-
-    public static ArrayList<String> ReadListFromFile(AssetManager assetManager, String filePath) {
-        ArrayList<String> list = new ArrayList<String>();
-        BufferedReader reader = null;
-        InputStream istr = null;
-        try {
-            reader = new BufferedReader(
-                    new InputStreamReader(assetManager.open(filePath)));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                list.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-
 }
 
 
