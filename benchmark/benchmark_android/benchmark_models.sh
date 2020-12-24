@@ -4,7 +4,6 @@ export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 ABI="arm64-v8a"
 STL="c++_static"
-SHARED_LIB="ON"
 PROFILING="OFF"
 CLEAN=""
 DEVICE_TYPE=""
@@ -12,7 +11,7 @@ MODEL_TYPE=TNN
 USE_NCNN_MODEL=0
 THREAD_NUM=1
 ADB=adb
-BENCHMARK_APP_TYPE=""
+BENCHMARK_TYPE="APP"
 BENCHMARK_APP_DIR=benchmark_app/benchmark/
 
 WORK_DIR=`pwd`
@@ -40,7 +39,7 @@ function usage() {
     echo "        -t    CPU/GPU/HUAWEI_NPU specify the platform to run"
     echo "        -th   num of threads to run, default: 1"
     echo "        -n    use ncnn model"
-    echo "        -app  use benchmark app"
+    echo "        -bs   benchmark shell"
 }
 
 function exit_with_msg() {
@@ -92,12 +91,12 @@ function build_android_bench() {
           -DTNN_BUILD_BENCHMARK_TEST_LIB_ENABLE:BOOL=ON \
           -DTNN_BENCHMARK_MODE:BOOL=ON \
           -DTNN_PROFILER_ENABLE:BOOL=${PROFILING} \
-          -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB \
+          -DTNN_BUILD_SHARED:BOOL=ON \
           -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
 }
 
-function bench_android() {
+function bench_android_shell() {
     build_android_bench
 
     if [ $? != 0 ];then
@@ -159,7 +158,7 @@ function bench_android() {
     if [ "$DEVICE_TYPE" = "HUAWEI_NPU" ];then
         echo "Run Huawei Npu"
         device=HUAWEI_NPU
-	    $ADB push ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/${ABI}/* $ANDROID_DIR/
+	$ADB push ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/${ABI}/* $ANDROID_DIR/
         $ADB push ${WORK_DIR}/../../third_party/huawei_npu/hiai_ddk_latest/${ABI}/* $ANDROID_DIR/
         $ADB shell "echo '\nbenchmark device: ${device} \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
         for benchmark_model in ${benchmark_model_list[*]}
@@ -178,11 +177,7 @@ function bench_android() {
 }
 
 function build_android_bench_app() {
-    echo -e "##### Java environment #####\nJAVA_HOME: ${JAVA_HOME}\n##### Java environment #####\n"
-    echo -e "##### Android environment #####\nANDROID_HOME: ${ANDROID_HOME}\n##### Android environment #####\n"
- 
-    rm -rf $BUILD_APP_DIR
-    mkdir $BUILD_APP_DIR
+    mkdir -p $BUILD_APP_DIR
     cd $BUILD_APP_DIR
 
     cmake ../../benchmark_app/benchmark/ \
@@ -194,28 +189,24 @@ function build_android_bench_app() {
           -DANDROID_TOOLCHAIN=clang
     make -j4
     cd ../..
-
-    cd ${BENCHMARK_APP_DIR}
-    ./gradlew installDebug
-    cd ../..
 }
 
 function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
+    adb install -r benchmark-release.apk 
+
     $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
     $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
+
+    $ADB shell "getprop ro.product.model" > $OUTPUT_LOG_FILE
 
     cd ${BUILD_DIR}
     $ADB shell "mkdir -p $ANDROID_DIR"
     find . -name "*.so" | while read solib; do
         $ADB push $solib  $ANDROID_DIR
     done
-
-    if [ $? != 0 ];then
-        exit_with_msg "set up environment failed"
-    fi
 
     cd ${BENCHMARK_MODEL_DIR}
     if [ ${#benchmark_model_list[*]} == 0 ];then
@@ -236,8 +227,8 @@ function bench_android_app() {
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
-                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
-            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
+                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1 >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
 
@@ -251,8 +242,8 @@ function bench_android_app() {
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
-                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
-            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
+                --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1  >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
 
@@ -268,12 +259,18 @@ function bench_android_app() {
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
-                --esa load-list "libc++_shared.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so" 1 > /dev/null
-            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1
+                --esa load-list "libc++_shared.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1  >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
 
     $ADB uninstall com.tencent.tnn.benchmark
+
+    $ADB shell "echo ''" >> $WORK_DIR/$OUTPUT_LOG_FILE
+    $ADB shell "date"  >> $WORK_DIR/$OUTPUT_LOG_FILE
+
+    cat ${WORK_DIR}/$OUTPUT_LOG_FILE
+
 }
 
 while [ "$1" != "" ]; do
@@ -313,9 +310,9 @@ while [ "$1" != "" ]; do
             THREAD_NUM=$1
             shift
             ;;
-        -app)
+        -bs)
             shift
-            BENCHMARK_APP_TYPE="APP"
+            BENCHMARK_TYPE="SHELL"
             ;;
         *)
             usage
@@ -323,8 +320,8 @@ while [ "$1" != "" ]; do
     esac
 done
 
-if [ "$BENCHMARK_APP_TYPE" == "APP" ]; then
+if [ "$BENCHMARK_TYPE" == "APP" ]; then
     bench_android_app
 else
-    bench_android
+    bench_android_shell
 fi
