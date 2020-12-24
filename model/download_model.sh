@@ -125,14 +125,14 @@ download_model \
 
 # download skeleton big tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/big.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton_big.tnnproto" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton.tnnmodel" \
     "skeleton"
 
 # download skeleton medium and small tnn models
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/middle.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/small.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton_middle.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton_small.tnnproto" \
     "skeleton"
 
 # download blazepose detection model

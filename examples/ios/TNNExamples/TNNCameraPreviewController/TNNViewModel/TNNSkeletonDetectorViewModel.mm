@@ -82,11 +82,11 @@ using namespace std;
     // check release mode at Product->Scheme when running
     //运行时请在Product->Scheme中确认已经调整到release模式
 
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/big.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_big.tnnproto"
                                                       ofType:nil];
-    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/middle.tnnproto"
+    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_middle.tnnproto"
                                                              ofType:nil];
-    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/small.tnnproto"
+    auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_small.tnnproto"
                                                             ofType:nil];
 
     auto bigPredictor = [self loadSkeletonModel:units path:proto_path];
