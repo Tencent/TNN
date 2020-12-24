@@ -208,7 +208,7 @@ function bench_android_app() {
         echo -e "\nbenchmark device: ${device}\n"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
+            TEST_ARGS="-th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' 1 > /dev/null
@@ -221,7 +221,7 @@ function bench_android_app() {
         echo -e "\nbenchmark device: ${device}\n"
         for benchmark_model in ${benchmark_model_list[*]}
         do
-            TEST_ARGS="-th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
+            TEST_ARGS="-th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${benchmark_model}"
             $ADB shell am start -S -W \
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' 1 > /dev/null
