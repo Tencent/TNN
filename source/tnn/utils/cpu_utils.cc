@@ -56,6 +56,10 @@
 #ifndef CPUFAMILY_ARM_LIGHTNING_THUNDER
 #define CPUFAMILY_ARM_LIGHTNING_THUNDER 0x462504d2
 #endif
+// A14
+#ifndef CPUFAMILY_ARM_FIRESTORM_ICESTORM
+#define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1B588BB3
+#endif
 #endif  // TARGET_OS_IPHONE
 #endif  // __APPLE__
 
@@ -344,7 +348,7 @@ bool CpuUtils::CpuSupportFp16() {
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
-                cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER;
+                cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM;
     LOGD("CpuUtils::CpuSupportFp16, IOS and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
 #else
