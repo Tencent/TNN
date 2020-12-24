@@ -51,7 +51,6 @@ public class MainActivity extends Activity {
 
         String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
 
-        Log.i(TAG, "Running TNN Benchmark with args: " + args);
         benchmark.nativeRun(args, this.getFilesDir().getAbsolutePath());
     }
 
