@@ -39,9 +39,9 @@
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
+#include <sys/sysctl.h>
 #if TARGET_OS_IPHONE
 #include <mach/machine.h>
-#include <sys/sysctl.h>
 #include <sys/types.h>
 #define __IOS__ 1
 // A11
@@ -64,7 +64,7 @@
 #define __OSX__ 1
 // M1
 #ifndef CPUFAMILY_AARCH64_FIRESTORM_ICESTORM
-#define CPUFAMILY_AARCH64_FIRESTORM_ICESTORM 458787763
+#define CPUFAMILY_AARCH64_FIRESTORM_ICESTORM 0x1b588bb3
 #endif
 #endif  // TARGET_OS_IPHONE
 #endif  // __APPLE__
@@ -414,6 +414,7 @@ bool CpuUtils::CpuSupportFp16() {
     return false;
 #endif
 
+// OSX
 #elif defined(__OSX__)
 #ifdef __aarch64__
     unsigned int cpu_family = 0;
