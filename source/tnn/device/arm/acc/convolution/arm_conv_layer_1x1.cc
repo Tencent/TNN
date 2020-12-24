@@ -146,17 +146,17 @@ Status ArmConvLayer1x1::Exec(const std::vector<Blob *> &inputs, const std::vecto
     pack inputs when pads or strides are not equal to one
     */
     if ((k_param_->ih != k_param_->oh) || (k_param_->iw != k_param_->ow)) {
-        work_space_size += ic4 * 4 * dims_output[2] * dims_output[3] * data_byte_size;
+        work_space_size += batch * ic4 * 4 * dims_output[2] * dims_output[3] * data_byte_size;
         auto tmp_dst = reinterpret_cast<T *>(context_->GetSharedWorkSpace(work_space_size + NEON_KERNEL_EXTRA_LOAD));
-        work_space   = tmp_dst + ic4 * 4 * dims_output[2] * dims_output[3];
+        work_space   = tmp_dst + batch * ic4 * 4 * dims_output[2] * dims_output[3];
 
-        PackLine(tmp_dst, src_origin, k_param_->ih, k_param_->iw, k_param_->oh, k_param_->ow, k_param_->ic_r4,
+        PackLine(tmp_dst, src_origin, k_param_->ih, k_param_->iw, k_param_->oh, k_param_->ow, k_param_->ic_r4 * batch,
                  conv_param->pads[2], conv_param->pads[0], conv_param->strides[1], conv_param->strides[0]);
         src_origin = tmp_dst;
     }
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr  = src_origin + batch_idx * k_param_->iw * k_param_->ih * ROUND_UP(dims_input[1], 4);
+        auto input_ptr  = src_origin + batch_idx * k_param_->ow * k_param_->oh * ROUND_UP(dims_input[1], 4);
         auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * ROUND_UP(dims_output[1], 4);
         auto bias_ptr   = reinterpret_cast<float *>(k_param_->bias);
 
@@ -165,10 +165,12 @@ Status ArmConvLayer1x1::Exec(const std::vector<Blob *> &inputs, const std::vecto
         */
         if (plane_num > oc4 * 4) {
             sgemm_repack_lhs(output_ptr, input_ptr, buffer_weight_.force_to<float *>(), ic4, oc4, plane_num, dst_z_step,
-                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type);
+                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type,
+                             context_->GetPrecision() != PRECISION_HIGH);
         } else {
             sgemm_repack_rhs(output_ptr, input_ptr, buffer_weight_.force_to<float *>(), ic4, oc4, plane_num, dst_z_step,
-                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type);
+                             a_block, b_block, work_space, bias_ptr, conv_param->activation_type,
+                             context_->GetPrecision() != PRECISION_HIGH);
         }
     }
 

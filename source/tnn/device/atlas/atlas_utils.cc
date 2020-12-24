@@ -57,6 +57,8 @@ Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& t
         tnn_datatype = DATA_TYPE_INT8;
     } else if (ACL_INT32 == acl_datatype || ACL_UINT32 == acl_datatype) {
         tnn_datatype = DATA_TYPE_INT32;
+    } else if (ACL_INT64 == acl_datatype || ACL_UINT64 == acl_datatype) {
+        tnn_datatype = DATA_TYPE_INT64;
     } else {
         LOGE("not support convert from acl datatype (%d) to tnn datatype\n", acl_datatype);
         return Status(TNNERR_COMMON_ERROR, "the data type is not support");

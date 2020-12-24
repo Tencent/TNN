@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit8x8
 //void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-//                     const float* scales, long relu)
+//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale)
 //x0(mr),
 //x1(nr),
 //x2(k),
@@ -484,6 +484,27 @@ blo 1f
     ble 22f
     ld1 {v25.4s}, [x8]
 22:
+    ldr x8, [sp, #8]   // relu
+    cmp x8, #0
+    bge 23f
+    movi v0.16b, #0
+    smax v8.4s, v8.4s, v0.4s
+    smax v9.4s, v9.4s, v0.4s
+    smax v10.4s, v10.4s, v0.4s
+    smax v11.4s, v11.4s, v0.4s
+    smax v12.4s, v12.4s, v0.4s
+    smax v13.4s, v13.4s, v0.4s
+    smax v14.4s, v14.4s, v0.4s
+    smax v15.4s, v15.4s, v0.4s
+    smax v16.4s, v16.4s, v0.4s
+    smax v17.4s, v17.4s, v0.4s
+    smax v18.4s, v18.4s, v0.4s
+    smax v19.4s, v19.4s, v0.4s
+    smax v20.4s, v20.4s, v0.4s
+    smax v21.4s, v21.4s, v0.4s
+    smax v22.4s, v22.4s, v0.4s
+    smax v23.4s, v23.4s, v0.4s
+23:
     scvtf v8.4s, v8.4s
     scvtf v9.4s, v9.4s
     scvtf v10.4s, v10.4s
@@ -501,23 +522,129 @@ blo 1f
     scvtf v22.4s, v22.4s
     scvtf v23.4s, v23.4s
 
+    ldr x8, [sp, #16]  // add_input
+
     fmul v8.4s, v8.4s, v24.4s
-    fmul v10.4s, v10.4s, v24.4s
-    fmul v12.4s, v12.4s, v24.4s
-    fmul v14.4s, v14.4s, v24.4s
-    fmul v16.4s, v16.4s, v24.4s
-    fmul v18.4s, v18.4s, v24.4s
-    fmul v20.4s, v20.4s, v24.4s
-    fmul v22.4s, v22.4s, v24.4s
     fmul v9.4s, v9.4s, v25.4s
+    fmul v10.4s, v10.4s, v24.4s
     fmul v11.4s, v11.4s, v25.4s
+    fmul v12.4s, v12.4s, v24.4s
     fmul v13.4s, v13.4s, v25.4s
+    fmul v14.4s, v14.4s, v24.4s
     fmul v15.4s, v15.4s, v25.4s
+
+    cbz  x8,  25f
+    add  x9,  x8,  x7
+    cmp  x0,  #2
+    csel x9,  x8,  x9,  lo
+    add  x10, x9,  x7
+    csel x10, x9,  x10, ls
+    add  x11, x10, x7
+    cmp  x0,  #4
+    csel x11, x10, x11, lo
+
+    ld1 {v28.8b}, [x8]
+    sxtl  v28.8h, v28.8b
+    sxtl  v0.4s,  v28.4h
+    sxtl2 v1.4s,  v28.8h
+    ld1 {v29.8b}, [x9]
+    sxtl  v29.8h, v29.8b
+    sxtl  v2.4s,  v29.4h
+    sxtl2 v3.4s,  v29.8h
+    ld1 {v28.8b}, [x10]
+    sxtl  v28.8h, v28.8b
+    sxtl  v4.4s,  v28.4h
+    sxtl2 v5.4s,  v28.8h
+    ld1 {v29.8b}, [x11]
+    sxtl  v29.8h, v29.8b
+    sxtl  v6.4s,  v29.4h
+    sxtl2 v7.4s,  v29.8h
+
+    ldr x8, [sp, #24]  // add_scale
+    ld1 {v26.4s}, [x8], #16
+    movi v27.4s, #0
+    cmp x1, #4
+    ble 24f
+    ld1 {v27.4s}, [x8]
+
+24:
+    scvtf v0.4s, v0.4s
+    scvtf v1.4s, v1.4s
+    scvtf v2.4s, v2.4s
+    scvtf v3.4s, v3.4s
+    scvtf v4.4s, v4.4s
+    scvtf v5.4s, v5.4s
+    scvtf v6.4s, v6.4s
+    scvtf v7.4s, v7.4s
+
+    fmla v8.4s, v0.4s, v26.4s
+    fmla v9.4s, v1.4s, v27.4s
+    fmla v10.4s, v2.4s, v26.4s
+    fmla v11.4s, v3.4s, v27.4s
+    fmla v12.4s, v4.4s, v26.4s
+    fmla v13.4s, v5.4s, v27.4s
+    fmla v14.4s, v6.4s, v26.4s
+    fmla v15.4s, v7.4s, v27.4s
+
+25:
+    fmul v16.4s, v16.4s, v24.4s
     fmul v17.4s, v17.4s, v25.4s
+    fmul v18.4s, v18.4s, v24.4s
     fmul v19.4s, v19.4s, v25.4s
+    fmul v20.4s, v20.4s, v24.4s
     fmul v21.4s, v21.4s, v25.4s
+    fmul v22.4s, v22.4s, v24.4s
     fmul v23.4s, v23.4s, v25.4s
 
+    cbz x8,  26f
+    cmp x0, #4
+    add  x12, x11, x7
+    csel x12, x11, x12, ls
+    add  x13, x12, x7
+    cmp  x0,  #6
+    csel x13, x12, x13, lo
+    add  x14, x13, x7
+    csel x14, x13, x14, ls
+    add  x15, x14, x7
+    cmp  x0,  #8
+    csel x15, x14, x15, ne
+
+    ld1 {v28.8b}, [x12]
+    sxtl  v28.8h, v28.8b
+    sxtl  v0.4s,  v28.4h
+    sxtl2 v1.4s,  v28.8h
+    ld1 {v29.8b}, [x13]
+    sxtl  v29.8h, v29.8b
+    sxtl  v2.4s,  v29.4h
+    sxtl2 v3.4s,  v29.8h
+    ld1 {v28.8b}, [x14]
+    sxtl  v28.8h, v28.8b
+    sxtl  v4.4s,  v28.4h
+    sxtl2 v5.4s,  v28.8h
+    ld1 {v29.8b}, [x15]
+    sxtl  v29.8h, v29.8b
+    sxtl  v6.4s,  v29.4h
+    sxtl2 v7.4s,  v29.8h
+
+    scvtf v0.4s, v0.4s
+    scvtf v1.4s, v1.4s
+    scvtf v2.4s, v2.4s
+    scvtf v3.4s, v3.4s
+    scvtf v4.4s, v4.4s
+    scvtf v5.4s, v5.4s
+    scvtf v6.4s, v6.4s
+    scvtf v7.4s, v7.4s
+
+    fmla v16.4s, v0.4s, v26.4s
+    fmla v17.4s, v1.4s, v27.4s
+    fmla v18.4s, v2.4s, v26.4s
+    fmla v19.4s, v3.4s, v27.4s
+    fmla v20.4s, v4.4s, v26.4s
+    fmla v21.4s, v5.4s, v27.4s
+    fmla v22.4s, v6.4s, v26.4s
+    fmla v23.4s, v7.4s, v27.4s
+
+26:
     fcvtas v8.4s, v8.4s
     fcvtas v9.4s, v9.4s
     fcvtas v10.4s, v10.4s
@@ -562,7 +689,8 @@ blo 1f
     sqxtn v22.8b, v22.8h
 
     ldr x8, [sp, #8]
-    cbz x8, 3f
+    cmp x8, #0
+    ble 3f
     movi v0.16b, #0
     smax v8.8b, v8.8b, v0.8b
     smax v10.8b, v10.8b, v0.8b
@@ -611,10 +739,7 @@ blo 1f
     st1 {v20.d}[0], [x14]
     st1 {v22.d}[0], [x15]
 
-    sub sp, sp, #128
-    ld1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
-    ld1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
-    ret
+    b 7f
 
 4:
     cmp x1, #4

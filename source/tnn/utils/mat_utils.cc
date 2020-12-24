@@ -56,6 +56,8 @@ static int GetCvtColorDstChannel(ColorConversionType type) {
     switch (type) {
         case COLOR_CONVERT_BGRTOGRAY:
         case COLOR_CONVERT_BGRATOGRAY:
+        case COLOR_CONVERT_RGBTOGRAY:
+        case COLOR_CONVERT_RGBATOGRAY:
             return 1;
         case COLOR_CONVERT_NV12TOBGR:
         case COLOR_CONVERT_NV21TOBGR:
@@ -119,7 +121,7 @@ Status MatUtils::Resize(Mat& src, Mat& dst, ResizeParam param, void* command_que
         }
     } else {
         if (dst.GetWidth() <= 0 || dst.GetHeight() <= 0) {
-            return Status(TNNERR_PARAM_ERR, "both dszie and param scale have zero or negnative value");
+            return Status(TNNERR_PARAM_ERR, "both dsize and param scale have zero or negnative value");
         } else {
             param.scale_w = dst.GetWidth() * 1.0 / src.GetWidth();
             param.scale_h = dst.GetHeight() * 1.0 / src.GetHeight();
@@ -150,7 +152,7 @@ Status MatUtils::Crop(Mat& src, Mat& dst, CropParam param, void* command_queue) 
         }
     } else {
         if (dst.GetWidth() <= 0 || dst.GetHeight() <= 0) {
-            return Status(TNNERR_PARAM_ERR, "both dszie and param size have zero or negnative value");
+            return Status(TNNERR_PARAM_ERR, "both dsize and param size have zero or negnative value");
         } else {
             param.width  = dst.GetWidth();
             param.height = dst.GetHeight();

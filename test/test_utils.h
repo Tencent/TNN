@@ -29,11 +29,14 @@ NetworkType ConvertNetworkType(std::string network_type);
 
 Precision ConvertPrecision(std::string precision);
 
-int CompareData(const float* result_data, const float* ref_data, size_t n, float ep);
-int CompareData(const bfp16_t* result_data, const bfp16_t* ref_data, size_t n, float ep);
-int CompareData(const int8_t* result_data, const int8_t* ref_data, size_t n);
+Precision SetPrecision(DeviceType dev, DataType dtype);
 
-int CompareData(const uint8_t* result_data, const uint8_t* ref_data, int mat_channel, int channel, size_t n);
+int CompareData(const float* ref_data, const float* result_data, size_t n, float ep);
+int CompareData(const float* ref_data, const float* result_data, size_t n, float ep, float dp);
+int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, float ep);
+int CompareData(const int8_t* ref_data, const int8_t* result_data, size_t n);
+
+int CompareData(const uint8_t* ref_data, const uint8_t* result_data, int mat_channel, int channel, size_t n);
 
 }  // namespace TNN_NS
 

@@ -77,6 +77,7 @@ void AbstractLayerAcc::UpdateProfilingData(ProfilingData *pdata, LayerParam *par
             pdata->pad_shape.push_back(conv_param->pads[0]);
             pdata->dilation_shape.push_back(conv_param->dialations[1]);
             pdata->dilation_shape.push_back(conv_param->dialations[0]);
+            pdata->group = conv_param->group;
         }
     }
 
@@ -113,8 +114,6 @@ Status AbstractLayerAcc::ResolveBlobDataFormat(Blob *blob) {
      * Others:  return error if LayerAcc not support.
      */
     if (desc.data_format == DATA_FORMAT_AUTO) {
-        std::vector<DataFormat> support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()));
-        ASSERT(support_list.size() > 0);
         desc.data_format = support_list[0];
         blob->SetBlobDesc(desc);
         return TNN_OK;

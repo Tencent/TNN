@@ -313,6 +313,35 @@ Status DataFormatConverter::ConvertFromInt8ToFloatNCHW(int8_t *src, float *dst, 
     return 0;
 }
 
+Status DataFormatConverter::ConvertFromInt64ToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        for (int c = 0; c < channel; c++) {
+            for (int hw = 0; hw < height * width; hw++) {
+                int offset = n * channel * height * width + c * height * width + hw;
+                dst[offset] = (float)src[offset];
+            }
+        }
+    }
+
+    return 0;
+}
+
+Status DataFormatConverter::ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                for (int c = 0; c < channel; c++) {
+                    int src_idx = n * height * width * channel + h * width * channel + w * channel + c;
+                    int dst_idx = n * channel * height * width + c * height * width + h * width + w;
+                    dst[dst_idx] = (float)src[src_idx];
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
 Status DataFormatConverter::ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height,
                                                         int width) {
     return ConvertFromNCHWToNCHW4<float>(src, dst, num, channel, height, width);

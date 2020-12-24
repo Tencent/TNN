@@ -352,8 +352,10 @@ Status AtlasNetwork::AllocateDataset(aclmdlDataset **data_set, bool is_input) {
     size_t count = 0;
     if (is_input) {
         count = aclmdlGetNumInputs(model_desc_);
+        LOGD("AllocateDataset for input (count=%d)\n", count);
     } else {
         count = aclmdlGetNumOutputs(model_desc_);
+        LOGD("AllocateDataset for output (count=%d)\n", count);
     }
     for (size_t i = 0; i < count; ++i) {
         size_t buffer_size = 0;

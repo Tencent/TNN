@@ -16,6 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -23,13 +24,12 @@ class SoftmaxLayerTest : public LayerTest,
                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(10, 12, 10, 12, 512),
-                                            testing::Values(10, 512),
-                                            testing::Values(10, 512),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
+                                            testing::Values(10, 512), testing::Values(10, 512),
                                             // axis
                                             testing::Values(1, 2),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     // get param
@@ -41,7 +41,19 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+
+    if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -49,30 +61,22 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    std::vector<BlobDesc> inputs_desc;
-    BlobDesc input_desc;
-    input_desc.dims.push_back(batch);
-    input_desc.dims.push_back(channel);
-    input_desc.dims.push_back(input_height);
-    input_desc.dims.push_back(input_width);
-    input_desc.device_type = DEVICE_NAIVE;
-    input_desc.data_type   = data_type;
-    inputs_desc.push_back(input_desc);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
     // param
-    SoftmaxLayerParam param;
-    param.name = "Softmax";
-    param.axis = axis;
+    std::shared_ptr<SoftmaxLayerParam> param(new SoftmaxLayerParam());
+    param->name = "Softmax";
+    param->axis = axis;
 
-    Run(LAYER_SOFTMAX, &param, nullptr, inputs_desc, outputs_desc);
+    auto precision = SetPrecision(dev, data_type); 
+
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

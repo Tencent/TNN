@@ -33,7 +33,8 @@ typedef enum {
     DATA_TYPE_HALF  = 1,
     DATA_TYPE_INT8  = 2,
     DATA_TYPE_INT32 = 3,
-    DATA_TYPE_BFP16 = 4
+    DATA_TYPE_BFP16 = 4,
+    DATA_TYPE_INT64 = 5
 } DataType;
 
 typedef enum {
@@ -45,6 +46,7 @@ typedef enum {
     DATA_FORMAT_NC4HW4 = 3,
     DATA_FORMAT_NCDHW  = 4,
     DATA_FORMAT_NHC4W4 = 5,
+    DATA_FORMAT_NC8HW8 = 6,
 } DataFormat;
 
 typedef enum {

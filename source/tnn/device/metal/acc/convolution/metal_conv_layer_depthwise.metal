@@ -29,7 +29,6 @@ kernel void convolution_depthwise(const device ftype4 *in           [[buffer(0)]
         return;
     
     int oz = gid.z % params.output_slice;
-    //int oz = gid.z;
     int offset_x = (int)gid.x * params.stride_x - params.pad_x;
     int offset_y = (int)gid.y * params.stride_y - params.pad_y;
     int sx = max(0, (UP_DIV(-offset_x, params.dilation_x)));

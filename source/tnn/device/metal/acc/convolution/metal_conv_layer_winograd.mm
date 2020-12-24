@@ -202,25 +202,26 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
     int batch = dims_output[0];
-    
+
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
     auto input_bytes = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4) * data_byte_size;
     auto output_bytes = dims_output[3] * dims_output[2] * ROUND_UP(dims_output[1], 4) * data_byte_size;
-    
+
     auto context_impl = context_->getMetalContextImpl();
     auto encoder      = [context_impl encoder];
     encoder.label = GetKernelLabel();
-    
+
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
+
     for (int n = 0; n < batch; ++n) {
         do {
             { // transform
                 status = [context_impl load:@"winograd_transform_source2_3_1" encoder:encoder bandwidth:bandwidth];
                 BREAK_IF(status != TNN_OK);
-                
+
                 [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                            offset:(NSUInteger)input->GetHandle().bytes_offset+n*input_bytes
+                            offset:(NSUInteger)input->GetHandle().bytes_offset + n*input_bytes
                            atIndex:0];
                 [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:1];
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
@@ -230,7 +231,7 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
             { // gemm
                 status = [context_impl load:@"matmul4x4" encoder:encoder bandwidth:bandwidth];
                 BREAK_IF(status != TNN_OK);
-                
+
                 [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:0];
                 [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:1];
                 [encoder setBuffer:buffer_weight_ offset:0 atIndex:2];
@@ -241,10 +242,10 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
             { // transform
                 status = [context_impl load:@"winograd_transform_dest2_3_1" encoder:encoder bandwidth:bandwidth];
                 BREAK_IF(status != TNN_OK);
-                
+
                 [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:0];
                 [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                            offset:(NSUInteger)output->GetHandle().bytes_offset+n*output_bytes
+                            offset:(NSUInteger)output->GetHandle().bytes_offset + n*output_bytes
                            atIndex:1];
                 [encoder setBuffer:buffer_bias_ offset:0 atIndex:2];
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
@@ -257,7 +258,7 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
             return status;
         }
     }
-    
+
     [encoder endEncoding];
     [context_impl commit];
     TNN_PRINT_ENCODER(context_, encoder, this);

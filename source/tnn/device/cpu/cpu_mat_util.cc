@@ -21,9 +21,9 @@
 
 namespace TNN_NS {
 
-#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), 0), UCHAR_MAX)
-#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
-#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
+#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)0), (int)UCHAR_MAX)
+#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)SHRT_MIN), (int)SHRT_MAX)
+#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)INT_MIN), (int)INT_MAX)
 
 #define INTER_REMAP_COEF_BITS  15
 #define INTER_REMAP_COEF_SCALE (1<<INTER_REMAP_COEF_BITS)
@@ -355,6 +355,10 @@ void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, ui
 
 void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
     NaiveBGROrBGRAToGray(src, dst, h, w, channel);
+}
+
+void RGBOrRGBAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
+    NaiveRGBOrRGBAToGray(src, dst, h, w, channel);
 }
 
 #undef SATURATE_CAST_UCHAR

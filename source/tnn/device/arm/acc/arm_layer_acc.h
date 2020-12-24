@@ -102,9 +102,13 @@ public:
     };
 };
 
+#if TNN_ARM82
 #define REGISTER_ARM_PRECISION_FP16(layer_type)                                                                        \
     ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(layer_type,                             \
         ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
+#else
+#define REGISTER_ARM_PRECISION_FP16(layer_type)
+#endif  // TNN_ARM82
 
 }  // namespace TNN_NS
 

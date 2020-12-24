@@ -15,6 +15,7 @@
 #define FLOAT_16_BIT_MASK 0x80000000
 #define INT_8_BIT_MASK 0x40000000
 #define INT_32_BIT_MASK 0x20000000
+#define INT_64_BIT_MASK 0x10000000
 
 
 namespace rapidnetv3 {
@@ -46,6 +47,8 @@ namespace rapidnetv3 {
                     len_with_flag |= INT_8_BIT_MASK;
                 } else if (TNN_NS::DATA_TYPE_INT32 == data_type) {
                     len_with_flag |= INT_32_BIT_MASK;
+                } else if (TNN_NS::DATA_TYPE_INT64 == data_type) {
+                    len_with_flag |= INT_64_BIT_MASK;
                 }
 
                 PutInt(len_with_flag);
@@ -129,6 +132,9 @@ namespace rapidnetv3 {
                 } else if ((length & INT_32_BIT_MASK) != 0) {
                     length    = length & (~INT_32_BIT_MASK);
                     data_type = TNN_NS::DATA_TYPE_INT32;
+                } else if ((length & INT_64_BIT_MASK) != 0) {
+                    length    = length & (~INT_64_BIT_MASK);
+                    data_type = TNN_NS::DATA_TYPE_INT64;
                 }
                 value = TNN_NS::RawBuffer(length);
                 value.SetDataType(data_type);

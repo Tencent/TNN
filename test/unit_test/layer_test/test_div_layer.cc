@@ -33,7 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DivLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(DivLayerTest, BinaryLayerTest) {
-    RunBinaryTest();
+    RunBinaryTest("Div", true);
 }
 
 }  // namespace TNN_NS

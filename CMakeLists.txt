@@ -13,6 +13,7 @@ set(TNN_VERSION "${TNN_MAJOR_VERSION}.${TNN_MINOR_VERSION}.${TNN_PATCH_VERSION}.
 option(TNN_CPU_ENABLE "Enable Cpu" OFF)
 option(TNN_X86_ENABLE  "Enable X86" OFF)
 option(TNN_ARM_ENABLE "Enable Arm" OFF)
+option(TNN_ARM82_ENABLE "Enable Arm82" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
@@ -51,7 +52,7 @@ if(TNN_PROFILER_ENABLE)
 endif()
 
 if(TNN_BENCHMARK_MODE)
-    add_definitions(-DBENCHMARK)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 # ignore loop-vectorize warning
@@ -97,6 +98,7 @@ if(TNN_UNIT_TEST_ENABLE)
     enable_testing()
     set(TNN_CPU_ENABLE ON)
     set(TNN_SYMBOL_HIDE OFF)
+    add_definitions(-DGENERATE_RESOURCE)
 endif()
 
 if(TNN_CONVERTER_ENABLE)
@@ -110,6 +112,16 @@ endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
     option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
+endif()
+
+if(TNN_ARM82_ENABLE)
+    add_definitions(-DTNN_ARM82=1)
+endif()
+
+# only used to simulate arm82 computation in the unit test
+option(TNN_ARM82_SIMU "Enable arm82 simulation" OFF)
+if(TNN_ARM82_SIMU)
+    add_definitions(-DTNN_ARM82_SIMU)
 endif()
 
 if(TNN_METAL_FLOAT32)
@@ -157,6 +169,7 @@ message(STATUS "\tProcessor: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "\tCpu:\t${TNN_CPU_ENABLE}")
 message(STATUS "\tX86:\t${TNN_X86_ENABLE}")
 message(STATUS "\tArm:\t${TNN_ARM_ENABLE}")
+message(STATUS "\tArm82:\t${TNN_ARM82_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")

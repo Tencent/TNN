@@ -184,6 +184,10 @@ Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
         BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 3);
     } else if (type == COLOR_CONVERT_BGRATOGRAY) {
         BGROrBGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 4);
+    } else if (type == COLOR_CONVERT_RGBTOGRAY) {
+        RGBOrRGBAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 3);
+    } else if (type == COLOR_CONVERT_RGBATOGRAY) {
+        RGBOrRGBAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth(), 4);
     } else {
         return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
     }

@@ -32,9 +32,6 @@ using namespace TNN_NS;
 
 #define INPUT_8UC3_ENABLE
 
-static std::mutex g_mtx;
-void* g_input_data_ptr = nullptr;
-
 int GetInputMat(Blob* input_blob, std::string input_file, Mat& output_mat) {
     int ret;
 #ifdef INPUT_8UC3_ENABLE
@@ -63,20 +60,30 @@ int GetInputMat(Blob* input_blob, std::string input_file, Mat& output_mat) {
 #else
     ret = ReadFromTxtToBatch(input_data_ptr, input_file, mat_dims, false);
 #endif
+    if (nullptr == input_data_ptr)
+        return -1;
+
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
 #ifdef INPUT_8UC3_ENABLE
     if(mat_dims[1] == 1) {
-        output_mat = Mat(DEVICE_NAIVE, NGRAY, mat_dims, input_data_ptr);
+        output_mat = Mat(DEVICE_NAIVE, NGRAY, mat_dims);
     } else {
-        output_mat = Mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+        output_mat = Mat(DEVICE_NAIVE, N8UC3, mat_dims);
     }
 #else
-    output_mat = Mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims, input_data_ptr);
+    output_mat = Mat(DEVICE_NAIVE, NCHW_FLOAT, mat_dims);
 #endif
 
-    g_input_data_ptr = input_data_ptr;
+    // copy data into mat
+    int mat_byte_size = 0;
+    auto tnn_ret = MatUtils::GetMatByteSize(output_mat, mat_byte_size);
+    if (tnn_ret != TNN_OK)
+        return -1;
+    memcpy(output_mat.GetData(), input_data_ptr, mat_byte_size);
+    delete input_data_ptr;
+
     return 0;
 }
 
@@ -104,10 +111,21 @@ int GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
     ret = ReadFromTxtToNHWCU8_Batch(input_data_ptr, input_file, mat_dims);
     // ret = ReadFromNchwtoNhwcU8FromTxt(input_data_ptr, input_file, mat_dims);
 
+    if (nullptr == input_data_ptr)
+        return -1;
+
     int index = 10;
     printf("input_data_ptr[%d] = %f\n", index, (float)input_data_ptr[index]);
 
-    Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims, input_data_ptr);
+    Mat input_mat(DEVICE_NAIVE, N8UC3, mat_dims);
+
+    // copy data into mat
+    int mat_byte_size = 0;
+    tnn_ret = MatUtils::GetMatByteSize(input_mat, mat_byte_size);
+    if (tnn_ret != TNN_OK)
+        return -1;
+    memcpy(input_mat.GetData(), input_data_ptr, mat_byte_size);
+    delete input_data_ptr;
 
     // copy from host to device
     Mat input_mat_device(DEVICE_ATLAS, N8UC3, mat_dims);
@@ -140,7 +158,6 @@ int GetInputMatWithDvpp(Blob* input_blob, std::string input_file, void* command_
         return -1;
     }
 
-    g_input_data_ptr = input_data_ptr;
     printf("output_mat dims: [%d %d %d %d]\n", output_mat.GetBatch(), output_mat.GetChannel(), output_mat.GetHeight(),
            output_mat.GetWidth());
 
@@ -279,14 +296,6 @@ void* RunTNN(void* param) {
         std::string name_temp     = ReplaceString(output.second->GetBlobDesc().name);
         DumpDataToTxt((float*)output_mat.GetData(), output_mat.GetDims(),
                       "dump_" + name_temp + "thread_" + thread_id_str + ".txt");
-    }
-
-    {
-        std::unique_lock<std::mutex> lck(g_mtx);
-        if (g_input_data_ptr != nullptr) {
-            free(g_input_data_ptr);
-            g_input_data_ptr = nullptr;
-        }
     }
 
     instance_.reset();
