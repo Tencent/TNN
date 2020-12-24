@@ -320,7 +320,7 @@ while [ "$1" != "" ]; do
     esac
 done
 
-if [ "$BENCHMARK_TYPE" == "APP" ]; then
+if [ "$BENCHMARK_TYPE" == "APP" and $PROFILING == "OFF" ]; then
     bench_android_app
 else
     bench_android_shell
