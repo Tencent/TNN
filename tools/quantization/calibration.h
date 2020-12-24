@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_TOOLS_QUANTIZATION_CALIBRATION_H_
@@ -40,8 +40,7 @@ public:
     // @param config network config info
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
-    Status Init(NetworkConfig& net_config, ModelConfig& model_config,
-                InputShapesMap inputs_shape = InputShapesMap());
+    Status Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape = InputShapesMap());
 
     // @brief set the quanztize method
     // @param params the params of calibration
@@ -64,21 +63,15 @@ private:
     IntScaleResource* CreateIntScale(std::vector<float> scale_vec);
 
     int QuantizeParams();
-    int QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam* param,
-                           IntScaleResource* input_scale);
-    int QuantizeFcParams(InnerProductLayerResource* resource,
-                         InnerProductLayerParam* param,
+    int QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam* param, IntScaleResource* input_scale);
+    int QuantizeFcParams(InnerProductLayerResource* resource, InnerProductLayerParam* param,
                          IntScaleResource* input_scale);
-    int CalQuantizedWeights(const float* weights, const int size,
-                            const int output_channel, int8_t* quantized_weight,
-                            float* weight_scale);
+    int CalQuantizedWeights(const float* weights, const int size, const int output_channel, bool merge_channel,
+                            int8_t* quantized_weight, float* weight_scale);
 
     int MergeBlobScale();
-    void MergeBlobScaleRecursion(LayerInfo* layer_info,
-                                 NetStructure* net_struct,
-                                 NetResource* net_resource);
-    LayerInfo* GetLayerInfoFromOutpubBlobName(std::string blob_name,
-                                              NetStructure* net_struct);
+    void MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource);
+    LayerInfo* GetLayerInfoFromOutpubBlobName(std::string blob_name, NetStructure* net_struct);
 
     std::shared_ptr<DefaultModelInterpreter> interpreter_;
     std::shared_ptr<Instance> instance_;

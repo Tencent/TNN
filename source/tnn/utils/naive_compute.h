@@ -25,11 +25,14 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 
 int8_t float2int8(float val);
 uint8_t float2uint8(float val);
+int8_t half2int8(fp16_t val);
+uint8_t half2uint8(fp16_t val);
 
 template <typename T, typename Tacc>
 void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
@@ -66,7 +69,11 @@ void priorbox_set_value(const int N, const float alpha, float *Y);
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param);
 
+void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order);
+
 void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
+
+void NaiveRGBOrRGBAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
 
 void NaiveYUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12);
 

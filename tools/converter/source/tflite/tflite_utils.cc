@@ -76,6 +76,36 @@ bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
     return true;
 }
 
+bool ConvertPermFormatTFLite(std::vector<int32_t>& perm) {
+    if (perm.empty()) {
+        LOGE("TNN Converter do not support wrong perm!\n");
+        return false;
+    }
+
+    int perm_size = perm.size();
+    if (perm_size > 4) {
+        LOGE("TNN Transpose do not support perm's size larger than 4!\n");
+        return false;
+    }
+
+    for (int i = perm_size; i < 4; i++) {
+        perm.emplace_back(i);
+    }
+
+    std::map<int, int> nhwc_to_nchw;
+    nhwc_to_nchw[0] = 0;
+    nhwc_to_nchw[1] = 2;
+    nhwc_to_nchw[2] = 3;
+    nhwc_to_nchw[3] = 1;
+
+    for (auto& v: perm) {
+        v = nhwc_to_nchw[v];
+    }
+    ConvertShapeFormatTFLite(perm);
+
+    return true;
+}
+
 // template <typename T>
 bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vector<int32_t> shape) {
     ASSERT(shape.size() == 2);
