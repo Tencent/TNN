@@ -21,6 +21,7 @@
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
 
@@ -84,9 +85,24 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         }
     }
 
-    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, CVT_DIR_BLOB2MAT, cvt_func_);
+    auto cvt_data_type  = desc.data_type;
+    auto cvt_handle_ptr = handle_ptr;
+#ifndef __aarch64__
+    RawBuffer tmp_float_blob;
+    if (desc.data_type == DATA_TYPE_HALF) {
+        // In aarch32 or armv7, first reformat half blob to float blob.
+        tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+        HalfC8ToFloatC4(tmp_float_blob.force_to<float *>(), reinterpret_cast<fp16_t *>(handle_ptr),
+                        dims[0], dims[1], dims[2] * dims[3]);
+        // In aarch32 or armv7, then convert from float blob.
+        cvt_data_type  = DATA_TYPE_FLOAT;
+        cvt_handle_ptr = tmp_float_blob.force_to<char *>();
+    }
+#endif
+
+    ret = GetBlobConvertFunc(image.GetMatType(), cvt_data_type, CVT_DIR_BLOB2MAT, cvt_func_);
     if (ret == TNN_OK) {
-        return cvt_func_(image, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
+        return cvt_func_(image, cvt_handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
     } else {
         return ret;
     }
@@ -122,12 +138,34 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         }
     }
 
-    ret = GetBlobConvertFunc(image.GetMatType(), desc.data_type, CVT_DIR_MAT2BLOB, cvt_func_);
+    auto cvt_data_type  = desc.data_type;
+    auto cvt_handle_ptr = handle_ptr;
+#ifndef __aarch64__
+    RawBuffer tmp_float_blob;
+    if (desc.data_type == DATA_TYPE_HALF) {
+        // In aarch32 or armv7, first convert to float blob.
+        cvt_data_type  = DATA_TYPE_FLOAT;
+        tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+        cvt_handle_ptr = tmp_float_blob.force_to<char *>();
+    }
+#endif
+
+    ret = GetBlobConvertFunc(image.GetMatType(), cvt_data_type, CVT_DIR_MAT2BLOB, cvt_func_);
     if (ret == TNN_OK) {
-        return cvt_func_(image, handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
+        ret = cvt_func_(image, cvt_handle_ptr, param, dims, hw, c_r4, fused_int8_scale, fused_int8_bias);
     } else {
         return ret;
     }
+
+#ifndef __aarch64__
+    if (desc.data_type == DATA_TYPE_HALF) {
+        // In aarch32 or armv7, then reformat float blob to half blob.
+        FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(handle_ptr), reinterpret_cast<float *>(cvt_handle_ptr),
+                        dims[0], dims[1], dims[2] * dims[3]);
+    }
+#endif
+
+    return ret;
 }
 
 /*
