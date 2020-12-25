@@ -26,13 +26,13 @@ kernel void convolution_1x1(const device ftype4 *in           [[buffer(0)]],
                             const device ftype4 *biasTerms    [[buffer(4)]],
                             uint3 gid                         [[thread_position_in_grid]]) {
     if (any(gid >= uint3(params.output_size,
-                           params.output_slice_per_group,
+                           params.output_slice,
                            params.batch)))
         return;
     
     int g = gid.y / params.output_slice_per_group;
-    auto xy_wt  = wt                                                    + (int)gid.y * params.input_slice_per_group;
-    auto xy_in  = in  + (int)gid.z * params.input_slice  * params.input_size  +          g * params.input_size  + (int)gid.x;
+    auto xy_wt  = wt  + (int)gid.y * params.input_slice_per_group;
+    auto xy_in  = in  + (int)gid.z * params.input_slice  * params.input_size  + g * params.input_slice_per_group * params.input_size  + (int)gid.x;
     auto xy_out = out + (int)gid.z * params.output_slice * params.output_size + (int)gid.y * params.output_size + (int)gid.x;
     
     auto result = params.has_bias ? float4(biasTerms[gid.y]) : float4(Zero4);

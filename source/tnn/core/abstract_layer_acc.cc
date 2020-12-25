@@ -77,6 +77,7 @@ void AbstractLayerAcc::UpdateProfilingData(ProfilingData *pdata, LayerParam *par
             pdata->pad_shape.push_back(conv_param->pads[0]);
             pdata->dilation_shape.push_back(conv_param->dialations[1]);
             pdata->dilation_shape.push_back(conv_param->dialations[0]);
+            pdata->group = conv_param->group;
         }
     }
 

@@ -34,7 +34,7 @@ cd <path_to_tnn>/platforms/linux/
 |-n, --mean         |        |&radic;|
 Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|
 |-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|
-|-c, --merge_channel|        |&radic;|Whether to calculate all the channels together when quantifying the feature map, otherwise it is calculated separately for each channel.|  
+|-t, --merge_type|        |&radic;|Whether use per-tensor or per-channel method when quantifying: <br>&bull; 0 per-channel method (default)<br>&bull; 1 mix method, weights: per-channel, blob: per-tensor.<br>&bull; 2 per-tensor method|  
   
 ### 3. Quantization Input   
 #### 3.1 Select input data    

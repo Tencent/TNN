@@ -118,7 +118,13 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
         if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
             return true;
         }
+        if (cvt_type == COLOR_CONVERT_RGBTOGRAY && mat_type != N8UC3) {
+            return true;
+        }
         if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_RGBATOGRAY && mat_type != N8UC4) {
             return true;
         }
         if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
@@ -197,6 +203,8 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 // CvtColor
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBTOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBATOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
@@ -345,7 +353,9 @@ TEST_P(MatConverterTest, MatConverterTest) {
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
 
             if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRTOGRAY ||
-                mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY) {
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY ||
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_RGBTOGRAY ||
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_RGBATOGRAY) {
                 out_size_ /= channel;
             }
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),

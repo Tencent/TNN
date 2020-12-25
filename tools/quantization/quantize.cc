@@ -178,7 +178,7 @@ bool CheckFileName(std::string name) {
 void PrintConfig() {
     printf(
         "usage:\n./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> "
-        "[-n] <val> [-s] <val> [-c] [-o] <output_name>\n"
+        "[-n] <val> [-s] <val> [-t] <val> [-o] <output_name>\n"
         "\t-h, --help        \t show this message\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"
         "\t-m, --model       \t(require) tnn model file name\n"
@@ -196,7 +196,10 @@ void PrintConfig() {
         "input, ie, "
         "1.0,1.0,1.0 \n"
         "\t\tformula: y = (x - bias) * scale\n"
-        "\t-c, --merge_channel\t(optional) merge blob channel when quantize blob\n"
+        "\t-t, --merge_type\t(optional) merge blob/weights channel when quantize blob/weights\n"
+        "\t\t0: per-channel mode  (default)\n"
+        "\t\t1: mix mode          weight: per-channel  blob: per-tensor\n"
+        "\t\t2: per-tersor mode\n"
         "\t-o, --output       \t(optional) specify the name of output\n");
 }
 
@@ -208,11 +211,6 @@ int main(int argc, char* argv[]) {
     std::string output_name = "model";
 
     CalibrationParam cali_params;
-    cali_params.blob_quantize_method    = MIN_MAX;
-    cali_params.weights_quantize_method = MIN_MAX;
-    cali_params.merge_blob_channel      = false;
-    cali_params.input_bias              = {0, 0, 0, 0};
-    cali_params.input_scale             = {1.0f, 1.0f, 1.0f, 1.0f};
 
     struct option long_options[] = {{"proto", required_argument, 0, 'p'},
                                     {"model", required_argument, 0, 'm'},
@@ -221,12 +219,12 @@ int main(int argc, char* argv[]) {
                                     {"weight_method", required_argument, 0, 'w'},
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
-                                    {"merge_channel", no_argument, 0, 'c'},
+                                    {"merge_type", no_argument, 0, 't'},
                                     {"output", required_argument, 0, 'o'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:i:b:w:n:s:co:h";
+    const char* optstring = "p:m:i:b:w:n:s:t:o:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -285,14 +283,27 @@ int main(int argc, char* argv[]) {
                     cali_params.input_scale.push_back(atof(s.c_str()));
                 }
             } break;
-            case 'c':
-                printf("merge channel: true\n");
-                cali_params.merge_blob_channel = true;
-                break;
+            case 't': {
+                printf("merge type: %s\n", optarg);
+                int merge_type = atoi(optarg);
+                if (0 == merge_type) {
+                    cali_params.merge_blob_channel    = false;
+                    cali_params.merge_weights_channel = false;
+                } else if (1 == merge_type) {
+                    cali_params.merge_blob_channel    = true;
+                    cali_params.merge_weights_channel = false;
+                } else if (2 == merge_type) {
+                    cali_params.merge_blob_channel    = true;
+                    cali_params.merge_weights_channel = true;
+                } else {
+                    cali_params.merge_blob_channel    = false;
+                    cali_params.merge_weights_channel = false;
+                }
+            } break;
             case 'o':
                 printf("output name: %s\n", optarg);
                 output_name = optarg;
-                if (!CheckFileName(output_name)) {
+                if (!CheckFileName(output_name + ".quantized.tnnproto")) {
                     printf("invaild output name!\n");
                     return 0;
                 }
