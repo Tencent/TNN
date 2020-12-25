@@ -591,6 +591,25 @@ struct MetalReorgParams {
     int mode; // DCR: 0  CRD: 1
 };
 
+/** Permute Param Struct **/
+struct MetalPermuteParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int batch;
+
+    int strides[4];
+    int orders[4];
+    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim; // which axis of the output corresponds the input channel
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = dims_input[3];                                                                    \

@@ -21,6 +21,15 @@ namespace TNN_NS {
 
 DECLARE_METAL_ACC(Permute, LAYER_PERMUTE);
 
+const static std::map<unsigned int, std::string> kernels = {
+    {0x0231, "permute_to_nhwc"},
+    {0x0213, "permute_to_nhcw"},
+    {0x0312, "permute_to_nwch"},
+    {0x0321, "permute_to_nwhc"},
+    {0x1230, "permute_to_chwn"},
+    {0x0123, "permute_copy"}
+};
+
 unsigned int GetPermuteOrderKey(const std::vector<int>& orders) {
     constexpr static unsigned int keys[4] = {
         0x1000, 0x0100, 0x010, 0x0001};
@@ -43,16 +52,52 @@ bool isPermuteOrderSupported(const std::vector<int>& orders) {
 }
 
 Status MetalPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (!isPermuteOrderSupported(layer_param->orders)) {
-        return Status(TNNERR_PARAM_ERR, "permute orders not supported!");
-    }
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
 
 Status MetalPermuteLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                  const std::vector<Blob *> &outputs) {
-    return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
+    auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
+    auto order_id = GetPermuteOrderKey(layer_param->orders);
+    if (kernels.count(order_id))
+        return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
+    
+    id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    PermuteLayerParam* params = dynamic_cast<PermuteLayerParam *>(param_);
+    
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+    {
+        MetalPermuteParams metal_params;
+        SetDefaultMetalParams(metal_params, dims_input, dims_output);
+    
+        const static int dims_cnt = 4;
+        int input_strides[dims_cnt] = {
+            metal_params.input_slice * metal_params.input_size,
+            metal_params.input_size,
+            metal_params.input_width,
+            1
+        };
+        
+        int output_strides[dims_cnt] = {0, 0, 0, 0};
+        const auto& orders = params->orders;
+        for(int i=0; i<dims_cnt; ++i) {
+            output_strides[i] = input_strides[orders[i]];
+            if (orders[i] == 1) {
+                metal_params.channel_dim = i;
+            }
+            if (i == 1) {
+                metal_params.channel_dim_size = dims_input[orders[i]];
+            }
+            metal_params.strides[i] = output_strides[i];
+        }
+        
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                            length:sizeof(MetalPermuteParams)
+                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+    
+    return TNN_OK;
 }
 
 Status MetalPermuteLayerAcc::SetKernelEncoderParam(
@@ -63,20 +108,14 @@ Status MetalPermuteLayerAcc::SetKernelEncoderParam(
 }
 
 std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    const static std::map<unsigned int, std::string> kernels = {
-        {0x0231, "permute_to_nhwc"},
-        {0x0213, "permute_to_nhcw"},
-        {0x0312, "permute_to_nwch"},
-        {0x0321, "permute_to_nwhc"},
-        {0x1230, "permute_to_chwn"},
-        {0x0123, "permute_copy"}
-    };
-
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
     auto order_id = GetPermuteOrderKey(layer_param->orders);
-    if (kernels.count(order_id))
+    if (kernels.count(order_id)) {
+        printf("xxxxx:%s\n", kernels.at(order_id).c_str());
         return kernels.at(order_id);
-    return "";
+    }
+    printf("xxxxx:permute_common\n");
+    return "permute_common";
 }
 
 Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
@@ -89,8 +128,11 @@ Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
 
 Status MetalPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (!layer_param || layer_param->orders.size() < 4) {
+    if (!layer_param) {
         return Status(TNNERR_PARAM_ERR, "PermuteLayerParam is nil");
+    }
+    if (layer_param->orders.size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "PermuteLayerParam: orders size is invalid");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

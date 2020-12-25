@@ -218,3 +218,57 @@ kernel void permute_copy(const device ftype4 *src                  [[buffer(0)]]
     int index_in_out = (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
     dst[index_in_out] = src[index_in_out];
 }
+
+kernel void permute_common(const device ftype4 *src                  [[buffer(0)]],
+                           device ftype4 *dst                        [[buffer(1)]],
+                           constant MetalPermuteParams &params       [[buffer(2)]],
+                           uint3 gid                                 [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_width, params.output_height, params.output_slice * params.batch)))
+        return;
+    
+    int index_out = (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
+    
+    int batch  = (int)gid.z / params.output_slice;
+    int slice  = (int)gid.z % params.output_slice;
+    int4 channel = slice * 4 + int4(0, 1, 2, 3);
+    int height = (int)gid.y;
+    int width  = (int)gid.x;
+    bool4 valid_position = channel < params.channel_dim_size;
+    channel = clamp(channel, 0, params.channel_dim_size-1);
+    
+    int4 input_i  = int4(0);
+    int input_slice = 0;
+    int4 index_in = 0;
+    switch(params.channel_dim) {
+        case 0:
+            input_slice = batch / 4;
+            input_i = batch % 4;
+            index_in = input_slice*params.strides[0] + channel*params.strides[1] + height*params.strides[2] + width*params.strides[3];
+            break;
+        case 1:
+            input_slice = slice;
+            input_i = channel % 4;
+            index_in = batch*params.strides[0] + input_slice*params.strides[1] + height*params.strides[2] + width*params.strides[3];
+            break;
+        case 2:
+            input_slice = height / 4;
+            input_i = height % 4;
+            index_in = batch*params.strides[0] + channel*params.strides[1] + input_slice*params.strides[2] + width*params.strides[3];
+            break;
+        case 3:
+            input_slice = width / 4;
+            input_i = width % 4;
+            index_in = batch*params.strides[0] + channel*params.strides[1] + height*params.strides[2] + input_slice*params.strides[3];
+            break;
+    }
+    
+    ftype4 val = ftype4(
+        src[index_in[0]][input_i[0]],
+        src[index_in[1]][input_i[1]],
+        src[index_in[2]][input_i[2]],
+        src[index_in[3]][input_i[3]]
+    );
+    val = select(ftype4(0), val, valid_position);
+    
+    dst[index_out] = val;
+}
