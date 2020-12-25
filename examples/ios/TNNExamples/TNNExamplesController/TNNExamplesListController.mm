@@ -161,7 +161,7 @@ using namespace std;
         }
         [examples addObject:data];
     }
-    
+
     //头发分割 - HairSegmentation
     {
         auto data = [TNNExampleData new];
