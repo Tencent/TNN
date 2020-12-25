@@ -15,17 +15,14 @@
 #ifndef ANDROID_BENCHMARK_MODEL_JNI_H_
 #define ANDROID_BENCHMARK_MODEL_JNI_H_
 
-#include "benchmark_model.h"
 #include <jni.h>
-#include "helper_jni.h"
-#include <android/bitmap.h>
 
 #define TNN_BENCHMARK_MODEL(sig) Java_com_tencent_tnn_benchmark_BenchmarkModel_##sig
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv *env, jobject thiz, jstring args_obj, jstring file_dir);
+JNIEXPORT jint JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv *env, jobject thiz, jstring args_obj, jstring file_dir);
 
 #ifdef __cplusplus
 }

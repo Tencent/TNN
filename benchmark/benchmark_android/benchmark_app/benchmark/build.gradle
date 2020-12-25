@@ -1,72 +1,26 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 22
+        targetSdkVersion 26
         versionCode 1000
         versionName "1.0.0"
-
-        externalNativeBuild {
-            cmake {
-                cppFlags "-std=c++11 -frtti -fexceptions -lz -DANDROID_ARM_NEON=ON -mfpu=neon"
-                arguments "-DANDROID_STL=c++_shared"
-            }
-        }
-        ndk {
-            abiFilters "arm64-v8a"
-        }
-
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
-        }
-    }
-
-    sourceSets {
-        main {
-            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']
-            jni.srcDirs = ['src/main/jni']
-            assets.srcDirs = ['src/main/assets', '../../../benchmark-model']
-        }
-    }
 }
-
-task deleteFiles(type: Delete) {
-    if ( file('src/main/jni/thirdparty/hiai_ddk/arm64-v8a').exists()) {
-        delete 'src/main/jni/thirdparty/hiai_ddk/arm64-v8a'
-    }
-    if (file('src/main/jni/thirdparty/hiai_ddk/armeabi-v7a').exists()) {
-        delete 'src/main/jni/thirdparty/hiai_ddk/armeabi-v7a'
-    }
-    if (file('src/main/jni/thirdparty/hiai_ddk/include').exists())
-        delete'src/main/jni/thirdparty/hiai_ddk/include'
-}
-clean.dependsOn(deleteFiles)
-
-task copyFiles(type: Copy) {
-    if (file('../../../../third_party/huawei_npu/hiai_ddk_latest').exists()) {
-        from '../../../../third_party/huawei_npu/hiai_ddk_latest'
-        into 'src/main/jni/thirdparty/hiai_ddk'
-    }
-}
-
-preBuild.dependsOn(copyFiles)
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'com.android.support:appcompat-v7:24.2.1'
+    implementation 'com.android.support:appcompat-v7:26.0.2'
 }
 
 

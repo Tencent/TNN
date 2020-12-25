@@ -55,10 +55,10 @@
 
    c) 真机运行时，如果遇到CodeSign错误`Command CodeSign failed with a nonzero exit code`，可参看issue20 `iOS Demo运行步骤说明`
 
-## 二、Android/ArmLinux平台耗时测试
+## 二、Android平台耗时测试
 ### 1. 环境搭建  
 #### 1.1 编译环境  
-参考[TNN编译文档](../user/compile.md) 中Android/Armlinux库编译，检查环境是否满足要求。  
+参考[TNN编译文档](../user/compile.md) 中Android库编译，检查环境是否满足要求。  
 
 #### 1.2 执行环境  
 * adb命令配置  
@@ -87,13 +87,14 @@ cp mobilenet_v1.tnnproto .
 
 ### 4. 执行脚本
 ```
-./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>
+./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] [-bs] <device-id> [-t] <CPU/GPU>
 参数说明：
     -32   编译32位的库，否则为64位
     -c    删除之前的编译文件，重新编译
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
     -t    指定执行的平台。需要加上<CPU/GPU/HUAWEI_NPU>
+    -bs   shell运行可执行文件测试
 ```
 P.S. 不指定 -t, 默认跑CPU和GPU, 华为npu benchmark需通过-t HUAWEI_NPU特殊制定.
 #### 4.1 全网络性能分析：
@@ -122,77 +123,4 @@ P.S. 华为npu不支持每层分析。
 
 ### 5. 特殊说明
 * 对于OpenCL平台，逐层性能分析的目的是分析kernel的耗时分布，其中为了打印每层耗时，有额外开销，只有kernel时间具有参考意义。如果要看整体实际性能，需要参考全网络性能分析。
-
-## 三、Android平台app耗时测试
-### 1. 环境搭建
-#### 1.1 编译环境
-参考[TNN编译文档](../user/compile.md) 中Android库编译，检查环境是否满足要求。
-
-#### 1.2 执行环境
-##### 1.2.1 JDK
-下载[JDK工具](https://www.oracle.com/hk/java/technologies/javase-downloads.html)，配置`$JAVA_HOME`环境变量。
-PS: 如果jdk版本过低，可能执行脚本会失败。当时测试的jdk版本为：15.0.1
-```
-export JAVA_HOME=<path_to_jdk>/
-```
-
-##### 1.2.2 安卓SDK
-下载[安卓SDK](https://developer.android.com/studio/releases/build-tools)，配置`$ANDROID_HOME`环境变量。
-PS: 如果安卓sdk版本过低，可能执行脚本会失败。当时测试的sdk版本为：28.0.3
-```
-export ANDROID_HOME=<path_to_android_sdk>/
-```
-
-##### 1.2.3 adb命令配置
-下载[安卓SDK工具](https://developer.android.com/studio/releases/platform-tools)，将`platform-tool`目录加入`$PATH`环境变量中。
-PS: 如果adb版本过低，可能执行脚本会失败。当前测试的adb版本为：29.0.5-5949299
-```
-export PATH=<path_to_android_sdk>/platform-tools:$PATH
-```
-
-### 2. 添加模型
-在`<path_to_tnn>/benchmark/benchmark-model`目录下，将要测试模型的tnnproto放入文件夹，例如，
-```
-cd <path_to_tnn>/benchmark/benchmark-model
-cp mobilenet_v1.tnnproto .
-```
-
-
-### 3. 修改脚本
-在脚本`benchmark_models_app.sh`中的`benchmark_model_list`变量里添加模型文件名，例如：
-```
- benchmark_model_list=(
- #test.tnnproto \
- mobilenet_v1.tnnproto \    # 待测试的模型文件名
-)
-```
-
-### 4. 执行脚本
-```
-./benchmark_models.sh -app [-th] <thread-num> [-n] [-d] <device-id> [-t] <CPU/GPU>
-参数说明：
-    -th   CPU执行的线程数，默认为1
-    -n    使用ncnn的模型，默认关闭
-    -d    指定device_id
-    -t    指定执行的平台。需要加上<CPU/GPU>
-```
-P.S. 不指定 -t, 默认跑CPU和GPU.
-#### 4.1 全网络性能分析：
-构建并安装安卓耗时测试app，运行app，分析整体网络耗时，执行多次，获取平均性能。
-执行脚本：
-```
-./benchmark_models.sh -app
-```
-结果类似：
-```
-benchmark device: ARM
-
-... TNN Benchmark time cost: min = 26.282   ms  |  max = 27.592   ms  |  avg = 26.561   ms
-
-benchmark device: OPENCL
-
-... TNN Benchmark time cost: min = 12.929   ms  |  max = 13.454   ms  |  avg = 13.092   ms
-```
-
-### 5. 特殊说明
-相比后台`adb shell`执行耗时测试的方式，app耗时测试的性能更贴近真实安卓app执行的性能。受安卓调度策略的影响，两种方式的性能可能有明显差异。综上所诉，安卓app耗时测试更为推荐。
+* Android系统相比shell执行可执行文件耗时测试，app耗时测试的性能更贴近真实安卓app执行的性能。受安卓调度策略的影响，两种方式的性能可能有明显差异。综上所诉，安卓app耗时测试更为推荐。

@@ -1,6 +1,10 @@
 file(GLOB TEST_SRCS *.h *.cc)
 #message(${TEST_SRCS})
 
+if(UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
+endif()
+
 get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..  ABSOLUTE)
 
 include_directories(${TNN_ROOT})
