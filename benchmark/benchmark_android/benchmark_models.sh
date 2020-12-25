@@ -23,6 +23,7 @@ ANDROID_DATA_DIR=$ANDROID_DIR/benchmark-model
 OUTPUT_LOG_FILE=benchmark_models_result.txt
 LOOP_COUNT=16
 WARM_UP_COUNT=8
+INTERVAL=5
 
 benchmark_model_list=(
 #test.tnnproto \
@@ -136,6 +137,7 @@ function bench_android_shell() {
         for benchmark_model in ${benchmark_model_list[*]}
         do
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            sleep $INTERVAL
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -151,6 +153,7 @@ function bench_android_shell() {
         for benchmark_model in ${benchmark_model_list[*]}
         do
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            sleep $INTERVAL
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -164,6 +167,7 @@ function bench_android_shell() {
         for benchmark_model in ${benchmark_model_list[*]}
         do
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -nt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            sleep $INTERVAL
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -228,6 +232,7 @@ function bench_android_app() {
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
                 --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            sleep $INTERVAL
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1 >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
@@ -243,6 +248,7 @@ function bench_android_app() {
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
                 --esa load-list "libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            sleep $INTERVAL
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1  >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
@@ -259,7 +265,8 @@ function bench_android_app() {
                 -n com.tencent.tnn.benchmark/.MainActivity \
                 --es args \'${TEST_ARGS}\' --es benchmark-dir ${ANDROID_DIR} \
                 --es model ${benchmark_model} \
-                --esa load-list "libc++_shared.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+                --esa load-list "libc++_shared.so,libhiai_ir.so,libcpucl.so,libhcl.so,libhiai.so,libhiai_ir_build.so,libTNN.so,libTNNBenchmarkTest.so,libtnn_wrapper.so"  1 > /dev/null
+            sleep $INTERVAL
             $ADB logcat -d | grep "TNN Benchmark time cost" | grep ${benchmark_model} | tail -n 1  >> $WORK_DIR/$OUTPUT_LOG_FILE
         done
     fi
