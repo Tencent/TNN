@@ -30,8 +30,7 @@ __global__ void pixel_shuffle_kernel(int count, const float* input, float* outpu
         output[s * input_h * upscale_factor * input_w * upscale_factor +
             h * upscale_factor * input_w * upscale_factor + i * input_w * upscale_factor +
             w * upscale_factor + j] = input[s * upscale_factor * upscale_factor * input_h * input_w +
-                                          i * upscale_factor * input_h * input_w + j * input_h * input_w + h * input_w +
-                                          w];
+            i * upscale_factor * input_h * input_w + j * input_h * input_w + h * input_w + w];
     }
 }
 

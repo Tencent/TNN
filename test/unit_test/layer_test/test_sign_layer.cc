@@ -30,6 +30,9 @@ TEST_P(SignLayerTest, UnaryLayerTest) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
     RunUnaryTest("Sign");
 }
 

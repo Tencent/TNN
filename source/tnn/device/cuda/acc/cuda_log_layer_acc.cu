@@ -17,21 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Ceil, LAYER_CEIL);
+DECLARE_CUDA_ACC(Log, LAYER_LOG);
 
-Status CudaCeilLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaLogLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaCeilLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaLogLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaCeilLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaLogLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Ceil, LAYER_CEIL);
+REGISTER_CUDA_ACC(Log, LAYER_LOG);
 
 }  // namespace TNN_NS

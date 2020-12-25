@@ -12,26 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Ceil, LAYER_CEIL);
+DECLARE_TENSORRT_LAYER_BUILDER(Sin, LAYER_SIN);
 
-Status CudaCeilLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+ILayer* SinTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kSIN);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+
+    return layer;
 }
 
-Status CudaCeilLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
+REGISTER_TENSORRT_LAYER_BUILDER(Sin, LAYER_SIN);
 
-Status CudaCeilLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-REGISTER_CUDA_ACC(Ceil, LAYER_CEIL);
-
-}  // namespace TNN_NS
+}  //  namespace TNN_NS

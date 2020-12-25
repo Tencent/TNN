@@ -12,26 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/network/tensorrt/layer_builder/reduce_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Ceil, LAYER_CEIL);
+DECLARE_TRT_REDUCE_LAYER_BUILDER(ReduceMin);
 
-Status CudaCeilLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+ReduceMinTRTLayerBuilder::ReduceMinTRTLayerBuilder(LayerType ignore) : ReduceTRTLayerBuilder(ignore) {
+    m_op = ReduceOperation::kMIN;
 }
 
-Status CudaCeilLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
+REGISTER_TENSORRT_LAYER_BUILDER(ReduceMin, LAYER_REDUCE_MIN);
 
-Status CudaCeilLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-REGISTER_CUDA_ACC(Ceil, LAYER_CEIL);
-
-}  // namespace TNN_NS
+}  //  namespace TNN_NS
