@@ -90,6 +90,7 @@ protected:
     LayerResource *resource_;
 
     std::vector<std::string> outputs_name_;
+    std::vector<std::vector<int>> output_shapes_;
     virtual Status Convert() = 0;
 };
 
