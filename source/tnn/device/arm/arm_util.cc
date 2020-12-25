@@ -258,6 +258,7 @@ template int PackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackC4(float *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
