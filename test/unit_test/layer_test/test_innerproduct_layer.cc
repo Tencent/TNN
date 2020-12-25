@@ -23,7 +23,7 @@ class InnerProductLayerTest : public LayerTest,
                               public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 3, 10, 32),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 3, 10, 32),
                                             testing::Values(9, 10, 16, 19),
                                             // output channel
                                             testing::Values(21, 50),

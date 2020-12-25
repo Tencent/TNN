@@ -24,8 +24,9 @@ kernel void deconv_depthwise(const device ftype4 *in          [[buffer(0)]],
                              uint3 gid                      [[thread_position_in_grid]]) {
     if ((int)gid.x >= param.output_width || (int)gid.y >= param.output_height) return;
     
-    
-    float4 result = param.has_bias ? float4(biasTerms[(int)gid.z]) : float4(Zero4);
+    const int out_slice = int(gid.z) % param.output_slice;
+
+    float4 result = param.has_bias ? float4(biasTerms[out_slice]) : float4(Zero4);
     int oy = (int)gid.y + param.pad_y;
     int ox = (int)gid.x + param.pad_x;
     int max_sy = min((param.input_height - 1) * param.stride_y, oy / param.stride_y * param.stride_y);
@@ -40,7 +41,7 @@ kernel void deconv_depthwise(const device ftype4 *in          [[buffer(0)]],
         int max_kx = (ox - min_sx) / param.dilation_x;
         int min_iy = (oy - max_ky * param.dilation_y) / param.stride_y;
         int min_ix = (ox - max_kx * param.dilation_x) / param.stride_x;
-        auto z_wt = wt + (int)gid.z * param.kernel_size;
+        auto z_wt = wt + out_slice * param.kernel_size;
         auto z_in = in + (int)gid.z * param.input_size;
         for (auto ky = max_ky, iy = min_iy; ky >= min_ky; ky -= param.kernel_delta_y, iy += param.input_delta_y) {
             for (auto kx = max_kx, ix = min_ix; kx >= min_kx; kx -= param.kernel_delta_x, ix += param.input_delta_x) {
