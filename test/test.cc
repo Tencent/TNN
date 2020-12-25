@@ -74,7 +74,7 @@ namespace test {
         if (CheckResult("init tnn", ret)) {
             auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
-                return 0;
+                return ret;
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 
@@ -120,7 +120,7 @@ namespace test {
                 model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
             }   
  
-            Timer timer(model_name);
+            Timer timer(model_name + " - " + FLAGS_dt);
 
             for (int i = 0; i < FLAGS_ic; ++i) {
                 timer.Start();
@@ -129,19 +129,19 @@ namespace test {
                     auto blob_converter = element.second;
                     ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                     if (!CheckResult("ConvertFromMat", ret)) {
-                        return 0;
+                        return ret;
                     }
                 }
                 ret = instance->ForwardAsync(nullptr);
                 if (!CheckResult("Forward", ret)) {
-                    return 0;
+                    return ret;
                 }
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
                     ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
                     if (!CheckResult("ConvertToMat", ret)) {
-                        return 0;
+                        return ret;
                     }
                 }
                 timer.Stop();
@@ -149,8 +149,6 @@ namespace test {
 #if TNN_PROFILE
             instance->FinishProfile(true);
 #endif
-            CheckResult("Forward", ret);
-
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
             }
@@ -159,8 +157,10 @@ namespace test {
  
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
+            return 0;
+        } else {
+            return ret;
         }
-        return 0;
     }
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]) {

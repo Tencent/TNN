@@ -35,7 +35,7 @@ To compile the model_check tool, the following macro must be set to ON:
 ## IV. Execute the Script
 ### 1. Android
 #### 1.1 Prepare models
-Copy the tnnproto and tnnmodel files of the model to be verified into `<path_to_tnn>/platforms/android/modles` and rename them to` test.tnnproto` and `test.tnnmodel`
+Copy the tnnproto and tnnmodel files of the model to be verified into `<path_to_tnn>/platforms/android/models` and rename them to` test.tnnproto` and `test.tnnmodel`
 #### 1.2 Execute the script
 `` `
 cd <path_to_tnn>/platforms/android/
