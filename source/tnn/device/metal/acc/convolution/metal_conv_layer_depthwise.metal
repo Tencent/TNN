@@ -15,8 +15,6 @@
 #include <metal_stdlib>
 #include "tnn/device/metal/acc/metal_common.metal"
 
-#define TRANS_WEIGHT 0
-
 using namespace metal;
 
 kernel void convolution_depthwise(const device ftype4 *in           [[buffer(0)]],
