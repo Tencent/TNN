@@ -23,7 +23,7 @@ extern "C" {
 JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computUnitType);
 JNIEXPORT JNICALL jboolean TNN_SKELETON_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath);
 JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(deinit)(JNIEnv *env, jobject thiz);
-JNIEXPORT JNICALL jobjectArray TNN_SKELETON_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate);
+JNIEXPORT JNICALL jobjectArray TNN_SKELETON_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate, jint detector_type);
 
 #ifdef __cplusplus
 }

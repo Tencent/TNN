@@ -29,6 +29,7 @@ public class DrawView extends SurfaceView
     private Paint paint = new Paint();
     private Paint key_paint = new Paint();
     private Paint line_paint = new Paint();
+    private Paint line_point_paint = new Paint();
     private ArrayList<String> labels = new ArrayList<String>();
     private ArrayList<Rect> rects = new ArrayList<Rect>();
     private ArrayList<float[]> points_list = new ArrayList<float[]>();
@@ -46,6 +47,9 @@ public class DrawView extends SurfaceView
         line_paint.setARGB(255, 255, 0, 0);
         line_paint.setStyle(Paint.Style.STROKE);
         line_paint.setStrokeWidth(3);
+        line_point_paint.setARGB(255, 0, 255, 0);
+        line_point_paint.setStyle(Paint.Style.STROKE);
+        line_point_paint.setStrokeWidth(10);
         setWillNotDraw(false);
     }
 
@@ -150,7 +154,7 @@ public class DrawView extends SurfaceView
         if (points_list.size() > 0) {
             for (int i = 0; i < points_list.size(); ++i) {
                 float[] points = points_list.get(i);
-                canvas.drawPoints(points, key_paint);
+                canvas.drawPoints(points, point_lines_list.isEmpty() ? key_paint : line_point_paint);
             }
         }
 

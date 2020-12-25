@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -48,6 +49,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
     int mCameraFacing = -1;
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
+    RadioGroup radioGroup;
 
     private SkeletonDetector mSkeletonDetector = new SkeletonDetector();
     private boolean mIsDetectingObject = false;
@@ -62,6 +64,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
     private TextView HuaweiNpuTextView;
 
     private boolean mDeviceSwiched = false;
+    private int detector_type = 0; // 0 : big, 1 : middle, 2 : small
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -84,7 +87,9 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
         //copy detect model to sdcard
         String[] modelPathsDetector = {
                 "skeleton.tnnmodel",
-                "skeleton.tnnproto",
+                "skeleton_big.tnnproto",
+                "skeleton_middle.tnnproto",
+                "skeleton_small.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -141,7 +146,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_stream_detector);
+        setView(R.layout.fragment_stream_skeleton_detector);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -166,6 +171,20 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
             HuaweiNpuTextView.setVisibility(View.INVISIBLE);
             mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
+
+        radioGroup = $(R.id.mode_button_group);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.full_mode_button) {
+                    detector_type = 0;
+                } else if (checkedId == R.id.balance_mode_button) {
+                    detector_type = 1;
+                } else if (checkedId == R.id.lite_mode_button){
+                    detector_type = 2;
+                }
+            }
+        });
         init();
     }
 
@@ -296,7 +315,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
                     mRotate = CameraSetting.getRotate(getActivity().getApplicationContext(), mOpenedCameraId, mCameraFacing);
                     mCameraWidth = parameters.getPreviewSize().width;
                     mCameraHeight = parameters.getPreviewSize().height;
-                    String modelPath = initModel();
+                    String modelPath = getActivity().getFilesDir().getAbsolutePath();
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
@@ -337,7 +356,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingObject) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            ObjectInfo[] objectInfoList;
+                            ObjectInfo[] objectInfoList = {};
                             // reinit
                             if (mDeviceSwiched) {
                                 String modelPath = getActivity().getFilesDir().getAbsolutePath();
@@ -360,7 +379,9 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
                             if (mIsCountFps) {
                                 mFpsCounter.begin("SkeletonDetect");
                             }
-                            objectInfoList = mSkeletonDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+
+                            objectInfoList = mSkeletonDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate, detector_type);
+
                             if (mIsCountFps) {
                                 mFpsCounter.end("SkeletonDetect");
                                 double fps = mFpsCounter.getFps("SkeletonDetect");
@@ -376,11 +397,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
                                 TextView monitor_result_view = (TextView)$(R.id.monitor_result);
                                 monitor_result_view.setText(monitorResult);
                             }
-                            Log.i(TAG, "detect from stream ret " + objectInfoList);
-                            int objectCount = 0;
-                            if (objectInfoList != null) {
-                                objectCount = objectInfoList.length;
-                            }
+
                             mDrawView.addObjectRect(objectInfoList);
                         }
                         else {
