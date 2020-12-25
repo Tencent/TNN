@@ -22,7 +22,7 @@
 extern "C"{
 #endif
 
-JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv *env, jobject thiz, jstring args_obj, jstring file_dir);
+JNIEXPORT jint JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv *env, jobject thiz, jstring args_obj, jstring file_dir);
 
 #ifdef __cplusplus
 }

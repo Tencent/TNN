@@ -25,7 +25,7 @@
 #include <android/log.h>
 #endif
 
-JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv* env, jobject thiz, jstring args_obj, jstring file_dir) {
+JNIEXPORT jint JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv* env, jobject thiz, jstring args_obj, jstring file_dir) {
     const char* args_chars = env->GetStringUTFChars(args_obj, nullptr);
     const char* file_chars = env->GetStringUTFChars(file_dir, nullptr);
 
@@ -55,7 +55,7 @@ JNIEXPORT void JNICALL TNN_BENCHMARK_MODEL(nativeRun)(JNIEnv* env, jobject thiz,
         model_path_option = (arg.find("-mp") != std::string::npos);
     }
 
-    TNN_NS::test::Run(static_cast<int>(argv.size()), argv.data());
-
+    int result = TNN_NS::test::Run(static_cast<int>(argv.size()), argv.data());
     env->ReleaseStringUTFChars(args_obj, args_chars);
+    return result;
 }
