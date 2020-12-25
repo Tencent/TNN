@@ -141,61 +141,74 @@ struct Half8 {
         v1.value = vfmaq_f16(v1.value, v2.value, v3.value);
     }
     static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
-#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 0);
-#else
-
-#endif
     }
     static void mla_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
-#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 1);
-#else
-
-#endif
     }
     static void mla_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
-#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 2);
-#else
-
-#endif
     }
     static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
-#ifdef __aarch64__
         v1.value = vfmaq_lane_f16(v1.value, v2.value, v3.value, 3);
-#else
-
-#endif
+    }
+    static void mls(Half8& v1, const Half8& v2, const Half8& v3) {
+        v1.value = vfmsq_f16(v1.value, v2.value, v3.value);
+    }
+    static void mls_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+        v1.value = vfmsq_lane_f16(v1.value, v2.value, v3.value, 0);
+    }
+    static void mls_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+        v1.value = vfmsq_lane_f16(v1.value, v2.value, v3.value, 1);
+    }
+    static void mls_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+        v1.value = vfmsq_lane_f16(v1.value, v2.value, v3.value, 2);
+    }
+    static void mls_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+        v1.value = vfmsq_lane_f16(v1.value, v2.value, v3.value, 3);
     }
     static Half8 bsl_cle(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
-        dst.value = vbslq_f16(vcleq_f16(c1.value, c2.value), v1.value, v2.value);
+        asm volatile (
+            "fcmgt %0.8h, %3.8h, %2.8h\n\t"
+            "bsl %0.16b, %4.16b, %5.16b\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value), "w"(c1.value), "w"(c2.value), "w"(v1.value), "w"(v2.value)
+            :"cc", "memory"
+        );
         return dst;
     }
     static Half8 bsl_clt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
-#ifdef __aarch64__    
         asm volatile (
-            "fcmlt %0.8h, %2.8h, #0.0\n\t"
-            "bsl %0.16b, %3.16b, %4.16b\n\t"
+            "fcmge %0.8h, %3.8h, %2.8h\n\t"
+            "bsl %0.16b, %4.16b, %5.16b\n\t"
             :"=w"(dst.value)
-            :"0"(dst.value), "w"(c1.value), "w"(v1.value), "w"(v2.value)
+            :"0"(dst.value), "w"(c1.value), "w"(c2.value), "w"(v1.value), "w"(v2.value)
             :"cc", "memory"
         );
-#else
-
-#endif
         return dst;
     }
     static Half8 bsl_cge(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
-        dst.value = vbslq_f16(vcgeq_f16(c1.value, c2.value), v1.value, v2.value);
+        asm volatile (
+            "fcmge %0.8h, %2.8h, %3.8h\n\t"
+            "bsl %0.16b, %4.16b, %5.16b\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value), "w"(c1.value), "w"(c2.value), "w"(v1.value), "w"(v2.value)
+            :"cc", "memory"
+        );
         return dst;
     }
     static Half8 bsl_cgt(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
-        dst.value = vbslq_f16(vcgtq_f16(c1.value, c2.value), v1.value, v2.value);
+        asm volatile (
+            "fcmgt %0.8h, %2.8h, %3.8h\n\t"
+            "bsl %0.16b, %4.16b, %5.16b\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value), "w"(c1.value), "w"(c2.value), "w"(v1.value), "w"(v2.value)
+            :"cc", "memory"
+        );
         return dst;
     }
     static Half8 neg(const Half8& v) {
@@ -580,6 +593,46 @@ struct Half8 {
             :
         );
     }
+    static void mls(Half8& v1, const Half8& v2, const Half8& v3) {
+        asm volatile (
+            "vmls.f16 %0, %2, %3\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mls_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmls.f16 %q0, %q2, %P3[0]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mls_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmls.f16 %q0, %q2, %P3[1]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mls_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmls.f16 %q0, %q2, %P3[2]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
+    static void mls_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+        asm volatile(
+            "vmls.f16 %q0, %q2, %P3[3]\n\t"
+            :"=w"(v1.value)
+            :"0"(v1.value),"w"(v2.value),"w"(v3.value)
+            :
+        );
+    }
     static Half8 bsl_cle(const Half8& c1, const Half8& c2, const Half8& v1, const Half8& v2) {
         Half8 dst;
         uint16x8_t cmp_vec;
@@ -911,6 +964,26 @@ struct Half8 : TNNVector<fp16_t, 8> {
     static void mla_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
         for (int i = 0; i < 8; ++i) {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[3];
+        }
+    }
+    static void mls_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[0];
+        }
+    }
+    static void mls_lane1(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[1];
+        }
+    }
+    static void mls_lane2(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[2];
+        }
+    }
+    static void mls_lane3(Half8& v1, const Half8& v2, const Half4& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[3];
         }
     }
 };

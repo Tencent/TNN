@@ -150,6 +150,11 @@ struct TNNVector {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
         }
     }
+    static void mls(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const TNNVector<T, len>& v3) {
+        for (int i = 0; i < len; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[i];
+        }
+    }
     static TNNVector<T, len> neg(const TNNVector<T, len>& v) {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {

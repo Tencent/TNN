@@ -153,6 +153,15 @@ struct Float4 {
     static void mla_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
         v1.value = vmlaq_lane_f32(v1.value, v2.value, v3.value, 1);
     }
+    static void mls(Float4& v1, const Float4& v2, const Float4& v3) {
+        v1.value = vmlsq_f32(v1.value, v2.value, v3.value);
+    }
+    static void mls_lane0(Float4& v1, const Float4& v2, const Float2& v3) {
+        v1.value = vmlsq_lane_f32(v1.value, v2.value, v3.value, 0);
+    }
+    static void mls_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
+        v1.value = vmlsq_lane_f32(v1.value, v2.value, v3.value, 1);
+    }
     static Float4 bsl_cle(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
         dst.value = vbslq_f32(vcleq_f32(c1.value, c2.value), v1.value, v2.value);
@@ -469,6 +478,16 @@ struct Float4 : TNNVector<float, 4> {
     static void mla_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
         for (int i = 0; i < 4; ++i) {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
+        }
+    }
+    static void mls_lane0(Float4& v1, const Float4& v2, const Float2& v3) {
+        for (int i = 0; i < 4; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[0];
+        }
+    }
+    static void mls_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
+        for (int i = 0; i < 4; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[1];
         }
     }
 
