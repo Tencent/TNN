@@ -26,9 +26,9 @@ class ConvLayerTest : public LayerTest,
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel
-                             testing::Values(1, 2, 3, 4, 10, 32),
+                             testing::Values(1, 2, 3, 4, 10, 32, 48),
                              // hw
                              testing::Values(9, 10, 16, 19),
                              // group

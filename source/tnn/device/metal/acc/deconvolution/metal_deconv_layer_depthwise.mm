@@ -81,9 +81,9 @@ Status MetalDeconvLayerDepthwise::Forward(const std::vector<Blob *> &inputs,
     auto layer_param = dynamic_cast<ConvLayerParam *>(param_);
     auto input                   = inputs[0];
     auto dims_input              = input->GetBlobDesc().dims;
-    if (!layer_param || dims_input[0] != 1 || layer_param->group != dims_input[1]) {
-        LOGE("Error: batch size or group is not support\n");
-        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
+    if (!layer_param || layer_param->group != dims_input[1]) {
+        LOGE("Error: group is not supported\n");
+        return Status(TNNERR_LAYER_ERR, "group is not supported");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

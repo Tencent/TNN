@@ -56,6 +56,8 @@ static int GetCvtColorDstChannel(ColorConversionType type) {
     switch (type) {
         case COLOR_CONVERT_BGRTOGRAY:
         case COLOR_CONVERT_BGRATOGRAY:
+        case COLOR_CONVERT_RGBTOGRAY:
+        case COLOR_CONVERT_RGBATOGRAY:
             return 1;
         case COLOR_CONVERT_NV12TOBGR:
         case COLOR_CONVERT_NV21TOBGR:
