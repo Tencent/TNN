@@ -120,7 +120,7 @@ namespace test {
                 model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
             }   
  
-            Timer timer(model_name);
+            Timer timer(model_name + " - " + FLAGS_dt);
 
             for (int i = 0; i < FLAGS_ic; ++i) {
                 timer.Start();
