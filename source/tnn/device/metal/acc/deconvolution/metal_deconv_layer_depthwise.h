@@ -30,6 +30,7 @@ public:
                            const std::vector<Blob *> &outputs);
 
     Status AllocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
 public:
     virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
