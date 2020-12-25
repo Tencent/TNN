@@ -145,7 +145,10 @@ JNIEXPORT JNICALL jboolean TNN_POSE_DETECT_LANDMARK(checkNpu)(JNIEnv *env, jobje
         blazePoseDetector->setNpuModelPath(modelPathStr + "/");
         blazePoseDetector->setCheckNpuSwitch(true);
         TNN_NS::Status ret = blazePoseDetector->Init(option);
-        if (ret != TNN_NS::TNN_OK) return false;
+        if (ret != TNN_NS::TNN_OK) {
+            LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+            return false;
+        }
     }
 
     protoContent = fdLoadFile(modelPathStr + "/pose_landmark_upper_body.tnnproto");
@@ -161,10 +164,17 @@ JNIEXPORT JNICALL jboolean TNN_POSE_DETECT_LANDMARK(checkNpu)(JNIEnv *env, jobje
         blazePoseLandmark->setNpuModelPath(modelPathStr + "/");
         blazePoseLandmark->setCheckNpuSwitch(true);
         TNN_NS::Status ret = blazePoseLandmark->Init(option);
-        if (ret != TNN_NS::TNN_OK) return false;
+        if (ret != TNN_NS::TNN_OK) {
+            LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+            return false;
+        }
     }
 
     TNN_NS::Status ret = tmpDetector.Init({blazePoseDetector, blazePoseLandmark});
+    if (ret != TNN_NS::TNN_OK) {
+        LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+        return false;
+    }
     return ret == TNN_NS::TNN_OK;
 }
 
