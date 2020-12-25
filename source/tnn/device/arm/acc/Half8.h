@@ -33,6 +33,36 @@ struct Half4 {
     const __fp16 operator[](const int i) const {
         return value[i];
     }
+    Half4() {}
+    Half4(const float16x4_t& v) {
+        value = v;
+    }
+    Half4(const float16x4_t&& v) {
+        value = std::move(v);
+    }
+    Half4(const Half4& lr) {
+        value = lr.value;
+    }
+    Half4(const Half4&& lr) {
+        value = std::move(lr.value);
+    }
+    static Half4 load(const __fp16* addr) {
+        Half4 v;
+        v.value = vld1_f16(addr);
+        return v;
+    }
+    static void save(__fp16* addr, const Half4& v) {
+        vst1_f16(addr, v.value);
+    }
+    static void zip(Half4& v1, Half4& v2) {
+        float16x4x2_t v = vzip_f16(v1.value, v2.value);
+        v1.value = v.val[0];
+        v2.value = v.val[1];
+    }
+    Half4& operator=(const Half4& lr) {
+        value = lr.value;
+        return *this;
+    }
 };
 
 struct Half8 {
@@ -348,6 +378,11 @@ struct Half8 {
         dst.value = vabsq_f16(v.value);
         return dst;
     }
+    static void zip(Half8& v1, Half8& v2) {
+        float16x8x2_t v = vzipq_f16(v1.value, v2.value);
+        v1.value = v.val[0];
+        v2.value = v.val[1];
+    }
     Half8 operator+(const Half8& lr) {
         Half8 dst;
         dst.value = vaddq_f16(value, lr.value);
@@ -400,6 +435,46 @@ struct Half4 {
             tmp_v = vget_lane_s16(value, 3);
         }
         return *((fp16_t*)(&tmp_v));
+    }
+    Half4() {}
+    Half4(const int16x4_t& v) {
+        value = v;
+    }
+    Half4(const int16x4_t&& v) {
+        value = std::move(v);
+    }
+    Half4(const Half4& lr) {
+        value = lr.value;
+    }
+    Half4(const Half4&& lr) {
+        value = std::move(lr.value);
+    }
+    static Half4 load(const fp16_t* addr) {
+        Half4 v;
+        asm volatile(
+            "vld1.16 {%P0}, [%2]\n\t"
+            :"=w"(v.value)
+            :"0"(v.value),"r"(addr)
+            :
+        );
+        return v;
+    }
+    static void save(fp16_t* addr, const Half4& v) {
+        asm volatile(
+            "vst1.16 {%P0}, [%1]\n\t"
+            :
+            :"w"(v.value),"r"(addr)
+            :
+        );
+    }
+    static void zip(Half4& v1, Half4& v2) {
+        int16x4x2_t v = vzip_s16(v1.value, v2.value);
+        v1.value = v.val[0];
+        v2.value = v.val[1];
+    }
+    Half4& operator=(const Half4& lr) {
+        value = lr.value;
+        return *this;
     }
 };
 
@@ -852,6 +927,11 @@ struct Half8 {
         );
         return dst;
     }
+    static void zip(Half8& v1, Half8& v2) {
+        int16x8x2_t v = vzipq_s16(v1.value, v2.value);
+        v1.value = v.val[0];
+        v2.value = v.val[1];
+    }
     Half8 operator+(const Half8& lr) {
         Half8 dst;
         asm volatile(
@@ -906,6 +986,17 @@ struct Half8 {
 
 struct Half4 : TNNVector<fp16_t, 4> {
     using TNNVector<fp16_t, 4>::TNNVector;
+    Half4() {}
+    Half4(const Half4& lr) {
+        for (int i = 0; i < 4; ++i) {
+            value[i] = lr.value[i];
+        }
+    }
+    Half4(const TNNVector<fp16_t, 4>& lr) {
+        for (int i = 0; i < 4; ++i) {
+            value[i] = lr.value[i];
+        }
+    }
 };
 
 struct Half8 : TNNVector<fp16_t, 8> {

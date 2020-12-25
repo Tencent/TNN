@@ -276,6 +276,22 @@ struct TNNVector {
         }
         return dst;
     }
+    static void zip(TNNVector<T, len>& v1, TNNVector<T, len>& v2) {
+        if (len % 2 != 0) {
+            LOGE("%s\n", "vecotr zip does not support len is odd");
+        }
+        T tmp[len];
+        for (int i = 0; i < len / 2; i++) {
+            tmp[i * 2] = v1.value[i * 2];
+            tmp[i * 2 + 1] = v1.value[i * 2 + 1];
+            v1.value[i * 2] = v1.value[i];
+            v1.value[i * 2 + 1] = v2.value[i];
+        }
+        for (int i = 0; i < len / 2; i++) {
+            v2.value[i * 2] = tmp[len / 2 + i];
+            v2.value[i * 2 + 1] = v2.value[len / 2 + i];
+        }
+    }
 };
 
 }  // namespace TNN_NS

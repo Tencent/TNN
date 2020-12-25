@@ -28,9 +28,7 @@
 
 #if TNN_ARM82
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_common.h"
-#if __aarch64__
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_3x3.h"
-#endif
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_c3.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_fp16_layer_depthwise_s1.h"
