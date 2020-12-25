@@ -399,7 +399,6 @@ cython_debug/
 ### https://raw.github.com/github/gitignore/eee21bf0c397cddc39ff1c94615d135e0ad36f8c/Android.gitignore
 
 # Built application files
-*.apk
 *.aar
 *.ap_
 *.aab
