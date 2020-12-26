@@ -12,42 +12,35 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_DECONV_LAYER_ACC_IMPL_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_DECONV_LAYER_ACC_IMPL_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
 
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/opencl_memory.h"
+
 namespace TNN_NS {
 
-enum DeConvType { CT_DECONV_COMMON = 0, CT_DECONV_DEPTHWISE };
-
-class OpenCLDeconvLayerAccImpl : public OpenCLLayerAcc {
+class OpenCLConvLayerWinogradAcc : public OpenCLConvLayerAccImpl {
 public:
+    static bool IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
+                           const std::vector<Blob *> &outputs);
+
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) override;
 
+    virtual ~OpenCLConvLayerWinogradAcc() override;
+
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-    virtual ~OpenCLDeconvLayerAccImpl() override;
-
-#if TNN_PROFILE
-    virtual double GetFlops() override;
-#endif
-
 private:
-    virtual void SetExtraKernelParameters(uint32_t idx, const std::vector<Blob *> &inputs,
-                                          const std::vector<Blob *> &outputs);
-    Status ConvertWeights(float *weights_data_ptr);
+    Status ConvertWinogradTransformWeigths(RawBuffer &raw_handle, shared_ptr<OpenCLMemory> &ocl_handle, int input_channel, int output_channel);
 
-    std::string GenerateTuneKernelKey(OpenCLExecuteUnit &unit);
+    Status AllocateWinogradMatrixVAndM(DimsVector input_dims, DimsVector output_dims);
 
-protected:
-    OpenCLConvParam deconv_params_;
-    shared_ptr<OpenCLMemory> ocl_weights_;
-    shared_ptr<OpenCLMemory> ocl_bias_;
-    DeConvType deconv_type_;
+    shared_ptr<OpenCLMemory> ocl_v_;
+    shared_ptr<OpenCLMemory> ocl_m_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_DECONV_LAYER_ACC_IMPL_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
