@@ -25,8 +25,7 @@ import sys
 
 def throw_exception(current_shape):
     message = "Current shape: "
-    for item in current_shape:
-        name, shape = item
+    for name, shape in current_shape.items():
         message += str(name) + ": " + str(shape) + "   "
 
     logging.error("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
@@ -35,8 +34,29 @@ def throw_exception(current_shape):
     sys.exit(return_code.CONVERT_FAILED)
 
 
+def check_input_names(input_names: str, onnx_input_info: dict):
+    input_names = input_names.strip()
+
+    input_shapes_ = {}
+    for x in input_names.split(" "):
+        if ':' not in x:
+            input_shapes_[None] = list(map(int, x.split(',')))
+        else:
+            pieces = x.split(':')
+            # for the input name like input:0
+            name, shape = ':'.join(
+                pieces[:-1]), list(map(int, pieces[-1].split(',')))
+            input_shapes_[name] = shape
+
+    if len(input_shapes_) != len(onnx_input_info):
+        logging.error("The specified input does not match the input of the ONNX model.")
+        logging.error("Specified: ", list(input_shapes_.keys()))
+        logging.error("ONNX: ", list(onnx_input_info.keys()))
+        sys.exit(return_code.CONVERT_FAILED)
+
+
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
-            input_path=None, refer_path=None, input_names : str=None, is_ssd=False):
+            input_path=None, refer_path=None, input_names: str=None, is_ssd=False):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -56,8 +76,11 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         if ret is False and current_shape is not None:
             if input_names is None:
                 throw_exception(current_shape)
-            if input_names is not None and not ("[" in input_names and "]" in input_names):
-                throw_exception(current_shape)
+        if input_names is not None:
+            input_names = input_names.strip()
+            if ":" not in input_names and " " not in input_names:
+                input_names = list(current_shape.keys())[0] + ":" + input_names
+            check_input_names(input_names, current_shape)
 
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
@@ -79,14 +102,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     command = command + " -o " + output_dir
 
     if input_names is not None:
-        new_input_names = ""
-        for char in input_names:
-            if char == "[":
-                char = ":"
-            if char == "]":
-                continue
-            new_input_names += char
-        command = command + " -input_shape " + new_input_names
+        command = command + " -input_shape " + input_names
     logging.debug("The onnx2tnn command:" + command + "\n")
 
     work_dir = "../onnx2tnn/onnx-converter/"
@@ -112,4 +128,4 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         if input_names is None:
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
         else:
-            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, new_input_names)
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names)
