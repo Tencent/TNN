@@ -52,4 +52,6 @@ DEFINE_string(pr, "AUTO", precision_message);
 
 DEFINE_string(is, "", input_shape_message);
 
+DEFINE_bool(et, false, enable_tune_message);
+
 }  // namespace TNN_NS
