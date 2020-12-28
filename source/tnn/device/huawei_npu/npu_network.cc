@@ -52,9 +52,16 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
     }
+
+    // create context
+    Status init_ret = InitContext(net_config);
+    if (init_ret != TNN_OK) {
+        return init_ret;
+    }
+
     // init check whether the rom version is compatible
-    client_         = std::make_shared<hiai::AiModelMngerClient>();
-    Status init_ret = InitCheck();
+    client_  = std::make_shared<hiai::AiModelMngerClient>();
+    init_ret = InitCheck();
     if (init_ret != TNN_OK) {
         return init_ret;
     }
@@ -212,17 +219,9 @@ Status NpuNetwork::InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig
     return TNN_OK;
 }
 
-Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
-                                InputShapesMap &inputs_shape) {
-    Status ret                = TNN_OK;
-    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    NetResource *net_resource = default_interpreter->GetNetResource();
-
-    if (net_structure_ == NULL || net_resource == NULL) {
-        return Status(TNNERR_NULL_PARAM, "ERROR: network_ is nil, network_type may not support");
-    }
-
-    device_ = GetDevice(net_config.device_type);
+Status NpuNetwork::InitContext(NetworkConfig &net_config) {
+    Status ret = TNN_OK;
+    device_    = GetDevice(net_config.device_type);
     if (device_ == NULL) {
         return TNNERR_DEVICE_NOT_SUPPORT;
     }
@@ -234,6 +233,18 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
     ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {
         return ret;
+    }
+    return TNN_OK;
+}
+
+Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
+                                InputShapesMap &inputs_shape) {
+    Status ret                = TNN_OK;
+    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    NetResource *net_resource = default_interpreter->GetNetResource();
+
+    if (net_structure_ == NULL || net_resource == NULL) {
+        return Status(TNNERR_NULL_PARAM, "ERROR: network_ is nil, network_type may not support");
     }
 
     ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
@@ -609,7 +620,8 @@ Status NpuNetwork::Forward() {
                 LOGE("cpu blob convert for sub-network not found!\n");
                 return Status(TNNERR_NULL_PARAM, "cpu blob convert for sub-network not found!");
             }
-            Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, npu_blob->GetBlobDesc().dims, (char*)npu_blob->GetHandle().base + npu_blob->GetHandle().bytes_offset);
+            Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, npu_blob->GetBlobDesc().dims,
+                          (char *)npu_blob->GetHandle().base + npu_blob->GetHandle().bytes_offset);
             MatConvertParam param;
             cpu_blob_converter_map_[name]->ConvertFromMat(input_mat, param, nullptr);
         }

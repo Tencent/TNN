@@ -109,10 +109,12 @@ private:
 
     bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
 
-    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
-                          AbstractModelInterpreter *interpreter);
+    Status InitContext(NetworkConfig &net_config);
 
     Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+
+    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
+                          AbstractModelInterpreter *interpreter);
 
     Status ConvertLayers(NetResource *net_resource);
 
