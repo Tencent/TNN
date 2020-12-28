@@ -167,6 +167,13 @@ Status OpenCLRuntime::Init() {
         device_->getInfo(CL_DEVICE_MAX_COMPUTE_UNITS, &compute_units_);
         device_->getInfo(CL_DEVICE_MAX_CLOCK_FREQUENCY, &max_freq_);
         device_->getInfo(CL_DEVICE_LOCAL_MEM_SIZE, &local_memory_size_);
+
+        size_t max_height, max_width;
+        device_->getInfo(CL_DEVICE_IMAGE2D_MAX_WIDTH, &max_width);
+        device_->getInfo(CL_DEVICE_IMAGE2D_MAX_HEIGHT, &max_height);
+        image_2d_max_size_.push_back(max_width);
+        image_2d_max_size_.push_back(max_height);
+
         cl_device_fp_config fp_config;
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
@@ -375,6 +382,11 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
         return false;
     }
     return true;
+}
+
+
+std::vector<size_t> OpenCLRuntime::GetImage2dMaxSize() {
+    return image_2d_max_size_;
 }
 
 }  // namespace TNN_NS
