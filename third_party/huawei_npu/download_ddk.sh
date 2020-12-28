@@ -31,5 +31,5 @@ download_ddk() {
 download_ddk\
 	"https://raw.githubusercontent.com/darrenyao87/tnn-models/master/ddk/hwhiai-ddk-100.320.030.010.tar"\
   "hwhiai-ddk-100.320.030.010.tar"
-tar -xvf hwhiai-ddk-100.320.030.010.tar 
-mv hwhiai-ddk-100.320.030.010 ./hiai_ddk_latest/
+tar -xvf hwhiai-ddk-100.320.030.010.tar
+ln -sb hwhiai-ddk-100.320.030.010 hiai_ddk_latest
