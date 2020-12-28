@@ -71,7 +71,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // modify the inputShapeMap
     // if reshape, add a suffix to the model name to create a new model
     std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
-    model_name_              = model_name_ + model_suffix + "_" + std::to_string(version_num_);
+    model_name_              = model_name_ + model_suffix + "_" + version_str_;
 
     // init the path to store/read om
     std::string model_path = use_path_ ? net_config.cache_path + "/" + model_name_ + ".om" : "";
@@ -178,13 +178,15 @@ Status NpuNetwork::InitCheck() {
     // get rom version
     const char *version = client_->GetVersion();
     if (version == nullptr) {
-        return Status(TNNERR_NPU_LOAD_ERROR,
-                      "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
+        return Status(
+            TNNERR_NPU_LOAD_ERROR,
+            "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
     }
+    version_str_ = version;
+
     // check if NPU version is greater than 300
-    version_num_ = NpuUtils::checkNpuVersion(version);
-    LOGI("[TNN/NPU]ddk current version: %s", version);
-    if (version_num_ < 320) {
+    LOGI("[TNN/NPU]ddk current version: %s\n", version_str_.c_str());
+    if (!NpuUtils::VersionCompare(version_str_, "100.320.xxx.xxx", VCT_BIGEQUAL)) {
         return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: huawei_npu is installed but is below 100.320.xxx.xxx");
     }
     return TNN_OK;
@@ -287,6 +289,7 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetNpuVersion(version_str_);
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
