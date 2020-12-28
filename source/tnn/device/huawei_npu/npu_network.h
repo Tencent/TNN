@@ -159,6 +159,7 @@ private:
     bool use_subnet_ = false;
     BlobMap npu_inter_out_blobmap_;
     BlobMap cpu_inter_in_blobmap_;
+    std::map<std::string, std::shared_ptr<BlobConverter>> cpu_blob_converter_map_;
 };
 
 }  // namespace TNN_NS

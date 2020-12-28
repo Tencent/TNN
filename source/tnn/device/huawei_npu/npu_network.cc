@@ -87,6 +87,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
+        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
     } else {
         // NPU IR build
         Status ir_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
@@ -99,7 +100,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
                 }
             }
         }
-        // update use path
+        // update use path, if the network is split, then don't save om file
         use_path_ = use_path_ && !use_subnet_;
         // set Graph
         ir_ret = SetGraphInputsAndOutputs(instance_input_shapes_map, cpu_input_shape);
@@ -117,17 +118,12 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
             if (ir_ret != TNN_OK) {
                 return ir_ret;
             }
-            ir_build.ReleaseModelBuff(om_model_buff);
         }
-        // all ir build ends here
-    }
 
-    // From here, finish build, start to load the model
-    if (use_path_) {
-        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
-    } else {
+        // finish build, start to load the model
         model_mem_buffer = model_builder->InputMemBufferCreate(om_model_buff.data, om_model_buff.length);
     }
+
     if (model_mem_buffer == nullptr) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: function InputMemBufferCreate() failed");
     }
@@ -156,9 +152,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // destroy unused memory
     model_builder->MemBufferDestroy(model_mem_buffer);
-    if (!use_path_) {
-        ir_build.ReleaseModelBuff(om_model_buff);
-    }
+    ir_build.ReleaseModelBuff(om_model_buff);
 
     return InitBlobs(instance_input_shapes_map, cpu_input_shape);
 }
@@ -460,6 +454,11 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
 
         sub_network_->GetAllInputBlobs(cpu_inter_in_blobmap_);
         sub_network_->GetAllOutputBlobs(output_blob_map_);
+
+        // create sub-network input blob-converter
+        for (auto blob_item : cpu_inter_in_blobmap_) {
+            cpu_blob_converter_map_[blob_item.first] = std::make_shared<BlobConverter>(blob_item.second);
+        }
     }
     int count = 0;
     for (; output_it != end_it; ++output_it) {
@@ -496,6 +495,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             output_blob_map_[desc.name] = new Blob(desc, handle);
         }
     }
+    LOGI("Init NPU Blobs Done!\n");
     return TNN_OK;
 }
 
@@ -605,14 +605,13 @@ Status NpuNetwork::Forward() {
             std::string name = iterator->first;
             Blob *npu_blob   = iterator->second;
             Blob *cpu_blob   = cpu_inter_in_blobmap_[name];
-            int num          = npu_blob->GetBlobDesc().dims[0];
-            int channel      = npu_blob->GetBlobDesc().dims[1];
-            int height       = npu_blob->GetBlobDesc().dims[2];
-            int width        = npu_blob->GetBlobDesc().dims[3];
-            float *src       = reinterpret_cast<float *>(npu_blob->GetHandle().base);
-            float *dst       = reinterpret_cast<float *>(reinterpret_cast<char *>(cpu_blob->GetHandle().base) +
-                                                   cpu_blob->GetHandle().bytes_offset);
-            DataFormatConverter::ConvertFromNCHWToNCHW4Float(src, dst, num, channel, height, width);
+            if (cpu_blob_converter_map_.count(name) == 0) {
+                LOGE("cpu blob convert for sub-network not found!\n");
+                return Status(TNNERR_NULL_PARAM, "cpu blob convert for sub-network not found!");
+            }
+            Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, npu_blob->GetBlobDesc().dims, (char*)npu_blob->GetHandle().base + npu_blob->GetHandle().bytes_offset);
+            MatConvertParam param;
+            cpu_blob_converter_map_[name]->ConvertFromMat(input_mat, param, nullptr);
         }
         sub_network_->Forward();
     }
