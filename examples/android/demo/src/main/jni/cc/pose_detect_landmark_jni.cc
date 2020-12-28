@@ -13,8 +13,10 @@
 #include "tnn/utils/mat_utils.h"
 
 static std::shared_ptr<TNN_NS::PoseDetectLandmark> gDetector;
+static std::shared_ptr<TNN_NS::PoseDetectLandmark> gFullBodyDetector;
 static std::shared_ptr<TNN_NS::BlazePoseDetector> gBlazePoseDetector;
 static std::shared_ptr<TNN_NS::BlazePoseLandmark> gBlazePoseLandmark;
+static std::shared_ptr<TNN_NS::BlazePoseLandmark> gBlazePoseFullBodyLandmark;
 static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
@@ -33,8 +35,10 @@ JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz,
     // Reset bench description
     setBenchResult("");
     gDetector = std::make_shared<TNN_NS::PoseDetectLandmark>();
+    gFullBodyDetector = std::make_shared<TNN_NS::PoseDetectLandmark>();
     gBlazePoseDetector = std::make_shared<TNN_NS::BlazePoseDetector>();
     gBlazePoseLandmark = std::make_shared<TNN_NS::BlazePoseLandmark>();
+    gBlazePoseFullBodyLandmark = std::make_shared<TNN_NS::BlazePoseLandmark>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     protoContent = fdLoadFile(modelPathStr + "/pose_detection.tnnproto");
@@ -104,9 +108,48 @@ JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz,
         }
     }
 
+    protoContent = fdLoadFile(modelPathStr + "/pose_landmark_full_body.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/pose_landmark_full_body.tnnmodel");
+    LOGI("pose landmark full body proto content size %d model content size %d", protoContent.length(), modelContent.length());
+
+    {
+        auto option = std::make_shared<TNN_NS::BlazePoseLandmarkOption>();
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        option->library_path  = "";
+        option->proto_content = protoContent;
+        option->model_content = modelContent;
+        option->pose_presence_threshold = 0.5;
+        option->landmark_visibility_threshold = 0.1;
+        option->full_body = true;
+        if (gComputeUnitType == 1) {
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+            status = gBlazePoseFullBodyLandmark->Init(option);
+        } else if (gComputeUnitType == 2) {
+            //add for huawei_npu store the om file
+            option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
+            gBlazePoseFullBodyLandmark->setNpuModelPath(modelPathStr + "/");
+            gBlazePoseFullBodyLandmark->setCheckNpuSwitch(false);
+            status = gBlazePoseFullBodyLandmark->Init(option);
+        } else {
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+            status = gBlazePoseFullBodyLandmark->Init(option);
+        }
+
+        if (status != TNN_NS::TNN_OK) {
+            LOGE("blaze pose landmark init failed %d", (int)status);
+            return -1;
+        }
+    }
+
     status = gDetector->Init({gBlazePoseDetector, gBlazePoseLandmark});
     if (status != TNN_NS::TNN_OK) {
-        LOGE("pose detect landmark init failed %d", (int)status);
+        LOGE("pose detector init failed %d", (int)status);
+        return -1;
+    }
+
+    status = gFullBodyDetector->Init({gBlazePoseDetector, gBlazePoseFullBodyLandmark});
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("pose full body detector init failed %d", (int)status);
         return -1;
     }
 
@@ -127,9 +170,10 @@ JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz,
 }
 
 JNIEXPORT JNICALL jboolean TNN_POSE_DETECT_LANDMARK(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
-    TNN_NS::PoseDetectLandmark tmpDetector;
+    TNN_NS::PoseDetectLandmark tmpDetector, tmpFullBodyDetector;
     std::shared_ptr<TNN_NS::BlazePoseDetector> blazePoseDetector = std::make_shared<TNN_NS::BlazePoseDetector>();
     std::shared_ptr<TNN_NS::BlazePoseLandmark> blazePoseLandmark = std::make_shared<TNN_NS::BlazePoseLandmark>();
+    std::shared_ptr<TNN_NS::BlazePoseLandmark> blazePoseFullBodyLandmark = std::make_shared<TNN_NS::BlazePoseLandmark>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     protoContent = fdLoadFile(modelPathStr + "/pose_detection.tnnproto");
@@ -170,26 +214,59 @@ JNIEXPORT JNICALL jboolean TNN_POSE_DETECT_LANDMARK(checkNpu)(JNIEnv *env, jobje
         }
     }
 
+    protoContent = fdLoadFile(modelPathStr + "/pose_landmark_full_body.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/pose_landmark_full_body.tnnmodel");
+    {
+        auto option = std::make_shared<TNN_NS::BlazePoseLandmarkOption>();
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
+        option->library_path = "";
+        option->proto_content = protoContent;
+        option->model_content = modelContent;
+        option->pose_presence_threshold = 0.5;
+        option->landmark_visibility_threshold = 0.1;
+        option->full_body = true;
+        blazePoseFullBodyLandmark->setNpuModelPath(modelPathStr + "/");
+        blazePoseFullBodyLandmark->setCheckNpuSwitch(true);
+        TNN_NS::Status ret = blazePoseFullBodyLandmark->Init(option);
+        if (ret != TNN_NS::TNN_OK) {
+            LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+            return false;
+        }
+    }
+
     TNN_NS::Status ret = tmpDetector.Init({blazePoseDetector, blazePoseLandmark});
     if (ret != TNN_NS::TNN_OK) {
         LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
         return false;
     }
-    return ret == TNN_NS::TNN_OK;
+
+    ret = tmpFullBodyDetector.Init({blazePoseDetector, blazePoseFullBodyLandmark});
+    if (ret != TNN_NS::TNN_OK) {
+        LOGE("checkNpu failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+        return false;
+    }
+    return true;
 }
 
 JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(deinit)(JNIEnv *env, jobject thiz)
 {
     gDetector = nullptr;
+    gFullBodyDetector = nullptr;
     gBlazePoseDetector = nullptr;
     gBlazePoseLandmark = nullptr;
+    gBlazePoseFullBodyLandmark = nullptr;
     return 0;
 }
 
-JNIEXPORT JNICALL jobjectArray TNN_POSE_DETECT_LANDMARK(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate)
+JNIEXPORT JNICALL jobjectArray TNN_POSE_DETECT_LANDMARK(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate, jint detector_type)
 {
     jobjectArray objectInfoArray;
-    auto asyncRefDetector = gDetector;
+    std::shared_ptr<TNN_NS::PoseDetectLandmark> asyncRefDetector;
+    if (detector_type == 0) {
+        asyncRefDetector = gDetector;
+    } else {
+        asyncRefDetector = gFullBodyDetector;
+    }
     std::vector<TNN_NS::BlazePoseInfo> objectInfoList;
     // Convert yuv to rgb
     LOGI("detect from stream %d x %d r %d", width, height, rotate);

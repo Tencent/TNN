@@ -23,7 +23,7 @@ extern "C" {
 JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint computUnitType);
 JNIEXPORT JNICALL jboolean TNN_POSE_DETECT_LANDMARK(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath);
 JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(deinit)(JNIEnv *env, jobject thiz);
-JNIEXPORT JNICALL jobjectArray TNN_POSE_DETECT_LANDMARK(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate);
+JNIEXPORT JNICALL jobjectArray TNN_POSE_DETECT_LANDMARK(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate, jint detector_type);
 
 #ifdef __cplusplus
 }

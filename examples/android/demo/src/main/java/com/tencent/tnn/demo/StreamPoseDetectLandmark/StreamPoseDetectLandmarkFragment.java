@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -50,6 +51,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
     int mCameraFacing = -1;
     int mRotate = -1;
     SurfaceHolder mSurfaceHolder;
+    RadioGroup radioGroup;
 
     private PoseDetectLandmark mPoseDetectLandmark = new PoseDetectLandmark();
     private boolean mIsDetectingObject = false;
@@ -64,6 +66,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
     private TextView HuaweiNpuTextView;
 
     private boolean mDeviceSwiched = false;
+    private int detector_type = 0; // 0 : big, 1 : middle, 2 : small
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -89,6 +92,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                 "pose_detection.tnnmodel",
                 "pose_landmark_upper_body.tnnproto",
                 "pose_landmark_upper_body.tnnmodel",
+                "pose_landmark_full_body.tnnproto",
+                "pose_landmark_full_body.tnnmodel",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -145,7 +150,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
     @Override
     public void setFragmentView() {
         Log.d(TAG, "setFragmentView");
-        setView(R.layout.fragment_stream_detector);
+        setView(R.layout.fragment_stream_pose_detect_landmark);
         setTitleGone();
         $$(R.id.gpu_switch);
         $$(R.id.back_rl);
@@ -170,6 +175,18 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
             HuaweiNpuTextView.setVisibility(View.INVISIBLE);
             mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
         }
+
+        radioGroup = $(R.id.mode_button_group);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.upper_body_mode_button) {
+                    detector_type = 0;
+                } else if (checkedId == R.id.full_body_mode_button) {
+                    detector_type = 1;
+                }
+            }
+        });
         init();
     }
 
@@ -364,7 +381,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                             if (mIsCountFps) {
                                 mFpsCounter.begin("PoseDetectLandmark");
                             }
-                            objectInfoList = mPoseDetectLandmark.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
+                            objectInfoList = mPoseDetectLandmark.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate, detector_type);
                             if (mIsCountFps) {
                                 mFpsCounter.end("PoseDetectLandmark");
                                 double fps = mFpsCounter.getFps("PoseDetectLandmark");
