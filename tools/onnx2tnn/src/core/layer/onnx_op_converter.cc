@@ -49,7 +49,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         std::string input_name = node.input(j);
 
         // check weight
-        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+        if (HasLayerResource(node, net_info) &&
+            net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
             net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             continue;
         }
