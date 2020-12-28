@@ -36,6 +36,10 @@ string OnnxOpConverterSqueeze::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterSqueeze::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterSqueeze::WriteTNNModel(serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {

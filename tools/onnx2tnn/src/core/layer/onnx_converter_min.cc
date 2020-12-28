@@ -32,6 +32,10 @@ string OnnxOpConverterMin::TNNLayerParam(NodeProto& node,
     return OnnxOpConverterMultiBrodcast::TNNLayerParam(node, net_info);
 }
 
+bool OnnxOpConverterMin::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return OnnxOpConverterMultiBrodcast::HasLayerResource(node, net_info);
+};
+
 int OnnxOpConverterMin::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {

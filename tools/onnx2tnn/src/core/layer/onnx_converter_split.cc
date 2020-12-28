@@ -38,6 +38,10 @@ string OnnxOpConverterSplit::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterSplit::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterSplit::WriteTNNModel(serializer *net_writer,
                                              NodeProto &node,
                                              OnnxNetInfo &net_info) {

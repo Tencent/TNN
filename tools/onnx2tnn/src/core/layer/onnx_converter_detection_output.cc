@@ -55,6 +55,10 @@ string OnnxOpConverterDetectionOutput::TNNLayerParam(NodeProto &node, OnnxNetInf
     return layer_param.str();
 }
 
+bool OnnxOpConverterDetectionOutput::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterDetectionOutput::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;

@@ -33,6 +33,10 @@ string OnnxOpConverterBatchNorm::TNNLayerParam(NodeProto& node,
     return "";
 }
 
+bool OnnxOpConverterBatchNorm::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {

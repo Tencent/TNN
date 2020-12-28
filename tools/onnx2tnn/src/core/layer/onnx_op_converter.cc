@@ -36,18 +36,21 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
 
     for (int j = 0; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+        if (HasLayerResource(node, net_info) &&
+            net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
             net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             input_size--;
         }
     }
+    
     proto_layer << input_size << " " << output_size << " ";
 
     for (int j = 0; j < node.input_size(); j++) {
         std::string input_name = node.input(j);
 
         // check weight
-        if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+        if (HasLayerResource(node, net_info) &&
+            net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
             net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
             continue;
         }

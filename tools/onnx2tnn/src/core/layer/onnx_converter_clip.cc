@@ -44,6 +44,10 @@ string OnnxOpConverterClip::TNNLayerParam(NodeProto &node,
     }
 }
 
+bool OnnxOpConverterClip::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterClip::WriteTNNModel(serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {

@@ -35,6 +35,10 @@ string OnnxOpConverterSignedMul::TNNLayerParam(
     return layer_param.str();
 }
 
+bool OnnxOpConverterSignedMul::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterSignedMul::WriteTNNModel(serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {

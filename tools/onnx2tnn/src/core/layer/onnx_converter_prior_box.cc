@@ -80,6 +80,10 @@ string OnnxOpConverterPriorBox::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterPriorBox::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+};
+
 int OnnxOpConverterPriorBox::WriteTNNModel(serializer *net_writer,
                                                 NodeProto &node,
                                                 OnnxNetInfo &net_info) {

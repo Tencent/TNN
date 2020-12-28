@@ -43,6 +43,15 @@ string OnnxOpConverterLpNormalization::TNNLayerParam(NodeProto& node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterLpNormalization::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    bool convert_for_old_model = false;
+    if (convert_for_old_model) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 int OnnxOpConverterLpNormalization::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {

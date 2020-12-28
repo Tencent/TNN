@@ -33,6 +33,10 @@ string OnnxOpConverterShuffleChannel::TNNLayerParam(
     return layer_param.str();
 }
 
+bool OnnxOpConverterShuffleChannel::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterShuffleChannel::WriteTNNModel(serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {

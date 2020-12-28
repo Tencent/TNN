@@ -42,6 +42,10 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
     return layer_param.str();
 }
 
+bool OnnxOpConverterGather::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 int OnnxOpConverterGather::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     std::string name                  = !node.name().empty() ? node.name() : node.output(0);
     const std::string &tnn_layer_type = TNNOpType(node, net_info);

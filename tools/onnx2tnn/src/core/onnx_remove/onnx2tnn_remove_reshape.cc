@@ -137,6 +137,8 @@ int Onnx2TNN::RemoveConsecutiveReshape(onnx::GraphProto* mutable_graph,
             
             if (node_reshape_0->op_type() != "Reshape" || node_reshape_1->op_type() != "Reshape")
                 break;
+            if (node_reshape_0->input_size() > 1 || node_reshape_1->input_size() > 1)
+                break;
 
             node_reshape_0->set_op_type(k_tnn_noop_type);
 

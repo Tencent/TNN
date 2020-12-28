@@ -325,7 +325,28 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
             return Status(TNNERR_LOAD_MODEL, "Error: layer_interpreter is nil");
         }
     }
-
+    
+    //解析constant_map
+    const auto pos_cur = content_stream.tellg();
+    content_stream.seekg(0, std::ios::end);
+    auto pos_diff = content_stream.tellg() - pos_cur;
+    content_stream.seekg(pos_cur, std::ios::beg);
+    if (pos_diff < 4) {
+        return TNN_OK;
+    }
+    
+    uint32_t magic_number_ignore = deserializer->GetInt();
+    int const_map_size = deserializer->GetInt();
+    ConstantResource const_map;
+    for (int ii=0; ii<const_map_size; ii++) {
+        auto key = deserializer->GetString();
+        auto buffer = std::make_shared<RawBuffer>();
+        deserializer->GetRaw(*(buffer.get()));
+        
+        const_map[key] = buffer;
+    }
+    net_resource->constant_map = const_map;
+    
     return TNN_OK;
 }
 

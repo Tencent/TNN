@@ -32,6 +32,10 @@ string OnnxOpConverterSelu::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterSelu::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterSelu::WriteTNNModel(serializer *net_writer,
                                        NodeProto &node,
                                        OnnxNetInfo &net_info) {

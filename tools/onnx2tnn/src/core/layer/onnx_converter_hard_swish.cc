@@ -34,6 +34,10 @@ string OnnxOpConverterHardSwish::TNNLayerParam(
     return layer_param.str();
 }
 
+bool OnnxOpConverterHardSwish::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterHardSwish::WriteTNNModel(serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {
