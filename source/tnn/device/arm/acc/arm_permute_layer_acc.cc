@@ -60,8 +60,6 @@ Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(Permute, LAYER_PERMUTE);
-#if TNN_ARM82
 REGISTER_ARM_PRECISION_FP16(LAYER_PERMUTE)
-#endif
 
 }  // namespace TNN_NS

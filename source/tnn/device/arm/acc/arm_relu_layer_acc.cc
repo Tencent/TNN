@@ -50,13 +50,13 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
-        // count = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
-        // fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
-        // fp16_t *src = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
-        // Half8 vzero = Half8((fp16_t)0.f);
-        // for (long i = 0; i < count; i += 8) {
-        //     Half8::save(dst + i, Half8::max(Half8::load(src + i), vzero));
-        // }
+        count = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
+        fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
+        fp16_t *src = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+        Half8 vzero = Half8((fp16_t)0.f);
+        for (long i = 0; i < count; i += 8) {
+            Half8::save(dst + i, Half8::max(Half8::load(src + i), vzero));
+        }
     }
 #endif
     else {
@@ -67,8 +67,6 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Relu, LAYER_RELU)
-#if TNN_ARM82
 REGISTER_ARM_PRECISION_FP16(LAYER_RELU)
-#endif
 
 }  // namespace TNN_NS
