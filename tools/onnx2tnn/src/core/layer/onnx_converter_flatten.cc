@@ -95,6 +95,10 @@ string OnnxOpConverterFlatten::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterFlatten::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterFlatten::WriteTNNModel(serializer *net_writer,
                                                NodeProto &node,
                                                OnnxNetInfo &net_info) {

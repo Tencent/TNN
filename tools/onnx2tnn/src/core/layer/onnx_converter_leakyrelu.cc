@@ -30,6 +30,10 @@ string OnnxOpConverterLeakyRelu::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterLeakyRelu::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+};
+
 int OnnxOpConverterLeakyRelu::WriteTNNModel(serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {

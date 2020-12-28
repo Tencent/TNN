@@ -34,6 +34,10 @@ string OnnxOpConverterHardSigmoid::TNNLayerParam(
     return layer_param.str();
 }
 
+bool OnnxOpConverterHardSigmoid::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterHardSigmoid::WriteTNNModel(serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {

@@ -72,8 +72,51 @@ int Onnx2TNN::TNNWriteModel() {
         file_model.seekp(model_pos, ios::beg);
         net_writer.put_int(weight_layer_count);
         file_model.seekp(0, ios::end);
-    } while (0);
+        
+        //写入constant_map
+        {
+            std::set<std::string> const_id_set;
+            
+            //写入每层的constant输入（除了已经写入layerresource的，如conv）
+            for (int i = 0; i < graph.node_size(); i++) {
+                onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
+                const std::string& onnx_op = node.op_type();
+                const auto& used_const_node = this->onnx_net_info_.used_const_node;
+                if (onnx_op == k_tnn_noop_type || ( onnx_op == "Constant" && used_const_node.find(node.output(0)) == used_const_node.end() )) {
+                    continue;
+                }
 
+                auto op_converter =
+                    OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
+                if (op_converter == nullptr) {
+                    fprintf(stderr, "get op convert for %s failed\n",onnx_op.c_str());
+                    assert(0);
+                }
+                
+                
+                for (int j = 0; j < (int)node.input_size(); j++) {
+                    const std::string &input_name = node.input(j);
+                    if ( !op_converter->HasLayerResource(node, onnx_net_info_) &&
+                        onnx_net_info_.weights_map.find(input_name) != onnx_net_info_.weights_map.end() ) {
+                        const_id_set.insert(input_name);
+                    }
+                }
+            }
+            
+            if (const_id_set.size() < 0) {
+                break;
+            }
+            
+            //写入版本号
+            net_writer.put_int(g_version_magic_number_tnn_v2);
+            for (auto id : const_id_set) {
+                auto const_tensor = onnx_net_info_.weights_map[id];
+                net_writer.put_string(id);
+                OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
+            }
+        }
+    } while (0);
+    
     file_model.close();
 
     return ret;

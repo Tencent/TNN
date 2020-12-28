@@ -25,6 +25,7 @@ public:
     virtual ~OnnxOpConverterMultiBrodcast(){};
     virtual string TNNOpType(NodeProto &, OnnxNetInfo &) = 0;
     virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);
+    virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);
     virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);
 
 protected:
@@ -38,6 +39,7 @@ protected:
         virtual ~OnnxOpConverter##onnx_type(){};                                                                       \
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);                                                  \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);                                                      \
+        virtual bool HasLayerResource(NodeProto &, OnnxNetInfo &); \
         virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);                                           \
     }
 

@@ -32,6 +32,10 @@ string OnnxOpConverterHDRGuide::TNNLayerParam(NodeProto& node,
     return "";
 }
 
+bool OnnxOpConverterHDRGuide::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 int OnnxOpConverterHDRGuide::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {

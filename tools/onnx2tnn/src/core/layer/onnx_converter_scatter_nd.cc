@@ -26,6 +26,10 @@ string OnnxOpConverterScatterND::TNNLayerParam(NodeProto& node, OnnxNetInfo& net
     return layer_param.str();
 }
 
+bool OnnxOpConverterScatterND::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+};
+
 int OnnxOpConverterScatterND::WriteTNNModel(serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
     const std::string& onnx_op        = node.op_type();
     std::string name                  = !node.name().empty() ? node.name() : node.output(0);

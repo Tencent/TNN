@@ -159,6 +159,10 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterConv::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 int OnnxOpConverterConv::WriteTNNModel(serializer* net_writer,
                                             NodeProto& node,
                                             OnnxNetInfo& net_info) {

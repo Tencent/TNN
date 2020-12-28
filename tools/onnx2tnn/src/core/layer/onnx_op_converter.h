@@ -68,7 +68,13 @@ public:
         // do nothing
         return;
     };
-
+    
+    //TNN是否有固定的layerresource去解析，有的话输入为const的就无需写到constant_map里面，如conv；
+    //而concat之前没有，所以其输入日过为const就写到constant_map里面。
+    virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+        return false;
+    };
+    
     //有权值写入的返回1， 没有的返回0
     virtual int WriteTNNModel(serializer *writer, NodeProto &node,
                                    OnnxNetInfo &net_info) {
@@ -76,16 +82,16 @@ public:
     };
     
     //write will write the shape and data of tensor
-    int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
+    static int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
                         DataType dst_data_type);
     
-    int WriteRawData(const void *raw_data, int data_count, int src_data_type, serializer *writer,
+    static int WriteRawData(const void *raw_data, int data_count, int src_data_type, serializer *writer,
                      DataType dst_data_type, std::vector<int32_t> dims);
     //depreceted
-    int WriteRawData(const float *raw_data, int data_count, serializer *writer,
+    static int WriteRawData(const float *raw_data, int data_count, serializer *writer,
                      DataType dst_data_type, std::vector<int32_t> dims);
 
-    int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
+    static int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
 
 protected:
     string onnx_op_type_;
@@ -130,6 +136,7 @@ private:
         virtual ~OnnxOpConverter##onnx_type(){};                               \
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);     \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);         \
+        virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);  \
         virtual int WriteTNNModel(serializer *, NodeProto &,              \
                                        OnnxNetInfo &);                         \
     }
