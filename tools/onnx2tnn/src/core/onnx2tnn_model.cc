@@ -109,6 +109,8 @@ int Onnx2TNN::TNNWriteModel() {
             
             //写入版本号
             net_writer.put_int(g_version_magic_number_tnn_v2);
+            //写入个数
+            net_writer.put_int((int)const_id_set.size());
             for (auto id : const_id_set) {
                 auto const_tensor = onnx_net_info_.weights_map[id];
                 net_writer.put_string(id);
