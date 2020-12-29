@@ -51,6 +51,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_CUDA;
     } else if ("ARM" == device_type) {
         return DEVICE_ARM;
+    } else if ("HUAWEI_NPU" == device_type) {
+        return DEVICE_HUAWEI_NPU;
     } else {
         return DEVICE_NAIVE;
     }
@@ -241,6 +243,7 @@ int main(int argc, char* argv[]) {
     // for HuaweiNPU only check output
     if (net_config.device_type == DEVICE_HUAWEI_NPU) {
         model_checker_param.only_check_output = true;
+        net_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
     }
 
     // only for metal device

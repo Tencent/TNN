@@ -1,6 +1,5 @@
 #!/bin/bash
-ABI="armeabi-v7a"
-#STL="gnustl_static"
+ABI="arm64-v8a"
 STL="c++_static"
 CLEAN=""
 PUSH_MODEL=""
@@ -8,21 +7,24 @@ BUILD_ONLY=""
 
 WORK_DIR=`pwd`
 BUILD_DIR=build
-MODEL_DIR=$WORK_DIR/models
-ANDROID_DIR=/data/local/tmp/ocl_test
+ANDROID_DIR=/data/local/tmp/model_check
 ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_ocl
 ADB=adb
 
-check_model_list=(
-"test.tnnproto" \
-                      )
+DEVICE="ARM"
+TEST_PROTO_PATH=
 
 function usage() {
-    echo "-64\tBuild 64bit."
-    echo "-c\tClean up build folders."
-    echo "-p\tPush models to device"
-    echo "-b\tbuild targets only"
+    echo "usage: ./model_check_android.sh  [-32] [-c] [-b] [-d] <device-id> [-t] <CPU/GPU> [-m] <tnnproto> [-p]"
+    echo "options:"
+    echo "        -32   Build 32 bit."
+    echo "        -c    Clean up build folders."
+    echo "        -b    build targets only"
+    echo "        -d    run with specified device"
+    echo "        -t    ARM/OPENCL/HUAWEI_NPU specify the platform to run (default: ARM)"
+    echo "        -m    tnnproto"
+    echo "        -p    Push models to device"
 }
 function die() {
     echo $1
@@ -42,6 +44,16 @@ function build_android() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
+
+    if [ "$DEVICE" == "HUAWEI_NPU" ]
+    then
+        echo "NPU Enable"
+        STL="c++_shared"
+        HUAWEI_NPU="ON"
+    else
+        HUAWEI_NPU="OFF"
+    fi
+
     mkdir -p build
     cd $BUILD_DIR
     cmake ../../../ \
@@ -54,6 +66,7 @@ function build_android() {
           -DTNN_CPU_ENABLE:BOOL="ON"  \
           -DTNN_OPENCL_ENABLE:BOOL="ON" \
           -DTNN_ARM_ENABLE:BOOL="ON" \
+          -DTNN_HUAWEI_NPU_ENABLE:BOOL=$HUAWEI_NPU \
           -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
           -DBUILD_FOR_ANDROID_COMMAND=true
     make -j4
@@ -80,19 +93,35 @@ function run_android() {
     $ADB shell chmod 0777 $ANDROID_DIR/model_check
 
     if [ "" != "$PUSH_MODEL" ]; then
+        if [ -z "$TEST_PROTO_PATH" ]
+        then
+            TEST_PROTO_PATH=../../model/SqueezeNet/squeezenet_v1.1.tnnproto
+        fi
+
         $ADB shell "rm -r $ANDROID_DATA_DIR"
         $ADB shell "mkdir -p $ANDROID_DATA_DIR"
-        $ADB push $MODEL_DIR/* $ANDROID_DATA_DIR
+
+        TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
+        $ADB push $WORK_DIR/${TEST_PROTO_PATH} ${ANDROID_DATA_DIR}/test.tnnproto
+        $ADB push $WORK_DIR/${TEST_MODEL_PATH} ${ANDROID_DATA_DIR}/test.tnnmodel
     fi
-    $ADB shell "echo > $ANDROID_DIR/test_log.txt"
+
+    $ADB shell "echo \"${DEVICE}\" > $ANDROID_DIR/test_log.txt"
+    $ADB shell "echo \"model: ${TEST_PROTO_PATH}\" >> $ANDROID_DIR/test_log.txt"
     $ADB shell "mkdir -p $ANDROID_DIR/dump_data"
 
-    for check_model in ${check_model_list[*]}
-    do
-        model_name=${check_model%.*}
-        #$ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d ARM -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
-        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d OPENCL -p $ANDROID_DATA_DIR/"$model_name".tnnproto -m $ANDROID_DATA_DIR/"$model_name".tnnmodel >> $ANDROID_DIR/test_log.txt"
-    done
+    if [ "$DEVICE" == "HUAWEI_NPU" ]
+    then
+        echo "Run Huawei Npu"
+        $ADB shell "mkdir -p $ANDROID_DIR/lib"
+        $ADB push $WORK_DIR/../../third_party/huawei_npu/cpp_lib/$ABI/* $ANDROID_DIR/lib
+        $ADB push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/lib
+
+        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel >> $ANDROID_DIR/test_log.txt"
+    else
+        $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel >> $ANDROID_DIR/test_log.txt"
+    fi
+
     $ADB pull $ANDROID_DIR/test_log.txt $DUMP_DIR
     $ADB pull $ANDROID_DIR/dump_data $DUMP_DIR
     cat $DUMP_DIR/test_log.txt
@@ -100,9 +129,9 @@ function run_android() {
 
 while [ "$1" != "" ]; do
     case $1 in
-        -64)
+        -32)
             shift
-            ABI="arm64-v8a"
+            ABI="armeabi-v7a"
             ;;
         -c)
             shift
@@ -119,6 +148,16 @@ while [ "$1" != "" ]; do
         -d)
             shift
             ADB="adb -s $1"
+            shift
+            ;;
+        -t)
+            shift
+            DEVICE="$1"
+            shift
+            ;;
+        -m)
+            shift
+            TEST_PROTO_PATH="$1"
             shift
             ;;
         *)
