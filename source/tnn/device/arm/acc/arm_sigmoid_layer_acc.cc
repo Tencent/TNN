@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_unary_layer_acc.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 

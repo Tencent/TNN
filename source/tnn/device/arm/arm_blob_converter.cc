@@ -24,6 +24,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 

@@ -25,6 +25,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/compute_arm82/debug82.h"
 
 namespace TNN_NS {
 /*

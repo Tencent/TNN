@@ -14,6 +14,7 @@
 #if TNN_ARM82
 
 #include "tnn/device/arm/acc/compute/winograd_function.h"
+#include "tnn/device/arm/acc/Half8.h"
 #include <cstring>
 #include <memory>
 #ifdef TNN_USE_NEON

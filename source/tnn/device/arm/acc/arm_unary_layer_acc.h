@@ -17,6 +17,7 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 

@@ -19,6 +19,7 @@
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 

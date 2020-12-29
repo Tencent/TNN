@@ -16,6 +16,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
