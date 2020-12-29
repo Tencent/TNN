@@ -44,7 +44,6 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
         conv_params_.dilation_y == 1) {
         kernel_name = "DepthwiseConv2DS1";
     }
-
     ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
@@ -95,11 +94,6 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
         conv_params_.dilation_y != 1) {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
-    }
-
-    if (use_buffer_) {
-        execute_units_[0].ocl_kernel.setArg(idx++, kernel_shape[0] * kernel_shape[1]);
-        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
     }
 
     execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
