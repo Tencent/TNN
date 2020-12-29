@@ -65,6 +65,7 @@ build_openvino() {
         mkdir -p build && cd build
         echo "Configuring Openvino ..."
         cmake ../ \
+        -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
