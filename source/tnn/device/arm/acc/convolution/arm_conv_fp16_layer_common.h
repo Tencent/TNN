@@ -16,7 +16,6 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_FP16_LAYER_ACC_COMMON_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 

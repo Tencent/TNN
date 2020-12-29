@@ -20,6 +20,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 #if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)// aarch64 fp16
 #define NEON_FP16CONV_TILE_HW (16)

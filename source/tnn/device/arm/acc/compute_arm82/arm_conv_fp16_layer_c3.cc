@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 // usually appears on the first conv layer

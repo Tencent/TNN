@@ -25,6 +25,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 #if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
 #define NEON_GEMM_TILE_HW (16)

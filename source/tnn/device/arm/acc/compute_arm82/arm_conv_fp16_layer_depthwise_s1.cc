@@ -19,6 +19,7 @@
 #include "tnn/utils/data_type_utils.h"
 
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 #define MAX_CACHE_LINE_NUM 7
 
