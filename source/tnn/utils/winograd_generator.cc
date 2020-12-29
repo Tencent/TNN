@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/wingorad_generater.h"
+#include "tnn/utils/winograd_generator.h"
 
 #include <math.h>
 #include <memory.h>
@@ -347,10 +347,11 @@ static CMatrix computeFDiag(const float* a, int alpha) {
 2D: AT*((G*g*GT)(BT*d*B))*A
 https://github.com/andravin/wincnn
 */
-WinogradGenerater::WinogradGenerater(int computeUnit, int kernelSize, float interp) {
+WinogradGenerator::WinogradGenerator(int computeUnit, int kernelSize, float interp, bool transform_inner) {
     ASSERT(computeUnit > 0 && kernelSize > 0);
     unit_        = computeUnit;
     kernel_size_ = kernelSize;
+    transform_inner_ = transform_inner;
 
     int n     = computeUnit;
     int r     = kernelSize;
@@ -390,19 +391,23 @@ WinogradGenerater::WinogradGenerater(int computeUnit, int kernelSize, float inte
 /*
 transform weight size: unit*unit*ROUND_UP(oc, 4)*ROUND_UP(ic, 4)
 */
-CMatrix WinogradGenerater::allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo) {
+CMatrix WinogradGenerator::allocTransformWeight(int batch, int channel, int height, int width, int unitCi, int unitCo) {
     int ci = channel;
     int co = batch;
     ASSERT(width == height && width == std::get<1>(G_)[0]);
     int ciC4 = UP_DIV(ci, unitCi);
     int coC4 = UP_DIV(co, unitCo);
-    return CMatrixCreate({std::get<1>(B_)[0] * std::get<1>(B_)[1], coC4, ciC4, unitCi, unitCo});
+    if(transform_inner_) {
+        return CMatrixCreate({coC4, std::get<1>(B_)[0] * std::get<1>(B_)[1], ciC4, unitCi, unitCo});
+    } else {
+        return CMatrixCreate({std::get<1>(B_)[0] * std::get<1>(B_)[1], coC4, ciC4, unitCi, unitCo});
+    }
 }
 
 /*
 transform weight from [oc][ic][kh][kw] to [unit][unit][co4][ci4][16]
 */
-void WinogradGenerater::transformWeight(CMatrix& weightDest, const float* source, int batch, int channel, int height,
+void WinogradGenerator::transformWeight(CMatrix& weightDest, const float* source, int batch, int channel, int height,
                                         int width) {
     auto GT = CMatrixCreate(std::get<1>(G_)[1], std::get<1>(G_)[0]);
     transpose(GT, G_);
@@ -428,13 +433,23 @@ void WinogradGenerater::transformWeight(CMatrix& weightDest, const float* source
 
     auto weightPtr      = source;
     auto KTransformData = std::get<0>(K_Transform).get();
+
+    int oz_index, alpha_index;
+    if(transform_inner_) {
+        oz_index = 0;
+        alpha_index = 1;
+    } else {
+        oz_index = 1;
+        alpha_index = 0;
+    }
+
     for (int oz = 0; oz < co; ++oz) {
         auto srcOz = weightPtr + oz * ci * kernelCount * kernelCount;
 
         int ozC4 = oz / unitCo;
         int mx   = oz % unitCo;
 
-        auto dstOz = weight_dest_data + weight_dest_strides[1] * ozC4 + mx;
+        auto dstOz = weight_dest_data + weight_dest_strides[oz_index] * ozC4 + mx;
         for (int sz = 0; sz < ci; ++sz) {
             int szC4   = sz / unitCi;
             int my     = sz % unitCi;
@@ -448,7 +463,7 @@ void WinogradGenerater::transformWeight(CMatrix& weightDest, const float* source
             auto dstSz = dstOz + szC4 * weight_dest_strides[2] + unitCo * my;
             // [alpha][alpha][oc4][ic4][16]
             for (int i = 0; i < alpha * alpha; ++i) {
-                *(dstSz + i * weight_dest_strides[0]) = KTransformData[i];
+                *(dstSz + i * weight_dest_strides[alpha_index]) = KTransformData[i];
             }
         }
     }

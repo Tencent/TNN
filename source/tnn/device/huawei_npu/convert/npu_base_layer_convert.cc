@@ -70,6 +70,10 @@ void NpuBaseLayer::SetLayerName(std::string layer_name) {
     layer_name_ = layer_name;
 }
 
+void NpuBaseLayer::SetNpuVersion(std::string version) {
+    npu_version_ = version;
+}
+
 std::string NpuBaseLayer::GetLayerName() {
     return layer_name_;
 }

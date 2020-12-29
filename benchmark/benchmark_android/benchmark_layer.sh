@@ -5,6 +5,7 @@ CLEAN=""
 WORK_DIR=`pwd`
 FILTER=""
 DEVICE_TYPE=""
+KERNEL_TUNE="-et"
 BUILD_DIR=build
 ANDROID_DIR=/data/local/tmp/tnn-benchmark
 OUTPUT_LOG_FILE=benchmark_layer_result.txt
@@ -14,11 +15,12 @@ ADB=adb
 function usage() {
     echo "usage: ./benchmark_layer.sh  [-32] [-c] [-f] <filter-info> [-d] <device-id> [-t] <CPU/GPU>"
     echo "options:"
-    echo "        -32   Build 32 bit."
-    echo "        -c    Clean up build folders."
-    echo "        -d    run with specified device"
-    echo "        -f    specified layer"
-    echo "        -t    CPU/GPU specify the platform to run"
+    echo "        -32         Build 32 bit."
+    echo "        -c          Clean up build folders."
+    echo "        -d          run with specified device"
+    echo "        -f          specified layer"
+    echo "        -t          CPU/GPU specify the platform to run"
+    echo "        -et/-noet   set kernel enable tune on or off" 
 }
 
 function exit_with_msg() {
@@ -80,13 +82,13 @@ function bench_android() {
 
     if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
         $ADB shell "echo '\nbenchmark device: ARM \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt ARM --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
+        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test ${KERNEL_TUNE} -ic ${LOOP_COUNT} -dt ARM --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
     fi
 
     if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "GPU" ];then
         LOOP_COUNT=1
         $ADB shell "echo '\nbenchmark device: OPENCL \n' >> ${ANDROID_DIR}/$OUTPUT_LOG_FILE"
-        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
+        $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./unit_test ${KERNEL_TUNE} -ic ${LOOP_COUNT} -dt OPENCL --gtest_filter="*${FILTER}*" -ub >> $OUTPUT_LOG_FILE"
     fi
 
     $ADB pull $ANDROID_DIR/$OUTPUT_LOG_FILE ../$OUTPUT_LOG_FILE
