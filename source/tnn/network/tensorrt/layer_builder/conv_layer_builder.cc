@@ -99,6 +99,9 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         activation_layer->setAlpha(0.f);
         activation_layer->setBeta(6.f);
         last_layer = activation_layer;
+    } else if (paramlist->activation_type != ActivationType_None) {
+        LOGE("Error: Unsupport reshape type(%d)", paramlist->activation_type);
+        return nullptr;
     }
 
     if (int8) {

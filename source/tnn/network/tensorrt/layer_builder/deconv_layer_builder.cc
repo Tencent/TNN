@@ -20,7 +20,11 @@ DECLARE_TENSORRT_LAYER_BUILDER(Deconvolution, LAYER_DECONVOLUTION);
 
 ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
-    
+
+    if (paramlist->dialations[1] != 1 || paramlist->dialations[0] != 1) {
+        LOGE("TRT does not support dilated deconvolutions");
+        return nullptr;
+    }
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
     Weights kernelWeights;
     kernelWeights.type = nvinfer1::DataType::kFLOAT;
@@ -37,24 +41,40 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         biasWeights.count = 0;
     }
 
+    ILayer* last_layer;
     DimsHW kernalSize(paramlist->kernels[1], paramlist->kernels[0]);
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IDeconvolutionLayer* layer = network->addDeconvolution(*tensor, paramlist->output_channel, kernalSize, kernelWeights, biasWeights);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-        layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        //layer->setDilationNd(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
-        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
-        layer->setNbGroups(paramlist->group);
+    IDeconvolutionLayer* deconv_layer = network->addDeconvolution(*tensor, paramlist->output_channel,
+        kernalSize, kernelWeights, biasWeights);
+    if (deconv_layer != nullptr) {
+        deconv_layer->setName(layer_name_.c_str());
+        deconv_layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
+        deconv_layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+        deconv_layer->setNbGroups(paramlist->group);
         if (paramlist->pad_type == -1) {
-            layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
+            deconv_layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
         } else {
-            layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+            deconv_layer->setPaddingMode(PaddingMode::kSAME_LOWER);
         }
+        last_layer = deconv_layer;
     }
 
-    return layer;
+    IActivationLayer* activation_layer;
+    if (paramlist->activation_type == ActivationType_ReLU) {
+        activation_layer = network->addActivation(*(deconv_layer->getOutput(0)), nvinfer1::ActivationType::kRELU);
+        last_layer = activation_layer;
+    } else if (paramlist->activation_type == ActivationType_ReLU6) {
+        activation_layer = network->addActivation(*(deconv_layer->getOutput(0)), nvinfer1::ActivationType::kCLIP);
+        activation_layer->setAlpha(0.f);
+        activation_layer->setBeta(6.f);
+        last_layer = activation_layer;
+    } else if (paramlist->activation_type != ActivationType_None) {
+        LOGE("Error: Unsupport reshape type(%d)", paramlist->activation_type);
+        return nullptr;
+    }
+
+    return last_layer;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Deconvolution, LAYER_DECONVOLUTION);
