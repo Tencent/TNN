@@ -63,7 +63,7 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         if (use_buffer_) {
             kernel_name += "_MIX";
         }
-        int task_size = output_batch * output_channel * output_height * output_width;
+        int task_size = output_batch * UP_DIV(output_channel, 4) * output_height * output_width;
         if (task_size > 4096 && output_channel > 4) {
             is_channel_blocking_ = true;
             kernel_name += "_CB2";
