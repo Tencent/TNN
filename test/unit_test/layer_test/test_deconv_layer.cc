@@ -120,16 +120,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     param->pads = {pad, pad, pad, pad};
     param->bias = 1;
 
-    if (DEVICE_HUAWEI_NPU == dev) {
-        param->bias = 0;
-    }
-
     if (output_pad > 0) {
         param->pad_type = 3;
-    }
-
-    if (param->pad_type != 0 && param->pad_type != 1 && param->pad_type != -1 && DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
     }
 
     Precision precision = SetPrecision(dev, data_type);

@@ -144,8 +144,12 @@ struct PUBLIC NetworkConfig {
     // compute precision
     Precision precision = PRECISION_AUTO;
 
-    // cache path to store possible cache models
+    // cache path to store possible cache models or opt kernel
     std::string cache_path = "";
+
+    // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
+    // cache_path can set to store tune kernel info.
+    bool enable_tune_kernel = false;
 };
 
 struct PUBLIC ModelConfig {
