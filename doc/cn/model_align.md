@@ -1,0 +1,103 @@
+# 模型对齐常见问题
+
+在使用转换得到的TNN模型进行推理时，有时会遇到TNN模型的推理结果与原始模型不对齐的情况。此文档总结了模型不对齐问题的主要原因、常见的不对齐算子以及分析和处理不对齐问题的方法。
+
+## 一、模型对齐的验证与检查
+
+### 1. 模型转换时使用-align检查对齐情况
+
+TNN模型转换工具支持对齐功能，可以在模型转换时检查生成的TNN模型与源模型是否对齐。强烈建议在模型转换时打开对齐检查，具体文档请参考[模型转换文档](https://github.com/Tencent/TNN/blob/master/doc/cn/user/convert.md)。
+
+### 2. 使用model_check工具检查对齐情况
+
+对于已经转换完成的模型，TNN提供了**model_check**工具辅助模型对齐情况的验证。基于**model_check**工具，可以方便地使用指定的输入数据执行TNN模型，并保存模型的最终结果。之后将TNN的计算结果与原始模型对比，便可获得模型整体的对齐情况。
+
+**model_check**的使用请参考[model_check文档](https://github.com/Tencent/TNN/blob/master/doc/cn/development/model_check.md)。
+
+## 二、常见的模型对齐问题
+
+如果模型转换工具成功生成了TNN模型，但在使用中发现了不对齐的情况，可以按照以下方法排查问题。
+
+由于神经网络模型类型众多，且不同框架对算子的定义和支持不尽相同，再加之各框架的算子支持情况还会随版本变化，所以存在转换前后算子功能不完全等价的情况。下表按照源模型的类型，总结了在实践中遇到的可能存在对齐问题的算子。
+
+|源模型|问题算子列表|
+|-|-|
+|Pytorch    |upsample|
+|TensorFlow |TODO|
+|tflite     |TODO|
+|onnx       |TODO|
+
+### 1.tensorflow
+TODO
+
+### 2.pytorch
+
+#### upsample 
+
+问题描述：将pytorch模型转换为onnx模型时，onnx的upsample算子与pytorch不等价
+
+解决方法：1）更新pytorch；2）导出onnx模型时，设置opset_version=11
+
+### 3.tflite
+TODO
+
+## 三、模型对齐问题的分析与处理方法
+
+在排查模型对齐问题时，最直接有效的方法就是对比模型在相同输入下的计算结果。在这一过程中需要将TNN模型中特定算子的计算结果与原始模型中对应算子的计算结果进行比较。这可以通过保存算子的输入与输出实现。
+
+TNN支持逐层dump结果的功能，可以通过下面的方法获得每层的输入和输出结果。
+
+### 1. 打开blob dump功能
+
+打开[source/tnn/utils/blob_dump_utils.h](https://github.com/Tencent/TNN/blob/master/source/tnn/utils/blob_dump_utils.h)文件，根据需要修改`DUMP_INPUT_BLOB`和`DUMP_OUTPUT_BLOB`两个宏。其中`DUMP_INPUT_BLOB`为`1`表示保存TNN模型每个算子的输入;设置`DUMP_OUTPUT_BLOB`为`1`表示保存每个算子的输出。
+
+数据保存的具体过程实现在[source/tnn/core/default_network.cc](https://github.com/Tencent/TNN/blob/master/source/tnn/core/default_network.cc)的`Forward`方法中。
+
+具体来说，算子的每个输入和输出都被保存在独立的文件中，文件名由**算子在模型中的顺序、算子名称以及输入和输出自身的顺序**决定。例如，假设模型的第2层名为*foo*，其第1个输入被保存在文件*00001-foo-in-0*中；其第2个输出被保存文件*00001-foo-out-1*中。TNN模型各算子的输入输出信息可借助[**Netron**可视化工具](https://netron.app/)查看。
+
+文件的保存目录由[source/tnn/utils/blob_dump_utils.cc](https://github.com/Tencent/TNN/blob/master/source/tnn/utils/blob_dump_utils.cc)中的变量 `g_tnn_dump_directory`控制，可以根据需要进行修改。
+
+### 2. 使用指定输入，获得每层计算结果
+
+由于上述修改均位于源代码中，因此修改后需要重新编译TNN。TNN的编译可参考[TNN编译文档](https://github.com/Tencent/TNN/blob/master/doc/cn/user/compile.md)。
+
+编译后可以用**TNNTest**工具执行模型，并保存每层的输入和输出结果。可参考[TNNTest文档](https://github.com/Tencent/TNN/blob/master/doc/cn/user/test.md)了解**TNNTest**的使用方法和参数。
+
+### 3. 获得源模型算子的计算结果
+
+保存源模型算子结果的方法与源模型基于的框架紧密相关。这里以onnx模型为例，说明逐层保存模型结果的方法。
+- onnx模型
+```
+def forward_dump(model_path:str, input_data:numpy.ndarray) -> Dict[str, numpy.ndarray]:
+    # 1. Load onnx model
+    model = onnx.load(model_path)
+    onnx.checker.check_model(model)
+    model = copy.deepcopy(model)
+
+    # 2. Prepare input data
+    input_data = {'input_name': input_data}
+
+    # 3. Set the output of each operator as the output of the model
+    for node in model.graph.node:
+        for output in node.output:
+            model.graph.output.extend([onnx.ValueInfoProto(name=output)])
+
+    # 4. Use onnxruntime to execute onnx models
+    sess = onnxruntime.InferenceSession(model.SerializeToString())
+    outputs = [x.name for x in sess.get_outputs()]
+    result = OrderedDict(zip(outputs, sess.run(outputs, input_data)))
+    # 5. save the data in 'result'
+    
+    return result
+```
+`result`为一个`Dict`，将onnx模型中每个算子的`name`映射到该算子的计算结果(`numpy.ndarray`)。
+
+## 四、提交issue
+
+当遇到了TNN模型对齐的问题后，可以[提交issue](https://github.com/Tencent/TNN/issues)将问题反馈给我们，我们会尽快进行修复。
+
+为了方便我们复现和定位问题，在描述问题时请尽量提供以下信息：
+1. 原模型与TNN模型；
+2. 指定的输入数据和参考计算结果；
+3. 对齐时使用的环境与方法：例如onnxruntime的版本；tnn版本等；
+4. 其他辅助信息：例如，已经定位到的不对齐算子等；
