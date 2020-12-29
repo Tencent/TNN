@@ -34,12 +34,6 @@ Status NpuUpsampleLayer::Convert() {
         scale_h = param->dims[1] / input_ops_[0]->GetShape()[2];
     }
 
-    // only support scale is int
-    if (scale_w != (int)scale_w || scale_h != (int)scale_h) {
-        LOGE("the upsample scale is not support in huawei NPU\n");
-        return Status(TNNERR_NPU_UNSUPPORT_ERROR, "the upsample scale is not support in huawei NPU");
-    }
-
     const int resize_mode = param->mode;
     const bool align_corners = param->align_corners;
     std::vector<int> dims_vec = param->dims;
@@ -58,6 +52,11 @@ Status NpuUpsampleLayer::Convert() {
         output->set_attr_align_corners(align_corners);
         ADD_OUTPUT_OP(output)
     } else {
+        // only support scale is int
+        if (scale_w != (int)scale_w || scale_h != (int)scale_h) {
+            LOGE("the upsample scale is not support in huawei NPU\n");
+            return Status(TNNERR_NPU_UNSUPPORT_ERROR, "the upsample scale is not support in huawei NPU");
+        }
         auto output = std::make_shared<hiai::op::Upsample>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_attr_stride_h((int)scale_h);
