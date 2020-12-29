@@ -30,7 +30,7 @@ string OnnxOpConverterGather::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
         axis = (int)get_node_attr_i(node, "axis");
     }
 
-    auto indices = get_node_attr_ai(node, "indices", net_info, 1);
+    //auto indices = get_node_attr_ai(node, "indices", net_info, 1);
 
     ostringstream layer_param;
     layer_param << axis << " ";
