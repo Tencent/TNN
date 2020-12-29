@@ -31,7 +31,7 @@ public:
 private:
     void GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-#if TNN_ARM82 && __aarch64__
+#if TNN_ARM82
     void GetImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 #endif
 

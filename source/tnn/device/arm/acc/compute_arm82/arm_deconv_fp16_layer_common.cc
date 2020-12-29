@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#if TNN_ARM82 && __aarch64__
+#if TNN_ARM82
 #include "tnn/device/arm/acc/deconvolution/arm_deconv_fp16_layer_common.h"
 #include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/arm_common.h"
@@ -59,12 +59,13 @@ Status ArmDeconvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> 
             RawBuffer filter_half(weight_nchw_count * data_byte_size);
             Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
+            // using int16_t to copy weights
+            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<int16_t *>(), temp_buffer.force_to<int16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<fp16_t *>(),
-                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<int16_t *>(),
+                                             temp_buffer.force_to<int16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
@@ -131,6 +132,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int ic_step;
     int ic_counter;
     int w_step;
+#if defined(__aarch64__) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
     auto DeconvFunc = DeconvFp16O8;
     int CONVOLUTION_TILED_NUMBER = 14;
     if (gic < 8) {
@@ -148,6 +150,24 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
         ic_counter = gic_8;
         w_step = 8;
     }
+#else
+    auto DeconvFunc = DeconvFp16O8;
+    int CONVOLUTION_TILED_NUMBER = 8;
+    if (gic < 8) {
+        weight_z_step  = kernel_y * kernel_x * gic * 8;
+        src_z_step     = k_param_->iw * k_param_->ih * 1;
+        ic_step = gic;
+        ic_counter = gic;
+        w_step = 1;
+        DeconvFunc = DeconvFp16O8C1;
+    } else {
+        weight_z_step  = kernel_y * kernel_x * gic_8 * 64;
+        src_z_step     = k_param_->iw * k_param_->ih * 8;
+        ic_step = gic_8 * 8;
+        ic_counter = gic_8;
+        w_step = 8;
+    }
+#endif
     int dst_z_step     = k_param_->ow * k_param_->oh * 8;
     int dst_z_step_pad = dst_w_pad * dst_h_pad * 8;
 
@@ -197,7 +217,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
             // prepare init value
             memset(p_buffer, 0, pad_img_size * data_byte_size);
 
-            OMP_PARALLEL_FOR_
+            // OMP_PARALLEL_FOR_
             for (int z = 0; z < goc_8; z++) {
                 auto weight_z = weight_ptr + z * weight_z_step;
                 auto dst_z    = p_buffer + z * dst_z_step_pad;
@@ -209,14 +229,14 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
                         auto x_count = MIN(CONVOLUTION_TILED_NUMBER, k_param_->iw - x_idx);
                         auto src_x   = input_g_ptr + dy * k_param_->iw * w_step + x_idx * w_step;
                         auto dst_x   = dst_y + x_idx * conv_param->strides[0] * 8;
-                        DeconvFunc((__fp16*)dst_x, (const __fp16*)src_x, (const __fp16*)weight_z, x_count, dst_w_step, ic_counter, src_z_step,
+                        DeconvFunc((fp16_t*)dst_x, (const fp16_t*)src_x, (const fp16_t*)weight_z, x_count, dst_w_step, ic_counter, src_z_step,
                                      conv_param->kernels[0], conv_param->kernels[1], dilate_x_step, dilate_y_step);
                     }
                 }
             }
 
             // crop inner image
-            OMP_PARALLEL_FOR_
+            // OMP_PARALLEL_FOR_
             for (int z = 0; z < goc_8; z++) {
                 auto src_z = p_buffer + z * dst_z_step_pad;
                 auto dst_z = output_g_ptr + z * dst_z_step;

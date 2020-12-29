@@ -577,7 +577,7 @@ int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_
     return 0;
 }
 #if TNN_ARM82
-template int ConvertWeightsFromGIOHWToGOHWI64(const fp16_t *src, fp16_t *dst, int group, int input_channel, int output_channel,
+template int ConvertWeightsFromGIOHWToGOHWI64(const int16_t *src, int16_t *dst, int group, int input_channel, int output_channel,
                                               int height, int width);
 #endif
 
