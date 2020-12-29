@@ -37,8 +37,7 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
         squeeze_matrix_b = true;
     }
     if (matrix_a_dims.size() == 2 && matrix_b_dims.size() == 2) {
-        output_dims[0] = matrix_a_dims[0];
-        output_dims[1] = matrix_b_dims[1];
+        output_dims = {matrix_a_dims[0], matrix_b_dims[1]};
     } else if (matrix_a_dims.size() == 2 && matrix_b_dims.size() > 2) {
         if (matrix_a_dims[1] == matrix_b_dims[matrix_b_dims.size() - 2]) {
             output_dims                           = matrix_b_dims;
