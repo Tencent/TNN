@@ -95,7 +95,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
             output_blobs_[0]->GetBlobDesc().dims = input_shape;
             return TNN_OK;
         }
-        if (weight_shape.size() < 4) {
+        if (weight_shape.size() <= 0) {
             weight_shape       = DimsVector(input_shape.size(), 1);
             int layer_res_size = layer_res->element_handle.GetDataCount();
             if (layer_res_size == 1) {
