@@ -327,32 +327,6 @@ void DepthwiseDeconv<fp16_t, fp16_t>(const fp16_t* dst, fp16_t* src, const fp16_
     }
 }
 
-template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
-    if (dst == nullptr) {
-        dst = src;
-    }
-
-    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
-    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
-    auto local_scale = scale_buffer.force_to<fp16_t *>();
-    auto local_bias  = bias_buffer.force_to<fp16_t *>();
-
-    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
-        auto src_z   = src + z * hw * 8;
-        auto dst_z   = dst + z * hw * 8;
-
-        auto v_scale = Half8::load(local_scale + z * 8);
-        auto v_bias  = Half8::load(local_bias + z * 8);
-        for (int s = 0; s < hw; ++s) {
-            Half8 dst_v = v_bias;
-            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
-            Half8::save(dst_z + s * 8, dst_v);
-        }
-    }
-}
-
 #define transpose_4x4(v0, v1, v2, v3, v_zero)       \
 {                                                   \
     float32x4x2_t q01 = vtrnq_f32(v0, v1);          \
@@ -782,5 +756,31 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
 
 template void BlobToBGRImpl<true>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 template void BlobToBGRImpl<false>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
+
+template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
+    if (dst == nullptr) {
+        dst = src;
+    }
+
+    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
+    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
+    auto local_scale = scale_buffer.force_to<fp16_t *>();
+    auto local_bias  = bias_buffer.force_to<fp16_t *>();
+
+    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
+        auto src_z   = src + z * hw * 8;
+        auto dst_z   = dst + z * hw * 8;
+
+        auto v_scale = Half8::load(local_scale + z * 8);
+        auto v_bias  = Half8::load(local_bias + z * 8);
+        for (int s = 0; s < hw; ++s) {
+            Half8 dst_v = v_bias;
+            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
+            Half8::save(dst_z + s * 8, dst_v);
+        }
+    }
+}
 
 }  // namespace TNN_NS

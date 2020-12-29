@@ -215,7 +215,6 @@ if(TNN_ARM_ENABLE)
     if(TNN_ARM82_ENABLE)
         set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNArm82>")
     endif()
-    message(STATUS "top object ${TARGET_OBJECTS}")
 endif()
 
 if(TNN_X86_ENABLE)
