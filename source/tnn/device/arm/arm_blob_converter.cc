@@ -24,7 +24,6 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
-#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
@@ -288,67 +287,6 @@ static void BGRAToBlobImpl(const uint8_t *src, float *dst, const float *scale, c
 }
 
 /*
-convert data type from uint8 to half, data format from nhwc 2 nc8hw8
-*/
-template <bool reverse_channel>
-static void BGRAToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const float *bias,
-                           int hw, int channel) {
-    int i = 0;
-    fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
-    fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
-    float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
-    float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
-    float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
-    float16x8_t bias_neon_a = vdupq_n_f16(bias_half[3]);
-    float16x8_t vzero       = vdupq_n_f16(0.0f);
-    float16x8x4_t vf16;
-    for (; i < hw - 7; i += 8) {
-        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
-        uint16x8_t b_u16 = vmovl_u8(v_u8.val[0]);
-        uint16x8_t g_u16 = vmovl_u8(v_u8.val[1]);
-        uint16x8_t r_u16 = vmovl_u8(v_u8.val[2]);
-        uint16x8_t a_u16 = vmovl_u8(v_u8.val[3]);
-
-        vf16.val[0] = vcvtq_f16_u16(reverse_channel ? r_u16 : b_u16);
-        vf16.val[1] = vcvtq_f16_u16(g_u16);
-        vf16.val[2] = vcvtq_f16_u16(reverse_channel ? b_u16 : r_u16);
-        vf16.val[3] = vcvtq_f16_u16(a_u16);
-
-        vf16.val[0] = vaddq_f16(bias_neon_b, vmulq_n_f16(vf16.val[0], scale_half[0]));
-        vf16.val[1] = vaddq_f16(bias_neon_g, vmulq_n_f16(vf16.val[1], scale_half[1]));
-        vf16.val[2] = vaddq_f16(bias_neon_r, vmulq_n_f16(vf16.val[2], scale_half[2]));
-        vf16.val[3] = vaddq_f16(bias_neon_a, vmulq_n_f16(vf16.val[3], scale_half[3]));
-
-        if (channel == 3) {
-            vf16.val[3] = vdupq_n_f16(0.0f);
-        }
-
-        float16x8x4_t vf16_dump;
-        vf16_dump.val[0] = vzip1q_f16(vf16.val[0], vzero);
-        vf16_dump.val[1] = vzip1q_f16(vf16.val[1], vzero);
-        vf16_dump.val[2] = vzip1q_f16(vf16.val[2], vzero);
-        vf16_dump.val[3] = vzip1q_f16(vf16.val[3], vzero);
-        vst4q_f16(dst + i * 8, vf16_dump);
-        vf16_dump.val[0] = vzip2q_f16(vf16.val[0], vzero);
-        vf16_dump.val[1] = vzip2q_f16(vf16.val[1], vzero);
-        vf16_dump.val[2] = vzip2q_f16(vf16.val[2], vzero);
-        vf16_dump.val[3] = vzip2q_f16(vf16.val[3], vzero);
-        vst4q_f16(dst + i * 8 + 32, vf16_dump);
-    }
-#endif
-    for (; i < hw; ++i) {
-        dst[8 * i + 0] = scale_half[0] * fp16_t(src[4 * i + (reverse_channel ? 2 : 0)]) + bias_half[0];
-        dst[8 * i + 1] = scale_half[1] * fp16_t(src[4 * i + 1]) + bias_half[1];
-        dst[8 * i + 2] = scale_half[2] * fp16_t(src[4 * i + (reverse_channel ? 0 : 2)]) + bias_half[2];
-        dst[8 * i + 3] = scale_half[3] * fp16_t(src[4 * i + 3]) + bias_half[3];
-        if (channel == 3) {
-            dst[8 * i + 3] = 0.0f;
-        }
-    }
-}
-
-/*
 convert data type from uint8 to float, data format from nhw4 2 nc4hw4
 */
 template <bool reverse_channel>
@@ -422,7 +360,7 @@ static void BGRAToBlobImpl(const uint8_t *src, int8_t *dst, const float *scale, 
 if channel == 3, the fourth channel is ignored
 */
 template<typename T>
-static void BGRAToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
+void BGRAToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
                        bool reverse_channel, int channel) {
     if (reverse_channel) {
         BGRAToBlobImpl<true>(src, dst, scale, bias, hw, channel);
@@ -460,37 +398,6 @@ static void GrayToBlob(const uint8_t *src, float *dst, const float scale, const 
 #endif
     for (; i < hw; ++i) {
         dst[4 * i] = scale * src[i] + bias;
-    }
-}
-
-/*
-convert data type from uint8 to half, data format from nhw1 2 nc8hw8
-*/
-static void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const float bias, int hw) {
-    int i = 0;
-    fp16_t scale_half = fp16_t(scale);
-    fp16_t bias_half  = fp16_t(bias);
-    memset(dst, 0, hw * 8 * sizeof(fp16_t));
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
-    float16x8_t scale_neon = vdupq_n_f16(scale_half);
-    float16x8_t bias_neon  = vdupq_n_f16(bias_half);
-    for (; i < hw - 7; i += 8) {
-        uint8x8_t v_u8   = vld1_u8(src + i);
-        float16x8_t vf16 = vcvtq_f16_u16(vmovl_u8(v_u8));
-        float16x8_t rf16 = vaddq_f16(bias_neon, vmulq_f16(scale_neon, vf16));
-
-        vst1q_lane_f16(dst + (i + 0) * 8, rf16, 0);
-        vst1q_lane_f16(dst + (i + 1) * 8, rf16, 1);
-        vst1q_lane_f16(dst + (i + 2) * 8, rf16, 2);
-        vst1q_lane_f16(dst + (i + 3) * 8, rf16, 3);
-        vst1q_lane_f16(dst + (i + 4) * 8, rf16, 4);
-        vst1q_lane_f16(dst + (i + 5) * 8, rf16, 5);
-        vst1q_lane_f16(dst + (i + 6) * 8, rf16, 6);
-        vst1q_lane_f16(dst + (i + 7) * 8, rf16, 7);
-    }
-#endif
-    for (; i < hw; ++i) {
-        dst[8 * i] = scale_half * fp16_t(src[i]) + bias_half;
     }
 }
 
@@ -577,56 +484,6 @@ static void BGRToBlobImpl(const uint8_t *src, float *dst, const float *scale, co
 }
 
 /*
-convert data type from uint8 to half, data format from nhw3 2 nc8hw8
-*/
-template <bool reverse_channel>
-static void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const float *bias, int hw) {
-    int i = 0;
-    fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
-    fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
-    float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
-    float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
-    float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
-    float16x8_t vzero       = vdupq_n_f16(0.0f);
-    float16x8x4_t vf16;
-    vf16.val[3] = vzero;
-    for (; i < hw - 7; i += 8) {
-        uint8x8x3_t v_u8 = vld3_u8(src + i * 3);
-        uint16x8_t b_u16 = vmovl_u8(v_u8.val[0]);
-        uint16x8_t g_u16 = vmovl_u8(v_u8.val[1]);
-        uint16x8_t r_u16 = vmovl_u8(v_u8.val[2]);
-
-        vf16.val[0] = vcvtq_f16_u16(reverse_channel ? r_u16 : b_u16);
-        vf16.val[1] = vcvtq_f16_u16(g_u16);
-        vf16.val[2] = vcvtq_f16_u16(reverse_channel ? b_u16 : r_u16);
-
-        vf16.val[0] = vaddq_f16(bias_neon_b, vmulq_n_f16(vf16.val[0], scale_half[0]));
-        vf16.val[1] = vaddq_f16(bias_neon_g, vmulq_n_f16(vf16.val[1], scale_half[1]));
-        vf16.val[2] = vaddq_f16(bias_neon_r, vmulq_n_f16(vf16.val[2], scale_half[2]));
-
-        float16x8x4_t vf16_dump;
-        vf16_dump.val[0] = vzip1q_f16(vf16.val[0], vzero);
-        vf16_dump.val[1] = vzip1q_f16(vf16.val[1], vzero);
-        vf16_dump.val[2] = vzip1q_f16(vf16.val[2], vzero);
-        vf16_dump.val[3] = vzip1q_f16(vf16.val[3], vzero);
-        vst4q_f16(dst + i * 8, vf16_dump);
-        vf16_dump.val[0] = vzip2q_f16(vf16.val[0], vzero);
-        vf16_dump.val[1] = vzip2q_f16(vf16.val[1], vzero);
-        vf16_dump.val[2] = vzip2q_f16(vf16.val[2], vzero);
-        vf16_dump.val[3] = vzip2q_f16(vf16.val[3], vzero);
-        vst4q_f16(dst + i * 8 + 32, vf16_dump);
-    }
-#endif
-    for (; i < hw; ++i) {
-        dst[8 * i + 0] = scale_half[0] * fp16_t(src[3 * i + (reverse_channel ? 2 : 0)]) + bias_half[0];
-        dst[8 * i + 1] = scale_half[1] * fp16_t(src[3 * i + 1]) + bias_half[1];
-        dst[8 * i + 2] = scale_half[2] * fp16_t(src[3 * i + (reverse_channel ? 0 : 2)]) + bias_half[2];
-        dst[8 * i + 3] = 0.0f;
-    }
-}
-
-/*
 convert data type from uint8 to float, data format from nhw3 2 nc4hw4
 */
 template <bool reverse_channel>
@@ -681,7 +538,7 @@ static void BGRToBlobImpl(const uint8_t *src, int8_t *dst, const float *scale, c
 }
 
 template<typename T>
-static void BGRToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
+void BGRToBlob(const uint8_t *src, T *dst, const float *scale, const float *bias, int hw,
                        bool reverse_channel) {
     if (reverse_channel) {
         BGRToBlobImpl<true>(src, dst, scale, bias, hw);
@@ -769,62 +626,6 @@ static void BlobToBGRAImpl(const float *src, uint8_t *dst, const float *scale, c
                                                        (scale[2] * src[4 * i + 2] + bias[2]));
         if (channel == 4) {
             dst[4 * i + 3] = float2uint8(scale[3] * src[4 * i + 3] + bias[3]);
-        }
-    }
-}
-
-template <bool reverse_channel>
-static void BlobToBGRAImpl(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias,
-                           int hw, int channel) {
-    int i = 0;
-    fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
-    fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
-    float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
-    float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
-    float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
-    float16x8_t bias_neon_a = vdupq_n_f16(bias_half[3]);
-    uint8x8x4_t vi8x4;
-    float16x8x4_t vf16;
-    for (; i < hw - 7; i += 8) {
-        float16x8x4_t vf16_0 = vld4q_f16(src + i * 8);
-        float16x8x4_t vf16_1 = vld4q_f16(src + i * 8 + 32);
-        vf16.val[0] = vuzp1q_f16(vf16_0.val[0], vf16_1.val[0]);
-        vf16.val[1] = vuzp1q_f16(vf16_0.val[1], vf16_1.val[1]);
-        vf16.val[2] = vuzp1q_f16(vf16_0.val[2], vf16_1.val[2]);
-        vf16.val[3] = vuzp1q_f16(vf16_0.val[3], vf16_1.val[3]);
-
-        vf16.val[0] = vaddq_f16(bias_neon_b, vmulq_n_f16(vf16.val[0], scale_half[0]));
-        vf16.val[1] = vaddq_f16(bias_neon_g, vmulq_n_f16(vf16.val[1], scale_half[1]));
-        vf16.val[2] = vaddq_f16(bias_neon_r, vmulq_n_f16(vf16.val[2], scale_half[2]));
-        vf16.val[3] = vaddq_f16(bias_neon_a, vmulq_n_f16(vf16.val[3], scale_half[3]));
-
-        int16x8_t s16_0 = vcvtaq_s16_f16(vf16.val[reverse_channel ? 2 : 0]);
-        int16x8_t s16_1 = vcvtaq_s16_f16(vf16.val[1]);
-        int16x8_t s16_2 = vcvtaq_s16_f16(vf16.val[reverse_channel ? 0 : 2]);
-        int16x8_t s16_3 = vcvtaq_s16_f16(vf16.val[3]);
-
-        vi8x4.val[0] = vqmovun_s16(s16_0);
-        vi8x4.val[1] = vqmovun_s16(s16_1);
-        vi8x4.val[2] = vqmovun_s16(s16_2);
-        vi8x4.val[3] = vqmovun_s16(s16_3);
-
-        if (channel == 3) {
-            uint8x8x4_t vi8x4_tmp = vld4_u8(dst + i * 4);
-            vi8x4.val[3]          = vi8x4_tmp.val[3];
-        }
-
-        vst4_u8(dst + i * 4, vi8x4);
-    }
-#endif
-    for (; i < hw; ++i) {
-        dst[4 * i + 0] = half2uint8(reverse_channel ? (scale_half[2] * fp16_t(src[8 * i + 2]) + bias_half[2]) :
-                                                       (scale_half[0] * fp16_t(src[8 * i + 0]) + bias_half[0]));
-        dst[4 * i + 1] = half2uint8(scale_half[1] * fp16_t(src[8 * i + 1]) + bias_half[1]);
-        dst[4 * i + 2] = half2uint8(reverse_channel ? (scale_half[0] * fp16_t(src[8 * i + 0]) + bias_half[0]) :
-                                                       (scale_half[2] * fp16_t(src[8 * i + 2]) + bias_half[2]));
-        if (channel == 4) {
-            dst[4 * i + 3] = half2uint8(scale_half[3] * fp16_t(src[8 * i + 3]) + bias_half[3]);
         }
     }
 }
@@ -950,48 +751,6 @@ static void BlobToBGRImpl(const float *src, uint8_t *dst, const float *scale, co
         dst[3 * i + 1] = float2uint8(scale[1] * src[4 * i + 1] + bias[1]);
         dst[3 * i + 2] = float2uint8(reverse_channel ? (scale[0] * src[4 * i + 0] + bias[0]) :
                                                        (scale[2] * src[4 * i + 2] + bias[2]));
-    }
-}
-
-template <bool reverse_channel>
-static void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw) {
-    int i = 0;
-    fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
-    fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
-    float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
-    float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
-    float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
-    uint8x8x3_t vi8x3;
-    float16x8x3_t vf16;
-    for (; i < hw - 7; i += 8) {
-        float16x8x4_t vf16_0 = vld4q_f16(src + i * 8);
-        float16x8x4_t vf16_1 = vld4q_f16(src + i * 8 + 32);
-        vf16.val[0] = vuzp1q_f16(vf16_0.val[0], vf16_1.val[0]);
-        vf16.val[1] = vuzp1q_f16(vf16_0.val[1], vf16_1.val[1]);
-        vf16.val[2] = vuzp1q_f16(vf16_0.val[2], vf16_1.val[2]);
-
-        vf16.val[0] = vaddq_f16(bias_neon_b, vmulq_n_f16(vf16.val[0], scale_half[0]));
-        vf16.val[1] = vaddq_f16(bias_neon_g, vmulq_n_f16(vf16.val[1], scale_half[1]));
-        vf16.val[2] = vaddq_f16(bias_neon_r, vmulq_n_f16(vf16.val[2], scale_half[2]));
-
-        int16x8_t s16_0 = vcvtaq_s16_f16(vf16.val[reverse_channel ? 2 : 0]);
-        int16x8_t s16_1 = vcvtaq_s16_f16(vf16.val[1]);
-        int16x8_t s16_2 = vcvtaq_s16_f16(vf16.val[reverse_channel ? 0 : 2]);
-
-        vi8x3.val[0] = vqmovun_s16(s16_0);
-        vi8x3.val[1] = vqmovun_s16(s16_1);
-        vi8x3.val[2] = vqmovun_s16(s16_2);
-
-        vst3_u8(dst + i * 3, vi8x3);
-    }
-#endif
-    for (; i < hw; ++i) {
-        dst[3 * i + 0] = half2uint8(reverse_channel ? (scale_half[2] * fp16_t(src[8 * i + 2]) + bias_half[2]) :
-                                                       (scale_half[0] * fp16_t(src[8 * i + 0]) + bias_half[0]));
-        dst[3 * i + 1] = half2uint8(scale_half[1] * fp16_t(src[8 * i + 1]) + bias_half[1]);
-        dst[3 * i + 2] = half2uint8(reverse_channel ? (scale_half[0] * fp16_t(src[8 * i + 0]) + bias_half[0]) :
-                                                       (scale_half[2] * fp16_t(src[8 * i + 2]) + bias_half[2]));
     }
 }
 
@@ -1137,55 +896,6 @@ void RGBAChannelReverse(uint8_t *src, uint8_t *dst, int channel, int hw) {
         uint8_t tmp    = src[i * 4];
         dst[i * 4]     = src[i * 4 + 2];
         dst[i * 4 + 2] = tmp;
-    }
-}
-
-template <typename T>
-void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst = nullptr) {
-    if (dst == nullptr) {
-        dst = src;
-    }
-    RawBuffer scale_buffer(ROUND_UP(channel, 4) * sizeof(float));
-    RawBuffer bias_buffer(ROUND_UP(channel, 4) * sizeof(float));
-    memcpy(scale_buffer.force_to<void *>(), scale, sizeof(float) * channel);
-    memcpy(bias_buffer.force_to<void *>(), bias, sizeof(float) * channel);
-    auto local_scale = scale_buffer.force_to<float *>();
-    auto local_bias  = bias_buffer.force_to<float *>();
-
-    for (int z = 0; z < UP_DIV(channel, 4); ++z) {
-        auto src_z   = src + z * hw * 4;
-        auto dst_z   = dst + z * hw * 4;
-        auto v_scale = Float4::load(local_scale + z * 4);
-        auto v_bias  = Float4::load(local_bias + z * 4);
-        for (int s = 0; s < hw; ++s) {
-            Float4::save(dst_z + s * 4, Float4::load(src_z + s * 4) * v_scale + v_bias);
-        }
-    }
-}
-
-template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
-    if (dst == nullptr) {
-        dst = src;
-    }
-
-    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
-    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
-    auto local_scale = scale_buffer.force_to<fp16_t *>();
-    auto local_bias  = bias_buffer.force_to<fp16_t *>();
-
-    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
-        auto src_z   = src + z * hw * 8;
-        auto dst_z   = dst + z * hw * 8;
-
-        auto v_scale = Half8::load(local_scale + z * 8);
-        auto v_bias  = Half8::load(local_bias + z * 8);
-        for (int s = 0; s < hw; ++s) {
-            Half8 dst_v = v_bias;
-            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
-            Half8::save(dst_z + s * 8, dst_v);
-        }
     }
 }
 

@@ -25,6 +25,8 @@
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/half_utils.h"
 
+#include "tnn/device/arm/acc/compute_arm82/compute_half.h"
+
 namespace TNN_NS {
 struct ArmKernelParam {
     long ic_r4;
@@ -112,10 +114,8 @@ void ConvCommonO4(T* dst, const T* src, const float* weight, long width, long sr
 template <typename Tin, typename Tout>
 void FloatConvert(const Tin* src, Tout* dst, long area_quad);
 
-void Half2Float(float* dst, const fp16_t* src, const size_t length);
-void Float2Half(fp16_t* dst, const float* src, const size_t length);
-void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);
-void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw);
+template <typename T>
+void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst = nullptr);
 
 #ifdef __cplusplus
 extern "C" {
@@ -149,20 +149,6 @@ void ConvDw3x3FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, 
 void ConvDw3x3Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5FloatSlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
 void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
-
-#if TNN_ARM82
-void Half2FloatKernel(float* dst, const fp16_t* src, const size_t length);
-void Float2HalfKernel(fp16_t* dst, const float* src, const size_t length);
-void GEMM_FP16_N8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long src_depth,
-                           long dst_step, long dst_depth, long width, fp16_t *bias, long relu);
-void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width);
-void GemmFp16SlidewC3(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long src_w_setup, long fw,
-                       long fh, long dilateX_step, long dilateY_step);
-void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
-                   long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
-void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
-                   long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
-#endif
 
 #ifdef __cplusplus
 }
