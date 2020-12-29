@@ -163,8 +163,14 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     if (use_buffer_) {
         // create weights use clBuffer
         DimsVector filter_buffershape;
-        filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
-                              conv_params_.kernel_y, conv_params_.kernel_x};
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            filter_buffershape = {1, ROUND_UP(conv_params_.output_channel, 4),
+                                  conv_params_.kernel_y, conv_params_.kernel_x};
+        } else {
+            filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
+                                  conv_params_.kernel_y, conv_params_.kernel_x};
+        }
+
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_BUFFER));
         size_t type_size = sizeof(float);
         if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
@@ -182,7 +188,11 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
 
         // transfer from clBuffer to clBuffer
         ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-        return convertor.ConvertBufferToBuffer(weight_memory.get(), CONV2D_FILTER, filter_shape, ocl_weights_.get(),
+        OpenCLBufferFormat buffer_format = CONV2D_FILTER;
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            buffer_format = DW_CONV2D_FILTER;
+        }
+        return convertor.ConvertBufferToBuffer(weight_memory.get(), buffer_format, filter_shape, ocl_weights_.get(),
                                                true);
     } else {
         // create weights use clImage
