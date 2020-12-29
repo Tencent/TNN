@@ -110,8 +110,18 @@ Status BaseLayer::InferOutputShape() {
 Status BaseLayer::InferOutputDataType() {
     // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
+    
+    //find first blob which is not const
+    auto input_blob_not_const = input_blobs_[0];
+    for (auto input_blob : input_blobs_) {
+        if (const_resource_.find(input_blob->GetBlobDesc().name) == const_resource_.end()) {
+            input_blob_not_const = input_blob;
+            break;
+        }
+    }
+    
     for (auto output_blob : output_blobs_) {
-        output_blob->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
+        output_blob->GetBlobDesc().data_type = input_blob_not_const->GetBlobDesc().data_type;
     }
     
     int flag = DATA_FLAG_CHANGE_NEVER;
