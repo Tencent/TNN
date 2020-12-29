@@ -29,6 +29,13 @@
 
 namespace TNN_NS {
 
+typedef enum {
+    VCT_SMALLER = 0,
+    VCT_SMALLEQUAL,
+    VCT_BIGGER,
+    VCT_BIGEQUAL,
+} VersionCompareType;
+
 class NpuUtils {
 public:
     static Status CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
@@ -40,7 +47,7 @@ public:
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
                                   ge::TensorDesc input_desc, int length) {
         ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
-        //since 1-d array total size = sizeof(datatype) * length
+        // since 1-d array total size = sizeof(datatype) * length
         input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * length);
         attr_value->set_attr_value(input_size_tensor);
         return TNN_OK;
@@ -50,7 +57,9 @@ public:
 
     static Status GetPadMode(int &pad_mode, int pad_type);
 
-    static int checkNpuVersion(const char *version);
+    static bool IsVersionValid(std::string version);
+
+    static bool VersionCompare(std::string version, std::string cmp, VersionCompareType type);
 
     static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                              std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
