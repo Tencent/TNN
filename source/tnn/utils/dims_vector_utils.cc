@@ -149,8 +149,15 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
             *status = Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
         }
     }
-
-    output_dims[infer_dim_pos] = in_cnt / out_cnt;
+    
+    int infer_dim_v = in_cnt / out_cnt;
+    if (infer_dim_v <= 0) {
+        LOGE("Error: blob shape is zero\n");
+        if (status) {
+            *status = Status(TNNERR_COMMON_ERROR, "Error: blob shape is zero");
+        }
+    }
+    output_dims[infer_dim_pos] = infer_dim_v;
     return output_dims;
 }
 
