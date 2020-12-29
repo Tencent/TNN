@@ -14,14 +14,13 @@
 
 #include <memory>
 
-#include "thirdparty/md5/md5.h"
-
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
