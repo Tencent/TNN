@@ -80,6 +80,7 @@ build_openvino() {
         -DENABLE_SPEECH_DEMO=OFF \
         -DNGRAPH_ONNX_IMPORT_ENABLE=OFF \
         -DENABLE_PROFILING_ITT=OFF \
+        -DTREAT_WARNING_AS_ERROR=OFF \
 
         echo "Building Openvino ..."
         make -j4
