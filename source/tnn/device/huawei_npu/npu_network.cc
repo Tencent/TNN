@@ -434,12 +434,12 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         int w                      = dims.GetWidth();
         // add blob
         std::string name = input_it->first;
-        char layer_name[name.size() + 1];
-        strcpy(layer_name, name.c_str());
+        char blob_name[name.size() + 1];
+        strcpy(blob_name, name.c_str());
         BlobDesc desc;
         desc.device_type = DEVICE_HUAWEI_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
-        desc.name        = layer_name;
+        desc.name        = blob_name;
         desc.dims.push_back(n);
         desc.dims.push_back(c);
         desc.dims.push_back(h);
@@ -476,8 +476,8 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         std::string name = *output_it;
         BlobDesc desc;
         BlobHandle handle;
-        char layer_name[name.size() + 1];
-        strcpy(layer_name, name.c_str());
+        char blob_name[name.size() + 1];
+        strcpy(blob_name, name.c_str());
 
         if (input_blob_map_.count(name) != 0) {
             // if the input is the output, then use the input tensor
@@ -492,7 +492,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             // add blob
             desc.device_type = DEVICE_HUAWEI_NPU;
             desc.data_format = DATA_FORMAT_NCHW;
-            desc.name        = layer_name;
+            desc.name        = blob_name;
             desc.dims.push_back(n);
             desc.dims.push_back(c);
             desc.dims.push_back(h);
