@@ -338,13 +338,13 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(
         NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);
-    this->m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
-    this->m_trt_config = this->m_trt_builder->createBuilderConfig();
-    auto profile = this->m_trt_builder->createOptimizationProfile();
+    auto m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
+    auto m_trt_config = m_trt_builder->createBuilderConfig();
+    auto profile = m_trt_builder->createOptimizationProfile();
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
-        nvinfer1::ITensor* in_tensor = this->m_trt_network->addInput(desc.name.c_str(),
+        nvinfer1::ITensor* in_tensor = m_trt_network->addInput(desc.name.c_str(),
             ConvertToTRTDataType(desc.data_type), ConvertToTRTDims(desc.dims));
         auto min_dims = ConvertToTRTDims(desc.dims);
         auto max_dims = min_dims;
@@ -407,12 +407,12 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             tensorrt_tensor->SetTensor(in_tensor);
         }
     }
-    this->m_trt_config->addOptimizationProfile(profile);
+    m_trt_config->addOptimizationProfile(profile);
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
         nvinfer1::ILayer *cur_trt_layer = 
-            dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(this->m_trt_network);
+            dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(m_trt_network);
         if (cur_trt_layer == nullptr ) {
             LOGE("build trt layer for \"%s\" failed\n", cur_layer->GetLayerName().c_str());
             return TNNERR_LAYER_ERR;
