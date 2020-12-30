@@ -13,25 +13,21 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_unary_layer_acc.h"
-#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
-typedef struct arm_relu6_operator : arm_unary_operator{
-    virtual Float4 operator()(const Float4 &v){
-        return Float4::min(Float4(6.0), Float4::max(Float4(0.0), v));
+typedef struct arm_sigmoid_operator : arm_unary_operator {
+    virtual Float4 operator()(const Float4& v) {
+        return Float4::sigmoid(v);
     }
-
-#if TNN_ARM82
-    virtual Half8 operator()(const Half8 &v) {
-        return Half8::min(Half8(fp16_t(6.0)), Half8::max(Half8(fp16_t(0.0)), v));
+    virtual Float4 fast_op(const Float4& v) {
+        return Float4::fast_sigmoid(v);
     }
-#endif
-}
-ARM_RELU6_OP;
+} ARM_SIGMOID_OP;
 
-DECLARE_ARM_UNARY_ACC(Relu6, ARM_RELU6_OP);
+DECLARE_ARM_UNARY_ACC_FP16(Sigmoid, ARM_SIGMOID_OP);
 
-REGISTER_ARM_ACC(Relu6, LAYER_RELU6);
-REGISTER_ARM_PRECISION_FP16(LAYER_RELU6);
+REGISTER_ARM_ACC(Sigmoid, LAYER_SIGMOID)
+REGISTER_ARM_PRECISION_FP16(LAYER_SIGMOID)
+
 }  // namespace TNN_NS

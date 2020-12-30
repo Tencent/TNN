@@ -17,7 +17,6 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
-#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
@@ -28,7 +27,7 @@ public:
         return TNN_OK;
     }
 
-    virtual float operator()(const float& v) {
+    virtual float operator()(const float &v) {
         return v;
     }
 
@@ -36,18 +35,12 @@ public:
         return v;
     };
     virtual Float4 fast_op(const Float4 &v) {
-        return operator()(v); 
+        return operator()(v);
     };
 
     virtual fp16_t operator()(const fp16_t &v) {
         return v;
     }
-
-#if TNN_ARM82
-    virtual Half8 operator()(const Half8 &v) {
-        return v;
-    }
-#endif
 
 protected:
     LayerParam *param_ = nullptr;
@@ -80,6 +73,33 @@ private:
         }                                                                                                              \
         virtual ~Arm##type_string##LayerAcc(){};                                                                       \
     }
+
+#if TNN_ARM82
+#define DEFINE_ARM_FP16_UNARY_DO_FORWARD                                                                               \
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {                  \
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {                                                    \
+            return ExecFp16(inputs, outputs);                                                                          \
+        } else {                                                                                                       \
+            return ArmUnaryLayerAcc::DoForward(inputs, outputs);                                                       \
+        }                                                                                                              \
+    }
+#else
+#define DEFINE_ARM_FP16_UNARY_DO_FORWARD
+#endif  // TNN_ARM82
+
+#define DECLARE_ARM_UNARY_ACC_FP16(type_string, op_type)                                                               \
+    class Arm##type_string##LayerAcc : public ArmUnaryLayerAcc {                                                       \
+    public:                                                                                                            \
+        Arm##type_string##LayerAcc() {                                                                                 \
+            op_ = std::make_shared<op_type>();                                                                         \
+        }                                                                                                              \
+        DEFINE_ARM_FP16_UNARY_DO_FORWARD;                                                                              \
+        virtual ~Arm##type_string##LayerAcc(){};                                                                       \
+                                                                                                                       \
+    private:                                                                                                           \
+        DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
+    }
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_UNARY_LAYER_ACC_H_

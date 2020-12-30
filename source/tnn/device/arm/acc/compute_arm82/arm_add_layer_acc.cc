@@ -372,6 +372,5 @@ Status ArmAddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 
 REGISTER_ARM_ACC(Add, LAYER_ADD)
 REGISTER_ARM_PRECISION_FP16(LAYER_ADD)
-//REGISTER_ARM_PRECISION_FP16_TEST(LAYER_ADD)
 
 }  // namespace TNN_NS
