@@ -155,6 +155,7 @@ private:
 
     // here to add sub network :
     std::shared_ptr<DefaultNetwork> sub_network_;
+    std::shared_ptr<DefaultModelInterpreter> sub_network_interp_;
     // count how many layers have been constructed
     int cpu_count_;
     std::set<std::string> visited_;

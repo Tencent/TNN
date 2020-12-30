@@ -24,6 +24,7 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/device/huawei_npu/convert/npu_utils.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/npu_common_utils.h"
@@ -101,7 +102,12 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
         if (ir_ret != TNN_OK) {
             LOGI("[TNN/NPU] Some layers not support in NPU, switch to ARM\n");
             if (cpu_count_ != net_structure_->layers.size()) {
-                ir_ret = InitSubNetwork(cpu_input_shape, net_config, model_config, interpreter);
+                // create sub_network_interp_
+                sub_network_interp_.reset(new ModelInterpreter());
+                *sub_network_interp_->GetNetStructure() = *default_interpreter->GetNetStructure();
+                *sub_network_interp_->GetNetResource()  = *default_interpreter->GetNetResource();
+
+                ir_ret = InitSubNetwork(cpu_input_shape, net_config, model_config, sub_network_interp_.get());
                 if (ir_ret != TNN_OK) {
                     return ir_ret;
                 }
@@ -201,8 +207,9 @@ Status NpuNetwork::InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig
     cpu_net_config.device_type   = DEVICE_ARM;
     cpu_net_config.network_type  = NETWORK_TYPE_DEFAULT;
     // change the network_structure for split
-    NpuUtils::SplitNetwork(cpu_count_, net_structure_, visited_, global_operator_map_);
-    cpu_input_shape = net_structure_->inputs_shape_map;
+    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    NpuUtils::SplitNetwork(cpu_count_, default_interpreter->GetNetStructure(), visited_, global_operator_map_);
+    cpu_input_shape = default_interpreter->GetNetStructure()->inputs_shape_map;
     if (cpu_input_shape.empty()) {
         LOGE(
             "ERROR: When split the network,  the arm can not find input in the huawei_npu visited "
@@ -330,7 +337,8 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         ret =
             cur_layer->Init(context_, layer_info->param.get(), layer_resource, input_ops, device_, layer_info->outputs);
         if (ret != TNN_OK) {
-            LOGE("Error Init layer %s (%s), may switch to arm\n", cur_layer->GetLayerName().c_str(), ret.description().c_str());
+            LOGE("Error Init layer %s (%s), may switch to arm\n", cur_layer->GetLayerName().c_str(),
+                 ret.description().c_str());
             return ret;
         }
         layers_.push_back(cur_layer);
