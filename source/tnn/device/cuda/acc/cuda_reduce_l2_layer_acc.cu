@@ -29,7 +29,7 @@ __global__ void reduce_l2_kernel(const int num, const int channels,
             float value = input[(n * channels + c) * spatial_dim + s];
             tmp += value * value;
         }
-        output[n * spatial_dim + s] = tmp / float(channels);
+        output[n * spatial_dim + s] = sqrt(tmp);
     }
 }
 

@@ -216,15 +216,6 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(idx++, 4 * sizeof(int), axis_nhwc.data());
     }
 
-    if (run_local_work_) {
-        if (axis == 1) {
-            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(c4_n, workgroup_size));
-        } else {
-            execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(axis_n, workgroup_size));
-        }
-        execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
-    }
-
     return TNN_OK;
 }
 

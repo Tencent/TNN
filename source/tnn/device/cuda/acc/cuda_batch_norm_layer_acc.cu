@@ -33,5 +33,6 @@ Status CudaBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_CUDA_ACC(BatchNorm, LAYER_SCALE);
 
 }  // namespace TNN_NS
