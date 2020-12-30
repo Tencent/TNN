@@ -28,7 +28,7 @@ def throw_exception(current_shape):
     for name, shape in current_shape.items():
         message += str(name) + ": " + str(shape) + "   "
 
-    logging.error("You should use -in to specify input's name and shape. e.g.: -in name[1,3,32,32]")
+    logging.error("You should use -in to specify input's name and shape. e.g.: -in name:1,3,32,32")
     logging.error(message)
 
     sys.exit(return_code.CONVERT_FAILED)

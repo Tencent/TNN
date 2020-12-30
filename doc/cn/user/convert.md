@@ -344,7 +344,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -in input_name [input_name ...]
-                        specify inputs' shape, e.g., -in in1:1,3,8,8 in2:1,8
+                        specify the input name and shape of the model. e.g.,
+                        -in in1:1,3,8,8 in2:1,8
   -optimize             optimize the model
   -half                 save model using half
   -v v1.0.0             the version for model
