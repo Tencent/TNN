@@ -71,16 +71,26 @@ namespace test {
         std::vector<std::string> jsons;
         while((ptr=readdir(dir))!=NULL) {
             std::string proto_name = ptr->d_name;
-            if(proto_name[0] == '.' || proto_name.substr(proto_name.length() - 5, 5) == "model")
+            if(proto_name[0] == '.')
+                continue;
+            if(proto_name.substr(proto_name.length() - 5, 5) == "model" || proto_name.substr(proto_name.length() - 4, 4) == "tnnm")
                 continue;
 
         FILE   *stream;
-        char buf[1024] = {0};
-        char ord[1024] = {0};
-        sprintf(ord, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
+        char proto_buf[1024] = {0};
+        char proto_md5[1024] = {0};
+        sprintf(proto_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
 
-        stream = popen( ord , "r" );
-        fread( buf, sizeof(char), sizeof(buf),  stream);
+        stream = popen( proto_md5 , "r" );
+        fread( proto_buf, sizeof(char), sizeof(proto_buf),  stream);
+        pclose(stream);
+
+        char model_buf[1024] = {0};
+        char model_md5[1024] = {0};
+        sprintf(model_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + (proto_name.substr(proto_name.length() - 4, 4) == "tnnp" ? proto_name.substr(0, proto_name.length() - 4) + "tnnm" : proto_name.substr(0, proto_name.length() - 5) + "model")).c_str());
+
+        stream = popen( model_md5 , "r" );
+        fread( model_buf, sizeof(char), sizeof(model_buf),  stream);
         pclose(stream);
 
         ModelConfig model_config     = GetModelConfig(FLAGS_pd + ptr->d_name);
@@ -177,7 +187,7 @@ namespace test {
             timer.Print();
 
             if(FLAGS_js) {
-                jsons.push_back(timer.PrintTimeJson(proto_name, FLAGS_dt, buf));
+                jsons.push_back(timer.PrintTimeJson(proto_name, FLAGS_dt, proto_buf, model_buf));
             }
  
             FreeMatMapMemory(input_mat_map);
@@ -299,7 +309,13 @@ namespace test {
             // NCNN file names: xxx.param xxx.bin
             if (config.model_type == MODEL_TYPE_TNN  ||
                 config.model_type == MODEL_TYPE_RAPIDNET) {
-                model_path = network_path.substr(0, size - 5) + "model";
+                //model_path = network_path.substr(0, size - 5) + "model";
+                if(model_name.substr(size - 4, 4) == "tnnp") {
+                    model_path = model_name.substr(0, size - 4) + "tnnm";
+                }
+                else {
+                    model_path = model_name.substr(0, size - 5) + "model";
+                }
             } else if (config.model_type == MODEL_TYPE_NCNN) {
                 model_path = network_path.substr(0, size - 5) + "bin";
             } else {

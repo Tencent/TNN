@@ -62,12 +62,13 @@ void Timer::Print() {
 		   min_str, max_str, avg_str);
 }
 
-std::string Timer::PrintTimeJson(std::string model, std::string mode, char* md5) {
-    md5[strlen(md5) - 1] = '\0';
+std::string Timer::PrintTimeJson(std::string model, std::string mode, char* proto_md5, char* model_md5) {
+    proto_md5[strlen(proto_md5) - 1] = '\0';
+    model_md5[strlen(model_md5) - 1] = '\0';
     char avg_str[16];
     snprintf(avg_str, 16, "%6.3f", sum_ / (float)count_);
     char jsonstr[2048];
-    sprintf(jsonstr, "{\"model\":\"%s\",\"mode\":\"%s\",\"md5\":\"%s\",\"time\":\"%-8s\"}", model.c_str(), mode.c_str(), md5, avg_str);
+    sprintf(jsonstr, "{\"model\":\"%s\",\"mode\":\"%s\",\"proto_md5\":\"%s\",\"model_md5\":\"%s\",\"time\":\"%-8s\"}", model.c_str(), mode.c_str(), proto_md5, model_md5, avg_str);
     return jsonstr;
 }
 
