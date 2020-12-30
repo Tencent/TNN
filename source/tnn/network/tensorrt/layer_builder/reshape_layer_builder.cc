@@ -36,6 +36,11 @@ Status ReshapeTRTLayerBuilder::Reshape() {
 }
 
 ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<ReshapeLayerParam*>(param_);
+    if (paramlist->reshape_type != 0) {
+        LOGE("Error: Unsupport reshape type(%d)", paramlist->reshape_type);
+        return nullptr;
+    }
     Blob* output_blob  = output_blobs_[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
     Dims reshape_dims = ConvertToTRTDims(output_dims);

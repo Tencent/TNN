@@ -221,7 +221,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         }
     } else {
         FREE_INT8_TEMP_DATA();
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertToMatAsync, convert type not support yet");
     }
 
     // reverse channel before convert if needed
@@ -296,7 +296,7 @@ Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
             blob_data[n] = (float)(reinterpret_cast<fp16_t *>(image.GetData())[n]);
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertFromMatFunc, convert type not support yet");
     }
 
     return TNN_OK;

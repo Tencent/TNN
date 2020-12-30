@@ -61,6 +61,8 @@ static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
+static const char enable_tune_message[] = "enable tune kernel(default false)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -96,6 +98,8 @@ DECLARE_int32(it);
 DECLARE_string(pr);
 
 DECLARE_string(is);
+
+DECLARE_bool(et);
 
 }  // namespace TNN_NS
 

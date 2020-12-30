@@ -76,8 +76,8 @@ public:
 
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
-    std::string GetCacheFileName(std::string cfg, std::string model, BlobMap input_map, BlobMap output_map,
-        int device_id, int batchsize, bool int8_mode, bool use_fp16);
+    std::string GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
+        BlobMap output_map, int device_id, int batchsize, bool int8_mode, bool use_fp16);
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
@@ -87,12 +87,10 @@ private:
     Status CreateExecuteContext();
 
     bool int8_mode;
+    bool test_mode;
     int m_max_batchsize;
-    nvinfer1::IBuilder* m_trt_builder;
-    nvinfer1::INetworkDefinition* m_trt_network;
     nvinfer1::ICudaEngine* m_trt_engine;
     nvinfer1::IExecutionContext* m_trt_context;
-    nvinfer1::IBuilderConfig* m_trt_config;
     TRTLogger m_trt_logger;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;

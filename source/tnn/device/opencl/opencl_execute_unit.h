@@ -18,6 +18,8 @@
 #include "tnn/device/opencl/opencl_runtime.h"
 
 struct OpenCLExecuteUnit {
+    std::string program_name;
+    std::string kernel_name;
     cl::Kernel ocl_kernel;
     uint32_t workgroupsize_max;
     std::vector<uint32_t> global_work_size = {};

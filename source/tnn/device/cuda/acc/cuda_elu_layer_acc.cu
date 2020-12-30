@@ -19,9 +19,9 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(Elu, LAYER_ELU);
 
-__global__ void elu_kernel(const int n, const float* in, float* out) {
+__global__ void elu_kernel(const int n, const float* in, float* out, float alpha) {
     CUDA_KERNEL_LOOP(index, n) {
-        out[index] = in[index] < 0 ? exp(in[index]) - 1 : in[index];
+        out[index] = in[index] < 0 ? alpha * (exp(in[index]) - 1) : in[index];
     }
 }
 
@@ -35,13 +35,14 @@ Status CudaEluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 }
 
 Status CudaEluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto params = dynamic_cast<EluLayerParam *>(param_);
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
     elu_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        count, input_data, output_data);
+        count, input_data, output_data, params->alpha);
     return TNN_OK;
 }
 

@@ -38,6 +38,7 @@ option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
 option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
+option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -117,7 +118,7 @@ if(TNN_MODEL_CHECK_ENABLE)
 endif()
 
 if(TNN_ARM82_ENABLE)
-    add_definitions(-DTNN_ARM82)
+    add_definitions(-DTNN_ARM82=1)
 endif()
 
 # only used to simulate arm82 computation in the unit test
@@ -192,6 +193,7 @@ message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
 message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
+message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 
 include_directories(include)
 include_directories(source)

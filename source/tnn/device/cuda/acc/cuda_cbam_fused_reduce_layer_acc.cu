@@ -14,7 +14,7 @@ typedef uint32_t uint32;
 
 template <typename T>
 __device__ __forceinline__ T getMin() {
-    return -std::numeric_limits<T>::infinity();
+    return T(-FLT_MAX);
 }   
 
 __global__ void cbam_fused_reduce_kernel(float *in, float *out, int n, int c, int h, int w) {
@@ -64,8 +64,8 @@ __global__ void cbam_fused_reduce_half_kernel(__half *in, T *out, int n, int c, 
         max = fmaxf(max, in_value);
     }
 
-    out[dst_offset] = convert_float_value<T>(accumulate / c);//__float2half(accumulate / c);
-    out[dst_offset + stride] = convert_float_value<T>(max);// __float2half(max);
+    out[dst_offset] = convert_float_value<T>(accumulate / c);
+    out[dst_offset + stride] = convert_float_value<T>(max);
 }
 
 

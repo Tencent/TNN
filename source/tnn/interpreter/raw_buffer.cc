@@ -28,10 +28,9 @@ RawBuffer::~RawBuffer() {
     buff_ = nullptr;
 }
 
-RawBuffer::RawBuffer() {
-    bytes_size_ = 0;
-    data_type_  = DATA_TYPE_FLOAT;
-}
+RawBuffer::RawBuffer() :
+  bytes_size_(0),
+  data_type_(DATA_TYPE_FLOAT) {}
 
 RawBuffer::RawBuffer(int bytes_size) {
     buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });

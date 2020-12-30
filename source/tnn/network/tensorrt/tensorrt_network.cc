@@ -15,14 +15,13 @@
 #include <memory>
 #include <sstream>
 
-#include "thirdparty/md5/md5.h"
-
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
@@ -35,19 +34,24 @@ NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
 
 TensorRTNetwork_::TensorRTNetwork_() {
-    m_trt_builder = nullptr;
-    m_trt_network = nullptr;
+    int8_mode = false;
+    test_mode = false;
     m_trt_engine = nullptr;
     m_trt_context = nullptr;
     m_context_memory = nullptr;
-    int8_mode = false;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
-    Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
-    if (ret != TNN_OK) {
-        LOGE("Error deconstruct TensorRT Network\n");
+    if (m_context_memory) {
+        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
+        if (ret != TNN_OK) {
+            LOGE("Error deconstruct TensorRT Network\n");
+        }
     }
+    if (m_trt_context) {
+        m_trt_context->destroy();
+    }
+    if (m_trt_engine) m_trt_engine->destroy();
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
@@ -120,11 +124,15 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
        return ret;
     }
 
+    if (model_config.params[0].empty() && model_config.params[1].empty()) {
+        test_mode = true;
+    }
+
     std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1], inputs, outputs,
         net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
-    if (false == file_lock->Ready()) {
+    if (test_mode || false == file_lock->Ready()) {
         ret = InitWithoutCache(inputs, outputs, cache_file_name);
         if (ret != TNN_OK) {
             return ret;
@@ -150,11 +158,12 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     delete file_lock;
+
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
 
     for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
         auto dims = iter.second->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
@@ -162,7 +171,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
@@ -245,6 +254,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             LOGE("Error: CreateLayer failed, type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
+
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
         // set layer nodes
@@ -252,6 +262,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<std::string> &input_names = layer_info->inputs;
         // get input nodes
         bool is_int8_blob = layer_info->param->quantized;
+
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
             if (config_.precision == PRECISION_LOW) {
@@ -270,6 +281,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             }
             inputs.push_back(blob);
         }
+
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
@@ -289,9 +301,12 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             outputs.push_back(blob);
         }
 
-        LayerResource *layer_resource = net_resource->resource_map[layer_name].get();
-        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
+        LayerResource *layer_resource = nullptr;
+        if (net_resource->resource_map.count(layer_name) != 0 ) {
+            layer_resource = net_resource->resource_map[layer_name].get();
+        }
 
+        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
@@ -309,9 +324,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
     size_t context_memory_size = m_trt_engine->getDeviceMemorySize();
-    if (context_memory_size == 0) {
-        return TNN_OK;
-    }
     Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
     if (ret != TNN_OK) {
         LOGE("Error Create TensorRT execute context\n");
@@ -322,7 +334,7 @@ Status TensorRTNetwork_::CreateExecuteContext() {
 }
 
 Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name) {
-    this->m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
+    auto m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
     NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(
         NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     if (int8_mode) networkFlags |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_PRECISION);
@@ -362,7 +374,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             input_quant_power.values = nullptr;
             input_quant_power.count = 0;
 
-            auto input_quant_layer = this->m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM,
+            auto input_quant_layer = m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM,
                 input_quant_shift, input_quant_scale, input_quant_power);
             std::string input_quant_layer_name = desc.name + "_input_quant_";
             input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
@@ -385,7 +397,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             input_dequant_power.values = nullptr;
             input_dequant_power.count = 0;
 
-            auto input_dequant_layer = this->m_trt_network->addScale(*(input_quant_layer->getOutput(0)),
+            auto input_dequant_layer = m_trt_network->addScale(*(input_quant_layer->getOutput(0)),
                 ScaleMode::kUNIFORM, input_dequant_shift, input_dequant_scale, input_dequant_power);
             std::string input_dequant_layer_name = desc.name + "_input_dequant_";
             input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
@@ -426,7 +438,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         //Do not delete, may cause trt bug
         LOGD("shape: %d %d %d\n", tensor->getDimensions().d[0], tensor->getDimensions().d[1],
             tensor->getDimensions().d[2]);
-        this->m_trt_network->markOutput(*tensor);
+        m_trt_network->markOutput(*tensor);
     }
 
     m_trt_builder->setMaxBatchSize(64);
@@ -445,15 +457,20 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     Status ret = CreateExecuteContext();
     if (ret != TNN_OK)
         return ret;
+    m_trt_builder->destroy();
+    m_trt_config->destroy();
+    m_trt_network->destroy();
 
-    IHostMemory *model_stream = nullptr;
-    model_stream = m_trt_engine->serialize();
+    if (!test_mode) {
+        IHostMemory *model_stream = nullptr;
+        model_stream = m_trt_engine->serialize();
+        std::ofstream deploy_output(cache_file_name);
+        char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
+        deploy_output.write(model_stream_ptr, model_stream->size());
+        deploy_output.close();
+        delete model_stream_ptr;
+    }
 
-    std::ofstream deploy_output(cache_file_name);
-    char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
-    deploy_output.write(model_stream_ptr, model_stream->size());
-    deploy_output.close();
-    delete model_stream_ptr;
     return TNN_OK;
 }
 

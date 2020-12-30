@@ -36,7 +36,7 @@ def throw_exception(current_shape):
 
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
-            input_path=None, refer_path=None, input_names : str=None):
+            input_path=None, refer_path=None, input_names : str=None, is_ssd=False):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -51,14 +51,13 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     logging.info("Converter ONNX to TNN Model\n")
 
     checker.check_file_exist(onnx_path)
-
-    ret, current_shape = checker.check_onnx_dim(onnx_path)
-
-    if ret is False and current_shape is not None:
-        if input_names is None:
-            throw_exception(current_shape)
-        if input_names is not None and not ("[" in input_names and "]" in input_names):
-            throw_exception(current_shape)
+    if not is_ssd:
+        ret, current_shape = checker.check_onnx_dim(onnx_path)
+        if ret is False and current_shape is not None:
+            if input_names is None:
+                throw_exception(current_shape)
+            if input_names is not None and not ("[" in input_names and "]" in input_names):
+                throw_exception(current_shape)
 
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'

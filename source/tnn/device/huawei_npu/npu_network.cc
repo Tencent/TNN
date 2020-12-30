@@ -52,9 +52,16 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
     }
+
+    // create context
+    Status init_ret = InitContext(net_config);
+    if (init_ret != TNN_OK) {
+        return init_ret;
+    }
+
     // init check whether the rom version is compatible
-    client_         = std::make_shared<hiai::AiModelMngerClient>();
-    Status init_ret = InitCheck();
+    client_  = std::make_shared<hiai::AiModelMngerClient>();
+    init_ret = InitCheck();
     if (init_ret != TNN_OK) {
         return init_ret;
     }
@@ -71,7 +78,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // modify the inputShapeMap
     // if reshape, add a suffix to the model name to create a new model
     std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
-    model_name_              = model_name_ + model_suffix + "_" + std::to_string(version_num_);
+    model_name_              = model_name_ + model_suffix + "_" + version_str_;
 
     // init the path to store/read om
     std::string model_path = use_path_ ? net_config.cache_path + "/" + model_name_ + ".om" : "";
@@ -87,6 +94,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
         LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
+        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
     } else {
         // NPU IR build
         Status ir_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
@@ -99,7 +107,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
                 }
             }
         }
-        // update use path
+        // update use path, if the network is split, then don't save om file
         use_path_ = use_path_ && !use_subnet_;
         // set Graph
         ir_ret = SetGraphInputsAndOutputs(instance_input_shapes_map, cpu_input_shape);
@@ -117,17 +125,12 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
             if (ir_ret != TNN_OK) {
                 return ir_ret;
             }
-            ir_build.ReleaseModelBuff(om_model_buff);
         }
-        // all ir build ends here
-    }
 
-    // From here, finish build, start to load the model
-    if (use_path_) {
-        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
-    } else {
+        // finish build, start to load the model
         model_mem_buffer = model_builder->InputMemBufferCreate(om_model_buff.data, om_model_buff.length);
     }
+
     if (model_mem_buffer == nullptr) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: function InputMemBufferCreate() failed");
     }
@@ -156,9 +159,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // destroy unused memory
     model_builder->MemBufferDestroy(model_mem_buffer);
-    if (!use_path_) {
-        ir_build.ReleaseModelBuff(om_model_buff);
-    }
+    ir_build.ReleaseModelBuff(om_model_buff);
 
     return InitBlobs(instance_input_shapes_map, cpu_input_shape);
 }
@@ -178,13 +179,15 @@ Status NpuNetwork::InitCheck() {
     // get rom version
     const char *version = client_->GetVersion();
     if (version == nullptr) {
-        return Status(TNNERR_NPU_LOAD_ERROR,
-                      "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
+        return Status(
+            TNNERR_NPU_LOAD_ERROR,
+            "ERROR: GetRomVersion(ROM): huawei npu is not match (only support DaVinci NPU) or rom version is too low");
     }
+    version_str_ = version;
+
     // check if NPU version is greater than 300
-    version_num_ = NpuUtils::checkNpuVersion(version);
-    LOGI("[TNN/NPU]ddk current version: %s", version);
-    if (version_num_ < 320) {
+    LOGI("[TNN/NPU]ddk current version: %s\n", version_str_.c_str());
+    if (!NpuUtils::VersionCompare(version_str_, "100.320.xxx.xxx", VCT_BIGEQUAL)) {
         return Status(TNNERR_NPU_LOAD_ERROR, "ERROR: huawei_npu is installed but is below 100.320.xxx.xxx");
     }
     return TNN_OK;
@@ -216,17 +219,9 @@ Status NpuNetwork::InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig
     return TNN_OK;
 }
 
-Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
-                                InputShapesMap &inputs_shape) {
-    Status ret                = TNN_OK;
-    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    NetResource *net_resource = default_interpreter->GetNetResource();
-
-    if (net_structure_ == NULL || net_resource == NULL) {
-        return Status(TNNERR_NULL_PARAM, "ERROR: network_ is nil, network_type may not support");
-    }
-
-    device_ = GetDevice(net_config.device_type);
+Status NpuNetwork::InitContext(NetworkConfig &net_config) {
+    Status ret = TNN_OK;
+    device_    = GetDevice(net_config.device_type);
     if (device_ == NULL) {
         return TNNERR_DEVICE_NOT_SUPPORT;
     }
@@ -238,6 +233,18 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
     ret = context_->LoadLibrary(net_config.library_path);
     if (ret != TNN_OK) {
         return ret;
+    }
+    return TNN_OK;
+}
+
+Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
+                                InputShapesMap &inputs_shape) {
+    Status ret                = TNN_OK;
+    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    NetResource *net_resource = default_interpreter->GetNetResource();
+
+    if (net_structure_ == NULL || net_resource == NULL) {
+        return Status(TNNERR_NULL_PARAM, "ERROR: network_ is nil, network_type may not support");
     }
 
     ret = optimizer::NetOptimizerManager::Optimize(net_structure_, net_resource, net_config);
@@ -287,6 +294,7 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetNpuVersion(version_str_);
 
         // set layer nodes
         std::vector<std::shared_ptr<OperatorInfo>> input_ops;
@@ -457,6 +465,11 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
 
         sub_network_->GetAllInputBlobs(cpu_inter_in_blobmap_);
         sub_network_->GetAllOutputBlobs(output_blob_map_);
+
+        // create sub-network input blob-converter
+        for (auto blob_item : cpu_inter_in_blobmap_) {
+            cpu_blob_converter_map_[blob_item.first] = std::make_shared<BlobConverter>(blob_item.second);
+        }
     }
     int count = 0;
     for (; output_it != end_it; ++output_it) {
@@ -493,6 +506,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             output_blob_map_[desc.name] = new Blob(desc, handle);
         }
     }
+    LOGI("Init NPU Blobs Done!\n");
     return TNN_OK;
 }
 
@@ -602,14 +616,14 @@ Status NpuNetwork::Forward() {
             std::string name = iterator->first;
             Blob *npu_blob   = iterator->second;
             Blob *cpu_blob   = cpu_inter_in_blobmap_[name];
-            int num          = npu_blob->GetBlobDesc().dims[0];
-            int channel      = npu_blob->GetBlobDesc().dims[1];
-            int height       = npu_blob->GetBlobDesc().dims[2];
-            int width        = npu_blob->GetBlobDesc().dims[3];
-            float *src       = reinterpret_cast<float *>(npu_blob->GetHandle().base);
-            float *dst       = reinterpret_cast<float *>(reinterpret_cast<char *>(cpu_blob->GetHandle().base) +
-                                                   cpu_blob->GetHandle().bytes_offset);
-            DataFormatConverter::ConvertFromNCHWToNCHW4Float(src, dst, num, channel, height, width);
+            if (cpu_blob_converter_map_.count(name) == 0) {
+                LOGE("cpu blob convert for sub-network not found!\n");
+                return Status(TNNERR_NULL_PARAM, "cpu blob convert for sub-network not found!");
+            }
+            Mat input_mat(DEVICE_NAIVE, NCHW_FLOAT, npu_blob->GetBlobDesc().dims,
+                          (char *)npu_blob->GetHandle().base + npu_blob->GetHandle().bytes_offset);
+            MatConvertParam param;
+            cpu_blob_converter_map_[name]->ConvertFromMat(input_mat, param, nullptr);
         }
         sub_network_->Forward();
     }

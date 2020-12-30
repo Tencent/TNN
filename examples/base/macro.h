@@ -51,4 +51,3 @@
 
 
 #endif // TNN_EXAMPLES_X86_UTILS_MACRO_H_
-

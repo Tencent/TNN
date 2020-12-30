@@ -1162,7 +1162,7 @@ void DepthwiseDeconv<fp16_t, fp16_t>(const fp16_t* dst, fp16_t* src, const fp16_
 #endif
 
 void Half2Float(float* dst, const fp16_t* src, const size_t length) {
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
     Half2FloatKernel(dst, src, length);
 #else
     for (auto i = 0; i < length; i++) {
@@ -1171,7 +1171,7 @@ void Half2Float(float* dst, const fp16_t* src, const size_t length) {
 #endif
 }
 void Float2Half(fp16_t* dst, const float* src, const size_t length) {
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
     Float2HalfKernel(dst, src, length);
 #else
     for (auto i = 0; i < length; i++) {
@@ -1194,7 +1194,7 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
             auto src_c      = src_n + ci * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw4 to nchw8
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
                 vst1_f16(dst_c + cnt * 8, vcvt_f16_f32(vld1q_f32(src_c + cnt * 4)));
 #else
                 for (long idx = 0; idx < 4; idx++) {
@@ -1220,7 +1220,7 @@ void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, lo
             auto dst_c      = dst_n + co * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw8 to nchw4
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
                 vst1q_f32(dst_c + cnt * 4, vcvt_f32_f16(vld1_f16(src_c + cnt * 8)));
 #else
                 for (long idx = 0; idx < 4; idx++) {

@@ -25,7 +25,7 @@ class HardSigmoidLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSigmoidLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 6, 8, 13),
                              testing::Values(1, 6, 8, 13),
                              // size Values(1, 6, 8, 13),

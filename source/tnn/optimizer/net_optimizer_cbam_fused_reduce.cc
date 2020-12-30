@@ -74,7 +74,6 @@ namespace optimizer {
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
 
-        // step2: do conv_add fusion
         int index = 0;
         for (; index < count - 2; index++) {
             auto layer_info_current = layers_orig[index];
@@ -83,7 +82,7 @@ namespace optimizer {
             if (NeedCbamReduceFusion(layer_info_current, layer_info_next, layer_info_next_next)) {
                 std::shared_ptr<LayerInfo> layer_info_fused_reduce = std::make_shared<LayerInfo>();
                 layer_info_fused_reduce->type = LayerType::LAYER_CBAM_FUSED_REDUCE;
-                layer_info_fused_reduce->type_str = "FusedReduceMeanMaxC";
+                layer_info_fused_reduce->type_str = "CbamFusedReduce";
                 layer_info_fused_reduce->name = layer_info_next_next->name;
                 layer_info_fused_reduce->inputs = layer_info_current->inputs;
                 layer_info_fused_reduce->outputs = layer_info_next_next->outputs;

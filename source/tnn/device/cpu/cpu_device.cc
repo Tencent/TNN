@@ -52,7 +52,7 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         size_info.data_type     = DATA_TYPE_INT32;
         return Allocate(handle, size_info);
     } else {
-        LOGE("CpuDevice dont support mat_type:%d", mat_type);
+        LOGE("CpuDevice dont support mat_type:%d\n", mat_type);
         return Status(TNNERR_PARAM_ERR, "cpu dont support mat_type");
     }
 }

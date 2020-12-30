@@ -9,13 +9,15 @@ if(NOT DEFINED ENV{CUDNN_ROOT_DIR})
 endif()
 include_directories($ENV{CUDNN_ROOT_DIR}/include)
 
-set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75
-                 -gencode arch=compute_70,code=sm_70
-                 -gencode arch=compute_61,code=sm_61")
+set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75 \
+                 -gencode arch=compute_70,code=sm_70 \
+                 -gencode arch=compute_61,code=sm_61 \
+                 -gencode arch=compute_60,code=sm_60")
 
 message(${TARGET_ARCH})
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" "${CUDA_OPT_FLAG}" "-Xcompiler -fPIC --compiler-options -fno-strict-aliasing -lineinfo -Xptxas
-    -dlcm=cg -use_fast_math" "${TARGET_ARCH}")
+
+set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_OPT_FLAG} -Xcompiler -fPIC --compiler-options -fno-strict-aliasing \
+    -lineinfo -Xptxas -dlcm=cg -use_fast_math ${TARGET_ARCH}")
 
 file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu)
 message(${CUDA_SRCS})

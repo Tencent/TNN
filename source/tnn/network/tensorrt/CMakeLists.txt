@@ -11,4 +11,3 @@ file(GLOB_RECURSE TENSORRT_SRC *.h *.cc)
 add_library(TNNTensorRT OBJECT ${TENSORRT_SRC})
 
 include_directories($ENV{TENSORRT_ROOT_DIR}/include)
-include_directories(thirdparty/md5)

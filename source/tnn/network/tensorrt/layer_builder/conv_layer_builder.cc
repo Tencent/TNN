@@ -94,6 +94,14 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (paramlist->activation_type == ActivationType_ReLU) {
         activation_layer = network->addActivation(*(conv_layer->getOutput(0)), nvinfer1::ActivationType::kRELU);
         last_layer = activation_layer;
+    } else if (paramlist->activation_type == ActivationType_ReLU6) {
+        activation_layer = network->addActivation(*(conv_layer->getOutput(0)), nvinfer1::ActivationType::kCLIP);
+        activation_layer->setAlpha(0.f);
+        activation_layer->setBeta(6.f);
+        last_layer = activation_layer;
+    } else if (paramlist->activation_type != ActivationType_None) {
+        LOGE("Error: Unsupport reshape type(%d)", paramlist->activation_type);
+        return nullptr;
     }
 
     if (int8) {

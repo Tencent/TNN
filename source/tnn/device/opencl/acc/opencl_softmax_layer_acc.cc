@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -154,6 +155,15 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     } else {
         LOGE("not support axis = %d in softmax yet!\n", softmax_param->axis);
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "invalid softmax axis");
+    }
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        std::string tune_key = execute_units_[0].program_name + "_" + execute_units_[0].kernel_name + "_" + "param[" +
+                               "axis_" + ToString(softmax_param->axis) + "]_global";
+        for (auto size : execute_units_[0].global_work_size) {
+            tune_key += "_" + ToString(size);
+        }
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, tune_key);
     }
 
     return TNN_OK;

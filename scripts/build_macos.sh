@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-TNN_DIR=$(pwd)/..
+TNN_DIR=$(cd `dirname $0`; pwd)/..
 BUILD_DIR=${TNN_DIR}/scripts/build_macos
 TNN_INSTALL_DIR=${TNN_DIR}/scripts/macos_release
 OPENVINO_BUILD_SHARED="OFF"
@@ -65,6 +65,7 @@ build_openvino() {
         mkdir -p build && cd build
         echo "Configuring Openvino ..."
         cmake ../ \
+        -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
@@ -79,6 +80,7 @@ build_openvino() {
         -DENABLE_SPEECH_DEMO=OFF \
         -DNGRAPH_ONNX_IMPORT_ENABLE=OFF \
         -DENABLE_PROFILING_ITT=OFF \
+        -DTREAT_WARNING_AS_ERROR=OFF \
 
         echo "Building Openvino ..."
         make -j4
@@ -167,7 +169,7 @@ copy_openvino_libraries
 # 编译 TNN
 echo "Configuring TNN ..."
 cd ${BUILD_DIR}
-cmake ../../ \
+cmake ${TNN_DIR} \
 -DTNN_OPENVINO_ENABLE=ON \
 -DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \

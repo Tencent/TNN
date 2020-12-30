@@ -221,7 +221,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
     {"Erf", LAYER_ERF},
 
-    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE}
+    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
+    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

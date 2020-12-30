@@ -12,19 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/core/macro.h"
-#include "tnn/utils/blob_converter_default.h"
-#include "tnn/utils/blob_converter.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-class X86BlobConverterAcc : public DefaultBlobConverterAcc {
-public:
-    X86BlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
-    ~X86BlobConverterAcc() {}
-};
+DECLARE_TENSORRT_LAYER_BUILDER(Tan, LAYER_TAN);
 
-DECLARE_BLOB_CONVERTER_CREATER(X86);
-REGISTER_BLOB_CONVERTER(X86, DEVICE_X86);
+ILayer* TanTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kTAN);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
 
-}  // namespace TNN_NS
+    return layer;
+}
+
+REGISTER_TENSORRT_LAYER_BUILDER(Tan, LAYER_TAN);
+
+}  //  namespace TNN_NS

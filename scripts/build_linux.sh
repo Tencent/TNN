@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-TNN_DIR=$(pwd)/../
+TNN_DIR=$(cd `dirname $0`; pwd)/..
 BUILD_DIR=${TNN_DIR}/scripts/build_linux
 TNN_INSTALL_DIR=${TNN_DIR}/scripts/linux_release
 OPENVINO_BUILD_SHARED="ON"
@@ -45,6 +45,8 @@ clone_openvino() {
     cd openvino
     git reset --hard 9df6a8f
     git submodule update --init --recursive
+    sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
+    sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
 
     # 编译静态库
     if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -65,6 +67,7 @@ build_openvino() {
         mkdir -p build && cd build
         echo "Configuring Openvino ..."
         cmake ../ \
+        -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
@@ -79,6 +82,7 @@ build_openvino() {
         -DENABLE_SPEECH_DEMO=OFF \
         -DNGRAPH_ONNX_IMPORT_ENABLE=OFF \
         -DENABLE_PROFILING_ITT=OFF \
+        -DTREAT_WARNING_AS_ERROR=OFF \
 
         echo "Building Openvino ..."
         make -j4
@@ -134,7 +138,7 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
 }
 
@@ -165,7 +169,7 @@ copy_openvino_libraries
 # 编译 TNN
 echo "Configuring TNN ..."
 cd ${BUILD_DIR}
-cmake ../../ \
+cmake ${TNN_DIR} \
 -DTNN_OPENVINO_ENABLE=ON \
 -DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \
@@ -175,6 +179,13 @@ cmake ../../ \
 echo "Building TNN ..."
 make -j4
 
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
+
+export LD_LIBRARY_PATH='$LD_LIBRARY_PATH:'${TNN_INSTALL_DIR}/lib
+ctest --output-on-failure -j 2
 pack_tnn
 
 echo "Done"

@@ -28,8 +28,13 @@
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_flag_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/md5.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
+
+//reserved for uncompatible
+const std::string CACHE_TAG = "d1";
 
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
     NETWORK_TYPE_DEFAULT);
@@ -75,8 +80,12 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
-    ret = context_->SetPrecision(net_config.precision);
+    context_->SetPrecision(net_config.precision);
     RETURN_ON_NEQ(ret, TNN_OK);
+    context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+    if(!net_config.cache_path.empty()) {
+        context_->SetCacheFilePath(GenerateCacheFileName(model_config));
+    }
 
     ret = context_->LoadLibrary(net_config.library_path);
     RETURN_ON_NEQ(ret, TNN_OK);
@@ -147,7 +156,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
         for (auto name : input_names) {
-            inputs.push_back(blob_manager_->GetBlob(name));
+            auto blob = blob_manager_->GetBlob(name);
+            auto ret = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+            inputs.push_back(blob);
         }
 
         for (auto name : output_names) {
@@ -258,6 +272,7 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         return TNN_OK;
     }
     static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -336,6 +351,11 @@ Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
  * Memory allocation may be involved in Reshape function.
  */
 Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
+    Status ret = TNN_OK;
+    ret = context_->OnInstanceReshapeBegin();
+    if (ret != TNN_OK) {
+        return ret;
+    }
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
@@ -345,13 +365,15 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
         blob->GetBlobDesc().dims = iter.second;
     }
 
-    Status ret = TNN_OK;
     for (auto cur_layer : layers_) {
         ret = cur_layer->Reshape();
         if (ret != TNN_OK) {
             return ret;
         }
     }
+
+    ret = context_->OnInstanceReshapeEnd();
+
     return ret;
 }
 
@@ -552,5 +574,11 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
     return context_->FinishProfile();
 }
 #endif
+
+std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
+    return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
+    + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
+}
+
 
 }  // namespace TNN_NS

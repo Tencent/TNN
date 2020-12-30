@@ -153,7 +153,8 @@ public:
                 plugin = layer->CreatePlugin(serialData, serialLength);                                            \
             }                                                                                                      \
             plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                \
-            return plugin;                                                                                         \
+            auto new_plugin = plugin->clone();                                                                     \
+            return new_plugin;                                                                                     \
         }                                                                                                          \
     private:                                                                                                       \
         nvinfer1::PluginFieldCollection m_fc;                                                                      \
