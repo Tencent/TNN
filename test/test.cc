@@ -199,7 +199,7 @@ namespace test {
         }
         if(FLAGS_js) {
             std::string json_array = CollectJson(jsons);
-            std::ofstream f("Tnn_Benchmark.json");
+            std::ofstream f("/sdcard/Tnn_Benchmark.json");
             f << json_array << std::endl;
             f.close();
         }
