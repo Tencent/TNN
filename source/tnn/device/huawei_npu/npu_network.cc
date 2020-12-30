@@ -286,6 +286,7 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     // loop net_structure
     cpu_count_ = 0;
     for (auto layer_info : net_structure_->layers) {
+        LOGI("convert layer (type: %d, name: %s)\n", layer_info->type, layer_info->name.c_str());
         LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
         if (cur_layer == nullptr) {
