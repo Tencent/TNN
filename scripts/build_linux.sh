@@ -184,6 +184,7 @@ then
     exit -1
 fi
 
+export LD_LIBRARY_PATH='$LD_LIBRARY_PATH:'${TNN_INSTALL_DIR}/lib
 ctest --output-on-failure -j 2
 pack_tnn
 
