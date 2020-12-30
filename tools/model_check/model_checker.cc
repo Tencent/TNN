@@ -46,12 +46,15 @@ ModelChecker::ModelChecker() {
 ModelChecker::~ModelChecker() {
     instance_device_.reset();
     instance_cpu_.reset();
-    tnn_.reset();
+    tnn_cpu_.reset();
+    tnn_device_.reset();
 }
 
 Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape) {
-    tnn_.reset(new TNN());
-    Status status = tnn_->Init(model_config);
+    // use tnn_cpu_ and tnn_device_ to avoid network optimize affect in different devices
+    // tnn_cpu_ init
+    tnn_cpu_.reset(new TNN());
+    Status status = tnn_cpu_->Init(model_config);
     if (status != TNN_OK) {
         LOGE("tnn init falied: %s!\n", status.description().c_str());
         return Status(TNNERR_NET_ERR, "tnn init falied");
@@ -59,13 +62,21 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, 
 
     NetworkConfig net_config_cpu;
     net_config_cpu.device_type = DEVICE_NAIVE;
-    instance_cpu_              = tnn_->CreateInst(net_config_cpu, status);
+    instance_cpu_              = tnn_cpu_->CreateInst(net_config_cpu, status);
     if (status != TNN_OK) {
         LOGE("create cpu instance falied: %s\n", status.description().c_str());
         return Status(TNNERR_INST_ERR, "create cpu instance falied");
     }
 
-    instance_device_ = tnn_->CreateInst(net_config, status);
+    // tnn_device_ init
+    tnn_device_.reset(new TNN());
+    status = tnn_device_->Init(model_config);
+    if (status != TNN_OK) {
+        LOGE("tnn init falied: %s!\n", status.description().c_str());
+        return Status(TNNERR_NET_ERR, "tnn init falied");
+    }
+
+    instance_device_ = tnn_device_->CreateInst(net_config, status);
     if (status != TNN_OK) {
         LOGE("create device instance falied: %s\n", status.description().c_str());
         return Status(TNNERR_INST_ERR, "create device instance falied");

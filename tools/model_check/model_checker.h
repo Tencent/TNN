@@ -70,7 +70,8 @@ private:
     void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 
     ModelCheckerParam model_checker_params_;
-    std::shared_ptr<TNN> tnn_;
+    std::shared_ptr<TNN> tnn_cpu_;
+    std::shared_ptr<TNN> tnn_device_;
     std::shared_ptr<Instance> instance_cpu_;
     std::shared_ptr<Instance> instance_device_;
     std::map<std::string, std::shared_ptr<char>> output_ref_data_map_;
