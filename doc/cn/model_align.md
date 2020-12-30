@@ -12,9 +12,9 @@ TNN模型转换工具支持对齐功能，可以在模型转换时检查生成�
 
 ### 2. 使用model_check工具检查对齐情况
 
-对于已经转换完成的模型，TNN提供了**model_check**工具辅助模型对齐情况的验证。基于**model_check**工具，可以方便地使用指定的输入数据执行TNN模型，并保存模型的最终结果。之后将TNN的计算结果与原始模型对比，便可获得模型整体的对齐情况。
+对于已经转换完成的模型，TNN提供了**model_check**工具辅助模型对齐情况的验证。**model_check**工具主要用于比较TNN不同设备(例如ARM，OpenCL，Metal等)的执行结果是否与TNN CPU等价，当怀疑TNN在某些设备上的执行结果不正确时，可以使用此工具进行检查。
 
-**model_check**的使用请参考[model_check文档](https://github.com/Tencent/TNN/blob/master/doc/cn/development/model_check.md)。
+**model_check**工具可以方便地在指定设备上，使用给出的输入数据或随机生成数据执行TNN模型，并与TNN CPU的执行结果进行逐算子的比较，从而准确定位存在问题的算子。**model_check**的使用方法请参考[model_check文档](https://github.com/Tencent/TNN/blob/master/doc/cn/development/model_check.md)。
 
 ## 二、常见的模型对齐问题
 
