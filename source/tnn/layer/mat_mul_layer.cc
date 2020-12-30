@@ -24,6 +24,21 @@ Status MatMulLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
+// @brief matmul op to MatMul matrix_a_dims and matrix_b_dims
+//    see https://pytorch.org/docs/stable/generated/torch.matmul.html?highlight=matmul#torch.matmul
+//    Matrix product of two tensors.
+//
+//    The behavior depends on the dimensionality of the tensors as follows:
+//
+//    If both tensors are 1-dimensional, the dot product (scalar) is returned.
+//
+//    If both arguments are 2-dimensional, the matrix-matrix product is returned.
+//
+//    If the first argument is 1-dimensional and the second argument is 2-dimensional, a 1 is prepended to its dimension for the purpose of the matrix multiply. After the matrix multiply, the prepended dimension is removed.
+//
+//    If the first argument is 2-dimensional and the second argument is 1-dimensional, the matrix-vector product is returned.
+//
+//    If both arguments are at least 1-dimensional and at least one argument is N-dimensional (where N > 2), then a batched matrix multiply is returned. If the first argument is 1-dimensional, a 1 is prepended to its dimension for the purpose of the batched matrix multiply and removed after. If the second argument is 1-dimensional, a 1 is appended to its dimension for the purpose of the batched matrix multiple and removed after. The non-matrix (i.e. batch) dimensions are broadcasted (and thus must be broadcastable). For example, if input is a (j \times 1 \times n \times m)(j×1×n×m) tensor and other is a (k \times m \times p)(k×m×p) tensor, out will be an (j \times k \times n \times p)(j×k×n×p) tensor.
 DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims) {
     DimsVector output_dims;
     bool squeeze_matrix_a = false;
@@ -107,7 +122,7 @@ Status MatMulLayer::InferOutputShape() {
     param->matrix_a_dims = matrix_a_dims;
     param->matrix_b_dims = matrix_b_dims;
 
-    auto output_dims                     = CalculateOutputDim(matrix_a_dims, matrix_b_dims);
+    auto output_dims = CalculateOutputDim(matrix_a_dims, matrix_b_dims);
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
