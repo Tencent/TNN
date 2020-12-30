@@ -179,6 +179,8 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
     std::string kernel_name;
     if (type == CONV2D_FILTER) {
         kernel_name = "Conv2DFilterBufferToBuffer";
+    } else if (type == DW_CONV2D_FILTER) {
+        kernel_name = "DWFilterBufferToBuffer";
     } else if (type == ARGUMENT && dims.size() == 1) {
         kernel_name = "ArgBufferToBuffer";
     } else {
@@ -198,6 +200,9 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
     if (type == CONV2D_FILTER) {
         buffer_to_buffer_unit_.global_work_size.push_back(ROUND_UP(dims[0], 4));
         buffer_to_buffer_unit_.global_work_size.push_back(dims[2] * dims[3] * ROUND_UP(dims[1], 4));
+    } else if (type == DW_CONV2D_FILTER) {
+        buffer_to_buffer_unit_.global_work_size.push_back(dims[2] * dims[3]);
+        buffer_to_buffer_unit_.global_work_size.push_back(UP_DIV(dims[1], 4));
     } else if (type == ARGUMENT && dims.size() == 1) {
         buffer_to_buffer_unit_.global_work_size.push_back(UP_DIV(dims[0], 4));
         buffer_to_buffer_unit_.global_work_size.push_back(1);
@@ -219,6 +224,12 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
         //channel
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
+    } else if (type == DW_CONV2D_FILTER) {
+        //height * width
+        const int w_h_size  = dims[2] * dims[3];
+        int kernel_shape[4] = {dims[0], dims[1], dims[2], dims[3]};
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
     } else if (type == ARGUMENT) {

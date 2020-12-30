@@ -13,9 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_utils.h"
+#include <stdlib.h>
 #include <sstream>
 #include "tnn/core/macro.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/split_utils.h"
 
 namespace TNN_NS {
 
@@ -83,20 +85,92 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
     return TNN_OK;
 }
 
-int NpuUtils::checkNpuVersion(const char *version) {
-    // ddk version's format: xxx.xxx.xxx.xxx
-    std::string version_s(version);
-    size_t pos = std::string::npos;
-    int count = 0, update_index = 1;
-    while ((pos = version_s.find(".")) != std::string::npos) {
-        std::string curr_update = version_s.substr(0, pos);
-        if (count == update_index) {
-            return std::stoi(curr_update.c_str());
+static bool IsNumberString(std::string num_str) {
+    const char *num_char = num_str.c_str();
+
+    for (int i = 0; i < num_str.length(); ++i) {
+        if (!(num_char[i] >= '0' && num_char[i] <= '9')) {
+            return false;
         }
-        version_s.erase(0, pos + 1);
-        count++;
     }
-    return 0;
+    return true;
+}
+
+bool NpuUtils::IsVersionValid(std::string version) {
+    str_arr version_vec;
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    if (version_vec.size() != 4) {
+        return false;
+    }
+
+    for (auto val : version_vec) {
+        if (!IsNumberString(val) && val != "xxx")
+            return false;
+    }
+
+    return true;
+}
+
+bool NpuUtils::VersionCompare(std::string version, std::string cmp, VersionCompareType type) {
+    if (!IsVersionValid(version) || !IsVersionValid(cmp)) {
+        LOGE("invalid version(s1: %s  s2: %s)\n", version.c_str(), cmp.c_str());
+        return false;
+    }
+
+    str_arr version_vec;
+    str_arr cmp_vec;
+
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    ret = SplitUtils::SplitStr(cmp.c_str(), cmp_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", cmp.c_str());
+        return false;
+    }
+
+    for (unsigned int i = 0; i < version_vec.size(); ++i) {
+        int version_val = 0;
+        int cmp_val     = 0;
+
+        if (version_vec[i] == "xxx") {
+            version_val = -1;
+        }
+        if (cmp_vec[i] == "xxx") {
+            cmp_val = -1;
+        }
+
+        version_val = atoi(version_vec[i].c_str());
+        cmp_val     = atoi(cmp_vec[i].c_str());
+
+        if (VCT_SMALLER == type || VCT_SMALLEQUAL == type) {
+            if (version_val < cmp_val) {
+                return true;
+            } else if (version_val > cmp_val) {
+                return false;
+            }
+        } else if (VCT_BIGGER == type || VCT_BIGEQUAL == type) {
+            if (version_val < cmp_val) {
+                return false;
+            } else if (version_val > cmp_val) {
+                return true;
+            }
+        }
+    }
+
+    if (VCT_SMALLEQUAL == type || VCT_BIGEQUAL == type) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,

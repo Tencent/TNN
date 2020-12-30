@@ -34,7 +34,7 @@
 ## 四、执行脚本
 ### 1. Android
 #### 1.1 模型准备
-将待校验的模型的tnnproto和tnnmodel文件拷贝进`<path_to_tnn>/platforms/android/modles`，并改名为`test.tnnproto`和`test.tnnmodel`
+将待校验的模型的tnnproto和tnnmodel文件拷贝进`<path_to_tnn>/platforms/android/models`，并改名为`test.tnnproto`和`test.tnnmodel`
 #### 1.2 执行脚本
 ```
 cd <path_to_tnn>/platforms/android/

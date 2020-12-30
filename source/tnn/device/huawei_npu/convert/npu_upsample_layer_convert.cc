@@ -14,12 +14,15 @@
 
 #include "graph/attr_value.h"
 #include "npu_base_layer_convert.h"
+#include "npu_utils.h"
+
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Upsample, LAYER_UPSAMPLE)
+DECLARE_NPU_LAYER_WEIGHT(Upsample, LAYER_UPSAMPLE)
 
 Status NpuUpsampleLayer::Convert() {
+
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
@@ -31,19 +34,37 @@ Status NpuUpsampleLayer::Convert() {
         scale_h = param->dims[1] / input_ops_[0]->GetShape()[2];
     }
 
-    // only support scale is int
-    if (scale_w != (int)scale_w || scale_h != (int)scale_h) {
-        LOGE("the upsample scale is not support in huawei NPU\n");
-        return Status(TNNERR_NPU_UNSUPPORT_ERROR, "the upsample scale is not support in huawei NPU");
-    }
+    const int resize_mode = param->mode;
+    const bool align_corners = param->align_corners;
+    std::vector<int> dims_vec = param->dims;
 
-    auto output = std::make_shared<hiai::op::Upsample>(outputs_name_[0]);
-    output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_attr_stride_h((int)scale_h);
-    output->set_attr_stride_w((int)scale_w);
-    ADD_OUTPUT_OP(output)
+    if (resize_mode==2 && !dims_vec.empty()) {
+        const int height = dims_vec[1];
+        const int width = dims_vec[0];
+        // target size
+        std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
+        ge::TensorDesc desc(ge::Shape({2}), ge::FORMAT_ND, ge::DT_INT32);
+        NpuUtils::CreateAttrArray(input_size_const, std::vector<int> {height, width}, desc, 2);
+        weight_ops_.push_back(input_size_const);
+        auto output = std::make_shared<hiai::op::ResizeBilinearV2>(outputs_name_[0]);
+        output->set_input_x(*input_ops_[0]->GetOperator());
+        output->set_input_size(*input_size_const);
+        output->set_attr_align_corners(align_corners);
+        ADD_OUTPUT_OP(output)
+    } else {
+        // only support scale is int
+        if (scale_w != (int)scale_w || scale_h != (int)scale_h) {
+            LOGE("the upsample scale is not support in huawei NPU\n");
+            return Status(TNNERR_NPU_UNSUPPORT_ERROR, "the upsample scale is not support in huawei NPU");
+        }
+        auto output = std::make_shared<hiai::op::Upsample>(outputs_name_[0]);
+        output->set_input_x(*input_ops_[0]->GetOperator());
+        output->set_attr_stride_h((int)scale_h);
+        output->set_attr_stride_w((int)scale_w);
+        ADD_OUTPUT_OP(output)
+    }
 }
 
 REGISTER_NPU_LAYER(Upsample, LAYER_UPSAMPLE)
 
-}  // namespace TNN_NS
+} // namespace TNN_NS

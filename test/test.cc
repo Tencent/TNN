@@ -74,7 +74,7 @@ namespace test {
         if (CheckResult("init tnn", ret)) {
             auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
-                return 0;
+                return ret;
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 
@@ -118,10 +118,10 @@ namespace test {
 
             std::string model_name = FLAGS_mp;
             if(FLAGS_mp.find_last_of("/") != -1) {
-                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1);
-            }
-
-            Timer timer(model_name);
+                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
+            }   
+ 
+            Timer timer(model_name + " - " + FLAGS_dt);
 
             for (int i = 0; i < FLAGS_ic; ++i) {
                 timer.Start();
@@ -130,22 +130,22 @@ namespace test {
                     auto blob_converter = element.second;
                     ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                     if (!CheckResult("ConvertFromMat", ret)) {
-                        return 0;
+                        return ret;
                     }
                 }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
                 ret = instance->Forward();
 #else
                 ret = instance->ForwardAsync(nullptr);
-#endif
-                output_converters_map = CreateBlobConverterMap(output_blob_map);
-                output_params_map = CreateConvertParamMap(output_mat_map);
+                if (!CheckResult("Forward", ret)) {
+                    return ret;
+                }
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
                     ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
                     if (!CheckResult("ConvertToMat", ret)) {
-                        return 0;
+                        return ret;
                     }
                 }
                 timer.Stop();
@@ -153,7 +153,6 @@ namespace test {
 #if TNN_PROFILE
             instance->FinishProfile(true);
 #endif
-            CheckResult("Forward", ret);
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
             }
@@ -162,8 +161,10 @@ namespace test {
 
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
+            return 0;
+        } else {
+            return ret;
         }
-        return 0;
     }
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -205,6 +206,7 @@ namespace test {
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
+        printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
     }
 
     void SetCpuAffinity() {
@@ -305,6 +307,9 @@ namespace test {
         // Precision : AUTO for float computing.
         config.precision = ConvertPrecision(FLAGS_pr);
 
+        config.enable_tune_kernel = FLAGS_et;
+        config.cache_path = "/data/local/tmp/";
+
         // Device Type: ARM, OPENECL, ...
         config.device_type = ConvertDeviceType(FLAGS_dt);
 
@@ -314,9 +319,6 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
-        //add for cache; When using Huawei NPU,
-	//it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
-        config.cache_path = "";
         return config;
     }
 
