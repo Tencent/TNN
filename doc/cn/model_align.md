@@ -76,7 +76,7 @@ TNN支持逐层dump结果的功能，可以通过下面的方法获得每层的�
 
 考虑到保存数据的过程位于`Forward`方法中，我们可以通过调用`Forward`方法实现数据保存。此外，也可以借助TNN已有的工具执行这一过程，例如**TNNTest**工具。由于**TNNTest**默认使用异步方法执行推理，所以需要进行修改。
 
-具体修改方法如下：打开[test/test.cc](https://github.com/Tencent/TNN/blob/master/test/test.cc)文件，找到其中的`ForwardAsync`方法，并将其替换为`Forward`方法。替换过程如下所示：
+具体修改方法如下：打开[test/test.cc](https://github.com/Tencent/TNN/blob/master/test/test.cc)文件，找到其中的`ForwardAsync`方法，并将其替换为`Forward`方法。在不了解**TNNTest**具体工作流程的情况下，建议对代码中的**2处调用**均进行替换。替换过程如下所示：
 将
 ```
  ret = instance->ForwardAsync(nullptr);
@@ -126,5 +126,5 @@ def forward_dump(model_path:str, input_data:numpy.ndarray) -> Dict[str, numpy.nd
 为了方便我们复现和定位问题，请按照issue模板填写issue相关信息，并在描述问题时请尽量提供以下内容：
 1. 原模型与TNN模型；
 2. 指定的输入数据和参考计算结果；
-3. 对齐时使用的环境与方法：例如onnxruntime的版本；tnn版本等；
+3. 对齐时使用的环境与方法：例如onnxruntime的版本；tflite版本、tnn版本等；
 4. 其他辅助信息：例如，已经定位到的不对齐算子等；
