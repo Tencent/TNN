@@ -36,7 +36,7 @@ namespace test {
 
     InputShapesMap GetInputShapesMap();
 
-    ModelConfig GetModelConfig();
+    ModelConfig GetModelConfig(std::string model_name);
 
     NetworkConfig GetNetworkConfig();
 
@@ -53,6 +53,8 @@ namespace test {
     void WriteOutput(MatMap& outputs);
 
     void FreeMatMapMemory(MatMap& mat_map);
+
+    std::string CollectJson(std::vector<std::string> jsons);
 
 }  // namespace test
 

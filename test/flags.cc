@@ -52,6 +52,14 @@ DEFINE_string(pr, "AUTO", precision_message);
 
 DEFINE_string(is, "", input_shape_message);
 
+<<<<<<< HEAD
 DEFINE_bool(et, false, enable_tune_message);
+=======
+DEFINE_bool(js, false, tnn_test_json_message);
+
+//DEFINE_string(md, "", model_md5_message);
+
+DEFINE_string(pd, "", model_path_directory_message);
+>>>>>>> Add Tnntest json
 
 }  // namespace TNN_NS

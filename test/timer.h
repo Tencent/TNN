@@ -34,6 +34,7 @@ public:
     void Stop();
     void Reset();
     void Print();
+    std::string PrintTimeJson(std::string model, std::string mode, char* md5);
 
 private:
     float min_;

@@ -62,6 +62,15 @@ void Timer::Print() {
 		   min_str, max_str, avg_str);
 }
 
+std::string Timer::PrintTimeJson(std::string model, std::string mode, char* md5) {
+    md5[strlen(md5) - 1] = '\0';
+    char avg_str[16];
+    snprintf(avg_str, 16, "%6.3f", sum_ / (float)count_);
+    char jsonstr[2048];
+    sprintf(jsonstr, "{\"model\":\"%s\",\"mode\":\"%s\",\"md5\":\"%s\",\"time\":\"%-8s\"}", model.c_str(), mode.c_str(), md5, avg_str);
+    return jsonstr;
+}
+
 } // namespace test
 
 } // namespace TNN_NS

@@ -24,6 +24,8 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <dirent.h>
+#include <cstdlib>
 
 #include "test/flags.h"
 #include "test/test_utils.h"
@@ -62,7 +64,30 @@ namespace test {
         // only works when -dl flags were set. benchmark script not set -dl flags
         SetCpuAffinity();
 
-        ModelConfig model_config     = GetModelConfig();
+        struct dirent *ptr;
+        DIR *dir;
+        std::string filePath = FLAGS_pd;
+
+        //std::system("echo -n 'hello' | md5sum | cut -d ' ' -f1");
+        dir = opendir(filePath.c_str());
+        std::vector<std::string> jsons;
+        while((ptr=readdir(dir))!=NULL) {
+            std::string proto_name = ptr->d_name;
+            if(proto_name[0] == '.' || proto_name.substr(proto_name.length() - 5, 5) == "model")
+                continue;
+
+        FILE   *stream;
+        char buf[1024] = {0};
+        char ord[1024] = {0};
+        //memset( ord, '\0', sizeof(ord) );//初始化buf
+        sprintf(ord, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
+        //memset( buf, '\0', sizeof(buf) );//初始化buf
+
+        stream = popen( ord , "r" );
+        fread( buf, sizeof(char), sizeof(buf),  stream);
+        pclose(stream);
+
+        ModelConfig model_config     = GetModelConfig(FLAGS_pd + ptr->d_name);
         NetworkConfig network_config = GetNetworkConfig();
 
         InputShapesMap input_shape = GetInputShapesMap();        
@@ -154,6 +179,10 @@ namespace test {
             }
  
             timer.Print();
+
+            if(FLAGS_js) {
+                jsons.push_back(timer.PrintTimeJson(proto_name, FLAGS_dt, buf));
+            }
  
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
@@ -161,6 +190,14 @@ namespace test {
         } else {
             return ret;
         }
+        }
+        if(FLAGS_js) {
+            std::string json_array = CollectJson(jsons);
+            std::ofstream f("Tnn_Benchmark.json");
+            f << json_array << std::endl;
+            f.close();
+        }
+        return 0;
     }
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -176,8 +213,8 @@ namespace test {
             return false;
         }
 
-        if (FLAGS_mp.empty()) {
-            printf("Parameter -mp is not set \n");
+        if (FLAGS_mp.empty() && FLAGS_pd.empty()) {
+            printf("Parameter -mp or -pd is not set \n");
             ShowUsage();
             return false;
         }
@@ -203,7 +240,9 @@ namespace test {
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
-        printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
+        printf("    -js \"<write json>\t%s \n", tnn_test_json_message);
+        //printf("    -md \"<model md5>\t%s \n", model_md5_message);
+        printf("    -pd \"<model path directory>\t%s \n", model_path_directory_message);
     }
 
     void SetCpuAffinity() {
@@ -252,12 +291,12 @@ namespace test {
         return input_shape;
     }
 
-    ModelConfig GetModelConfig() {
+    ModelConfig GetModelConfig(std::string model_name) {
         ModelConfig config;
         config.model_type = ConvertModelType(FLAGS_mt);
         if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_OPENVINO ||
             config.model_type == MODEL_TYPE_RAPIDNET || config.model_type == MODEL_TYPE_NCNN) {
-            std::string network_path = FLAGS_mp;
+            std::string network_path = model_name;
             int size                 = static_cast<int>(network_path.size());
             std::string model_path;
             
@@ -468,6 +507,19 @@ namespace test {
         for(auto iter : mat_map) {
             free(iter.second->GetData());
         }
+    }
+
+    std::string CollectJson(std::vector<std::string> jsons) {
+        std::string prefix = "{\"data\":[";
+        std::string suffix = "]}";
+        std::string jsonstr = "";
+        for (int i = 0; i < jsons.size(); i++) {
+            jsonstr += jsons[i];
+            if(i != jsons.size() - 1) {
+                jsonstr += ",";
+            }
+        }
+        return prefix + jsonstr + suffix;
     }
 
 }  // namespace test

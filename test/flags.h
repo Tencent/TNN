@@ -61,7 +61,11 @@ static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
-static const char enable_tune_message[] = "enable tune kernel(default false)";
+static const char tnn_test_json_message[] = "write tnn test json (default false)";
+
+//static const char model_md5_message[] = "model md5 message";
+
+static const char model_path_directory_message[] = "model path directory";
 
 DECLARE_bool(h);
 
@@ -99,7 +103,11 @@ DECLARE_string(pr);
 
 DECLARE_string(is);
 
-DECLARE_bool(et);
+DECLARE_bool(js);
+
+//DECLARE_string(md);
+
+DECLARE_string(pd);
 
 }  // namespace TNN_NS
 
