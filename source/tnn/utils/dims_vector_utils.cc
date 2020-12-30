@@ -44,7 +44,7 @@ DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_in
     }
 
     if (small_dims.size() <= start_index) {
-        return small_dims;
+        return max_dims;
     }
 
     if (-1 == end_index || end_index > small_dims.size()) {
@@ -105,7 +105,8 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
     return output_dims;
 }
 
-DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape, const int axis, const int num_axes, Status *status) {
+DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape,
+                                    const int axis, const int num_axes, Status *status) {
 
     int output_size = shape.size() + axis;
     DimsVector output_dims(output_size, 1);

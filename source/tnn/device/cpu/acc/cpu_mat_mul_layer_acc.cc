@@ -51,16 +51,23 @@ Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int M         = matrix_a_dims[matrix_a_dims.size() - 2];
         int N         = matrix_a_dims[matrix_a_dims.size() - 1];
         int K         = matrix_b_dims[matrix_b_dims.size() - 1];
-        int count     = DimsVectorUtils::Count(matrix_c_dims);
-        int channel   = count / (M * K);
-        for (int c = 0; c < channel; ++c) {
+        int count_a     = DimsVectorUtils::Count(matrix_a_dims);
+        int count_b     = DimsVectorUtils::Count(matrix_b_dims);
+        int count_c     = DimsVectorUtils::Count(matrix_c_dims);
+        int batch_a   = count_a / (M * N);
+        int batch_b   = count_b / (N * K);
+        int batch_c   = count_c / (M * K);
+        for (int bc = 0; bc < batch_c; ++bc) {
+            int ba = bc < batch_a ? bc : 0;
+            int bb = bc < batch_b ? bc : 0;
+            
             for (int m = 0; m < M; ++m) {
                 for (int k = 0; k < K; ++k) {
                     float sum = 0;
                     for (int n = 0; n < N; ++n) {
-                        sum += matrix_a[c * M * N + m * N + n] * matrix_b[c * N * K + n * K + k];
+                        sum += matrix_a[ba * M * N + m * N + n] * matrix_b[bb * N * K + n * K + k];
                     }
-                    matrix_c[c * M * K + m * K + k] = sum;
+                    matrix_c[bc * M * K + m * K + k] = sum;
                 }
             }
         }
