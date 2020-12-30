@@ -39,10 +39,6 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_CUDA == dev) {
-        GTEST_SKIP();
-    }
-
     // param
     std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "BatchNorm";
