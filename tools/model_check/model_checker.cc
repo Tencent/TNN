@@ -186,21 +186,28 @@ Status ModelChecker::RunModelCheckerOutput() {
     bool check_pass = true;
     BlobMap cpu_output_blobs;
     instance_cpu_->GetAllOutputBlobs(cpu_output_blobs);
+    BlobMap device_output_blobs;
+    instance_device_->GetAllOutputBlobs(device_output_blobs);
     for (auto device_output_item : device_output_map) {
         auto blob_name = device_output_item.first;
         if (output_ref_data_map_.count(blob_name) == 0) {
             LOGE("cpu output don't have blob (name: %s)\n", blob_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "cpu and device output not match");
         }
-        auto blob_dims = cpu_output_blobs[blob_name]->GetBlobDesc().dims;
+        auto cpu_blob_dims    = cpu_output_blobs[blob_name]->GetBlobDesc().dims;
+        auto device_blob_dims = device_output_blobs[blob_name]->GetBlobDesc().dims;
+        if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
+            LOGE("the output dims of cpu and device are not same! (blob name: %s)\n", blob_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, "the output dims of cpu and device are not same!");
+        }
         printf("\n---- blob (%s) ----\n", blob_name.c_str());
         check_pass &= CompareDiffCosDistance(device_output_map[blob_name].get(), output_ref_data_map_[blob_name].get(),
-                                             blob_dims);
+                                             cpu_blob_dims);
 
         if (model_checker_params_.dump_output) {
             LOGE("dump blob (%s) data\n", blob_name.c_str());
-            DumpBlobData(output_ref_data_map_[blob_name].get(), blob_dims, "cpu_" + blob_name + ".txt");
-            DumpBlobData(device_output_map[blob_name].get(), blob_dims, "device_" + blob_name + ".txt");
+            DumpBlobData(output_ref_data_map_[blob_name].get(), cpu_blob_dims, "cpu_" + blob_name + ".txt");
+            DumpBlobData(device_output_map[blob_name].get(), device_blob_dims, "device_" + blob_name + ".txt");
         }
     }
     if (check_pass) {
