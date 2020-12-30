@@ -56,8 +56,8 @@ void Timer::Print() {
     snprintf(max_str, 16, "%6.3f", max_);
     char avg_str[16];
     snprintf(avg_str, 16, "%6.3f", sum_ / (float)count_);
-    printf("%-45s time cost: min = %-8s ms  |  max = %-8s ms  |  avg = %-8s ms \n", timer_info_.c_str(),
-           min_str, max_str, avg_str);
+    LOGI("%-45s TNN Benchmark time cost: min = %-8s ms  |  max = %-8s ms  |  avg = %-8s ms \n", timer_info_.c_str(),
+         min_str, max_str, avg_str);
 }
 
 } // namespace test
