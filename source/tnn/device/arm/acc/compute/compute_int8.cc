@@ -43,6 +43,7 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
             for (int kk = 0; kk < k; kk++) {
                 acc += (int32_t)a[m * a_stride + kk] * (int32_t)packed_w[kk * 8 + n];
             }
+
             auto res = acc * scales[n];
             // Conv-Relu-Add
             if (relu < 0) {

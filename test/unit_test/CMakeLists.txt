@@ -21,4 +21,8 @@ target_link_libraries(unit_test
     gflags
     )
 
+if(TNN_TENSORRT_ENABLE)
+    target_link_libraries(unit_test nvinfer)
+endif()
+
 add_test(NAME unit_test COMMAND unit_test)
