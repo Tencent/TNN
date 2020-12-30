@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-TNN_DIR=$(pwd)/..
+TNN_DIR=$(cd `dirname $0`; pwd)/..
 BUILD_DIR=${TNN_DIR}/scripts/build_macos
 TNN_INSTALL_DIR=${TNN_DIR}/scripts/macos_release
 OPENVINO_BUILD_SHARED="OFF"
@@ -169,7 +169,7 @@ copy_openvino_libraries
 # 编译 TNN
 echo "Configuring TNN ..."
 cd ${BUILD_DIR}
-cmake ../../ \
+cmake ${TNN_DIR} \
 -DTNN_OPENVINO_ENABLE=ON \
 -DTNN_X86_ENABLE=ON \
 -DTNN_TEST_ENABLE=ON \
