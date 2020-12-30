@@ -67,8 +67,6 @@ namespace test {
         struct dirent *ptr;
         DIR *dir;
         std::string filePath = FLAGS_pd;
-
-        //std::system("echo -n 'hello' | md5sum | cut -d ' ' -f1");
         dir = opendir(filePath.c_str());
         std::vector<std::string> jsons;
         while((ptr=readdir(dir))!=NULL) {
@@ -79,9 +77,7 @@ namespace test {
         FILE   *stream;
         char buf[1024] = {0};
         char ord[1024] = {0};
-        //memset( ord, '\0', sizeof(ord) );//初始化buf
         sprintf(ord, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
-        //memset( buf, '\0', sizeof(buf) );//初始化buf
 
         stream = popen( ord , "r" );
         fread( buf, sizeof(char), sizeof(buf),  stream);
@@ -241,7 +237,6 @@ namespace test {
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -js \"<write json>\t%s \n", tnn_test_json_message);
-        //printf("    -md \"<model md5>\t%s \n", model_md5_message);
         printf("    -pd \"<model path directory>\t%s \n", model_path_directory_message);
     }
 
