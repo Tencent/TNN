@@ -45,6 +45,8 @@ clone_openvino() {
     cd openvino
     git reset --hard 9df6a8f
     git submodule update --init --recursive
+    sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
+    sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
 
     # 编译静态库
     if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -134,7 +136,7 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
 }
 
