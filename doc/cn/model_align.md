@@ -46,7 +46,10 @@ TODO
 ```torch_model.eval()``` or ```torch_model.train(False)```
 
 ### 3.tflite
-TODO
+
+问题描述：含有ResizeBilinear的tflite模型使用-align可能会不对齐，这是由于TensorFlow2.3之前tflite的ResizeBilinear实现存在问题导致的
+
+解决方法：升级TensorFlow让其版本不小于2.3即可
 
 ## 三、模型对齐问题的分析与处理方法
 
