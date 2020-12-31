@@ -10,9 +10,9 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
 <table>
     <tr>
-        <th>人脸检测(blazeface)</th>
-        <th>物体检测(yolov5s)</th>
-        <th>人脸配准(腾讯优图)</th>
+        <th nowrap="nowrap">人脸检测(blazeface)</th>
+        <th nowrap="nowrap">物体检测(yolov5s)</th>
+        <th nowrap="nowrap">人脸配准(腾讯优图)</th>
     </tr>
     <tr>
         <td>
@@ -32,9 +32,9 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
         </td>
     </tr>
     <tr>
-        <th>头发分割(腾讯光影)</th>
-        <th>姿势估计(腾讯光流)</th>
-        <th>姿势估计(blazepose))</th>
+        <th nowrap="nowrap">头发分割(腾讯光影)</th>
+        <th nowrap="nowrap">姿势估计(腾讯光流)</th>
+        <th nowrap="nowrap">姿势估计(blazepose))</th>
     </tr>
     <tr>
         <td>
