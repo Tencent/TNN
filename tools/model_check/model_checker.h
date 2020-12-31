@@ -34,6 +34,8 @@ struct ModelCheckerParam {
     std::pair<std::string, FileFormat> ref_file;
 };
 
+enum CompareType { DEFAULT = 0, COSINE = 1 };
+
 class ModelChecker {
 public:
     // @brief ModelChecker Constructor
@@ -65,8 +67,7 @@ private:
     Status GetOutputData(Instance* instance, std::map<std::string, std::shared_ptr<char>>& output_map);
     Status GetBlobData(Instance* instance, Blob* blob, std::map<std::string, std::shared_ptr<char>>& output_map);
     Status CompareDeviceAndCpu();
-    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims);
-    bool CompareDiffCosDistance(void* device_data, void* cpu_data, DimsVector blob_dims);
+    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type = DEFAULT);
     void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 
     ModelCheckerParam model_checker_params_;

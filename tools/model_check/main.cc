@@ -129,7 +129,7 @@ void PrintConfig() {
         "OPENCL, METAL, ARM, CUDA\n"
         "\t-i, --input    \t(optional) input file\n"
         "\t-o, --output   \t(optional) dump output\n"
-        "\t-c, --cmp_o    \t(optional) compare output only\n"
+        "\t-e, --end      \t(optional) compare output only\n"
         "\t-r, --ref      \t(optional) the reference output to compare\n"
         "\t-n, --bias     \t(optional) bias val when preprocess image "
         "input, ie, "
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
                                     {"device", required_argument, 0, 'd'},
                                     {"input", required_argument, 0, 'i'},
                                     {"output", no_argument, 0, 'o'},
-                                    {"cmp_o", no_argument, 0, 'c'},
+                                    {"end", no_argument, 0, 'e'},
                                     {"ref", required_argument, 0, 'f'},
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]) {
                 printf("dump output\n");
                 model_checker_param.dump_output = true;
                 break;
-            case 'c':
+            case 'e':
                 printf("compare output only\n");
                 model_checker_param.only_check_output = true;
                 break;

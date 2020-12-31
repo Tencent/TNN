@@ -201,8 +201,8 @@ Status ModelChecker::RunModelCheckerOutput() {
             return Status(TNNERR_COMMON_ERROR, "the output dims of cpu and device are not same!");
         }
         printf("\n---- blob (%s) ----\n", blob_name.c_str());
-        check_pass &= CompareDiffCosDistance(device_output_map[blob_name].get(), output_ref_data_map_[blob_name].get(),
-                                             cpu_blob_dims);
+        check_pass &= CompareData(device_output_map[blob_name].get(), output_ref_data_map_[blob_name].get(),
+                                  cpu_blob_dims, COSINE);
 
         if (model_checker_params_.dump_output) {
             LOGE("dump blob (%s) data\n", blob_name.c_str());
@@ -410,55 +410,52 @@ Status ModelChecker::CompareDeviceAndCpu() {
     return instance_device_->ForwardWithCallback(nullptr, device_func_after);
 }
 
-bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blob_dims) {
-    float ep           = 0.005;
+bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type) {
     float* result_data = reinterpret_cast<float*>(device_data);
     float* ref_data    = reinterpret_cast<float*>(cpu_data);
+    int data_count     = DimsVectorUtils::Count(blob_dims);
 
-    int data_count = DimsVectorUtils::Count(blob_dims);
-    for (unsigned long long i = 0; i < data_count; i++) {
-        float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
-        float sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
-        if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
-            LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n", i, result_data[i], ref_data[i],
-                 fabs(diff / sum), fabs(diff));
+    if (DEFAULT == type) {
+        float ep = 0.005;
+        for (unsigned long long i = 0; i < data_count; i++) {
+            float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
+            float sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
+            if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
+                LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n", i, result_data[i], ref_data[i],
+                     fabs(diff / sum), fabs(diff));
+                return false;
+            }
+        }
+    } else if (COSINE == type) {
+        double max_diff     = 0;
+        int max_diff_idx    = -1;
+        double cos_distance = 0;
+
+        double cpu_device_mul = 0;
+        double cpu_sum2       = 0.000001;
+        double device_sum2    = 0.000001;
+        for (unsigned long long i = 0; i < data_count; i++) {
+            float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
+            if (diff > max_diff) {
+                max_diff     = diff;
+                max_diff_idx = i;
+            }
+            cpu_device_mul += result_data[i] * ref_data[i];
+            cpu_sum2 += ref_data[i] * ref_data[i];
+            device_sum2 += result_data[i] * result_data[i];
+        }
+        cos_distance = cpu_device_mul / std::sqrt(cpu_sum2) / std::sqrt(device_sum2);
+
+        printf("max diff: %lf   index: %d\n", max_diff, max_diff_idx);
+        printf("cos distance: %lf\n", cos_distance);
+        if (cos_distance < 0.999) {
             return false;
         }
+    } else {
+        LOGE("unsupport compare data type\n");
     }
 
     return true;
-}
-
-bool ModelChecker::CompareDiffCosDistance(void* device_data, void* cpu_data, DimsVector blob_dims) {
-    double max_diff     = 0;
-    int max_diff_idx    = -1;
-    double cos_distance = 0;
-
-    int data_count        = DimsVectorUtils::Count(blob_dims);
-    double cpu_device_mul = 0;
-    double cpu_sum2       = 0.000001;
-    double device_sum2    = 0.000001;
-    float* result_data    = reinterpret_cast<float*>(device_data);
-    float* ref_data       = reinterpret_cast<float*>(cpu_data);
-    for (unsigned long long i = 0; i < data_count; i++) {
-        float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
-        if (diff > max_diff) {
-            max_diff     = diff;
-            max_diff_idx = i;
-        }
-        cpu_device_mul += result_data[i] * ref_data[i];
-        cpu_sum2 += ref_data[i] * ref_data[i];
-        device_sum2 += result_data[i] * result_data[i];
-    }
-    cos_distance = cpu_device_mul / std::sqrt(cpu_sum2) / std::sqrt(device_sum2);
-
-    printf("max diff: %lf   index: %d\n", max_diff, max_diff_idx);
-    printf("cos distance: %lf\n", cos_distance);
-    if (cos_distance < 0.999) {
-        return false;
-    } else {
-        return true;
-    }
 }
 
 void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name) {
