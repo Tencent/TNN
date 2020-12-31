@@ -281,10 +281,11 @@ struct TNNVector {
             LOGE("%s\n", "vecotr zip does not support len is odd");
         }
         T tmp[len];
+        for (int i = 0; i < len; i++) {
+            tmp[i] = v1.value[i];
+        }
         for (int i = 0; i < len / 2; i++) {
-            tmp[i * 2] = v1.value[i * 2];
-            tmp[i * 2 + 1] = v1.value[i * 2 + 1];
-            v1.value[i * 2] = v1.value[i];
+            v1.value[i * 2] = tmp[i];
             v1.value[i * 2 + 1] = v2.value[i];
         }
         for (int i = 0; i < len / 2; i++) {

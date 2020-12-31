@@ -45,10 +45,12 @@ void BlobToBGRAImpl(const fp16_t *src, uint8_t *dst, const float *scale, const f
 template <bool reverse_channel>
 void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 
-#if TNN_ARM82
+int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel);
 
+#if defined(TNN_ARM82) && defined(TNN_USE_NEON) && !defined(TNN_ARM82_SIMU)
 #ifdef __cplusplus
 extern "C" {
+#endif
 #endif
 
 void Half2FloatKernel(float* dst, const fp16_t* src, const size_t length);
@@ -60,15 +62,14 @@ void GemmFp16SlidewC3(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long
                        long fh, long dilateX_step, long dilateY_step);
 void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
                    long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
-void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth_quad,
+void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth,
                    long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
+
+#if defined(TNN_ARM82) && defined(TNN_USE_NEON) && !defined(TNN_ARM82_SIMU)
 #ifdef __cplusplus
 }
 #endif
-
-int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel);
-
-#endif  // TNN_ARM82
+#endif
 
 }  // namespace TNN_NS
 

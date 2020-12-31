@@ -349,6 +349,7 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
     auto src1 = src + hw;
     auto src2 = src + hw * 2;
     int cur_hw = 0;
+#ifndef TNN_ARM82_SIMU
     float32x4_t v_zero_f32 = vdupq_n_f32(0.f);
 #ifdef __aarch64__
     float16x4_t v_zero_f16 = vdup_n_f16(0.f);
@@ -374,6 +375,7 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
         vst1q_u16(dst_u16 + cur_hw * 8 + 24, vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v3)), v_zero_u16));        
 #endif
     }
+#endif
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 8 + 0] = src0[cur_hw];
         dst[cur_hw * 8 + 1] = src1[cur_hw];
@@ -388,7 +390,7 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
 }
 #endif
 
-#ifndef TNN_USE_NEON
+#if defined(TNN_ARM82) && (!defined(TNN_USE_NEON) || defined(TNN_ARM82_SIMU))
 /*
 general deconv micro kernel fp16_t
 */
@@ -415,6 +417,175 @@ void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long wid
                 }
                 for (long j = 0; j < 8; ++j) {
                     dst_x[j] = dst_x[j] + temp[j];
+                }
+            }
+        }
+    }
+}
+void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth,
+                   long src_depth_step, long fw, long fh, long dilate_x_step, long dilate_y_step) {
+    long dx, sz, fx, fy;
+    for (dx = 0; dx < width; ++dx) {
+        auto dst_dx = dst + dx * dst_w_step;
+        for (fy = 0; fy < fh; ++fy) {
+            auto dst_y    = dst_dx + fy * dilate_y_step;
+            auto weight_y = weight + fy * fw * src_depth * 8;
+            for (fx = 0; fx < fw; ++fx) {
+                auto dst_x    = dst_y + fx * dilate_x_step;
+                auto weight_x = weight_y + fx * src_depth * 8;
+                fp16_t temp[8] = {fp16_t(0.0f)};
+                for (sz = 0; sz < src_depth; ++sz) {
+                    auto weight_z = weight_x + sz * 8;
+                    auto src_z    = src + dx * 1 + sz * src_depth_step;
+                    for (long j = 0; j < 8; ++j) {
+                        temp[j] = temp[j] + src_z[0] * weight_z[j];
+                    }
+                }
+                for (long j = 0; j < 8; ++j) {
+                    dst_x[j] = dst_x[j] + temp[j];
+                }
+            }
+        }
+    }
+}
+void ConvDw3x3Fp16SlideW(void* dst_z, void** cache_line, const void* weight_z, long dst_width) {
+    long dx;
+    int fy, fx;
+    fp16_t** cache_line_ptr    = (fp16_t**)cache_line;
+    const fp16_t* weight_z_ptr = (const fp16_t*)weight_z;
+    for (dx = 0; dx < dst_width; ++dx) {
+        auto dst_x = (fp16_t*)dst_z + dx * 8;
+        dst_x[0]   = (fp16_t)0.0f;
+        dst_x[1]   = (fp16_t)0.0f;
+        dst_x[2]   = (fp16_t)0.0f;
+        dst_x[3]   = (fp16_t)0.0f;
+        dst_x[4]   = (fp16_t)0.0f;
+        dst_x[5]   = (fp16_t)0.0f;
+        dst_x[6]   = (fp16_t)0.0f;
+        dst_x[7]   = (fp16_t)0.0f;
+        for (fy = 0; fy < 3; ++fy) {
+            for (fx = 0; fx < 3; ++fx) {
+                for (long i = 0; i < 8; ++i) {
+                    dst_x[i] = dst_x[i] + cache_line_ptr[fy][dx * 8 + fx * 8 + i] * weight_z_ptr[3 * fy * 8 + fx * 8 + i];
+                }
+            }
+        }
+    }
+}
+// void GEMM_FP16_N8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long src_depth,
+//                            long dst_step, long dst_depth, long width, fp16_t *bias, long relu) {}
+void ActiveOutput(fp16_t* dst, const Half8* src, long relu, int num) {
+    for (long i = 0; i < num; i++) {
+        if (relu == ActivationType_ReLU) {
+            Half8::save(dst + i * 8, Half8::max(src[i], Half8((fp16_t)0.f)));
+        } else if (relu == ActivationType_ReLU6) {
+            Half8::save(dst + i * 8, Half8::min(Half8::max(src[i], Half8((fp16_t)0.f)), Half8((fp16_t)6.0f)));
+        } else {
+            // Float4::save(dst + i * 4, src[i]);
+            Half8::save(dst + i * 8, src[i]);
+        }
+    }
+}
+void GEMM_FP16_N8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long src_depth,
+                           long dst_step, long dst_depth, long width, fp16_t *bias, long relu) {
+    long dx, sz, dz;
+    // NC8HW8
+    for (dz = 0; dz < dst_depth; dz += 8) {
+        // dst_step = M * 8 (NC8HW8)
+        auto dst_z = dst + (dz / 8) * dst_step;
+        auto weight_dz = weight + dz * src_depth;
+        Half8 v_bias = Half8::load(bias + dz);
+        // process 8x16 results in one loop
+        dx = 0;
+        for (; dx + 7 < width; dx += 8) {
+            auto dst_dx = dst_z + dx * 8;
+            auto src_dx = src + dx * src_depth;
+            Half8 v_dst[8];
+            for (int i = 0; i < 8; i++) {
+                v_dst[i] = v_bias;
+            }
+            for (long sz = 0; sz < src_depth; sz++) {
+                auto src_z = src_dx + sz * 8;
+                auto weight_sz = weight_dz + sz * 8;
+                Half8 v_weight = Half8::load(weight_sz);
+                Half8 v_src    = Half8::load(src_z);
+                Half8::mlaq_lane0(v_dst[0], v_weight, v_src);
+                Half8::mlaq_lane1(v_dst[1], v_weight, v_src);
+                Half8::mlaq_lane2(v_dst[2], v_weight, v_src);
+                Half8::mlaq_lane3(v_dst[3], v_weight, v_src);
+                Half8::mlaq_lane4(v_dst[4], v_weight, v_src);
+                Half8::mlaq_lane5(v_dst[5], v_weight, v_src);
+                Half8::mlaq_lane6(v_dst[6], v_weight, v_src);
+                Half8::mlaq_lane7(v_dst[7], v_weight, v_src);
+            }
+            ActiveOutput(dst_dx, v_dst, relu, 8);
+        }
+        // process 4x8 results in one loop
+        for (; dx + 3 < width; dx += 4) {
+            auto dst_dx = dst_z + dx * 8;
+            auto src_dx = src + dx * src_depth;
+            Half8 v_dst[4];
+            for (int i = 0; i < 4; i++) {
+                v_dst[i] = v_bias;
+            }
+            for (long sz = 0; sz < src_depth; sz++) {
+                auto src_z = src_dx + sz * 4;
+                auto weight_sz = weight_dz + sz * 8;
+                Half8 v_weight = Half8::load(weight_sz);
+                Half4 v_src    = Half4::load(src_z);
+                Half8::mla_lane0(v_dst[0], v_weight, v_src);
+                Half8::mla_lane1(v_dst[1], v_weight, v_src);
+                Half8::mla_lane2(v_dst[2], v_weight, v_src);
+                Half8::mla_lane3(v_dst[3], v_weight, v_src);
+            }
+            ActiveOutput(dst_dx, v_dst, relu, 4);
+        }
+        // // the process 1x4 results
+        if (dx < width) {
+            auto dst_dx = dst_z + dx * 8;
+            auto src_dx = src + dx * src_depth;
+            Half8 v_dst[3];
+            for (int i = 0; i < 3; i++) {
+                v_dst[i] = v_bias;
+            }
+            for (long sz = 0; sz < src_depth; sz++) {
+                auto src_z = src_dx + sz * 4;
+                auto weight_sz = weight_dz + sz * 8;
+                Half8 v_weight = Half8::load(weight_sz);
+                Half4 v_src    = Half4::load(src_z);
+                Half8::mla_lane0(v_dst[0], v_weight, v_src);
+                Half8::mla_lane1(v_dst[1], v_weight, v_src);
+                Half8::mla_lane2(v_dst[2], v_weight, v_src);
+            }
+            ActiveOutput(dst_dx, v_dst, relu, width - dx);
+        }
+    }
+}
+void GemmFp16SlidewC3(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long src_w_setup, long fw,
+                       long fh, long dilate_x_step, long dilate_y_step) {
+    long dx, sz, fx, fy;
+    for (dx = 0; dx < width; ++dx) {
+        auto dst_x  = dst + dx * 8;
+        dst_x[0]    = 0.0f;
+        dst_x[1]    = 0.0f;
+        dst_x[2]    = 0.0f;
+        dst_x[3]    = 0.0f;
+        dst_x[4]    = 0.0f;
+        dst_x[5]    = 0.0f;
+        dst_x[6]    = 0.0f;
+        dst_x[7]    = 0.0f;
+        auto src_dx = src + src_w_setup * dx;
+
+        for (fy = 0; fy < fh; ++fy) {
+            auto src_y    = src_dx + fy * dilate_y_step;
+            auto weight_y = weight + fy * fw * 24;
+            for (fx = 0; fx < fw; ++fx) {
+                auto weight_x = weight_y + 24 * fx;
+                auto src_x    = src_y + fx * dilate_x_step;
+                for (long i = 0; i < 3; ++i) {
+                    for (long j = 0; j < 8; ++j) {
+                        dst_x[j] = float(dst_x[j]) + float(src_x[i]) * float(weight_x[8 * i + j]);
+                    }
                 }
             }
         }

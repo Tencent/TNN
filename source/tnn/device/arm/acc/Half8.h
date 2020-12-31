@@ -1037,6 +1037,46 @@ struct Half8 : TNNVector<fp16_t, 8> {
         dst.value[7] = v2.value[3];
         return dst;
     }
+    static void mlaq_lane0(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[0];
+        }
+    }
+    static void mlaq_lane1(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
+        }
+    }
+    static void mlaq_lane2(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[2];
+        }
+    }
+    static void mlaq_lane3(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[3];
+        }
+    }
+    static void mlaq_lane4(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[4];
+        }
+    }
+    static void mlaq_lane5(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[5];
+        }
+    }
+    static void mlaq_lane6(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[6];
+        }
+    }
+    static void mlaq_lane7(Half8& v1, const Half8& v2, const Half8& v3) {
+        for (int i = 0; i < 8; ++i) {
+            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[7];
+        }
+    }
     static void mla_lane0(Half8& v1, const Half8& v2, const Half4& v3) {
         for (int i = 0; i < 8; ++i) {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[0];

@@ -125,10 +125,14 @@ static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","q0","q1","q2","q3","q4","q5","q6","q7"
     );
 #else
+    fp16_t tmp[64];
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            dst_b[j * 8 + i] = src_b[i * 8 + j];
+            tmp[j * 8 + i] = src_b[i * 8 + j];
         }
+    }
+    for (int i = 0; i < 64; i++) {
+        dst_b[i] = tmp[i];
     }
 #endif
 }
@@ -176,10 +180,14 @@ static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","q0","q1","q2","q3"
     );
 #else
+    fp16_t tmp[32];
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++) {
-            dst_b[j * 4 + i] = src_b[i * 8 + j];
+            tmp[j * 4 + i] = src_b[i * 8 + j];
         }
+    }
+    for (int i = 0; i < 32; i++) {
+        dst_b[i] = tmp[i];
     }
 #endif
 }

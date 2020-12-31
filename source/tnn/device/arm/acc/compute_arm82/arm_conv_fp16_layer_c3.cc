@@ -57,11 +57,12 @@ Status ArmConvFp16LayerC3::allocateBufferWeight(const std::vector<Blob *> &input
             RawBuffer filter_half(weight_nchw_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromOI3HWToOHW24(filter_half.force_to<fp16_t *>(), buffer_weight_.force_to<fp16_t *>(),
+            // use int16_t to covert weights
+            ConvertWeightsFromOI3HWToOHW24(filter_half.force_to<int16_t *>(), buffer_weight_.force_to<int16_t *>(),
                                            ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromOI3HWToOHW24(conv_res->filter_handle.force_to<fp16_t *>(), buffer_weight_.force_to<fp16_t *>(),
+            ConvertWeightsFromOI3HWToOHW24(conv_res->filter_handle.force_to<int16_t *>(), buffer_weight_.force_to<int16_t *>(),
                                            ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");

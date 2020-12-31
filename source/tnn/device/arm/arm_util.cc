@@ -707,7 +707,7 @@ int ConvertWeightsFromOI3HWToOHW24(const T *src, T *dst, int input_channel, int 
     return 0;
 }
 #if TNN_ARM82
-template int ConvertWeightsFromOI3HWToOHW24(const fp16_t *src, fp16_t *dst, int input_channel, int output_channel, int height, int width);
+template int ConvertWeightsFromOI3HWToOHW24(const int16_t *src, int16_t *dst, int input_channel, int output_channel, int height, int width);
 #endif
 
 // to   [g][o/8][i/8][h][w][i8][o8]
