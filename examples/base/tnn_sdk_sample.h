@@ -152,6 +152,7 @@ public:
     std::string model_content = "";
     std::string library_path = "";
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
+    Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
 };
 
