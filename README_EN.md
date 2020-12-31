@@ -23,6 +23,7 @@ Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en
 3. The final step is to use the compiled TNN engine for inference. You can make program calls to TNN inside your application. We provide a rich and detailed demo as a reference to help you complete.
     * [Run an iOS Demo](doc/en/user/demo_en.md)
     * [Run an Android Demo](doc/en/user/demo_en.md)
+    * [Run an Linux/Windows Demo](doc/en/user/demo_en.md)
 
 ## Technical Solutions
 

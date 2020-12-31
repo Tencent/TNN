@@ -44,7 +44,8 @@ IntScaleResource* CreateIntScale(int channel) {
     return int8scale;
 }
 
-void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context) {
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
+                       Context** cpu_context, Context** device_context) {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);
     config.enable_tune_kernel = FLAGS_et;
@@ -66,6 +67,7 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** c
 
     *device_context = (*device)->CreateContext(config.device_id);
     ASSERT(*device_context != NULL);
+
 
     if (!FLAGS_ub) {
         (*device_context)->SetPrecision(PRECISION_HIGH);

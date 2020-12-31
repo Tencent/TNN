@@ -78,21 +78,25 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         Run(interpreter2);
         auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
         Run(interpreter3);
-        auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
-        Run(interpreter5);
         auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
         Run(interpreter6);
-        auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
-        Run(interpreter7);
-        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-        Run(interpreter8);
-        auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
-        Run(interpreter10);
+        if (DEVICE_CUDA != dev) {
+            auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+            Run(interpreter5);
+            auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+            Run(interpreter7);
+            auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+            Run(interpreter8);
+            auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+            Run(interpreter10);
+        }
     }
     auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
     Run(interpreter4);
-    auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
-    Run(interpreter9);
+    if (DEVICE_CUDA != dev) {
+        auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
+        Run(interpreter9);
+    }
 }
 
 }  // namespace TNN_NS

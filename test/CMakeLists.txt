@@ -46,6 +46,10 @@ else()
     endif()
 endif()
 
+if(TNN_TENSORRT_ENABLE)
+    target_link_libraries(TNNTest nvinfer)
+endif()
+
 if(TNN_UNIT_TEST_ENABLE)
     add_subdirectory(unit_test)
 endif()
