@@ -166,7 +166,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
         for (auto name : input_names) {
-            inputs.push_back(blob_manager_->GetBlob(name));
+            auto blob = blob_manager_->GetBlob(name);
+            auto ret = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+            inputs.push_back(blob);
         }
 
         for (auto name : output_names) {

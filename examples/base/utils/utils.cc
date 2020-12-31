@@ -12,29 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#pragma once
+#include "utils.h"
+
+#include <string>
 #include <fstream>
-#include "tnn/core/status.h"
-
-#define CHECK_API(status)                                                      \
-    do {                                                                       \
-        if (status != 0) {                                                     \
-            fprintf(stderr, "API ERROR:%d\n", int(status));                    \
-            return -1;                                                         \
-        }                                                                      \
-    } while (0)
-
-#define CHECK_TNN_STATUS(status)                                               \
-    do {                                                                       \
-        if (status != TNN_NS::TNN_OK) {                                        \
-            fprintf(stderr, "TNN API ERROR:0x%x", int(status));                \
-            return status;                                                     \
-        }                                                                      \
-    } while (0)
 
 // Helper functions
 std::string fdLoadFile(std::string path) {
-    std::ifstream file(path, std::ios::in);
+    std::ifstream file(path, std::ios::binary);
     if (file.is_open()) {
         file.seekg(0, file.end);
         int size      = file.tellg();

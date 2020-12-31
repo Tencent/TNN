@@ -61,6 +61,10 @@ TEST_P(PowLayerTest, PowLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_CUDA == dev) {
+        exponent = (int)exponent;
+    }
+
     // param
     std::shared_ptr<PowLayerParam> param(new PowLayerParam());
     param->name     = "Pow";

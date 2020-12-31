@@ -28,7 +28,7 @@ class MetalContext;
 // @brief conv layer metal acc
 class MetalLayerAcc : public AbstractLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource,
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
                 const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs);
 

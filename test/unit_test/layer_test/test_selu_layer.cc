@@ -28,6 +28,11 @@ TEST_P(SeluLayerTest, SeluLayer) {
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<SeluLayerParam> param(new SeluLayerParam());

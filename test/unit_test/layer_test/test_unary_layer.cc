@@ -29,6 +29,10 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     DataType data_type = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if ((type_str == "Reciprocal" || type_str == "Softplus") && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
     if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
