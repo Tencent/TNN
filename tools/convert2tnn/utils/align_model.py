@@ -17,7 +17,7 @@ from utils import cmd
 from utils import data
 from utils import convert_name
 from utils import return_code
-
+from types import *
 from converter import logging
 
 import linecache
@@ -136,15 +136,34 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
 
 
 def get_input_shape_from_onnx(onnx_path) -> dict:
+    # onnx_input_info: list = {  "input name":{
+    #                                           {"shape": [n, c,...]},
+    #                                           {"data_type": 0}
+    #                                       }
+    #                           ,
+    #                           "input name": {
+    #                                           {"shape": [n, c,...]},
+    #                                           {"data_type": 0}
+    #                                       }
+    #                         }
     onnxruntime.set_default_logger_severity(3)
     session = onnxruntime.InferenceSession(onnx_path)
     input_info: dict = {}
     for ip in session.get_inputs():
         name = ip.name
         shape = ip.shape
+        data_type = 0
+        if ip.type == 'tensor(float)':
+            data_type = 0
+        elif ip.type == 'tensor(int64)':
+            data_type = 3
+        else:
+            logging.error("Do not support input date type")
         if type(shape[0]) is not int:
             shape[0] = 1
-        input_info.update({name: shape})
+        shape_information = {'shape': shape,
+                             'data_type': data_type}
+        input_info.update({name: shape_information})
     return input_info
 
 def get_input_shape_from_tflite(tflite_path)->dict:
@@ -160,14 +179,38 @@ def get_input_shape_from_tflite(tflite_path)->dict:
        input_info.update({name: [int(n), int(c), int(h), int(w)]})
     return input_info
 
+
+TNN_MAGIC_NUMBER = 0x0FABC0002
+TNN_MAGIC_NUMBER_V2 = 0x0FABC0004
 def get_input_shape_from_tnn(tnn_proto_path):
     input_info: dict = {}
-    line = linecache.getline(tnn_proto_path, 2).strip(
-        '\n').strip('\"').strip(',')
-    input_list = line.split(':')
-    for input in input_list:
-        name, n, c, h, w = input.strip(' ').split(' ')
-        input_info.update({name: [int(n), int(c), int(h), int(w)]})
+    magic_number = linecache.getline(tnn_proto_path, 1).strip('\n').strip('\"').strip(',').strip(' ').split(" ")[-1]
+    magic_number = int(magic_number)
+    if magic_number == TNN_MAGIC_NUMBER:
+        line = linecache.getline(tnn_proto_path, 2).strip('\n').strip('\"').strip(',')
+        input_list = line.split(':')
+        for tnn_input in input_list:
+            name, n, c, h, w = tnn_input.strip(' ').split(' ')
+            size = 4
+            shape = [int(n), int(c), int(h), int(w)]
+            data_type = 0
+            input_shape_info = {'shape':shape, 'data_type': data_type }
+            input_info.update({name: input_shape_info})
+    elif magic_number == TNN_MAGIC_NUMBER_V2:
+        line = linecache.getline(tnn_proto_path, 2).strip('\n').strip('\"').strip(',')
+        input_list = line.split(':')
+        for tnn_input in input_list:
+            # information: name size shape1 shape2... data_type
+            information = tnn_input.strip(' ').split(' ')
+            name = information[0]
+            size = int(information[1])
+            data_type = int(information[-1])
+            shape: list = list(map(int, information[2:-1]))
+            input_shape_info = {'shape': shape, 'data_type': data_type}
+            input_info.update({name: input_shape_info})
+    else:
+        logging.error("Unspport TNN model version\n")
+        sys.exit(-1)
     return input_info
 
 
@@ -188,22 +231,33 @@ def print_align_message(is_tflite = False):
         logging.info("The onnx model aligned with tnn model\n")
 
 
+def check_shape_info(onnx_info: dict, tnn_info: dict) -> bool:
+    onnx_shape = onnx_info['shape']
+    onnx_data_type = onnx_info['data_type']
+    tnn_shape = tnn_info['shape']
+    tnn_data_type = onnx_info['data_type']
+    if type(onnx_shape[0]) is not int:
+        onnx_shape[0] = 1
+    if onnx_data_type == tnn_data_type and onnx_shape == tnn_shape:
+        return True
+    else:
+        return False
+
+
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
         logging.info("input is not algin 186\n")
         print_not_align_message("onnx input size != tnn input size")
-    for name, onnx_shape in onnx_input_info.items():
+    for name, onnx_info in onnx_input_info.items():
         tnn_name = convert_name.onnx_name2tnn_name(name)
-        tnn_shape = tnn_input_info[tnn_name]
-        if type(onnx_shape[0]) is not int:
-            onnx_shape[0] = 1
-        if tnn_shape != onnx_shape:
-            logging.info("input is not algin 194\n")
+        tnn_info = tnn_input_info[tnn_name]
+        if check_shape_info(onnx_info, tnn_info) == True:
+            logging.info("Check onnx input shape and tnn input shape align!\n")
+        else:
+            logging.error("input is not algin 194\n")
             print_not_align_message(
-                "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
-                                                                                    str(tnn_shape)))
-
-    logging.info("Check onnx input shape and tnn input shape align!\n")
+                "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
+                                                                                      str(tnn_info)))
 
 
 def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
@@ -271,6 +325,16 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         tnn_input_info = replace_tnn_input_name(input_info)
         onnx_input_info = input_info
     else:
+        # tnn_input_info: list = {  "input name":{
+        #                                           {"shape": [n, c,...]},
+        #                                           {"data_type": 0}
+        #                                       }
+        #                           ,
+        #                           "input name": {
+        #                                           {"shape": [n, c,...]},
+        #                                           {"data_type": 0}
+        #                                       }
+        #                         }
         tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
         if is_tflite == True:
             onnx_input_info = get_input_shape_from_tflite(onnx_path)
