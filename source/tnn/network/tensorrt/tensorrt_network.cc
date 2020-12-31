@@ -344,8 +344,13 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
+        auto nv_dims = ConvertToTRTDims(desc.dims);
+        for(int i=2;i<nv_dims.nbDims;i++) {
+            nv_dims.d[i] = -1;
+        }
         nvinfer1::ITensor* in_tensor = m_trt_network->addInput(desc.name.c_str(),
-            ConvertToTRTDataType(desc.data_type), ConvertToTRTDims(desc.dims));
+            ConvertToTRTDataType(desc.data_type), nv_dims);
+
         auto min_dims = ConvertToTRTDims(desc.dims);
         auto max_dims = min_dims;
         auto opt_dims = min_dims;
