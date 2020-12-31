@@ -20,6 +20,7 @@
 #include <ngraph/op/op.hpp>
 
 #include "tnn/core/macro.h"
+#include "tnn/core/abstract_device.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/x86/x86_device.h"
@@ -41,9 +42,11 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     param_    = param;
     resource_ = resource;
 
+    base_layer_ = CreateLayer(type_);
     if (_x86_map.find(type_) != _x86_map.end()) {
-        base_layer_ = CreateLayer(type_);
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, device);
+    } else {
+        base_layer_->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_NAIVE));
     }
 
     Build();
