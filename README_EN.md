@@ -7,13 +7,53 @@ TNN is a high-performance and lightweight inference framework for mobile devices
 At present, TNN has been launched to support various products in Youtu Lab and Guangying Studio.
 
 ## Effect Example
-|    Face Detection(blazeface)     |   Object Detection(yolov5s)       |   Face Alignment<br>(from Tencent Youtu Lab)      |
-|:---------|:-----------|:---------|
-|[![blazeface](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br>iOS ✅  Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface)|[![yolov5s](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5)   |[![youtu_facealign](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment)|
 
-|   Hair Segmentation<br>(from Tencent Guangying Lab) |   Pose Estimation<br>(from Tencent Guangliu) |   Pose Estimation(blazepose) |
-|:---------|:-----------|:---------|
-|[![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) |[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) |[![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> iOS ✅ Android ✅ <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) |
+<table>
+    <tr>
+        <th>Face Detection(blazeface)</th>
+        <th>Object Detection(yolov5s)</th>
+        <th>Face Alignment<br>(from Tencent Youtu Lab)</th>
+    </tr>
+    <tr>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface>model link</a>
+        </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5>model link</a>
+        </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment>model link</a>
+        </td>
+    </tr>
+    <tr>
+        <th>Hair Segmentation<br>(from Tencent Guangying Lab)</th>
+        <th>Pose Estimation<br>(from Tencent Guangliu)</th>
+        <th>Pose Estimation(blazepose)</th>
+    </tr>
+    <tr>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation>model link</a>
+        </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton>model link</a>
+        </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif height=320></src> </a> <br>
+            iOS ✅ Android ✅ <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose>model link</a>
+        </td>
+    </tr>
+</table>
 
 ## Quick Start
 
