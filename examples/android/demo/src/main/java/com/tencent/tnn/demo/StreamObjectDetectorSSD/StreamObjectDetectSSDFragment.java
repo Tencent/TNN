@@ -74,7 +74,9 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
-        NpuEnable = mObjectDetector.checkNpu(modelPath);
+        // skip npu demo for tmp, result is incorrect, need to fix
+        // NpuEnable = mObjectDetector.checkNpu(modelPath);
+        NpuEnable = false;
     }
 
     private String initModel()
