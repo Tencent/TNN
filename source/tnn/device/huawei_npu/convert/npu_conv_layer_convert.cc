@@ -35,12 +35,6 @@ protected:
             return Status(TNNERR_MODEL_ERR, "Error: ConvLayerResource is empty");
         }
 
-        // pad mode
-        int pad_mode = 0;
-        ret          = NpuUtils::GetPadMode(pad_mode, pad_type_);
-        if (ret != TNN_OK)
-            return ret;
-
         // weight
         int total_data_size = resource->filter_handle.GetDataCount();
         int in_group        = total_data_size / (kernel_h_ * kernel_w_ * output_channel_);
@@ -49,9 +43,9 @@ protected:
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
 
-        auto output = std::make_shared<ge::op::Convolution>(outputs_name_[0]);
+        auto output = std::make_shared<hiai::op::Convolution>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_input_w(*weight_const);
+        output->set_input_filter(*weight_const);
         // Init bias
         int bias_count = resource->bias_handle.GetDataCount();
         // check bias
@@ -61,15 +55,20 @@ protected:
             auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
             NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
             weight_ops_.push_back(bias_const);
-            output->set_input_b(*bias_const);
+            output->set_input_bias(*bias_const);
         }
-        output->set_attr_kernel(ge::AttrValue::LIST_INT({kernel_h_, kernel_w_}));
-        output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
-        output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
-        output->set_attr_group(group_);
-        output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
-        output->set_attr_pad_mode(pad_mode);
-        output->set_attr_num_output(output_channel_);
+        output->set_attr_strides(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
+        output->set_attr_dilations(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
+        output->set_attr_groups(group_);
+        output->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
+
+        if (0 == pad_type_) {
+            output->set_attr_pad_mode("SAME");
+        } else if (1 == pad_type_) {
+            output->set_attr_pad_mode("VALID");
+        } else {
+            output->set_attr_pad_mode("SPECIFIC");
+        }
 
         ADD_OUTPUT_OP(output)
     }

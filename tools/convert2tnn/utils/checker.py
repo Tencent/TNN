@@ -42,14 +42,14 @@ def is_ssd_model(proto_path):
 def check_onnx_dim(onnx_path : str):
     onnxruntime.set_default_logger_severity(3)
     session = onnxruntime.InferenceSession(onnx_path)
-    current_shape = []
+    current_shape = {}
     status = 0
     for ip in session.get_inputs():
-        current_shape.append((ip.name, ip.shape))
+        current_shape[ip.name] = ip.shape
         for dim in ip.shape:
             if type(dim) is not int or dim < 1:
                 status = -1
                 
     if status == -1:
         return False, current_shape
-    return True, None
+    return True, current_shape
