@@ -122,6 +122,10 @@ struct RGBA{
     unsigned char r, g, b, a;
 };
 
+class TNNSDKUtils {
+public:
+    static DeviceType GetFallBackDeviceType(DeviceType dev);
+};
 
 extern const std::string kTNNSDKDefaultName;
 class TNNSDKInput {

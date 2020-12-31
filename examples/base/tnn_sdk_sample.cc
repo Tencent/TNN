@@ -311,6 +311,25 @@ std::string BenchResult::Description() {
     return ostr.str();
 }
 
+DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
+    switch (dev) {
+        case DEVICE_CUDA:
+            return DEVICE_X86;
+        case DEVICE_RK_NPU:
+        case DEVICE_HUAWEI_NPU:
+        case DEVICE_METAL:
+        case DEVICE_OPENCL:
+        case DEVICE_ATLAS:
+        case DEVICE_DSP:
+            return DEVICE_ARM;
+        case DEVICE_X86:
+        case DEVICE_ARM:
+        case DEVICE_NAIVE:
+            return dev;
+    }
+    return DEVICE_NAIVE;
+}
+
 #pragma mark - TNNSDKInput
 TNNSDKInput::TNNSDKInput(std::shared_ptr<TNN_NS::Mat> mat) {
     if (mat) {
@@ -741,27 +760,22 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         }
 
         // step 3. get output mat
+        auto input_device_type = input->GetMat()->GetDeviceType();
         output = CreateSDKOutput();
         auto output_names = GetOutputNames();
         if (output_names.size() == 1) {
             auto output_convert_param = GetConvertParamForOutput();
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-            if (option_->compute_units == TNNComputeUnitsOpenvino) {
-                status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_X86);
-            } else {
-                status = instance_->GetOutputMat(output_mat, output_convert_param, "", TNN_NS::DEVICE_NAIVE);
-            }
+            status = instance_->GetOutputMat(output_mat, output_convert_param, "",
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
                 auto output_convert_param = GetConvertParamForOutput(name);
                 std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-                if (option_->compute_units == TNNComputeUnitsOpenvino) {
-                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_X86);
-                } else {
-                    status = instance_->GetOutputMat(output_mat, output_convert_param, name, TNN_NS::DEVICE_NAIVE);
-                }
+                status = instance_->GetOutputMat(output_mat, output_convert_param, name,
+                                                 TNNSDKUtils::GetFallBackDeviceType(input_device_type));
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
                 output->AddMat(output_mat, name);
             }
