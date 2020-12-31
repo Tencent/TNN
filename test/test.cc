@@ -137,9 +137,12 @@ namespace test {
                 ret = instance->Forward();
 #else
                 ret = instance->ForwardAsync(nullptr);
+#endif
                 if (!CheckResult("Forward", ret)) {
                     return ret;
                 }
+                output_converters_map = CreateBlobConverterMap(output_blob_map);
+                output_params_map = CreateConvertParamMap(output_mat_map);
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
