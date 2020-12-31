@@ -64,7 +64,7 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
     private TextView HuaweiNpuTextView;
 
     private boolean mDeviceSwiched = false;
-    private int detector_type = 0; // 0 : big, 1 : middle, 2 : small
+    private int detector_type = 0; // 0 : high precision, 1 : fast
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -88,7 +88,6 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "skeleton.tnnmodel",
                 "skeleton_big.tnnproto",
-                "skeleton_middle.tnnproto",
                 "skeleton_small.tnnproto",
         };
 
@@ -176,12 +175,10 @@ public class StreamSkeletonDetectFragment extends BaseFragment {
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                if (checkedId == R.id.full_mode_button) {
+                if (checkedId == R.id.high_precision_mode_button) {
                     detector_type = 0;
-                } else if (checkedId == R.id.balance_mode_button) {
+                } else if (checkedId == R.id.fast_mode_button) {
                     detector_type = 1;
-                } else if (checkedId == R.id.lite_mode_button){
-                    detector_type = 2;
                 }
             }
         });
