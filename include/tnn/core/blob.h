@@ -57,7 +57,7 @@ public:
     //@brief create Blob with blob descript and data handle
     Blob(BlobDesc desc, BlobHandle handle);
 
-    ~Blob();
+    virtual ~Blob();
 
     //@brief return blob desc
     BlobDesc &GetBlobDesc();

@@ -67,11 +67,11 @@ DECLARE_bool(h);
 
 DECLARE_string(mt);
 
+DECLARE_string(nt);
+
 DECLARE_string(mp);
 
 DECLARE_string(dt);
-
-DECLARE_string(nt);
 
 DECLARE_string(lp);
 

@@ -17,13 +17,18 @@ option(TNN_ARM82_ENABLE "Enable Arm82" OFF)
 option(TNN_METAL_ENABLE "Enable Metal" OFF)
 option(TNN_OPENCL_ENABLE "Enable OpenCL" OFF)
 option(TNN_CUDA_ENABLE "Enable CUDA" OFF)
+option(TNN_DSP_ENABLE "Enable DSP" OFF)
+option(TNN_ATLAS_ENABLE "Enable Atlas" OFF)
+option(TNN_TENSORRT_ENABLE "Enable TensorRT" OFF)
+option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
+option(TNN_NPU_ENABLE "Enable NPU" OFF)
 option(TNN_HUAWEI_NPU_ENABLE "Enable NPU" OFF)
 option(TNN_RK_NPU_ENABLE "Enable RKNPU" OFF)
-
+option(TNN_OPENVINO_ENABLE  "Enable OPENVINO" OFF)
 option(TNN_SYMBOL_HIDE "Enable Hide Symbol Visibility" ON)
-
 option(TNN_OPENMP_ENABLE "Enable OpenMP" OFF)
 option(TNN_BUILD_SHARED "Build Shared Library" ON)
+option(TNN_OPENVINO_BUILD_SHARED "Build Shared Openvino Library" OFF)
 option(TNN_TEST_ENABLE "Enable Test" OFF)
 option(TNN_UNIT_TEST_ENABLE "Enable Test" OFF)
 option(TNN_PROFILER_ENABLE "Enable Test" OFF)
@@ -103,6 +108,10 @@ if(TNN_CONVERTER_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
 
+if(TNN_CONVERTER_ENABLE)
+    set(TNN_SYMBOL_HIDE OFF)
+endif()
+
 if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
     add_definitions(-DFORWARD_CALLBACK_ENABLE)
@@ -171,8 +180,12 @@ message(STATUS "\tArm82:\t${TNN_ARM82_ENABLE}")
 message(STATUS "\tMetal:\t${TNN_METAL_ENABLE}")
 message(STATUS "\tOpenCL:\t${TNN_OPENCL_ENABLE}")
 message(STATUS "\tCUDA:\t${TNN_CUDA_ENABLE}")
+message(STATUS "\tDSP:\t${TNN_DSP_ENABLE}")
+message(STATUS "\tAtlas:\t${TNN_ATLAS_ENABLE}")
+message(STATUS "\tTensorRT:\t${TNN_TENSORRT_ENABLE}")
 message(STATUS "\tHuaweiNPU:\t${TNN_HUAWEI_NPU_ENABLE}")
 message(STATUS "\tRKNPU:\t${TNN_RK_NPU_ENABLE}")
+message(STATUS "\tOpenVINO:\t${TNN_OPENVINO_ENABLE}")
 message(STATUS "\tOpenMP:\t${TNN_OPENMP_ENABLE}")
 message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
@@ -199,6 +212,8 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/interpreter/*.cc"
                       "source/tnn/optimizer/*.h"
                       "source/tnn/optimizer/*.cc"
+                      "source/tnn/extern_wrapper/*.h"
+                      "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
@@ -221,6 +236,11 @@ if(TNN_X86_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
 endif()
 
+if(TNN_OPENVINO_ENABLE)
+    add_subdirectory(source/tnn/network/openvino)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNOpenVINO>")
+endif()
+
 if(TNN_OPENCL_ENABLE)
     include(FindPythonInterp REQUIRED)
     if (NOT PYTHON_EXECUTABLE)
@@ -241,7 +261,12 @@ if(TNN_METAL_ENABLE)
 endif()
 
 if(TNN_CUDA_ENABLE)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
     add_subdirectory(source/tnn/device/cuda)
+    if(TNN_TENSORRT_ENABLE)
+        add_subdirectory(source/tnn/network/tensorrt)
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNTensorRT>")
+    endif()
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
@@ -299,6 +324,8 @@ elseif(SYSTEM.iOS)
     include(platforms/ios/CMakeLists.txt)
 elseif(SYSTEM.Darwin)
     include(platforms/mac/CMakeLists.txt)
+elseif(SYSTEM.Windows)
+    include(platforms/windows/CMakeLists.txt)
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)

@@ -94,6 +94,10 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_CUDA == dev && (activation_type == ActivationType_SIGMOID_MUL || dilation != 1))  {
+        GTEST_SKIP();
+    }
+
     if (kernel <= 1) {
         pad = 0;
     } else if (kernel == 2) {
