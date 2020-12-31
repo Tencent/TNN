@@ -220,25 +220,19 @@ Status ModelChecker::RunModelCheckerOutput() {
 Status ModelChecker::FeedInputData() {
     BlobMap input_blobs_cpu;
     instance_cpu_->GetAllInputBlobs(input_blobs_cpu);
-    bool generate_random_input = true;
 
     // feed cpu instance input
     std::string input_name = model_checker_params_.input_file.first;
-    if (input_blobs_cpu.size() == 1 && input_name != "") {
+    if (input_name != "") {
         FileReader file_reader;
         file_reader.SetBiasValue(model_checker_params_.input_bias);
         file_reader.SetScaleValue(model_checker_params_.input_scale);
-
-        Blob* input_blob_cpu = input_blobs_cpu.begin()->second;
-        Status status        = file_reader.Read(input_blob_cpu, input_name, model_checker_params_.input_file.second);
+        Status status        = file_reader.Read(input_blobs_cpu, input_name, model_checker_params_.input_file.second);
         if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", input_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "read input failed");
         }
-        generate_random_input = false;
-    }
-
-    if (generate_random_input) {
+    } else {
         LOGE("Generate Random input...\n");
         for (auto item : input_blobs_cpu) {
             int data_count  = DimsVectorUtils::Count(item.second->GetBlobDesc().dims);
