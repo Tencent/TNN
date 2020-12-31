@@ -62,24 +62,17 @@
                 android:orientation="horizontal">
 
                 <RadioButton
-                    android:id="@+id/full_mode_button"
+                    android:id="@+id/high_precision_mode_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="full"
+                    android:text="高精度"
                     android:checked="true" />
 
                 <RadioButton
-                    android:id="@+id/balance_mode_button"
+                    android:id="@+id/fast_mode_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="balance"
-                    android:checked="false" />
-
-                <RadioButton
-                    android:id="@+id/lite_mode_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="lite"
+                    android:text="快速"
                     android:checked="false" />
 
             </RadioGroup>

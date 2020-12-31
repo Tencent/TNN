@@ -11,7 +11,6 @@
 #include "tnn/utils/mat_utils.h"
 
 static std::shared_ptr<TNN_NS::SkeletonDetector> gDetector;
-static std::shared_ptr<TNN_NS::SkeletonDetector> gMiddleDetector;
 static std::shared_ptr<TNN_NS::SkeletonDetector> gSmallDetector;
 static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static jclass clsObjectInfo;
@@ -32,31 +31,25 @@ JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, js
     setBenchResult("");
     std::vector<int> nchw = {1, 3, height, width};
     gDetector = std::make_shared<TNN_NS::SkeletonDetector>();
-    gMiddleDetector = std::make_shared<TNN_NS::SkeletonDetector>();
     gSmallDetector = std::make_shared<TNN_NS::SkeletonDetector>();
     std::string protoContent, middleProtoContent, smallProtoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     protoContent = fdLoadFile(modelPathStr + "/skeleton_big.tnnproto");
-    middleProtoContent = fdLoadFile(modelPathStr + "/skeleton_middle.tnnproto");
     smallProtoContent = fdLoadFile(modelPathStr + "/skeleton_small.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/skeleton.tnnmodel");
     LOGI("big proto content size: %d, "
-         "middle proto content size: %d, "
          "small proto content size: %d, "
-         "model content size %d", protoContent.length(), middleProtoContent.length(),
+         "model content size %d", protoContent.length(),
          smallProtoContent.length(), modelContent.length());
     gComputeUnitType = computUnitType;
 
-    TNN_NS::Status status = TNN_NS::TNN_OK, status1 = TNN_NS::TNN_OK, status2 = TNN_NS::TNN_OK;
+    TNN_NS::Status status = TNN_NS::TNN_OK, status1 = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::SkeletonDetectorOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsCPU;
     option->library_path  = "";
     option->proto_content = protoContent;
     option->model_content = modelContent;
     option->min_threshold = 0.15f;
-
-    auto middleDetectorOption = std::make_shared<TNN_NS::SkeletonDetectorOption>(*option);
-    middleDetectorOption->proto_content  = middleProtoContent;
 
     auto smallDetectorOption = std::make_shared<TNN_NS::SkeletonDetectorOption>(*option);
     smallDetectorOption->proto_content = smallProtoContent;
@@ -65,11 +58,8 @@ JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, js
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         status = gDetector->Init(option);
 
-        middleDetectorOption->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status1 = gMiddleDetector->Init(middleDetectorOption);
-
         smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status2 = gSmallDetector->Init(smallDetectorOption);
+        status1 = gSmallDetector->Init(smallDetectorOption);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
@@ -77,24 +67,18 @@ JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, js
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
 
-        middleDetectorOption->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-        gMiddleDetector->setNpuModelPath(modelPathStr + "/");
-        gMiddleDetector->setCheckNpuSwitch(false);
-        status1 = gMiddleDetector->Init(middleDetectorOption);
-
         smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gSmallDetector->setNpuModelPath(modelPathStr + "/");
         gSmallDetector->setCheckNpuSwitch(false);
-        status2 = gSmallDetector->Init(smallDetectorOption);
+        status1 = gSmallDetector->Init(smallDetectorOption);
     } else {
     	status = gDetector->Init(option);
-        status1 = gMiddleDetector->Init(middleDetectorOption);
-        status2 = gSmallDetector->Init(smallDetectorOption);
+        status1 = gSmallDetector->Init(smallDetectorOption);
     }
 
-    if (status != TNN_NS::TNN_OK || status1 != TNN_NS::TNN_OK || status2 != TNN_NS::TNN_OK) {
-        LOGE("detector init failed full status: %d, balance status: %d, lite status: %d",
-             (int)status, (int)status1, (int)status2);
+    if (status != TNN_NS::TNN_OK || status1 != TNN_NS::TNN_OK) {
+        LOGE("detector init failed high precision mode status: %d, fast mode status: %d",
+             (int)status, (int)status1);
         return -1;
     }
 
@@ -163,7 +147,6 @@ JNIEXPORT JNICALL jboolean TNN_SKELETON_DETECTOR(checkNpu)(JNIEnv *env, jobject 
 JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
 {
     gDetector = nullptr;
-    gMiddleDetector = nullptr;
     gSmallDetector = nullptr;
     return 0;
 }
@@ -173,8 +156,6 @@ JNIEXPORT JNICALL jobjectArray TNN_SKELETON_DETECTOR(detectFromStream)(JNIEnv *e
     jobjectArray objectInfoArray;
     std::shared_ptr<TNN_NS::SkeletonDetector> asyncRefDetector = gDetector;
     if (detector_type == 1) {
-        asyncRefDetector = gMiddleDetector;
-    } else if (detector_type == 2) {
         asyncRefDetector = gSmallDetector;
     }
     TNN_NS::SkeletonInfo objectInfo;

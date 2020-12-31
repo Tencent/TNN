@@ -53,9 +53,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
         String modelPath = initModel();
-        // skip npu demo for tmp, result is incorrect, need to fix
-        // NpuEnable = mObjectDetector.checkNpu(modelPath);
-        NpuEnable = false;
+        NpuEnable = imageObjectDetectorSSD.checkNpu(modelPath);
     }
 
     private String initModel() {
