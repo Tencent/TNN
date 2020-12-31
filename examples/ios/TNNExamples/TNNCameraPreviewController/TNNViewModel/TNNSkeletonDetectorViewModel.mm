@@ -23,7 +23,7 @@ using namespace std;
 @property (nonatomic, strong) NSArray<UIButton *> *modelButtons;
 @property (nonatomic, strong) NSArray<UILabel *> *modelLabels;
 @property (nonatomic, assign) NSInteger activeModel;
-@property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 3> predictors;
+@property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 2> predictors;
 
 -(std::shared_ptr<TNNSDKSample>)loadSkeletonModel:(TNNComputeUnits)units path:(NSString *)proto_path;
 @end
@@ -84,17 +84,11 @@ using namespace std;
 
     auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_big.tnnproto"
                                                       ofType:nil];
-    auto middle_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_middle.tnnproto"
-                                                             ofType:nil];
     auto small_proto_path = [[NSBundle mainBundle] pathForResource:@"model/skeleton/skeleton_small.tnnproto"
                                                             ofType:nil];
 
     auto bigPredictor = [self loadSkeletonModel:units path:proto_path];
     RETURN_VALUE_ON_NEQ(!bigPredictor, false,
-                        Status(TNNERR_NET_ERR, "Error: proto or model path is invalid"));
-
-    auto middlePredictor = [self loadSkeletonModel:units path:middle_proto_path];
-    RETURN_VALUE_ON_NEQ(!middlePredictor, false,
                         Status(TNNERR_NET_ERR, "Error: proto or model path is invalid"));
 
     auto smallPredictor = [self loadSkeletonModel:units path:small_proto_path];
@@ -104,12 +98,11 @@ using namespace std;
     BenchOption bench_option;
     bench_option.forward_count = 1;
     bigPredictor->SetBenchOption(bench_option);
-    middlePredictor->SetBenchOption(bench_option);
     smallPredictor->SetBenchOption(bench_option);
 
     //考虑多线程安全，最好初始化完全没问题后再赋值给成员变量
     //for muti-thread safety, copy to member variable after allocate
-    self.predictors = {bigPredictor, middlePredictor, smallPredictor};
+    self.predictors = {bigPredictor, smallPredictor};
     self.predictor = self.predictors[self.activeModel];
 
     return status;
@@ -145,15 +138,16 @@ using namespace std;
     label.textColor = [UIColor whiteColor];
     [view addSubview:label];
     
-    const int modeCnt = 3;
-    std::array<std::string, modeCnt> modeNames = {"full", "balance", "lite"};
+    const int modeCnt = 2;
+    std::array<std::string, modeCnt> modeNames = {"高精度", "快速"};
+    std::array<std::string, modeCnt> assertNames = {"full", "lite"};
     
     auto modeButtons = [NSMutableArray new];
     auto modeLabels = [NSMutableArray new];
     NSString* iconDir = @"assets/";
     for(int i=0; i<modeCnt; ++i) {
         // set button
-        NSString *iconName = [NSString stringWithUTF8String:modeNames[i].c_str()];
+        NSString *iconName = [NSString stringWithUTF8String:assertNames[i].c_str()];
         NSMutableString *iconPath = [NSMutableString stringWithString:iconDir];
         [iconPath appendString: iconName];
         NSString *imagePath = [[NSBundle mainBundle] pathForResource:iconPath
