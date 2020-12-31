@@ -51,6 +51,14 @@ public:
     Status Read(Blob* output_blob, const std::string file_path,
                 const FileFormat format);
 
+    // Todo: refactor later
+    // @brief Read the file into blob Map
+    // param 0 : blob_map
+    // param 1 : file_path, the file_path of the input
+    // param 2 : format, the format of the input file. txt or npy
+    Status Read(BlobMap blob_map, const std::string file_path,
+                const FileFormat format);
+
     // @brief set bias_ value
     // param 0 : bias val
     void SetBiasValue(std::vector<float> bias);
