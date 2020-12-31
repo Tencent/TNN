@@ -10,9 +10,9 @@ At present, TNN has been launched to support various products in Youtu Lab and G
 
 <table>
     <tr>
-        <th>Face Detection(blazeface)</th>
-        <th>Object Detection(yolov5s)</th>
-        <th>Face Alignment<br>(from Tencent Youtu Lab)</th>
+        <th nowrap="nowrap">Face Detection(blazeface)</th>
+        <th nowrap="nowrap">Object Detection(yolov5s)</th>
+        <th nowrap="nowrap">Face Alignment<br>(from Tencent Youtu Lab)</th>
     </tr>
     <tr>
         <td>
@@ -32,9 +32,9 @@ At present, TNN has been launched to support various products in Youtu Lab and G
         </td>
     </tr>
     <tr>
-        <th>Hair Segmentation<br>(from Tencent Guangying Lab)</th>
-        <th>Pose Estimation<br>(from Tencent Guangliu)</th>
-        <th>Pose Estimation(blazepose)</th>
+        <th nowrap="nowrap">Hair Segmentation<br>(from Tencent Guangying Lab)</th>
+        <th nowrap="nowrap">Pose Estimation<br>(from Tencent Guangliu)</th>
+        <th nowrap="nowrap">Pose Estimation(blazepose)</th>
     </tr>
     <tr>
         <td>
