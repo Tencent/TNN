@@ -23,53 +23,14 @@
 #include <inference_engine.hpp>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/extern_wrapper/foreign_blob.h"
-#include "tnn/extern_wrapper/foreign_tensor.h"
-#include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/layer_builder/binary_layer_builder.h"
 
 namespace TNN_NS {
+namespace openvino {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Min, LAYER_MINIMUM);
+DECLARE_BINARY_LAYER_BUILDER(Minimum, LAYER_MINIMUM);
 
-Status MinOVLayerBuilder::Build() {
+REGISTER_BINARY_LAYER_BUILDER(Minimum, LAYER_MINIMUM);
 
-    if (GetInputNodes().size() <= 0) {
-        LOGE("Error: %d input nodes\n", GetInputNodes().size());
-        return TNNERR_INIT_LAYER;
-    }
-    auto input_node = GetInputNodes();
-
-    std::shared_ptr<ngraph::op::v1::Minimum> minNode;
-    if (input_node.size() == 2) {
-        minNode = std::make_shared<ngraph::op::v1::Minimum>(
-            input_node[0]->output(0), input_node[1]->output(0));
-    } else {
-        auto resource = dynamic_cast<EltwiseLayerResource*>(GetResource());
-        // suppose that weights are on channel broadcast
-        ngraph::Shape weightNodeShape;
-        for (size_t i = 0; i < input_node[0]->get_output_shape(0).size(); i++) {
-            if (i == 1) weightNodeShape.push_back(resource->element_handle.GetDataCount());
-            else weightNodeShape.push_back(1);
-        }
-
-        auto weightNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, weightNodeShape, resource->element_handle.force_to<float*>());
-        weightNode->validate_and_infer_types();
-
-        minNode = std::make_shared<ngraph::op::v1::Minimum>(
-            input_node[0]->output(0), weightNode);
-    }
-    minNode->set_friendly_name(param_->name);
-    minNode->validate_and_infer_types();
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(minNode);
-    SetOutputTensors(outputNodes);
-
-    return TNN_OK;
 }
-
-REGISTER_OPENVINO_LAYER_BUILDER(Min, LAYER_MINIMUM);
-
 }

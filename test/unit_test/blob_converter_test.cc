@@ -287,7 +287,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     }
     ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
     if (ret != TNN_OK) {
-        LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
+        LOGE("device converter convert mat to blob failed, mat type: %d, msg:%s\n", mat_type, ret.description().c_str());
         CLEANUP_AND_FAIL();
     }
 

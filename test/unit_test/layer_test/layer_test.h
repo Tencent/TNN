@@ -60,6 +60,7 @@ protected:
 private:
     Status GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num);
     int CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev);
+    int CompareDims(DimsVector dims_a, DimsVector dims_b);
 
     Status InitInputBlobsDataRandom();
 };
