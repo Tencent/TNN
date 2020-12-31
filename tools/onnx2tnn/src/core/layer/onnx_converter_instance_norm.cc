@@ -40,6 +40,10 @@ string OnnxOpConverterInstNorm::TNNLayerParam(NodeProto& node,
     return layer_param.str();
 }
 
+bool OnnxOpConverterInstNorm::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {

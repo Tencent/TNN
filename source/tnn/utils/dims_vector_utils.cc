@@ -44,7 +44,7 @@ DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_in
     }
 
     if (small_dims.size() <= start_index) {
-        return small_dims;
+        return max_dims;
     }
 
     if (-1 == end_index || end_index > small_dims.size()) {
@@ -102,6 +102,63 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
         }
     }
 
+    return output_dims;
+}
+
+DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape,
+                                    const int axis, const int num_axes, Status *status) {
+
+    int output_size = shape.size() + axis;
+    DimsVector output_dims(output_size, 1);
+
+    for(int i = 0; i < axis; ++i) {
+        output_dims[i] = input_dims[i];
+    }
+
+    int infer_dim_count = 0;
+    int infer_dim_pos   = -1;
+    for (int i = axis, j = 0; i < num_axes; i++, j++) {
+        if (shape[j] == -1) {
+            infer_dim_count += 1;
+            infer_dim_pos  = i;
+            output_dims[i] = 1;
+        } else if (shape[j] == 0) {
+            output_dims[i] = input_dims[i];
+        } else {
+            output_dims[i] = shape[j];
+        }
+    }
+    
+    // temporary fix reshpae init error
+    if (infer_dim_count == 0 && infer_dim_pos == -1) {
+        return output_dims;
+    }
+
+    if (infer_dim_count != 1 || infer_dim_pos == -1) {
+        LOGE("reshape param size error\n");
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "reshape param size error");
+        }
+        return DimsVector();
+    }
+
+    int in_cnt  = DimsVectorUtils::Count(input_dims);
+    int out_cnt = DimsVectorUtils::Count(output_dims);
+    if (0 == out_cnt) {
+        LOGE("Error: blob count is zero\n");
+        if (status) {
+            *status = Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
+        }
+    }
+    
+    int infer_dim_v = in_cnt / out_cnt;
+    if (infer_dim_v <= 0) {
+        LOGE("Error: blob shape is zero\n");
+        if (status) {
+            *status = Status(TNNERR_COMMON_ERROR, "Error: blob shape is zero");
+        }
+    }
+    output_dims[infer_dim_pos] = infer_dim_v;
     return output_dims;
 }
 

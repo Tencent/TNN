@@ -55,6 +55,10 @@ string OnnxOpConverterGemm::TNNOpType(NodeProto& node,
     return "";
 }
 
+bool OnnxOpConverterGemm::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
 string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
                                           OnnxNetInfo& net_info) {
     ostringstream layer_param;

@@ -27,6 +27,10 @@ string OnnxOpConverterMatMul::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_in
     return OnnxOpConverterMultiBrodcast::TNNLayerParam(node, net_info);
 }
 
+bool OnnxOpConverterMatMul::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return OnnxOpConverterMultiBrodcast::HasLayerResource(node, net_info);
+}
+
 int OnnxOpConverterMatMul::WriteTNNModel(serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
     return OnnxOpConverterMultiBrodcast::WriteTNNModel(net_writer, node, net_info);
 }

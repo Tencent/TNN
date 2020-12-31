@@ -69,7 +69,7 @@ Status ConstFolder::Forward() {
     auto status = DefaultNetwork::Forward();
     RETURN_ON_NEQ(status, TNN_OK);
     
-    ConstantResource constant_map;
+    ConstantResource constant_map = net_resource_->constant_map;
     //将计算好的常量放入NetResource中
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {

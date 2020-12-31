@@ -52,6 +52,10 @@ string OnnxOpConverterArgMaxOrMin::TNNLayerParam(NodeProto &node, OnnxNetInfo &n
     return layer_param.str();
 }
 
+bool OnnxOpConverterArgMaxOrMin::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
 int OnnxOpConverterArgMaxOrMin::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     return 0;
 }

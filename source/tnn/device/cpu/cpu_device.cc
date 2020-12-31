@@ -59,7 +59,11 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
 
 Status CpuDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
-        *handle = malloc(GetBlobMemoryBytesSize(size_info));
+        auto size = GetBlobMemoryBytesSize(size_info);
+        if (size <= 0) {
+            return Status(TNNERR_PARAM_ERR, "CpuDevice::Allocate malloc bytes size <= 0");
+        }
+        *handle = malloc(size);
     }
     return TNN_OK;
 }

@@ -57,6 +57,10 @@ public:
     //       [ 5.  6.  7.  8.]
     //       [ 9. 10. 11. 12.]]]]
     static DimsVector Expand(DimsVector dims0, DimsVector dims1, Status *status);
+    
+    // @brief reshape op to reshape input dims
+    static DimsVector Reshape(const DimsVector input_dims, const DimsVector shape,
+                              const int axis, const int num_axes, Status *status);
 
     // @brief NCHW dims vector to NHWC dims vector
     static DimsVector NCHW2NHWC(DimsVector dims);

@@ -212,6 +212,24 @@ Status ModelPacker::PackModel(std::string file_path) {
     header.serialize(*serializer);
 
     ret = PackLayers(serializer, true, resource_count);
+    if (ret != TNN_OK) {
+        write_stream.close();
+        return ret;
+    }
+    
+    //写入 const_map
+    auto const_map = net_resource->constant_map;
+    if (const_map.size() > 0) {
+        //写入版本号
+        serializer->PutInt(magic_number);
+        //写入个数
+        serializer->PutInt((int)const_map.size());
+        for (const auto& iter : const_map) {
+            serializer->PutString(iter.first);
+            serializer->PutRaw(*(iter.second.get()));
+        }
+    }
+    
     write_stream.close();
     if (ret != TNN_OK) {
         return ret;
