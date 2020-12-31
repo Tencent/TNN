@@ -93,6 +93,96 @@ Status FileReader::Read(Blob* output_blob, const std::string file_path,
     return ret;
 }
 
+Status FileReader::Read(BlobMap blob_map, const std::string file_path,
+                        const FileFormat format) {
+    Status ret = TNN_OK;
+    if (format == TEXT) {
+        std::ifstream f_stream(file_path);
+        int blob_count = 1;
+        f_stream >> blob_count;
+        for(int i = 0; i < blob_count; ++i) {
+            std::string blob_name;
+            uint32_t dims_size;
+            DimsVector dims;
+            f_stream >> blob_name;
+            f_stream >> dims_size;
+            for(int j = 0; j < dims_size; ++j) {
+                uint32_t dim_value; 
+                f_stream >> dim_value;
+                dims.push_back(dim_value);
+            }
+            int data_type;
+            f_stream >> data_type;
+            Blob* blob;
+            if(blob_count == 1) {
+                blob = blob_map.begin()->second;
+            } else {
+               if(blob_map.count(blob_name) > 0) {
+                   blob = blob_map[blob_name];
+               } else {
+                   LOGE("blob name: %s is invalid !\n", blob_name.c_str());
+                   return TNNERR_INVALID_INPUT;
+               }
+            }
+
+            if (blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT && blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+                LOGE("The blob data type is not support yet!\n");
+                return TNNERR_INVALID_INPUT;
+            }
+
+            if(!DimsVectorUtils::Equal(dims, blob->GetBlobDesc().dims) || data_type != blob->GetBlobDesc().data_type) {
+                LOGE("blob name: %s is invalid !\n", blob_name.c_str());
+                return TNNERR_INVALID_INPUT;
+            }
+            int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+       
+            if(data_type == DATA_TYPE_FLOAT) {
+                float* data_ptr = static_cast<float*>(blob->GetHandle().base);
+                for (int i = 0; i < count; ++i) {
+                    f_stream >> data_ptr[i];
+                }
+            } else if(data_type == DATA_TYPE_INT32) {
+                int* data_ptr = static_cast<int*>(blob->GetHandle().base);
+                for (int i = 0; i < count; ++i) {
+                    f_stream >> data_ptr[i];
+                }
+            }
+            f_stream.close();
+        }
+    } else if (format == IMAGE) {
+        Blob* output_blob = blob_map.begin()->second;
+        if (output_blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
+            LOGE("The blob data type is not support yet!\n");
+            return TNNERR_INVALID_INPUT;
+        }
+
+        int blob_c = 0;
+        if (output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            blob_c = output_blob->GetBlobDesc().dims[1];
+        } else {
+            LOGE("The blob data format is not support yet!\n");
+            return TNNERR_INVALID_INPUT;
+        }
+
+        int w                   = 0;
+        int h                   = 0;
+        int c                   = 0;
+        unsigned char* img_data = stbi_load(file_path.c_str(), &w, &h, &c, blob_c);
+        if (img_data == nullptr) {
+            LOGE("load image data falied!\n");
+            return TNNERR_INVALID_INPUT;
+        }
+        ret = PreProcessImage(img_data, output_blob, w, h, blob_c);
+        stbi_image_free(img_data);
+
+    } else {
+        LOGE("The input format is not support yet!\n");
+        return TNNERR_INVALID_INPUT;
+    }
+
+    return ret;
+}
+
 void FileReader::SetBiasValue(std::vector<float> bias) {
     bias_ = bias;
 }
