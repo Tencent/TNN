@@ -45,6 +45,10 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
                 aipp_type_ = AIPP_NONE;
             }
         }
+        init_success_ = true;
+    } else {
+        init_success_ = false;
+        LOGE("blob is not found in model_info_map, blob_converter init falied!\n");
     }
 }
 
@@ -59,6 +63,11 @@ AtlasBlobConverterAcc::~AtlasBlobConverterAcc() {
 
 // convert blob data to mat async
 Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param, void *command_queue) {
+    if (!init_success_) {
+        LOGE("blob converter init failed!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    }
+
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -129,6 +138,11 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
 
 // convert mat data to blob async
 Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam param, void *command_queue) {
+    if (!init_success_) {
+        LOGE("blob converter init failed!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    }
+
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -159,6 +173,11 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
 }
 
 Status AtlasBlobConverterAcc::ConvertToMat(Mat &mat, MatConvertParam param, void *command_queue) {
+    if (!init_success_) {
+        LOGE("blob converter init failed!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    }
+
     Status ret = ConvertToMatAsync(mat, param, command_queue);
     if (ret == TNN_OK) {
         auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
@@ -175,6 +194,11 @@ Status AtlasBlobConverterAcc::ConvertToMat(Mat &mat, MatConvertParam param, void
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, void *command_queue) {
+    if (!init_success_) {
+        LOGE("blob converter init failed!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    }
+
     Status ret = ConvertFromMatAsync(mat, param, command_queue);
     if (ret == TNN_OK) {
         auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
@@ -264,11 +288,12 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
         return tnn_ret;
     }
 
-    LOGD("Convert From Mat:  mat type: %d  mat device type: %d  acl input format:%d\n", mat.GetMatType(), mat.GetDeviceType(), model_info_.aipp_input_format);
+    LOGD("Convert From Mat:  mat type: %d  mat device type: %d  acl input format:%d\n", mat.GetMatType(),
+         mat.GetDeviceType(), model_info_.aipp_input_format);
     if ((N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == model_info_.aipp_input_format) ||
         (NGRAY == mat.GetMatType() && ACL_YUV400_U8 == model_info_.aipp_input_format) ||
-        ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) && ACL_YUV420SP_U8 == model_info_.aipp_input_format)
-        ) {
+        ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) &&
+         ACL_YUV420SP_U8 == model_info_.aipp_input_format)) {
         tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
                                        atlas_cmd_queue->stream, true);
         if (tnn_ret != TNN_OK)

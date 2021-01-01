@@ -24,12 +24,11 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     atlas_config_ = atlas_interpreter->GetModelConfig();
 
     // Init ACL
-    Status ret = AtlasRuntime::GetInstance()->Init();
+    Status ret = AtlasRuntime::Init();
     if (ret != TNN_OK) {
         LOGE("acl init falied\n");
         return ret;
     }
-    AtlasRuntime::IncreaseRef();
 
     // Set Device
     ret = AtlasRuntime::GetInstance()->SetDevice(net_config.device_id);
@@ -508,6 +507,7 @@ Status AtlasNetwork::GetInputInfo(size_t index, std::vector<int> &input_dims, ac
 
     input_dims.clear();
     if (ACL_ERROR_NONE == acl_ret) {
+        // has static aipp
         has_aipp_ = true;
         LOGD("shapeCount: %d   srcDimNum: %d\n", aipp_info.shapeCount, aipp_info.srcDimNum);
         // get aipp input format
