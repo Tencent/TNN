@@ -278,6 +278,7 @@ Status ModelChecker::GetOutputRefData() {
                 int dims_size = 0;
                 int dim       = 1;
                 int dim_cnt   = 1;
+                int data_type;
                 std::string name;
                 std::shared_ptr<char> data;
                 f_stream >> name;
@@ -286,6 +287,7 @@ Status ModelChecker::GetOutputRefData() {
                     f_stream >> dim;
                     dim_cnt *= dim;
                 }
+                f_stream >> data_type;
                 data.reset(new char[sizeof(float) * dim_cnt], [](char* p) { delete[] p; });
                 float* data_ptr = (float*)data.get();
 
