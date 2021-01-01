@@ -256,18 +256,18 @@ def get_input_shape_from_tnn(tnn_proto_path):
 def print_not_align_message(reason=None, is_tflite=False):
     logging.error("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
     if is_tflite == True:
-       logging.error("The tflite model not aligned with tnn model\n")
+       logging.error("The tflite model is not aligned with tnn model\n")
     else:
-       logging.error("The onnx model not aligned with tnn model\n")
+       logging.error("The onnx model is not aligned with tnn model\n")
     sys.exit(return_code.ALIGN_FAILED)
 
 
 def print_align_message(is_tflite = False):
     logging.info("{}  Congratulations!   {}" .format("-" * 10, "-" * 10))
     if is_tflite == True:
-       logging.info("The tflite model aligned with tnn model\n")
+       logging.info("The tflite model is aligned with tnn model\n")
     else:
-        logging.info("The onnx model aligned with tnn model\n")
+        logging.info("The onnx model is aligned with tnn model\n")
 
 
 def check_shape_info(onnx_info: dict, tnn_info: dict) -> bool:
@@ -291,7 +291,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         tnn_name = convert_name.onnx_name2tnn_name(name)
         tnn_info = tnn_input_info[tnn_name]
         if check_shape_info(onnx_info, tnn_info) == True:
-            logging.info("Check onnx input shape and tnn input shape align!\n")
+            logging.info("Input shape of onnx and tnn is aligned!\n")
         else:
             logging.error("input is not algin 194\n")
             print_not_align_message(
@@ -403,6 +403,8 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
         else:
             logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
+
+    logging.info("Run tnn model_check...")
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
     if input_file_path is None and os.path.exists(input_path):
         data.clean_temp_data(os.path.dirname(input_path))

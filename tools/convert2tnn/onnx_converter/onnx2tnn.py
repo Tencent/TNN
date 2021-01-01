@@ -68,7 +68,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     :return return_code
     :exception 执行超时
     """
-    logging.info("Converter ONNX to TNN Model\n")
+    logging.info("Converter ONNX to TNN Model...\n")
 
     checker.check_file_exist(onnx_path)
     if not is_ssd:
