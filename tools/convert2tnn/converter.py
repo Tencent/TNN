@@ -52,6 +52,7 @@ def main():
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
+            logging.error(err)
     
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
