@@ -675,7 +675,7 @@ std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
         return dims;
     }
     for (int i = 0; i < tensor_dims.size(); i++) {
-        dims.push_back((int)tensor_dims.at(i));
+        dims.push_back((int)tensor_dims[i]);
     }
     return dims;
 }
