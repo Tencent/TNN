@@ -20,40 +20,17 @@
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
-#include <ngraph/opsets/opset2.hpp>
-#include <ngraph/opsets/opset3.hpp>
 #include <inference_engine.hpp>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/extern_wrapper/foreign_blob.h"
-#include "tnn/extern_wrapper/foreign_tensor.h"
-#include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/layer_builder/unary_layer_builder.h"
 
 namespace TNN_NS {
+namespace openvino {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Tanh, LAYER_TANH);
+DECLARE_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
 
-Status TanhOVLayerBuilder::Build() {
-    
-    if (GetInputNodes().size() <=0) {
-        LOGE("Error: 0 input nodes\n");
-        return TNNERR_INIT_LAYER;
-    }
-    auto input_node = GetInputNodes()[0];
+REGISTER_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
 
-    auto tanhNode = std::make_shared<ngraph::op::Tanh>(input_node->output(0));
-
-    tanhNode->set_friendly_name(param_->name);
-    tanhNode->validate_and_infer_types();
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(tanhNode);
-    SetOutputTensors(outputNodes);
-
-    return TNN_OK;
 }
-
-REGISTER_OPENVINO_LAYER_BUILDER(Tanh, LAYER_TANH);
-
 }
