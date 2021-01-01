@@ -130,6 +130,20 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
     Status ret            = TNN_OK;
     bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
     
+    // mark const blobs
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        auto const_blobs = net_resource->constant_map;
+        for (auto layer_info : net_structure->layers) {
+            std::vector<std::string> &input_names  = layer_info->inputs;
+            for (auto name : input_names) {
+                auto blob = blob_manager_->GetBlob(name);
+                if (const_blobs.find(blob->GetBlobDesc().name) != const_blobs.end()) {
+                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                }
+            }
+        }
+    }
+
     auto const_layers = net_resource->constant_layers;
 
     // update blob precision, alloc new blob required
