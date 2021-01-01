@@ -120,22 +120,25 @@ Status FileReader::Read(BlobMap blob_map, const std::string file_path,
                if(blob_map.count(blob_name) > 0) {
                    blob = blob_map[blob_name];
                } else {
-                   LOGE("blob name: %s is invalid !\n", blob_name.c_str());
+                   f_stream.close();
+                   LOGE("blob name: %s is invalid \n", blob_name.c_str());
                    return TNNERR_INVALID_INPUT;
                }
             }
 
-            if (blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT && blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            if (blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT && blob->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+                f_stream.close();
                 LOGE("The blob data type is not support yet!\n");
                 return TNNERR_INVALID_INPUT;
             }
 
             if(!DimsVectorUtils::Equal(dims, blob->GetBlobDesc().dims) || data_type != blob->GetBlobDesc().data_type) {
-                LOGE("blob name: %s is invalid !\n", blob_name.c_str());
+                f_stream.close();
+                LOGE("blob name: %s is invalid \n", blob_name.c_str());
                 return TNNERR_INVALID_INPUT;
             }
             int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
-       
+
             if(data_type == DATA_TYPE_FLOAT) {
                 float* data_ptr = static_cast<float*>(blob->GetHandle().base);
                 for (int i = 0; i < count; ++i) {
@@ -147,8 +150,9 @@ Status FileReader::Read(BlobMap blob_map, const std::string file_path,
                     f_stream >> data_ptr[i];
                 }
             }
-            f_stream.close();
         }
+        f_stream.close();
+        return TNN_OK;
     } else if (format == IMAGE) {
         Blob* output_blob = blob_map.begin()->second;
         if (output_blob->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {

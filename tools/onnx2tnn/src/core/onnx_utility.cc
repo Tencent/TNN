@@ -607,3 +607,52 @@ std::string replace_node_name(std::string str, char older_value,
     }
     return str;
 }
+
+
+std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor) {
+    std::vector<int> dims = {};
+    for (const auto dim: tensor.dims()) {
+        dims.push_back(int(dim));
+    }
+    return dims;
+}
+
+DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
+
+    switch (onnx_type.tensor_type().elem_type()) {
+        case onnx::TensorProto_DataType_FLOAT:{
+            return DATA_TYPE_FLOAT;
+        }
+        case onnx::TensorProto_DataType_FLOAT16: {
+            return DATA_TYPE_HALF;
+        }
+        case onnx::TensorProto_DataType_UINT8:
+        case onnx::TensorProto_DataType_INT8: {
+            return DATA_TYPE_INT8;
+        }
+        case onnx::TensorProto_DataType_INT64:
+        case onnx::TensorProto_DataType_INT32: {
+            return DATA_TYPE_INT32;
+        }
+        case onnx::TensorProto_DataType_BFLOAT16: {
+            return DATA_TYPE_BFP16;
+        }
+        default:{
+            LOGE("Not support onnx TypeProto type: %d", onnx_type.tensor_type().elem_type());
+            assert(0);
+        }
+    }
+}
+
+std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
+    std::vector<int> dims = {};
+    const auto& tensor_dims = tensor.dims();
+    if (tensor_dims.empty()) {
+        return dims;
+    }
+    for (int i = 0; i < tensor_dims.size(); i++) {
+        dims.push_back((int)tensor_dims[i]);
+    }
+    return dims;
+}
+
