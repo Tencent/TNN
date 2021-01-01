@@ -64,7 +64,8 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
 
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
     CHECK_PARAM_NULL(default_interpreter);
-    return default_interpreter->GetNetStructure().inputs_shape_map;
+    shapes_map = default_interpreter->GetNetStructure()->inputs_shape_map;
+    return TNN_OK;
 } 
 
 
