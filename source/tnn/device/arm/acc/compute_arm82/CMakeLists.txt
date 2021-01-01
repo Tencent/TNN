@@ -14,7 +14,11 @@ add_library(
     )
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-    target_compile_options(TNNArm82 PRIVATE -march=armv8.2-a+fp16)
+    if(CMAKE_SYSTEM_NAME MATCHES "Android") 
+        target_compile_options(TNNArm82 PRIVATE -march=armv8.2-a+fp16+nolse)
+    else()
+        target_compile_options(TNNArm82 PRIVATE -march=armv8.2-a+fp16)
+    endif()
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     if(CMAKE_SYSTEM_NAME MATCHES "Android")    
         target_compile_options(TNNArm82 PRIVATE -march=armv7-a+fp16 -mfpu=neon-fp-armv8 -mfloat-abi=softfp)
