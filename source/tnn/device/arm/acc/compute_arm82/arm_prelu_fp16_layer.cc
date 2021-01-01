@@ -15,10 +15,6 @@
 #include "tnn/device/arm/acc/arm_prelu_layer_acc.h"
 
 #include <cmath>
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/utils/data_format_converter.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/half_utils.h"
 #include "tnn/device/arm/acc/Half8.h"
 

@@ -13,11 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
-#include "tnn/device/arm/arm_common.h"
-#include "tnn/device/arm/arm_context.h"
-#include "tnn/interpreter/raw_buffer.h"
-#include "tnn/utils/data_format_converter.h"
-#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils.h"
 #include "tnn/device/arm/acc/Half8.h"
 

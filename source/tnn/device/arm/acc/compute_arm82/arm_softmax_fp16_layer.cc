@@ -12,13 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-
-#include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_softmax_layer_acc.h"
-#include "tnn/device/arm/arm_common.h"
-#include "tnn/device/arm/arm_context.h"
-#include "tnn/utils/data_type_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
