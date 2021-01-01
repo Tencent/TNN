@@ -47,6 +47,9 @@ public:
     // if output_name of blob not found, then search output_index of layer.
     Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    // return input shapes map from model
+    Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(
