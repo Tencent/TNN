@@ -650,6 +650,7 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
         case onnx::TensorProto_DataType_FLOAT16: {
             return DATA_TYPE_HALF;
         }
+        case onnx::TensorProto_DataType_UINT8:
         case onnx::TensorProto_DataType_INT8: {
             return DATA_TYPE_INT8;
         }
@@ -661,7 +662,7 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
             return DATA_TYPE_BFP16;
         }
         default:{
-            LOGE("Not support onnx TypeProto type");
+            LOGE("Not support onnx TypeProto type: %d", onnx_type.tensor_type().elem_type());
             assert(0);
         }
     }

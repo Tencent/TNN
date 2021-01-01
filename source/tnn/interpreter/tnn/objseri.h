@@ -51,7 +51,7 @@ namespace TNN_NS {
             auto data_type = (TNN_NS::DataType)value.GetDataType();
             DimsVector  dims  = value.GetBufferDims();
             char *buffer = value.force_to<char *>();
-            
+#ifdef TNN_V2
             PutInt(g_version_magic_number_v2);
             PutInt(data_type);
             PutInt(static_cast<int>(length));
@@ -64,7 +64,11 @@ namespace TNN_NS {
                 _ostream.write(reinterpret_cast<char *>(dims.data()),
                                static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
             }
-
+#else
+            PutInt(g_version_magic_number);
+            PutInt(data_type);
+            PutInt(static_cast<int>(length));
+#endif
             if (_ostream.bad())
                 return;
  
@@ -142,9 +146,6 @@ namespace TNN_NS {
                 return;
             }
 
-            value = TNN_NS::RawBuffer(length);
-            value.SetDataType(data_type);
-
             DimsVector dims;
             if(magic_number == g_version_magic_number_v2) {
                 int size = GetInt();
@@ -152,10 +153,9 @@ namespace TNN_NS {
                     dims.push_back(GetInt());
                 }
             }
-
-            if (dims.size() == 0) {
-                dims.push_back(value.GetDataCount());
-            }
+ 
+            value = TNN_NS::RawBuffer(length);
+            value.SetDataType(data_type);
             value.SetBufferDims(dims);
 
             char *buffer = value.force_to<char *>();
