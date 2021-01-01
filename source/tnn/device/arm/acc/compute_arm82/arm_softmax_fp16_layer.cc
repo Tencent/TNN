@@ -84,7 +84,11 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
             }
 
             for (int x = 0; x < inside; ++x) {
-                sum_value_ptr[x] = 1 / sum_value_ptr[x];
+#ifdef TNN_ARM82_SIMU
+                sum_value_ptr[x] = 1.0f / sum_value_ptr[x];
+#else
+                ((__fp16*)sum_value_ptr)[x] = 1.0f / ((__fp16*)sum_value_ptr)[x];
+#endif
             }
 
             dst = dst_y;
