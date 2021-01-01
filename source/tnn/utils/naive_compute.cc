@@ -327,10 +327,10 @@ void NaivePermute(const int count, DimsVector dims, T *bottom_data, const std::v
         for (int i = 0; i < count; ++i) {
             int old_idx = 0;
             int idx     = i;
-            for (int j = 0; j < num_axes; ++j) {
+            for (int j = num_axes-1; j >= 0; --j) {
                 int order = permute_order[j];
-                old_idx += (idx / new_steps[j]) * old_steps[order];
-                idx %= new_steps[j];
+                old_idx += (idx % dims[j]) * old_steps[order];
+                idx  /= dims[j];
             }
             top_data[i] = bottom_data[old_idx];
         }
