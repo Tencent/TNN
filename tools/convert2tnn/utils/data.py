@@ -39,9 +39,10 @@ def gene_random_data(input_info: dict) -> str:
         data_file.write(name + ' ' + str(len(shape)) + ' ' + ' '.join([str(dim) for dim in shape]) + ' ' + str(data_type) + '\n')
         if data_type == 0:
             data[name] = np.random.rand(*shape)
-            np.savetxt(data_file, data[name].reshape(-1), fmt="%0.18f")
+            np.savetxt(data_file, data[name].reshape(-1), fmt="%0.6f")
         elif data_type == 3:
-            data[name] = np.random.randint(255, size=shape)
+            data[name] = np.random.randint(low=-1,high=1
+                                           , size=shape)
             np.savetxt(data_file, data[name].reshape(-1), fmt="%i")
     data_file.close()
     return data_path
