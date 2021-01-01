@@ -171,10 +171,6 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int dst_z_step     = k_param_->ow * k_param_->oh * 8;
     int dst_z_step_pad = dst_w_pad * dst_h_pad * 8;
 
-    int dilate_y_step = dst_w_pad * 8 * conv_param->dialations[1];
-    int dilate_x_step = 8 * conv_param->dialations[0];
-    int dst_w_step    = conv_param->strides[0] * 8;
-
     int loop   = input_width / CONVOLUTION_TILED_NUMBER;
     int remain = input_width % CONVOLUTION_TILED_NUMBER;
 
@@ -217,7 +213,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
             // prepare init value
             memset(p_buffer, 0, pad_img_size * data_byte_size);
 
-            // OMP_PARALLEL_FOR_
+            OMP_PARALLEL_FOR_
             for (int z = 0; z < goc_8; z++) {
                 auto weight_z = weight_ptr + z * weight_z_step;
                 auto dst_z    = p_buffer + z * dst_z_step_pad;
@@ -229,14 +225,19 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
                         auto x_count = MIN(CONVOLUTION_TILED_NUMBER, k_param_->iw - x_idx);
                         auto src_x   = input_g_ptr + dy * k_param_->iw * w_step + x_idx * w_step;
                         auto dst_x   = dst_y + x_idx * conv_param->strides[0] * 8;
-                        DeconvFunc((fp16_t*)dst_x, (const fp16_t*)src_x, (const fp16_t*)weight_z, x_count, dst_w_step, ic_counter, src_z_step,
-                                     conv_param->kernels[0], conv_param->kernels[1], dilate_x_step, dilate_y_step);
+                        // avoid using too much variables inside omp region when compile armv7
+                        // int dilate_y_step = dst_w_pad * 8 * conv_param->dialations[1];
+                        // int dilate_x_step = 8 * conv_param->dialations[0];
+                        // int dst_w_step    = conv_param->strides[0] * 8;
+                        DeconvFunc((fp16_t*)dst_x, (const fp16_t*)src_x, (const fp16_t*)weight_z, x_count,
+                                    conv_param->strides[0] * 8, ic_counter, src_z_step, conv_param->kernels[0], conv_param->kernels[1],
+                                    8 * conv_param->dialations[0], dst_w_pad * 8 * conv_param->dialations[1]);
                     }
                 }
             }
 
             // crop inner image
-            // OMP_PARALLEL_FOR_
+            OMP_PARALLEL_FOR_
             for (int z = 0; z < goc_8; z++) {
                 auto src_z = p_buffer + z * dst_z_step_pad;
                 auto dst_z = output_g_ptr + z * dst_z_step;
