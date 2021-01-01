@@ -76,12 +76,12 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
 
     //set inputnode
-    SetNetInputNode();
+    RETURN_ON_NEQ(SetNetInputNode(), TNN_OK);
     //init layers and nodes
-    InitLayers(net_structure, net_resource);
+    RETURN_ON_NEQ(InitLayers(net_structure, net_resource), TNN_OK);
 
     // build ngraph network
-    BuildNgraphNetwork(net_structure);
+    RETURN_ON_NEQ(BuildNgraphNetwork(net_structure), TNN_OK);
     //////////////////////////////////////////////////////////////
     std::map<std::string, std::string> config = {
         {CONFIG_KEY(CPU_THREADS_NUM), "1"},

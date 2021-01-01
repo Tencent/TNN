@@ -49,19 +49,12 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_NAIVE));
     }
 
-    Build();
-    auto status = InferOutputDataType();
-    if (status != TNN_OK) {
-        return status;
-    }
+    RETURN_ON_NEQ(Build(), TNN_OK);
+    RETURN_ON_NEQ(InferOutputDataType(), TNN_OK);
 
     LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
          output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
          output_blobs[0]->GetBlobDesc().dims[3]);
-
-    if (status != TNN_OK) {
-        return status;
-    }
 
     return TNN_OK;
 
@@ -79,7 +72,6 @@ std::vector<std::shared_ptr<ngraph::Node>> OpenVINOLayerBuilder::GetInputNodes()
         }
     }
     return input_nodes;
-    // return inputNodes_;
 }
 
 LayerResource* OpenVINOLayerBuilder::GetResource() {
