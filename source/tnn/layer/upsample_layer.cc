@@ -20,27 +20,51 @@ namespace TNN_NS {
 DECLARE_LAYER(Upsample, LAYER_UPSAMPLE);
 
 Status UpsampleLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+
+    if (layer_param->scales.empty() && runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        for (auto &iter : output_blobs_) {
+            int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
+            iter->flag         = iter->flag | allocat_status;
+        }
+    }
+    return TNN_OK;
 }
 
 Status UpsampleLayer::InferOutputShape() {
     BaseLayer::InferOutputShape();
-    
-    Blob* input_blob = input_blobs_[0];
-
-    UpsampleLayerParam* layer_param =
-        dynamic_cast<UpsampleLayerParam*>(param_);
+    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    int num      = input_blob->GetBlobDesc().dims[0];
-    int channels = input_blob->GetBlobDesc().dims[1];
-    int height   = input_blob->GetBlobDesc().dims[2];
-    int width    = input_blob->GetBlobDesc().dims[3];
-    int width_out  = 0;
-    int height_out = 0;
+    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer_param->scales.empty()) {
+        ASSERT(input_blobs_.size() > 1);
+        const auto scales_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_.find(scales_name) != const_resource_.end()) {
+            auto scales_buffer = const_resource_[scales_name];
+            auto scales_date   = scales_buffer->force_to<int *>();
+            auto scales_count  = scales_buffer->GetDataCount();
+            std::vector<float> scales;
+            for (int i = 0; i < scales_count; ++i) {
+                scales.push_back(scales_date[i]);
+            }
+            // width height
+            layer_param->scales.push_back(scales.back());
+            layer_param->scales.push_back(scales.back());
+        }
+    }
+    if (layer_param->scales.empty()) {
+        return Status(TNNERR_PARAM_ERR,"param scales is empty\n");
+    }
+    Blob *input_blob = input_blobs_[0];
+    int num          = input_blob->GetBlobDesc().dims[0];
+    int channels     = input_blob->GetBlobDesc().dims[1];
+    int height       = input_blob->GetBlobDesc().dims[2];
+    int width        = input_blob->GetBlobDesc().dims[3];
+    int width_out    = 0;
+    int height_out   = 0;
 
     if (layer_param->mode == 1 || layer_param->mode == 2) {
-        //floor is wrong for some model
+        // floor is wrong for some model
         width_out  = int(round(width * layer_param->scales[0]));
         height_out = int(round(height * layer_param->scales[1]));
     } else {
@@ -53,7 +77,7 @@ Status UpsampleLayer::InferOutputShape() {
         height_out = (int)layer_param->dims[1];
     }
 
-    if (width_out <=0 || height_out <=0) {
+    if (width_out <= 0 || height_out <= 0) {
         LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
         return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
     }

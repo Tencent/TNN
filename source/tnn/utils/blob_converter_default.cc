@@ -177,7 +177,8 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else {
-            auto real_blob_data = new float[dims[0] * dims[1] * dims[2] * dims[3]];
+            auto count = DimsVectorUtils::Count(dims);
+            auto real_blob_data = new float[count];
             auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
             auto scale_len  = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
             NaiveDequant(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, scale_len, real_blob_data, dims);

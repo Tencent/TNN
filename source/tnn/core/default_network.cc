@@ -81,7 +81,6 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
     context_->SetPrecision(net_config.precision);
-    RETURN_ON_NEQ(ret, TNN_OK);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     if(!net_config.cache_path.empty()) {
         context_->SetCacheFilePath(GenerateCacheFileName(model_config));
@@ -135,6 +134,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
     // update blob precision, alloc new blob required
     for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+        
         // set layer nodes
         std::vector<std::string> &input_names  = layer_info->inputs;
         std::vector<std::string> &output_names = layer_info->outputs;
@@ -158,12 +161,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
         for (auto name : input_names) {
-            auto blob = blob_manager_->GetBlob(name);
-            auto ret = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
-            if (ret != TNN_OK) {
-                return ret;
-            }
-            inputs.push_back(blob);
+            inputs.push_back(blob_manager_->GetBlob(name));
         }
 
         for (auto name : output_names) {
@@ -455,9 +453,8 @@ Status DefaultNetwork::Forward() {
     for (auto layer : layers_) {
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
-
-        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !layer->IsOutputConstant()) ||
-            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer->IsOutputConstant())) {
+        
+        {
             
 #if DUMP_INPUT_BLOB
             // InputBlob data in dumped into files in NCHW_FLOAT format as default
