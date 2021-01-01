@@ -38,6 +38,7 @@ Currently, the compiled `tnn.framework` supports running on CPU and GPU of iOS d
 
 #### NDK configuration
   - Download Android NDK (version>=15c)  <https://developer.android.com/ndk/downloads>
+    - version>=r18b, when armv8.2 is enable
   - Configure the NDK path in env `export ANDROID_NDK=<ndk_path>`
 
 ### 2. Compile
@@ -114,6 +115,7 @@ cd <path_to_tnn>/scripts
 |TNN_CPU_ENABLE| OFF | Code source/device/cpu compilation switch, the code is only used for debugging and UnitTest benchmark test, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
 |TNN_X86_ENABLE| OFF | The code source/device/x86 compilation switch is currently adapted to the openvino implementation, and more accelerated code implementation will be moved in later.|
 |TNN_ARM_ENABLE| OFF | Code source/device/arm compilation switch, the code contains neon acceleration instructions, and partially implements int8 acceleration.|
+|TNN_ARM82_ENABLE| OFF | Code source/device/arm/acc/compute_arm82 compilation switch, the code implements fp16 acceleration.|
 |TNN_METAL_ENABLE| OFF | Code source/device/metal compilation switch, the code contains metal acceleration instructions.|
 |TNN_OPENCL_ENABLE| OFF | Code source/device/opencl compilation switch, the code contains opencl acceleration instructions.|
 |TNN_CUDA_ENABLE| OFF | Code source/device/cuda compilation switch, the code contains cuda acceleration instructions, currently only a small part of the implementation has been migrated.|
@@ -128,3 +130,4 @@ cd <path_to_tnn>/scripts
 |TNN_PROFILER_ENABLE| OFF | Performance debugging switch, after opening it will print more performance information, only for debugging.|
 |TNN_QUANTIZATION_ENABLE| OFF | Quantization tool compilation switch|
 |TNN_BENCHMARK_MODE| OFF | Benchmark switch, after opening, the model weights file is empty, and data can be automatically generated.|
+|TNN_ARM82_SIMU | OFF | Armv8.2 simulation switch, should be open together with TNN_ARM82_ENABLE, after opening, the code can be run on the CPU which without half precision support. |

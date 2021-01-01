@@ -38,6 +38,7 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer/
 
 #### NDK配置
   - 下载ndk版本(>=15c)  <https://developer.android.com/ndk/downloads>
+    - 若要支持ARMv8.2编译，ndk版本版本至少为r18b
   - 配置环境变量 `export ANDROID_NDK=<ndk_path>`
 ### 2. 命令依赖
 centos:
@@ -117,6 +118,7 @@ cd <path_to_tnn>/scripts
 |TNN_CPU_ENABLE| OFF | 代码source/device/cpu编译开关，代码仅用用于调试以及UnitTest基准测试，实现全部为c++代码，不包含特定CPU加速指令。|
 |TNN_X86_ENABLE| OFF | 代码source/device/x86编译开关, 当前适配openvino实现，后续会迁入更多加速代码实现。|
 |TNN_ARM_ENABLE| OFF | 代码source/device/arm编译开关，代码包含neon加速指令, 且部分实现了int8加速。|
+|TNN_ARM82_ENABLE| OFF | 代码source/device/arm/acc/compute_arm82编译开关，代码包含fp16指令加速。|
 |TNN_METAL_ENABLE| OFF | 代码source/device/metal编译开关，代码包含metal加速指令。|
 |TNN_OPENCL_ENABLE| OFF | 代码source/device/opencl编译开关，代码包含opencl加速指令。|
 |TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，代码包含cuda加速指令, 当前仅迁移了小部分实现。|
@@ -131,3 +133,4 @@ cd <path_to_tnn>/scripts
 |TNN_PROFILER_ENABLE| OFF | 性能调试开关，打开后会打印更多性能信息，仅用于调试。|
 |TNN_QUANTIZATION_ENABLE| OFF | 量化工具编译开关|
 |TNN_BENCHMARK_MODE| OFF | benchmark开关，打开后支持model weights文件为空，可自动生成数据。|
+|TNN_ARM82_SIMU| OFF | ARM82仿真开关，需要和TNN_ARM82_ENABLE同时打开，打开后可以在普通CPU上运行half实现代码。|
