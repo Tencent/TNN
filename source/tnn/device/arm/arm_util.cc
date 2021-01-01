@@ -201,7 +201,7 @@ template int PackC4(float *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
         if (channel == 3) {
             return PackNeonC3((fp16_t*)dst, (const float*)src, hw, channel);

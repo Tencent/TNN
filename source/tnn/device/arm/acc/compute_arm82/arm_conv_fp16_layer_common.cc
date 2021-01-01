@@ -22,13 +22,13 @@
 #include "tnn/utils/omp_utils.h"
 #include "tnn/device/arm/acc/Half8.h"
 
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)// aarch64 fp16
+#ifdef TNN_ARM82_A64 // aarch64 fp16
 #define NEON_FP16CONV_TILE_HW (16)
 #else // aarch32 fp16 or fp16 simu
 #define NEON_FP16CONV_TILE_HW (8)
 #endif
 
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
 static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
@@ -77,7 +77,7 @@ static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
 #endif
 
 static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0]\n\t"
@@ -102,7 +102,7 @@ static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
-#elif defined(__arm__) && !defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#elif defined(TNN_ARM82_A32)
     asm volatile (
         "vld4.16 {d0, d2,  d4,  d6},  [%0]!\n\t"
         "vld4.16 {d1, d3,  d5,  d7},  [%0]!\n\t"
@@ -138,7 +138,7 @@ static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
 }
 
 static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
     asm volatile (
         "ld4 {v0.4h, v1.4h, v2.4h, v3.4h}, [%0], #32\n\t"
         "ld4 {v4.4h, v5.4h, v6.4h, v7.4h}, [%0]\n\t"
@@ -163,7 +163,7 @@ static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
-#elif defined(__arm__) && !defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#elif defined(TNN_ARM82_A32)
     asm volatile (
         "vld4.16 {d0, d1, d2, d3}, [%0]!\n\t"
         "vld4.16 {d4, d5, d6, d7}, [%0]\n\t"
@@ -201,7 +201,7 @@ static void load_repack_half_align(
     int c = 0;
     for (; c <= ic - 8; c += 8) {
         for (int k = 0; k < kernel_size; k++) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
             _repack_half_16(dst, src);
 #else
             _repack_half_8(dst, src);
@@ -213,7 +213,7 @@ static void load_repack_half_align(
     if (c < ic) {
         int c_eff = ic - c;
         for (int k = 0; k < kernel_size; k++) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
             _repack_half_16(dst, src);
 #else
             _repack_half_8(dst, src);
@@ -231,7 +231,7 @@ static void load_repack_half(
     int ic,
     int kernel_size) {
     int dst_i = 0;
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
     if (dst_cnt >= dst_i + 8) {
         auto src_p = src;
         int c = 0;

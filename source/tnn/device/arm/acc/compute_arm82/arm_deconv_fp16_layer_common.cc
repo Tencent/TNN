@@ -132,7 +132,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int ic_step;
     int ic_counter;
     int w_step;
-#if defined(__aarch64__) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
     auto DeconvFunc = DeconvFp16O8;
     int CONVOLUTION_TILED_NUMBER = 14;
     if (gic < 8) {

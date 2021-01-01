@@ -327,6 +327,34 @@ void DepthwiseDeconv<fp16_t, fp16_t>(const fp16_t* dst, fp16_t* src, const fp16_
     }
 }
 
+#endif  // TNN_ARM82
+
+template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
+    if (dst == nullptr) {
+        dst = src;
+    }
+
+    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
+    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
+    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
+    auto local_scale = scale_buffer.force_to<fp16_t *>();
+    auto local_bias  = bias_buffer.force_to<fp16_t *>();
+
+    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
+        auto src_z   = src + z * hw * 8;
+        auto dst_z   = dst + z * hw * 8;
+
+        auto v_scale = Half8::load(local_scale + z * 8);
+        auto v_bias  = Half8::load(local_bias + z * 8);
+        for (int s = 0; s < hw; ++s) {
+            Half8 dst_v = v_bias;
+            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
+            Half8::save(dst_z + s * 8, dst_v);
+        }
+    }
+}
+
 #define transpose_4x4(v0, v1, v2, v3, v_zero)       \
 {                                                   \
     float32x4x2_t q01 = vtrnq_f32(v0, v1);          \
@@ -349,9 +377,9 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
     auto src1 = src + hw;
     auto src2 = src + hw * 2;
     int cur_hw = 0;
-#ifndef TNN_ARM82_SIMU
+#ifdef TNN_ARM82_USE_NEON
     float32x4_t v_zero_f32 = vdupq_n_f32(0.f);
-#ifdef __aarch64__
+#ifdef TNN_ARM82_A64
     float16x4_t v_zero_f16 = vdup_n_f16(0.f);
 #else
     uint16x4_t v_zero_u16  = vdup_n_u16(0x0);
@@ -363,7 +391,7 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
         float32x4_t v2 = vld1q_f32(src2 + cur_hw);
         float32x4_t v3;
         transpose_4x4(v0, v1, v2, v3, v_zero_f32);
-#ifdef __aarch64__
+#ifdef TNN_ARM82_A64
         vst1q_f16(dst + cur_hw * 8,      vcombine_f16(vcvt_f16_f32(v0), v_zero_f16));
         vst1q_f16(dst + cur_hw * 8 + 8,  vcombine_f16(vcvt_f16_f32(v1), v_zero_f16));
         vst1q_f16(dst + cur_hw * 8 + 16, vcombine_f16(vcvt_f16_f32(v2), v_zero_f16));
@@ -375,7 +403,7 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
         vst1q_u16(dst_u16 + cur_hw * 8 + 24, vcombine_u16(vreinterpret_u16_f16(vcvt_f16_f32(v3)), v_zero_u16));        
 #endif
     }
-#endif
+#endif  // TNN_ARM82_USE_NEON
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 8 + 0] = src0[cur_hw];
         dst[cur_hw * 8 + 1] = src1[cur_hw];
@@ -388,9 +416,8 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
     }
     return 0;
 }
-#endif
 
-#if defined(TNN_ARM82) && (!defined(TNN_USE_NEON) || defined(TNN_ARM82_SIMU))
+#ifdef TNN_ARM82_SIMU
 /*
 general deconv micro kernel fp16_t
 */
@@ -591,10 +618,10 @@ void GemmFp16SlidewC3(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long
         }
     }
 }
-#endif
+#endif  // TNN_ARM82_SIMU
 
 void Half2Float(float* dst, const fp16_t* src, const size_t length) {
-#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_USE_NEON
     Half2FloatKernel(dst, src, length);
 #else
     for (auto i = 0; i < length; i++) {
@@ -603,7 +630,7 @@ void Half2Float(float* dst, const fp16_t* src, const size_t length) {
 #endif
 }
 void Float2Half(fp16_t* dst, const float* src, const size_t length) {
-#if TNN_ARM82 && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_USE_NEON
     Float2HalfKernel(dst, src, length);
 #else
     for (auto i = 0; i < length; i++) {
@@ -626,9 +653,9 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
             auto src_c      = src_n + ci * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw4 to nchw8
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU) && defined(__aarch64__)
+#ifdef TNN_ARM82_A64
                 vst1_f16(dst_c + cnt * 8, vcvt_f16_f32(vld1q_f32(src_c + cnt * 4)));
-#elif defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU) && !defined(__aarch64__) && defined(__arm__)
+#elif defined(TNN_ARM82_A32)
                 vst1_u16((unsigned short*)(dst_c + cnt * 8), vreinterpret_u16_f16(vcvt_f16_f32(vld1q_f32(src_c + cnt * 4))));
 #else
                 for (long idx = 0; idx < 4; idx++) {
@@ -654,9 +681,9 @@ void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, lo
             auto dst_c      = dst_n + co * hw * 4;
             for (long cnt = 0; cnt < hw; cnt++) {
                 // nchw8 to nchw4
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU) && defined(__aarch64__)
+#ifdef TNN_ARM82_A64
                 vst1q_f32(dst_c + cnt * 4, vcvt_f32_f16(vld1_f16(src_c + cnt * 8)));
-#elif defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU) && !defined(__aarch64__) && defined(__arm__)
+#elif defined(TNN_ARM82_A32)
                 vst1q_f32(dst_c + cnt * 4, vcvt_f32_f16(vreinterpret_f16_u16(vld1_u16((unsigned short*)src_c + cnt * 8))));
 #else
                 for (long idx = 0; idx < 4; idx++) {
@@ -677,7 +704,7 @@ void BGRAToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const f
     int i = 0;
     fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
     fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
+#ifdef TNN_ARM82_A64
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -743,7 +770,7 @@ void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const fl
     int i = 0;
     fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
     fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
+#ifdef TNN_ARM82_A64
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -796,7 +823,7 @@ void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const float 
     fp16_t scale_half = fp16_t(scale);
     fp16_t bias_half  = fp16_t(bias);
     memset(dst, 0, hw * 8 * sizeof(fp16_t));
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
+#ifdef TNN_ARM82_A64
     float16x8_t scale_neon = vdupq_n_f16(scale_half);
     float16x8_t bias_neon  = vdupq_n_f16(bias_half);
     for (; i < hw - 7; i += 8) {
@@ -826,7 +853,7 @@ void BlobToBGRAImpl(const fp16_t *src, uint8_t *dst, const float *scale, const f
     int i = 0;
     fp16_t scale_half[4] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2]), fp16_t(scale[3])};
     fp16_t bias_half[4]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2]), fp16_t(bias[3])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
+#ifdef TNN_ARM82_A64
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -887,7 +914,7 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
     int i = 0;
     fp16_t scale_half[3] = {fp16_t(scale[0]), fp16_t(scale[1]), fp16_t(scale[2])};
     fp16_t bias_half[3]  = {fp16_t(bias[0]), fp16_t(bias[1]), fp16_t(bias[2])};
-#if (defined TNN_USE_NEON) && (TNN_ARM82) && (!defined TNN_ARM82_SIMU) && (__aarch64__)
+#ifdef TNN_ARM82_A64
     float16x8_t bias_neon_b = vdupq_n_f16(bias_half[0]);
     float16x8_t bias_neon_g = vdupq_n_f16(bias_half[1]);
     float16x8_t bias_neon_r = vdupq_n_f16(bias_half[2]);
@@ -927,31 +954,5 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
 
 template void BlobToBGRImpl<true>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 template void BlobToBGRImpl<false>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
-
-template <> void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float *bias, fp16_t *dst) {
-    if (dst == nullptr) {
-        dst = src;
-    }
-
-    RawBuffer scale_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    RawBuffer bias_buffer(ROUND_UP(channel, 8) * sizeof(fp16_t));
-    Float2Half(scale_buffer.force_to<fp16_t *>(), scale, channel);
-    Float2Half(bias_buffer.force_to<fp16_t *>(), bias, channel);
-    auto local_scale = scale_buffer.force_to<fp16_t *>();
-    auto local_bias  = bias_buffer.force_to<fp16_t *>();
-
-    for (int z = 0; z < UP_DIV(channel, 8); ++z) {
-        auto src_z   = src + z * hw * 8;
-        auto dst_z   = dst + z * hw * 8;
-
-        auto v_scale = Half8::load(local_scale + z * 8);
-        auto v_bias  = Half8::load(local_bias + z * 8);
-        for (int s = 0; s < hw; ++s) {
-            Half8 dst_v = v_bias;
-            Half8::mla(dst_v, Half8::load(src_z + s * 8), v_scale);
-            Half8::save(dst_z + s * 8, dst_v);
-        }
-    }
-}
 
 }  // namespace TNN_NS

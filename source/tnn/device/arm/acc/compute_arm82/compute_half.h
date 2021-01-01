@@ -47,7 +47,7 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
 
 int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel);
 
-#if defined(TNN_ARM82) && defined(TNN_USE_NEON) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_USE_NEON
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,7 +65,7 @@ void DeconvFp16O8(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long wid
 void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long width, long dst_w_step, long src_depth,
                    long src_depth_step, long fw, long fh, long dilateX_step, long dilateY_step);
 
-#if defined(TNN_ARM82) && defined(TNN_USE_NEON) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_USE_NEON
 #ifdef __cplusplus
 }
 #endif

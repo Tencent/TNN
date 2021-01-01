@@ -26,7 +26,8 @@
 #endif
 
 namespace TNN_NS {
-#if defined(TNN_USE_NEON) && TNN_ARM82 && !defined(TNN_ARM82_SIMU) && defined(__aarch64__)
+
+#ifdef TNN_ARM82_A64
 
 struct Half4 {
     float16x4_t value;
@@ -418,7 +419,7 @@ struct Half8 {
     }
 };
 
-#elif defined(TNN_USE_NEON) && defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU) && defined(__arm__) && !defined(__aarch64__)
+#elif defined(TNN_ARM82_A32)
 
 struct Half4 {
     // use int16x4 to store the d register, avoiding compile error 
@@ -1120,6 +1121,7 @@ struct Half8 : TNNVector<fp16_t, 8> {
 };
 
 #endif
+
 }  // namespace TNN_NS
 
 #endif /* Half8_hpp */

@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
+#if TNN_ARM82
+
 #ifdef __arm__
 #ifndef __aarch64__
 
@@ -524,5 +526,6 @@ bne LoopDz
 vpop {q4-q7}
 pop {r4-r11, pc}
 
+#endif
 #endif
 #endif

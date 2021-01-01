@@ -27,7 +27,7 @@
 #include "tnn/utils/omp_utils.h"
 #include "tnn/device/arm/acc/Half8.h"
 
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
 #define NEON_GEMM_TILE_HW (16)
 #else
 #define NEON_GEMM_TILE_HW (8)
@@ -35,7 +35,7 @@
 
 namespace TNN_NS {
 
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
 template <int stride>
 static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
     Half8 v[16];
@@ -177,13 +177,13 @@ static void load_repack_half(
             auto repack_dst_i = repack_dst + i * NEON_GEMM_TILE_HW * ic_r8;
             auto repack_src_i = repack_src + i * 8;
             if (src_unit_size == 16) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
                 _repack_half_16<128>(repack_dst_i, repack_src_i);
 #else
                 _repack_half_8<128>(repack_dst_i, repack_src_i);
 #endif
             } else if (src_unit_size == 36) {
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
                 _repack_half_16<288>(repack_dst_i, repack_src_i);
 #else
                 _repack_half_8<288>(repack_dst_i, repack_src_i);
@@ -192,7 +192,7 @@ static void load_repack_half(
         }
     } else {
         int x_i = 0;
-#if defined(__aarch64__) && !defined(TNN_ARM82_SIMU)
+#ifdef TNN_ARM82_A64
         if (x_i <= dst_cnt - 8) {
             auto repack_dst = dst + 8 * z;
             auto repack_src = src;

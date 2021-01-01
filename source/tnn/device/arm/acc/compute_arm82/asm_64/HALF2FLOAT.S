@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-
+#if TNN_ARM82
 #ifdef __aarch64__
 
 #include "tnn/device/arm/acc/compute/asm_func_name.S"
@@ -77,4 +77,5 @@ L1END:
 
 ret
 
+#endif
 #endif
