@@ -21,7 +21,6 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
-#include "tnn/utils/half_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 

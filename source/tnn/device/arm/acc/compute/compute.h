@@ -22,10 +22,8 @@
 #include <algorithm>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/bfp16.h"
-#include "tnn/utils/half_utils.h"
-
 #include "tnn/device/arm/acc/compute_arm82/compute_half.h"
+#include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
 struct ArmKernelParam {
