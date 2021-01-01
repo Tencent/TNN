@@ -12,21 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_RELU_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_RELU_LAYER_ACC_H_
+
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-class ReluLayerTest : public UnaryLayerTest {
-public:
-    ReluLayerTest() : UnaryLayerTest(LAYER_RELU) {}
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerTest, ReluLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                            testing::Values(DATA_TYPE_HALF, DATA_TYPE_BFP16, DATA_TYPE_FLOAT)));
-
-TEST_P(ReluLayerTest, UnaryLayerTest) {
-    RunUnaryTest("Relu");
-}
+DECLARE_ARM_ACC(Relu, LAYER_RELU);
 
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_RELU_LAYER_ACC_H_
