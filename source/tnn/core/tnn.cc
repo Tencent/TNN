@@ -46,6 +46,14 @@ Status TNN::AddOutput(const std::string& layer_name, int output_index) {
     return impl_->AddOutput(layer_name, output_index);
 }
 
+Status TNN::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+     if (!impl_) {
+        LOGE("Error: impl_ is nil\n");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+    }
+    return impl_->GetModelInputShapesMap(layer_name, output_index);
+}
+
 std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
     if (!impl_) {
         status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
