@@ -19,6 +19,8 @@ from utils import convert_name
 from utils import return_code
 from types import *
 from converter import logging
+from functools import reduce
+
 
 import linecache
 import math
@@ -44,7 +46,35 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
         print_align_message(is_tflite)
     else:
         print_not_align_message(None, is_tflite)
+
     return
+
+
+def get_input_from_file(path: str) -> dict:
+    input_dict: dict = {}
+    f = open(path, 'r')
+    size = f.readline().strip('\n')
+    for i in range(int(size)):
+        input_info = f.readline().strip('\n').split(' ')
+        input_name = input_info[0]
+        dims_size = int(input_info[1])
+        data_type = int(input_info[-1])
+        dims = list(map(int, input_info[2:-1]))
+        count = reduce(lambda x,y:x * y,dims)
+        data: list = []
+        if data_type == 0:
+            #float
+            for j in range(count):
+                data.append(float(f.readline().strip('\n')))
+            np_data = np.reshape(np.array(data).astype(np.float32), dims)
+            input_dict.update({input_name: np_data})
+        elif data_type == 3:
+            #int32
+            for j in range(count):
+                data.append(int(f.readline().strip('\n')))
+            np_data = np.array(data).astype(np.int64).reshape(dims)
+            input_dict.update({input_name: np_data})
+    return input_dict
 
 
 def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
@@ -59,25 +89,35 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
 
     input_name, input_shape = list(input_info.items())[0]
 
-    if type(input_shape[0]) is not int:
-        input_shape[0] = 1
+    input_info_list = session.get_inputs()
+    input_data_dict: dict = get_input_from_file(input_path)
 
-    input_data = np.loadtxt(input_path)
-    input_data = input_data.astype(np.float32)
-    input_data = np.reshape(input_data, input_shape)
+    # if type(input_shape[0]) is not int:
+    #     input_shape[0] = 1
+    # input_data = np.loadtxt(input_path)
+    # input_data = input_data.astype(np.float32)
+    # input_data = np.reshape(input_data, input_shape)
+
     output_info = session.get_outputs()
-    pred = session.run([], {input_name: input_data})
+    pred = session.run([], input_data_dict)
     with open(output_path, "w") as f:
         f.write("{}\n" .format(len(output_info)))
         cnt = 0
         for item in output_info:
             output_name = item.name
             output_shape = pred[cnt].shape
-            description = "{} {} " .format(output_name, len(output_shape))
+            type_str = item.type
+            data_type = 0
+            if type_str == "tensor(float)":
+                data_type = 0
+            elif type_str == "tensor(int64)":
+                data_type = 3
+            description = "{} {} ".format(output_name, len(output_shape))
             for dim in output_shape:
                 description += "{} " .format(dim)
+            description += "{}".format(str(data_type))
             f.write(description + "\n")
-            np.savetxt(f, pred[cnt].reshape(-1), fmt="%0.18f")
+            np.savetxt(f, pred[cnt].reshape(-1), fmt="%0.6f")
             cnt += 1
 
     return output_path
