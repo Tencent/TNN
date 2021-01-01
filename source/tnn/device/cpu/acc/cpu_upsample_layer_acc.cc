@@ -15,6 +15,7 @@
 #include "tnn/device/cpu/acc/cpu_upsample_layer_acc.h"
 
 #include "tnn/core/blob_int8.h"
+#include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/naive_compute.h"
@@ -149,6 +150,69 @@ Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
         }
     }
     return TNN_OK;
+}
+
+Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                    const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    if (inputs.size() == 2) {
+        Blob *input_blob  = inputs[0];
+        Blob *scales_blob = inputs[1];
+        auto scales_data  = (float *)scales_blob->GetHandle().base;
+        auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
+        std::vector<float> scales;
+        for (int i = 0; i < scales_count; ++i) {
+            scales.push_back(scales_data[i]);
+        }
+        // width_scale height_scale
+        float w_scale = scales[scales.size() - 1];
+        float h_scale = scales[scales.size() - 2];
+        layer_param->scales.push_back(w_scale);
+        layer_param->scales.push_back(h_scale);
+        if (layer_param->align_corners < 0) {
+            if (w_scale >= 1.0f && h_scale >= 1.0f) {
+                layer_param->align_corners = 0;
+            } else {
+                layer_param->align_corners = 1;
+            }
+        }
+
+        int num        = input_blob->GetBlobDesc().dims[0];
+        int channels   = input_blob->GetBlobDesc().dims[1];
+        int height     = input_blob->GetBlobDesc().dims[2];
+        int width      = input_blob->GetBlobDesc().dims[3];
+        int width_out  = 0;
+        int height_out = 0;
+
+        if (layer_param->mode == 1 || layer_param->mode == 2) {
+            // floor is wrong for some model
+            width_out  = int(round(width * layer_param->scales[0]));
+            height_out = int(round(height * layer_param->scales[1]));
+        } else {
+            LOGE("Error: unsupport upsample type:%d", layer_param->mode);
+            return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
+        }
+
+        if (layer_param->dims.size() >= 2) {
+            width_out  = (int)layer_param->dims[0];
+            height_out = (int)layer_param->dims[1];
+            //LOGE("The layer param post is width_out is %d, height_out is %d\n", width_out, height_out);
+        }
+
+        if (width_out <= 0 || height_out <= 0) {
+            LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)\n", height_out, width_out);
+            return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+        }
+
+        DimsVector output_dims;
+        output_dims.push_back(num);
+        output_dims.push_back(channels);
+        output_dims.push_back(height_out);
+        output_dims.push_back(width_out);
+        outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+    return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 
 Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

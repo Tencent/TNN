@@ -35,6 +35,7 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
             return Status(TNNERR_PARAM_ERR, "Reshape input(shape) has invalid data type");
         }
+        auto input_dims = inputs[0]->GetBlobDesc().dims;
         
         auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
         auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
@@ -44,8 +45,11 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         }
         layer_param->shape = dims;
         layer_param->num_axes = dim_count;
+        Status status = TNN_OK;
+        auto output_dims = DimsVectorUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
+        RETURN_ON_NEQ(status, TNN_OK);
         
-        outputs[0]->GetBlobDesc().dims = dims;
+        outputs[0]->GetBlobDesc().dims = output_dims;
     }
     
     return TNN_OK;

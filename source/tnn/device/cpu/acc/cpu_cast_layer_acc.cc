@@ -25,32 +25,30 @@ Status CpuCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 }
 
 Status CpuCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    const auto param = dynamic_cast<CastLayerParam*>(param_);
-    void *input_data = inputs[0]->GetHandle().base;
-    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
-    void *output_data = outputs[0]->GetHandle().base;
+    const auto param      = dynamic_cast<CastLayerParam *>(param_);
+    void *input_data      = inputs[0]->GetHandle().base;
+    auto input_data_type  = inputs[0]->GetBlobDesc().data_type;
+    void *output_data     = outputs[0]->GetHandle().base;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
-    
+
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-    
+
     const int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
     if (input_data_type == output_data_type) {
         if (output_data != input_data) {
-            memcpy(output_data, input_data, count*ele_size);
+            memcpy(output_data, input_data, count * ele_size);
         }
-    } else if (input_data_type == DATA_TYPE_FLOAT &&
-        output_data_type == DATA_TYPE_INT32) {
-        auto *input_data_ptr = (float *)input_data;
+    } else if (input_data_type == DATA_TYPE_FLOAT && output_data_type == DATA_TYPE_INT32) {
+        auto *input_data_ptr  = (float *)input_data;
         auto *output_data_ptr = (int *)output_data;
-        for(int i = 0; i < count; ++i) {
-            output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
-        }
-    } else if (input_data_type == DATA_TYPE_INT32 &&
-               output_data_type == DATA_TYPE_FLOAT) {
-        auto *input_data_ptr = (int *)input_data;
-        auto *output_data_ptr = (float *)output_data;
-        for(int i = 0; i < count; ++i) {
+        for (int i = 0; i < count; ++i) {
             output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
+        }
+    } else if (input_data_type == DATA_TYPE_INT32 && output_data_type == DATA_TYPE_FLOAT) {
+        auto *input_data_ptr  = (int *)input_data;
+        auto *output_data_ptr = (float *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
         }
     } else {
         LOGE("unsupport data type to cast\n");

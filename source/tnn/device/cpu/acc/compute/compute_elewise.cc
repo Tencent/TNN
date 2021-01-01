@@ -14,7 +14,6 @@
 
 #include "tnn/device/cpu/acc/compute/compute_elewise.h"
 
-#include <vector>
 #include <cstring>
 #include <functional>
 #include <type_traits>
@@ -28,143 +27,42 @@
 #include "tnn/utils/dims_offset_utils.h"
 #include "tnn/utils/omp_utils.h"
 
-
 namespace TNN_NS {
 
-std::vector<int> dims_to_steps(std::vector<int> dims) {
-    std::vector<int> ret(dims.size(), 1);
-    int cnt = 1;
-    for(int i=dims.size() - 1;i>=0;i--) {
-        if (dims[i] == 1) {
-            ret[i] = 0;
-        } else {
-            ret[i] = cnt;
-            cnt *= dims[i];
-        }
-    }
-    return ret;
-}
-
-enum BINARY_OP_TYPE
-{
-    ADD = 0,
-    SUB = 1,
-    MUL = 2,
-    DIV = 3,
-    MAX = 4,
-    MIN = 5,
-    SQUARED_DIFFERENCE = 6
-};
-
-template<BINARY_OP_TYPE type>
-float binary_op(const float a, const float b) {
-    return a;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::ADD>(const float a, const float b) {
-    return a + b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::SUB>(const float a, const float b) {
-    return a - b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::MUL>(const float a, const float b) {
-    return a * b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::DIV>(const float a, const float b) {
-    return a / b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::MIN>(const float a, const float b) {
-    return a < b ? a : b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::MAX>(const float a, const float b) {
-    return a > b ? a : b;
-}
-
-template<> float binary_op<BINARY_OP_TYPE::SQUARED_DIFFERENCE>(const float a, const float b) {
-    return (a - b) * (a - b);
-}
-
-
-template<BINARY_OP_TYPE type>
-void binary_kernel(std::vector<int> output_dims, const float * a, std::vector<int> steps_a, const float * b, std::vector<int> steps_b, 
-                    float * c, std::vector<int> steps_c) 
-{
-
-    size_t idx_a = 0;
-    size_t idx_b = 0;
-    size_t idx_c = 0;
-
-    const int MAX_DIM = 5;
-
-    int d[MAX_DIM] = {1, 1, 1 ,1 ,1};
-    int step_a[MAX_DIM] = {0};
-    int step_b[MAX_DIM] = {0};
-    int step_c[MAX_DIM] = {0};
-
-    int offset = MAX_DIM - output_dims.size();
-    memcpy(d + offset, &output_dims[0], output_dims.size() * sizeof(float));
-    memcpy(step_a + offset, &steps_a[0], steps_a.size() * sizeof(float));
-    memcpy(step_b + offset, &steps_b[0], steps_b.size() * sizeof(float));
-    memcpy(step_c + offset, &steps_c[0], steps_c.size() * sizeof(float));
-
-    for(int d0=0;d0<d[0];d0++) {
-        for(int d1=0;d1<d[1];d1++) {
-            for(int d2=0;d2<d[2];d2++) {
-                for(int d3=0;d3<d[3];d3++) {
-                    for(int d4=0;d4<d[4];d4++) {
-                        c[idx_c] = binary_op<type>(a[idx_a], b[idx_b]);
-                        idx_a += step_a[4];
-                        idx_b += step_b[4];
-                        idx_c += step_c[4];
-                    }
-                    idx_a += (step_a[3] - d[4] * step_a[4]);
-                    idx_b += (step_b[3] - d[4] * step_b[4]);
-                    idx_c += (step_c[3] - d[4] * step_c[4]);
-                }
-                idx_a += (step_a[2] - d[3] * step_a[3]);
-                idx_b += (step_b[2] - d[3] * step_b[3]);
-                idx_c += (step_c[2] - d[3] * step_c[3]);
-            }
-            idx_a += (step_a[1] - d[2] * step_a[2]);
-            idx_b += (step_b[1] - d[2] * step_b[2]);
-            idx_c += (step_c[1] - d[2] * step_c[2]);
-        }
-        idx_a += (step_a[0] - d[1] * step_a[1]);
-        idx_b += (step_b[0] - d[1] * step_b[1]);
-        idx_c += (step_c[0] - d[1] * step_c[1]);
-    }
-
-
-}
-
+typedef std::function<float(float, float)> ELEWISE_OP;
 
 /*
  * Output[i] = input0[i] op input1[i] op ... op  input..n[i]
  * CPU_ELEWISE supports broadcast on all dimensions
  */
-template<BINARY_OP_TYPE type>
 void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
-                 DimsVector shape_output) {
-
+                 DimsVector shape_output, ELEWISE_OP op) {
     const int count        = DimsVectorUtils::Count(shape_output);
     float *output_data     = static_cast<float *>(output);
 
-    if (input_shapes[0].size() != input_shapes[1].size()) {
-        LOGE("Error, shape len not equal\n");
-        return;
+    OMP_PARALLEL_FOR_
+    for(int offset = 0; offset< count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+        float result;
+        for (int i = 0; i < input_ptrs.size(); i++) {
+            float *input_data = static_cast<float *>(input_ptrs[i]);
+            auto input_shape  = input_shapes[i];
+
+            DimsVector input_index;
+            int diff = shape_output.size() - input_shape.size();
+            for(int i = 0; i < input_shape.size(); ++i) {
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
+            }
+             
+            int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);
+            if(i == 0) {
+                result = input_data[input_offset];
+            } else {
+                result = op(result, input_data[input_offset]);
+            }
+        }
+        output_data[offset] = result;
     }
-
-    std::vector<int> steps_a = dims_to_steps(input_shapes[0]);
-    std::vector<int> steps_b = dims_to_steps(input_shapes[1]);
-    std::vector<int> steps_c = dims_to_steps(shape_output);
-
-    binary_kernel<type>(shape_output, (const float *)input_ptrs[0], steps_a, (const float *)input_ptrs[1], steps_b, (float *)output, steps_c);
-
 }
 
 /*
@@ -173,7 +71,8 @@ void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVe
  */
 void CPU_MIN(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::MIN>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP min_op = [](float a, float b) -> float { return std::min(a, b); };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, min_op);
 }
 
 /*
@@ -182,7 +81,8 @@ void CPU_MIN(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_MAX(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::MAX>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP max_op = [](float a, float b) -> float { return std::max(a, b); };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, max_op);
 }
 
 /*
@@ -191,7 +91,8 @@ void CPU_MAX(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_MUL(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::MUL>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP mul_op = [](float a, float b) -> float { return a * b; };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, mul_op);
 }
 
 /*
@@ -200,7 +101,8 @@ void CPU_MUL(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_ADD(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::ADD>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP add_op = [](float a, float b) -> float { return a + b; };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, add_op);
 }
 
 /*
@@ -209,7 +111,8 @@ void CPU_ADD(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_DIV(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::DIV>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP div_op = [](float a, float b) -> float { return a / b; };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, div_op);
 }
 
 /*
@@ -218,7 +121,8 @@ void CPU_DIV(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::SUB>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP sub_op = [](float a, float b) -> float { return a - b; };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, sub_op);
 }
 
 /*
@@ -227,7 +131,8 @@ void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<DimsVector
  */
 void CPU_SQUARED_DIFFERENCE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes,
                             void *output, DimsVector shape_output) {
-    CPU_ELEWISE<BINARY_OP_TYPE::SQUARED_DIFFERENCE>(input_ptrs, input_shapes, output, shape_output);
+    ELEWISE_OP squared_difference_op = [](float a, float b) -> float { return (a - b) * (a - b); };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, squared_difference_op);
 }
 
 }  // namespace TNN_NS

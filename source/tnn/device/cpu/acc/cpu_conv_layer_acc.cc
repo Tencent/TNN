@@ -27,6 +27,9 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     if (status != TNN_OK) {
         return status;
     }
+    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
+        return status;
+    }
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
