@@ -29,7 +29,7 @@ Status ReduceLayer::InferOutputShape() {
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
-    auto dims         = input_blob->GetBlobDesc().dims;
+    auto dims  = input_blob->GetBlobDesc().dims;
 
     for (auto& axis : layer_param->axis) {
         axis = axis >= 0 ? axis : axis + (int)dims.size();
@@ -39,6 +39,13 @@ Status ReduceLayer::InferOutputShape() {
         }
         dims[axis] = 1;
     }
+    
+    if (layer_param->keep_dims == 0) {
+        for (auto& axis : layer_param->axis) {
+            dims.erase(dims.begin() + axis);
+        }
+    }
+    
     output_blob->GetBlobDesc().dims = dims;
 
     return TNN_OK;
