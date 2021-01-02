@@ -471,21 +471,23 @@ Status DefaultNetwork::Forward() {
         {
             
 #if DUMP_INPUT_BLOB
-            // InputBlob data in dumped into files in NCHW_FLOAT format as default
-            std::string filename = layer->GetLayerName();
-            std::replace(filename.begin(), filename.end(), '/', '_');
-            for (int i = 0; i < inputs.size(); i++) {
-                char ss[1000];
-                if (g_tnn_dump_directory.length() > 0) {
-                    snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
-                } else {
-                    snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
-                }
+            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                // InputBlob data in dumped into files in NCHW_FLOAT format as default
+                std::string filename = layer->GetLayerName();
+                std::replace(filename.begin(), filename.end(), '/', '_');
+                for (int i = 0; i < inputs.size(); i++) {
+                    char ss[1000];
+                    if (g_tnn_dump_directory.length() > 0) {
+                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
+                    } else {
+                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
+                    }
 
-                auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
-                if (ret != TNN_OK) {
-                    LOGE("dump blob failed\n");
-                    return ret;
+                    auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
+                    if (ret != TNN_OK) {
+                        LOGE("dump blob failed\n");
+                        return ret;
+                    }
                 }
             }
 #endif  // DUMP_INPUT_BLOB
@@ -499,21 +501,23 @@ Status DefaultNetwork::Forward() {
             }
 
 #if DUMP_OUTPUT_BLOB
-            // OutBlob data in dumped into files in NCHW_FLOAT format as default
-            std::string out_file_name = layer->GetLayerName();
-            std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
-            for (int i = 0; i < outputs.size(); i++) {
-                char ss[1000];
-                if (g_tnn_dump_directory.length() > 0) {
-                    snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
-                } else {
-                    snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
-                }
+            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                // OutBlob data in dumped into files in NCHW_FLOAT format as default
+                std::string out_file_name = layer->GetLayerName();
+                std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
+                for (int i = 0; i < outputs.size(); i++) {
+                    char ss[1000];
+                    if (g_tnn_dump_directory.length() > 0) {
+                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
+                    } else {
+                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
+                    }
 
-                auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
-                if (ret != TNN_OK) {
-                    LOGE("dump blob failed\n");
-                    return ret;
+                    auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
+                    if (ret != TNN_OK) {
+                        LOGE("dump blob failed\n");
+                        return ret;
+                    }
                 }
             }
 #endif  // DUMP_OUTPUT_BLOB
