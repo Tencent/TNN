@@ -106,19 +106,13 @@ DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format) {
 }
 
 nvinfer1::Dims ConvertToTRTDims(DimsVector dims) {
-    int nbdims = dims.size();
-    switch  (nbdims) {
-        case 2:
-            return nvinfer1::Dims2(dims[0], dims[1]);
-        case 3:
-            return nvinfer1::Dims3(dims[0], dims[1], dims[2]);
-        case 4:
-            return nvinfer1::Dims4(dims[0], dims[1], dims[2], dims[3]);
-        case 5: 
-            return nvinfer1::Dims4(dims[0], dims[1], dims[2], dims[3]);
-        default:
-            return nvinfer1::Dims();
+    int dims_size = dims.size();
+    nvinfer1::Dims trt_dims;
+    trt_dims.nbDims = dims_size;
+    for(int i = 0; i < dims_size; ++i) {
+        trt_dims.d[i] = dims[i];
     }
+    return trt_dims;
 }
 
 nvinfer1::DataType ConvertToTRTDataType(DataType type) {

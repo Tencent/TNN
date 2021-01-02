@@ -36,15 +36,15 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto paramlist = dynamic_cast<MultidirBroadcastLayerParam*>(param_);
         auto resource = dynamic_cast<EltwiseLayerResource*>(resource_);
 
-        auto const_layer = ConvertWeightToConstLayer(network, &(resource->element_handle), resource->element_shape);
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+        auto src_a = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+        auto const_layer = ConvertWeightToConstLayer(network, &(resource->element_handle), resource->element_shape, src_a->getDimensions().nbDims);
         if (const_layer == nullptr) {
             LOGE("BinaryTRTLayerBuilder create weights node failed\n");
             return nullptr;
         }
 
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-
-        auto src_a = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
         auto src_b = const_layer->getOutput(0);
         if (paramlist->weight_input_index == 0) {
             std::swap(src_a, src_b);

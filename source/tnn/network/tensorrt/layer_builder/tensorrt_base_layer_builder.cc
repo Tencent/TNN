@@ -228,7 +228,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
 }
 
 ILayer* TensorRTBaseLayerBuilder::ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf,
-                                                            DimsVector recommend_dims) {
+                                                            DimsVector recommend_dims, int expand_dims) {
 
     size_t buf_size_in_bytes = buf->GetDataCount() * DataTypeUtils::GetBytesSize(buf->GetDataType());
     float* host_weight = (float*)malloc(buf_size_in_bytes);
@@ -244,12 +244,25 @@ ILayer* TensorRTBaseLayerBuilder::ConvertWeightToConstLayer(nvinfer1::INetworkDe
     if (recommend_dims.size() > 0 ) {
         buf_dims = recommend_dims;
     }
-    if (buf_dims.size() == 0) {
+
+    if (buf_dims.size() == 0 && buf->GetDataCount() != 1) {
         LOGE("TensorRTBaseLayerBuilder::ConvertWeightToConstLayer got empty shapes\n");
         return nullptr;
     }
 
     Dims weightDims = ConvertToTRTDims(buf_dims);
+    int origin_dims = weightDims.nbDims;
+    if(expand_dims > origin_dims) {
+        weightDims.nbDims = expand_dims;
+        int diff = expand_dims - origin_dims;
+        for(int i = expand_dims - 1; i >= diff; --i) {
+            weightDims.d[i] = weightDims.d[i-diff];
+        }
+        for(int i = 0; i < diff; ++i) {
+             weightDims.d[i] = 1;
+        }
+    }
+
     ILayer* constant_layer = network->addConstant(weightDims, const_weight); 
     return constant_layer;
 }
