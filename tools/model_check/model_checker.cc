@@ -474,27 +474,12 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blo
 }
 
 void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name) {
-    if (blob_dims.size() != 4) {
-        LOGE("output blob dims is not equal 4, will not dump data.\n");
-        return;
-    }
-
     std::ofstream f_out(output_name.c_str());
 
-    int batch       = blob_dims[0];
-    int channel     = blob_dims[1];
-    int height      = blob_dims[2];
-    int width       = blob_dims[3];
+    int count = DimsVectorUtils::Count(blob_dims);
     float* data_ptr = reinterpret_cast<float*>(blob_data);
-    for (int b = 0; b < batch; ++b) {
-        for (int c = 0; c < channel; ++c) {
-            for (int h = 0; h < height; ++h) {
-                for (int w = 0; w < width; ++w) {
-                    int index = b * channel * height * width + c * height * width + h * width + w;
-                    f_out << "[" << b << "," << c << "," << h << "," << w << "] " << data_ptr[index] << std::endl;
-                }
-            }
-        }
+    for (int index = 0; index < count; ++index) {
+        f_out << data_ptr[index] << std::endl;
     }
 
     f_out.close();
