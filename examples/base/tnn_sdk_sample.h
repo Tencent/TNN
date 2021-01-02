@@ -23,6 +23,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 
 #define TNN_SDK_ENABLE_BENCHMARK 1
@@ -47,6 +48,8 @@ struct ObjectInfo {
     std::vector<std::pair<float, float>> key_points = {};
     //key_points_3d <x y z>
     std::vector<triple<float,float,float>> key_points_3d = {};
+    //lines connecting key_points
+    std::vector<std::pair<int, int>> lines;
     
     float score = 0;
     int class_id = -1;
@@ -119,6 +122,10 @@ struct RGBA{
     unsigned char r, g, b, a;
 };
 
+class TNNSDKUtils {
+public:
+    static DeviceType GetFallBackDeviceType(DeviceType dev);
+};
 
 extern const std::string kTNNSDKDefaultName;
 class TNNSDKInput {
@@ -149,18 +156,23 @@ public:
     std::string model_content = "";
     std::string library_path = "";
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
+    Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
 };
 
 typedef enum {
     TNNInterpNearest = 0,
     TNNInterpLinear  = 1,
+    TNNInterpCubic   = 2,
 } TNNInterpType;
 
 typedef enum {
     TNNBorderConstant = 0,
     TNNBorderReflect  = 1,
     TNNBorderEdge     = 2,
+    TNNBorderReplicate = 3,
+    TNNBorderReflect101 = 4,
+    TNNBorderWrap = 5,
     
 } TNNBorderType;
 
@@ -193,6 +205,10 @@ public:
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
     Status Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst);
+    Status CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                          std::shared_ptr<TNN_NS::Mat> dst,
+                          int top, int bottom, int left, int right,
+                          TNNBorderType border_type, uint8_t border_value = 0);
 
 protected:
     BenchOption bench_option_;
@@ -230,6 +246,7 @@ protected:
 typedef enum {
     TNNHardNMS      = 0,
     TNNBlendingNMS  = 1,
+    TNNWeightedNMS  = 2,
 } TNNNMSType;
 
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);
