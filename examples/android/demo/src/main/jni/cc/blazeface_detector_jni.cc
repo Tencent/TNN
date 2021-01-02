@@ -243,7 +243,6 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
     std::shared_ptr<TNN_NS::TNNSDKOutput> output = std::make_shared<TNN_NS::TNNSDKOutput>();
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     std::vector<TNN_NS::BlazeFaceInfo> face_info = dynamic_cast<TNN_NS::BlazeFaceDetectorOutput *>(output.get())->face_list;
     LOGI("theithilehtisize %d \n", face_info.size());
     delete[] yuvData;

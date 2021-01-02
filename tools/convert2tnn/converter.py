@@ -32,7 +32,6 @@ def main():
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
-        input_names = args.input_names
         version = args.version
         optimize = args.optimize
         half = args.half
@@ -43,6 +42,11 @@ def main():
         output_dir = parse_path.parse_path(output_dir)
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
+        input_names = None
+        if args.input_names is not None:
+            input_names = ""
+            for item in args.input_names:
+                input_names += (item + " ")
 
         try:
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)

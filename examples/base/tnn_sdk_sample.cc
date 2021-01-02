@@ -16,12 +16,13 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 #include <cstring>
-#include <sys/time.h>
 #include <float.h>
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
+
+#include "sample_timer.h"
 
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
@@ -86,6 +87,7 @@ ObjectInfo ObjectInfo::FlipX() {
     info.class_id = this->class_id;
     info.image_width = this->image_width;
     info.image_height = this->image_width;
+    info.lines = this->lines;
     
     info.x1 = this->image_width - this->x2;
     info.x2 = this->image_width - this->x1;
@@ -148,10 +150,10 @@ float ObjectInfo::IntersectionRatio(ObjectInfo *obj) {
     float area1 = std::abs((this->x2 - this->x1) * (this->y2 - this->y1));
     float area2 = std::abs((obj->x2 - obj->x1) * (obj->y2 - obj->y1));
     
-    float x1 = std::max(obj->x1, this->x1);
-    float x2 = std::min(obj->x2, this->x2);
-    float y1 = std::max(obj->y1, this->y1);
-    float y2 = std::min(obj->y2, this->y2);
+    float x1 = (std::max)(obj->x1, this->x1);
+    float x2 = (std::min)(obj->x2, this->x2);
+    float y1 = (std::max)(obj->y1, this->y1);
+    float y2 = (std::min)(obj->y2, this->y2);
     
     float area = (x2 > x1 && y2 > y1) ? std::abs((x2 - x1) * (y2 - y1)) : 0;
     
@@ -168,15 +170,15 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
     info_orig.image_width = orig_image_width;
     info_orig.image_height = orig_image_height;
     
-    int x_min = std::min(this->x1, this->x2)*scale_x;
-    int x_max = std::max(this->x1, this->x2)*scale_x;
-    int y_min = std::min(this->y1, this->y2)*scale_y;
-    int y_max = std::max(this->y1, this->y2)*scale_y;
+    int x_min = (std::min)(this->x1, this->x2)*scale_x;
+    int x_max = (std::max)(this->x1, this->x2)*scale_x;
+    int y_min = (std::min)(this->y1, this->y2)*scale_y;
+    int y_max = (std::max)(this->y1, this->y2)*scale_y;
     
-    x_min = std::min(std::max(x_min, 0), orig_image_width-1);
-    x_max = std::min(std::max(x_max, 0), orig_image_width-1);
-    y_min = std::min(std::max(y_min, 0), orig_image_height-1);
-    y_max = std::min(std::max(y_max, 0), orig_image_height-1);
+    x_min = (std::min)((std::max)(x_min, 0), orig_image_width-1);
+    x_max = (std::min)((std::max)(x_max, 0), orig_image_width-1);
+    y_min = (std::min)((std::max)(y_min, 0), orig_image_height-1);
+    y_max = (std::min)((std::max)(y_max, 0), orig_image_height-1);
     
     info_orig.x1 = x_min;
     info_orig.x2 = x_max;
@@ -199,6 +201,7 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
                                                                      std::get<2>(item)));
     }
     info_orig.key_points_3d = key_points_3d;
+    info_orig.lines = lines;
     
     return info_orig;
 }
@@ -209,6 +212,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
     info.class_id = this->class_id;
     info.image_width = view_width;
     info.image_height = view_height;
+    info.lines = lines;
     
     float view_aspect = view_height/(float)(view_width + FLT_EPSILON);
     float object_aspect = this->image_height/(float)(this->image_width + FLT_EPSILON);
@@ -289,8 +293,8 @@ void BenchResult::Reset() {
 int BenchResult::AddTime(float time) {
     count++;
     total += time;
-    min = std::min(min, time);
-    max = std::max(max, time);
+    min = (std::min)(min, time);
+    max = (std::max)(max, time);
     avg = total / count;
     return 0;
 }
@@ -305,6 +309,25 @@ std::string BenchResult::Description() {
     ostr << std::endl;
 
     return ostr.str();
+}
+
+DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
+    switch (dev) {
+        case DEVICE_CUDA:
+            return DEVICE_X86;
+        case DEVICE_RK_NPU:
+        case DEVICE_HUAWEI_NPU:
+        case DEVICE_METAL:
+        case DEVICE_OPENCL:
+        case DEVICE_ATLAS:
+        case DEVICE_DSP:
+            return DEVICE_ARM;
+        case DEVICE_X86:
+        case DEVICE_ARM:
+        case DEVICE_NAIVE:
+            return dev;
+    }
+    return DEVICE_NAIVE;
 }
 
 #pragma mark - TNNSDKInput
@@ -486,6 +509,39 @@ Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
     return status;
 }
 
+Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                      std::shared_ptr<TNN_NS::Mat> dst,
+                      int top, int bottom, int left, int right,
+                                    TNNBorderType border_type, uint8_t border_value) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    CopyMakeBorderParam param;
+    param.border_val = border_value;
+    param.top = top;
+    param.bottom = bottom;
+    param.left = left;
+    param.right = right;
+    param.border_type = BORDER_TYPE_CONSTANT;
+    if (border_type == TNNBorderEdge)
+        param.border_type = BORDER_TYPE_EDGE;
+    else if (border_type == TNNBorderReflect)
+        param.border_type = BORDER_TYPE_REFLECT;
+    
+    status = MatUtils::CopyMakeBorder(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("copy failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
 void TNNSDKSample::setNpuModelPath(std::string stored_path)
 {
     model_path_str_ = stored_path;
@@ -521,23 +577,30 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_ = TNN_NS::DEVICE_OPENCL;
 #endif
-    }
-    else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
+    } else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
+    } else if (option->compute_units == TNNComputeUnitsOpenvino) {
+        device_type_ = TNN_NS::DEVICE_X86;
+    } else if (option->compute_units == TNNComputeUnitsTensorRT) {
+        device_type_ = TNN_NS::DEVICE_CUDA;
     }
-    
     //创建实例instance
     {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
+        network_config.precision = option->precision;
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
+        } else if (device_type_ == TNN_NS::DEVICE_X86) {
+            network_config.network_type = NETWORK_TYPE_OPENVINO;
+        } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
+            network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
         auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
 
@@ -668,10 +731,10 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
+        TNN_NS::SampleTimer sample_time;
+        sample_time.Start();
 #endif
-        
+
         // step 1. set input mat
         auto input_names = GetInputNames();
         if (input_names.size() == 1) {
@@ -689,7 +752,7 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
-        
+
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -698,28 +761,31 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         }
 
         // step 3. get output mat
+        auto input_device_type = input->GetMat()->GetDeviceType();
         output = CreateSDKOutput();
         auto output_names = GetOutputNames();
         if (output_names.size() == 1) {
             auto output_convert_param = GetConvertParamForOutput();
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-            status = instance_->GetOutputMat(output_mat, output_convert_param);
+            status = instance_->GetOutputMat(output_mat, output_convert_param, "",
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
-                  auto output_convert_param = GetConvertParamForOutput(name);
-                  std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-                  status = instance_->GetOutputMat(output_mat, output_convert_param, name);
-                  RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-                  output->AddMat(output_mat, name);
-              }
+                auto output_convert_param = GetConvertParamForOutput(name);
+                std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+                status = instance_->GetOutputMat(output_mat, output_convert_param, name,
+                                                 TNNSDKUtils::GetFallBackDeviceType(input_device_type));
+                RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+                output->AddMat(output_mat, name);
+            }
         }
   
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+        sample_time.Stop();
+        double elapsed = sample_time.GetTime();
         bench_result_.AddTime(elapsed);
 #endif
         
@@ -773,7 +839,7 @@ TNN_NS::Status TNNSDKComposeSample::Predict(std::shared_ptr<TNNSDKInput> input,
 }
 
 /*
-* NMS, supporting hard-nms and blending-nms
+* NMS, supporting hard-nms, blending-nms and weighted-nms
 */
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type) {
     std::sort(input.begin(), input.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
@@ -858,6 +924,31 @@ void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float 
                 output.push_back(rects);
                 break;
             }
+            case TNNWeightedNMS: {
+                float total = 0;
+                for (int i = 0; i < buf.size(); i++) {
+                    total += buf[i].score;
+                }
+                ObjectInfo rects;
+                memset(&rects, 0, sizeof(rects));
+                rects.key_points.resize(buf[0].key_points.size());
+                for (int i = 0; i < buf.size(); i++) {
+                    float rate = buf[i].score / total;
+                    rects.x1 += buf[i].x1 * rate;
+                    rects.y1 += buf[i].y1 * rate;
+                    rects.x2 += buf[i].x2 * rate;
+                    rects.y2 += buf[i].y2 * rate;
+                    rects.score += buf[i].score * rate;
+                    for(int j = 0; j < buf[i].key_points.size(); ++j) {
+                        rects.key_points[j].first += buf[i].key_points[j].first * rate;
+                        rects.key_points[j].second += buf[i].key_points[j].second * rate;
+                    }
+                    rects.image_height = buf[0].image_height;
+                    rects.image_width  = buf[0].image_width;
+                }
+                output.push_back(rects);
+                break;
+            }
             default: {
             }
         }
@@ -874,15 +965,15 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
     
     RGBA *image_rgba = (RGBA *)data_rgba;
 
-    int x_min = std::min(x0, x1) * scale_x;
-    int x_max = std::max(x0, x1) * scale_x;
-    int y_min = std::min(y0, y1) * scale_y;
-    int y_max = std::max(y0, y1) * scale_y;
+    int x_min = (std::min)(x0, x1) * scale_x;
+    int x_max = (std::max)(x0, x1) * scale_x;
+    int y_min = (std::min)(y0, y1) * scale_y;
+    int y_max = (std::max)(y0, y1) * scale_y;
 
-    x_min = std::min(std::max(x_min, 0), image_width - 1);
-    x_max = std::min(std::max(x_max, 0), image_width - 1);
-    y_min = std::min(std::max(y_min, 0), image_height - 1);
-    y_max = std::min(std::max(y_max, 0), image_height - 1);
+    x_min = (std::min)((std::max)(x_min, 0), image_width - 1);
+    x_max = (std::min)((std::max)(x_max, 0), image_width - 1);
+    y_min = (std::min)((std::max)(y_min, 0), image_height - 1);
+    y_max = (std::min)((std::max)(y_max, 0), image_height - 1);
 
     // top bottom
     for (int x = x_min; x <= x_max; x++) {
@@ -920,15 +1011,15 @@ void Point(void *data_rgba, int image_height, int image_width, int x, int y, flo
     int y_start = (y-1) * scale_y;
     int y_end   = (y+1) * scale_y;
 
-    x_center = std::min(std::max(0, x_center), image_width  - 1);
-    y_center = std::min(std::max(0, y_center), image_height - 1);
+    x_center = (std::min)((std::max)(0, x_center), image_width  - 1);
+    y_center = (std::min)((std::max)(0, y_center), image_height - 1);
     
-    x_start = std::min(std::max(0, x_start), image_width - 1);
-    x_end   = std::min(std::max(0, x_end), image_width - 1);
-    y_start = std::min(std::max(0, y_start), image_height - 1);
-    y_end   = std::min(std::max(0, y_end), image_height - 1);
+    x_start = (std::min)((std::max)(0, x_start), image_width - 1);
+    x_end   = (std::min)((std::max)(0, x_end), image_width - 1);
+    y_start = (std::min)((std::max)(0, y_start), image_height - 1);
+    y_end   = (std::min)((std::max)(0, y_end), image_height - 1);
     
-    unsigned char color = std::min(std::max(0, int(175 + z*80)), 255);
+    unsigned char color = (std::min)((std::max)(0, int(175 + z*80)), 255);
     
     for(int x = x_start; x<=x_end; ++x) {
         int offset                       = y_center * image_width + x;

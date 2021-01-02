@@ -62,6 +62,14 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
             LOGD("build bilinear\n");
             kernel_name = "Bilinear";
         }
+    } else if (upsample_param->mode == 3) {  // cubic
+        if (upsample_param->align_corners) {
+            LOGD("build cubic with aligned corners\n");
+            kernel_name = "CubicAlignCorners";
+        } else {
+            LOGD("build cubic\n");
+            kernel_name = "Cubic";
+        }
     } else {
         LOGE("Not support Upsample type: %d\n", upsample_param->mode);
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
@@ -105,7 +113,7 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     float height_scale;
     float width_scale;
-    if (upsample_param->mode == 2 && upsample_param->align_corners) {
+    if ((upsample_param->mode == 2 || upsample_param->mode == 3) && upsample_param->align_corners) {
         height_scale = (float)(input_height - 1) / (float)(output_height - 1);
         width_scale  = (float)(input_width - 1) / (float)(output_width - 1);
     } else {
