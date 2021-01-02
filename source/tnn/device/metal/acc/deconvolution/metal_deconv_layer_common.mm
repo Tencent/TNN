@@ -33,6 +33,17 @@ static int LeastCommonMultiple(int m, int n) {
     return m * n / a;
 }
 
+Status MetalDeconvLayerCommon::ComputeDeconvParam(MetalConvParams& metal_params) {
+    metal_params.kernel_delta_y =
+        LeastCommonMultiple(metal_params.dilation_y, metal_params.stride_y) / metal_params.dilation_y;
+    metal_params.kernel_delta_x =
+        LeastCommonMultiple(metal_params.dilation_x, metal_params.stride_x) / metal_params.dilation_x;
+    metal_params.input_delta_y = metal_params.kernel_delta_y * metal_params.dilation_y / metal_params.stride_y;
+    metal_params.input_delta_x = metal_params.kernel_delta_x * metal_params.dilation_x / metal_params.stride_x;
+
+    return TNN_OK;
+}
+
 bool MetalDeconvLayerCommon::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs) {
     return true;
@@ -85,12 +96,8 @@ Status MetalDeconvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &in
         metal_params.threadgroup_input_slice = metal_params.input_slice;
         //            metal_params.batch = dims_output[0];
         
-        metal_params.kernel_delta_y =
-            LeastCommonMultiple(metal_params.dilation_y, metal_params.stride_y) / metal_params.dilation_y;
-        metal_params.kernel_delta_x =
-            LeastCommonMultiple(metal_params.dilation_x, metal_params.stride_x) / metal_params.dilation_x;
-        metal_params.input_delta_y = metal_params.kernel_delta_y * metal_params.dilation_y / metal_params.stride_y;
-        metal_params.input_delta_x = metal_params.kernel_delta_x * metal_params.dilation_x / metal_params.stride_x;
+        auto status = ComputeDeconvParam(metal_params);
+        RETURN_ON_NEQ(status, TNN_OK);
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalConvParams)

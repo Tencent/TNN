@@ -135,7 +135,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
 
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(output.get())->object_list;
     delete [] yuvData;
     delete [] rgbaData;

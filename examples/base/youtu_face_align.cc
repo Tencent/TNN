@@ -152,12 +152,13 @@ Status YoutuFaceAlign::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_p
 
         // step 3. get output mat of phase1 model
         output = CreateSDKOutput();
+        auto input_device_type = input_mat->GetDeviceType();
         auto output_names = GetOutputNames();
-        
         for (auto name : output_names) {
             auto output_convert_param = GetConvertParamForOutput(name);
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-            status = instance_->GetOutputMat(output_mat, output_convert_param, name, input_mat->GetDeviceType());
+            status = instance_->GetOutputMat(output_mat, output_convert_param, name,
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, name);
         }
