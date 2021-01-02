@@ -12,14 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_relu_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
-
-DECLARE_ARM_ACC(Relu, LAYER_RELU);
 
 Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input  = inputs[0];
@@ -50,13 +48,7 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
-        count = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
-        fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
-        fp16_t *src = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
-        Half8 vzero = Half8((fp16_t)0.f);
-        for (long i = 0; i < count; i += 8) {
-            Half8::save(dst + i, Half8::max(Half8::load(src + i), vzero));
-        }
+        ExecFp16(inputs, outputs);
     }
 #endif
     else {

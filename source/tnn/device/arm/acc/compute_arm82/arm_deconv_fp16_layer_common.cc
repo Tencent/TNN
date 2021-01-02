@@ -59,12 +59,13 @@ Status ArmDeconvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> 
             RawBuffer filter_half(weight_nchw_count * data_byte_size);
             Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
+            // using int16_t to copy weights
+            ConvertWeightsFromGIOHWToGOHWI64(filter_half.force_to<int16_t *>(), temp_buffer.force_to<int16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<fp16_t *>(),
-                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGIOHWToGOHWI64(conv_res->filter_handle.force_to<int16_t *>(),
+                                             temp_buffer.force_to<int16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
@@ -131,6 +132,7 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
     int ic_step;
     int ic_counter;
     int w_step;
+#ifdef TNN_ARM82_A64
     auto DeconvFunc = DeconvFp16O8;
     int CONVOLUTION_TILED_NUMBER = 14;
     if (gic < 8) {
@@ -148,12 +150,26 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
         ic_counter = gic_8;
         w_step = 8;
     }
+#else
+    auto DeconvFunc = DeconvFp16O8;
+    int CONVOLUTION_TILED_NUMBER = 8;
+    if (gic < 8) {
+        weight_z_step  = kernel_y * kernel_x * gic * 8;
+        src_z_step     = k_param_->iw * k_param_->ih * 1;
+        ic_step = gic;
+        ic_counter = gic;
+        w_step = 1;
+        DeconvFunc = DeconvFp16O8C1;
+    } else {
+        weight_z_step  = kernel_y * kernel_x * gic_8 * 64;
+        src_z_step     = k_param_->iw * k_param_->ih * 8;
+        ic_step = gic_8 * 8;
+        ic_counter = gic_8;
+        w_step = 8;
+    }
+#endif
     int dst_z_step     = k_param_->ow * k_param_->oh * 8;
     int dst_z_step_pad = dst_w_pad * dst_h_pad * 8;
-
-    int dilate_y_step = dst_w_pad * 8 * conv_param->dialations[1];
-    int dilate_x_step = 8 * conv_param->dialations[0];
-    int dst_w_step    = conv_param->strides[0] * 8;
 
     int loop   = input_width / CONVOLUTION_TILED_NUMBER;
     int remain = input_width % CONVOLUTION_TILED_NUMBER;
@@ -209,8 +225,13 @@ Status ArmDeconvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, co
                         auto x_count = MIN(CONVOLUTION_TILED_NUMBER, k_param_->iw - x_idx);
                         auto src_x   = input_g_ptr + dy * k_param_->iw * w_step + x_idx * w_step;
                         auto dst_x   = dst_y + x_idx * conv_param->strides[0] * 8;
-                        DeconvFunc((__fp16*)dst_x, (const __fp16*)src_x, (const __fp16*)weight_z, x_count, dst_w_step, ic_counter, src_z_step,
-                                     conv_param->kernels[0], conv_param->kernels[1], dilate_x_step, dilate_y_step);
+                        // avoid using too much variables inside omp region when compile armv7
+                        // int dilate_y_step = dst_w_pad * 8 * conv_param->dialations[1];
+                        // int dilate_x_step = 8 * conv_param->dialations[0];
+                        // int dst_w_step    = conv_param->strides[0] * 8;
+                        DeconvFunc((fp16_t*)dst_x, (const fp16_t*)src_x, (const fp16_t*)weight_z, x_count,
+                                    conv_param->strides[0] * 8, ic_counter, src_z_step, conv_param->kernels[0], conv_param->kernels[1],
+                                    8 * conv_param->dialations[0], dst_w_pad * 8 * conv_param->dialations[1]);
                     }
                 }
             }
