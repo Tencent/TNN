@@ -56,9 +56,13 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
 
     is_ssd = checker.is_ssd_model(proto_path)
     if is_ssd:
-        onnx2tnn.convert(onnx_path, output_dir, version, False, half)
+        onnx2tnn.convert(onnx_path, output_dir, version, False, half, is_ssd=True)
     else:
         onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
+
+    if is_ssd and ((input_path is None) or (refer_path is None)):
+        align = False
+        optimize = False
 
     if align is True:
         proto_suffix = '.tnnproto'

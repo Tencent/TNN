@@ -113,6 +113,10 @@ void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int wi
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width);
 
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width);
+
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width);
+
 }  // namespace TNN_NS
 
 #endif

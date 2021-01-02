@@ -64,6 +64,8 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_HUAWEI_NPU;
     } else if ("RKNPU" == network_type) {
         return NETWORK_TYPE_RK_NPU;
+    } else if ("TRT" == network_type) {
+        return NETWORK_TYPE_TENSORRT;
     } else {
         return NETWORK_TYPE_DEFAULT;
     }

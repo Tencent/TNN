@@ -111,6 +111,85 @@ cd <path_to_tnn>/scripts
 ./build_arm_linux.sh
 ```
 
+## 四、Linux 环境编译
+### 1.环境要求
+依赖库
+  - cmake (使用3.11版本及以上)
+  - 网络访问
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+./build_linux.sh
+```
+
+## 五、Linux CUDA库编译
+### 1.环境要求
+#### 依赖库
+  - cmake (使用3.8及以上版本）
+  - CUDA (使用10.2及以上版本)
+
+#### TensorRT配置
+  - 下载TensorRT(>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - 配置环境变量 `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN配置
+  - 下载CuDNN(>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - 配置环境变量 `export CUDNN_ROOT_DIR=<CuDNN_path>`
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2) 执行编译脚本
+```
+./build_cuda_linux.sh
+```
+
+## 六、Windows 环境编译
+### 1.环境要求
+依赖库
+  - Visual Studio (2017 及更高版本)
+  - cmake (把3.11及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+  - 网络访问
+
+### 2.编译步骤
+打开 `x64 Native Tools Command Prompt for VS 2017/2019`.
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+.\build_msvc.bat [VS2017/VS2019]
+```
+如遇不能识别 Visual Studio 请手动指定版本
+更多编译问题请参考 [FAQ](openvino.md)
+
+
+## 七、Macos 环境编译
+### 1.环境要求
+依赖库
+  - cmake 3.11 以上版本 
+  - xcode command line tools (需提前在应用商店安装好Xcode，然后再命令行执行xcode-select --install )
+  - automake, libtool (可通过brew安装，指令是brew install libtool, brew install automake)
+  - 网络访问
+
+### 2.编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）执行编译脚本
+```
+./build_macos.sh
+```
+
 ## 编译参数option说明
 
 |Option|默认值|说明|
@@ -121,7 +200,7 @@ cd <path_to_tnn>/scripts
 |TNN_ARM82_ENABLE| OFF | 代码source/device/arm/acc/compute_arm82编译开关，代码包含fp16指令加速。|
 |TNN_METAL_ENABLE| OFF | 代码source/device/metal编译开关，代码包含metal加速指令。|
 |TNN_OPENCL_ENABLE| OFF | 代码source/device/opencl编译开关，代码包含opencl加速指令。|
-|TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，代码包含cuda加速指令, 当前仅迁移了小部分实现。|
+|TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，当前适配TensorRT实现，后续会迁入更多加速代码实现。|
 |TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
 |TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/huawei_npu编译开关，当前适配HiAI加速框架。|
@@ -134,3 +213,4 @@ cd <path_to_tnn>/scripts
 |TNN_QUANTIZATION_ENABLE| OFF | 量化工具编译开关|
 |TNN_BENCHMARK_MODE| OFF | benchmark开关，打开后支持model weights文件为空，可自动生成数据。|
 |TNN_ARM82_SIMU| OFF | ARM82仿真开关，需要和TNN_ARM82_ENABLE同时打开，打开后可以在普通CPU上运行half实现代码。|
+

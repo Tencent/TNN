@@ -28,7 +28,7 @@ class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
                             std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
                                             testing::Values(1, 2, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
@@ -89,6 +89,10 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_CUDA == dev && (activation_type == ActivationType_SIGMOID_MUL || dilation != 1))  {
+        GTEST_SKIP();
+    }
+
     if (kernel <= 1) {
         pad = 0;
     } else if (kernel == 2) {
@@ -112,16 +116,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     param->pads = {pad, pad, pad, pad};
     param->bias = 1;
 
-    if (DEVICE_HUAWEI_NPU == dev) {
-        param->bias = 0;
-    }
-
     if (output_pad > 0) {
         param->pad_type = 3;
-    }
-
-    if (param->pad_type != 0 && param->pad_type != 1 && param->pad_type != -1 && DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
     }
 
     Precision precision = SetPrecision(dev, data_type);

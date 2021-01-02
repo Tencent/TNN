@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/common.h"
@@ -51,22 +51,21 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_CUDA;
     } else if ("ARM" == device_type) {
         return DEVICE_ARM;
+    } else if ("HUAWEI_NPU" == device_type) {
+        return DEVICE_HUAWEI_NPU;
     } else {
         return DEVICE_NAIVE;
     }
 }
 
-int InitModelConfig(ModelConfig& model_config, std::string proto_file,
-                    std::string model_file) {
+int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::string model_file) {
     {
         std::ifstream proto_stream(proto_file);
         if (!proto_stream.is_open() || !proto_stream.good()) {
             printf("read proto_file failed!\n");
             return -1;
         }
-        auto buffer =
-            std::string((std::istreambuf_iterator<char>(proto_stream)),
-                        std::istreambuf_iterator<char>());
+        auto buffer = std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
         model_config.params.push_back(buffer);
     }
 
@@ -76,9 +75,7 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file,
             printf("read model_file failed!\n");
             return -1;
         }
-        auto buffer =
-            std::string((std::istreambuf_iterator<char>(model_stream)),
-                        std::istreambuf_iterator<char>());
+        auto buffer = std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
         model_config.params.push_back(buffer);
     }
     return 0;
@@ -123,7 +120,8 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_check [-h] [-p] [-m] [-d] [-i] [-o] [-f] [-n] [-s]\n"
+        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-c] [-f] "
+        "<refernece> [-n] <val> [-s] <val>\n"
         "\t-h, --help     \t show this message\n"
         "\t-p, --proto    \t(require) tnn proto file path\n"
         "\t-m, --model    \t(require) tnn model file path\n"
@@ -131,6 +129,7 @@ void PrintConfig() {
         "OPENCL, METAL, ARM, CUDA\n"
         "\t-i, --input    \t(optional) input file\n"
         "\t-o, --output   \t(optional) dump output\n"
+        "\t-e, --end      \t(optional) compare output only\n"
         "\t-r, --ref      \t(optional) the reference output to compare\n"
         "\t-n, --bias     \t(optional) bias val when preprocess image "
         "input, ie, "
@@ -160,13 +159,14 @@ int main(int argc, char* argv[]) {
                                     {"device", required_argument, 0, 'd'},
                                     {"input", required_argument, 0, 'i'},
                                     {"output", no_argument, 0, 'o'},
+                                    {"end", no_argument, 0, 'e'},
                                     {"ref", required_argument, 0, 'f'},
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:of:n:s:h";
+    const char* optstring = "p:m:d:i:ocf:n:s:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -198,6 +198,10 @@ int main(int argc, char* argv[]) {
             case 'o':
                 printf("dump output\n");
                 model_checker_param.dump_output = true;
+                break;
+            case 'e':
+                printf("compare output only\n");
+                model_checker_param.only_check_output = true;
                 break;
             case 'f':
                 printf("reference output file: %s\n", optarg);
@@ -231,23 +235,26 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if ("" == model_checker_param.input_file.first &&
-        "" != model_checker_param.ref_file.first) {
+    if ("" == model_checker_param.input_file.first && "" != model_checker_param.ref_file.first) {
         printf("Error: there is no input file for output reference file!\n");
         return -1;
+    }
+
+    // for HuaweiNPU only check output
+    if (net_config.device_type == DEVICE_HUAWEI_NPU) {
+        model_checker_param.only_check_output = true;
+        net_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
     }
 
     // only for metal device
     if (net_config.device_type == DEVICE_METAL) {
         //获取当前目录绝对路径
-        auto current_absolute_path = std::shared_ptr<char>(
-            (char*)calloc(2048, sizeof(char)), [](char* p) { free(p); });
+        auto current_absolute_path = std::shared_ptr<char>((char*)calloc(2048, sizeof(char)), [](char* p) { free(p); });
         if (NULL != realpath("./", current_absolute_path.get())) {
             //获取当默认metallib路径
             strcat(current_absolute_path.get(), "/tnn.metallib");
             LOGD("Metal library path:%s\n", current_absolute_path.get());
-            net_config.library_path = {
-                std::string(current_absolute_path.get())};
+            net_config.library_path = {std::string(current_absolute_path.get())};
         }
     }
 
@@ -257,7 +264,7 @@ int main(int argc, char* argv[]) {
 
     ModelChecker model_checker;
     net_config.precision = PRECISION_HIGH;
-    Status status = model_checker.Init(net_config, model_config);
+    Status status        = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed!\n");
         return -1;

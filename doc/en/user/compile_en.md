@@ -108,6 +108,83 @@ cd <path_to_tnn>/scripts
 ./build_arm_linux.sh
 ```
 
+## IV. Compile(x86 Linux)
+### 1. Enviromnment requirements
+#### Dependencies
+  - cmake (version 3.7.2 or higher)
+
+### 2. Compilation Steps
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+./build_linux.sh
+```
+
+## V. Compile(Linux CUDA)
+### 1. Enviromnment requirements
+#### Dependency
+  - cmake（version 3.8 or higher）
+  - CUDA (version 10.2 or higher)
+
+#### TensorRT configuration
+  - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - Configure the TensorRT path in env `export TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN configuration
+  - Download CuDNN (version>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - Configure the CuDNN path in env `export CUDNN_ROOT_DIR=<CuDNN_path>`
+
+### 2. Compilation Steps
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+./build_cuda_linux.sh
+```
+
+## VI. Compile(x86 Windows)
+### 1. Environment requirements
+#### Dependencies
+  - Visual Studio (version 2015 or higher)
+  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
+
+### 2. Compilation Steps
+Open `x64 Native Tools Command Prompt for VS 2017/2019`.
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+.\build_msvc.bat [VS2015/VS2017/VS2019]
+```
+If Visual Studio cannot be recognized, please refer to a version manually
+More problems refer to [FAQ](openvino_en.md)
+
+
+## VII. Compile(Macos)
+### 1. Environment requirements
+#### Dependencies
+  - cmake 3.11 or above
+  - xcode command line tools (Xcode shall be installed in AppStore，then execute ``xcode-select --install`` in terminal) 
+  - automake, libtool (can be installed with brew, ```brew install libtool automake```)
+  - Network access
+
+### 2. Compilation Steps
+1）switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2）execute the building scripts
+```
+./build_macos.sh
+```
+
 ## Description for build options 
 
 |Option|Default|Description|
@@ -131,3 +208,4 @@ cd <path_to_tnn>/scripts
 |TNN_QUANTIZATION_ENABLE| OFF | Quantization tool compilation switch|
 |TNN_BENCHMARK_MODE| OFF | Benchmark switch, after opening, the model weights file is empty, and data can be automatically generated.|
 |TNN_ARM82_SIMU | OFF | Armv8.2 simulation switch, should be open together with TNN_ARM82_ENABLE, after opening, the code can be run on the CPU which without half precision support. |
+

@@ -26,7 +26,6 @@ import os
 import onnxruntime
 import sys
 
-import tensorflow as tf
 import numpy as np
 
 
@@ -85,6 +84,8 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
     return output_path
 
 def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
+    import tensorflow as tf
+
     output_path = input_path
     deli = "/"
     if output_path[-1] == "":
@@ -147,6 +148,7 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
     return input_info
 
 def get_input_shape_from_tflite(tflite_path)->dict:
+    import tensorflow as tf
     input_info: dict={}
     interpreter = tf.lite.Interpreter(tflite_path)
     interpreter.allocate_tensors()
@@ -226,17 +228,26 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
 
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
-    for inp in input_names.split(";"):
-        name, shape_ = inp.split(":")
-        shape = []
-        for dim in shape_.split(","):
-            shape.append(int(dim))
-
-        shape[0] = 1
-
-        input_info[name] = shape
+    for x in input_names.split(" "):
+        if ':' not in x:
+            input_info[None] = list(map(int, x.split(',')))
+        else:
+            pieces = x.split(':')
+            # for the input name like input:0
+            name, shape = ':'.join(
+                pieces[:-1]), list(map(int, pieces[-1].split(',')))
+            input_info[name] = shape
 
     return input_info
+
+
+def replace_tnn_input_name(input_info: dict):
+    new_input_info = {}
+    for name, shape in input_info.items():
+        new_name = name.replace(":", "_")
+        new_input_info[new_name] = shape
+
+    return new_input_info
 
 
 def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
@@ -254,11 +265,10 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
 
-    if input_names is not None:
-        input_info = parse_input_names(input_names)
     # check input
     if input_names is not None:
-        tnn_input_info = input_info
+        input_info = parse_input_names(input_names)
+        tnn_input_info = replace_tnn_input_name(input_info)
         onnx_input_info = input_info
     else:
         tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
