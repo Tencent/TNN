@@ -44,10 +44,10 @@ ModelChecker::ModelChecker() {
 }
 
 ModelChecker::~ModelChecker() {
-    instance_device_.reset();
-    instance_cpu_.reset();
-    tnn_cpu_.reset();
-    tnn_device_.reset();
+    instance_device_ = nullptr;
+    instance_cpu_ = nullptr;
+    tnn_cpu_ = nullptr;
+    tnn_device_ = nullptr;
 }
 
 Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape) {
@@ -62,16 +62,26 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, 
 
     NetworkConfig net_config_cpu;
     net_config_cpu.device_type = DEVICE_NAIVE;
-    instance_cpu_              = tnn_cpu_->CreateInst(net_config_cpu, status);
+    if (net_config.device_type == DEVICE_NAIVE) {
+        net_config_cpu = net_config;
+    }
+    instance_cpu_ = tnn_cpu_->CreateInst(net_config_cpu, status);
     if (status != TNN_OK) {
         LOGE("create cpu instance falied: %s\n", status.description().c_str());
-        return Status(TNNERR_INST_ERR, "create cpu instance falied");
+        return status;
+    }
+
+    //仅仅比较naive和给定输出的情况
+    if (net_config.device_type == DEVICE_NAIVE) {
+        instance_device_ = instance_cpu_;
+        return TNN_OK;
     }
 
     // tnn_device_ init
-    tnn_device_.reset(new TNN());
+    tnn_device_ = std::make_shared<TNN>();
     status = tnn_device_->Init(model_config);
     if (status != TNN_OK) {
+        tnn_device_ = nullptr;
         LOGE("tnn init falied: %s!\n", status.description().c_str());
         return Status(TNNERR_NET_ERR, "tnn init falied");
     }
@@ -94,8 +104,10 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
+        LOGE("ModelChecker::RunModelChecker only check output of network\n");
         ret = RunModelCheckerOutput();
     } else {
+        LOGE("ModelChecker::RunModelChecker check output of all layer\n");
         ret = RunModelCheckerPerLayer();
     }
 
@@ -154,33 +166,34 @@ Status ModelChecker::RunModelCheckerPerLayer() {
 
 Status ModelChecker::RunModelCheckerOutput() {
     // feed instance input
-    Status ret = FeedInputData();
-    if (ret != TNN_OK) {
-        return Status(TNNERR_COMMON_ERROR, "feed input data failed");
-    }
+    auto status = FeedInputData();
+    RETURN_ON_NEQ(status, TNN_OK);
 
     // get ref output data
-    ret = GetOutputRefData();
-    if (ret != TNN_OK) {
-        return Status(TNNERR_COMMON_ERROR, "get output reference data failed");
+    status = GetOutputRefData();
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    if (output_ref_data_map_.empty() && instance_device_ == instance_cpu_) {
+        LOGE("output file must be specified with option -f when check tnn result with device = NAIVE\n");
+        return Status(TNNERR_COMMON_ERROR, "output file must be specified with option -f when check tnn result with device = NAIVE");
     }
 
     // get ref output blob data
-    if (output_ref_data_map_.empty()) {
-        instance_cpu_->Forward();
-        ret = GetOutputData(instance_cpu_.get(), output_ref_data_map_);
-        if (ret != TNN_OK) {
-            return Status(TNNERR_COMMON_ERROR, "get cpu output data failed");
-        }
+    if (output_ref_data_map_.empty() && instance_device_ != instance_cpu_) {
+        status = instance_cpu_->Forward();
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        status = GetOutputData(instance_cpu_.get(), output_ref_data_map_);
+        RETURN_ON_NEQ(status, TNN_OK);
     }
 
     // get device output blob data
-    instance_device_->Forward();
+    status = instance_device_->Forward();
+    RETURN_ON_NEQ(status, TNN_OK);
+
     std::map<std::string, std::shared_ptr<char>> device_output_map;
-    ret = GetOutputData(instance_device_.get(), device_output_map);
-    if (ret != TNN_OK) {
-        return Status(TNNERR_COMMON_ERROR, "get cpu output data failed");
-    }
+    status = GetOutputData(instance_device_.get(), device_output_map);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     // compare data diff and cos-distance
     bool check_pass = true;
@@ -206,8 +219,8 @@ Status ModelChecker::RunModelCheckerOutput() {
 
         if (model_checker_params_.dump_output) {
             LOGE("dump blob (%s) data\n", blob_name.c_str());
-            DumpBlobData(output_ref_data_map_[blob_name].get(), cpu_blob_dims, "cpu_" + blob_name + ".txt");
-            DumpBlobData(device_output_map[blob_name].get(), device_blob_dims, "device_" + blob_name + ".txt");
+            DumpBlobData(output_ref_data_map_[blob_name].get(), cpu_blob_dims, "/Users/darrenyao/Projects/MLProjects/TNN-Github3/tools/convert2tnn/temp_data/cpu_" + blob_name + ".txt");
+            DumpBlobData(device_output_map[blob_name].get(), device_blob_dims, "/Users/darrenyao/Projects/MLProjects/TNN-Github3/tools/convert2tnn/temp_data/device_" + blob_name + ".txt");
         }
     }
     if (check_pass) {
@@ -219,7 +232,8 @@ Status ModelChecker::RunModelCheckerOutput() {
 
 Status ModelChecker::FeedInputData() {
     BlobMap input_blobs_cpu;
-    instance_cpu_->GetAllInputBlobs(input_blobs_cpu);
+    auto status = instance_cpu_->GetAllInputBlobs(input_blobs_cpu);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     // feed cpu instance input
     std::string input_name = model_checker_params_.input_file.first;
@@ -227,7 +241,7 @@ Status ModelChecker::FeedInputData() {
         FileReader file_reader;
         file_reader.SetBiasValue(model_checker_params_.input_bias);
         file_reader.SetScaleValue(model_checker_params_.input_scale);
-        Status status        = file_reader.Read(input_blobs_cpu, input_name, model_checker_params_.input_file.second);
+        status = file_reader.Read(input_blobs_cpu, input_name, model_checker_params_.input_file.second);
         if (status != TNN_OK) {
             LOGE("read input file (%s) falied!\n", input_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "read input failed");
@@ -243,20 +257,25 @@ Status ModelChecker::FeedInputData() {
         }
     }
 
+    if (instance_device_ == instance_cpu_) {
+        return TNN_OK;
+    }
+
     // copy cpu blob data to device blob data
     BlobMap input_blobs_device;
-    instance_device_->GetAllInputBlobs(input_blobs_device);
+    status = instance_device_->GetAllInputBlobs(input_blobs_device);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     void* command_queue;
-    instance_device_->GetCommandQueue(&command_queue);
+    status = instance_device_->GetCommandQueue(&command_queue);
+    RETURN_ON_NEQ(status, TNN_OK);
     for (auto item : input_blobs_device) {
         MatConvertParam param;
         BlobConverter blob_converter(item.second);
         TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, input_blobs_cpu[item.first]->GetHandle().base);
-        Status ret = blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
-        if (ret != TNN_OK) {
-            LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
-            return Status(TNNERR_COMMON_ERROR, "run blob_converter failed");
-        }
+        //NOTE: 待解决，devicve = NAIVE的时候， ConvertFromMat会 crash
+        status = blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
+        RETURN_ON_NEQ(status, TNN_OK);
     }
 
     return TNN_OK;

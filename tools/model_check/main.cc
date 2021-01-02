@@ -14,6 +14,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
+#include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 
 #include "file_reader.h"
@@ -166,7 +167,7 @@ int main(int argc, char* argv[]) {
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:ocf:n:s:h";
+    const char* optstring = "p:m:d:i:oef:n:s:h";
 
     if (argc == 1) {
         PrintConfig();
