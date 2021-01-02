@@ -17,7 +17,7 @@
 namespace TNN_NS {
 
 #if TNN_ARM82
-typedef struct arm_relu6_operator : arm_unary_operator {
+typedef struct arm_relu6_fp16_operator {
     virtual Half8 operator()(const Half8 &v) {
         return Half8::min(Half8(fp16_t(6.0)), Half8::max(Half8(fp16_t(0.0)), v));
     }
