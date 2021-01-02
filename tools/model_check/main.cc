@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
 
     if (argc == 1) {
         PrintConfig();
-        return 0;
+        return -1;
     }
 
     while (1) {
@@ -229,10 +229,10 @@ int main(int argc, char* argv[]) {
             case 'h':
             case '?':
                 PrintConfig();
-                return 0;
+                return -1;
             default:
                 PrintConfig();
-                break;
+                return -1;
         }
     }
 
