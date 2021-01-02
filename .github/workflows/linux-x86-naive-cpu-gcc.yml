@@ -1,4 +1,4 @@
-name: linux-x86-cpu-gcc
+name: linux-x86-naive-cpu-gcc
 on:
   push:
     branches:
