@@ -382,6 +382,8 @@ void Float2Half(fp16_t* dst, const float* src, const size_t length) {
 #endif
 }
 
+#if TNN_ARM82
+
 void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
     long c_r4 = UP_DIV(channel, 4);
     long c_r8 = UP_DIV(channel, 8);
@@ -437,8 +439,6 @@ void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, lo
         }
     }
 }
-
-#if TNN_ARM82
 
 #define transpose_4x4(v0, v1, v2, v3, v_zero)       \
 {                                                   \
@@ -552,6 +552,43 @@ void BGRAToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const f
         vf16_dump.val[3] = vzip2q_f16(vf16.val[3], vzero);
         vst4q_f16(dst + i * 8 + 32, vf16_dump);
     }
+#elif defined(TNN_ARM82_A32)
+    Half4 scale_half4 = Half4(scale_half);
+    Half8 bias_neon_b = Half8(bias_half[0]);
+    Half8 bias_neon_g = Half8(bias_half[1]);
+    Half8 bias_neon_r = Half8(bias_half[2]);
+    Half8 bias_neon_a = Half8(bias_half[3]);
+    Half8 vzero       = Half8(fp16_t(0.0f));
+    Half8x4 vf16;
+    for (; i < hw - 7; i += 8) {
+        uint8x8x4_t v_u8 = vld4_u8(src + i * 4);
+        uint16x8_t b_u16 = vmovl_u8(v_u8.val[0]);
+        uint16x8_t g_u16 = vmovl_u8(v_u8.val[1]);
+        uint16x8_t r_u16 = vmovl_u8(v_u8.val[2]);
+        uint16x8_t a_u16 = vmovl_u8(v_u8.val[3]);
+
+        Half8 val0 = bias_neon_b;
+        Half8 val1 = bias_neon_g;
+        Half8 val2 = bias_neon_r;
+        Half8 val3 = bias_neon_a;
+
+        Half8::mla_4_lanes(val0, Half8::cvt(reverse_channel ? r_u16 : b_u16),
+                           val1, Half8::cvt(g_u16),
+                           val2, Half8::cvt(reverse_channel ? b_u16 : r_u16),
+                           val3, Half8::cvt(a_u16),
+                           scale_half4);
+
+        vf16.set_value0(val0);
+        vf16.set_value1(val1);
+        vf16.set_value2(val2);
+        vf16.set_value3(val3);
+
+        if (channel == 3) {
+            vf16.set_value3(vzero);
+        }
+
+        vf16.save_transpose(dst + i * 8, vzero);
+    }
 #endif
     for (; i < hw; ++i) {
         dst[8 * i + 0] = scale_half[0] * fp16_t(src[4 * i + (reverse_channel ? 2 : 0)]) + bias_half[0];
@@ -611,6 +648,35 @@ void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const fl
         vf16_dump.val[3] = vzip2q_f16(vf16.val[3], vzero);
         vst4q_f16(dst + i * 8 + 32, vf16_dump);
     }
+#elif defined(TNN_ARM82_A32)
+    Half4 scale_half4 = Half4(scale_half);
+    Half8 bias_neon_b = Half8(bias_half[0]);
+    Half8 bias_neon_g = Half8(bias_half[1]);
+    Half8 bias_neon_r = Half8(bias_half[2]);
+    Half8 vzero       = Half8(fp16_t(0.0f));
+    Half8x4 vf16;
+    vf16.set_value3(vzero);
+    for (; i < hw - 7; i += 8) {
+        uint8x8x3_t v_u8 = vld3_u8(src + i * 3);
+        uint16x8_t b_u16 = vmovl_u8(v_u8.val[0]);
+        uint16x8_t g_u16 = vmovl_u8(v_u8.val[1]);
+        uint16x8_t r_u16 = vmovl_u8(v_u8.val[2]);
+
+        Half8 val0 = bias_neon_b;
+        Half8 val1 = bias_neon_g;
+        Half8 val2 = bias_neon_r;
+
+        Half8::mla_3_lanes(val0, Half8::cvt(reverse_channel ? r_u16 : b_u16),
+                           val1, Half8::cvt(g_u16),
+                           val2, Half8::cvt(reverse_channel ? b_u16 : r_u16),
+                           scale_half4);
+
+        vf16.set_value0(val0);
+        vf16.set_value1(val1);
+        vf16.set_value2(val2);
+
+        vf16.save_transpose(dst + i * 8, vzero);
+    }
 #endif
     for (; i < hw; ++i) {
         dst[8 * i + 0] = scale_half[0] * fp16_t(src[3 * i + (reverse_channel ? 2 : 0)]) + bias_half[0];
@@ -647,6 +713,23 @@ void GrayToBlob(const uint8_t *src, fp16_t *dst, const float scale, const float 
         vst1q_lane_f16(dst + (i + 5) * 8, rf16, 5);
         vst1q_lane_f16(dst + (i + 6) * 8, rf16, 6);
         vst1q_lane_f16(dst + (i + 7) * 8, rf16, 7);
+    }
+#elif defined(TNN_ARM82_A32)
+    Half8 scale_neon = Half8(scale_half);
+    Half8 bias_neon  = Half8(bias_half);
+    for (; i < hw - 7; i += 8) {
+        uint8x8_t v_u8   = vld1_u8(src + i);
+        Half8 rf16 = bias_neon;
+        Half8::mla(rf16, scale_neon, Half8::cvt(vmovl_u8(v_u8)));
+
+        rf16.save_lane0(dst + (i + 0) * 8);
+        rf16.save_lane1(dst + (i + 1) * 8);
+        rf16.save_lane2(dst + (i + 2) * 8);
+        rf16.save_lane3(dst + (i + 3) * 8);
+        rf16.save_lane4(dst + (i + 4) * 8);
+        rf16.save_lane5(dst + (i + 5) * 8);
+        rf16.save_lane6(dst + (i + 6) * 8);
+        rf16.save_lane7(dst + (i + 7) * 8);
     }
 #endif
     for (; i < hw; ++i) {

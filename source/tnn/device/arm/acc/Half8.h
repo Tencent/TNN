@@ -444,6 +444,12 @@ struct Half4 {
     Half4(const int16x4_t&& v) {
         value = std::move(v);
     }
+    Half4(fp16_t* v) {
+        value[0] = *(int16_t*)(v);
+        value[1] = *(int16_t*)(v + 1);
+        value[2] = *(int16_t*)(v + 2);
+        value[3] = *(int16_t*)(v + 3);
+    }
     Half4(const Half4& lr) {
         value = lr.value;
     }
@@ -525,6 +531,31 @@ struct Half8 {
         }
     }
 
+    void save_lane0(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 0);
+    }
+    void save_lane1(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 1);
+    }
+    void save_lane2(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 2);
+    }
+    void save_lane3(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 3);
+    }
+    void save_lane4(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 4);
+    }
+    void save_lane5(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 5);
+    }
+    void save_lane6(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 6);
+    }
+    void save_lane7(fp16_t* addr) {
+        vst1q_lane_s16((int16_t*)addr, value, 7);
+    }
+
     const fp16_t operator[](const int i) const {
         int16_t tmp_v;
         if (i == 0) {
@@ -547,6 +578,16 @@ struct Half8 {
         return *((fp16_t*)(&tmp_v));
     }
 
+    static Half8 cvt(const uint16x8_t& src) {
+        Half8 v;
+        asm volatile (
+            "vcvtq.f16.u16 %0, %2\n\t"
+            :"=w"(v.value)
+            :"0"(v.value),"w"(src)
+            :
+        );
+        return v;
+    }
     static Half8 load(const fp16_t* addr) {
         Half8 v;
         asm volatile(
@@ -667,6 +708,38 @@ struct Half8 {
             :"=w"(v1.value)
             :"0"(v1.value),"w"(v2.value),"w"(v3.value)
             :
+        );
+    }
+    static void mla_3_lanes(Half8& a0, const Half8& m0,
+                            Half8& a1, const Half8& m1,
+                            Half8& a2, const Half8& m2,
+                            const Half4& m) {
+        asm volatile(
+            "vmov     d0, %9       \n\t"
+            "vmla.f16 %0, %6, d0[0]\n\t"
+            "vmla.f16 %1, %7, d0[1]\n\t"
+            "vmla.f16 %2, %8, d0[2]\n\t"
+            :"=w"(a0.value),"=w"(a1.value),"=w"(a2.value)
+            :"0"(a0.value),"1"(a1.value),"2"(a2.value),
+            "w"(m0.value),"w"(m1.value),"w"(m2.value),"w"(m.value)
+            :"cc","q0"
+        );
+    }
+    static void mla_4_lanes(Half8& a0, const Half8& m0,
+                            Half8& a1, const Half8& m1,
+                            Half8& a2, const Half8& m2,
+                            Half8& a3, const Half8& m3,
+                            const Half4& m) {
+        asm volatile(
+            "vmov     d0, %12       \n\t"
+            "vmla.f16 %0,  %8, d0[0]\n\t"
+            "vmla.f16 %1,  %9, d0[1]\n\t"
+            "vmla.f16 %2, %10, d0[2]\n\t"
+            "vmla.f16 %3, %11, d0[3]\n\t"
+            :"=w"(a0.value),"=w"(a1.value),"=w"(a2.value),"=w"(a3.value)
+            :"0"(a0.value),"1"(a1.value),"2"(a2.value),"3"(a3.value),
+            "w"(m0.value),"w"(m1.value),"w"(m2.value),"w"(m3.value),"w"(m.value)
+            :"cc","q0"
         );
     }
     static void mls(Half8& v1, const Half8& v2, const Half8& v3) {
@@ -980,6 +1053,53 @@ struct Half8 {
             :
         );
         return dst;
+    }
+};
+
+struct Half8x4 {
+    int16x8x4_t value;
+    Half8x4() {}
+
+    void set_value0(const Half8& lr) {
+        value.val[0] = lr.value;
+    }
+    void set_value1(const Half8& lr) {
+        value.val[1] = lr.value;
+    }
+    void set_value2(const Half8& lr) {
+        value.val[2] = lr.value;
+    }
+    void set_value3(const Half8& lr) {
+        value.val[3] = lr.value;
+    }
+
+    const Half8 operator[](const int i) const {
+        Half8 tmp_v;
+        if (i == 0) {
+            tmp_v = Half8(value.val[0]);
+        } else if (i == 1) {
+            tmp_v = Half8(value.val[1]);
+        } else if (i == 2) {
+            tmp_v = Half8(value.val[2]);
+        } else if (i == 3) {
+            tmp_v = Half8(value.val[3]);
+        }
+        return tmp_v;
+    }
+
+    void save_transpose(fp16_t* addr, const Half8& pad) {
+        int16x8x4_t v_tmp0;
+        int16x8x4_t v_tmp1;
+        v_tmp0.val[0] = vzipq_s16(value.val[0], pad.value).val[0];
+        v_tmp1.val[0] = vzipq_s16(value.val[0], pad.value).val[1];
+        v_tmp0.val[1] = vzipq_s16(value.val[1], pad.value).val[0];
+        v_tmp1.val[1] = vzipq_s16(value.val[1], pad.value).val[1];
+        v_tmp0.val[2] = vzipq_s16(value.val[2], pad.value).val[0];
+        v_tmp1.val[2] = vzipq_s16(value.val[2], pad.value).val[1];
+        v_tmp0.val[3] = vzipq_s16(value.val[3], pad.value).val[0];
+        v_tmp1.val[3] = vzipq_s16(value.val[3], pad.value).val[1];
+        vst4q_s16((int16_t*)addr, v_tmp0);
+        vst4q_s16((int16_t*)addr + 32, v_tmp1);
     }
 };
 

@@ -145,6 +145,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
 
     auto cvt_data_type  = desc.data_type;
     auto cvt_handle_ptr = handle_ptr;
+/*
 #ifdef TNN_ARM82_A32
     RawBuffer tmp_float_blob;
     if (desc.data_type == DATA_TYPE_HALF) {
@@ -154,6 +155,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         cvt_handle_ptr = tmp_float_blob.force_to<char *>();
     }
 #endif
+*/
 
     ret = GetBlobConvertFunc(image.GetMatType(), cvt_data_type, CVT_DIR_MAT2BLOB, cvt_func_);
     if (ret == TNN_OK) {
@@ -162,6 +164,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         return ret;
     }
 
+/*
 #ifdef TNN_ARM82_A32
     if (desc.data_type == DATA_TYPE_HALF) {
         // In aarch32 or armv7, then reformat float blob to half blob.
@@ -169,6 +172,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
                         dims[0], dims[1], dims[2] * dims[3]);
     }
 #endif
+*/
 
     return ret;
 }
