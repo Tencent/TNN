@@ -20,10 +20,16 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
+#ifdef TNN_ARM82_A64 // aarch64 fp16
 #define NEON_FP16CONV_TILE_HW (16)
+#else // aarch32 fp16 or fp16 simu
+#define NEON_FP16CONV_TILE_HW (8)
+#endif
 
-static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
+#ifdef TNN_ARM82_A64
+static inline void _repack_half_16(fp16_t *dst_b, const fp16_t *src_b) {
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0], #64\n\t"
@@ -68,8 +74,10 @@ static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
         "v21","v22","v23"
     );
 }
+#endif
 
-static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
+static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
+#ifdef TNN_ARM82_A64
     asm volatile (
         "ld4 {v0.8h, v1.8h, v2.8h, v3.8h}, [%0], #64\n\t"
         "ld4 {v4.8h, v5.8h, v6.8h, v7.8h}, [%0]\n\t"
@@ -94,9 +102,43 @@ static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#elif defined(TNN_ARM82_A32)
+    asm volatile (
+        "vld4.16 {d0, d2,  d4,  d6},  [%0]!\n\t"
+        "vld4.16 {d1, d3,  d5,  d7},  [%0]!\n\t"
+        "vld4.16 {d8, d10, d12, d14}, [%0]!\n\t"
+        "vld4.16 {d9, d11, d13, d15}, [%0]\n\t"
+        "vuzp.16 q0, q4\n\t"
+        "vuzp.16 q1, q5\n\t"
+        "vuzp.16 q2, q6\n\t"
+        "vuzp.16 q3, q7\n\t"
+        "vstr d0,  [%2, #0]\n\t"   "vstr d1,  [%2, #8]\n\t"
+        "vstr d2,  [%2, #16]\n\t"  "vstr d3,  [%2, #24]\n\t"
+        "vstr d4,  [%2, #32]\n\t"  "vstr d5,  [%2, #40]\n\t"
+        "vstr d6,  [%2, #48]\n\t"  "vstr d7,  [%2, #56]\n\t"
+        "vstr d8,  [%2, #64]\n\t"  "vstr d9,  [%2, #72]\n\t"
+        "vstr d10, [%2, #80]\n\t"  "vstr d11, [%2, #88]\n\t"
+        "vstr d12, [%2, #96]\n\t"  "vstr d13, [%2, #104]\n\t"
+        "vstr d14, [%2, #112]\n\t" "vstr d15, [%2, #120]\n\t"
+        :"=r"(src_b)
+        :"0"(src_b),"r"(dst_b)
+        :"cc","memory","q0","q1","q2","q3","q4","q5","q6","q7"
+    );
+#else
+    fp16_t tmp[64];
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            tmp[j * 8 + i] = src_b[i * 8 + j];
+        }
+    }
+    for (int i = 0; i < 64; i++) {
+        dst_b[i] = tmp[i];
+    }
+#endif
 }
 
-static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
+static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
+#ifdef TNN_ARM82_A64
     asm volatile (
         "ld4 {v0.4h, v1.4h, v2.4h, v3.4h}, [%0], #32\n\t"
         "ld4 {v4.4h, v5.4h, v6.4h, v7.4h}, [%0]\n\t"
@@ -121,18 +163,49 @@ static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
         :"cc","memory","v0","v1","v2","v3","v4","v5","v6","v7","v8","v9",
         "v10","v11","v12","v13","v14","v15"
     );
+#elif defined(TNN_ARM82_A32)
+    asm volatile (
+        "vld4.16 {d0, d1, d2, d3}, [%0]!\n\t"
+        "vld4.16 {d4, d5, d6, d7}, [%0]\n\t"
+        "vuzp.16 d0, d4\n\t"
+        "vuzp.16 d1, d5\n\t"
+        "vuzp.16 d2, d6\n\t"
+        "vuzp.16 d3, d7\n\t"
+        "vstr d0,  [%2, #0]\n\t"   "vstr d1,  [%2, #8]\n\t"
+        "vstr d2,  [%2, #16]\n\t"  "vstr d3,  [%2, #24]\n\t"
+        "vstr d4,  [%2, #32]\n\t"  "vstr d5,  [%2, #40]\n\t"
+        "vstr d6,  [%2, #48]\n\t"  "vstr d7,  [%2, #56]\n\t"
+        :"=r"(src_b)
+        :"0"(src_b),"r"(dst_b)
+        :"cc","memory","q0","q1","q2","q3"
+    );
+#else
+    fp16_t tmp[32];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            tmp[j * 4 + i] = src_b[i * 8 + j];
+        }
+    }
+    for (int i = 0; i < 32; i++) {
+        dst_b[i] = tmp[i];
+    }
+#endif
 }
 
 static void load_repack_half_align(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     int dst_cnt, 
     int ic,
     int kernel_size) {
     int c = 0;
     for (; c <= ic - 8; c += 8) {
         for (int k = 0; k < kernel_size; k++) {
+#ifdef TNN_ARM82_A64
             _repack_half_16(dst, src);
+#else
+            _repack_half_8(dst, src);
+#endif
             src += 8 * NEON_FP16CONV_TILE_HW;
             dst += 8 * NEON_FP16CONV_TILE_HW;
         }
@@ -140,7 +213,11 @@ static void load_repack_half_align(
     if (c < ic) {
         int c_eff = ic - c;
         for (int k = 0; k < kernel_size; k++) {
+#ifdef TNN_ARM82_A64
             _repack_half_16(dst, src);
+#else
+            _repack_half_8(dst, src);
+#endif
             src += 8 * NEON_FP16CONV_TILE_HW;
             dst += c_eff * NEON_FP16CONV_TILE_HW;
         }
@@ -148,12 +225,13 @@ static void load_repack_half_align(
 }
 
 static void load_repack_half(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     int dst_cnt, 
     int ic,
     int kernel_size) {
     int dst_i = 0;
+#ifdef TNN_ARM82_A64
     if (dst_cnt >= dst_i + 8) {
         auto src_p = src;
         int c = 0;
@@ -175,6 +253,7 @@ static void load_repack_half(
         src += 8 * 8;
         dst_i += 8;
     }
+#endif
     if (dst_cnt >= dst_i + 4) {
         auto src_p = src;
         int c = 0;
@@ -236,8 +315,8 @@ ArmConvFp16LayerCommon::~ArmConvFp16LayerCommon() {}
 f1s1p0 img2col func
 */
 static void img2col_f1s1p0(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     const ConvLayerParam *param, 
     size_t x_start, 
     size_t dst_cnt, 
@@ -247,7 +326,7 @@ static void img2col_f1s1p0(
     for (int c = 0; c <= kparam->ic_r8 - 8; c += 8) {
         auto src_c = src_s + c * kparam->ih * kparam->iw;
         auto dst_c = dst + c * NEON_FP16CONV_TILE_HW;
-        memcpy(dst_c, src_c, dst_cnt * 8 * sizeof(__fp16));
+        memcpy(dst_c, src_c, dst_cnt * 8 * sizeof(fp16_t));
     }
 }
 
@@ -255,8 +334,8 @@ static void img2col_f1s1p0(
 general img2col func
 */
 static void img2col(
-    __fp16 *dst, 
-    const __fp16 *src, 
+    fp16_t *dst, 
+    const fp16_t *src, 
     const ConvLayerParam *param, 
     size_t x_start, 
     size_t dst_cnt, 
@@ -273,10 +352,10 @@ static void img2col(
         int efw;
         int sfh;
         int efh;
-        const __fp16 *src;
+        const fp16_t *src;
     };
 
-    tile_info tiles_info[16];
+    tile_info tiles_info[NEON_FP16CONV_TILE_HW];
     tile_info *tiles_info_ptr = tiles_info;
     size_t dst_cnt_tmp = dst_cnt;
     int fast_mode_cnt = 0;
@@ -327,7 +406,7 @@ static void img2col(
                     auto src_fw = src_fh + fw * param->dialations[0] * 8;
                     for (int i = 0; i < dst_cnt; i++) {
                         auto src_i = src_fw + i * 8 * param->strides[0];
-                        vst1q_f16(dst_c + i * 8, vld1q_f16(src_i));
+                        Half8::save(dst_c + i * 8, Half8::load(src_i));
                     }
                     dst_c += NEON_FP16CONV_TILE_HW * 8;
                 }
@@ -337,7 +416,7 @@ static void img2col(
     // img2col memcpy normal mode
     else {
         // memset padding 0
-        memset(dst, 0, kparam->ic_r8 * kh * kw * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
+        memset(dst, 0, kparam->ic_r8 * kh * kw * NEON_FP16CONV_TILE_HW * sizeof(fp16_t));
         for (int i = 0; i < dst_cnt; i++) {
             auto dst_i = dst + i * 8;
             for (int c = 0; c <= kparam->ic_r8 - 8; c += 8) {
@@ -349,7 +428,7 @@ static void img2col(
                     for (int fw = tiles_info[i].sfw; fw < tiles_info[i].efw; ++fw) {
                         auto src_fw = src_fh + fw * param->dialations[0] * 8;
                         auto dst_fw = dst_fh + fw * NEON_FP16CONV_TILE_HW * 8;
-                        vst1q_f16(dst_fw, vld1q_f16(src_fw));
+                        Half8::save(dst_fw, Half8::load(src_fw));
                     }
                 }
             }
@@ -392,12 +471,13 @@ Status ArmConvFp16LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
             RawBuffer filter_half(weight_nchw_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             Float2Half(filter_half.force_to<fp16_t *>(), conv_res->filter_handle.force_to<float *>(),
                        weight_nchw_count);
-            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<fp16_t *>(), temp_buffer.force_to<fp16_t *>(), group,
+            // use int16_t to copy data, avoiding bad performance cased by fp16_t datatype in aarch32 fp16
+            ConvertWeightsFromGOIHWToGOIHW64(filter_half.force_to<int16_t *>(), temp_buffer.force_to<int16_t *>(), group,
                                              ic, oc, conv_param->kernels[1], conv_param->kernels[0]);
         } else if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
             // soft fp16 -> fp32 -> hard fp16 TBD
-            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<fp16_t *>(),
-                                             temp_buffer.force_to<fp16_t *>(), group, ic, oc, conv_param->kernels[1],
+            ConvertWeightsFromGOIHWToGOIHW64(conv_res->filter_handle.force_to<int16_t *>(),
+                                             temp_buffer.force_to<int16_t *>(), group, ic, oc, conv_param->kernels[1],
                                              conv_param->kernels[0]);
         } else {
             LOGE("WEIGHT DATATYPE NOT SUPPORTED NOW\n");
@@ -473,7 +553,7 @@ Status ArmConvFp16LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     }
 
     // set tile blk size, which be limit to 16KB
-    // 16 * 1024 / sizeof(__fp16)
+    // 16 * 1024 / sizeof(fp16_t)
     int tile_blk = 8192 / (k_param_->ic_r8 * kernel_x * kernel_y);
     tile_blk = ROUND_UP(tile_blk, NEON_FP16CONV_TILE_HW);
     if (tile_blk < NEON_FP16CONV_TILE_HW) {
@@ -541,8 +621,8 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     const int batch  = dims_output[0];
     auto ic          = dims_input[1];
 
-    __fp16 *input_data  = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *output_data = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     const int crs = ic * conv_param->kernels[1] * conv_param->kernels[0];
     const int crs_r8 = k_param_->ic_r8 * conv_param->kernels[1] * conv_param->kernels[0];
@@ -552,8 +632,8 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     size_t img2col_size = tile_blk_size * crs_r8;
     size_t repack_size = NEON_FP16CONV_TILE_HW * crs_r8;
     size_t workspace_size_per_thread = img2col_size + repack_size + NEON_KERNEL_EXTRA_LOAD;
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(
-        context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(__fp16)));
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(
+        context_->GetSharedWorkSpace(workspace_size_per_thread * max_num_threads * sizeof(fp16_t)));
 
     long act_type = conv_param->activation_type;
     if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
@@ -592,14 +672,14 @@ Status ArmConvFp16LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             }
             if (real_hw_tile > i) {
                 int tile_eff = real_hw_tile - i;
-                memcpy(repack_tmp, repack_src + crs_r8 * i, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(__fp16));
+                memcpy(repack_tmp, repack_src + crs_r8 * i, crs_r8 * NEON_FP16CONV_TILE_HW * sizeof(fp16_t));
                 load_repack_half(repack_dst + crs * i, repack_tmp,
                                 tile_eff, ic, conv_param->kernels[1] * conv_param->kernels[0]);
             }
 
-            GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<__fp16 *>(k_param_->fil_ptr),
+            GEMM_FP16_N8(output_kernel, repack_dst, reinterpret_cast<fp16_t *>(k_param_->fil_ptr),
                         crs, 8 * k_param_->ow * k_param_->oh, k_param_->oc_r8, real_hw_tile, 
-                        reinterpret_cast<__fp16 *>(k_param_->bias), act_type);
+                        reinterpret_cast<fp16_t *>(k_param_->bias), act_type);
         }
     }
 

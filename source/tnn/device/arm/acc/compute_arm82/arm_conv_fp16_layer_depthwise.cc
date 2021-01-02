@@ -20,6 +20,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 bool ArmConvFp16LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,

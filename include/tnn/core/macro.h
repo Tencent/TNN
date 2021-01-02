@@ -163,6 +163,32 @@
 #define TNN_USE_NEON
 #endif
 
+#if TNN_ARM82
+
+#ifndef TNN_ARM82_SIMU
+
+#if defined(__aarch64__) && defined(TNN_USE_NEON)
+#define TNN_ARM82_A64
+#elif defined(__arm__)  && defined(TNN_USE_NEON)
+#define TNN_ARM82_A32
+#else
+#define TNN_ARM82_SIMU
+#endif
+
+#endif  // TNN_ARM82_SIMU
+
+#else
+
+#ifdef TNN_ARM82_SIMU
+#undef TNN_ARM82_SIMU
+#endif
+
+#endif  // TNN_ARM82
+
+#if defined(TNN_ARM82_A64) || defined(TNN_ARM82_A32)
+#define TNN_ARM82_USE_NEON
+#endif
+
 #define RETURN_VALUE_ON_NEQ(status, expected, value)                  \
     do {                                                                                                         \
         auto _status = (status);                                                                         \

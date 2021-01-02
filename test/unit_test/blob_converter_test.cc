@@ -50,6 +50,12 @@ bool BlobConverterTest::TestFilterCheck(
         return true;
     }
 
+#if !TNN_ARM82
+    if (blob_data_type == DATA_TYPE_HALF) {
+        return true;
+    }
+#endif
+
     if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
         return true;
     }

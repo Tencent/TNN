@@ -25,182 +25,147 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/arm/acc/Half8.h"
 
+#ifdef TNN_ARM82_A64
 #define NEON_GEMM_TILE_HW (16)
+#else
+#define NEON_GEMM_TILE_HW (8)
+#endif
 
+namespace TNN_NS {
+
+#ifdef TNN_ARM82_A64
 template <int stride>
 static inline void _repack_half_16(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x8_t v[28];
-    v[0] =  vld1q_f16(src_b + 0);
-    v[1] =  vld1q_f16(src_b + stride);
-    v[2] =  vld1q_f16(src_b + stride * 2);
-    v[3] =  vld1q_f16(src_b + stride * 3);
-    v[4] =  vld1q_f16(src_b + stride * 4);
-    v[5] =  vld1q_f16(src_b + stride * 5);
-    v[6] =  vld1q_f16(src_b + stride * 6);
-    v[7] =  vld1q_f16(src_b + stride * 7);
-    v[8] =  vld1q_f16(src_b + stride * 8);
-    v[9] =  vld1q_f16(src_b + stride * 9);
-    v[10] = vld1q_f16(src_b + stride * 10);
-    v[11] = vld1q_f16(src_b + stride * 11);
-    v[12] = vld1q_f16(src_b + stride * 12);
-    v[13] = vld1q_f16(src_b + stride * 13);
-    v[14] = vld1q_f16(src_b + stride * 14);
-    v[15] = vld1q_f16(src_b + stride * 15);
+    Half8 v[16];
+    v[0] =  Half8::load(src_b + 0);
+    v[1] =  Half8::load(src_b + stride);
+    v[2] =  Half8::load(src_b + stride * 2);
+    v[3] =  Half8::load(src_b + stride * 3);
+    v[4] =  Half8::load(src_b + stride * 4);
+    v[5] =  Half8::load(src_b + stride * 5);
+    v[6] =  Half8::load(src_b + stride * 6);
+    v[7] =  Half8::load(src_b + stride * 7);
+    v[8] =  Half8::load(src_b + stride * 8);
+    v[9] =  Half8::load(src_b + stride * 9);
+    v[10] = Half8::load(src_b + stride * 10);
+    v[11] = Half8::load(src_b + stride * 11);
+    v[12] = Half8::load(src_b + stride * 12);
+    v[13] = Half8::load(src_b + stride * 13);
+    v[14] = Half8::load(src_b + stride * 14);
+    v[15] = Half8::load(src_b + stride * 15);
 
-    v[16] = vzip1q_f16(v[0],  v[4]);
-    v[17] = vzip1q_f16(v[2],  v[6]);
-    v[18] = vzip1q_f16(v[1],  v[5]);
-    v[19] = vzip1q_f16(v[3],  v[7]);
-    v[20] = vzip2q_f16(v[0],  v[4]);
-    v[21] = vzip2q_f16(v[2],  v[6]);
-    v[22] = vzip2q_f16(v[1],  v[5]);
-    v[23] = vzip2q_f16(v[3],  v[7]);
-    v[24] = vzip1q_f16(v[16], v[17]);
-    v[25] = vzip1q_f16(v[18], v[19]);
-    v[26] = vzip2q_f16(v[16], v[17]);
-    v[27] = vzip2q_f16(v[18], v[19]);
-    v[0]  = vzip1q_f16(v[24], v[25]);
-    v[1]  = vzip2q_f16(v[24], v[25]);
-    v[2]  = vzip1q_f16(v[26], v[27]);
-    v[3]  = vzip2q_f16(v[26], v[27]);
-    v[24] = vzip1q_f16(v[20], v[21]);
-    v[25] = vzip1q_f16(v[22], v[23]);
-    v[26] = vzip2q_f16(v[20], v[21]);
-    v[27] = vzip2q_f16(v[22], v[23]);
-    v[4]  = vzip1q_f16(v[24], v[25]);
-    v[5]  = vzip2q_f16(v[24], v[25]);
-    v[6]  = vzip1q_f16(v[26], v[27]);
-    v[7]  = vzip2q_f16(v[26], v[27]);
+    Half8::zip(v[0], v[4]);
+    Half8::zip(v[2], v[6]);
+    Half8::zip(v[1], v[5]);
+    Half8::zip(v[3], v[7]);
+    Half8::zip(v[0], v[2]);
+    Half8::zip(v[1], v[3]);
+    Half8::zip(v[4], v[6]);
+    Half8::zip(v[5], v[7]);
+    Half8::zip(v[0], v[1]);
+    Half8::zip(v[2], v[3]);
+    Half8::zip(v[4], v[5]);
+    Half8::zip(v[6], v[7]);
+    Half8::zip(v[8],  v[12]);
+    Half8::zip(v[10], v[14]);
+    Half8::zip(v[9],  v[13]);
+    Half8::zip(v[11], v[15]);
+    Half8::zip(v[8],  v[10]);
+    Half8::zip(v[9],  v[11]);
+    Half8::zip(v[12], v[14]);
+    Half8::zip(v[13], v[15]);
+    Half8::zip(v[8],  v[9]);
+    Half8::zip(v[10], v[11]);
+    Half8::zip(v[12], v[13]);
+    Half8::zip(v[14], v[15]);
 
-    v[16] = vzip1q_f16(v[8],  v[12]);
-    v[17] = vzip1q_f16(v[10], v[14]);
-    v[18] = vzip1q_f16(v[9],  v[13]);
-    v[19] = vzip1q_f16(v[11], v[15]);
-    v[20] = vzip2q_f16(v[8],  v[12]);
-    v[21] = vzip2q_f16(v[10], v[14]);
-    v[22] = vzip2q_f16(v[9],  v[13]);
-    v[23] = vzip2q_f16(v[11], v[15]);
-    v[24] = vzip1q_f16(v[16], v[17]);
-    v[25] = vzip1q_f16(v[18], v[19]);
-    v[26] = vzip2q_f16(v[16], v[17]);
-    v[27] = vzip2q_f16(v[18], v[19]);
-    v[8]  = vzip1q_f16(v[24], v[25]);
-    v[9]  = vzip2q_f16(v[24], v[25]);
-    v[10] = vzip1q_f16(v[26], v[27]);
-    v[11] = vzip2q_f16(v[26], v[27]);
-    v[24] = vzip1q_f16(v[20], v[21]);
-    v[25] = vzip1q_f16(v[22], v[23]);
-    v[26] = vzip2q_f16(v[20], v[21]);
-    v[27] = vzip2q_f16(v[22], v[23]);
-    v[12] = vzip1q_f16(v[24], v[25]);
-    v[13] = vzip2q_f16(v[24], v[25]);
-    v[14] = vzip1q_f16(v[26], v[27]);
-    v[15] = vzip2q_f16(v[26], v[27]);
-    vst1q_f16(dst_b + 0,  v[0]);
-    vst1q_f16(dst_b + 8,  v[8]);
-    vst1q_f16(dst_b + 16, v[1]);
-    vst1q_f16(dst_b + 24, v[9]);
-    vst1q_f16(dst_b + 32, v[2]);
-    vst1q_f16(dst_b + 40, v[10]);
-    vst1q_f16(dst_b + 48, v[3]);
-    vst1q_f16(dst_b + 56, v[11]);
-    vst1q_f16(dst_b + 64, v[4]);
-    vst1q_f16(dst_b + 72, v[12]);
-    vst1q_f16(dst_b + 80, v[5]);
-    vst1q_f16(dst_b + 88, v[13]);
-    vst1q_f16(dst_b + 96, v[6]);
-    vst1q_f16(dst_b + 104, v[14]);
-    vst1q_f16(dst_b + 112, v[7]);
-    vst1q_f16(dst_b + 120, v[15]);
+    Half8::save(dst_b + 0,  v[0]);
+    Half8::save(dst_b + 8,  v[8]);
+    Half8::save(dst_b + 16, v[1]);
+    Half8::save(dst_b + 24, v[9]);
+    Half8::save(dst_b + 32, v[2]);
+    Half8::save(dst_b + 40, v[10]);
+    Half8::save(dst_b + 48, v[3]);
+    Half8::save(dst_b + 56, v[11]);
+    Half8::save(dst_b + 64, v[4]);
+    Half8::save(dst_b + 72, v[12]);
+    Half8::save(dst_b + 80, v[5]);
+    Half8::save(dst_b + 88, v[13]);
+    Half8::save(dst_b + 96, v[6]);
+    Half8::save(dst_b + 104, v[14]);
+    Half8::save(dst_b + 112, v[7]);
+    Half8::save(dst_b + 120, v[15]);
+}
+#endif
+
+template <int stride>
+static inline void _repack_half_8(fp16_t *dst_b, const fp16_t *src_b) {
+    Half8 v[8];
+    v[0] = Half8::load(src_b + 0);
+    v[1] = Half8::load(src_b + stride);
+    v[2] = Half8::load(src_b + stride * 2);
+    v[3] = Half8::load(src_b + stride * 3);
+    v[4] = Half8::load(src_b + stride * 4);
+    v[5] = Half8::load(src_b + stride * 5);
+    v[6] = Half8::load(src_b + stride * 6);
+    v[7] = Half8::load(src_b + stride * 7);
+    Half8::zip(v[0], v[4]);
+    Half8::zip(v[2], v[6]);
+    Half8::zip(v[1], v[5]);
+    Half8::zip(v[3], v[7]);
+    Half8::zip(v[0], v[2]);
+    Half8::zip(v[1], v[3]);
+    Half8::zip(v[4], v[6]);
+    Half8::zip(v[5], v[7]);
+    Half8::zip(v[0], v[1]);
+    Half8::zip(v[2], v[3]);
+    Half8::zip(v[4], v[5]);
+    Half8::zip(v[6], v[7]);
+    Half8::save(dst_b + 0,  v[0]);
+    Half8::save(dst_b + 8,  v[1]);
+    Half8::save(dst_b + 16, v[2]);
+    Half8::save(dst_b + 24, v[3]);
+    Half8::save(dst_b + 32, v[4]);
+    Half8::save(dst_b + 40, v[5]);
+    Half8::save(dst_b + 48, v[6]);
+    Half8::save(dst_b + 56, v[7]);
 }
 
 template <int stride>
-static inline void _repack_half_8(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x8_t v[16];
-    v[0] = vld1q_f16(src_b + 0);
-    v[1] = vld1q_f16(src_b + stride);
-    v[2] = vld1q_f16(src_b + stride * 2);
-    v[3] = vld1q_f16(src_b + stride * 3);
-    v[4] = vld1q_f16(src_b + stride * 4);
-    v[5] = vld1q_f16(src_b + stride * 5);
-    v[6] = vld1q_f16(src_b + stride * 6);
-    v[7] = vld1q_f16(src_b + stride * 7);
-    v[8]  = vzip1q_f16(v[0],  v[4]);
-    v[9]  = vzip1q_f16(v[2],  v[6]);
-    v[10] = vzip1q_f16(v[1],  v[5]);
-    v[11] = vzip1q_f16(v[3],  v[7]);
-    v[12] = vzip2q_f16(v[0],  v[4]);
-    v[13] = vzip2q_f16(v[2],  v[6]);
-    v[14] = vzip2q_f16(v[1],  v[5]);
-    v[15] = vzip2q_f16(v[3],  v[7]);
-    v[0]  = vzip1q_f16(v[8],  v[9]);
-    v[1]  = vzip1q_f16(v[10], v[11]);
-    v[2]  = vzip2q_f16(v[8],  v[9]);
-    v[3]  = vzip2q_f16(v[10], v[11]);
-    v[8]  = vzip1q_f16(v[0],  v[1]);
-    v[9]  = vzip2q_f16(v[0],  v[1]);
-    v[10] = vzip1q_f16(v[2],  v[3]);
-    v[11] = vzip2q_f16(v[2],  v[3]);
-    v[0]  = vzip1q_f16(v[12], v[13]);
-    v[1]  = vzip1q_f16(v[14], v[15]);
-    v[2]  = vzip2q_f16(v[12], v[13]);
-    v[3]  = vzip2q_f16(v[14], v[15]);
-    v[12] = vzip1q_f16(v[0],  v[1]);
-    v[13] = vzip2q_f16(v[0],  v[1]);
-    v[14] = vzip1q_f16(v[2],  v[3]);
-    v[15] = vzip2q_f16(v[2],  v[3]);
-    vst1q_f16(dst_b + 0,  v[8]);
-    vst1q_f16(dst_b + 8,  v[9]);
-    vst1q_f16(dst_b + 16, v[10]);
-    vst1q_f16(dst_b + 24, v[11]);
-    vst1q_f16(dst_b + 32, v[12]);
-    vst1q_f16(dst_b + 40, v[13]);
-    vst1q_f16(dst_b + 48, v[14]);
-    vst1q_f16(dst_b + 56, v[15]);
-}
-
-template <int stride>
-static inline void _repack_half_4(__fp16 *dst_b, const __fp16 *src_b) {
-    float16x4_t v[16];
-    v[0] = vld1_f16(src_b + 0);
-    v[1] = vld1_f16(src_b + 4);
-    v[2] = vld1_f16(src_b + stride);
-    v[3] = vld1_f16(src_b + stride + 4);
-    v[4] = vld1_f16(src_b + stride * 2);
-    v[5] = vld1_f16(src_b + stride * 2 + 4);
-    v[6] = vld1_f16(src_b + stride * 3);
-    v[7] = vld1_f16(src_b + stride * 3 + 4);
-    v[8]  = vzip1_f16(v[0],  v[4]);
-    v[9]  = vzip1_f16(v[2],  v[6]);
-    v[10] = vzip2_f16(v[0],  v[4]);
-    v[11] = vzip2_f16(v[2],  v[6]);
-    v[12] = vzip1_f16(v[1],  v[5]);
-    v[13] = vzip1_f16(v[3],  v[7]);
-    v[14] = vzip2_f16(v[1],  v[5]);
-    v[15] = vzip2_f16(v[3],  v[7]);
-    v[0]  = vzip1_f16(v[8],  v[9]);
-    v[1]  = vzip2_f16(v[8],  v[9]);
-    v[2]  = vzip1_f16(v[10], v[11]);
-    v[3]  = vzip2_f16(v[10], v[11]);
-    v[4]  = vzip1_f16(v[12], v[13]);
-    v[5]  = vzip2_f16(v[12], v[13]);
-    v[6]  = vzip1_f16(v[14], v[15]);
-    v[7]  = vzip2_f16(v[14], v[15]);
-    vst1_f16(dst_b + 0,  v[0]);
-    vst1_f16(dst_b + 4,  v[1]);
-    vst1_f16(dst_b + 8,  v[2]);
-    vst1_f16(dst_b + 12, v[3]);
-    vst1_f16(dst_b + 16, v[4]);
-    vst1_f16(dst_b + 20, v[5]);
-    vst1_f16(dst_b + 24, v[6]);
-    vst1_f16(dst_b + 28, v[7]);
+static inline void _repack_half_4(fp16_t *dst_b, const fp16_t *src_b) {
+    Half4 v[8];
+    v[0] = Half4::load(src_b + 0);
+    v[1] = Half4::load(src_b + 4);
+    v[2] = Half4::load(src_b + stride);
+    v[3] = Half4::load(src_b + stride + 4);
+    v[4] = Half4::load(src_b + stride * 2);
+    v[5] = Half4::load(src_b + stride * 2 + 4);
+    v[6] = Half4::load(src_b + stride * 3);
+    v[7] = Half4::load(src_b + stride * 3 + 4);
+    Half4::zip(v[0], v[4]);
+    Half4::zip(v[2], v[6]);
+    Half4::zip(v[1], v[5]);
+    Half4::zip(v[3], v[7]);
+    Half4::zip(v[0], v[2]);
+    Half4::zip(v[4], v[6]);
+    Half4::zip(v[1], v[3]);
+    Half4::zip(v[5], v[7]);
+    Half4::save(dst_b + 0,  v[0]);
+    Half4::save(dst_b + 4,  v[2]);
+    Half4::save(dst_b + 8,  v[4]);
+    Half4::save(dst_b + 12, v[6]);
+    Half4::save(dst_b + 16, v[1]);
+    Half4::save(dst_b + 20, v[3]);
+    Half4::save(dst_b + 24, v[5]);
+    Half4::save(dst_b + 28, v[7]);
 }
 
 template <int src_unit_size>
 static void load_repack_half(
-    __fp16 *dst,
-    const __fp16 *src,
+    fp16_t *dst,
+    const fp16_t *src,
     int dst_cnt,
     int z,
     int ic,
@@ -212,13 +177,22 @@ static void load_repack_half(
             auto repack_dst_i = repack_dst + i * NEON_GEMM_TILE_HW * ic_r8;
             auto repack_src_i = repack_src + i * 8;
             if (src_unit_size == 16) {
+#ifdef TNN_ARM82_A64
                 _repack_half_16<128>(repack_dst_i, repack_src_i);
+#else
+                _repack_half_8<128>(repack_dst_i, repack_src_i);
+#endif
             } else if (src_unit_size == 36) {
+#ifdef TNN_ARM82_A64
                 _repack_half_16<288>(repack_dst_i, repack_src_i);
+#else
+                _repack_half_8<288>(repack_dst_i, repack_src_i);
+#endif
             }
         }
     } else {
         int x_i = 0;
+#ifdef TNN_ARM82_A64
         if (x_i <= dst_cnt - 8) {
             auto repack_dst = dst + 8 * z;
             auto repack_src = src;
@@ -233,6 +207,7 @@ static void load_repack_half(
             }
             x_i += 8;
         }
+#endif
         if (x_i <= dst_cnt - 4) {
             auto repack_dst = dst + x_i * ic_r8 + 4 * z;
             auto repack_src = src + x_i * src_unit_size * 8;
@@ -263,7 +238,6 @@ static void load_repack_half(
     }
 }
 
-namespace TNN_NS {
 bool ArmConvFp16Layer3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                  const std::vector<Blob *> &outputs) {
     if (!param) {
@@ -358,24 +332,25 @@ Status ArmConvFp16Layer3x3::allocateBufferWeight(const std::vector<Blob *> &inpu
         src_unit_ = dst_unit_ + kw - 1;
 
         const size_t weight_count = src_unit_ * src_unit_ * k_param_->oc_r8 * k_param_->ic_r8;
-        RawBuffer pack_weight(weight_count * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
-
         const size_t weight_nchw_count = oc * ic * kh * kw;
-        RawBuffer filter_half(weight_nchw_count * data_byte_size);
-        Float2Half(filter_half.force_to<fp16_t *>(), src, weight_nchw_count);
 
+        RawBuffer pack_weight_f32(weight_count * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+        RawBuffer pack_weight_f16(weight_count * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
+        // use float to transform weight, may be helpful to higher precision
+        // in aarch32 fp16, need to avoid using half_t to compute weight, because it is slow
         switch (dst_unit_) {
             case 2:
-                WeightTransform4x4(filter_half.force_to<__fp16 *>(), pack_weight.force_to<__fp16 *>(), 3, ic, oc);
+                WeightTransformHalf4x4(src, pack_weight_f32.force_to<float *>(), 3, ic, oc);
                 break;
             case 4:
-                WeightTransform6x6(filter_half.force_to<__fp16 *>(), pack_weight.force_to<__fp16 *>(), 3, ic, oc);
+                WeightTransformHalf6x6(src, pack_weight_f32.force_to<float *>(), 3, ic, oc);
                 break;
             default:
                 LOGE("Unsupport winograd dst unit\n");
                 break;
         }
-        buffer_weight_ = pack_weight;
+        Float2Half(pack_weight_f16.force_to<fp16_t *>(), pack_weight_f32.force_to<float *>(), weight_count);
+        buffer_weight_ = pack_weight_f16;
     }
 
     return TNN_OK;
@@ -430,8 +405,8 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
     auto h_unit      = UP_DIV(k_param_->oh, dst_unit);
     auto tile_count  = UP_DIV(w_unit * h_unit, NEON_GEMM_TILE_HW);
 
-    const __fp16 *src_origin = reinterpret_cast<const __fp16 *>(GetBlobHandlePtr(input->GetHandle()));
-    __fp16 *dst_origin = reinterpret_cast<__fp16 *>(GetBlobHandlePtr(output->GetHandle()));
+    const fp16_t *src_origin = reinterpret_cast<const fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+    fp16_t *dst_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     int max_num_threads           = OMP_MAX_THREADS_NUM_;
     size_t fake_bias_size         = k_param_->oc_r8 * data_byte_size;
@@ -444,12 +419,12 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
     size_t dst_trans_size           = k_param_->oc_r8 * src_unit * src_unit * NEON_GEMM_TILE_HW;
     size_t work_buf_size            = (src_trans_tmp_per_thread * max_num_threads + src_trans_size + dst_trans_size) * data_byte_size;
 
-    __fp16 *work_space = reinterpret_cast<__fp16 *>(
+    fp16_t *work_space = reinterpret_cast<fp16_t *>(
         context_->GetSharedWorkSpace(fake_bias_size + src_pad_buf_size + work_buf_size + NEON_KERNEL_EXTRA_LOAD));
 
-    __fp16 *fake_bias      = work_space;
-    __fp16 *src_pad_buffer = work_space + fake_bias_size / data_byte_size;
-    __fp16 *work_buf       = src_pad_buffer + src_pad_buf_size / data_byte_size;
+    fp16_t *fake_bias      = work_space;
+    fp16_t *src_pad_buffer = work_space + fake_bias_size / data_byte_size;
+    fp16_t *work_buf       = src_pad_buffer + src_pad_buf_size / data_byte_size;
 
     // memset fake bias data to get correct results
     memset(fake_bias, 0, fake_bias_size);
@@ -524,8 +499,8 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
 
                     // source transform start
                     auto src_start              = src_z + tiles_info[x_i].src_loc;
-                    __fp16 *transform_dst       = dst_z + x_i * src_unit * src_unit * 8;
-                    const __fp16 *transform_src = nullptr;
+                    fp16_t *transform_dst       = dst_z + x_i * src_unit * src_unit * 8;
+                    const fp16_t *transform_src = nullptr;
 
                     int h_stride0 = 0;
 
@@ -566,7 +541,7 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
             for (int i = 0; i < src_unit * src_unit; i++) {
                 GEMM_FP16_N8(dst_trans_buf + i * 8 * NEON_GEMM_TILE_HW,
                              repack_buf + i * k_param_->ic_r8 * NEON_GEMM_TILE_HW,
-                             reinterpret_cast<__fp16 *>(k_param_->fil_ptr) + i * k_param_->ic_r8 * k_param_->oc_r8,
+                             reinterpret_cast<fp16_t *>(k_param_->fil_ptr) + i * k_param_->ic_r8 * k_param_->oc_r8,
                              k_param_->ic_r8, NEON_GEMM_TILE_HW * src_unit * src_unit * 8, k_param_->oc_r8, x_c, fake_bias, 0);
             }
 
@@ -585,9 +560,9 @@ Status ArmConvFp16Layer3x3::Exec(const std::vector<Blob *> &inputs, const std::v
 
                     int count = ex * 8;
                     // dst transform start
-                    __fp16 *transform_src = src_z + x_i * 8;
+                    fp16_t *transform_src = src_z + x_i * 8;
                     auto dst_start        = dst_z + tiles_info[x_i].dst_loc;
-                    __fp16 *transform_dst = nullptr;
+                    fp16_t *transform_dst = nullptr;
                     int h_stride0         = 8 * dst_unit;
                     int h_stride1         = 0;
 
