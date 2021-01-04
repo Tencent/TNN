@@ -15,6 +15,7 @@
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -59,8 +60,16 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
         return Status(TNNERR_LAYER_ERR, "invalid group size in Conv layer");
     }
 
-    // depthwise kernel use 2d ndragne.
-    if (CT_CONV_DEPTHWISE == conv_type_) {
+    if (conv_params_.activation_type == ActivationType_ReLU) {
+        build_options_.emplace("-DRELU");
+    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
+        build_options_.emplace("-DRELU6");
+    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
+        build_options_.emplace("-DSIGMOID_MUL");
+    }
+
+    // depthwise kernel or winograd kernel use 2d ndragne.
+    if (CT_CONV_DEPTHWISE == conv_type_ || CT_CONV_WINOGRAD == conv_type_ ) {
         run_3d_ndrange_ = false;
     }
 
@@ -154,8 +163,14 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     if (use_buffer_) {
         // create weights use clBuffer
         DimsVector filter_buffershape;
-        filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
-                              conv_params_.kernel_y, conv_params_.kernel_x};
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            filter_buffershape = {1, ROUND_UP(conv_params_.output_channel, 4),
+                                  conv_params_.kernel_y, conv_params_.kernel_x};
+        } else {
+            filter_buffershape = {ROUND_UP(conv_params_.output_channel, 4), ROUND_UP(conv_params_.input_channel, 4),
+                                  conv_params_.kernel_y, conv_params_.kernel_x};
+        }
+
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_BUFFER));
         size_t type_size = sizeof(float);
         if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
@@ -173,7 +188,11 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
 
         // transfer from clBuffer to clBuffer
         ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-        return convertor.ConvertBufferToBuffer(weight_memory.get(), CONV2D_FILTER, filter_shape, ocl_weights_.get(),
+        OpenCLBufferFormat buffer_format = CONV2D_FILTER;
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            buffer_format = DW_CONV2D_FILTER;
+        }
+        return convertor.ConvertBufferToBuffer(weight_memory.get(), buffer_format, filter_shape, ocl_weights_.get(),
                                                true);
     } else {
         // create weights use clImage
@@ -301,5 +320,20 @@ std::vector<uint32_t> OpenCLConvLayerAccImpl::Conv2dCommonLocalWS3DGeneral(std::
          lws[1], lws[2]);
     return lws;
 }
+
+std::string OpenCLConvLayerAccImpl::GenerateTuneKernelKey(OpenCLExecuteUnit &unit) {
+    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param[" + 
+    "kernel_" + ToString(conv_params_.kernel_x) + "_" + ToString(conv_params_.kernel_y) + "_" 
+    "pad_" + ToString(conv_params_.pad_x) + "_" + ToString(conv_params_.pad_y ) + "_" 
+    "stride_" + ToString(conv_params_.stride_x) + "_" + ToString(conv_params_.stride_y ) + "_" 
+    "dilation_" + ToString(conv_params_.dilation_x) + "_"+ ToString(conv_params_.dilation_y) + "_"
+    "pad_" + ToString(conv_params_.pad_type) + "_" + 
+    "group_" + ToString(conv_params_.group) + "]_global";
+    for(auto size : unit.global_work_size) {
+        tune_key += "_" + ToString(size);
+    }
+    return tune_key;
+} 
+
 
 }  // namespace TNN_NS

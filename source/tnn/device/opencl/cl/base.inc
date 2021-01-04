@@ -30,6 +30,12 @@ __constant sampler_t SAMPLER = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP |
     out##i = mad(in##i.z, weights2, out##i); \
     out##i = mad(in##i.w, weights3, out##i);
 
+#define CALCULATE_VEC16_OUTPUT(i)                  \
+    out##i = mad(in##i.x, weights.s0123, out##i); \
+    out##i = mad(in##i.y, weights.s4567, out##i); \
+    out##i = mad(in##i.z, weights.s89ab, out##i); \
+    out##i = mad(in##i.w, weights.scdef, out##i);
+
 #define CALCULATE_SLICE_OUTPUT(s_idx) \
     out_w0_s##s_idx += weights_c0_s##s_idx * in0.x; \
     out_w1_s##s_idx += weights_c0_s##s_idx * in1.x; \

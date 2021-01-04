@@ -55,6 +55,7 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
     DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
     if (InputParamCheck(data_type, dev, batch)) {
+
         GTEST_SKIP();
     }
 

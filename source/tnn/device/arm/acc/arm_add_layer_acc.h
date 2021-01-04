@@ -19,6 +19,25 @@
 
 namespace TNN_NS {
 
+enum AddOpType { ADD_SINGLE = 1, ADD_CHANNEL = 2, ADD_ELEMENT = 3 };
+
+#define OperatorAddPreparation()                                      \
+    DimsVector dims_broadcast;                                        \
+    if (DimsVectorUtils::Equal(dims0, dims1, 2)) {                    \
+        dims_broadcast.clear();                                       \
+        type = ADD_ELEMENT;                                           \
+        if (dims0[0] != dims[0] || dims0[1] != dims[1])               \
+            std::swap(_input0, _input1);                              \
+    } else if (DimsVectorUtils::Equal(dims0, dims, 1)) {              \
+        dims_broadcast = dims1;                                       \
+    } else {                                                          \
+        dims_broadcast = dims0;                                       \
+        std::swap(_input0, _input1);                                  \
+    }                                                                 \
+    if (dims_broadcast.size()) {                                      \
+        type = (dims_broadcast[1] == 1) ? ADD_SINGLE : ADD_CHANNEL;   \
+    }
+
 // @brief conv layer cpu acc
 class ArmAddLayerAcc : public ArmLayerAcc {
 public:

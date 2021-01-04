@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_unary_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/omp_utils.h"
@@ -63,40 +64,12 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
     return TNN_OK;
 }
 
-#if TNN_ARM82
-template <>
-Status ArmUnaryLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input  = inputs[0];
-    auto output = outputs[0];
-
-    auto dims = output->GetBlobDesc().dims;
-
-    int count      = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
-    int count_div8 = UP_DIV(count, 8);
-
-    auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
-    auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
-
-    OMP_PARALLEL_FOR_
-    for (int n = 0; n < count_div8; n++) {
-        Half8::save(output_ptr + n * 8, (*op_)(Half8::load(input_ptr + n * 8)));
-    }
-
-    return TNN_OK;
-}
-#endif
-
 Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         return Exec<float>(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     }
-#if TNN_ARM82
-    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        return Exec<fp16_t>(inputs, outputs);
-    }
-#endif
     return TNNERR_LAYER_ERR;
 }
 

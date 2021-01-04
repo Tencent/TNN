@@ -58,8 +58,10 @@ public:
     uint64_t GetMaxWorkGroupSize(const cl::Kernel &kernel);
     uint32_t GetSubGroupSize(const cl::Kernel &kernel, const cl::NDRange &range = cl::NullRange);
     GpuInfo GetGpuInfo();
+    std::vector<size_t> GetImage2dMaxSize();
     bool SetPrecision(Precision precision);
     Precision GetPrecision();
+
 
     Status BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                        const std::set<std::string> &build_options);
@@ -89,6 +91,8 @@ private:
     bool support_fp16_ = false;
     bool fp16_enable_ = false;
     Precision precision_ = PRECISION_AUTO;
+
+    std::vector<size_t> image_2d_max_size_;
 };
 
 }  // namespace TNN_NS

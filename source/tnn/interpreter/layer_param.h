@@ -117,7 +117,7 @@ struct RoiPoolingLayerParam : public LayerParam {
 };
 
 struct UpsampleLayerParam : public LayerParam {
-    //1: nereast 2:bilinear/linear
+    //1: nereast 2: bilinear/linear 3: cubic
     int mode          = 0;
     int align_corners = 0;
 
@@ -247,7 +247,11 @@ typedef enum {
     // broadcast height x width
     BroadcastTypeHeightWidth = 4,
     // broadcast width
-    BroadcastTypeWidth = 5
+    BroadcastTypeWidth = 5,
+    // broadcast channel x height
+    BroadcastTypeChannelHeight = 6,
+    // broadcast channel x width
+    BroadcastTypeChannelWidth = 7
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {

@@ -1,6 +1,9 @@
-file(GLOB CPU_BASE_SRC *.h *.cc)
 file(GLOB_RECURSE X86_SRC *.h *.cc)
 
-add_library(TNNX86 OBJECT ${CPU_BASE_SRC} ${X86_SRC})
+add_library(TNNX86 OBJECT ${X86_SRC})
 
-include_directories(thirdparty/openvino/include)
+if (MSVC)
+    add_compile_options(/arch:AVX2)
+else()
+    add_compile_options(-mavx2 -mavx -mfma)
+endif()

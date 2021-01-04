@@ -39,6 +39,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
+    if (!share_channel && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
     param->name           = "PRelu";

@@ -16,8 +16,9 @@
 #include <string>
 #include <vector>
 
+#include "macro.h"
 #include "image_classifier.h"
-#include "utils.h"
+#include "utils/utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

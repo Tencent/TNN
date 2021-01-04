@@ -61,7 +61,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) ||
+        (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
