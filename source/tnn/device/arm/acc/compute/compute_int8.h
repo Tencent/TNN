@@ -61,11 +61,36 @@ struct Q8GemmContext {
     float* add_scale;
 };
 
+struct Q8ConvContext {
+    int32_t ks; //kernel_size
+    int32_t kc; //kernel_channel: input_channels
+    int32_t kc_stride;
+    int32_t m;
+    int32_t m_stride;
+    int32_t n;
+    int32_t n_stride;
+    const int8_t** indirect_a;
+    const int8_t* packed_w;
+    int8_t* c;
+    int32_t c_stride;
+    float* scales;
+    long   relu;
+    const int8_t* add_input;
+    float* add_scale;
+};
+
 typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
                                long c_stride, const float* scales, long relu, const int8_t* add_input,
                                const float* add_scale);
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
+
+void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
+
+void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
+                     long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
+                     const int8_t* weightPtr, const int32_t* biasPtr, const float* scalePtr, long stride, long pad,
+                     ArmKernelParam* param);
 
 void DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, long fw, long fh,
                      long weight_y_step, long dilate_y_step, long dilate_x_step, const float* scale, long dst_depth);
