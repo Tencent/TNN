@@ -203,7 +203,13 @@ function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
-    adb install -r benchmark-release.apk 
+    if [ "$ABI" == "arm64-v8a" ]; then
+        adb install -r release_app/${ABI}/benchmark-release.apk
+    elif [ "$ABI" == "armeabi-v7a" ] || [ "$ABI" == "armeabi-v7a with NEON" ]; then
+        adb install -r release_app/armeabi-v7a/benchmark-release.apk
+    else
+        exit_with_msg "abi $ABI invalid"
+    fi
 
     $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
     $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR
