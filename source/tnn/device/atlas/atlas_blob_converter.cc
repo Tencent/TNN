@@ -31,6 +31,7 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
     LOGD("blob bytesize: %d\n", blob_bytesize_);
 
     auto model_info_map = AtlasRuntime::GetInstance()->GetModleInfoMap();
+    // for input blob, need to find model info
     if (model_info_map.find(blob) != model_info_map.end()) {
         model_info_ = model_info_map[blob];
         aclError acl_ret =
@@ -45,10 +46,9 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
                 aipp_type_ = AIPP_NONE;
             }
         }
-        init_success_ = true;
+        input_blob_info_found_ = true;
     } else {
-        init_success_ = false;
-        LOGE("blob is not found in model_info_map, blob_converter init falied!\n");
+        input_blob_info_found_ = false;
     }
 }
 
@@ -63,11 +63,6 @@ AtlasBlobConverterAcc::~AtlasBlobConverterAcc() {
 
 // convert blob data to mat async
 Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param, void *command_queue) {
-    if (!init_success_) {
-        LOGE("blob converter init failed!\n");
-        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
-    }
-
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -138,9 +133,9 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
 
 // convert mat data to blob async
 Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam param, void *command_queue) {
-    if (!init_success_) {
-        LOGE("blob converter init failed!\n");
-        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    if (!input_blob_info_found_) {
+        LOGE("blob converter init failed, input_blob not found in model info map!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed, input_blob not found in model info map!");
     }
 
     Status tnn_ret   = TNN_OK;
@@ -173,11 +168,6 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
 }
 
 Status AtlasBlobConverterAcc::ConvertToMat(Mat &mat, MatConvertParam param, void *command_queue) {
-    if (!init_success_) {
-        LOGE("blob converter init failed!\n");
-        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
-    }
-
     Status ret = ConvertToMatAsync(mat, param, command_queue);
     if (ret == TNN_OK) {
         auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
@@ -194,9 +184,9 @@ Status AtlasBlobConverterAcc::ConvertToMat(Mat &mat, MatConvertParam param, void
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, void *command_queue) {
-    if (!init_success_) {
-        LOGE("blob converter init failed!\n");
-        return Status(TNNERR_COMMON_ERROR, "blob converter init failed!");
+    if (!input_blob_info_found_) {
+        LOGE("blob converter init failed, input_blob not found in model info map!\n");
+        return Status(TNNERR_COMMON_ERROR, "blob converter init failed, input_blob not found in model info map!");
     }
 
     Status ret = ConvertFromMatAsync(mat, param, command_queue);

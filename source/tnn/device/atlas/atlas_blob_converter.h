@@ -47,7 +47,7 @@ private:
     Status SetDynamicAipp(Mat& mat, MatConvertParam& param);
     int GetMaxBatchSize(aclmdlDesc* desc);
 
-    bool init_success_            = false;
+    bool input_blob_info_found_   = false;
     bool do_scale_bias_           = true;
     int blob_bytesize_            = 0;
     std::shared_ptr<char> buffer_ = nullptr;
