@@ -43,8 +43,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     if ret == 0:
         print_align_message(is_tflite)
     else:
-        print_not_align_message(None, is_tflie)
-
+        print_not_align_message(None, is_tflite)
     return
 
 
