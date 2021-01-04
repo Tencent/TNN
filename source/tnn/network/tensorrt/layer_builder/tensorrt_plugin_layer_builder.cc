@@ -71,7 +71,8 @@ DimsExprs TensorRTPluginLayerBuilder::getOutputDimensions(int index, const nvinf
     auto blob_dims = output_blobs_[index]->GetBlobDesc().dims;
     nvinfer1::DimsExprs output; 
     output.nbDims = blob_dims.size();
-    for(int i=0;i<blob_dims.size();i++) {
+    output.d[0] = inputs[0].d[0];
+    for(int i=1;i<blob_dims.size();i++) {
         output.d[i] = exprBuilder.constant(blob_dims[i]);
     }
     return output;

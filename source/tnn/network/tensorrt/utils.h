@@ -33,6 +33,8 @@ DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
 
 nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
 
+nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims);
+
 nvinfer1::DataType ConvertToTRTDataType(DataType type);
 
 }  //  namespace TNN_NS
