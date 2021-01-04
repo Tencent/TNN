@@ -78,7 +78,7 @@ config.cache_path = "";
     auto status = instance->SetInputMat(input_mat, input_cvt_param);
 ```
 
-TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias[相关转换参数](#MatConvertParam参数说明：)。
+TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias[相关转换参数](#MatConvertParam参数说明)。
 
 ### 步骤4. 输出获取
 
@@ -86,7 +86,7 @@ TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存
     auto status = instance->GetOutputMat(output_mat);
 ```
 
-TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。输出结果同样支持scale和bias[相关转换](#MatConvertParam参数说明：)。
+TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。输出结果同样支持scale和bias[相关转换](#MatConvertParam参数说明)。
 
 ## 二、API详解
 
