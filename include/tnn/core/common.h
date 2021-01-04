@@ -35,7 +35,7 @@ typedef enum {
     RUNTIME_MODE_CONST_FOLD = 1,
 } RuntimeMode;
 
-typedef enum : int {
+typedef enum {
     //data always change
     DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
     //data change if shape differ

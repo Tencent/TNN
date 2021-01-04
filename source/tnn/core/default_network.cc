@@ -577,10 +577,7 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
     context_->OnInstanceForwardBegin();
     for (auto layer : layers_) {
         result = layer->Forward();
-        if (result != TNN_OK) {
-            LOGE("Forward error %s, exit\n", result.description().c_str());
-            return result;
-        }
+        RETURN_ON_NEQ(result, TNN_OK);
     }
     context_->OnInstanceForwardEnd();
     return result;
