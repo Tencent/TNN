@@ -33,7 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
-                                            testing::Values(1, 2),
+                                            testing::Values(1, 2, 5),
                                             // kernel
                                             testing::Values(1, 2, 3, 4),
                                             // dilation
@@ -74,17 +74,14 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
-    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
-        GTEST_SKIP();
-    }
-#else
+#ifndef TNN_ARM82
     if (data_type == DATA_TYPE_HALF) {
         GTEST_SKIP();
     }
 #endif
 
-    if (DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
+    bool is_depthwise = (input_channel_per_group == 1) && (output_channel_per_group == 1);
+    if (DEVICE_METAL == dev && !is_depthwise && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
         !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
         GTEST_SKIP();
     }

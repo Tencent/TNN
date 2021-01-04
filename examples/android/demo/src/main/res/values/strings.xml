@@ -12,4 +12,6 @@
     <string name="tnn_bf_stream_btn_name">人脸检测Blazeface-视频输入</string>
     <string name="tnn_fa_stream_btn_name">优图人脸配准-视频输入</string>
     <string name="tnn_hs_stream_btn_name">头发分割-视频输入</string>
+    <string name="tnn_pdl_stream_btn_name">人体关键点-BlazePose-视频输入</string>
+    <string name="tnn_sd_stream_btn_name">人体关键点-腾讯微视-视频输入</string>
 </resources>

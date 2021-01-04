@@ -117,7 +117,7 @@ struct RoiPoolingLayerParam : public LayerParam {
 };
 
 struct UpsampleLayerParam : public LayerParam {
-    //1: nereast 2:bilinear/linear
+    //1: nereast 2: bilinear/linear 3: cubic
     int mode          = 0;
     int align_corners = 0;
 

@@ -31,6 +31,8 @@ public:
     virtual Status AllocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    Status ComputeDeconvParam(MetalConvParams& metal_param);
 };
 
 }  // namespace TNN_NS

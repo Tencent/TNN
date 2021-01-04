@@ -136,7 +136,77 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
     return 0;
 }
 
+// cubic interpolate weights
+template <typename T>
+static void GetCubicWeights(float coor, T coeffs[4]) {
+    // opencv uses -0.75
+    static const float A = -0.75f;
+    float x = coor - std::floor(coor);
+
+    coeffs[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
+    coeffs[1] = ((A + 2)*x - (A + 3))*x*x + 1;
+    coeffs[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
+    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
+}
+
+// cubic interpolate function
+template <bool align_corners>
+static void upsample_cubic2d_impl(float *dst, const float *src, int sh, int sw,
+                                      int dh, int dw, int channels) {
+    const float h_scale = (dh > 1) ? (align_corners ? (float)(sh - 1) / (dh - 1)
+                                                : (float)(sh) / (dh)) : 0.f;
+    const float w_scale = (dw > 1) ? (align_corners ? (float)(sw - 1) / (dw - 1)
+                                                : (float)(sw) / (dw)) : 0.f;
+#define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
+#define SrcValueAt(c, h, w) (src[c*sh*sw+(Clip(h,sh))*sw+(Clip(w,sw))])
+
+        _Pragma("omp parallel for")
+        for (int h2 = 0; h2 < dh; ++h2) {
+            float h1 = static_cast<float>(align_corners ? h_scale * h2 : h_scale * (h2 + 0.5) - 0.5);
+            int hh = std::floor(h1);
+            float wy[4];
+            GetCubicWeights(h1, wy);
+            for (int w2 = 0; w2 < dw; ++w2) {
+                float w1 = static_cast<float>(align_corners? w_scale * w2 : w_scale * (w2 + 0.5) - 0.5);
+                int ww = std::floor(w1);
+                float wx[4];
+                GetCubicWeights(w1, wx);
+                for (int c = 0; c < channels; ++c) {
+                    float src_arr[4][4] = {
+                        {SrcValueAt(c, hh-1, ww-1), SrcValueAt(c, hh-1, ww), SrcValueAt(c, hh-1, ww+1), SrcValueAt(c, hh-1, ww+2)},
+                        {SrcValueAt(c, hh+0, ww-1), SrcValueAt(c, hh+0, ww), SrcValueAt(c, hh+0, ww+1), SrcValueAt(c, hh+0, ww+2)},
+                        {SrcValueAt(c, hh+1, ww-1), SrcValueAt(c, hh+1, ww), SrcValueAt(c, hh+1, ww+1), SrcValueAt(c, hh+1, ww+2)},
+                        {SrcValueAt(c, hh+2, ww-1), SrcValueAt(c, hh+2, ww), SrcValueAt(c, hh+2, ww+1), SrcValueAt(c, hh+2, ww+2)}
+                    };
+                    float vals[4];
+                    vals[0] = wx[0]*src_arr[0][0] + wx[1]*src_arr[0][1] + wx[2]*src_arr[0][2] + wx[3]*src_arr[0][3];
+                    vals[1] = wx[0]*src_arr[1][0] + wx[1]*src_arr[1][1] + wx[2]*src_arr[1][2] + wx[3]*src_arr[1][3];
+                    vals[2] = wx[0]*src_arr[2][0] + wx[1]*src_arr[2][1] + wx[2]*src_arr[2][2] + wx[3]*src_arr[2][3];
+                    vals[3] = wx[0]*src_arr[3][0] + wx[1]*src_arr[3][1] + wx[2]*src_arr[3][2] + wx[3]*src_arr[3][3];
+
+                    float sum = wy[0]*vals[0] + wy[1]*vals[1] + wy[2]*vals[2] + wy[3]*vals[3];
+                    dst[(c * dh + h2) * dw + w2] = sum;
+                }
+            }
+        }
+#undef Clip
+#undef SrcValueAt
+}
+
+static inline int upsample_cubic2d(float *output_data, const float *input_data, int input_height, int input_width,
+                                      int output_height, int output_width, int channels, bool align_corners) {
+    if (align_corners)
+        upsample_cubic2d_impl<true>(output_data, input_data, input_height,
+                     input_width, output_height, output_width, channels);
+    else
+        upsample_cubic2d_impl<false>(output_data, input_data, input_height,
+                     input_width, output_height, output_width, channels);
+
+    return 0;
+}
+
 CpuUpsampleLayerAcc::~CpuUpsampleLayerAcc() {}
+
 
 Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
@@ -257,6 +327,11 @@ Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         for (int b = 0; b < batch; ++b) {
             upsample_bilinear2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
                                 output_height, output_width, channel, (bool)param->align_corners);
+        }
+    } else if (param->mode == 3) { // cubic
+        for (int b = 0; b < batch; ++b) {
+            upsample_cubic2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+                             output_height, output_width, channel, (bool)param->align_corners);
         }
     } else {
         LOGE("Error: Upsample dont support resize type\n");

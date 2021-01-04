@@ -105,7 +105,9 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         FloatToInt8(reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
                     reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())), 
                     scale_buffer_.force_to<float *>(), dims[0], dims[1], dims[2] * dims[3]);
-    } else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
+    }
+#if TNN_ARM82
+    else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
         FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
                         reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
                         dims[0], dims[1], dims[2] * dims[3]);
@@ -114,6 +116,7 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
                         reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
                         dims[0], dims[1], dims[2] * dims[3]);
     }
+#endif  // TNN_ARM82
     return TNN_OK;
 }
 

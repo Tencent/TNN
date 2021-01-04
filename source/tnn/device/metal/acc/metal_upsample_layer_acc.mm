@@ -43,7 +43,7 @@ Status MetalUpsampleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
         if (layer_param->mode == 1) {
             scale_x = (float)metal_params.input_width / (float)metal_params.output_width;
             scale_y = (float)metal_params.input_height / (float)metal_params.output_height;
-        } else if (layer_param->mode == 2) {
+        } else if (layer_param->mode == 2 || layer_param->mode == 3) {
             if (layer_param->align_corners) {
                 scale_x = (metal_params.output_width > 1) ? (float)(metal_params.input_width - 1) / (metal_params.output_width - 1) : 0.f;
                 scale_y = (metal_params.output_height > 1) ? (float)(metal_params.input_height - 1) / (metal_params.output_height - 1) : 0.f;
@@ -90,6 +90,12 @@ std::string MetalUpsampleLayerAcc::KernelName(const std::vector<Blob *> &inputs,
             return "upsample_bilinear_align";
         } else {
             return "upsample_bilinear_noalign";
+        }
+    } else if (layer_param->mode == 3) {
+        if (layer_param->align_corners) {
+            return "upsample_cubic_align";
+        } else {
+            return "upsample_cubic_noalign";
         }
     } else {
         LOGE("upsample type not support!\n");

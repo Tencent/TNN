@@ -63,8 +63,13 @@ Status UpsampleLayer::InferOutputShape() {
     int width_out    = 0;
     int height_out   = 0;
 
+<<<<<<< HEAD
     if (layer_param->mode == 1 || layer_param->mode == 2) {
         // floor is wrong for some model
+=======
+    if (layer_param->mode == 1 || layer_param->mode == 2 || layer_param->mode == 3) {
+        //floor is wrong for some model
+>>>>>>> master
         width_out  = int(round(width * layer_param->scales[0]));
         height_out = int(round(height * layer_param->scales[1]));
     } else {
