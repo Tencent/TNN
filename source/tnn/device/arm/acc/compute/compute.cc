@@ -840,4 +840,23 @@ void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bia
 template void ScaleBias(float *src, int channel, int hw, const float *scale, const float *bias, float *dst);
 template void ScaleBias(bfp16_t *src, int channel, int hw, const float *scale, const float *bias, bfp16_t *dst);
 
+void Half2Float(float* dst, const fp16_t* src, const size_t length) {
+#ifdef TNN_ARM82_USE_NEON
+    Half2FloatKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
+void Float2Half(fp16_t* dst, const float* src, const size_t length) {
+#ifdef TNN_ARM82_USE_NEON
+    Float2HalfKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
+
 }  // namespace TNN_NS
