@@ -17,6 +17,7 @@
 
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
+#include <algorithm>
 
 using namespace TNN_NS;
 namespace TNN_NS {

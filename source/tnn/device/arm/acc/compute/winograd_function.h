@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "tnn/core/macro.h"
+#include "tnn/device/arm/arm_common.h"
 
 namespace TNN_NS {
 
@@ -46,14 +47,14 @@ void SrcTransformInOne6x6BFP16(const void *src, void *dst, int w_stride, int h_s
 void DstTransformInOne6x4BFP16(const void *src, void *dst, int w_stride, int h_stride, int ey);
 
 #if TNN_ARM82
-void WeightTransform4x4(const __fp16 *src, __fp16 *dst, int kernel_size, int in_channel, int out_channel);
-void WeightTransform6x6(const __fp16 *src, __fp16 *dst, int kernel_size, int in_channel, int out_channel);
+void WeightTransformHalf4x4(const float *src, float *dst, int kernel_size, int in_channel, int out_channel);
+void WeightTransformHalf6x6(const float *src, float *dst, int kernel_size, int in_channel, int out_channel);
 
-void SrcTransform4x4(const __fp16 *src, __fp16 *dst, int src_stride, int dst_stride);
-void SrcTransform6x6(const __fp16 *src, __fp16 *dst, int src_stride, int dst_stride);
+void SrcTransform4x4(const fp16_t *src, fp16_t *dst, int src_stride, int dst_stride);
+void SrcTransform6x6(const fp16_t *src, fp16_t *dst, int src_stride, int dst_stride);
 
-void DstTransform4x2(const __fp16 *src, __fp16 *dst, int src_stride, int dst_stride);
-void DstTransform6x4(const __fp16 *src, __fp16 *dst, int src_stride, int dst_stride);
+void DstTransform4x2(const fp16_t *src, fp16_t *dst, int src_stride, int dst_stride);
+void DstTransform6x4(const fp16_t *src, fp16_t *dst, int src_stride, int dst_stride);
 
 void SrcTransformInOne4x4Fp16(const void *src, void *dst, int w_stride, int h_stride);
 void DstTransformInOne4x2Fp16(const void *src, void *dst, int w_stride, int h_stride, int ey);

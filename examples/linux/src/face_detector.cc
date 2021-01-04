@@ -18,7 +18,8 @@
 
 #include "ultra_face_detector.h"
 #include "tnn_sdk_sample.h"
-#include "utils.h"
+#include "utils/utils.h"
+#include "macro.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

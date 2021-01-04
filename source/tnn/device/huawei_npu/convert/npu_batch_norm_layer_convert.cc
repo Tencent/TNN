@@ -57,6 +57,7 @@ Status NpuBatchNormLayer::Convert() {
     int channel = input_ops_[0]->GetShape()[1];
     bool share_channel =
         resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
+
     // fixed - set to be 0 and 1
     std::vector<float> mean_data;
     std::vector<float> variance_data;

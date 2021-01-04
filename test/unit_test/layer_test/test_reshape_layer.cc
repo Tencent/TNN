@@ -36,6 +36,10 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
+    if (0 != reshape_type && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReshapeLayerParam> param(new ReshapeLayerParam());
     param->name         = "Reshape";
