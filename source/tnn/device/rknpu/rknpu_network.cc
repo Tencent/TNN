@@ -78,21 +78,30 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     }
 
     if (use_path && NpuCommonUtils::FileExits(model_save)) {
-        OutputShapesMap output_shape_map;
-        GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
+        // OutputShapesMap output_shape_map;
+        // GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
+        graph->LoadCache(model_save);
+        auto input_attrs = graph->GetInputTensorsAttr();
+        auto output_attrs = graph->GetOutputTensorsAttr();
         std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
         std::vector<std::shared_ptr<rk::nn::Tensor>> outputs;
-        for (auto &iter : instance_input_shapes_map) {
-            auto rk_input = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
+        for (auto &attr : input_attrs) {
+            int count = 0;
+            // printf("inputs[%d]: shape={%d,%d,%d,%d},type=%d,name=%s\n",count++,attr->dims[0],attr->dims[1],attr->dims[2],attr->dims[3],
+            //     attr->precision,attr->name.c_str());
+            auto rk_input = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
                                                          rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
             inputs.push_back(rk_input);
         }
-        for (auto &iter : output_shape_map) {
-            auto rk_output = RknpuUtils::CreateRknnTensor(graph, iter.first, iter.second, nullptr,
+        for (auto &attr : output_attrs) {
+            int count = 0;
+            // printf("inputs[%d]: shape={%d,%d,%d,%d},type=%d,name=%s\n",count++,attr->dims[0],attr->dims[1],attr->dims[2],attr->dims[3],
+            //     attr->precision,attr->name.c_str());
+            auto rk_output = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
                                                           rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
             outputs.push_back(rk_output);
         }
-        graph->LoadCache(model_save, inputs, outputs);
+        graph->SetInputsOutputs(inputs, outputs);
         exector_ = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
     } else {
         exector_         = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
