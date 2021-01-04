@@ -15,7 +15,6 @@
 #include "tnn/device/arm/acc/arm_upsample_layer_acc.h"
 
 #include "math.h"
-
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -263,6 +262,31 @@ static inline void get_cubic_pos_coeffs(int *h_pos_ptr, int *w_pos_ptr, float *h
 #undef ClipC4
 }
 
+struct UpsampleCubicKernelParm {
+    UpsampleCubicKernelParm(float **rows0_t_, float **rows1_t_, float **rows2_t_, float **rows3_t_, int *prev_h1_,
+                            int *h_pos_ptr_, int *w_pos_ptr_, int *h_pos4_ptr_, int *w_pos4_ptr_) {
+        rows0_t    = rows0_t_;
+        rows1_t    = rows1_t_;
+        rows2_t    = rows2_t_;
+        rows3_t    = rows3_t_;
+        prev_h1    = prev_h1_;
+        h_pos_ptr  = h_pos_ptr_;
+        w_pos_ptr  = w_pos_ptr_;
+        h_pos4_ptr = h_pos4_ptr_;
+        w_pos4_ptr = w_pos4_ptr_;
+    };
+
+    float **rows0_t;
+    float **rows1_t;
+    float **rows2_t;
+    float **rows3_t;
+    int *prev_h1;
+    int *h_pos_ptr;
+    int *w_pos_ptr;
+    int *h_pos4_ptr;
+    int *w_pos4_ptr;
+};
+
 static inline int upsample_cubic2d(float *output_data, const float *input_data, int batch, int ih, int iw, int oh,
                                    int ow, int c_4, bool align_corners) {
     auto src_z_step = iw * ih * 4;
@@ -286,14 +310,14 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
     auto w_pos4_ptr = w_pos_ptr + ow;
 
 #define ROW_CAL_START                                                                                                  \
-    const int w1  = w_pos_ptr[w2];                                                                                     \
-    const int *wp = w_pos4_ptr + 4 * w2;                                                                               \
+    const int w1  = param.w_pos_ptr[w2];                                                                               \
+    const int *wp = param.w_pos4_ptr + 4 * w2;                                                                         \
     auto w_lambda = Float4::load(w_coeffs_ptr + 4 * w2);
 #define ROW_CAL(src, dst)                                                                                               \
     auto Xdata##src = input_z + hp[dst] * iw;                                                                           \
     auto row_##dst  = Float4::load(Xdata##src + wp[0]) * w_lambda[0] + Float4::load(Xdata##src + wp[1]) * w_lambda[1] + \
                      Float4::load(Xdata##src + wp[2]) * w_lambda[2] + Float4::load(Xdata##src + wp[3]) * w_lambda[3];   \
-    Float4::save(rows##dst##_t[thread_id] + buf_offset, row_##dst);
+    Float4::save(param.rows##dst##_t[thread_id] + buf_offset, row_##dst);
 
     // loop body
     int max_num_threads = OMP_MAX_THREADS_NUM_;
@@ -308,6 +332,9 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
     float *rows2_t[max_num_threads];
     float *rows3_t[max_num_threads];
     int prev_h1[max_num_threads];
+
+    UpsampleCubicKernelParm param(rows0_t, rows1_t, rows2_t, rows3_t, prev_h1, h_pos_ptr, w_pos_ptr, h_pos4_ptr,
+                                  w_pos4_ptr);
 
     for (int b = 0; b < batch; ++b) {
         auto input_b  = input_data + b * src_plane;
@@ -328,8 +355,8 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
             OMP_PARALLEL_FOR_
             for (int h2 = 0; h2 < oh; ++h2) {
                 int thread_id  = OMP_TID_;
-                const int h1   = h_pos_ptr[h2];
-                const int *hp  = h_pos4_ptr + 4 * h2;
+                const int h1   = param.h_pos_ptr[h2];
+                const int *hp  = param.h_pos4_ptr + 4 * h2;
                 int buf_offset = 0;
 
                 int diff_h = h1 - prev_h1[thread_id];
@@ -337,23 +364,23 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
                 if (diff_h == 0) {
                     // reuse all rows
                 } else if (diff_h == 1) {
-                    auto rows_tmp      = rows0_t[thread_id];
-                    rows0_t[thread_id] = rows1_t[thread_id];
-                    rows1_t[thread_id] = rows2_t[thread_id];
-                    rows2_t[thread_id] = rows3_t[thread_id];
-                    rows3_t[thread_id] = rows_tmp;
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = rows_tmp;
                     for (int w2 = 0; w2 < ow; ++w2) {
                         ROW_CAL_START;
                         ROW_CAL(0, 3);
                         buf_offset += 4;
                     }
                 } else if (diff_h == 2) {
-                    auto rows_tmp      = rows0_t[thread_id];
-                    rows0_t[thread_id] = rows2_t[thread_id];
-                    rows2_t[thread_id] = rows_tmp;
-                    rows_tmp           = rows1_t[thread_id];
-                    rows1_t[thread_id] = rows3_t[thread_id];
-                    rows3_t[thread_id] = rows_tmp;
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = rows_tmp;
+                    rows_tmp                 = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = rows_tmp;
                     for (int w2 = 0; w2 < ow; ++w2) {
                         ROW_CAL_START;
                         ROW_CAL(0, 2);
@@ -361,11 +388,11 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
                         buf_offset += 4;
                     }
                 } else if (diff_h == 3) {
-                    auto rows_tmp      = rows0_t[thread_id];
-                    rows0_t[thread_id] = rows3_t[thread_id];
-                    rows3_t[thread_id] = rows2_t[thread_id];
-                    rows2_t[thread_id] = rows1_t[thread_id];
-                    rows1_t[thread_id] = rows_tmp;
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = rows_tmp;
                     for (int w2 = 0; w2 < ow; ++w2) {
                         ROW_CAL_START;
                         ROW_CAL(0, 1);
@@ -383,16 +410,16 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
                         buf_offset += 4;
                     }
                 }
-                prev_h1[thread_id] = h1;
+                param.prev_h1[thread_id] = h1;
 
                 auto h_lambda = Float4::load(h_coeffs_ptr + 4 * h2);
                 buf_offset    = 0;
                 for (int w2 = 0; w2 < ow; ++w2) {
                     float *Ydata = output_z + h2 * ow * 4 + w2 * 4;
-                    Float4::save(Ydata, Float4::load(rows0_t[thread_id] + buf_offset) * h_lambda[0] +
-                                            Float4::load(rows1_t[thread_id] + buf_offset) * h_lambda[1] +
-                                            Float4::load(rows2_t[thread_id] + buf_offset) * h_lambda[2] +
-                                            Float4::load(rows3_t[thread_id] + buf_offset) * h_lambda[3]);
+                    Float4::save(Ydata, Float4::load(param.rows0_t[thread_id] + buf_offset) * h_lambda[0] +
+                                            Float4::load(param.rows1_t[thread_id] + buf_offset) * h_lambda[1] +
+                                            Float4::load(param.rows2_t[thread_id] + buf_offset) * h_lambda[2] +
+                                            Float4::load(param.rows3_t[thread_id] + buf_offset) * h_lambda[3]);
 
                     buf_offset += 4;
                     Ydata += dst_z_step;
