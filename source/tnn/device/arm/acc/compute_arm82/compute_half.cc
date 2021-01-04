@@ -360,28 +360,6 @@ void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float
 #endif  // TNN_ARM82
 
 
-/*
-[2] Implement functions in compute_half.h
-*/
-void Half2Float(float* dst, const fp16_t* src, const size_t length) {
-#ifdef TNN_ARM82_USE_NEON
-    Half2FloatKernel(dst, src, length);
-#else
-    for (auto i = 0; i < length; i++) {
-        dst[i] = src[i];
-    }
-#endif
-}
-void Float2Half(fp16_t* dst, const float* src, const size_t length) {
-#ifdef TNN_ARM82_USE_NEON
-    Float2HalfKernel(dst, src, length);
-#else
-    for (auto i = 0; i < length; i++) {
-        dst[i] = src[i];
-    }
-#endif
-}
-
 #if TNN_ARM82
 
 void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw) {
