@@ -1,41 +1,84 @@
-if [ ! -d "bin" ]; then
-  mkdir bin
-fi
+#!/usr/bin/env bash
 
-if [ ! -d "temp" ]; then
-  mkdir temp
-fi
+CURRENT_DIR=$(pwd)
+CLEAN=""
+BUILD_DIR=build
+BIN_DIR=bin
 
-function build_model_check() {
-	cd $2
-
-	cmake ../../.. \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DTNN_CPU_ENABLE:BOOL="ON" \
-		-DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
-    -DTNN_CONVERTER_ENABLE:BOOL="ON" \
-		-DTNN_BUILD_SHARED="OFF"
-
-	make -j4
-        cp tools/converter/TnnConverter ../bin/
-
-	if [ -f "model_check" ]; then
-		mv model_check ../$1
-
-		cd ..
-
-		rm -rf $2
-		
-		cd ../onnx2tnn/onnx-converter
-		./build.sh
-
-		echo "Compiled successfully !"
-	else
-		cd ..
-		rm -rf $1 $2
-		echo "Compiled failed !!!"
-	fi
+function usage() {
+    echo "usage: ./build.sh [-c]"
+    echo "options:"
+    echo "        -c    Clean up build folders."
 }
 
-build_model_check bin temp
+function clean_build() {
+    echo $1 | grep "${BUILD_DIR}\b" >/dev/null
+    if [[ "$?" != "0" ]]; then
+        die "Warnning: $1 seems not to be a BUILD folder."
+    fi
+    rm -rf $1
+    mkdir -p $1
+}
 
+function build_model_check_and_tnn_converter() {
+
+    if [ "-c" == "${CLEAN}" ]; then
+        clean_build ${BUILD_DIR}
+    fi
+    pwd
+    mkdir -p ${BUILD_DIR}
+    cd ${BUILD_DIR}
+
+    cmake ../../.. \
+        -DCMAKE_BUILD_TYPE=DEBUG \
+        -DTNN_CPU_ENABLE:BOOL="ON" \
+        -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
+        -DTNN_CONVERTER_ENABLE:BOOL="ON" \
+        -DTNN_BUILD_SHARED="OFF" \
+        -DDEBUG="ON"
+
+    make -j4
+
+    if [ -f "model_check" ]; then
+        cp model_check ../${BIN_DIR}
+        echo "Compiled model_check successfully !"
+    else
+
+        echo "Compiled model_check failed !!!"
+    fi
+
+    if [ -f "tools/converter/TnnConverter" ]; then
+        cp tools/converter/TnnConverter ../${BIN_DIR}
+        echo "Compiled model_check successfully !"
+    else
+        echo "Compiled TNNConverter failed !!!"
+    fi
+}
+
+function build_onnx2tnn() {
+    cd ${CURRENT_DIR}
+    cd ../onnx2tnn/onnx-converter/
+
+    if [ "-c" == "${CLEAN}" ]; then
+        ./build.sh -c
+    else
+        ./build.sh
+    fi
+}
+
+while [ "$1" != "" ]; do
+    case $1 in
+    -c)
+        shift
+        CLEAN="-c"
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+    esac
+done
+
+build_model_check_and_tnn_converter
+
+build_onnx2tnn
