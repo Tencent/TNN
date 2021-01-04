@@ -115,6 +115,17 @@ nvinfer1::Dims ConvertToTRTDims(DimsVector dims) {
     return trt_dims;
 }
 
+nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims) {
+    int dims_size = dims.size();
+    nvinfer1::Dims trt_dims;
+    trt_dims.nbDims = dims_size;
+    trt_dims.d[0] = -1;
+    for(int i = 1; i < dims_size; ++i) {
+        trt_dims.d[i] = dims[i];
+    }
+    return trt_dims;
+}
+
 nvinfer1::DataType ConvertToTRTDataType(DataType type) {
     switch (type) {
         case DATA_TYPE_FLOAT:

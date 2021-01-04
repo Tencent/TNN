@@ -344,7 +344,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
-        auto nv_dims = ConvertToTRTDims(desc.dims);
+        auto nv_dims = ConvertToTRTDynamicDims(desc.dims);
         for(int i=2;i<nv_dims.nbDims;i++) {
             nv_dims.d[i] = -1;
         }
