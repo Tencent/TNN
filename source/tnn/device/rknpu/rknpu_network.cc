@@ -41,7 +41,8 @@ RknpuNetwork::~RknpuNetwork() {
 
 Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                           InputShapesMap inputs_shape) {
-    if (net_config.device_type != DEVICE_RK_NPU || model_config.model_type != MODEL_TYPE_TNN) {
+    if (net_config.device_type != DEVICE_RK_NPU ||
+        (model_config.model_type != MODEL_TYPE_TNN && model_config.model_type != MODEL_TYPE_RKCACHE)) {
         return Status(TNNERR_NULL_PARAM, "Rknpu not support device_type or model type");
     }
 
@@ -59,55 +60,68 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         return TNNERR_COMMON_ERROR;
     }
 
-    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    net_structure_            = default_interpreter->GetNetStructure();
-
-    auto instance_input_shapes_map = net_structure_->inputs_shape_map;
-
-    // RKNPU IR Build
-    bool use_path            = (net_config.cache_path.compare("") != 0);
-    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
-    model_name_              = NpuCommonUtils::GetFileHash(model_config) + model_suffix;
-
-    std::string model_save = use_path ? net_config.cache_path + "/" + model_name_ : "";
-
-    // delete in network deinit
     rk::nn::Graph *graph = new rk::nn::Graph();
-    if (use_path && !NpuCommonUtils::FileExits(model_save)) {
-        graph->EnableCreateCache(model_save);
-    }
 
-    if (use_path && NpuCommonUtils::FileExits(model_save)) {
-        // OutputShapesMap output_shape_map;
-        // GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
-        graph->LoadCache(model_save);
+    if (model_config.model_type == MODEL_TYPE_RKCACHE) {
+        graph->LoadCache(net_config.cache_path);
         auto input_attrs = graph->GetInputTensorsAttr();
         auto output_attrs = graph->GetOutputTensorsAttr();
         std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
         std::vector<std::shared_ptr<rk::nn::Tensor>> outputs;
         for (auto &attr : input_attrs) {
-            int count = 0;
-            // printf("inputs[%d]: shape={%d,%d,%d,%d},type=%d,name=%s\n",count++,attr->dims[0],attr->dims[1],attr->dims[2],attr->dims[3],
-            //     attr->precision,attr->name.c_str());
             auto rk_input = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
                                                          rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
             inputs.push_back(rk_input);
         }
         for (auto &attr : output_attrs) {
-            int count = 0;
-            // printf("inputs[%d]: shape={%d,%d,%d,%d},type=%d,name=%s\n",count++,attr->dims[0],attr->dims[1],attr->dims[2],attr->dims[3],
-            //     attr->precision,attr->name.c_str());
             auto rk_output = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
                                                           rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
             outputs.push_back(rk_output);
         }
         graph->SetInputsOutputs(inputs, outputs);
-        exector_ = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
+        exector_ = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));        
     } else {
-        exector_         = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
-        Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
-        if (build_ret != TNN_OK) {
-            return build_ret;
+        auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+        net_structure_            = default_interpreter->GetNetStructure();
+
+        auto instance_input_shapes_map = net_structure_->inputs_shape_map;
+        // RKNPU IR Build
+        bool use_path            = (net_config.cache_path.compare("") != 0);
+        NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
+
+        std::string model_save = use_path ? net_config.cache_path : "";
+
+        // delete in network deinit
+        if (use_path && !NpuCommonUtils::FileExits(model_save)) {
+            graph->EnableCreateCache(model_save);
+        }
+
+        if (use_path && NpuCommonUtils::FileExits(model_save)) {
+            // OutputShapesMap output_shape_map;
+            // GetOutputShapeMap(net_config, interpreter, instance_input_shapes_map, output_shape_map);
+            graph->LoadCache(model_save);
+            auto input_attrs = graph->GetInputTensorsAttr();
+            auto output_attrs = graph->GetOutputTensorsAttr();
+            std::vector<std::shared_ptr<rk::nn::Tensor>> inputs;
+            std::vector<std::shared_ptr<rk::nn::Tensor>> outputs;
+            for (auto &attr : input_attrs) {
+                auto rk_input = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
+                                                            rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
+                inputs.push_back(rk_input);
+            }
+            for (auto &attr : output_attrs) {
+                auto rk_output = RknpuUtils::CreateRknnTensor(graph, attr->name, attr->dims, nullptr,
+                                                            rk::nn::TensorRole::DATA, DATA_TYPE_FLOAT);
+                outputs.push_back(rk_output);
+            }
+            graph->SetInputsOutputs(inputs, outputs);
+            exector_ = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
+        } else {
+            exector_         = std::unique_ptr<rk::nn::Exection>(new rk::nn::Exection(graph));
+            Status build_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
+            if (build_ret != TNN_OK) {
+                return build_ret;
+            }
         }
     }
 
@@ -119,10 +133,11 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     output_inf_.clear();
 
     // init input buffers
-    input_inf_.resize(graph->GetInputs().size());
+    auto input_attrs = exector_->GetGraph()->GetInputTensorsAttr();
+    input_inf_.resize(input_attrs.size());
     for (int i = 0; i < input_inf_.size(); i++) {
-        auto type     = graph->GetInputs()[i]->GetPrecision();
-        auto dims     = graph->GetInputs()[i]->GetDims();
+        auto type     = input_attrs[i]->precision;
+        auto dims     = input_attrs[i]->dims;
         uint32_t size = RknpuUtils::CalcSize(type, dims);
 
         input_inf_[i].index        = i;
@@ -132,14 +147,11 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         input_inf_[i].type         = type;
         input_inf_[i].layout       = rk::nn::DataLayoutType::NCHW;
 
-        auto it = instance_input_shapes_map.begin();
-        std::advance(it, i);
-
         BlobDesc desc;
         desc.device_type = DEVICE_RK_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
-        desc.name        = it->first;
+        desc.name        = input_attrs[i]->name;
         for (auto dim : dims) {
             desc.dims.push_back((int)dim);
         }
@@ -149,10 +161,11 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     }
 
     // init output buffers
-    output_inf_.resize(graph->GetOutputs().size());
+    auto output_attrs = exector_->GetGraph()->GetOutputTensorsAttr();
+    output_inf_.resize(output_attrs.size());
     for (int i = 0; i < output_inf_.size(); ++i) {
-        auto type     = graph->GetOutputs()[i]->GetPrecision();
-        auto dims     = graph->GetOutputs()[i]->GetDims();
+        auto type     = output_attrs[i]->precision;
+        auto dims     = output_attrs[i]->dims;
         uint32_t size = RknpuUtils::CalcSize(type, dims);
 
         output_inf_[i].index      = i;
@@ -163,13 +176,11 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         output_inf_[i].want_float = true;
 
         // add blob
-        auto it = net_structure_->outputs.begin();
-        std::advance(it, i);
         BlobDesc desc;
         desc.device_type = DEVICE_RK_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.data_type   = DATA_TYPE_FLOAT;
-        desc.name        = *it;
+        desc.name        = output_attrs[i]->name;
         for (auto dim : dims) {
             desc.dims.push_back((int)dim);
         }
