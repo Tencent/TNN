@@ -52,6 +52,7 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
         case 1:
             data_type = DATA_TYPE_FLOAT;
             break;
+        case 9://INT8 BOOL(sizeof(bool) == sizeof(char))
         case 3:
             data_type = DATA_TYPE_INT8;
             break;
