@@ -15,6 +15,7 @@
 #include <algorithm>
 
 #include "tnn/layer/base_layer.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -32,11 +33,41 @@ Status StrideSliceV2Layer::InferOutputShape() {
         LOGE("StrideSliceV2Layer param is nil\n");
         return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is nil");
     }
+    
+    //根据const resource更新维度信息
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        if (input_blobs_.size() >= 2) {
+            if (input_blobs_[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+                return Status(TNNERR_PARAM_ERR, "stride slice input(begins) has invalid data type");
+            }
+            auto dim_count = DimsVectorUtils::Count(input_blobs_[1]->GetBlobDesc().dims);
+            auto dim_data = (int *)((char *)input_blobs_[1]->GetHandle().base + input_blobs_[1]->GetHandle().bytes_offset);
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->begins = dims;
+        }
+        
+        if (input_blobs_.size() >= 3) {
+            if (input_blobs_[2]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+                return Status(TNNERR_PARAM_ERR, "stride slice input(ends) has invalid data type");
+            }
+            auto input_dims = input_blobs_[2]->GetBlobDesc().dims;
+            
+            auto dim_count = DimsVectorUtils::Count(input_blobs_[2]->GetBlobDesc().dims);
+            auto dim_data = (int *)((char *)input_blobs_[2]->GetHandle().base + input_blobs_[2]->GetHandle().bytes_offset);
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->ends = dims;
+        }
+    }
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
-    output_blob->GetBlobDesc().dims.clear();
     auto input_dims = input_blob->GetBlobDesc().dims;
 
     auto begins = layer_param->begins;
@@ -44,39 +75,12 @@ Status StrideSliceV2Layer::InferOutputShape() {
     auto axes = layer_param->axes;
     auto strides = layer_param->strides;
 
-    auto sizes = input_dims;
-
     //前闭后开区间
-    for (int i = 0; i < axes.size(); i++) {
-        int index = axes[i];
-        if (begins[i] < 0) {
-            begins[i] += input_blob->GetBlobDesc().dims[index];
-        }
-
-        if (ends[i] == INT_MAX) {
-            ends[i] = input_dims[index];
-        }
-
-        if (ends[i] < 0) {
-            ends[i] += input_dims[index];
-        }
-
-        if (begins[i] >= ends[i]) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
-            return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
-        }
-
-        sizes[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
-
-        if (sizes[index] <= 0) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
-            return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
-        }
-    }
-
-    layer_param->begins = begins;
-    layer_param->ends = ends;
-    output_blob->GetBlobDesc().dims = sizes;
+    Status status = TNN_OK;
+    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, axes, begins, ends, strides, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
 }

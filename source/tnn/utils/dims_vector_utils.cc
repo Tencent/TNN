@@ -162,6 +162,53 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     return output_dims;
 }
 
+DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims, const DimsVector axes,
+                                        DimsVector begins, DimsVector ends, const DimsVector strides, Status *status) {
+    if (axes.size() != begins.size() || axes.size() != ends.size() || axes.size() != strides.size()) {
+        LOGE("StrideSliceV2Layer param of axes, ends, strides size is invalid\n");
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param of axes, ends, strides size is invalid");
+            return DimsVector();
+        }
+    }
+
+    auto output_dims = input_dims;
+
+    //前闭后开区间
+    for (int i = 0; i < axes.size(); i++) {
+        int index = axes[i];
+        if (begins[i] < 0) {
+            begins[i] += input_dims[index];
+        }
+
+        if (ends[i] == INT_MAX) {
+            ends[i] = input_dims[index];
+        }
+
+        if (ends[i] < 0) {
+            ends[i] += input_dims[index];
+        }
+
+        if (begins[i] >= ends[i]) {
+            LOGE("StrideSliceV2Layer param is invalid\n");
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
+            }
+        }
+
+        output_dims[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
+
+        if (output_dims[index] <= 0) {
+            LOGE("StrideSliceV2Layer param is invalid\n");
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
+            }
+        }
+    }
+    
+    return output_dims;
+}
+
 DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
