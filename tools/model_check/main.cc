@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:ocf:n:s:h";
+    const char* optstring = "p:m:d:i:oef:n:s:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -243,7 +243,7 @@ int main(int argc, char* argv[]) {
     // for HuaweiNPU only check output
     if (net_config.device_type == DEVICE_HUAWEI_NPU) {
         model_checker_param.only_check_output = true;
-        net_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
+        net_config.network_type               = NETWORK_TYPE_HUAWEI_NPU;
     }
 
     // only for metal device
@@ -263,8 +263,12 @@ int main(int argc, char* argv[]) {
         return -1;
 
     ModelChecker model_checker;
-    net_config.precision = PRECISION_HIGH;
-    Status status        = model_checker.Init(net_config, model_config);
+    if (model_checker_param.only_check_output) {
+        net_config.precision = PRECISION_AUTO;
+    } else {
+        net_config.precision = PRECISION_HIGH;
+    }
+    Status status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed!\n");
         return -1;

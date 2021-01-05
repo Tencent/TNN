@@ -448,7 +448,7 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blo
 
         printf("max diff: %lf   index: %d\n", max_diff, max_diff_idx);
         printf("cos distance: %lf\n", cos_distance);
-        if (cos_distance < 0.999) {
+        if (cos_distance < 0.999 || std::isnan(cos_distance) || std::isinf(cos_distance)) {
             return false;
         }
     } else {
