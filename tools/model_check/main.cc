@@ -120,13 +120,13 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-c] [-f] "
+        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
         "<refernece> [-n] <val> [-s] <val>\n"
         "\t-h, --help     \t show this message\n"
         "\t-p, --proto    \t(require) tnn proto file path\n"
         "\t-m, --model    \t(require) tnn model file path\n"
         "\t-d, --device   \t(require) the device to run to check results, ie, "
-        "OPENCL, METAL, ARM, CUDA\n"
+        "OPENCL, METAL, ARM, CUDA, HUAWEI_NPU, NAIVE\n"
         "\t-i, --input    \t(optional) input file\n"
         "\t-o, --output   \t(optional) dump output\n"
         "\t-e, --end      \t(optional) compare output only\n"
