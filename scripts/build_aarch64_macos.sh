@@ -16,7 +16,6 @@ cd build_aarch64_macos
 
 cmake ${TNN_ROOT_PATH} \
     -DTNN_TEST_ENABLE=ON \
-    -DTNN_UNIT_TEST_ENABLE=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DTNN_ARM_ENABLE:BOOL=$ARM \
     -DTNN_ARM82_ENABLE:BOOL=$ARM82 \
