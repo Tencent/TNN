@@ -108,6 +108,8 @@ private:
     Status GetOutputShapeMap(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
                              InputShapesMap &input_shape, OutputShapesMap &output_shape);
 
+    Status InitCacheGraph(std::string &cache_path, rk::nn::Graph *graph);
+
     AbstractDevice *device_ = nullptr;
 
     Context *context_ = nullptr;
