@@ -65,6 +65,8 @@ static const char tnn_test_json_message[] = "write tnn test json (default false)
 
 static const char model_path_directory_message[] = "model path directory";
 
+static const char enable_tune_message[] = "enable tune kernel(default false)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -104,6 +106,8 @@ DECLARE_string(is);
 DECLARE_bool(js);
 
 DECLARE_string(pd);
+
+DECLARE_bool(et);
 
 }  // namespace TNN_NS
 

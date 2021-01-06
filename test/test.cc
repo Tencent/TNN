@@ -260,6 +260,7 @@ namespace test {
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -js \"<write json>\t%s \n", tnn_test_json_message);
         printf("    -pd \"<model path directory>\t%s \n", model_path_directory_message);
+        printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
     }
 
     void SetCpuAffinity() {
