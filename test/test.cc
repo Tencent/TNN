@@ -55,6 +55,35 @@ namespace test {
         // parse command line params
         if (!ParseAndCheckCommandLine(argc, argv))
             return -1;
+
+        std::vector<std::string> jsons;
+        if(FLAGS_pd == "") {
+            TestOneModel(FLAGS_mp, jsons);
+        }
+        else {
+            struct dirent *ptr;
+            DIR *dir;
+            std::string filePath = FLAGS_pd;
+            dir = opendir(filePath.c_str());
+            while((ptr=readdir(dir))!=NULL) {
+                std::string proto_name = ptr->d_name;
+                if(proto_name[0] == '.')
+                    continue;
+                if(proto_name.substr(proto_name.length() - 5, 5) == "model" || proto_name.substr(proto_name.length() - 4, 4) == "tnnm")
+                    continue;
+                TestOneModel(proto_name, jsons);
+            }
+        }
+        if(FLAGS_js) {
+            std::string json_array = CollectJson(jsons);
+            std::ofstream f("/sdcard/Tnn_Benchmark.json");
+            f << json_array << std::endl;
+            f.close();
+        }
+        return 0;
+    }
+
+    int TestOneModel(std::string proto_name, std::vector<std::string>& jsons) {
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         g_tnn_dump_directory = FLAGS_op;
 #endif
@@ -64,39 +93,30 @@ namespace test {
         // only works when -dl flags were set. benchmark script not set -dl flags
         SetCpuAffinity();
 
-        struct dirent *ptr;
-        DIR *dir;
-        std::string filePath = FLAGS_pd;
-        dir = opendir(filePath.c_str());
-        std::vector<std::string> jsons;
-        while((ptr=readdir(dir))!=NULL) {
-            std::string proto_name = ptr->d_name;
-            if(proto_name[0] == '.')
-                continue;
-            if(proto_name.substr(proto_name.length() - 5, 5) == "model" || proto_name.substr(proto_name.length() - 4, 4) == "tnnm")
-                continue;
-
-        FILE   *stream;
         char proto_buf[1024] = {0};
-        char proto_md5[1024] = {0};
-        sprintf(proto_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
-
-        stream = popen( proto_md5 , "r" );
-        fread( proto_buf, sizeof(char), sizeof(proto_buf),  stream);
-        pclose(stream);
-
         char model_buf[1024] = {0};
-        char model_md5[1024] = {0};
-        sprintf(model_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + (proto_name.substr(proto_name.length() - 4, 4) == "tnnp" ? proto_name.substr(0, proto_name.length() - 4) + "tnnm" : proto_name.substr(0, proto_name.length() - 5) + "model")).c_str());
 
-        stream = popen( model_md5 , "r" );
-        fread( model_buf, sizeof(char), sizeof(model_buf),  stream);
-        pclose(stream);
+        if(FLAGS_js) {
+            FILE   *stream;
+            char proto_md5[1024] = {0};
+            sprintf(proto_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + proto_name).c_str());
 
-        ModelConfig model_config     = GetModelConfig(FLAGS_pd + ptr->d_name);
+            stream = popen( proto_md5 , "r" );
+            fread( proto_buf, sizeof(char), sizeof(proto_buf),  stream);
+            pclose(stream);
+
+            char model_md5[1024] = {0};
+            sprintf(model_md5, "md5sum %s | cut -d ' ' -f1", (FLAGS_pd + (proto_name.substr(proto_name.length() - 4, 4) == "tnnp" ? proto_name.substr(0, proto_name.length() - 4) + "tnnm" : proto_name.substr(0, proto_name.length() - 5) + "model")).c_str());
+
+            stream = popen( model_md5 , "r" );
+            fread( model_buf, sizeof(char), sizeof(model_buf),  stream);
+            pclose(stream);
+        }
+
+        ModelConfig model_config     = GetModelConfig(FLAGS_pd + proto_name);
         NetworkConfig network_config = GetNetworkConfig();
 
-        InputShapesMap input_shape = GetInputShapesMap();        
+        InputShapesMap input_shape = GetInputShapesMap();
 
         srand(102);
 
@@ -109,14 +129,14 @@ namespace test {
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 
-            //get blob 
+            //get blob
             BlobMap input_blob_map;
             BlobMap output_blob_map;
             void* command_queue;
             instance->GetAllInputBlobs(input_blob_map);
             instance->GetAllOutputBlobs(output_blob_map);
             instance->GetCommandQueue(&command_queue);
-                
+
             //create mat and converter
             MatMap input_mat_map = CreateBlobMatMap(input_blob_map, FLAGS_it);
             InitInputMatMap(input_mat_map);
@@ -135,7 +155,7 @@ namespace test {
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
                 instance->ForwardAsync(nullptr);
-                 
+
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
@@ -145,12 +165,12 @@ namespace test {
 #if TNN_PROFILE
             instance->StartProfile();
 #endif
-            
+
             std::string model_name = FLAGS_mp;
             if(FLAGS_mp.find_last_of("/") != -1) {
-                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
-            }   
- 
+                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1);
+            }
+
             Timer timer(model_name + " - " + FLAGS_dt);
 
             for (int i = 0; i < FLAGS_ic; ++i) {
@@ -183,27 +203,19 @@ namespace test {
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
             }
- 
+
             timer.Print();
 
             if(FLAGS_js) {
                 jsons.push_back(timer.PrintTimeJson(proto_name, FLAGS_dt, proto_buf, model_buf));
             }
- 
+
             FreeMatMapMemory(input_mat_map);
             FreeMatMapMemory(output_mat_map);
             return 0;
         } else {
             return ret;
         }
-        }
-        if(FLAGS_js) {
-            std::string json_array = CollectJson(jsons);
-            std::ofstream f("/sdcard/Tnn_Benchmark.json");
-            f << json_array << std::endl;
-            f.close();
-        }
-        return 0;
     }
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -520,7 +532,7 @@ namespace test {
         }
     }
 
-    std::string CollectJson(std::vector<std::string> jsons) {
+    std::string CollectJson(std::vector<std::string>& jsons) {
         std::string prefix = "{\"data\":[";
         std::string suffix = "]}";
         std::string jsonstr = "";

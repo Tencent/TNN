@@ -54,7 +54,9 @@ namespace test {
 
     void FreeMatMapMemory(MatMap& mat_map);
 
-    std::string CollectJson(std::vector<std::string> jsons);
+    std::string CollectJson(std::vector<std::string>& jsons);
+
+    int TestOneModel(std::string model_name, std::vector<std::string>& jsons);
 
 }  // namespace test
 
