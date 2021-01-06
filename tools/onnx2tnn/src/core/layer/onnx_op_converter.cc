@@ -18,6 +18,10 @@
 #include "onnx_utility.h"
 #include "onnx.pb.h"
 
+inline int saturate_cast(int64_t data) {
+    return (int)((uint64_t)(data - INT_MIN) <= (uint64_t)UINT_MAX ? data : data > 0 ? INT_MAX : INT_MIN);
+}
+
 string OnnxOpConverter::TNNLayerProto(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     ostringstream proto_layer;
@@ -168,7 +172,8 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 auto int64_data = (int64_t *)raw_data;
                 auto int32_data = new int32_t[data_count];
                 for (int ii=0; ii<data_count; ii++) {
-                    int32_data[ii] = static_cast<int32_t>(int64_data[ii]);
+                    //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
+                    int32_data[ii] = saturate_cast(int64_data[ii]);
                 }
                 writer->put_raw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
                 delete[] int32_data;
