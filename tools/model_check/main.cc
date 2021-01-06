@@ -130,7 +130,7 @@ void PrintConfig() {
         "\t-i, --input    \t(optional) input file\n"
         "\t-o, --output   \t(optional) dump output\n"
         "\t-e, --end      \t(optional) compare output only\n"
-        "\t-r, --ref      \t(optional) the reference output to compare\n"
+        "\t-f, --ref      \t(optional) the reference output to compare\n"
         "\t-n, --bias     \t(optional) bias val when preprocess image "
         "input, ie, "
         "0.0,0.0,0.0 \n"
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
 
     if (argc == 1) {
         PrintConfig();
-        return 0;
+        return -1;
     }
 
     while (1) {
@@ -228,7 +228,7 @@ int main(int argc, char* argv[]) {
             case 'h':
             case '?':
                 PrintConfig();
-                return 0;
+                return -1;
             default:
                 PrintConfig();
                 break;
