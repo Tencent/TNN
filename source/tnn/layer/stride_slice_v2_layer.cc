@@ -37,31 +37,31 @@ Status StrideSliceV2Layer::InferOutputShape() {
     //根据const resource更新维度信息
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         if (input_blobs_.size() >= 2) {
-            if (input_blobs_[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
-                return Status(TNNERR_PARAM_ERR, "stride slice input(begins) has invalid data type");
+            auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
+            if (const_resource_.find(begins_blob_name) != const_resource_.end()) {
+                auto begins_buffer =  const_resource_[begins_blob_name];
+                auto dim_count = begins_buffer->GetDataCount();
+                auto dim_data = (int *)begins_buffer->force_to<int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(dim_data[i]);
+                }
+                layer_param->begins = dims;
             }
-            auto dim_count = DimsVectorUtils::Count(input_blobs_[1]->GetBlobDesc().dims);
-            auto dim_data = (int *)((char *)input_blobs_[1]->GetHandle().base + input_blobs_[1]->GetHandle().bytes_offset);
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            layer_param->begins = dims;
         }
         
         if (input_blobs_.size() >= 3) {
-            if (input_blobs_[2]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
-                return Status(TNNERR_PARAM_ERR, "stride slice input(ends) has invalid data type");
+            auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
+            if (const_resource_.find(ends_blob_name) != const_resource_.end()) {
+                auto ends_buffer =  const_resource_[ends_blob_name];
+                auto dim_count = ends_buffer->GetDataCount();
+                auto dim_data = (int *)ends_buffer->force_to<int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(dim_data[i]);
+                }
+                layer_param->ends = dims;
             }
-            auto input_dims = input_blobs_[2]->GetBlobDesc().dims;
-            
-            auto dim_count = DimsVectorUtils::Count(input_blobs_[2]->GetBlobDesc().dims);
-            auto dim_data = (int *)((char *)input_blobs_[2]->GetHandle().base + input_blobs_[2]->GetHandle().bytes_offset);
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            layer_param->ends = dims;
         }
     }
 
