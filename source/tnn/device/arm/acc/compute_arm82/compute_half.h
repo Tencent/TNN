@@ -26,9 +26,6 @@
 
 namespace TNN_NS {
 
-void Half2Float(float* dst, const fp16_t* src, const size_t length);
-void Float2Half(fp16_t* dst, const float* src, const size_t length);
-
 #if TNN_ARM82
 // used for reformat
 void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);
