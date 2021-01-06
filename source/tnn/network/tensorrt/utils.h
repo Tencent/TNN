@@ -17,6 +17,9 @@
 
 #include "tnn/core/common.h"
 
+#include <cuda_runtime_api.h>
+#include <NvInfer.h>
+
 namespace TNN_NS {
 
 std::string GetGpuType(int gpu_id);
@@ -36,6 +39,8 @@ nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
 nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims);
 
 nvinfer1::DataType ConvertToTRTDataType(DataType type);
+
+nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor, DimsVector reshape_dims, const char* layer_name);
 
 }  //  namespace TNN_NS
 
