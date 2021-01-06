@@ -70,7 +70,7 @@ Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     
     //前闭后开区间
     Status status = TNN_OK;
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, axes, begins, ends, strides, &status);
+    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
     
     outputs[0]->GetBlobDesc().dims = output_dims;
@@ -93,10 +93,15 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     auto ends = layer_param->ends;
     auto strides = layer_param->strides;
     auto axes = layer_param->axes;
-
+    
     DimsVector input_dims = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
     int output_count = DimsVectorUtils::Count(output_dims);
+    
+    //rectify begins and ends here for value < 0 or = INT_MAX
+    Status status = TNN_OK;
+    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);

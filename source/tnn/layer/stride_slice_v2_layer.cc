@@ -77,9 +77,12 @@ Status StrideSliceV2Layer::InferOutputShape() {
 
     //前闭后开区间
     Status status = TNN_OK;
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, axes, begins, ends, strides, &status);
+    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
-    
+  
+    //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword
+//    layer_param->begins = begins;
+//    layer_param->ends = ends;
     output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;

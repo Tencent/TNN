@@ -162,8 +162,9 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     return output_dims;
 }
 
-DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims, const DimsVector axes,
-                                        DimsVector begins, DimsVector ends, const DimsVector strides, Status *status) {
+DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
+                                        DimsVector& begins, DimsVector& ends, const DimsVector strides,
+                                        const DimsVector axes, Status *status) {
     if (axes.size() != begins.size() || axes.size() != ends.size() || axes.size() != strides.size()) {
         LOGE("StrideSliceV2Layer param of axes, ends, strides size is invalid\n");
         if (status) {

@@ -62,9 +62,10 @@ public:
     static DimsVector Reshape(const DimsVector input_dims, const DimsVector shape,
                               const int axis, const int num_axes, Status *status);
     
-    // @brief strideslice op to slice input dims
-    static DimsVector StrideSlice(const DimsVector input_dims, const DimsVector axis,
-                              const DimsVector begins, const DimsVector ends, const DimsVector strides, Status *status);
+    // @brief strideslice op to slice input dims, it also rectify begins and ends in case value < 0 or = INT_MAX
+    static DimsVector StrideSlice(const DimsVector input_dims,
+                                  DimsVector& begins, DimsVector& ends, const DimsVector strides,
+                                  const DimsVector axes, Status *status);
 
     // @brief NCHW dims vector to NHWC dims vector
     static DimsVector NCHW2NHWC(DimsVector dims);
