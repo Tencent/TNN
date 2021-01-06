@@ -49,7 +49,7 @@ def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
                            close_fds=True)
     while True:
         line = sub.stdout.readline().decode('utf-8')
-        logging.error(str(line))
+        logging.debug(str(line))
         if line == '' and sub.poll() is not None:
             break
     rc = sub.poll()
