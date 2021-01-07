@@ -27,13 +27,14 @@ def parse_args():
                                  action='store',
                                  help="the path for onnx file")
     onnx2tnn_parser.add_argument('-in',
-                                 metavar='input_name',
+                                 metavar='input_info',
                                  dest='input_names',
                                  action='store',
                                  required=False,
                                  nargs='+',
                                  type=str,
-                                 help="specify the input name and shape of the model. e.g., -in in1:1,3,8,8 in2:1,8")
+                                 help="specify the input name and shape of the model. e.g., " +
+                                      "-in input1_name:1,3,8,8 input2_name:1,8")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,
@@ -148,18 +149,22 @@ def parse_args():
                                help="the path for tensorflow graphdef file")
 
     tf2tnn_parser.add_argument('-in',
-                               metavar='input_name',
+                               metavar='input_info',
                                dest='input_names',
                                action='store',
+                               nargs='+',
+                               type=str,
                                required=True,
-                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in \"name[1,28,28,3]\"")
-
+                               help="specify the input name and shape of the model. e.g., " +
+                                      "-in input1_name:1,128,128,3 input2_name:1,256,256,3")
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
                                dest='output_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's output name")
+                               nargs='+',
+                               type=str,
+                               help="the tensorflow model's output name. e.g. -on output_name1 output_name2")
 
     tf2tnn_parser.add_argument('-o',
                                dest='output_dir',
