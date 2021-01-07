@@ -15,8 +15,6 @@
 #include <string.h>
 #include <string>
 #include <stdio.h>
-#include <cuda_runtime_api.h>
-#include <NvInfer.h>
 
 #include "tnn/network/tensorrt/utils.h"
 #include "tnn/core/macro.h"
@@ -137,6 +135,15 @@ nvinfer1::DataType ConvertToTRTDataType(DataType type) {
         default:
             return nvinfer1::DataType::kFLOAT;
     } 
+}
+
+nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor, DimsVector reshape_dims, const char* layer_name) {
+    nvinfer1::IShuffleLayer* shuffle_layer = network->addShuffle(*input_tensor);
+    if (shuffle_layer != nullptr) {
+        shuffle_layer->setName(layer_name);
+        shuffle_layer->setReshapeDimensions(ConvertToTRTDynamicDims(reshape_dims));
+    }
+    return shuffle_layer;
 }
 
 }  //  namespace TNN_NS

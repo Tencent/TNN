@@ -38,7 +38,11 @@ ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     } else {
         auto buf = resource->weight;
         DimsVector buf_dims = buf.GetBufferDims();
-        buf_dims.insert(buf_dims.begin(), batch_size);
+        int nbDims = input_tensors[0]->getDimensions().nbDims;
+        int diff = nbDims - buf_dims.size();
+        for(int i = 0; i < diff; ++i) {
+            buf_dims.insert(buf_dims.begin(), 1);
+        }
         auto const_layer = ConvertWeightToConstLayer(network, &buf, buf_dims);
         matrix_a    = paramlist->weight_position == 0 ? const_layer->getOutput(0) : input_tensors[0];
         matrix_b    = paramlist->weight_position == 1 ? const_layer->getOutput(0) : input_tensors[0];

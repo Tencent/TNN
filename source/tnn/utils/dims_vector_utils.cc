@@ -14,6 +14,8 @@
 
 #include "tnn/utils/dims_vector_utils.h"
 
+#include <climits>
+
 namespace TNN_NS {
 
 int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
