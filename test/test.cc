@@ -312,9 +312,7 @@ namespace test {
         
         // use model type instead, may change later for same model type with
         // different network type
-        if (config.device_type == DEVICE_X86) {
-            config.network_type = NETWORK_TYPE_OPENVINO;
-        } else if (config.device_type == DEVICE_CUDA) {
+        if (config.device_type == DEVICE_CUDA) {
             config.network_type = NETWORK_TYPE_TENSORRT;
         } else {
             config.network_type = ConvertNetworkType(FLAGS_nt);
