@@ -226,62 +226,66 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
                                                     const std::vector<Blob *> &outputs) {
     auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    if (inputs.size() == 2) {
-        Blob *input_blob  = inputs[0];
-        Blob *scales_blob = inputs[1];
-        auto scales_data  = (float *)scales_blob->GetHandle().base;
-        auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
+    
+    if (inputs.size() > 1) {
+        auto input_dims = inputs[0]->GetBlobDesc().dims;
+        
+        //fill param with inputs
         std::vector<float> scales;
-        for (int i = 0; i < scales_count; ++i) {
-            scales.push_back(scales_data[i]);
+        std::vector<int> sizes;
+        Blob *scales_blob = nullptr;
+        Blob *sizes_blob = nullptr;
+        if (inputs.size() == 2) {
+            scales_blob = inputs[1];
+        } else if (inputs.size() == 3) {
+            scales_blob = inputs[2];
+        } else if (inputs.size() == 4) {
+            sizes_blob = inputs[3];
         }
-        // width_scale height_scale
-        float w_scale = scales[scales.size() - 1];
-        float h_scale = scales[scales.size() - 2];
-        layer_param->scales.push_back(w_scale);
-        layer_param->scales.push_back(h_scale);
-        if (layer_param->align_corners < 0) {
-            if (w_scale >= 1.0f && h_scale >= 1.0f) {
-                layer_param->align_corners = 0;
-            } else {
-                layer_param->align_corners = 1;
+        
+        if (scales_blob) {
+            auto scales_data  = (float *)scales_blob->GetHandle().base;
+            auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
+            if (scales_count < 2) {
+                LOGE("Error: Upsample has invalid scales count:%d", scales_count);
+                return Status(TNNERR_PARAM_ERR, "Error: Upsample has invalid scales count");
             }
+            for (int i = 0; i < scales_count; ++i) {
+                scales.push_back(scales_data[i]);
+            }
+            // width_scale height_scale
+            float w_scale = scales[scales.size() - 1];
+            float h_scale = scales[scales.size() - 2];
+            scales = {w_scale, h_scale};
+            layer_param->scales = scales;
         }
-
-        int num        = input_blob->GetBlobDesc().dims[0];
-        int channels   = input_blob->GetBlobDesc().dims[1];
-        int height     = input_blob->GetBlobDesc().dims[2];
-        int width      = input_blob->GetBlobDesc().dims[3];
-        int width_out  = 0;
-        int height_out = 0;
-
-        if (layer_param->mode == 1 || layer_param->mode == 2) {
-            // floor is wrong for some model
-            width_out  = int(round(width * layer_param->scales[0]));
-            height_out = int(round(height * layer_param->scales[1]));
-        } else {
-            LOGE("Error: unsupport upsample type:%d", layer_param->mode);
-            return Status(TNNERR_PARAM_ERR, "unsupport upsample type");
+        
+        if (sizes_blob) {
+            auto sizes_data  = (int *)sizes_blob->GetHandle().base;
+            auto sizes_count = DimsVectorUtils::Count(sizes_blob->GetBlobDesc().dims);
+            if (sizes_count < 2) {
+                LOGE("Error: Upsample has invalid sizes count:%d", sizes_count);
+                return Status(TNNERR_PARAM_ERR, "Error: Upsample has invalid scales count");
+            }
+            for (int i = 0; i < sizes_count; ++i) {
+                sizes.push_back(sizes_data[i]);
+            }
+            // width_scale height_scale
+            int w_size = sizes[sizes.size() - 1];
+            int h_size = sizes[sizes.size() - 2];
+            sizes = {w_size, h_size};
+            layer_param->dims = sizes;
         }
-
-        if (layer_param->dims.size() >= 2) {
-            width_out  = (int)layer_param->dims[0];
-            height_out = (int)layer_param->dims[1];
-            //LOGE("The layer param post is width_out is %d, height_out is %d\n", width_out, height_out);
-        }
-
-        if (width_out <= 0 || height_out <= 0) {
-            LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)\n", height_out, width_out);
-            return Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
-        }
-
-        DimsVector output_dims;
-        output_dims.push_back(num);
-        output_dims.push_back(channels);
-        output_dims.push_back(height_out);
-        output_dims.push_back(width_out);
+        
+        //infer output shape
+        Status status = TNN_OK;
+        auto output_dims = DimsVectorUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
         outputs[0]->GetBlobDesc().dims = output_dims;
     }
+
+    
     return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 

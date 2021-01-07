@@ -28,16 +28,13 @@ Status ExpandLayer::InferOutputDataType() {
 Status ExpandLayer::InferOutputShape() {
     BaseLayer::InferOutputShape();
     
-    if (input_blobs_.size() != 1) {
-        return TNN_OK;
-    }
+    auto layer_param = dynamic_cast<ExpandLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
     
-    auto expand_param = dynamic_cast<ExpandLayerParam*>(param_);
-    CHECK_PARAM_NULL(expand_param);
     Blob* input_blob = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto input_dims = input_blob->GetBlobDesc().dims;
-    auto shape_dims = expand_param->shape;
+    auto shape_dims = layer_param->shape;
     auto output_dims = DimsVectorUtils::Expand(input_dims, shape_dims, nullptr);
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
