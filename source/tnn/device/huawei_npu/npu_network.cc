@@ -44,134 +44,66 @@ NpuNetwork::~NpuNetwork() {
     DeInit();
 }
 
-bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
-    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN;
-}
-
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap inputs_shape) {
+    // config check
     if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
     }
 
-    // create context
-    Status init_ret = InitContext(net_config);
-    if (init_ret != TNN_OK) {
-        return init_ret;
+    // rom version check
+    client_        = std::make_shared<hiai::AiModelMngerClient>();
+    Status tnn_ret = RomVersionCheck();
+    if (tnn_ret != TNN_OK) {
+        return tnn_ret;
     }
 
-    // init check whether the rom version is compatible
-    client_  = std::make_shared<hiai::AiModelMngerClient>();
-    init_ret = InitCheck();
-    if (init_ret != TNN_OK) {
-        return init_ret;
+    // create context
+    tnn_ret = InitContext(net_config);
+    if (tnn_ret != TNN_OK) {
+        return tnn_ret;
     }
-    // add interpreter
-    auto *default_interpreter                = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    net_structure_                           = default_interpreter->GetNetStructure();
-    model_name_                              = NpuCommonUtils::GetFileHash(model_config);
-    InputShapesMap instance_input_shapes_map = net_structure_->inputs_shape_map;
-    InputShapesMap cpu_input_shape;
+
+    // get interpreter
+    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    net_structure_            = default_interpreter->GetNetStructure();
 
     // check if store the om file
     use_path_ = (net_config.cache_path.compare("") != 0);
 
-    // modify the inputShapeMap
-    // if reshape, add a suffix to the model name to create a new model
-    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
-    model_name_              = model_name_ + model_suffix + "_" + version_str_;
+    // modify the inputShapeMap. if reshape, add a suffix to the model name to create a new model
+    InputShapesMap input_shapes_map_temp = net_structure_->inputs_shape_map;
+    std::string model_suffix             = NpuCommonUtils::modifyModelInputSize(inputs_shape, input_shapes_map_temp);
 
     // init the path to store/read om
+    model_name_            = NpuCommonUtils::GetFileHash(model_config);
+    model_name_            = model_name_ + model_suffix + "_" + version_str_;
     std::string model_path = use_path_ ? net_config.cache_path + "/" + model_name_ + ".om" : "";
     LOGI("[TNN/NPU]The path %s\n", model_path.c_str());
 
-    // hiai variables
-    std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
-    auto model_builder                = std::make_shared<hiai::AiModelBuilder>(client_);
-    hiai::MemBuffer *model_mem_buffer = nullptr;
-    // hiai ir variables
-    domi::HiaiIrBuild ir_build;
-    domi::ModelBufferData om_model_buff;
-
-    if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
-        LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
-        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
-    } else {
-        // NPU IR build
-        Status ir_ret = IRInitLayers(net_config, interpreter, instance_input_shapes_map);
-        if (ir_ret != TNN_OK) {
-            LOGI("[TNN/NPU] Some layers not support in NPU, switch to ARM\n");
-            if (cpu_count_ != net_structure_->layers.size()) {
-                // create sub_network_interp_
-                sub_network_interp_.reset(new ModelInterpreter());
-                *sub_network_interp_->GetNetStructure() = *default_interpreter->GetNetStructure();
-                *sub_network_interp_->GetNetResource()  = *default_interpreter->GetNetResource();
-
-                ir_ret = InitSubNetwork(cpu_input_shape, net_config, model_config, sub_network_interp_.get());
-                if (ir_ret != TNN_OK) {
-                    return ir_ret;
-                }
-            }
-        }
-        // update use path, if the network is split, then don't save om file
-        use_path_ = use_path_ && !use_subnet_;
-        // set Graph
-        ir_ret = SetGraphInputsAndOutputs(instance_input_shapes_map, cpu_input_shape);
-        if (ir_ret != TNN_OK) {
-            return ir_ret;
-        }
-        // build Graph
-        ir_ret = BuildGraph(ir_build, om_model_buff);
-        if (ir_ret != TNN_OK) {
-            return ir_ret;
-        }
-        // if path is specified, then first write to file, load from file later
-        if (use_path_) {
-            ir_ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
-            if (ir_ret != TNN_OK) {
-                return ir_ret;
-            }
-        }
-
-        // finish build, start to load the model
-        model_mem_buffer = model_builder->InputMemBufferCreate(om_model_buff.data, om_model_buff.length);
+    // hiai model init
+    InputShapesMap cpu_inputs_shape;
+    tnn_ret = HiAIModelInit(model_path, net_config, model_config, default_interpreter, input_shapes_map_temp,
+                            cpu_inputs_shape);
+    if (tnn_ret != TNN_OK) {
+        return tnn_ret;
     }
 
-    if (model_mem_buffer == nullptr) {
-        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: function InputMemBufferCreate() failed");
+    // create tnn input/output blobs
+    tnn_ret = InitBlobs(input_shapes_map_temp, cpu_inputs_shape);
+    if (tnn_ret != TNN_OK) {
+        return tnn_ret;
     }
 
-    std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
-        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE, hiai::HIAI_MODELTYPE_ONLINE,
-        hiai::AiModelDescription_DeviceType_NPU);
+    return TNN_OK;
+}
 
-    desc->SetModelBuffer(model_mem_buffer->GetMemBufferData(), model_mem_buffer->GetMemBufferSize());
-    // only load one model
-    model_desc.push_back(desc);
-    // load model
-    hiai::AIStatus ret = client_->Load(model_desc);
-    if (ret != hiai::AI_SUCCESS) {
-        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: Load model Load() failed");
-    }
-
-    // check model
-    bool isModelCompatibility = true;
-    ret                       = client_->CheckModelCompatibility(*desc, isModelCompatibility);
-    LOGI("[TNN/NPU] isModelCompatibility: %s", isModelCompatibility ? "true" : "false");
-    LOGI("[TNN/NPU] ret value %d", ret);
-    if (ret != hiai::AI_SUCCESS) {
-        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: check model CheckModelCompatibility() failed");
-    }
-
-    // destroy unused memory
-    model_builder->MemBufferDestroy(model_mem_buffer);
-    ir_build.ReleaseModelBuff(om_model_buff);
-
-    return InitBlobs(instance_input_shapes_map, cpu_input_shape);
+bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
+    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN;
 }
 
 // check Npu init situation
-Status NpuNetwork::InitCheck() {
+Status NpuNetwork::RomVersionCheck() {
     // Start to load HiAi API
     if (client_ == nullptr) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: HiaiDDK API load error, check ddk");
@@ -199,33 +131,6 @@ Status NpuNetwork::InitCheck() {
     return TNN_OK;
 }
 
-Status NpuNetwork::InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
-                                  AbstractModelInterpreter *interpreter) {
-    // from here load cpu
-    sub_network_                 = std::make_shared<DefaultNetwork>();
-    NetworkConfig cpu_net_config = net_config;
-    cpu_net_config.device_type   = DEVICE_ARM;
-    cpu_net_config.network_type  = NETWORK_TYPE_DEFAULT;
-    // change the network_structure for split
-    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    NpuUtils::SplitNetwork(cpu_count_, default_interpreter->GetNetStructure(), visited_, global_operator_map_);
-    cpu_input_shape = default_interpreter->GetNetStructure()->inputs_shape_map;
-    if (cpu_input_shape.empty()) {
-        LOGE(
-            "ERROR: When split the network,  the arm can not find input in the huawei_npu visited "
-            "layers\n");
-        return Status(TNNERR_LAYER_ERR,
-                      "ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers");
-    }
-    Status ret = sub_network_->Init(cpu_net_config, model_config, interpreter, cpu_input_shape);
-    if (ret != TNN_OK) {
-        return ret;
-    } else {
-        use_subnet_ = true;
-    }
-    return TNN_OK;
-}
-
 Status NpuNetwork::InitContext(NetworkConfig &net_config) {
     Status ret = TNN_OK;
     device_    = GetDevice(net_config.device_type);
@@ -244,11 +149,101 @@ Status NpuNetwork::InitContext(NetworkConfig &net_config) {
     return TNN_OK;
 }
 
-Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter,
+Status NpuNetwork::HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
+                                 DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
+                                 InputShapesMap &cpu_inputs_shape) {
+    // hiai variables
+    std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
+    auto model_builder                = std::make_shared<hiai::AiModelBuilder>(client_);
+    hiai::MemBuffer *model_mem_buffer = nullptr;
+    // hiai ir variables
+    domi::HiaiIrBuild ir_build;
+    domi::ModelBufferData om_model_buff;
+
+    if (use_path_ && NpuCommonUtils::FileExits(model_path)) {
+        LOGI("[TNN/NPU]The om file already exists in %s\n", model_path.c_str());
+        model_mem_buffer = model_builder->InputMemBufferCreate(model_path);
+    } else {
+        // NPU IR build
+        Status ir_ret = IRInitLayers(net_config, interpreter, inputs_shape);
+        if (ir_ret != TNN_OK) {
+            LOGI("[TNN/NPU] Some layers not support in NPU, switch to ARM\n");
+            if (cpu_count_ != net_structure_->layers.size()) {
+                // create sub_network_interp_
+                sub_network_interp_.reset(new ModelInterpreter());
+                *sub_network_interp_->GetNetStructure() = *interpreter->GetNetStructure();
+                *sub_network_interp_->GetNetResource()  = *interpreter->GetNetResource();
+
+                ir_ret = InitSubNetwork(net_config, model_config, sub_network_interp_.get(), cpu_inputs_shape);
+                if (ir_ret != TNN_OK) {
+                    return ir_ret;
+                }
+            }
+        }
+        // update use path, if the network is split, then don't save om file
+        use_path_ = use_path_ && !use_subnet_;
+        // set Graph
+        ir_ret = SetGraphInputsAndOutputs(inputs_shape, cpu_inputs_shape);
+        if (ir_ret != TNN_OK) {
+            return ir_ret;
+        }
+        // build Graph
+        ir_ret = BuildGraph(ir_build, om_model_buff);
+        if (ir_ret != TNN_OK) {
+            return ir_ret;
+        }
+        // if path is specified, then first write to file, load from file later
+        if (use_path_) {
+            ir_ret = NpuUtils::WriteModelFile(om_model_buff, model_path);
+            if (ir_ret != TNN_OK) {
+                return ir_ret;
+            }
+        }
+
+        // finish build, start to load the model
+        model_mem_buffer = model_builder->InputMemBufferCreate(om_model_buff.data, om_model_buff.length);
+    }
+
+    if (model_mem_buffer == nullptr) {
+        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: function InputMemBufferCreate() failed");
+    }
+
+    // set model attribute
+    std::shared_ptr<hiai::AiModelDescription> desc = std::make_shared<hiai::AiModelDescription>(
+        model_name_, hiai::AiModelDescription_Frequency_HIGH, hiai::HIAI_FRAMEWORK_NONE, hiai::HIAI_MODELTYPE_ONLINE,
+        hiai::AiModelDescription_DeviceType_NPU);
+
+    desc->SetModelBuffer(model_mem_buffer->GetMemBufferData(), model_mem_buffer->GetMemBufferSize());
+
+    // only load one model
+    model_desc.push_back(desc);
+
+    // load model
+    hiai::AIStatus ret = client_->Load(model_desc);
+    if (ret != hiai::AI_SUCCESS) {
+        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: Load model Load() failed");
+    }
+
+    // destroy unused memory
+    model_builder->MemBufferDestroy(model_mem_buffer);
+    ir_build.ReleaseModelBuff(om_model_buff);
+
+    // check model
+    bool is_compatible = true;
+    ret                = client_->CheckModelCompatibility(*desc, is_compatible);
+    LOGI("[TNN/NPU] is model compatible: %s", is_compatible ? "true" : "false");
+    LOGI("[TNN/NPU] ret value %d", ret);
+    if (ret != hiai::AI_SUCCESS) {
+        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: check model CheckModelCompatibility() failed");
+    }
+
+    return TNN_OK;
+}
+
+Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter,
                                 InputShapesMap &inputs_shape) {
     Status ret                = TNN_OK;
-    auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-    NetResource *net_resource = default_interpreter->GetNetResource();
+    NetResource *net_resource = interpreter->GetNetResource();
 
     if (net_structure_ == NULL || net_resource == NULL) {
         return Status(TNNERR_NULL_PARAM, "ERROR: network_ is nil, network_type may not support");
@@ -272,20 +267,29 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, AbstractModelInterpre
     return TNN_OK;
 }
 
-Status NpuNetwork::CreateGraphInputs(InputShapesMap &input_shape_map) {
-    Status ret = TNN_OK;
-    // init graph input
-    auto iterator = input_shape_map.begin();
-    for (; iterator != input_shape_map.end(); iterator++) {
-        shared_ptr<ge::op::Data> input_data;
-        std::string input_name           = iterator->first;
-        DimsVector dims_vector           = iterator->second;
-        ret                              = NpuUtils::CreateInputData(input_data, input_name, dims_vector);
-        auto input_op                    = std::make_shared<OperatorInfo>(input_data, dims_vector);
-        global_operator_map_[input_name] = input_op;
-        visited_.insert(input_name);
+Status NpuNetwork::InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config,
+                                  DefaultModelInterpreter *interpreter, InputShapesMap &cpu_inputs_shape) {
+    // from here load cpu
+    sub_network_                 = std::make_shared<DefaultNetwork>();
+    NetworkConfig cpu_net_config = net_config;
+    cpu_net_config.device_type   = DEVICE_ARM;
+    cpu_net_config.network_type  = NETWORK_TYPE_DEFAULT;
+    // change the network_structure for split
+    NpuUtils::SplitNetwork(cpu_count_, interpreter->GetNetStructure(), visited_, global_operator_map_);
+    cpu_inputs_shape = interpreter->GetNetStructure()->inputs_shape_map;
+    if (cpu_inputs_shape.empty()) {
+        LOGE(
+            "ERROR: When split the network,  the arm can not find input in the huawei_npu visited "
+            "layers\n");
+        return Status(TNNERR_LAYER_ERR,
+                      "ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers");
     }
-    return ret;
+    Status ret = sub_network_->Init(cpu_net_config, model_config, interpreter, cpu_inputs_shape);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    use_subnet_ = true;
+    return TNN_OK;
 }
 
 Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
@@ -352,6 +356,22 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     return ret;
 }
 
+Status NpuNetwork::CreateGraphInputs(InputShapesMap &input_shape_map) {
+    Status ret = TNN_OK;
+    // init graph input
+    auto iterator = input_shape_map.begin();
+    for (; iterator != input_shape_map.end(); iterator++) {
+        shared_ptr<ge::op::Data> input_data;
+        std::string input_name           = iterator->first;
+        DimsVector dims_vector           = iterator->second;
+        ret                              = NpuUtils::CreateInputData(input_data, input_name, dims_vector);
+        auto input_op                    = std::make_shared<OperatorInfo>(input_data, dims_vector);
+        global_operator_map_[input_name] = input_op;
+        visited_.insert(input_name);
+    }
+    return ret;
+}
+
 Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map) {
     // init graph input
     std::vector<ge::Operator> input_ops;
@@ -401,7 +421,7 @@ Status NpuNetwork::BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData
     return TNN_OK;
 }
 
-Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputShapesMap &cpu_input_shape) {
+Status NpuNetwork::InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape) {
     input_tensor_.clear();
     output_tensor_.clear();
     std::vector<hiai::TensorDimension> input_dims;
@@ -433,8 +453,8 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         output_tensor_.push_back(output);
     }
 
-    auto input_it = instance_input_shapes_map.begin();
-    // init input buffers
+    auto input_it = inputs_shape.begin();
+    // init input blobs
     for (int i = 0; i < input_tensor_.size(); ++i) {
         hiai::TensorDimension dims = input_dims[i];
         int n                      = dims.GetNumber();
@@ -442,13 +462,10 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         int h                      = dims.GetHeight();
         int w                      = dims.GetWidth();
         // add blob
-        std::string name = input_it->first;
-        char blob_name[name.size() + 1];
-        strcpy(blob_name, name.c_str());
         BlobDesc desc;
         desc.device_type = DEVICE_HUAWEI_NPU;
         desc.data_format = DATA_FORMAT_NCHW;
-        desc.name        = blob_name;
+        desc.name        = input_it->first;
         desc.dims.push_back(n);
         desc.dims.push_back(c);
         desc.dims.push_back(h);
@@ -458,7 +475,8 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         input_blob_map_[desc.name] = new Blob(desc, handle);
         input_it++;
     }
-    // init output buffers
+
+    // init output blobs
     // init output iterator through the map
     auto output_it = net_structure_->outputs.begin();
     auto end_it    = net_structure_->outputs.end();
@@ -466,7 +484,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
     std::set<std::string> npu_inter_outputs;
     // if use cpu then the outputs are obtained from the input of the arm network
     if (use_subnet_) {
-        for (auto i = cpu_input_shape.begin(); i != cpu_input_shape.end(); i++) {
+        for (auto i = cpu_inputs_shape.begin(); i != cpu_inputs_shape.end(); i++) {
             npu_inter_outputs.insert(i->first);
         }
         output_it = npu_inter_outputs.begin();
@@ -485,8 +503,6 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
         std::string name = *output_it;
         BlobDesc desc;
         BlobHandle handle;
-        char blob_name[name.size() + 1];
-        strcpy(blob_name, name.c_str());
 
         if (input_blob_map_.count(name) != 0) {
             // if the input is the output, then use the input tensor
@@ -501,7 +517,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             // add blob
             desc.device_type = DEVICE_HUAWEI_NPU;
             desc.data_format = DATA_FORMAT_NCHW;
-            desc.name        = blob_name;
+            desc.name        = name;
             desc.dims.push_back(n);
             desc.dims.push_back(c);
             desc.dims.push_back(h);
@@ -509,6 +525,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
             handle.base = output_tensor_[count]->GetBuffer();
             count++;
         }
+
         if (use_subnet_) {
             npu_inter_out_blobmap_[desc.name] = new Blob(desc, handle);
         } else {
@@ -521,11 +538,11 @@ Status NpuNetwork::InitBlobs(InputShapesMap &instance_input_shapes_map, InputSha
 
 Status NpuNetwork::GetForwardMemorySize(int &memory_size) {
     memory_size = 0;
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::SetForwardMemory(void *memory) {
-    return TNN_OK;
+    return TNNERR_NPU_UNSUPPORT_ERROR;
 }
 
 Status NpuNetwork::GetAllInputBlobs(BlobMap &blobs) {
