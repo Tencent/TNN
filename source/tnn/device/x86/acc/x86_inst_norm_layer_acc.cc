@@ -16,8 +16,8 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include <math.h>
-// #include "immintrin.h"
-#include <x86intrin.h>
+#include "immintrin.h"
+//#include <x86intrin.h>
 
 // #define AVX2 1
 namespace TNN_NS {

@@ -14,6 +14,7 @@
 
 #include "tnn/utils/mat_converter_utils.h"
 #include <climits>
+#include <algorithm>
 
 namespace TNN_NS {
 
