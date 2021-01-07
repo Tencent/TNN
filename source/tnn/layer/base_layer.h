@@ -93,6 +93,8 @@ protected:
     virtual Status InferOutputShape();
     //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of output blobs
     virtual Status InferOutputDataType();
+    //@brief fill layer param with constant resource
+    virtual Status FillLayerParamWithConstantResource();
 };
 
 //@brief LayerCreator define the create layer interface
@@ -132,15 +134,27 @@ public:
 
 BaseLayer* CreateLayer(LayerType type);
 
-#define DECLARE_LAYER(type_string, layer_type)                                                                         \
-    class type_string##Layer : public BaseLayer {                                                                      \
-    public:                                                                                                            \
-        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                                                \
-        virtual ~type_string##Layer(){};                                                                               \
-                                                                                                                       \
-    protected:                                                                                                         \
-        virtual Status InferOutputShape();                                                                             \
-        virtual Status InferOutputDataType();                                                                          \
+#define DECLARE_LAYER_WITH_FUNC(type_string, layer_type, extra_funcs)    \
+    class type_string##Layer : public BaseLayer {                                                     \
+    public:                                                                                                                   \
+        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                  \
+        virtual ~type_string##Layer(){};                                                                         \
+                                                                                                                                  \
+    protected:                                                                                                              \
+        virtual Status InferOutputShape();                                                                     \
+        virtual Status InferOutputDataType();                                                               \
+        extra_funcs \
+    }
+
+#define DECLARE_LAYER(type_string, layer_type)                                                 \
+    class type_string##Layer : public BaseLayer {                                                      \
+    public:                                                                                                                    \
+        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                   \
+        virtual ~type_string##Layer(){};                                                                         \
+                                                                                                                                   \
+    protected:                                                                                                               \
+        virtual Status InferOutputShape();                                                                     \
+        virtual Status InferOutputDataType();                                                                \
     }
 
 #define REGISTER_LAYER(type_string, layer_type)                                                                        \

@@ -95,8 +95,10 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
     auto output_dims = max_dims;
     const int offset = (int)(max_dims.size() - min_dims.size());
     for(int i = 0; i < min_dims.size(); ++i) {
-        if(max_dims[offset + i] == 1) {
-            output_dims[offset + i] = min_dims[i];
+        if(max_dims[offset + i] == 1 || max_dims[offset + i] == -1) {
+            if (min_dims[i] > output_dims[offset + i]) {
+                output_dims[offset + i] = min_dims[i];
+            }
         } else if (max_dims[offset + i] != min_dims[i]) {
             if (status) {
                 *status = Status(TNNERR_PARAM_ERR, "expand param dims error");
@@ -105,6 +107,43 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
     }
 
     return output_dims;
+}
+
+DimsVector DimsVectorUtils::Upsample(const DimsVector input_dims,
+                                     std::vector<float> scales, std::vector<int> sizes, int mode, Status *status) {
+    int num          = input_dims[0];
+    int channels   = input_dims[1];
+    int height       = input_dims[2];
+    int width        = input_dims[3];
+    
+    int width_out    = 0;
+    int height_out   = 0;
+    
+    if (sizes.size() <= 0) {
+        if (mode == 1 || mode == 2 || mode == 3) {
+            //floor is wrong for some model
+            width_out  = int(round(width * scales[0]));
+            height_out = int(round(height * scales[1]));
+        } else {
+            LOGE("Error: unsupport upsample type:%d", mode);
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "unsupport upsample type");
+            }
+            return DimsVector();
+        }
+    } else {
+        width_out  = sizes[0];
+        height_out = sizes[1];
+    }
+
+    if (width_out <= 0 || height_out <= 0) {
+        LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+        }
+    }
+    
+    return {num, channels, height_out, width_out};
 }
 
 DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape,
