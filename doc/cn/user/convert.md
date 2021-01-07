@@ -128,7 +128,7 @@ optional arguments:
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
 - in 参数（必须）
-    通过 “-in” 参数指定模型输入，输入的名称需要放到“”中，例如：-in input_name_1:1,128,128,3 input_name_2:1,256,256,3。
+    通过 “-in” 参数指定模型输入，例如：-in input_name_1:1,128,128,3 input_name_2:1,256,256,3。
 - on 参数（必须）
     通过 “-on” 参数指定模型输出的名称，例如: -on output_name1 output_name2
 - output_dir 参数：
