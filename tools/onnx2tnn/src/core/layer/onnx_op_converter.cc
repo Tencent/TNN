@@ -37,13 +37,27 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     ProcessConstantNode(node, net_info);
     int input_size  = node.input_size();
     int output_size = node.output_size();
-
+    
+    bool has_another_variable_input = false;
+    for (int j = 1; j < (int)node.input_size(); j++) {
+        const std::string &input_name = node.input(j);
+        if (net_info.weights_map.find(input_name) == net_info.weights_map.end()) {
+            has_another_variable_input = true;
+            break;
+        }
+    }
+    
     for (int j = 0; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (HasLayerResource(node, net_info) &&
-            net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+        if (HasLayerResource(node, net_info)) {
+            if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
             net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-            input_size--;
+                input_size--;
+            }
+        } else {
+            if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                input_size--;
+            }
         }
     }
     
@@ -53,10 +67,15 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
         std::string input_name = node.input(j);
 
         // check weight
-        if (HasLayerResource(node, net_info) &&
-            net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+        if (HasLayerResource(node, net_info)) {
+            if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
             net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-            continue;
+                continue;
+            }
+        } else {
+            if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                continue;
+            }
         }
 
         proto_layer << input_name << " ";
@@ -99,14 +118,15 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
     int ret = 0;
     do {
         int item_size = get_tensor_proto_data_size(tensor);
-        if (item_size == 0) {
-            DLog("invalid size\n");
-            assert(0);
-            break;
-        }
+        //adapt to save empty tensor for some para of op
+//        if (item_size == 0) {
+//            DLog("invalid size\n");
+//            assert(0);
+//            break;
+//        }
         
         auto tensor_data_type = tensor.data_type();
-        DLog("tersor (%s) data type: %d\n", tensor.name().c_str(), tensor_data_type);
+        DLog("tersor (%s) data type: %d item_size: %d\n", tensor.name().c_str(), tensor_data_type, item_size);
         
         auto dims = GetDimsFromTensor(tensor);
         if (dims.empty() && item_size !=1) {
@@ -147,7 +167,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                  DataType dst_data_type, std::vector<int32_t> dims) {
     int ret = 0;
     do {
-        if (data_count == 0 || !raw_data) {
+        if (!raw_data) {
             DLog("invalid data or size\n");
             assert(0);
             break;
@@ -158,10 +178,14 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 dst_data_type == DATA_TYPE_FLOAT) {
                 writer->put_raw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
             } else if (dst_data_type == DATA_TYPE_HALF) {
-                float16 *half_data = new float16[data_count];
-                ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
-                writer->put_raw(data_count * sizeof(float16), (char *)half_data,dims , DATA_TYPE_HALF);
-                delete[] half_data;
+                if (data_count > 0) {
+                    float16 *half_data = new float16[data_count];
+                    ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
+                    writer->put_raw(data_count * sizeof(float16), (char *)half_data, dims , DATA_TYPE_HALF);
+                    delete[] half_data;
+                } else {
+                    writer->put_raw(data_count * sizeof(float16), (char *)NULL, dims , DATA_TYPE_HALF);
+                }
             } else{
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
@@ -169,14 +193,18 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
         } else if (src_data_type == 7){//int_64
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
-                auto int64_data = (int64_t *)raw_data;
-                auto int32_data = new int32_t[data_count];
-                for (int ii=0; ii<data_count; ii++) {
-                    //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
-                    int32_data[ii] = saturate_cast(int64_data[ii]);
+                if (data_count > 0) {
+                    auto int64_data = (int64_t *)raw_data;
+                    auto int32_data = new int32_t[data_count];
+                    for (int ii=0; ii<data_count; ii++) {
+                        //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
+                        int32_data[ii] = saturate_cast(int64_data[ii]);
+                    }
+                    writer->put_raw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+                    delete[] int32_data;
+                } else {
+                    writer->put_raw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
                 }
-                writer->put_raw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
-                delete[] int32_data;
             } else{
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
