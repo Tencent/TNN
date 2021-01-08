@@ -67,8 +67,8 @@ Status UpsampleLayer::FillLayerParamWithConstantResource() {
         }
         
         if (sizes_buffer && sizes_buffer->GetBytesSize() > 0) {
-            auto sizes_data   = scales_buffer->force_to<int *>();
-            auto sizes_count  = scales_buffer->GetDataCount();
+            auto sizes_data   = sizes_buffer->force_to<int *>();
+            auto sizes_count  = sizes_buffer->GetDataCount();
             if (sizes_count < 2) {
                 LOGE("Error: Upsample has invalid sizes count:%d", sizes_count);
                 return Status(TNNERR_PARAM_ERR, "Error: Upsample has invalid scales count");
