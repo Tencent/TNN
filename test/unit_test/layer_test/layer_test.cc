@@ -14,7 +14,9 @@
 
 #include "test/unit_test/layer_test/layer_test.h"
 
+#include <sstream>
 #include <sys/time.h>
+
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/core/blob_int8.h"
@@ -92,8 +94,15 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
 
     NetworkConfig config_device;
     config_device.device_type = ConvertDeviceType(FLAGS_dt);
+    config_device.enable_tune_kernel = FLAGS_et;
     if (DEVICE_HUAWEI_NPU == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_HUAWEI_NPU;
+    }
+    if (DEVICE_CUDA == config_device.device_type) {
+        config_device.network_type = NETWORK_TYPE_TENSORRT;
+    }
+    if (DEVICE_X86 == config_device.device_type) {
+        config_device.network_type = NETWORK_TYPE_OPENVINO;
     }
     if (!FLAGS_ub && (DEVICE_OPENCL == config_device.device_type || DEVICE_METAL == config_device.device_type)) {
         config_device.precision = PRECISION_HIGH;
@@ -309,6 +318,15 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
 
 int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev) {
     Status ret            = TNN_OK;
+    auto dims_cpu    = cpu_blob->GetBlobDesc().dims;
+    auto dims_device = device_blob->GetBlobDesc().dims;
+    if (this->CompareDims(dims_cpu, dims_device) != 0) {
+        std::stringstream dims_cpu_stream, dims_device_stream;
+        std::copy(dims_cpu.begin(),    dims_cpu.end(),    std::ostream_iterator<int>(dims_cpu_stream,    ","));
+        std::copy(dims_device.begin(), dims_device.end(), std::ostream_iterator<int>(dims_device_stream, ","));
+        LOGE("blob dims not equal, cpu:%s device:%s\n", dims_cpu_stream.str().c_str(), dims_device_stream.str().c_str());
+        return -1;
+    }
     auto blob_desc_device = device_blob->GetBlobDesc();
     // mat type for both
     MatType mat_type = NCHW_FLOAT;
@@ -398,6 +416,10 @@ Status LayerTest::InitInputBlobsDataRandom() {
     }
 
     return TNN_OK;
+}
+
+int LayerTest::CompareDims(DimsVector dims_a, DimsVector dims_b) {
+    return dims_a == dims_b ? 0 : 1;
 }
 
 }  // namespace TNN_NS

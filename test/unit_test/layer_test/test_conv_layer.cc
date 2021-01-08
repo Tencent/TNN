@@ -69,11 +69,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
     if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
-    if (dtype == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
-        GTEST_SKIP();
-    }
-#else
+#ifndef TNN_ARM82
     if (dtype == DATA_TYPE_HALF) {
         GTEST_SKIP();
     }
@@ -84,6 +80,10 @@ TEST_P(ConvLayerTest, ConvLayer) {
     }
 
     if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
 

@@ -19,6 +19,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "sample_timer.h"
+#include <time.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <sys/time.h>
+#endif
 
 class TNNFPSCounter {
 public:
@@ -31,6 +38,7 @@ public:
     std::map<std::string, double> GetAllTime();
     
 protected:
+    std::map<std::string, std::shared_ptr<TNN_NS::SampleTimer>> map_timer;
     std::map<std::string, double> map_fps_ = {};
     std::map<std::string, double> map_start_time_ = {};
     std::map<std::string, double> map_time_ = {};

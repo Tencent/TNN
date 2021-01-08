@@ -22,6 +22,8 @@ from converter import logging
 
 import os
 import sys
+import time
+
 
 def caffe2onnx(proto_path, model_path, output_path):
     work_dir = "../caffe2onnx/"
@@ -34,7 +36,7 @@ def caffe2onnx(proto_path, model_path, output_path):
 
 
 def convert(proto_path, model_path, output_dir, version, optimize, half, align=False,
-            input_path=None, refer_path=None):
+            input_path=None, refer_path=None, debug_mode: bool = False):
     logging.info("Converter Caffe to ONNX Model\n")
     checker.check_file_exist(proto_path)
     checker.check_file_exist(model_path)
@@ -52,7 +54,7 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
     else:
         logging.info("Congratulations! caffe2onnx succeed!\n")
     if version is None:
-        version = "v1.0"
+        version = time.strftime('%Y%m%d%H%M', time.localtime())
 
     is_ssd = checker.is_ssd_model(proto_path)
     if is_ssd:
@@ -76,4 +78,4 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, debug_mode=debug_mode)

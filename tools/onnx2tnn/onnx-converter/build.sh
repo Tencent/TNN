@@ -1,29 +1,59 @@
-export CMAKE=/path/to/cmake
-export CPP_COMPILER=/path/to/g++
-export C_COMPILER=/path/to/gcc
-export PYTHON=/path/to/python3
+##!/usr/bin/env bash
 
-# here is an example, make sure libpython3 is in LD_LIBRARY_PATH
 export CMAKE=cmake
 export CPP_COMPILER=g++
 export C_COMPILER=gcc
 export PYTHON=`which python3`
 
-set -xe
+CLEAN=""
+BUILD_DIR=build
 
-if [ -d "build" ]; then
-	rm -rf build/
-fi
+#set -xe
 
-$PYTHON script/detect_dependency.py 
+function usage() {
+    echo "usage: ./build.sh [-c]"
+    echo "options:"
+    echo "        -c    Clean up build folders."
+}
 
-mkdir -p build
-cd build && $CMAKE .. \
-    -DCMAKE_CXX_COMPILER=$CPP_COMPILER \
-    -DCMAKE_C_COMPILER=$C_COMPILER \
-    -DPYTHON_EXECUTABLE=$PYTHON \
-    && make -j4 &&  cd ..
+function clean_build() {
+    echo $1 | grep "${BUILD_DIR}\b" > /dev/null
+    if [[ "$?" != "0" ]]; then
+        die "Warnning: $1 seems not to be a BUILD folder."
+    fi
+    rm -rf $1
+    mkdir -p $1
+}
 
-cp build/*.so .
+function build() {
 
-rm -rf build/
+	$PYTHON script/detect_dependency.py
+	if [ "-c" == "${CLEAN}" ]; then
+        clean_build ${BUILD_DIR}
+	fi
+	mkdir -p ${BUILD_DIR}
+	cd ${BUILD_DIR}
+
+	${CMAKE} .. -DCMAKE_CXX_COMPILER=$CPP_COMPILER \
+			    -DCMAKE_C_COMPILER=$C_COMPILER \
+				-DPYTHON_EXECUTABLE=$PYTHON \
+
+	make -j4
+	cp  *.so ../
+	cd ../
+}
+
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -c)
+            shift
+            CLEAN="-c"
+            ;;
+        *)
+            usage
+            exit 1
+    esac
+done
+
+build
