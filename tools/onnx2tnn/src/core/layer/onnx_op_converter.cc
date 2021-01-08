@@ -167,7 +167,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                  DataType dst_data_type, std::vector<int32_t> dims) {
     int ret = 0;
     do {
-        if (!raw_data) {
+        if (!raw_data && data_count > 0) {
             DLog("invalid data or size\n");
             assert(0);
             break;
