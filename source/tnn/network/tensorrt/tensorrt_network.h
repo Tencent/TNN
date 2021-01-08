@@ -31,7 +31,9 @@ class TRTLogger : public nvinfer1::ILogger {
 public:
     void log(nvinfer1::ILogger::Severity severity, const char* msg) override {
         // suppress info-level messages
+#ifndef DEBUG
         if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
+#endif
         switch (severity) {
             case Severity::kINTERNAL_ERROR: std::cerr << "INTERNAL_ERROR: "; break;
             case Severity::kERROR: std::cerr << "ERROR: "; break;

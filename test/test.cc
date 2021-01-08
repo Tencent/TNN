@@ -387,7 +387,7 @@ namespace test {
                     if (mat_type == NCHW_FLOAT) {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256 - 128) / 128.0f;
                     } else if (mat_type == NC_INT32) {
-                        reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 256;
+                        reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
                     } else {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
                     }
