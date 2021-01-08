@@ -130,6 +130,8 @@ private:
 
     Status InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape);
 
+    Blob *CreateNpuBlob(hiai::TensorDimension dims, std::string name, void *data);
+
 private:
     AbstractDevice *device_ = nullptr;
 
