@@ -26,8 +26,13 @@ DECLARE_MULTI_BROADCASR_OP_CONVERTER(Div);
 string OnnxOpConverterDiv::TNNOpType(NodeProto& node, OnnxNetInfo &net_info) {
     auto weight_input = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
+    auto weight_name = get<1>(weight_input);
     if (weight_input_index == 1) {
-        return "Mul";
+        auto weight = net_info.weights_map[weight_name];
+        if (weight.data_type() == onnx::TensorProto_DataType_FLOAT ||
+            weight.data_type() == onnx::TensorProto_DataType_DOUBLE) {
+            return "Mul";
+        }
     }
     return "Div";
 }
@@ -63,28 +68,32 @@ int OnnxOpConverterDiv::WriteTNNModel(serializer* net_writer,
    auto weight_input = GetWeightInputIndexName(node, net_info);
    auto weight_input_index = get<0>(weight_input);
    auto weight_name = get<1>(weight_input);
+    do {
+        BREAK_IF(weight_input_index != 1);
+        auto weight = net_info.weights_map[weight_name];
+        
+        BREAK_IF(!(weight.data_type() == onnx::TensorProto_DataType_FLOAT ||
+                   weight.data_type() == onnx::TensorProto_DataType_DOUBLE));
+        
+        //写头信息
+        net_writer->put_int(0);  //触发type from string
+        net_writer->put_string(tnn_layer_type);
+        net_writer->put_string(name);
+        
+        int size         = get_tensor_proto_data_size(weight);
+        const float *mul = get_tensor_proto_data(weight);
+        float *div       = new float[size];
+        for (int j = 0; j < size; j++) {
+            div[j] = 1.0f / mul[j];
+        }
+        auto dims = GetDimsFromTensor(weight);
+        WriteRawData(div, size, net_writer, net_info.data_type, dims);
+        delete[] div;
+        
+        return 1;
+    } while (0);
     
-   if (weight_input_index == 1) {
-       //写头信息
-       net_writer->put_int(0);  //触发type from string
-       net_writer->put_string(tnn_layer_type);
-       net_writer->put_string(name);
-       
-       const onnx::TensorProto &weight = net_info.weights_map[weight_name];
-       int size         = get_tensor_proto_data_size(weight);
-       const float *mul = get_tensor_proto_data(weight);
-       float *div       = new float[size];
-       for (int j = 0; j < size; j++) {
-           div[j] = 1.0f / mul[j];
-       }
-       auto dims = GetDimsFromTensor(weight);
-       WriteRawData(div, size, net_writer, net_info.data_type, dims);
-       delete[] div;
-       
-       return 1;
-   } else {
-       return OnnxOpConverterMultiBrodcast::WriteTNNModel(net_writer, node, net_info);
-   }
+    return OnnxOpConverterMultiBrodcast::WriteTNNModel(net_writer, node, net_info);
 }
 
 REGISTER_MULTI_BROADCASR_OP_CONVERTER(Div, Div);
