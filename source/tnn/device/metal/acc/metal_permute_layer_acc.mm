@@ -111,10 +111,8 @@ std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, 
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
     auto order_id = GetPermuteOrderKey(layer_param->orders);
     if (kernels.count(order_id)) {
-        printf("xxxxx:%s\n", kernels.at(order_id).c_str());
         return kernels.at(order_id);
     }
-    printf("xxxxx:permute_common\n");
     return "permute_common";
 }
 

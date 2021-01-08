@@ -17,12 +17,34 @@
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/dims_vector_utils.h"
 
+#include <algorithm>
+
 namespace TNN_NS {
+
+static void GetPermuteOrders(std::vector<int>& orders, int permute_type) {
+    using List = std::vector<int>;
+    static List base_order = {0, 1, 2, 3};
+    static std::vector<List> all_permutations;
+    // initialize
+    if (all_permutations.size() <= 0) {
+        do {
+            all_permutations.push_back(base_order);
+        } while(std::next_permutation(base_order.begin(), base_order.end()));
+    }
+
+    if (permute_type < all_permutations.size()) {
+        orders = all_permutations[permute_type];
+    } else {
+        orders = base_order;
+    }
+}
+// 24 possible permutations for a 4-dimensional tensor
+constexpr static int kPermutations = 24;
 
 class PermuteLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PermuteLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1, 2, 3, 4, 5)));
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Range(0, kPermutations)));
 
 TEST_P(PermuteLayerTest, PermuteLayer) {
     // get param
@@ -39,18 +61,7 @@ TEST_P(PermuteLayerTest, PermuteLayer) {
 
     // param
     std::shared_ptr<PermuteLayerParam> param(new PermuteLayerParam());
-    param->orders = {0, 1, 2, 3};
-    if (1 == order_type) {
-        param->orders = {0, 2, 3, 1};
-    } else if (2 == order_type) {
-        param->orders = {0, 3, 1, 2};
-    } else if (3 == order_type) {
-        param->orders = {1, 2, 3, 0};
-    } else if (4 == order_type) {
-        param->orders = {0, 3, 2, 1};
-    } else if (5 == order_type) {
-        param->orders = {0, 2, 1, 3};
-    }
+    GetPermuteOrders(param->orders, order_type);
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
