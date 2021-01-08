@@ -44,6 +44,10 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
     if (mode == 1 && forward == 0) {
         // illegal case
         GTEST_SKIP();

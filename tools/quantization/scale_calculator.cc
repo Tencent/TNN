@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "scale_calculator.h"
@@ -20,8 +20,7 @@ namespace TNN_NS {
 
 // Given distribution P and Q, KL-Divergence is
 // Sum(P[i] * log(P[i] / Q[i]))
-static float KlDivergence(const std::vector<float>& dis_ref,
-                          const std::vector<float>& dis_epd) {
+static float KlDivergence(const std::vector<float>& dis_ref, const std::vector<float>& dis_epd) {
     float result   = 0.0f;
     const int size = dis_ref.size();
 
@@ -47,15 +46,13 @@ ScaleCalculator::ScaleCalculator() {
 
 ScaleCalculator::~ScaleCalculator() {}
 
-int ScaleCalculator::Init(Blob* blob, bool merge_channel,
-                          CalibrationMethod method) {
+int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod method) {
     origin_blob_   = blob;
     merge_channel_ = merge_channel;
     cali_method_   = method;
 
     // TO-DO: support different data_type and device_type
-    if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT &&
-        blob->GetBlobDesc().device_type == DEVICE_NAIVE) {
+    if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT && blob->GetBlobDesc().device_type == DEVICE_NAIVE) {
         // TO-DO: support different data format, now only NCHW
         int channel = blob->GetBlobDesc().dims[1];
         int height  = blob->GetBlobDesc().dims[2];
@@ -118,9 +115,8 @@ int ScaleCalculator::UpdateRange() {
     int height      = origin_blob_->GetBlobDesc().dims[2];
     int width       = origin_blob_->GetBlobDesc().dims[3];
     int hxw         = height * width;
-    float* data_ptr = reinterpret_cast<float*>(
-        static_cast<char*>(origin_blob_->GetHandle().base) +
-        origin_blob_->GetHandle().bytes_offset);
+    float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
+                                               origin_blob_->GetHandle().bytes_offset);
 
     for (int b = 0; b < batch; ++b) {
         for (int c = 0; c < channel; ++c) {
@@ -149,8 +145,7 @@ int ScaleCalculator::UpdateRange() {
 
 int ScaleCalculator::ResetDistribute() {
     for (unsigned int i = 0; i < interval_per_channel_.size(); ++i) {
-        float max_val     = std::max(std::abs(range_per_channel_[i].first),
-                                 std::abs(range_per_channel_[i].second));
+        float max_val     = std::max(std::abs(range_per_channel_[i].first), std::abs(range_per_channel_[i].second));
         valid_channel_[i] = max_val > 0.00001;
         if (valid_channel_[i]) {
             interval_per_channel_[i] = (float)bin_nums_ / max_val;
@@ -177,9 +172,8 @@ int ScaleCalculator::UpdateDistribute() {
     int height      = origin_blob_->GetBlobDesc().dims[2];
     int width       = origin_blob_->GetBlobDesc().dims[3];
     int hxw         = height * width;
-    float* data_ptr = reinterpret_cast<float*>(
-        static_cast<char*>(origin_blob_->GetHandle().base) +
-        origin_blob_->GetHandle().bytes_offset);
+    float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
+                                               origin_blob_->GetHandle().bytes_offset);
 
     for (int b = 0; b < batch; ++b) {
         for (int c = 0; c < channel; ++c) {
@@ -191,18 +185,16 @@ int ScaleCalculator::UpdateDistribute() {
                 continue;
             }
 
-            float* p = data_ptr + b * channel * hxw + c * hxw;
-            float* distribute_data =
-                distribute_per_channel_[channel_idx].data();
+            float* p               = data_ptr + b * channel * hxw + c * hxw;
+            float* distribute_data = distribute_per_channel_[channel_idx].data();
             for (int i = 0; i < hxw; ++i) {
                 float val = p[i];
                 if (val == 0) {
                     continue;
                 }
 
-                int index = static_cast<int>(
-                    std::abs(val) * interval_per_channel_[channel_idx]);
-                index = std::min(index, bin_nums_ - 1);
+                int index = static_cast<int>(std::abs(val) * interval_per_channel_[channel_idx]);
+                index     = std::min(index, bin_nums_ - 1);
                 distribute_data[index] += 1.0;
             }
         }
@@ -220,8 +212,7 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
         if (!valid_channel_[0]) {
             return -1;
         }
-        int ret = CalculateScalePerDis(distribute_per_channel_[0],
-                                       interval_per_channel_[0], val[0]);
+        int ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
         if (ret != 0)
             return -1;
     } else {
@@ -232,8 +223,7 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
             if (!valid_channel_[c]) {
                 continue;
             }
-            int ret = CalculateScalePerDis(distribute_per_channel_[c],
-                                           interval_per_channel_[c], val[c]);
+            int ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
             if (ret != 0)
                 return -1;
         }
@@ -242,17 +232,14 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
     return 0;
 }
 
-int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute,
-                                          float interval, float& output) {
+int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute, float interval, float& output) {
     const int target_bin_nums = 128;
     int threshold             = target_bin_nums;
 
     // normalize
     float sum = 0;
-    std::for_each(distribute.begin(), distribute.end(),
-                  [&](float n) { sum += n; });
-    std::for_each(distribute.begin(), distribute.end(),
-                  [sum](float& n) { n /= sum; });
+    std::for_each(distribute.begin(), distribute.end(), [&](float n) { sum += n; });
+    std::for_each(distribute.begin(), distribute.end(), [sum](float& n) { n /= sum; });
 
     if (cali_method_ == MIN_MAX) {
         threshold = bin_nums_ - 1;
@@ -264,8 +251,7 @@ int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute,
         for (int i = target_bin_nums; i < bin_nums_; ++i) {
             // 1. get referenced distribute
             std::vector<float> distribute_ref(i);
-            std::copy(distribute.begin(), distribute.begin() + i,
-                      distribute_ref.begin());
+            std::copy(distribute.begin(), distribute.begin() + i, distribute_ref.begin());
             distribute_ref[i - 1] += sum_after_threshold;
             sum_after_threshold -= distribute[i];  // for next loop
 
@@ -280,17 +266,14 @@ int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute,
                 const int left_upper = static_cast<int>(std::ceil(start));
                 if (left_upper > start) {
                     const float left_scale = left_upper - start;
-                    distribute_quantized[j] +=
-                        left_scale * distribute[left_upper - 1];
+                    distribute_quantized[j] += left_scale * distribute[left_upper - 1];
                 }
                 const int right_lower = static_cast<int>(std::floor(end));
                 if (right_lower < end) {
                     const float right_scale = end - right_lower;
-                    distribute_quantized[j] +=
-                        right_scale * distribute[right_lower];
+                    distribute_quantized[j] += right_scale * distribute[right_lower];
                 }
-                std::for_each(distribute.begin() + left_upper,
-                              distribute.begin() + right_lower,
+                std::for_each(distribute.begin() + left_upper, distribute.begin() + right_lower,
                               [&](float n) { distribute_quantized[j] += n; });
             }
 
@@ -317,24 +300,21 @@ int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute,
                     }
                 }
 
-                std::for_each(distribute.begin() + left_upper,
-                              distribute.begin() + right_lower, [&](float n) {
-                                  if (n != 0) {
-                                      count += 1;
-                                  }
-                              });
+                std::for_each(distribute.begin() + left_upper, distribute.begin() + right_lower, [&](float n) {
+                    if (n != 0) {
+                        count += 1;
+                    }
+                });
 
                 if (count == 0) {
                     continue;
                 }
                 const float to_expand_val = distribute_quantized[j] / count;
                 if (left_upper > start && distribute[left_upper - 1] != 0) {
-                    distribute_expanded[left_upper - 1] +=
-                        to_expand_val * left_scale;
+                    distribute_expanded[left_upper - 1] += to_expand_val * left_scale;
                 }
                 if (right_lower < end && distribute[right_lower] != 0) {
-                    distribute_expanded[right_lower] +=
-                        to_expand_val * right_scale;
+                    distribute_expanded[right_lower] += to_expand_val * right_scale;
                 }
 
                 for (int k = left_upper; k < right_lower; ++k) {
@@ -345,8 +325,7 @@ int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute,
             }
 
             // 4. calculate kl val
-            const float kl_val_cur =
-                KlDivergence(distribute_ref, distribute_expanded);
+            const float kl_val_cur = KlDivergence(distribute_ref, distribute_expanded);
 
             // 5. get the threshold of min kl val
             if (kl_val_cur < kl_val_min) {

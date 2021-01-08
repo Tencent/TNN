@@ -355,9 +355,6 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            if (mIsCountFps) {
-                                mFpsCounter.begin("BlazeFaceAlign");
-                            }
                             FaceInfo[] faceInfoList;
                             // reinit
                             if (mDeviceSwiched) {
@@ -371,11 +368,15 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
                                 int ret = mFaceAlign.init(modelPath, mCameraHeight, mCameraWidth, 0.975f, 0.23f, 1, device);
                                 if (ret == 0) {
                                     mIsDetectingFace = true;
+                                    mFpsCounter.init();
                                 } else {
                                     mIsDetectingFace = false;
                                     Log.e(TAG, "Face detector init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
+                            }
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("BlazeFaceAlign");
                             }
                             faceInfoList = mFaceAlign.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {

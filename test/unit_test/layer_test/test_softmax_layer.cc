@@ -24,7 +24,7 @@ class SoftmaxLayerTest : public LayerTest,
                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(10, 12, 10, 12, 512),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
                                             testing::Values(10, 512), testing::Values(10, 512),
                                             // axis
                                             testing::Values(1, 2),
@@ -61,7 +61,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) ||
+        (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }

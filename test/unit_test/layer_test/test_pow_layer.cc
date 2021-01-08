@@ -25,7 +25,7 @@ class PowLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, PowLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 8),
                              testing::Values(1, 4, 15),
                              // size Values(16, 19),
@@ -59,6 +59,10 @@ TEST_P(PowLayerTest, PowLayer) {
 
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
+    }
+
+    if (DEVICE_CUDA == dev) {
+        exponent = (int)exponent;
     }
 
     // param

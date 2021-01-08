@@ -712,18 +712,29 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
 }
 
-void NaiveBGROrBGRAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order) {
     int offset = 0;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
-            unsigned b       = src[offset * channel + 0];
-            unsigned g       = src[offset * channel + 1];
-            unsigned r       = src[offset * channel + 2];
+            unsigned c1      = src[offset * channel + 0];
+            unsigned c2      = src[offset * channel + 1];
+            unsigned c3      = src[offset * channel + 2];
+            unsigned b       = bgr_order ? c1 : c3;
+            unsigned g       = c2;
+            unsigned r       = bgr_order ? c3 : c1;
             float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
             dst[offset]      = gray_color;
             offset += 1;
         }
     }
+}
+
+void NaiveBGROrBGRAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+    return NaiveColorToGray(src, dst, h, w, channel, true);
+}
+
+void NaiveRGBOrRGBAToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel) {
+    return NaiveColorToGray(src, dst, h, w, channel, false);
 }
 
 void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yptr1, const unsigned char *vuptr,

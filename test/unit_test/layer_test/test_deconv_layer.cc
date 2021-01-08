@@ -28,12 +28,12 @@ class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
                             std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 13),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
                                             testing::Values(1, 2, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
-                                            testing::Values(1, 2),
+                                            testing::Values(1, 2, 5),
                                             // kernel
                                             testing::Values(1, 2, 3, 4),
                                             // dilation
@@ -74,22 +74,23 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
-#if defined(TNN_ARM82) && !defined(TNN_ARM82_SIMU)
-    if (data_type == DATA_TYPE_HALF && !CpuUtils::CpuSupportFp16()) {
-        GTEST_SKIP();
-    }
-#else
+#ifndef TNN_ARM82
     if (data_type == DATA_TYPE_HALF) {
         GTEST_SKIP();
     }
 #endif
 
-    if (DEVICE_METAL == dev && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
+    bool is_depthwise = (input_channel_per_group == 1) && (output_channel_per_group == 1);
+    if (DEVICE_METAL == dev && !is_depthwise && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
         !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
         GTEST_SKIP();
     }
 
     if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_CUDA == dev && (activation_type == ActivationType_SIGMOID_MUL || dilation != 1))  {
         GTEST_SKIP();
     }
 
@@ -116,16 +117,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     param->pads = {pad, pad, pad, pad};
     param->bias = 1;
 
-    if (DEVICE_HUAWEI_NPU == dev) {
-        param->bias = 0;
-    }
-
     if (output_pad > 0) {
         param->pad_type = 3;
-    }
-
-    if (param->pad_type != 0 && param->pad_type != 1 && param->pad_type != -1 && DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
     }
 
     Precision precision = SetPrecision(dev, data_type);

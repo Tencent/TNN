@@ -357,6 +357,10 @@ void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel
     NaiveBGROrBGRAToGray(src, dst, h, w, channel);
 }
 
+void RGBOrRGBAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {
+    NaiveRGBOrRGBAToGray(src, dst, h, w, channel);
+}
+
 #undef SATURATE_CAST_UCHAR
 
 void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12) {

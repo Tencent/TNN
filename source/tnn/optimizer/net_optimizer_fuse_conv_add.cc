@@ -38,7 +38,7 @@ namespace optimizer {
     bool NetOptimizerFuseConvAdd::IsSupported(const NetworkConfig &net_config) {
         //return false;
         auto device = net_config.device_type;
-        if (device == DEVICE_ARM) {
+        if (device == DEVICE_ARM || device == DEVICE_NAIVE) {
             auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvPost);
             if (conv_post_optimizer && conv_post_optimizer->IsSupported(net_config)) {
                 conv_post_opt_ = conv_post_optimizer;

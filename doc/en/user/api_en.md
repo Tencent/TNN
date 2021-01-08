@@ -83,7 +83,7 @@ config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
     auto status = instance->SetInputMat(input_mat, input_cvt_param);
 ```
 
-TNN input is set by SetInputMat interface.The data to be passed in is saved to input_mat. Scale and bias could be configured in input_cvt_param.
+TNN input is set by SetInputMat interface.The data to be passed in is saved to input_mat. Scale and bias could be configured in input_cvt_param, following the [mat-convert-parameter description](#MatConvertParam-description).
 
 ### Step4. Output 
 
@@ -91,7 +91,7 @@ TNN input is set by SetInputMat interface.The data to be passed in is saved to i
     auto status = instance->GetOutputMat(output_mat);
 ```
 
-TNN output is exported by ObtainingGetOutputMat interface. The result would be saved to output_mat in a specific format.
+TNN output is exported by ObtainingGetOutputMat interface. The result would be saved to output_mat in a specific format. Scale and bias could also be configured following the [mat-convert-parameter description](#MatConvertParam-description).
 
 ## III. API Explanation
 
@@ -451,6 +451,16 @@ struct PUBLIC MatConvertParam {
     bool reverse_channel = false;
 };
 ```
+
+#### MatConvertParam description:  
+- `reverse_channel`: The default is `false`. If blue channel and red channel of the input mat need to be reversed, the parameter could be set to `true`.  
+    * The parameter is only valid for mats of `N8UC3` or `N8UC4` type. For other types of mat, the parameter is ignored.  
+    * Both `ConvertFromMat` and `ConvertToMat` procedures support reverse of channel.  
+- `scale` and `bias`: The default of scale is `1`, and the default of bias is `0`. The input mat is first multiplied by the scale, and then added with the bias.  
+    * All types of mat support scale and bias.  
+    * Both `ConvertFromMat` and `ConvertToMat` procedures support scale and bias.  
+    * If scale values are all equal to `1`, and bias values are all equal to `0`, or the default scale and bias are used, the scale and bias procedure will be skipped. Otherwise, both numbers of scale values and bias values should be consistent with the input channel.  
+    * For multi-channel inputs, the order of scale values and bias values should be consistent with the data format used in model inference. For example, if the model actually uses BGR images to do inference, then scale and bias should follow BGR order for both `ConvertFromMat` and `ConvertToMat` procedures, no matter reverse channel or not. This is also equivalent to first reverse channel, then do scale and bias for `ConvertFromMat`, and first do scale and bias, then reverse channel for `ConvertToMat`.  
 
 ### 9. utils/cpu\_utils.h
 Provide tools that are related to CPU thread core binding and power saving mode setting.

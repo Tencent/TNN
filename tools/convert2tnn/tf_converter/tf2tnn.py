@@ -17,11 +17,13 @@ from utils import checker
 from utils import return_code
 from onnx_converter import onnx2tnn
 from utils import align_model
+from utils import fix_tnn_output
 
 from converter import logging
 
 import os
 import sys
+import time
 
 
 def hack_name(names: str):
@@ -79,7 +81,7 @@ def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
 
 
 def convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align=False, not_fold_const=False,
-            input_path=None, refer_path=None):
+            input_path=None, refer_path=None, debug: bool = False, debug_mode: bool = False):
     logging.info("Converter Tensorflow to TNN model\n")
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
@@ -94,10 +96,9 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
     else:
         logging.info("Convert TensorFlow to ONNX model succeed!\n")
     if version is None:
-        version = "v1.0"
+        version = time.strftime('%Y%m%d%H%M', time.localtime())
     checker.check_file_exist(onnx_path)
     onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
-
     if align is True:
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
@@ -110,4 +111,10 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
             tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+        align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, debug_mode=debug_mode)
+
+    onnx_base_name = os.path.basename(onnx_path)
+    tnn_proto_name = onnx_base_name[:-len('.onnx')] + ('.opt.tnnproto' if optimize else ".tnnproto")
+    tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+
+    fix_tnn_output.fix_tnn_output(tnn_proto_path)
