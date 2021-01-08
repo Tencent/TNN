@@ -38,11 +38,11 @@ public class MainActivity extends Activity {
             Bundle bundle = intent.getExtras();
             String benchmark_dir = bundle.getString(ARGS_INTENT_KEY_BENCHMARK_DIR, "/data/local/tmp/tnn-benchmark/");
             String[] load_list = bundle.getStringArray(ARGS_INTENT_KEY_LOAD_LIST);
+            model = bundle.getString(ARGS_INTENT_KEY_MODEL);
             for(String element : load_list) {
                 FileUtils.copyFile(benchmark_dir + "/" + element, getFilesDir().getAbsolutePath() + "/" + element);
                 System.load(getFilesDir().getAbsolutePath() + "/" + element);
             }
-            model = bundle.getString(ARGS_INTENT_KEY_MODEL);
             final String args = bundle.getString(ARGS_INTENT_KEY_ARGS_0, bundle.getString(ARGS_INTENT_KEY_ARGS_1));
             final String file_dir  = this.getFilesDir().getAbsolutePath();
             String output_path = file_dir + "/" + model;
@@ -57,8 +57,8 @@ public class MainActivity extends Activity {
             if(result != 0) {
                 Log.i("tnn", String.format(" %s TNN Benchmark time cost failed error code: %d \n", model , result));
             }
-        } catch(Exception e) {
-            Log.i("tnn", String.format(" %s TNN Benchmark time cost failed exception: %s \n", model, e.getMessage()));
+        } catch(Error | Exception e) {
+            Log.i("tnn", String.format(" %s TNN Benchmark time cost failed error/exception: %s \n", model, e.getMessage()));
         }
     }
 
