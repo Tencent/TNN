@@ -3,9 +3,31 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'include/tnn/**'
+      - 'scripts/build_android.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/arm/**'
+      - 'source/tnn/device/cpu/**'
+      - 'source/tnn/device/opencl/**'
+      - '!source/tnn/extern_wrapper/**'
   pull_request:
     branches:
       - master
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'include/tnn/**'
+      - 'scripts/build_android.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/arm/**'
+      - 'source/tnn/device/cpu/**'
+      - 'source/tnn/device/opencl/**'
+      - '!source/tnn/extern_wrapper/**'
 jobs:
   android:
     runs-on: ubuntu-latest

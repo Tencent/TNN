@@ -3,9 +3,27 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'include/tnn/**'
+      - 'platforms/ios/**'
+      - 'scripts/build_ios.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/arm/**'
+      - 'source/tnn/device/metal/**'
+      - '!source/tnn/extern_wrapper/**'
   pull_request:
     branches:
       - master
+    paths:
+      - 'include/tnn/**'
+      - 'platforms/ios/**'
+      - 'scripts/build_ios.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/arm/**'
+      - 'source/tnn/device/metal/**'
+      - '!source/tnn/extern_wrapper/**'
 jobs:
   ios-iphone-os:
     runs-on: macos-latest

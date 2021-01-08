@@ -3,9 +3,27 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'include/tnn/**'
+      - 'scripts/build_linux.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/cpu/**'
+      - 'source/tnn/device/x86/**'
   pull_request:
     branches:
       - master
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'include/tnn/**'
+      - 'scripts/build_linux.sh'
+      - 'source/tnn/**'
+      - '!source/tnn/device/**'
+      - 'source/tnn/device/cpu/**'
+      - 'source/tnn/device/x86/**'
 jobs:
   macos-clang:
     runs-on: macos-latest
