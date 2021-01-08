@@ -382,13 +382,7 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, Inp
         input_ops.push_back(*global_operator_map_[input_name]->GetOperator());
     }
     // init graph output
-    if (!use_subnet_) {
-        for (auto &name : net_structure_->outputs) {
-            if (input_shape_map.count(name) == 0) {
-                output_ops.push_back(*global_operator_map_[name]->GetOperator());
-            }
-        }
-    } else {
+    if (use_subnet_) {
         auto iterator = cpu_input_shape_map.begin();
         for (; iterator != cpu_input_shape_map.end(); iterator++) {
             if (input_shape_map.count(iterator->first) == 0) {
@@ -397,6 +391,12 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, Inp
                 } else {
                     return Status(TNNERR_LAYER_ERR, "ERROR: When init the cpu network, some input not found\n");
                 }
+            }
+        }
+    } else {
+        for (auto &name : net_structure_->outputs) {
+            if (input_shape_map.count(name) == 0) {
+                output_ops.push_back(*global_operator_map_[name]->GetOperator());
             }
         }
     }
@@ -453,87 +453,70 @@ Status NpuNetwork::InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_i
         output_tensor_.push_back(output);
     }
 
-    auto input_it = inputs_shape.begin();
     // init input blobs
-    for (int i = 0; i < input_tensor_.size(); ++i) {
-        hiai::TensorDimension dims = input_dims[i];
-        int n                      = dims.GetNumber();
-        int c                      = dims.GetChannel();
-        int h                      = dims.GetHeight();
-        int w                      = dims.GetWidth();
-        // add blob
-        BlobDesc desc;
-        desc.device_type = DEVICE_HUAWEI_NPU;
-        desc.data_format = DATA_FORMAT_NCHW;
-        desc.name        = input_it->first;
-        desc.dims.push_back(n);
-        desc.dims.push_back(c);
-        desc.dims.push_back(h);
-        desc.dims.push_back(w);
-        BlobHandle handle;
-        handle.base                = input_tensor_[i]->GetBuffer();
-        input_blob_map_[desc.name] = new Blob(desc, handle);
-        input_it++;
+    int input_idx = 0;
+    for (auto item : inputs_shape) {
+        auto name             = item.first;
+        auto npu_blob         = CreateNpuBlob(input_dims[input_idx], name, input_tensor_[input_idx]->GetBuffer());
+        input_blob_map_[name] = npu_blob;
+        input_idx++;
     }
 
     // init output blobs
-    // init output iterator through the map
-    auto output_it = net_structure_->outputs.begin();
-    auto end_it    = net_structure_->outputs.end();
-
-    std::set<std::string> npu_inter_outputs;
-    // if use cpu then the outputs are obtained from the input of the arm network
     if (use_subnet_) {
-        for (auto i = cpu_inputs_shape.begin(); i != cpu_inputs_shape.end(); i++) {
-            npu_inter_outputs.insert(i->first);
-        }
-        output_it = npu_inter_outputs.begin();
-        end_it    = npu_inter_outputs.end();
-
         sub_network_->GetAllInputBlobs(cpu_inter_in_blobmap_);
-        sub_network_->GetAllOutputBlobs(output_blob_map_);
-
         // create sub-network input blob-converter
         for (auto blob_item : cpu_inter_in_blobmap_) {
             cpu_blob_converter_map_[blob_item.first] = std::make_shared<BlobConverter>(blob_item.second);
         }
-    }
-    int count = 0;
-    for (; output_it != end_it; ++output_it) {
-        std::string name = *output_it;
-        BlobDesc desc;
-        BlobHandle handle;
 
-        if (input_blob_map_.count(name) != 0) {
-            // if the input is the output, then use the input tensor
-            desc   = input_blob_map_[name]->GetBlobDesc();
-            handle = input_blob_map_[name]->GetHandle();
-        } else {
-            hiai::TensorDimension dims = output_dims[count];
-            int n                      = dims.GetNumber();
-            int c                      = dims.GetChannel();
-            int h                      = dims.GetHeight();
-            int w                      = dims.GetWidth();
-            // add blob
-            desc.device_type = DEVICE_HUAWEI_NPU;
-            desc.data_format = DATA_FORMAT_NCHW;
-            desc.name        = name;
-            desc.dims.push_back(n);
-            desc.dims.push_back(c);
-            desc.dims.push_back(h);
-            desc.dims.push_back(w);
-            handle.base = output_tensor_[count]->GetBuffer();
-            count++;
+        int output_idx = 0;
+        for (auto item : cpu_inputs_shape) {
+            auto name = item.first;
+            if (input_blob_map_.count(name) != 0) {
+                auto desc                    = input_blob_map_[name]->GetBlobDesc();
+                auto handle                  = input_blob_map_[name]->GetHandle();
+                npu_inter_out_blobmap_[name] = new Blob(desc, handle);
+            } else {
+                auto npu_blob = CreateNpuBlob(output_dims[output_idx], name, output_tensor_[output_idx]->GetBuffer());
+                npu_inter_out_blobmap_[name] = npu_blob;
+                output_idx++;
+            }
         }
 
-        if (use_subnet_) {
-            npu_inter_out_blobmap_[desc.name] = new Blob(desc, handle);
-        } else {
-            output_blob_map_[desc.name] = new Blob(desc, handle);
+        // get the final output
+        sub_network_->GetAllOutputBlobs(output_blob_map_);
+    } else {
+        // get the final output
+        int output_idx = 0;
+        for (auto name : net_structure_->outputs) {
+            auto npu_blob = CreateNpuBlob(output_dims[output_idx], name, output_tensor_[output_idx]->GetBuffer());
+            output_blob_map_[name] = npu_blob;
+            output_idx++;
         }
     }
+
     LOGI("Init NPU Blobs Done!\n");
     return TNN_OK;
+}
+
+Blob *NpuNetwork::CreateNpuBlob(hiai::TensorDimension dims, std::string name, void *data) {
+    int n = dims.GetNumber();
+    int c = dims.GetChannel();
+    int h = dims.GetHeight();
+    int w = dims.GetWidth();
+    // add blob
+    BlobDesc desc;
+    desc.device_type = DEVICE_HUAWEI_NPU;
+    desc.data_format = DATA_FORMAT_NCHW;
+    desc.name        = name;
+    desc.dims.push_back(n);
+    desc.dims.push_back(c);
+    desc.dims.push_back(h);
+    desc.dims.push_back(w);
+    BlobHandle handle;
+    handle.base = data;
+    return new Blob(desc, handle);
 }
 
 Status NpuNetwork::GetForwardMemorySize(int &memory_size) {
@@ -575,17 +558,7 @@ Status NpuNetwork::DeInit() {
     }
     input_blob_map_.clear();
 
-    if (!use_subnet_) {
-        iterator = output_blob_map_.begin();
-        while (iterator != output_blob_map_.end()) {
-            if (iterator->second != nullptr) {
-                delete (iterator->second);
-                iterator->second = nullptr;
-            }
-            iterator++;
-        }
-        output_blob_map_.clear();
-    } else {
+    if (use_subnet_) {
         iterator = npu_inter_out_blobmap_.begin();
         while (iterator != npu_inter_out_blobmap_.end()) {
             if (iterator->second != nullptr) {
@@ -595,6 +568,16 @@ Status NpuNetwork::DeInit() {
             iterator++;
         }
         npu_inter_out_blobmap_.clear();
+    } else {
+        iterator = output_blob_map_.begin();
+        while (iterator != output_blob_map_.end()) {
+            if (iterator->second != nullptr) {
+                delete (iterator->second);
+                iterator->second = nullptr;
+            }
+            iterator++;
+        }
+        output_blob_map_.clear();
     }
 
     for (auto &layer : layers_) {
