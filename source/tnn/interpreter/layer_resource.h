@@ -144,6 +144,11 @@ struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
 };
 
+struct BiasAddLayerResource : public LayerResource {
+    RawBuffer bias_handle;
+};
+
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
