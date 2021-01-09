@@ -22,6 +22,8 @@ function clean_build() {
 
 function build_model_check_and_tnn_converter() {
 
+	clean_build ${BIN_DIR}
+
     if [ "-c" == "${CLEAN}" ]; then
         clean_build ${BUILD_DIR}
     fi
@@ -40,7 +42,7 @@ function build_model_check_and_tnn_converter() {
     make -j4
 
     if [ -f "model_check" ]; then
-        cp model_check ../${BIN_DIR}
+        cp model_check ../${BIN_DIR}/
         echo "Compiled model_check successfully !"
     else
 
@@ -48,7 +50,7 @@ function build_model_check_and_tnn_converter() {
     fi
 
     if [ -f "tools/converter/TnnConverter" ]; then
-        cp tools/converter/TnnConverter ../${BIN_DIR}
+        cp tools/converter/TnnConverter ../${BIN_DIR}/
         echo "Compiled model_check successfully !"
     else
         echo "Compiled TNNConverter failed !!!"

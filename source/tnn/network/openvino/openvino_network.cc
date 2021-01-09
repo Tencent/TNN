@@ -47,22 +47,41 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
     }
-    device_ = GetDevice(net_config.device_type);
-    blob_manager_ = new BlobManager(device_);
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
-
-    //set inputnode
-    SetNetInputNode(net_structure, net_resource);
-    //init layers and nodes
-    InitLayers(net_structure, net_resource);
 
     device_ = GetDevice(net_config.device_type);
     if (device_ == NULL) {
         return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
+    context_ = device_->CreateContext(net_config.device_id);
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+
+    /*
+     * The NetOptimizeManager holds a list of network optimization processes.
+     * The optimization process may change the network structure accoundingly.
+     * eg. fuse conv+bn, conv+relu.
+     */
+    {
+        // use mutex to protect net_resource and net_structure in multi-thread
+        std::unique_lock<std::mutex> lck(optimize_mtx_);
+        ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    blob_manager_ = new BlobManager(device_);
+    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+
+    //set inputnode
+    RETURN_ON_NEQ(SetNetInputNode(), TNN_OK);
+    //init layers and nodes
+    RETURN_ON_NEQ(InitLayers(net_structure, net_resource), TNN_OK);
+
     // build ngraph network
-    BuildNgraphNetwork(net_structure);
+    RETURN_ON_NEQ(BuildNgraphNetwork(net_structure), TNN_OK);
     //////////////////////////////////////////////////////////////
     std::map<std::string, std::string> config = {
         {CONFIG_KEY(CPU_THREADS_NUM), "1"},
@@ -78,49 +97,55 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     return Reshape(inputs_shape);
 }
 
-Status OpenVINONetwork_::SetNetInputNode(NetStructure *net_structure, NetResource* net_resource) {
-    
-    // TODO: deal models with multiple inputs
+Status OpenVINONetwork_::SetNetInputNode() {
+    BlobMap blob_map;
+    blob_manager_->GetAllInputBlobs(blob_map);
 
-    std::string input_name = net_structure->layers.at(0)->inputs.at(0);
-    std::vector<int> input_node_shape = net_structure->inputs_shape_map.begin()->second;
-    ngraph::Shape ngraphInputShape;
-    for (size_t i = 0; i < input_node_shape.size(); i++) {
-        ngraphInputShape.push_back(input_node_shape.at(i));
+    for(auto it : blob_map) {
+        std::string input_name = it.first; 
+        BlobDesc blob_desc = it.second->GetBlobDesc();
+
+        ngraph::Shape  ngraph_input_shape;
+        for(auto d : blob_desc.dims) {
+            ngraph_input_shape.push_back(d);
+        }
+
+        std::shared_ptr<ngraph::op::Parameter> input_node = 
+                std::make_shared<ngraph::op::Parameter>(ngraph::element::f32, ngraph::Shape(ngraph_input_shape));
+        input_node->set_friendly_name(input_name);
+
+        auto foreign_blob = new ForeignBlob(it.second);
+        foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(input_node));
+
+        blob_manager_->ReplaceBlob(input_name, foreign_blob);
     }
-    
-    std::shared_ptr<ngraph::op::Parameter> input_node = std::make_shared<ngraph::op::Parameter>(
-                        ngraph::element::f32, ngraph::Shape(ngraphInputShape));
-    input_node->set_friendly_name(input_name);
-
-    auto blob = blob_manager_->GetBlob(input_name);
-    auto foreign_blob = new ForeignBlob(blob);
-    foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(input_node));
-    blob_manager_->ReplaceBlob(input_name, foreign_blob);
 
     return TNN_OK;
 }
 
 Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
 
-    auto input_name = net_structure->layers.front()->inputs.front();
-    auto input_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(input_name))->GetForeignTensor();
-    auto input_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(input_tensor);
-    auto input_node = std::dynamic_pointer_cast<ngraph::op::Parameter>(input_openvino_tensor->GetNode());
+    ngraph::ParameterVector input_nodes;
+    for(auto it : net_structure->inputs_shape_map) {
+        auto name = it.first;
+        auto input_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name))->GetForeignTensor();
+        auto input_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(input_tensor);
+        input_nodes.push_back(std::dynamic_pointer_cast<ngraph::op::Parameter>(input_openvino_tensor->GetNode()));
+    }
 
-    ngraph::NodeVector outputNodes;
+    ngraph::NodeVector output_nodes;
     for (auto name : net_structure->outputs) {
         auto output_tensor = dynamic_cast<ForeignBlob*>(blob_manager_->GetBlob(name))->GetForeignTensor();
         auto output_openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(output_tensor);
         output_openvino_tensor->GetNode()->set_friendly_name(name);
         auto result_node = std::make_shared<ngraph::op::Result>(output_openvino_tensor->GetNode());
-        outputNodes.push_back(result_node);
+        output_nodes.push_back(result_node);
     } 
     
-    std::shared_ptr<ngraph::Function> nodeFunciton = std::make_shared<ngraph::Function>(
-         outputNodes, ngraph::ParameterVector{ input_node }, "net");
+    std::shared_ptr<ngraph::Function> node_funtion = std::make_shared<ngraph::Function>(
+         output_nodes, input_nodes, "net");
 
-    network_ =  std::make_shared<InferenceEngine::CNNNetwork>(nodeFunciton);
+    network_ =  std::make_shared<InferenceEngine::CNNNetwork>(node_funtion);
     return TNN_OK;
 }
 
@@ -178,6 +203,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         BlobDesc desc;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
+        desc.device_type = DEVICE_X86;
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -201,6 +227,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         BlobDesc desc;
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
+        desc.device_type = DEVICE_X86;
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);

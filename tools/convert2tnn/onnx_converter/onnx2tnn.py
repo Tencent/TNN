@@ -56,7 +56,7 @@ def check_input_names(input_names: str, onnx_input_info: dict):
 
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align=False,
-            input_path=None, refer_path=None, input_names: str=None, is_ssd=False):
+            input_path=None, refer_path=None, input_names: str = None, is_ssd=False, debug_mode: bool = False):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -85,7 +85,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
     command = "python3 onnx2tnn.py " + onnx_path
-    command = command + " -version=v1.0"
+    command = command + " -version=" + version
     checker.check_file_exist(onnx_path)
     if optimize is True:
         command = command + " -optimize=1"
@@ -126,6 +126,8 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
 
         if input_names is None:
-            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path)
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path,
+                                    debug_mode=debug_mode)
         else:
-            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names)
+            align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names,
+                                    debug_mode=debug_mode)

@@ -142,7 +142,8 @@ typedef enum {
     MODEL_TYPE_COREML   = 0x2000,
     MODEL_TYPE_SNPE     = 0x3000,
     MODEL_TYPE_HIAI     = 0x4000,
-    MODEL_TYPE_ATLAS    = 0x5000
+    MODEL_TYPE_ATLAS    = 0x5000,
+    MODEL_TYPE_RKCACHE  = 0x6000
 } ModelType;
 
 using DimsVector = std::vector<int>;

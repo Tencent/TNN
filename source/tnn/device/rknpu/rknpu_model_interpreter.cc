@@ -12,25 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
-
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/unary_layer_builder.h"
+#include "tnn/interpreter/abstract_model_interpreter.h"
 
 namespace TNN_NS {
-namespace openvino {
 
-DECLARE_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
+class RknpuModelInterpreter : public AbstractModelInterpreter {
+public:
+    RknpuModelInterpreter(){};
+    ~RknpuModelInterpreter(){};
+    Status Interpret(std::vector<std::string> &params) {
+        return TNN_OK;
+    }
+};
 
-REGISTER_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
+TypeModelInterpreterRegister<TypeModelInterpreterCreator<RknpuModelInterpreter>> g_atlas_model_interpreter_register(
+    MODEL_TYPE_RKCACHE);
 
-}
-}
+}  // namespace TNN_NS
