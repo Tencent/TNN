@@ -406,6 +406,11 @@ struct GatherLayerParam : public LayerParam {
     bool indices_in_resource  = true;
 };
 
+struct LSTMONNXLayerParam : public LayerParam {
+    float clip_threshold            = 0;
+    int hidden_size                  = 0;
+};
+
 struct ExpandLayerParam : public LayerParam {
     std::vector<int> shape;
 };

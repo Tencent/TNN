@@ -196,6 +196,7 @@ enum LayerType {
     LAYER_ERF                                               = 307,
     LAYER_CONSTANT_OF_SHAPE                                 = 308,
     LAYER_NONZERO                                           = 309,
+    LAYER_LSTMONNX                                           = 310,
 
     LAYER_BLOB_SCALE                                        = 600,
 

@@ -217,6 +217,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ScatterND", LAYER_SCATTER_ND},
     {"ConstantOfShape", LAYER_CONSTANT_OF_SHAPE},
     {"NonZero", LAYER_NONZERO},
+    {"LSTMONNX", LAYER_LSTMONNX},
     {"QuantizedSigmoid", LAYER_SIGMOID},
     {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
     {"Erf", LAYER_ERF},
