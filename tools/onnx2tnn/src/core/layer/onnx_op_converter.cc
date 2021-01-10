@@ -41,7 +41,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     bool has_another_variable_input = false;
     for (int j = 1; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (net_info.weights_map.find(input_name) == net_info.weights_map.end()) {
+        if (input_name.length() > 0 &&
+            net_info.weights_map.find(input_name) == net_info.weights_map.end()) {
             has_another_variable_input = true;
             break;
         }
@@ -49,14 +50,18 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     
     for (int j = 0; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (HasLayerResource(node, net_info)) {
-            if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
-            net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-                input_size--;
-            }
+        if (input_name.length() <= 0) {
+            input_size--;
         } else {
-            if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
-                input_size--;
+            if (HasLayerResource(node, net_info)) {
+                if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+                net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
+                    input_size--;
+                }
+            } else {
+                if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                    input_size--;
+                }
             }
         }
     }
@@ -65,7 +70,10 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
 
     for (int j = 0; j < node.input_size(); j++) {
         std::string input_name = node.input(j);
-
+        if (input_name.length() <= 0) {
+            continue;;
+        }
+        
         // check weight
         if (HasLayerResource(node, net_info)) {
             if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
