@@ -43,13 +43,13 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     scale.values = resource->scale_handle.force_to<void *>();
 
     // unsqueeze 
+    ILayer* layer;
     if(input_dims.size() == 2) {
         DimsVector unsqueeze_dims = {input_dims[0], input_dims[1], 1, 1};
-        ILayer* unsqueeze_layer = AddReshapeToNetwork(network, tensor, unsqueeze_dims, (layer_name_ + "squeeze").c_str());
-        tensor = unsqueeze_layer->getOutput(0);
+        layer = AddReshapeToNetwork(network, tensor, unsqueeze_dims, (layer_name_ + "squeeze").c_str());
+        tensor = layer->getOutput(0);
     }
 
-    ILayer* layer;
     //add scale
     if (resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType())) {
         layer = network->addScale(*tensor, ScaleMode::kUNIFORM, shift, scale, power);

@@ -12,25 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
-
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/unary_layer_builder.h"
+#include "tnn/layer/elementwise_layer.h"
 
 namespace TNN_NS {
-namespace openvino {
 
-DECLARE_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
+DECLARE_ELEMENTWISE_LAYER(BiasAdd, LAYER_BIAS_ADD);
 
-REGISTER_UNARY_LAYER_BUILDER(Tanh, LAYER_TANH);
+REGISTER_ELEMENTWISE_LAYER(BiasAdd, LAYER_BIAS_ADD);
 
-}
-}
+}  // namespace TNN_NS

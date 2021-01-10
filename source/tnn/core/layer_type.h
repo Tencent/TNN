@@ -69,7 +69,7 @@ enum LayerType {
     LAYER_QUANTIZEDRESHAPE                                  = 51,
     LAYER_CONVOLUTION_DEPTHWISE                             = 52,
     LAYER_QUANTIZEDBIASADD                                  = 53,
-    LAYER_BIASADD                                           = 54,
+    LAYER_BIAS_ADD                                          = 54,
     LAYER_CONTINUATION_INDICATOR                            = 55,
     LAYER_QUANTIZEDRELU                                     = 56,
     LAYER_STRIDED_SLICE                                     = 57,

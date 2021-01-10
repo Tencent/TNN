@@ -25,7 +25,7 @@ class SplitVLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, SplitVLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
-                                            testing::Values(1),
+                                            testing::Values(1, 3),
                                             // output cnt
                                             testing::Values(2),
                                             // dtype
@@ -45,10 +45,6 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_CUDA == dev) {
-        GTEST_SKIP();
-    }
-
     if (channel <= 1) {
         GTEST_SKIP();
     }
@@ -57,14 +53,15 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
     param->name   = "SplitV";
-    param->axis   = 1;
-    param->slices = {channel / 2, channel - channel / 2};
+    param->axis   = axis;
+    param->slices = {input_dims[axis] / 2, input_dims[axis] - input_dims[axis] / 2};
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
     Run(interpreter);
 }

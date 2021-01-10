@@ -1,7 +1,7 @@
 file(GLOB_RECURSE ARM_SRC *.h *.cc)
+file(GLOB_RECURSE REMOVE_SOURCES "*/compute_arm82/*")
+list(REMOVE_ITEM ARM_SRC ${REMOVE_SOURCES})
 if(TNN_ARM82_ENABLE)
-    file(GLOB_RECURSE REMOVE_SOURCES "*/compute_arm82/*")
-    list(REMOVE_ITEM ARM_SRC ${REMOVE_SOURCES})
     add_subdirectory(acc/compute_arm82)
 endif()
 

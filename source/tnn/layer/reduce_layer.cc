@@ -14,6 +14,8 @@
 
 #include "reduce_layer.h"
 
+#include <set>
+
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -31,6 +33,7 @@ Status ReduceLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
     auto dims  = input_blob->GetBlobDesc().dims;
 
+    std::set<int> axis_filter;
     for (auto& axis : layer_param->axis) {
         axis = axis >= 0 ? axis : axis + (int)dims.size();
         if (axis < 0 || axis >= dims.size()) {
@@ -38,15 +41,22 @@ Status ReduceLayer::InferOutputShape() {
             return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
         }
         dims[axis] = 1;
+        axis_filter.insert(axis);
     }
     
+  
+    DimsVector output_dims;
     if (layer_param->keep_dims == 0) {
-        for (auto& axis : layer_param->axis) {
-            dims.erase(dims.begin() + axis);
+        for(int i = 0; i < dims.size(); ++i) {
+            if(axis_filter.count(i) == 0) {
+                output_dims.push_back(dims[i]);           
+            }
         }
+    } else {
+        output_dims = dims;
     }
     
-    output_blob->GetBlobDesc().dims = dims;
+    output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
 }

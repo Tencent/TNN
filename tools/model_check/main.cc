@@ -121,17 +121,17 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 
 void PrintConfig() {
     printf(
-        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-c] [-f] "
+        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
         "<refernece> [-n] <val> [-s] <val>\n"
         "\t-h, --help     \t show this message\n"
         "\t-p, --proto    \t(require) tnn proto file path\n"
         "\t-m, --model    \t(require) tnn model file path\n"
         "\t-d, --device   \t(require) the device to run to check results, ie, "
-        "OPENCL, METAL, ARM, CUDA\n"
+        "OPENCL, METAL, ARM, CUDA, HUAWEI_NPU, NAIVE\n"
         "\t-i, --input    \t(optional) input file\n"
         "\t-o, --output   \t(optional) dump output\n"
         "\t-e, --end      \t(optional) compare output only\n"
-        "\t-r, --ref      \t(optional) the reference output to compare\n"
+        "\t-f, --ref      \t(optional) the reference output to compare\n"
         "\t-n, --bias     \t(optional) bias val when preprocess image "
         "input, ie, "
         "0.0,0.0,0.0 \n"
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
     // for HuaweiNPU only check output
     if (net_config.device_type == DEVICE_HUAWEI_NPU) {
         model_checker_param.only_check_output = true;
-        net_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
+        net_config.network_type               = NETWORK_TYPE_HUAWEI_NPU;
     }
 
     // only for metal device
@@ -264,8 +264,12 @@ int main(int argc, char* argv[]) {
         return -1;
 
     ModelChecker model_checker;
-    net_config.precision = PRECISION_HIGH;
-    Status status        = model_checker.Init(net_config, model_config);
+    if (model_checker_param.only_check_output) {
+        net_config.precision = PRECISION_AUTO;
+    } else {
+        net_config.precision = PRECISION_HIGH;
+    }
+    Status status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed!\n");
         return -1;

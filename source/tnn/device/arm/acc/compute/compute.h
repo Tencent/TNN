@@ -115,6 +115,9 @@ void FloatConvert(const Tin* src, Tout* dst, long area_quad);
 template <typename T>
 void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst = nullptr);
 
+void Half2Float(float* dst, const fp16_t* src, const size_t length);
+void Float2Half(fp16_t* dst, const float* src, const size_t length);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
