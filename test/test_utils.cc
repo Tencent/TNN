@@ -48,6 +48,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_COREML;
     } else if ("NCNN" == model_type) {
         return MODEL_TYPE_NCNN;
+    } else if ("RKCACHE" == model_type) {
+        return MODEL_TYPE_RKCACHE;
     } else {
         return MODEL_TYPE_TNN;
     }
