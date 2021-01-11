@@ -3,7 +3,11 @@
 set -e
 
 git fetch origin master:master
-CHANGED_FILES=`git diff --name-only master...${TRAVIS_COMMIT}`
+CHANGED_FILES=`git diff --name-only master`
+echo -e "\n>> Changed Files:"
+for CHANGED_FILE in $CHANGED_FILES; do
+  echo ${CHANGED_FILE}
+done
 ARM_RELEVANT=False
 
 PATTERNS=("CMakeLists.txt"
@@ -21,8 +25,11 @@ PATTERNS=("CMakeLists.txt"
           "source/tnn/utils/"
           )
 
-echo "Patterns:"
-echo ${PATTERNS[@]}
+echo -e "\n>> Patterns:"
+for PATTERN in ${PATTERNS[@]}; do
+  echo ${PATTERN}
+done
+echo ""
 
 for CHANGED_FILE in $CHANGED_FILES; do
   for PATTERN in ${PATTERNS[@]}; do
