@@ -1,4 +1,3 @@
-#include <arm_neon.h>
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/naive_compute.h"
 #define ASMCONVINT8UNIT8X8
