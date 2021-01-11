@@ -25,8 +25,8 @@ Status ExpandLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ExpandLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ExpandLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<ExpandLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);

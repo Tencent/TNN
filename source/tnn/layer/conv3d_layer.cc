@@ -24,13 +24,13 @@ Status Conv3DLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status Conv3DLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status Conv3DLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     if (input_blob->GetBlobDesc().data_format != DATA_FORMAT_NCDHW) {
-        LOGE("Error: Conv3D layer only support NCDHW data format\n");
+        LOGE_IF(!ignore_error, "Error: Conv3D layer only support NCDHW data format\n");
         return Status(TNNERR_LAYER_ERR, "Error: Conv3D layer only support NCDHW data format");
     }
 
@@ -91,7 +91,7 @@ Status Conv3DLayer::InferOutputShape() {
         } else  // FULL type
         {
             // to-do: deconv has full type, what's conv's full type?
-            LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
+            LOGE_IF(!ignore_error, "Error: Conv3DLayer dont support pad type: %d\n", pad_type);
             return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
         }
 
@@ -125,7 +125,7 @@ Status Conv3DLayer::InferOutputShape() {
         conv_param->pads[4] = pad_front;
         conv_param->pads[5] = pad_back;
     } else {
-        LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
+        LOGE_IF(!ignore_error, "Error: Conv3DLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
     }
 

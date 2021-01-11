@@ -99,6 +99,7 @@
 #define LOGD(fmt, ...) LOGDT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 #define LOGI(fmt, ...) LOGIT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 #define LOGE(fmt, ...) LOGET(fmt, DEFAULT_TAG, ##__VA_ARGS__)
+#define LOGE_IF(cond, fmt, ...) if(cond) LOGET(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 
 // Assert
 #include <cassert>

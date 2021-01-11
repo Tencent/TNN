@@ -33,8 +33,8 @@ Status NonZeroLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status NonZeroLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status NonZeroLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto input_dims  = input_blobs_[0]->GetBlobDesc().dims;
     int input_dim_size = (int)input_dims.size();

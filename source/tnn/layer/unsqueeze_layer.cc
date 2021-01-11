@@ -31,8 +31,8 @@ Status UnsqueezeLayer::InferOutputDataType() {
     return status;
 }
 
-Status UnsqueezeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status UnsqueezeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     ASSERT(input_blobs_.size() == 1);
     const auto& input_blob  = input_blobs_[0];
     const auto& input_dims  = input_blob->GetBlobDesc().dims;

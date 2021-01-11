@@ -22,8 +22,8 @@ Status PriorBoxLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PriorBoxLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status PriorBoxLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob *input_blob                    = input_blobs_[0];
     Blob *output_blob                   = output_blobs_[0];

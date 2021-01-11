@@ -90,7 +90,7 @@ protected:
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 
     //@brief calculate the output tensor dims
-    virtual Status InferOutputShape();
+    virtual Status InferOutputShape(bool ignore_error = false);
     //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of output blobs
     virtual Status InferOutputDataType();
     //@brief fill layer param with constant resource
@@ -141,7 +141,7 @@ BaseLayer* CreateLayer(LayerType type);
         virtual ~type_string##Layer(){};                                                                         \
                                                                                                                                   \
     protected:                                                                                                              \
-        virtual Status InferOutputShape();                                                                     \
+        virtual Status InferOutputShape(bool ignore_error = false);                             \
         virtual Status InferOutputDataType();                                                               \
         extra_funcs \
     }
@@ -153,7 +153,7 @@ BaseLayer* CreateLayer(LayerType type);
         virtual ~type_string##Layer(){};                                                                         \
                                                                                                                                    \
     protected:                                                                                                               \
-        virtual Status InferOutputShape();                                                                     \
+        virtual Status InferOutputShape(bool ignore_error = false);                              \
         virtual Status InferOutputDataType();                                                                \
     }
 

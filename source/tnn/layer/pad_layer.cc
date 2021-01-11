@@ -24,12 +24,12 @@ Status PadLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PadLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status PadLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<PadLayerParam*>(param_);
     if (!layer_param) {
-        LOGE("Error: layer param is nil\n");
+        LOGE_IF(!ignore_error, "Error: layer param is nil\n");
         return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
     }
 

@@ -89,7 +89,7 @@ Status BaseLayer::FillLayerParamWithConstantResource() {
     return TNN_OK;
 }
 
-Status BaseLayer::InferOutputShape() {
+Status BaseLayer::InferOutputShape(bool ignore_error) {
     //get dims from const for input
     auto const_resource = const_resource_;
     for (auto iter : input_blobs_) {
@@ -180,7 +180,7 @@ Status BaseLayer::Forward() {
             }
         } else {
             //dont check the status of InferOutputShape in constant folding
-            auto status = InferOutputShape();
+            auto status = InferOutputShape(true);
             
             status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);

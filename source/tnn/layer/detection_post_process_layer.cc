@@ -21,8 +21,8 @@ Status DetectionPostProcessLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status DetectionPostProcessLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status DetectionPostProcessLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     assert(input_blobs_.size() == 2);
     assert(output_blobs_.size() == 4);

@@ -24,8 +24,8 @@ Status FlattenLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status FlattenLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status FlattenLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     ReshapeLayerParam* reshape_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(reshape_param);
@@ -34,7 +34,7 @@ Status FlattenLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
 
     if ((reshape_param->shape.size() + reshape_param->axis) != input_blob->GetBlobDesc().dims.size()) {
-        LOGE("flatten param size error\n");
+        LOGE_IF(!ignore_error, "flatten param size error\n");
         return Status(TNNERR_PARAM_ERR, "flatten param size error");
     }
 

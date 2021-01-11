@@ -37,8 +37,8 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status ConstantOfShapeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ConstantOfShapeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
     auto data_type = input_blobs_[0]->GetBlobDesc().data_type;
