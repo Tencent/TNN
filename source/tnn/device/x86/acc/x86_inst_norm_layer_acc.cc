@@ -28,7 +28,7 @@ Status X86InstanceNormLayerAcc::Reshape(const std::vector<Blob*> &inputs, const 
     return TNN_OK;
 }
 
-Status X86InstanceNormLayerAcc::Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) {
+Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) {
     auto resource = dynamic_cast<InstanceNormLayerResource*>(resource_);
     if (!resource) {
         return Status(TNNERR_MODEL_ERR, "Error, InstanceNormLayerResource is nil");

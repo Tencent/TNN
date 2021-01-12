@@ -26,7 +26,7 @@ public:
     Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs);
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
     RawBuffer buffer_scale_;
@@ -75,7 +75,7 @@ Status X86InnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     return TNN_OK;
 }
 
-Status X86InnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);
     if (!param) {

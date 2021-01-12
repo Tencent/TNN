@@ -65,7 +65,7 @@ Status X86ConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
-Status X86ConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86ConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Blob *input_blob    = inputs[0];
     Blob *output_blob   = outputs[0];
     void *input_ptr     = input_blob->GetHandle().base;

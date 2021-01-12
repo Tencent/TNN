@@ -19,8 +19,7 @@
 
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-#include "tnn/utils/bfp16.h"
-#include "tnn/utils/bfp16_utils.h"
+#include "tnn/device/x86/x86_util.h"
 
 namespace TNN_NS {
 
@@ -35,11 +34,18 @@ public:
     
     virtual Status Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) = 0;
 
-    virtual Status Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) = 0;
+    virtual Status Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
+
+    virtual Status DoForward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
+
+#if TNN_PROFILE
+    Timer timer;
+#endif
 
 protected:
     LayerParam* param_          = nullptr;
     LayerResource* resource_    = nullptr;
+    Context *context_           = nullptr;
 
 private:
     // @brief return device layer acc support data format
@@ -51,7 +57,7 @@ private:
     public:                                                                                                     \
         virtual ~X86##type_string##LayerAcc(){};                                                                \
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
-        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
     }
 
 #define REGISTER_X86_ACC(type_string, layer_type)                                                               \

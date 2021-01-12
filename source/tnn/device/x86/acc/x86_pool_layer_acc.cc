@@ -26,7 +26,7 @@ Status X86PoolLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
-Status X86PoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: PoolingLayerParam is nil");

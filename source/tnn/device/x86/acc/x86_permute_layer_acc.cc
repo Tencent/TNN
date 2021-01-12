@@ -34,7 +34,7 @@ Status X86PermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
-Status X86PermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86PermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");

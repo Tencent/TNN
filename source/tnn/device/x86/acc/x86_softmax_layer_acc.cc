@@ -27,7 +27,7 @@ Status X86SoftMaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
-Status X86SoftMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto params = dynamic_cast<SoftmaxLayerParam *>(param_);
 
     if (!params) {

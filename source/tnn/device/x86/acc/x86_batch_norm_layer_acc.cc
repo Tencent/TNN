@@ -26,7 +26,7 @@ Status X86BatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-Status X86BatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86BatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {

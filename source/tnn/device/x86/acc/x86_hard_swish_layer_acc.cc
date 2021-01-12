@@ -27,7 +27,7 @@ Status X86HardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-Status X86HardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto param = dynamic_cast<HardSwishLayerParam *>(param_);
     if (!param) {

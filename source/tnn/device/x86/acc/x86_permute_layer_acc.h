@@ -50,7 +50,7 @@ class X86PermuteLayerAcc : public X86LayerAcc {
      * @param outputs   output blobs
      * @return execution result
      */
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
     /**

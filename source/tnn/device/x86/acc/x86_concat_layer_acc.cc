@@ -25,7 +25,7 @@ Status X86ConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     return TNN_OK;
 }
 
-Status X86ConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ConcatLayerParam *>(param_);
     if (!param) {
         LOGE("Error: ConcatLayerParam is nil\n");

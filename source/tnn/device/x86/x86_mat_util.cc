@@ -18,10 +18,7 @@
 #include <type_traits>
 #include "stdlib.h"
 
-#ifdef TNN_USE_NEON
-#include <x86_neon.h>
-#endif
-
+#include <mm_malloc.h>
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/mat_converter_utils.h"

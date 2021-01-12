@@ -31,7 +31,7 @@ Status X86BinaryOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     return TNN_OK;
 }
 
-Status X86BinaryOpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: layer param is nil\n");

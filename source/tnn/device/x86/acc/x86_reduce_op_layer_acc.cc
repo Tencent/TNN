@@ -29,7 +29,7 @@ Status X86ReduceOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     return TNN_OK;
 }
 
-Status X86ReduceOpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86ReduceOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto input_blob = inputs[0];
     auto output_blob = outputs[0];

@@ -31,7 +31,7 @@ public:
                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     bool do_im2col_ = true;
