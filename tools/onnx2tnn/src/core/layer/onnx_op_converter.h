@@ -60,6 +60,8 @@ public:
         return onnx_op_type_;
     };
     virtual string TNNOpType(NodeProto &node, OnnxNetInfo &net_info) = 0;
+    virtual std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info);
+    virtual std::vector<std::string> GetOutputNames(NodeProto &node, OnnxNetInfo &net_info);
     string TNNLayerProto(NodeProto &node, OnnxNetInfo &net_info);
     virtual string TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
         return "";
@@ -139,6 +141,19 @@ private:
         virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);  \
         virtual int WriteTNNModel(serializer *, NodeProto &,              \
                                        OnnxNetInfo &);                         \
+    }
+
+#define DECLARE_OP_CONVERTER_WITH_FUNC(onnx_type, extra_func)                                        \
+    class OnnxOpConverter##onnx_type : public OnnxOpConverter {                \
+    public:                                                                    \
+        OnnxOpConverter##onnx_type(string ignore) : OnnxOpConverter(ignore){}; \
+        virtual ~OnnxOpConverter##onnx_type(){};                               \
+        virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);     \
+        virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);         \
+        virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);  \
+        virtual int WriteTNNModel(serializer *, NodeProto &,              \
+                                       OnnxNetInfo &);                         \
+        extra_func \
     }
 
 #define DECLARE_OP_CONVERTER_WITH_PROCESS(onnx_type)                                                                   \
