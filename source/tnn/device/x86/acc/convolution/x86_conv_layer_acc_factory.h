@@ -12,30 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_CONV_LAYER_ACC_H
-#define TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_CONV_LAYER_ACC_H
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_FACTORY_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_FACTORY_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
+#include <memory>
+#include <type_traits>
 
 namespace TNN_NS {
 
-class X86ConvLayerAcc : public X86LayerAcc {
+class X86ConvLayerAccFactory {
 public:
-    virtual ~X86ConvLayerAcc(){};
-    
-    Status Init(Context *context, LayerParam *param, LayerResource *resource,
-                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-protected:
-    std::shared_ptr<X86LayerAcc> conv_acc_impl_ = nullptr;
+    static void CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
+                            std::shared_ptr<X86LayerAcc> &conv_acc_impl);
 };
 
-}   // namespace TNN_NS
-#endif
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_FACTORY_H_
