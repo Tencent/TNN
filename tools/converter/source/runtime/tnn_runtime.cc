@@ -14,6 +14,8 @@
 
 #include "tnn_runtime.h"
 
+#include<iomanip>
+
 #include "include/tnn/core/common.h"
 #include "include/tnn/core/instance.h"
 #include "tnn/utils/blob_converter.h"
