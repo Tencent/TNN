@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "x86_compute.h"
+#include "tnn/device/x86/acc/Float8.h"
 
 #include <algorithm>
 #include <cstring>
@@ -494,6 +495,57 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
     reduce_kernel_ptr(input, output, outer_size, inner_size, reduce_size);
 
     return TNN_OK;
+}
+
+void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw, long fh,
+                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
+    long dx, fx, fy;
+    for (long y = 0; y < height; ++y) {
+        auto srcY = src + y * srcHStep;
+        auto dstY = dst + y * dstHStep;
+        dx        = 0;
+        for (; dx + 3 < width; dx += 4) {
+            Float8 dst_v[4];
+            for (long i = 0; i < 4; i++)
+                dst_v[i] = Float8(0);
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 8;
+                for (fx = 0; fx < fw; ++fx) {
+                    Float8 weight_v = Float8::loadu(weight_y + 8 * fx);
+                    Float8 src_v0   = Float8::load(src_y + fx * dilate_x_step);
+                    Float8 src_v1 = Float8::load(src_y + fx * dilate_x_step + src_w_step);
+                    Float8 src_v2 = Float8::load(src_y + fx * dilate_x_step + 2 * src_w_step);
+                    Float8 src_v3 = Float8::load(src_y + fx * dilate_x_step + 3 * src_w_step);
+                    Float8::mla(dst_v[0], src_v0, weight_v);
+                    Float8::mla(dst_v[1], src_v1, weight_v);
+                    Float8::mla(dst_v[2], src_v2, weight_v);
+                    Float8::mla(dst_v[3], src_v3, weight_v);
+                }
+            }
+            Float8::save(dstY + (dx + 0) * 8, dst_v[0]);
+            Float8::save(dstY + (dx + 1) * 8, dst_v[1]);
+            Float8::save(dstY + (dx + 2) * 8, dst_v[2]);
+            Float8::save(dstY + (dx + 3) * 8, dst_v[3]);
+        }
+        for (; dx < width; ++dx) {
+            Float8 dst_v(0.0f);
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 8;
+                for (fx = 0; fx < fw; ++fx) {
+                    Float8 src_v    = Float8::load(src_y + fx * dilate_x_step);
+                    Float8 weight_v = Float8::loadu(weight_y + 8 * fx);
+                    Float8::mla(dst_v, src_v, weight_v);
+                }
+            }
+            Float8::save(dstY + dx * 8, dst_v);
+        }
+    }
 }
 
 }

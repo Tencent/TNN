@@ -161,14 +161,14 @@ int PackC4(float *dst, const float *src, size_t hw, size_t channel) {
   t7 = _mm256_permute2f128_ps(v3, v7, 0x31);
 
 template <int left_c>
-inline void PackC8_Left(float *dst, const float *src, size_t hw) {
+inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_stride) {
     auto src0 = src;
-    auto src1 = src + hw;
-    auto src2 = src + hw * 2;
-    auto src3 = src + hw * 3;
-    auto src4 = src + hw * 4;
-    auto src5 = src + hw * 5;
-    auto src6 = src + hw * 6;
+    auto src1 = src + src_hw_stride;
+    auto src2 = src + src_hw_stride * 2;
+    auto src3 = src + src_hw_stride * 3;
+    auto src4 = src + src_hw_stride * 4;
+    auto src5 = src + src_hw_stride * 5;
+    auto src6 = src + src_hw_stride * 6;
     int cur_hw = 0;
     __m256 v1 = _mm256_setzero_ps();
     __m256 v2 = _mm256_setzero_ps();
@@ -231,18 +231,18 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw) {
         dst[cur_hw * 8 + 7] = 0;
     }
 }
-int PackC8(float *dst, const float *src, size_t hw, size_t channel) {
+int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel) {
     int c = 0;
     for (; c + 7 < channel; c += 8) {
-        auto src0 = src + c * hw;
-        auto src1 = src + c * hw + hw;
-        auto src2 = src + c * hw + hw * 2;
-        auto src3 = src + c * hw + hw * 3;
-        auto src4 = src + c * hw + hw * 4;
-        auto src5 = src + c * hw + hw * 5;
-        auto src6 = src + c * hw + hw * 6;
-        auto src7 = src + c * hw + hw * 7;
-        auto dst_c = dst + c * hw;
+        auto src0 = src + c * src_hw_stride;
+        auto src1 = src0 + src_hw_stride;
+        auto src2 = src0 + src_hw_stride * 2;
+        auto src3 = src0 + src_hw_stride * 3;
+        auto src4 = src0 + src_hw_stride * 4;
+        auto src5 = src0 + src_hw_stride * 5;
+        auto src6 = src0 + src_hw_stride * 6;
+        auto src7 = src0 + src_hw_stride * 7;
+        auto dst_c = dst + c * dst_hw_stride;
         int cur_hw = 0;
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             auto dst_hw = dst_c + cur_hw * 8;
@@ -277,19 +277,19 @@ int PackC8(float *dst, const float *src, size_t hw, size_t channel) {
     }
     int left_c = channel - c;
     if (left_c == 7) {
-        PackC8_Left<7>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<7>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 6) {
-        PackC8_Left<6>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<6>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 5) {
-        PackC8_Left<5>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<5>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 4) {
-        PackC8_Left<4>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<4>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 3) {
-        PackC8_Left<3>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<3>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 2) {
-        PackC8_Left<2>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<2>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 1) {
-        PackC8_Left<1>(dst + c * hw, src + c * hw, hw);
+        PackC8_Left<1>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     }
     return 0;
 }
@@ -358,14 +358,14 @@ int UnpackC4(float *dst, const float *src, size_t hw, size_t channel) {
 }
 
 template <int left_c>
-inline void UnpackC8_Left(float *dst, const float *src, size_t hw) {
+inline void UnpackC8_Left(float *dst, const float *src, size_t hw, size_t dst_hw_stride) {
     auto dst0 = dst;
-    auto dst1 = dst + hw;
-    auto dst2 = dst + hw * 2;
-    auto dst3 = dst + hw * 3;
-    auto dst4 = dst + hw * 4;
-    auto dst5 = dst + hw * 5;
-    auto dst6 = dst + hw * 6;
+    auto dst1 = dst + dst_hw_stride;
+    auto dst2 = dst + dst_hw_stride * 2;
+    auto dst3 = dst + dst_hw_stride * 3;
+    auto dst4 = dst + dst_hw_stride * 4;
+    auto dst5 = dst + dst_hw_stride * 5;
+    auto dst6 = dst + dst_hw_stride * 6;
     int cur_hw = 0;
     for (; cur_hw + 7 < hw; cur_hw += 8) {
         auto src_hw = src + cur_hw * 8;
@@ -397,18 +397,18 @@ inline void UnpackC8_Left(float *dst, const float *src, size_t hw) {
     }
 }
 
-int UnpackC8(float *dst, const float *src, size_t hw, size_t channel) {
+int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel) {
     int c = 0;
     for (; c + 7 < channel; c += 8) {
-        auto src_c = src + c * hw;
-        auto dst0 = dst + c * hw;
-        auto dst1 = dst + c * hw + hw;
-        auto dst2 = dst + c * hw + hw * 2;
-        auto dst3 = dst + c * hw + hw * 3;
-        auto dst4 = dst + c * hw + hw * 4;
-        auto dst5 = dst + c * hw + hw * 5;
-        auto dst6 = dst + c * hw + hw * 6;
-        auto dst7 = dst + c * hw + hw * 7;
+        auto src_c = src + c * src_hw_stride;
+        auto dst0 = dst + c * dst_hw_stride;
+        auto dst1 = dst0 + dst_hw_stride;
+        auto dst2 = dst0 + dst_hw_stride * 2;
+        auto dst3 = dst0 + dst_hw_stride * 3;
+        auto dst4 = dst0 + dst_hw_stride * 4;
+        auto dst5 = dst0 + dst_hw_stride * 5;
+        auto dst6 = dst0 + dst_hw_stride * 6;
+        auto dst7 = dst0 + dst_hw_stride * 7;
         int cur_hw = 0;
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             auto src_hw = src_c + cur_hw * 8;
@@ -443,19 +443,19 @@ int UnpackC8(float *dst, const float *src, size_t hw, size_t channel) {
     }
     int left_c = channel - c;
     if (left_c == 7) {
-        UnpackC8_Left<7>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<7>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 6) {
-        UnpackC8_Left<6>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<6>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 5) {
-        UnpackC8_Left<5>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<5>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 4) {
-        UnpackC8_Left<4>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<4>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 3) {
-        UnpackC8_Left<3>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<3>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 2) {
-        UnpackC8_Left<2>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<2>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 1) {
-        UnpackC8_Left<1>(dst + c * hw, src + c * hw, hw);
+        UnpackC8_Left<1>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     }
     return 0;
 }

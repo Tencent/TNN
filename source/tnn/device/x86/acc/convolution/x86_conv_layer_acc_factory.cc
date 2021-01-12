@@ -23,7 +23,11 @@ bfp16 impl included in fp impl
 */
 void X86ConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                          LayerParam *param, std::shared_ptr<X86LayerAcc> &conv_acc_impl) {
-    if (!conv_acc_impl) {
+    if (X86ConvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvLayerDepthwise *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<X86ConvLayerDepthwise>();
+        }
+    } else if (!conv_acc_impl) {
         conv_acc_impl = std::make_shared<X86ConvLayerCommon>();
     }
 }

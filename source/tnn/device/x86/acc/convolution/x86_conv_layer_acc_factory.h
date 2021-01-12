@@ -17,6 +17,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
 #include <memory>
 #include <type_traits>
 

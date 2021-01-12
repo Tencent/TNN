@@ -12,44 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_COMMON_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_COMMON_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_DEPTHWISE_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_DEPTHWISE_H_
 
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/utils/omp_utils.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
 
 namespace TNN_NS {
 
-class X86ConvLayerCommon : public X86LayerAcc {
+class X86ConvLayerDepthwise : public X86ConvLayerCommon {
 public:
-    virtual ~X86ConvLayerCommon();
-
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual ~X86ConvLayerDepthwise();
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    // always true as last solution
     static bool isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs);
 
-    template <typename T>
-    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    // alloc conv params and set post op
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-protected:
-    bool do_im2col_ = true;
-    RawBuffer col_buffer_;
-    RawBuffer buffer_weight_;
-    RawBuffer buffer_bias_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_COMMON_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_DEPTHWISE_H_
