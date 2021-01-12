@@ -209,27 +209,27 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
     int x = 0;
 #if defined(__SSE4_2__)
     {
-    __m128i off_vec   = _mm_set1_epi32(16);
-    __m128i mask31    = _mm_set1_epi32(31);
-    __m128i mask_mull = _mm_setr_epi16(1, 32, 1, 32, 1, 32, 1, 32);
+        __m128i off_vec   = _mm_set1_epi32(16);
+        __m128i mask31    = _mm_set1_epi32(31);
+        __m128i mask_mull = _mm_setr_epi16(1, 32, 1, 32, 1, 32, 1, 32);
 
-    __m128i bdelta_vec = _mm_setr_epi32(bdelta[2 * y], bdelta[2 * y + 1], bdelta[2 * y], bdelta[2 * y + 1]);
-    for (; x < dst_w; x += 4) {
-        __m128i adelta0 = _mm_add_epi32(_mm_loadu_si128((__m128i*)(adelta + 2 * x)), off_vec);
-        __m128i adelta1 = _mm_add_epi32(_mm_loadu_si128((__m128i*)(adelta + 2 * x + 4)), off_vec);
-        // x0y0,x1y1
-        __m128i x0y0 = _mm_add_epi32(adelta0, bdelta_vec);
-        // x2y2,x3y3
-        __m128i x2y2     = _mm_add_epi32(adelta1, bdelta_vec);
-        x0y0             = _mm_srai_epi32(x0y0, 5);
-        x2y2             = _mm_srai_epi32(x2y2, 5);
-        __m128i xy_float = _mm_packs_epi32(_mm_and_si128(x0y0, mask31), _mm_and_si128(x2y2, mask31));
-        xy_float         = _mm_mullo_epi16(xy_float, mask_mull);
-        __m128i xy       = _mm_packs_epi32(_mm_srai_epi32(x0y0, 5), _mm_srai_epi32(x2y2, 5));
-        xy_float         = _mm_hadd_epi16(xy_float, xy_float);
-        _mm_storeu_si128((__m128i*)(xy_loc_buf + x * 2), xy);
-        _mm_storel_epi64((__m128i*)(tb_loc_buf + x), xy_float);
-    }
+        __m128i bdelta_vec = _mm_setr_epi32(bdelta[2 * y], bdelta[2 * y + 1], bdelta[2 * y], bdelta[2 * y + 1]);
+        for (; x < dst_w; x += 4) {
+            __m128i adelta0 = _mm_add_epi32(_mm_loadu_si128((__m128i*)(adelta + 2 * x)), off_vec);
+            __m128i adelta1 = _mm_add_epi32(_mm_loadu_si128((__m128i*)(adelta + 2 * x + 4)), off_vec);
+            // x0y0,x1y1
+            __m128i x0y0 = _mm_add_epi32(adelta0, bdelta_vec);
+            // x2y2,x3y3
+            __m128i x2y2     = _mm_add_epi32(adelta1, bdelta_vec);
+            x0y0             = _mm_srai_epi32(x0y0, 5);
+            x2y2             = _mm_srai_epi32(x2y2, 5);
+            __m128i xy_float = _mm_packs_epi32(_mm_and_si128(x0y0, mask31), _mm_and_si128(x2y2, mask31));
+            xy_float         = _mm_mullo_epi16(xy_float, mask_mull);
+            __m128i xy       = _mm_packs_epi32(_mm_srai_epi32(x0y0, 5), _mm_srai_epi32(x2y2, 5));
+            xy_float         = _mm_hadd_epi16(xy_float, xy_float);
+            _mm_storeu_si128((__m128i*)(xy_loc_buf + x * 2), xy);
+            _mm_storel_epi64((__m128i*)(tb_loc_buf + x), xy_float);
+        }
     }
 #endif
     for (; x < dst_w; ++x) {
@@ -275,6 +275,7 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
     }
 }
 
+template <int schannel>
 static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int dst_loc_base, const int* buf_loc,
                                       const short* tab_loc, const uint8_t* src1, const uint8_t* src2, uint8_t* dst) {
     const int* buf_loc_p   = buf_loc + begin_x;
@@ -283,7 +284,6 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
     int x                  = begin_x;
 
 #if defined(__SSE4_2__)
-    {
     __m128i mask_vec;
     if (channel == 4) {
         mask_vec = _mm_setr_epi8(0, 4, 1, 5, 2, 6, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15);
@@ -291,16 +291,16 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         mask_vec = _mm_setr_epi8(0, 3, 1, 4, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     } else if (channel == 2) {
         mask_vec = _mm_setr_epi8(0, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-    } else if (channel == 1) {
-        mask_vec = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     }
 
-    __m128i DELTA_vec = _mm_set1_epi32(1<<14);
+    const int shift_l = (4 - channel) * 4;
+    const int shift_r = 4 - channel;
+    __m128i DELTA_vec = _mm_set1_epi32(1 << 14);
     __m128i mask_vec2 = _mm_setr_epi8(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3);
     __m128i mask_vec3 = _mm_setr_epi8(4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7);
 
-    uint8_t * dst_loc = dst +  dst_loc_base + x * channel;
-    for (; x <= end_x - 9 + 1; x += 8) {
+    uint8_t* dst_loc_p = dst + dst_loc_base + x * channel;
+    for (; x + 8 <= end_x; x += 8) {
         short* wtab0 = BilinearTab_i[tab_loc[x]][0];
         short* wtab1 = BilinearTab_i[tab_loc[x + 1]][0];
         short* wtab2 = BilinearTab_i[tab_loc[x + 2]][0];
@@ -387,6 +387,8 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         point_vec70 = _mm_cvtepu8_epi16(point_vec70);
         point_vec71 = _mm_cvtepu8_epi16(point_vec71);
 
+        // int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
+        // dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
         __m128i p0 = _mm_add_epi32(_mm_madd_epi16(wtab00_vec, point_vec00), DELTA_vec);
         __m128i p1 = _mm_add_epi32(_mm_madd_epi16(wtab10_vec, point_vec10), DELTA_vec);
         __m128i p2 = _mm_add_epi32(_mm_madd_epi16(wtab20_vec, point_vec20), DELTA_vec);
@@ -412,43 +414,29 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         p6         = _mm_srli_epi32(p6, 15);
         p7         = _mm_srli_epi32(p7, 15);
 
-        __m128i ans0 = _mm_packs_epi32(_mm_slli_si128(p0, 4), p1);
-        __m128i ans1 = _mm_packs_epi32(_mm_slli_si128(p2, 4), p3);
-        __m128i ans2 = _mm_packs_epi32(_mm_slli_si128(p4, 4), p5);
-        __m128i ans3 = _mm_packs_epi32(_mm_slli_si128(p6, 4), p7);
+        // store
+        __m128i ans0 = _mm_packs_epi32(_mm_slli_si128(p0, shift_l), p1);
+        __m128i ans1 = _mm_packs_epi32(_mm_slli_si128(p2, shift_l), p3);
+        __m128i ans2 = _mm_packs_epi32(_mm_slli_si128(p4, shift_l), p5);
+        __m128i ans3 = _mm_packs_epi32(_mm_slli_si128(p6, shift_l), p7);
         ans0         = _mm_packus_epi16(ans0, ans0);
         ans1         = _mm_packus_epi16(ans1, ans1);
         ans2         = _mm_packus_epi16(ans2, ans2);
         ans3         = _mm_packus_epi16(ans3, ans3);
-        ans0         = _mm_srli_si128(ans0, 1);
-        ans1         = _mm_srli_si128(ans1, 1);
-        ans2         = _mm_srli_si128(ans2, 1);
-        ans3         = _mm_srli_si128(ans3, 1);
-        _mm_storel_epi64((__m128i*)dst_loc, ans0);
-        _mm_storel_epi64((__m128i*)(dst_loc + channel * 2), ans1);
-        _mm_storel_epi64((__m128i*)(dst_loc + channel * 4), ans2);
-        _mm_storel_epi64((__m128i*)(dst_loc + channel * 6), ans3);
+        ans0         = _mm_srli_si128(ans0, shift_r);
+        ans1         = _mm_srli_si128(ans1, shift_r);
+        ans2         = _mm_srli_si128(ans2, shift_r);
+        ans3         = _mm_srli_si128(ans3, shift_r);
+        _mm_storel_epi64((__m128i*)dst_loc_p, ans0);
+        _mm_storel_epi64((__m128i*)(dst_loc_p + channel * 2), ans1);
+        _mm_storel_epi64((__m128i*)(dst_loc_p + channel * 4), ans2);
+        _mm_storel_epi64((__m128i*)(dst_loc_p + channel * 6), ans3);
 
-        dst_loc += 8 * channel;
-    }
+        dst_loc_p += 8 * channel;
     }
 #endif
 
-    if (channel == 1) {
-        for (; x <= end_x; x++) {
-            int dst_loc = dst_loc_base + x * 1;
-            int src_loc = buf_loc[x];
-            short* wtab = BilinearTab_i[tab_loc[x]][0];
-
-            int point0 = src1[src_loc];
-            int point1 = src1[src_loc + 1];
-            int point2 = src2[src_loc];
-            int point3 = src2[src_loc + 1];
-
-            int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
-            dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
-        }
-    } else if (channel == 2) {
+    if (channel == 2) {
         for (; x <= end_x; x++) {
             int dst_loc = dst_loc_base + x * 2;
             int src_loc = buf_loc[x];
@@ -529,9 +517,100 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
     }
 }
 
+template <>
+void WarpAffineCalculateOneRow<1>(int begin_x, int end_x, int channel, int dst_loc_base, const int* buf_loc,
+                                  const short* tab_loc, const uint8_t* src1, const uint8_t* src2, uint8_t* dst) {
+    const int* buf_loc_p   = buf_loc + begin_x;
+    const short* tab_loc_p = tab_loc + begin_x;
+    const short* tab_p     = BilinearTab_i[0][0];
+    int x                  = begin_x;
+
+    uint8_t buf[(end_x - begin_x + 4) * 4];
+    uint8_t* ptr = buf;
+
+    for (int x = begin_x; x <= end_x; x++) {
+        int src_loc = buf_loc[x];
+        *ptr++      = src1[src_loc];
+        *ptr++      = src1[src_loc + 1];
+        *ptr++      = src2[src_loc];
+        *ptr++      = src2[src_loc + 1];
+    }
+    ptr = buf;
+
+#if defined(__SSE4_2__)
+    __m128i DELTA_vec  = _mm_set1_epi32(1 << 14);
+    uint8_t* dst_loc_p = dst + dst_loc_base + x * channel;
+    for (; x + 7 <= end_x; x += 8) {
+        short* wtab0 = BilinearTab_i[tab_loc[x]][0];
+        short* wtab1 = BilinearTab_i[tab_loc[x + 1]][0];
+        short* wtab2 = BilinearTab_i[tab_loc[x + 2]][0];
+        short* wtab3 = BilinearTab_i[tab_loc[x + 3]][0];
+        short* wtab4 = BilinearTab_i[tab_loc[x + 4]][0];
+        short* wtab5 = BilinearTab_i[tab_loc[x + 5]][0];
+        short* wtab6 = BilinearTab_i[tab_loc[x + 6]][0];
+        short* wtab7 = BilinearTab_i[tab_loc[x + 7]][0];
+
+        __m128i p0_load = _mm_loadl_epi64((__m128i*)ptr);
+        __m128i p1_load = _mm_loadl_epi64((__m128i*)(ptr + 8));
+        __m128i p2_load = _mm_loadl_epi64((__m128i*)(ptr + 16));
+        __m128i p3_load = _mm_loadl_epi64((__m128i*)(ptr + 24));
+
+        __m128i wvec0 = _mm_loadl_epi64((__m128i*)wtab0);
+        __m128i wvec1 = _mm_loadl_epi64((__m128i*)wtab1);
+        __m128i wvec2 = _mm_loadl_epi64((__m128i*)wtab2);
+        __m128i wvec3 = _mm_loadl_epi64((__m128i*)wtab3);
+        __m128i wvec4 = _mm_loadl_epi64((__m128i*)wtab4);
+        __m128i wvec5 = _mm_loadl_epi64((__m128i*)wtab5);
+        __m128i wvec6 = _mm_loadl_epi64((__m128i*)wtab6);
+        __m128i wvec7 = _mm_loadl_epi64((__m128i*)wtab7);
+
+        __m128i w0 = _mm_unpacklo_epi64(wvec0, wvec1);
+        __m128i w1 = _mm_unpacklo_epi64(wvec2, wvec3);
+        __m128i w2 = _mm_unpacklo_epi64(wvec4, wvec5);
+        __m128i w3 = _mm_unpacklo_epi64(wvec6, wvec7);
+
+        __m128i p0 = _mm_cvtepu8_epi16(p0_load);
+        __m128i p1 = _mm_cvtepu8_epi16(p1_load);
+        __m128i p2 = _mm_cvtepu8_epi16(p2_load);
+        __m128i p3 = _mm_cvtepu8_epi16(p3_load);
+
+        __m128i r0 = _mm_madd_epi16(p0, w0);
+        __m128i r1 = _mm_madd_epi16(p1, w1);
+        __m128i r2 = _mm_madd_epi16(p2, w2);
+        __m128i r3 = _mm_madd_epi16(p3, w3);
+
+        __m128i ans0 = _mm_hadd_epi32(r0, r1);
+        __m128i ans1 = _mm_hadd_epi32(r2, r3);
+
+        ans0 = _mm_srai_epi32(_mm_add_epi32(ans0, DELTA_vec), 15);
+        ans1 = _mm_srai_epi32(_mm_add_epi32(ans1, DELTA_vec), 15);
+
+        __m128i ans_16 = _mm_packs_epi32(ans0, ans1);
+        __m128i ans_8  = _mm_packus_epi16(ans_16, ans_16);
+        _mm_storel_epi64((__m128i*)dst_loc_p, ans_8);
+        dst_loc_p += 8;
+        ptr += 32;
+    }
+#endif
+    for (; x <= end_x; x++) {
+        int dst_loc = dst_loc_base + x * 1;
+        int src_loc = buf_loc[x];
+        short* wtab = BilinearTab_i[tab_loc[x]][0];
+
+        int point0 = ptr[0];
+        int point1 = ptr[1];
+        int point2 = ptr[2];
+        int point3 = ptr[3];
+        ptr += 4;
+
+        int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
+        dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
+    }
+}
+
 template <int schannel>
 static void WarpAffineBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-                        const float (*transform)[3], const float border_val) {
+                               const float (*transform)[3], const float border_val) {
     int src_plane = src_h * src_w * schannel;
 
     int* buffer = nullptr;
@@ -554,9 +633,10 @@ static void WarpAffineBilinear(const uint8_t* src, int batch, int src_w, int src
         int* buf_loc_t   = buf_loc + thread_id * dst_w;
         short* tab_loc_t = tab_loc + thread_id * dst_w;
 
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h, dst + dst_loc_base,
+                                dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
+        WarpAffineCalculateOneRow<schannel>(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t,
+                                            src, src2, dst);
     }
 
     delete[] buf_loc;
@@ -597,8 +677,8 @@ void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int sr
     int dst_plane = dst_w * dst_h * 3 / 2;
 
     for (int b = 0; b < batch; ++b) {
-        const uint8_t* srcY  = src + b * src_plane;
-        uint8_t* dstY        = dst + b * dst_plane;
+        const uint8_t* srcY = src + b * src_plane;
+        uint8_t* dstY       = dst + b * dst_plane;
         WarpAffineBilinearC1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
 
         const uint8_t* srcUV = srcY + src_w * src_h;
