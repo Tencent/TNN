@@ -17,7 +17,7 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "cblas.h"
+#include "tnn/device/x86/acc/compute/jit/cblas.h"
 
 extern "C" {
 

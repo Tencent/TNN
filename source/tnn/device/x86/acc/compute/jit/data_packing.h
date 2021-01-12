@@ -16,9 +16,9 @@
 #ifndef TNN_JIT_DATA_PACKING_H_
 #define TNN_JIT_DATA_PACKING_H_
 
-#include "type_def.h"
-#include "utils/utils.h"
-#include "gemm_config.h"
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
+#include "tnn/device/x86/acc/compute/jit/utils/utils.h"
+#include "tnn/device/x86/acc/compute/jit/gemm_config.h"
 
 namespace tnn {
 

@@ -21,8 +21,8 @@
 
 #include <xbyak/xbyak.h>
 
-#include "kernels/base_jit_kernel.h"
-#include "kernels/jit_kernels.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/jit_kernels.h"
 
 namespace tnn {
 

@@ -28,7 +28,7 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "type_def.h"
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 
 namespace tnn {
 

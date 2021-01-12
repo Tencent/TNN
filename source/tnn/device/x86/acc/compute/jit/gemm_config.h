@@ -15,7 +15,7 @@
 #ifndef TNN_GEMM_CONFIG_HPP_
 #define TNN_GEMM_CONFIG_HPP_
 
-#include "type_def.h"
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 
 namespace tnn {
 

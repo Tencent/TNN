@@ -26,17 +26,18 @@
 
 #include <xbyak/xbyak.h>
 
-#include "type_def.h"
-#include "utils/macro.h"
-#include "common/abi_info.h"
-#include "common/asm_common.h"
-#include "kernels/base_jit_kernel.h"
+#include "tnn/device/x86/acc/compute/jit/utils/macro.h"
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
+#include "tnn/device/x86/acc/compute/jit/common/abi_info.h"
+#include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
 
-#include "sgemm_avx_16_i.h"
-#include "sgemm_avx_8_i.h"
-#include "sgemm_avx_4_i.h"
-#include "sgemm_avx_2_i.h"
-#include "sgemm_avx_1_i.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
+
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_16_i.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_8_i.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_4_i.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_2_i.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_1_i.h"
 
 namespace tnn {
 namespace jit {

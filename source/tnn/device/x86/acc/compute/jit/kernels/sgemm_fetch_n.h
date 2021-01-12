@@ -26,10 +26,10 @@
 
 #include <xbyak/xbyak.h>
 
-#include "utils/macro.h"
-#include "common/abi_info.h"
-#include "common/asm_common.h"
-#include "kernels/base_jit_kernel.h"
+#include "tnn/device/x86/acc/compute/jit/utils/macro.h"
+#include "tnn/device/x86/acc/compute/jit/common/abi_info.h"
+#include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
 
 namespace tnn {
 namespace jit {

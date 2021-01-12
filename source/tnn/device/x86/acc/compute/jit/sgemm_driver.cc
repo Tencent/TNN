@@ -12,14 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#include "cblas.h"
-#include "type_def.h"
-#include "utils/utils.h"
-#include "data_packing.h"
-#include "gemm_config.h"
-#include "utils/rpd_timer.hpp"
+#include "tnn/device/x86/acc/compute/jit/cblas.h"
 
 #include <stdio.h>
+
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
+#include "tnn/device/x86/acc/compute/jit/utils/utils.h"
+#include "tnn/device/x86/acc/compute/jit/data_packing.h"
+#include "tnn/device/x86/acc/compute/jit/gemm_config.h"
+#include "tnn/device/x86/acc/compute/jit/utils/timer.hpp"
+
 
 namespace tnn {
 
@@ -102,7 +104,7 @@ void sgemm_nn_col_major(
     float * pack_a = (float*)_mm_malloc(M_c * K_c*sizeof(float), 32);
     float * pack_b = (float*)_mm_malloc(K_c * divUp(N, n_block) * sizeof(float), 32);
 
-    rpngpu::NiceTimer timer;
+    NiceTimer timer;
 
     static float pack_b_time = 0.f;
     static float pack_a_time = 0.f;

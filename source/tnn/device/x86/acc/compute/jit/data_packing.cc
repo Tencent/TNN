@@ -13,14 +13,14 @@
 // specific language governing permissions and limitations under the License.
 
 
-#include "data_packing.h"
+#include "tnn/device/x86/acc/compute/jit/data_packing.h"
 
 #include <immintrin.h>
 #include <xmmintrin.h>
 
 #include <stdio.h>
 
-#include "gemm_config.h"
+#include "tnn/device/x86/acc/compute/jit/gemm_config.h"
 
 namespace tnn {
 

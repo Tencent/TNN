@@ -15,12 +15,12 @@
 #ifndef TNN_JIT_JIT_KERNELS_H_
 #define TNN_JIT_JIT_KERNELS_H_
 
-#include "sgemm_fetch_n.h"
-#include "sgemm_fetch_n_6.h"
-#include "sgemm_fetch_t.h"
-#include "sgemm_fetch_t_8.h"
-#include "sgemm_fetch_t_16.h"
-#include "sgemm_fetch_t_4x16.h"
-#include "sgemm_avx_kernels.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n_6.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_8.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_16.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_4x16.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_kernels.h"
 
 #endif // TNN_JIT_JIT_KERNELS_H_
