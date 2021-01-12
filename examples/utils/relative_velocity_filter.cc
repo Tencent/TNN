@@ -13,6 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "relative_velocity_filter.h"
+
+#include <cmath>
+
 using namespace std::chrono;
 
 namespace TNN_NS {
