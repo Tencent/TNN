@@ -19,6 +19,9 @@
 #include <functional>
 #include <type_traits>
 #include <immintrin.h>
+
+#include "jit/cblas.h"
+
 namespace TNN_NS {
 
 static std::vector<int> dims_to_steps(std::vector<int> dims) {
@@ -178,15 +181,34 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
 
 Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C,
                      int has_bias, float *bias, int activation_type) {
-    for (int mm = 0; mm < m; mm++) {
-        for (int nn = 0; nn < n; nn++) {
-            float tmp = 0.f;
-            for (int kk = 0; kk < k; kk++) {
-                tmp += A[mm * k + kk] * B[kk * n + nn];
+
+    if (ActivationType_None == activation_type) {
+        // row major matrix A(m, k) x B(k, n) equals to :
+        // col major matrix B(n, k) x A(k, m).
+        float alpha = 1.0;
+        float beta = 0.0;
+        if (1 == has_bias){
+            beta = 1.0;
+            for (int mm = 0; mm < m; mm++) {
+                for (int nn = 0; nn < n; nn++) {
+                    C[mm * n + nn] = bias[mm];
+                }
             }
-            if (has_bias) tmp += bias[mm];
-            if (activation_type == ActivationType_ReLU) tmp = std::max(0.f, tmp);
-            C[mm * n + nn] = tmp;
+        } 
+        cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 
+                    n, m, k, alpha, B, n, A, k, beta, C, n);
+    } else {
+        printf("has_bias:%d activation_type:%d\n", has_bias, activation_type);
+        for (int mm = 0; mm < m; mm++) {
+            for (int nn = 0; nn < n; nn++) {
+                float tmp = 0.f;
+                for (int kk = 0; kk < k; kk++) {
+                    tmp += A[mm * k + kk] * B[kk * n + nn];
+                }
+                if (has_bias) tmp += bias[mm];
+                if (activation_type == ActivationType_ReLU) tmp = std::max(0.f, tmp);
+                C[mm * n + nn] = tmp;
+            }
         }
     }
     return TNN_OK;
