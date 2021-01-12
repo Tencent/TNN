@@ -25,7 +25,7 @@
 
 #include <xbyak/xbyak.h>
 
-namespace tnn {
+namespace TNN_NS {
 namespace jit {
 namespace common {
 

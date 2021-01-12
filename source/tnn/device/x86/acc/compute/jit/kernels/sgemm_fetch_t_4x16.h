@@ -32,7 +32,7 @@
 #include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
 
-namespace tnn {
+namespace TNN_NS {
 namespace jit {
 
 // only supports block_size >= 16
@@ -70,21 +70,21 @@ public:
         reg_var   ldb   = get_arguement(4);
         reg_var block_size = get_arguement(5);
 
-        stack_var m2 = get_stack_var();
+        stack_var m4 = get_stack_var();
         stack_var m1 = get_stack_var();
 
         reg_var tmp(this);
         reg_var a_r[4] = {REG_VAR_ARRAY_4};
         reg_var b_r[4] = {REG_VAR_ARRAY_4};
 
-        // init m2 = m / 2
+        // init m4 = m / 4
         mov(tmp.aquire(), m);
-        sar(tmp, 0x1);
-        mov(m2, tmp);
+        sar(tmp, 0x2);
+        mov(m4, tmp);
 
-        // init m1 = m % 2
+        // init m1 = m % 4
         mov(tmp, m);
-        and_(tmp, 0x1);
+        and_(tmp, 0x3);
         mov(m1, tmp);
 
         lda.restore();
@@ -112,34 +112,67 @@ public:
         tmp.release();
         ldb.release();
 
-        vreg_var v[2][8] = {{VREG_VAR_ARRAY_8}, {VREG_VAR_ARRAY_8}};
+        vreg_var v[4][4] = {{VREG_VAR_ARRAY_4},{VREG_VAR_ARRAY_4},{VREG_VAR_ARRAY_4},{VREG_VAR_ARRAY_4}};
         
-        
-        LOOP_STACK_VAR(m2, SGEMM_FETCH_T8_M8) 
+        sal(lda, 0x2);
+        sal(block_size, 0x2);
+
+        LOOP_STACK_VAR(m4, SGEMM_FETCH_T8_M8) 
         {
-            //read 
-            for(int m=0;m<2;m++) {
-                for(int n=0;n<4;n++) {
-                    vmovups(v[m][n].aquire(),   yword[a_r[m] + (n * 16) * 4]);
-                    vmovups(v[m][n+4].aquire(), yword[a_r[m] + (n * 16 + 8) * 4]);
+            for(int m=0;m<4;m++) {
+                for(int n=0;n<2;n++){
+                    vmovups(v[m][n].aquire(),     yword[a_r[m] + n * 32]);
                 }
             }
 
-            //write 
-            for(int m=0;m<2;m++) {
-                for(int n=0;n<4;n++) {
-                    vmovaps(yword[b_r[n] + (m * 16) * 4],     v[m][n].release());
-                    vmovaps(yword[b_r[n] + (m * 16 + 8) * 4], v[m][n + 4].release());
+            for(int m=0;m<4;m++) {
+                vmovaps(yword[b_r[0] + (m*2 + 0) * 8 * 4],  v[m][0].release());
+                vmovaps(yword[b_r[0] + (m*2 + 1) * 8 * 4],  v[m][1].release());
+            }
+            add(b_r[0], block_size);
+
+            for(int m=0;m<4;m++) {
+                for(int n=0;n<2;n++){
+                    vmovups(v[m][n].aquire(),     yword[a_r[m] + (n + 2) * 32]);
                 }
             }
 
-            for(int i=0;i<4;i++) {
-                lea(a_r[i], byte[a_r[i] + lda * 2]);
-                lea(b_r[i], byte[b_r[i] + block_size * 2]);
+            for(int m=0;m<4;m++) {
+                vmovaps(yword[b_r[1] + (m*2 + 0) * 8 * 4],  v[m][0].release());
+                vmovaps(yword[b_r[1] + (m*2 + 1) * 8 * 4],  v[m][1].release());
             }
+            add(b_r[1], block_size);
+
+            for(int m=0;m<4;m++) {
+                for(int n=0;n<2;n++){
+                    vmovups(v[m][n].aquire(),     yword[a_r[m] + (n + 4) * 32]);
+                }
+            }
+
+            for(int m=0;m<4;m++) {
+                vmovaps(yword[b_r[2] + (m*2 + 0) * 8 * 4],  v[m][0].release());
+                vmovaps(yword[b_r[2] + (m*2 + 1) * 8 * 4],  v[m][1].release());
+            }
+            add(b_r[2], block_size);
+
+            for(int m=0;m<4;m++) {
+                for(int n=0;n<2;n++){
+                    vmovups(v[m][n].aquire(),     yword[a_r[m] + (n + 6) * 32]);
+                }
+                lea(a_r[m], byte[a_r[m] + lda]);
+            }
+
+            for(int m=0;m<4;m++) {
+                vmovaps(yword[b_r[3] + (m*2 + 0) * 8 * 4],  v[m][0].release());
+                vmovaps(yword[b_r[3] + (m*2 + 1) * 8 * 4],  v[m][1].release());
+            }
+            add(b_r[3], block_size);
         }
         
         
+        sar(lda, 0x2);
+        sar(block_size, 0x2);
+
         LOOP_STACK_VAR(m1, SGEMM_FETCH_T8_M1) 
         {
             for(int n=0;n<4;n++) {
@@ -152,7 +185,7 @@ public:
                 vmovaps(yword[b_r[n] + 8 * 4], v[0][n+4].release());
             }
 
-            lea(a_r[0], byte[a_r[0] + lda]);
+            add(a_r[0], lda);
             for(int i=0;i<4;i++) {
                 lea(b_r[i], byte[b_r[i] + block_size]);
             }

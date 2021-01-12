@@ -12,22 +12,36 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_DEVICE_X86_ACC_COMPUTE_JIT_TYPE_DEF_H_
-#define TNN_DEVICE_X86_ACC_COMPUTE_JIT_TYPE_DEF_H_
+#ifndef TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
+#define TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
 
-#ifndef FLT_MIN
-#define FLT_MIN 1.075494351e-38F 
-#endif
-#ifndef FLT_MAX
-#define FLT_MAX 2.402823466e+38F 
-#endif
 
-#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <memory.h>
+
+#include <chrono>
+#include <random>
+#include <fstream>
+#include <exception>
+
+#include <immintrin.h>
+#include <xmmintrin.h>
+
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 
 namespace TNN_NS {
 
-typedef ptrdiff_t dim_t;
+typedef enum {
+    sse42,
+    avx,
+    avx2,
+    avx512,
+    avx512_vnni,
+} x86_isa_t;
+
+bool cpu_with_isa(x86_isa_t arch);
 
 } // namespace tnn
 
-#endif // TNN_DEVICE_X86_ACC_COMPUTE_JIT_TYPE_DEF_H_
+#endif // TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_

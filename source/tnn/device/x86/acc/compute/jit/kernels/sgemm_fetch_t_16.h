@@ -32,7 +32,7 @@
 #include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
 
-namespace tnn {
+namespace TNN_NS {
 namespace jit {
 
 class sgemm_fetch_t_16_ker_t: public base_jit_kernel {

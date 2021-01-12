@@ -35,7 +35,7 @@
 #include "tnn/device/x86/acc/compute/jit/common/abi_info.h"
 #include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
 
-namespace tnn {
+namespace TNN_NS {
 namespace jit {
 
 class base_jit_kernel;

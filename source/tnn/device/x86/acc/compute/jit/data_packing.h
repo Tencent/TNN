@@ -20,7 +20,7 @@
 #include "tnn/device/x86/acc/compute/jit/utils/utils.h"
 #include "tnn/device/x86/acc/compute/jit/gemm_config.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 template<typename T>
 void pack_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, gemm_config<T, T, T> &gemm_conf);
