@@ -12,12 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_GEMM_CONFIG_HPP_
-#define TNN_GEMM_CONFIG_HPP_
+#ifndef TNN_JIT_GEMM_CONFIG_HPP_
+#define TNN_JIT_GEMM_CONFIG_HPP_
 
 #include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 template<typename a_t, typename b_t, typename c_t>
 struct gemm_config {
@@ -74,4 +74,4 @@ private:
 
 } // namespace tnn
 
-#endif // TNN_GEMM_CONFIG_HPP_
+#endif // TNN_JIT_GEMM_CONFIG_HPP_

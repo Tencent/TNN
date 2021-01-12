@@ -23,7 +23,7 @@
 #include "tnn/device/x86/acc/compute/jit/utils/timer.hpp"
 
 
-namespace tnn {
+namespace TNN_NS {
 
 void sgemm_block_n(
         dim_t M, dim_t N, dim_t K,
@@ -32,7 +32,7 @@ void sgemm_block_n(
         const float * src_b, dim_t ldb, 
         const float beta,
         float * dst, dim_t ldc, 
-        tnn::gemm_config<float, float, float> &gemm_conf) 
+        gemm_config<float, float, float> &gemm_conf) 
 {
 
     dim_t K_c = gemm_conf.K_c_;
@@ -92,9 +92,10 @@ void sgemm_nn_col_major(
     if (alpha == 0) {
         return ;
     }
+    printf("M:%d N:%d K:%d\n", M, N, K);
 
     float beta_div_alpha = beta / alpha; 
-    tnn::gemm_config<float, float, float> gemm_conf("N", "N", M, N, K, &alpha, src_b, lda, src_b, ldb, &beta_div_alpha, dst, ldc);
+    gemm_config<float, float, float> gemm_conf("N", "N", M, N, K, &alpha, src_b, lda, src_b, ldb, &beta_div_alpha, dst, ldc);
 
     dim_t M_c = gemm_conf.M_c_;
     dim_t K_c = gemm_conf.K_c_;
@@ -103,12 +104,6 @@ void sgemm_nn_col_major(
 
     float * pack_a = (float*)_mm_malloc(M_c * K_c*sizeof(float), 32);
     float * pack_b = (float*)_mm_malloc(K_c * divUp(N, n_block) * sizeof(float), 32);
-
-    NiceTimer timer;
-
-    static float pack_b_time = 0.f;
-    static float pack_a_time = 0.f;
-    static int cnt = 0;
 
     dim_t i, j, k;
     i = j = k = 0;
@@ -121,17 +116,13 @@ void sgemm_nn_col_major(
         dim_t cur_k = std::min(K - k, K_c);
 
         // pack b -> K_c * N;
-        timer.tick(0);
         pack_n(src_b + k, ldb, pack_b, K_c, cur_k, N, gemm_conf);
-        pack_b_time += timer.tick(1, 0);
 
         for(i=0;i<M;i+=M_c)  {
 
             dim_t cur_m = std::min(M - i, M_c);
             // pack a -> M_c * K_c;
-            timer.tick(0);
             pack_t(src_a + i + k * lda, lda, pack_a, K_c, cur_k, cur_m, gemm_conf);
-            pack_a_time += timer.tick(1, 0);
 
             for(j=0;j<N;)  {
 
@@ -143,14 +134,6 @@ void sgemm_nn_col_major(
                 j+= cur_n;
             }
         }
-    }
-
-    cnt += 1;
-    if (cnt == 1000) {
-        float KB = (M + N) * K  * 2 * sizeof(float) / 1024 ;
-        float GBps = KB / (pack_a_time + pack_b_time);
-        // printf("pack_a:%.2fus, pack_b:%.2fus total time:%.2fus DRAM:%.2fGB/s\n", pack_a_time, pack_b_time , (pack_a_time + pack_b_time), GBps);
-        // printf("navie total time:%.7fus\n", naive_time);
     }
 
     _mm_free(pack_a);
@@ -236,11 +219,11 @@ void cblas_sgemm(OPENBLAS_CONST enum CBLAS_ORDER Order, OPENBLAS_CONST enum CBLA
          OPENBLAS_CONST float alpha, OPENBLAS_CONST float *A, OPENBLAS_CONST blasint lda, OPENBLAS_CONST float *B, OPENBLAS_CONST blasint ldb, OPENBLAS_CONST float beta, float *C, OPENBLAS_CONST blasint ldc) {
 
     if (Order == CblasColMajor && TransA == CblasNoTrans && TransB == CblasNoTrans) {
-        tnn::sgemm_nn_col_major(M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+        TNN_NS::sgemm_nn_col_major(M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
     } else if (Order == CblasColMajor) {
-        tnn::sgemm_col_naive(TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+        TNN_NS::sgemm_col_naive(TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
     } else {
-        tnn::sgemm_row_naive(TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+        TNN_NS::sgemm_row_naive(TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
     }
 
     #if 0
@@ -258,7 +241,7 @@ int sgemm_opt1(const char *transa, const char *transb, FINTEGER *m, FINTEGER *
             FINTEGER *lda, const float *b, FINTEGER *
             ldb, float *beta, float *c, FINTEGER *ldc) {
 
-    tnn::sgemm_nn_col_major(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+    TNN_NS::sgemm_nn_col_major(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
 
     return 0; 
 }

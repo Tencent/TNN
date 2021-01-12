@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_UTILS_HPP_
-#define TNN_UTILS_HPP_
+#ifndef TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
+#define TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
 
 
 #include <stdio.h>
@@ -30,7 +30,7 @@
 
 #include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 inline FILE * tnn_fopen(const char * fname, const char * mode) {
 #ifdef _WIN32
@@ -85,4 +85,4 @@ inline float DramBWPacking(int m, int n, int k, float time_ms ) {
 
 } // namespace tnn
 
-#endif // TNN_UTILS_HPP_
+#endif // TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_

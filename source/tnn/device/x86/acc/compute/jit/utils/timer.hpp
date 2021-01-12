@@ -18,8 +18,7 @@
 #include <map>
 #include <chrono>
 
-namespace tnn 
-{
+namespace TNN_NS {
 
 using std::chrono::time_point;
 using std::chrono::system_clock;

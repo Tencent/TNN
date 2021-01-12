@@ -24,7 +24,7 @@
 #include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/jit_kernels.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 template<typename a_t, typename b_t, typename c_t>
 gemm_config<a_t, b_t, c_t>::gemm_config(const char * trans_a, const char * trans_b, 

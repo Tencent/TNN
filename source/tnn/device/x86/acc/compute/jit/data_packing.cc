@@ -22,7 +22,7 @@
 
 #include "tnn/device/x86/acc/compute/jit/gemm_config.h"
 
-namespace tnn {
+namespace TNN_NS {
 
 //  pack block_size on non-leading dimension, n denotes no-transpose. 
 //  eg. input:   A MxN matrix in col major, so the storage-format is (N, M) 

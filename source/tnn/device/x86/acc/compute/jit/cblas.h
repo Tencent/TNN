@@ -1,5 +1,5 @@
-#ifndef CBLAS_OPT_H
-#define CBLAS_OPT_H
+#ifndef TNN_JIT_CBLAS_OPT_H
+#define TNN_JIT_CBLAS_OPT_H
 
 #include <stddef.h>
 
@@ -59,4 +59,4 @@ extern void openblas_set_num_threads(int n);
 }
 #endif  /* __cplusplus */
 
-#endif // CBLAS_OPT_H 
+#endif // TNN_JIT_CBLAS_OPT_H

@@ -39,7 +39,7 @@
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_2_i.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_1_i.h"
 
-namespace tnn {
+namespace TNN_NS {
 namespace jit {
 
 template<int M = 8, int N = 6, int M_BLOCK_SIZE = 16, int N_BLOCK_SIZE = 6>
