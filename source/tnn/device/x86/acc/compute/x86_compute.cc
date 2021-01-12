@@ -198,7 +198,6 @@ Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C,
         cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 
                     n, m, k, alpha, B, n, A, k, beta, C, n);
     } else {
-        printf("has_bias:%d activation_type:%d\n", has_bias, activation_type);
         for (int mm = 0; mm < m; mm++) {
             for (int nn = 0; nn < n; nn++) {
                 float tmp = 0.f;
