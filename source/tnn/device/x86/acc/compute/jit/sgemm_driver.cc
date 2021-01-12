@@ -92,7 +92,6 @@ void sgemm_nn_col_major(
     if (alpha == 0) {
         return ;
     }
-    printf("M:%d N:%d K:%d\n", M, N, K);
 
     float beta_div_alpha = beta / alpha; 
     gemm_config<float, float, float> gemm_conf("N", "N", M, N, K, &alpha, src_b, lda, src_b, ldb, &beta_div_alpha, dst, ldc);
