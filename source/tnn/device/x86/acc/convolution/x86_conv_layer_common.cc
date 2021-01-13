@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/x86_context.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 /*
@@ -37,6 +38,22 @@ Status X86ConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &input
 }
 
 Status X86ConvLayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
+    CHECK_PARAM_NULL(conv_param);
+    ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    CHECK_PARAM_NULL(conv_res);
+
+    if (!buffer_bias_.GetBytesSize()) {
+        auto dims_output = outputs[0]->GetBlobDesc().dims;
+        int total_byte_size = ROUND_UP(dims_output[1], 4) * DataTypeUtils::GetBytesSize(conv_res->bias_handle.GetDataType());
+        RawBuffer temp_buffer(total_byte_size);
+        if (conv_param->bias) {
+            const int bias_handle_size    = conv_res->bias_handle.GetBytesSize();
+            const float *bias_handle_data = conv_res->bias_handle.force_to<float *>();
+            memcpy(temp_buffer.force_to<float *>(), conv_res->bias_handle.force_to<float *>(), bias_handle_size);
+        }
+        buffer_bias_ = temp_buffer;
+    }
     return TNN_OK;
 }
 

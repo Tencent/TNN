@@ -120,27 +120,24 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
 
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
     float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
-    auto dw_full    = DepthwiseConvAVX2;
+
+    auto dw_full = DepthwiseConvAVX2<ActivationType_None>;
+    if (param->activation_type == ActivationType_ReLU) {
+        dw_full  = DepthwiseConvAVX2<ActivationType_ReLU>;
+    } else if (param->activation_type == ActivationType_ReLU6) {
+        dw_full  = DepthwiseConvAVX2<ActivationType_ReLU6>;
+    }
 
     float *weights_data = buffer_weight_.force_to<float*>();
-    float *bias_data = nullptr;
-    if (resource->bias_handle.GetDataCount() != 0) {
-        bias_data = resource->bias_handle.force_to<float*>();
-    }
-    /*
-    convdw3x3 stride >= 2 here
-    convdw3x3s1 has separate kernel in convdws1 acc
-    */
-    // if (param->kernels[0] == 3 && param->kernels[1] == 3) {
-    //     dw_full = DepthwiseConv3x3<T>;
-    // }
+    float *bias_data = buffer_bias_.force_to<float*>();;
+
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         auto src_ptr = src_origin + batch_idx * dims_input[1] * src_z_step;
         auto dst_ptr = dst_origin + batch_idx * dims_output[1] * dst_z_step;
 
         // OMP_PARALLEL_FOR_
-        int dz = 0;
-        for (; dz + 7 < dims_output[1]; dz += 8) {
+        for (int dz = 0; dz < dims_output[1]; dz += 8) {
+            int real_dz     = MIN(8, dims_output[1] - dz);
             auto *dst_z     = dst_ptr + dst_z_step * dz;
             auto *src_z     = src_ptr + src_z_step * dz;
             auto *weight_dz = weights_data + dz * weight_z_step;
@@ -148,32 +145,13 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
             auto *src_buf   = workspace;
             auto *dst_buf   = workspace + src_pad_size / sizeof(float);
 
-            PackC8WithPad(src_z, src_buf, param->pads, dims_input[2], dims_input[3], 8);
-            dw_full(dst_buf, src_buf, weight_dz, dims_output[3], param->strides[0] * 8,
+            PackC8WithPad(src_z, src_buf, param->pads, dims_input[2], dims_input[3], real_dz);
+            dw_full(dst_buf, src_buf, weight_dz, bias_z, dims_output[3], param->strides[0] * 8,
                     param->kernels[0], param->kernels[1], dilate_x_step, dilate_y_step,
                     dims_output[2], src_pad_w * 8 * param->strides[1], dims_output[3] * 8);
-            UnpackC8(dst_z, dst_buf, dst_z_step, dst_z_step, dst_z_step, 8);
-        }
-        if (dz < dims_output[1]) {
-            auto *dst_z     = dst_ptr + dst_z_step * dz;
-            auto *src_z     = src_ptr + src_z_step * dz;
-            auto *weight_dz = weights_data + dz * weight_z_step;
-            int left_c      = dims_output[1] - dz;
-
-            float bias_tmp[8] = {0};
-            memcpy(bias_tmp, bias_data + dz, left_c * sizeof(float));
-            auto *src_buf   = workspace;
-            auto *dst_buf   = workspace + src_pad_size / sizeof(float);
-
-            PackC8WithPad(src_z, src_buf, param->pads, dims_input[2], dims_input[3], left_c);
-            dw_full(dst_buf, src_buf, weight_dz, dims_output[3], param->strides[0] * 8,
-                    param->kernels[0], param->kernels[1], dilate_x_step, dilate_y_step,
-                    dims_output[2], src_pad_w * 8 * param->strides[1], dims_output[3] * 8);
-            UnpackC8(dst_z, dst_buf, dst_z_step, dst_z_step, dst_z_step, left_c);
+            UnpackC8(dst_z, dst_buf, dst_z_step, dst_z_step, dst_z_step, real_dz);
         }
     }
-
-    // PostExec<T>(outputs);
     _mm_free(workspace);
     return TNN_OK;
 }

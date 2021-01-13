@@ -72,6 +72,16 @@ struct Float8 {
     static void mls(Float8& v1, const Float8& v2, const Float8& v3) {
         v1.value = _mm256_fmsub_ps(v2.value, v3.value, v1.value);
     }
+    static Float8 max(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_max_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float8 min(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_min_ps(v1.value, v2.value);
+        return dst;
+    }
     Float8 operator+(const Float8& lr) {
         Float8 dst;
         dst.value = _mm256_add_ps(value, lr.value);

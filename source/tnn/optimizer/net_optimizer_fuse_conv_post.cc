@@ -46,6 +46,10 @@ namespace optimizer {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
             return true;
         }
+        if (device == DEVICE_X86) {
+            // kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
+            // return true;
+        }
         return false;
     }
 

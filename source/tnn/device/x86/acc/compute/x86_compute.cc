@@ -497,9 +497,13 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
     return TNN_OK;
 }
 
-void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw, long fh,
+template <int activation_type>
+void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
     long dx, fx, fy;
+    Float8 bias_v = Float8::loadu(bias);
+    Float8 v_zero = Float8(0.f);
+    Float8 v_6    = Float8(6.f);
     for (long y = 0; y < height; ++y) {
         auto srcY = src + y * srcHStep;
         auto dstY = dst + y * dstHStep;
@@ -507,7 +511,7 @@ void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, long w
         for (; dx + 3 < width; dx += 4) {
             Float8 dst_v[4];
             for (long i = 0; i < 4; i++)
-                dst_v[i] = Float8(0);
+                dst_v[i] = bias_v;
             const auto* src_z    = srcY + src_w_step * dx;
             const auto* weight_z = weight;
             for (fy = 0; fy < fh; ++fy) {
@@ -524,6 +528,19 @@ void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, long w
                     Float8::mla(dst_v[2], src_v2, weight_v);
                     Float8::mla(dst_v[3], src_v3, weight_v);
                 }
+            }
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_v[0] = Float8::max(dst_v[0], v_zero);
+                dst_v[1] = Float8::max(dst_v[1], v_zero);
+                dst_v[2] = Float8::max(dst_v[2], v_zero);
+                dst_v[3] = Float8::max(dst_v[3], v_zero);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_v[0] = Float8::min(dst_v[0], v_6);
+                dst_v[1] = Float8::min(dst_v[1], v_6);
+                dst_v[2] = Float8::min(dst_v[2], v_6);
+                dst_v[3] = Float8::min(dst_v[3], v_6);
             }
             Float8::save(dstY + (dx + 0) * 8, dst_v[0]);
             Float8::save(dstY + (dx + 1) * 8, dst_v[1]);
@@ -543,9 +560,30 @@ void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, long w
                     Float8::mla(dst_v, src_v, weight_v);
                 }
             }
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_v = Float8::max(dst_v, v_zero);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_v = Float8::min(dst_v, v_6);
+            }
             Float8::save(dstY + dx * 8, dst_v);
         }
     }
 }
+
+template void DepthwiseConvAVX2<ActivationType_None>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template void DepthwiseConvAVX2<ActivationType_ReLU>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template void DepthwiseConvAVX2<ActivationType_ReLU6>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+//ActivationType_SIGMOID_MUL TBD
 
 }
