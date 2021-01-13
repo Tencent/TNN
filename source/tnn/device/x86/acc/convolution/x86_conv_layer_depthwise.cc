@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
+#include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/device/x86/x86_util.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
@@ -20,7 +21,6 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include <mm_malloc.h>
 
 namespace TNN_NS {
 bool X86ConvLayerDepthwise::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,

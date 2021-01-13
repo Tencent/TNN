@@ -16,9 +16,8 @@
 
 #include <algorithm>
 #include <type_traits>
-#include "stdlib.h"
 
-#include <mm_malloc.h>
+#include "tnn/device/x86/x86_common.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/mat_converter_utils.h"
@@ -201,8 +200,10 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
                                     int src_offset, int& x_count, int& end_x, float border_val = 0) {
     const unsigned char* src2 = src + src_w * channel;
 
-    short xy_loc_buf[dst_w * 2];
-    short tb_loc_buf[dst_w];
+    short *xy_loc_buf = new short[dst_w * 2 + 4];
+    short *tb_loc_buf = new short[dst_w + 4];
+    // short xy_loc_buf[dst_w * 2];
+    // short tb_loc_buf[dst_w];
     // int   sc_loc_buf[dst_w];
     // short* xy_loc_buf_p = xy_loc_buf;
     // short* tb_loc_buf_p = tb_loc_buf;
@@ -273,6 +274,9 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
             }
         }
     }
+
+    delete[] xy_loc_buf;
+    delete[] tb_loc_buf;
 }
 
 template <int schannel>
@@ -293,8 +297,8 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         mask_vec = _mm_setr_epi8(0, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     }
 
-    const int shift_l = (4 - channel) * 4;
-    const int shift_r = 4 - channel;
+    const int shift_l = (4 - schannel) * 4;
+    const int shift_r = 4 - schannel;
     __m128i DELTA_vec = _mm_set1_epi32(1 << 14);
     __m128i mask_vec2 = _mm_setr_epi8(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3);
     __m128i mask_vec3 = _mm_setr_epi8(4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7);
@@ -525,7 +529,8 @@ void WarpAffineCalculateOneRow<1>(int begin_x, int end_x, int channel, int dst_l
     const short* tab_p     = BilinearTab_i[0][0];
     int x                  = begin_x;
 
-    uint8_t buf[(end_x - begin_x + 4) * 4];
+    // uint8_t buf[(end_x - begin_x + 4) * 4];
+    uint8_t *buf = new uint8_t[(end_x - begin_x + 4) * 4];
     uint8_t* ptr = buf;
 
     for (int x = begin_x; x <= end_x; x++) {
@@ -606,6 +611,8 @@ void WarpAffineCalculateOneRow<1>(int begin_x, int end_x, int channel, int dst_l
         int val_xy0  = wtab[0] * point0 + wtab[1] * point1 + wtab[2] * point2 + wtab[3] * point3;
         dst[dst_loc] = SATURATE_CAST_UCHAR((val_xy0 + (1 << 14)) >> 15);
     }
+
+    delete[] buf;
 }
 
 template <int schannel>

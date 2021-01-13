@@ -16,7 +16,6 @@
 #define TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_UTIL_H_
 
 #include <string.h>
-#include <sys/time.h>
 #include <cstdlib>
 
 #include "tnn/core/blob.h"

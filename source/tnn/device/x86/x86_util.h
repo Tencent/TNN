@@ -17,7 +17,9 @@
 
 #include <string.h>
 #include <cstdlib>
+#if TNN_PROFILE
 #include <sys/time.h>
+#endif
 
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"

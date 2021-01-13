@@ -17,7 +17,7 @@
 
 #include "tnn/utils/mat_converter_acc.h"
 #include "tnn/core/macro.h"
-#include "tnn/device/arm/arm_util.h"
+#include "tnn/device/x86/x86_util.h"
 
 namespace TNN_NS {
 
