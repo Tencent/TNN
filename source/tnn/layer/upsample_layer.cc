@@ -50,7 +50,7 @@ Status UpsampleLayer::FillLayerParamWithConstantResource() {
         }
         
         if (scales_buffer && scales_buffer->GetBytesSize() > 0) {
-            auto scales_data   = scales_buffer->force_to<int *>();
+            auto scales_data   = scales_buffer->force_to<float *>();
             auto scales_count  = scales_buffer->GetDataCount();
             if (scales_count < 2) {
                 LOGE("Error: Upsample has invalid scales count:%d", scales_count);
