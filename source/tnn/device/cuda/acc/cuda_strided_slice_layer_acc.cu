@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "cuda_strided_slice_layer_acc_kernel.cuh"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
@@ -94,13 +95,9 @@ Status CudaStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
-    const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 64;
-    int blocks = (count + THREAD_PER_BLOCK * ELE_PER_THREAD - 1) / (THREAD_PER_BLOCK * ELE_PER_THREAD);
-    strided_slice_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<blocks, THREAD_PER_BLOCK, 0, context_->GetStream()>>>(
-        count, input_data, input_c, input_h, input_w, (const int*)tempbufs_[0].ptr, (const int*)tempbufs_[1].ptr,
-        output_data, output_c, output_h, output_w, div_c, div_n);
-    return TNN_OK;
+    return RunStrideSlice(count, input_data, input_c, input_h, input_w, (const int*)tempbufs_[0].ptr, 
+                (const int*)tempbufs_[1].ptr, output_data, output_c, output_h, output_w, div_c, div_n, context_->GetStream());
+
 }
 
 REGISTER_CUDA_ACC(StrideSlice, LAYER_STRIDED_SLICE);
