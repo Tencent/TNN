@@ -16,31 +16,31 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSlice, LAYER_STRIDED_SLICE);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
-bool StrideSliceTRTPluginLayerBuilder::supportsFormatCombination(
+bool StrideSliceV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
     return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* StrideSliceTRTPluginLayerBuilder::getPluginType() const {
-    return "StrideSlice";
+const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const {
+    return "StrideSliceV2";
 }
 
-nvinfer1::DataType StrideSliceTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+nvinfer1::DataType StrideSliceV2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
     return inputTypes[0];
 }
 
-ILayer* StrideSliceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* StrideSliceV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-const char* StrideSlicePluginCreator::getPluginName() const {
-    return "StrideSlice";
+const char* StrideSliceV2PluginCreator::getPluginName() const {
+    return "StrideSliceV2";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSlice, LAYER_STRIDED_SLICE);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 }  //  namespace TNN_NS
