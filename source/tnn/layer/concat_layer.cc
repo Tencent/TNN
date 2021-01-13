@@ -40,8 +40,8 @@ Status ConcatLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ConcatLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ConcatLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     ConcatLayerParam* concat_param = dynamic_cast<ConcatLayerParam*>(param_);
     CHECK_PARAM_NULL(concat_param);
@@ -51,7 +51,7 @@ Status ConcatLayer::InferOutputShape() {
 
     const int axis = concat_param->axis;
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
-        LOGE("Error: ConcatLayer axis(%d) is invalid\n", axis);
+        LOGE_IF(!ignore_error, "Error: ConcatLayer axis(%d) is invalid\n", axis);
         return Status(TNNERR_PARAM_ERR, "ConcatLayer axis is invalid");
     }
 
@@ -62,7 +62,7 @@ Status ConcatLayer::InferOutputShape() {
         auto input_blob = input_blobs_[i];
         auto cur_shape  = input_blob->GetBlobDesc().dims;
         if (!ConcatLayerCheckShape(last_shape, cur_shape, axis)) {
-            LOGE(
+            LOGE_IF(!ignore_error, 
                 "Error: ConcatLayer's (layer name: %s) inputs can not be "
                 "concatenated with "
                 "axis=%d\n",

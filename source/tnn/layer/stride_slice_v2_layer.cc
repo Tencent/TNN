@@ -25,12 +25,12 @@ Status StrideSliceV2Layer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status StrideSliceV2Layer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     StrideSliceV2LayerParam* layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
     if (!layer_param) {
-        LOGE("StrideSliceV2Layer param is nil\n");
+        LOGE_IF(!ignore_error, "StrideSliceV2Layer param is nil\n");
         return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is nil");
     }
     

@@ -31,8 +31,8 @@ Status SqueezeLayer::InferOutputDataType() {
     return status;
 }
 
-Status SqueezeLayer::InferOutputShape() {
-    auto status = BaseLayer::InferOutputShape();
+Status SqueezeLayer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
     auto layer_param        = dynamic_cast<SqueezeLayerParam*>(param_);
     const auto& output_blob = output_blobs_[0];
     DimsVector input_dims   = input_blobs_[0]->GetBlobDesc().dims;

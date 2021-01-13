@@ -31,8 +31,8 @@ Status ShapeLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status ShapeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ShapeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     ASSERT(input_blobs_.size() == 1);
     const auto& input_blob = input_blobs_[0];

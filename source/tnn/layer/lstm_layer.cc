@@ -22,8 +22,8 @@ Status LSTMONNXLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status LSTMONNXLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status LSTMONNXLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<LSTMONNXLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);

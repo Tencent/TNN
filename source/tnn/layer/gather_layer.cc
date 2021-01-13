@@ -41,8 +41,8 @@ Status GatherLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status GatherLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status GatherLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);

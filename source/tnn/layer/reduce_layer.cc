@@ -20,12 +20,12 @@
 
 namespace TNN_NS {
 
-Status ReduceLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ReduceLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
     if (!layer_param) {
-        LOGE("Error: Reduce may not support axes != 1, depend on device\n");
+        LOGE_IF(!ignore_error, "Error: Reduce may not support axes != 1, depend on device\n");
         return Status(TNNERR_MODEL_ERR, "Error: Reduce may not support axes != 1, depend on device");
     }
 
@@ -37,7 +37,7 @@ Status ReduceLayer::InferOutputShape() {
     for (auto& axis : layer_param->axis) {
         axis = axis >= 0 ? axis : axis + (int)dims.size();
         if (axis < 0 || axis >= dims.size()) {
-            LOGE("Error: layer param axis is invalid\n");
+            LOGE_IF(!ignore_error, "Error: layer param axis is invalid\n");
             return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
         }
         dims[axis] = 1;

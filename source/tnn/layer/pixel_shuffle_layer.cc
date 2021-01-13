@@ -22,8 +22,8 @@ Status PixelShuffleLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PixelShuffleLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status PixelShuffleLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto input_blob        = input_blobs_[0];
     auto input_dims        = input_blob->GetBlobDesc().dims;

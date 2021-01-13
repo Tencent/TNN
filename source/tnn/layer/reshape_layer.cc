@@ -36,8 +36,8 @@ Status ReshapeLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status ReshapeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ReshapeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
@@ -72,7 +72,7 @@ Status ReshapeLayer::InferOutputShape() {
         return TNN_OK;
     } else {
         // shape is empty
-        LOGE("Reshape has no shape param. layer name: %s\n", layer_param->name.c_str());
+        LOGE_IF(!ignore_error, "Reshape has no shape param. layer name: %s\n", layer_param->name.c_str());
         return Status(TNNERR_PARAM_ERR, "Reshape has no shape param");
     }
 }
