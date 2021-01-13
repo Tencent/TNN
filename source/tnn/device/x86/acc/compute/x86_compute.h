@@ -34,8 +34,8 @@ Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, i
                   int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float *dst);
 
 // @brief C = A * B with B tranposed, (m * k) * (k * n), NAIVE
-Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C, 
-                     int has_bias = 0, float *bias = nullptr, int activation_type = ActivationType_None);
+Status X86_matrixMul(int m, int n, int k, const float *A, const float *B, float *C, 
+                     int has_bias = 0, const float *bias = nullptr, int activation_type = ActivationType_None);
 
 Status X86_MAX_POOLING(float *input, float *output, DimsVector input_dim, DimsVector output_dim,
                        int stride_h, int stride_w, int kernel_h, int kernel_w, int pad_h, int pad_w);

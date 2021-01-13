@@ -14,6 +14,9 @@
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_acc_factory.h"
 
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_1x1.h"
+
 namespace TNN_NS {
 
 /*
@@ -26,6 +29,10 @@ void X86ConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, cons
     if (X86ConvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<X86ConvLayerDepthwise *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<X86ConvLayerDepthwise>();
+        }
+    } else if (X86ConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvLayer1x1*>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<X86ConvLayer1x1>();
         }
     } else if (!conv_acc_impl) {
         conv_acc_impl = std::make_shared<X86ConvLayerCommon>();
