@@ -180,8 +180,8 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
     return TNN_OK;
 }
 
-Status X86_matrixMul(int m, int n, int k, float *A, float *B, float *C,
-                     int has_bias, float *bias, int activation_type) {
+Status X86_matrixMul(int m, int n, int k, const float *A, const float *B, float *C,
+                     int has_bias, const float *bias, int activation_type) {
 
     if (ActivationType_None == activation_type) {
         // row major matrix A(m, k) x B(k, n) equals to :
