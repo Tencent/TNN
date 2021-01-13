@@ -87,7 +87,7 @@ void AbstractLayerAcc::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_poo
     runtime_blob_pool_ = runtime_blob_pool;
 }
 
-void AbstractLayerAcc::SetConstantResource(ConstantResource consts) {
+void AbstractLayerAcc::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
 }
 

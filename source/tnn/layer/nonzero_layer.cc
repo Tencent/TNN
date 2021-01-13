@@ -24,7 +24,7 @@ Status NonZeroLayer::InferOutputDataType() {
     for (auto& iter : output_blobs_) {
         int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
         if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
         iter->flag = iter->flag | allocate_status;

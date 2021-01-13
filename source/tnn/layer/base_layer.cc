@@ -94,12 +94,12 @@ Status BaseLayer::InferOutputShape(bool ignore_error) {
     auto const_resource = const_resource_;
     for (auto iter : input_blobs_) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource.find(name) == const_resource.end()) {
+        if (const_resource != nullptr && const_resource->find(name) == const_resource->end()) {
             continue;
         }
         
-        iter->GetBlobDesc().dims = const_resource[name]->GetBufferDims();
-        iter->GetBlobDesc().data_type = const_resource[name]->GetDataType();
+        iter->GetBlobDesc().dims = (*const_resource)[name]->GetBufferDims();
+        iter->GetBlobDesc().data_type = (*const_resource)[name]->GetDataType();
     }
     
     //
@@ -118,7 +118,7 @@ Status BaseLayer::InferOutputDataType() {
     //find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
-        if (const_resource.find(input_blob->GetBlobDesc().name) == const_resource.end()) {
+        if (const_resource != nullptr && const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
             input_blob_not_const = input_blob;
             break;
         }
@@ -130,7 +130,7 @@ Status BaseLayer::InferOutputDataType() {
     
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
-        if (const_resource.find(iter->GetBlobDesc().name) != const_resource.end()) {
+        if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
             iter->flag |= DATA_FLAG_CHANGE_NEVER;
         }
         flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
@@ -138,7 +138,7 @@ Status BaseLayer::InferOutputDataType() {
     
     for (auto iter : output_blobs_) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource.find(iter->GetBlobDesc().name) != const_resource.end()) {
+            const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
             flag = flag & 0x0000FFFF;
         }
         iter->flag = flag;
@@ -242,7 +242,7 @@ bool BaseLayer::IsOutputConstant() {
     return true;
 }
 
-void BaseLayer::SetConstantResource(ConstantResource consts) {
+void BaseLayer::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
 }
 

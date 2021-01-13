@@ -155,7 +155,7 @@ Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
         if (!SupportBroadcast(dim0, dim1)) {
             LOGE_IF(!ignore_error, 
                 "Error: operands could not be broadcast together with wrong "
-                "shape\n");
+                "shape (name: %s)\n", layer_param->name.c_str());
             return Status(TNNERR_LAYER_ERR,
                           "Error: operands could not be broadcast together "
                           "with wrong shape");
