@@ -371,32 +371,17 @@ Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
  */
 Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
     Status ret = TNN_OK;
-    bool do_reshape = false;
-    for (auto iter : inputs) {
-        Blob *blob = blob_manager_->GetBlob(iter.first);
-        if (blob == nullptr) {
-            LOGE("DefaultNetwork reshape blob is empty\n");
-            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
-        }
-        if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
-            blob->GetBlobDesc().dims = iter.second;
-            do_reshape = true;
-        }
+    ret = context_->OnInstanceReshapeBegin();
+    if (ret != TNN_OK) {
+        return ret;
     }
 
-    if(do_reshape) {
-        ret = context_->OnInstanceReshapeBegin();
-        if (ret != TNN_OK) {
-            return ret;
-        }
-
-        ret = ReshapeLayers();
-        if (ret != TNN_OK) {
-            return ret;
-        }
+    ret = ReshapeLayers();
+    if (ret != TNN_OK) {
+        return ret;
+    }
  
-        ret = context_->OnInstanceReshapeEnd();
-    }
+    ret = context_->OnInstanceReshapeEnd();
     return ret;
 }
 

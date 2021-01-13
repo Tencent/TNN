@@ -91,14 +91,33 @@ Status Instance::SetForwardMemory(void *memory) {
 
 Status Instance::Reshape(const InputShapesMap &inputs) {
     Status status = TNN_OK;
-    if (const_folder_) {
-        status = const_folder_->Reshape(inputs);
-        RETURN_ON_NEQ(status, TNN_OK);
-        
-        status = const_folder_->Forward();
-        RETURN_ON_NEQ(status, TNN_OK);
+    BlobMap blob_map;   
+    status = GetAllInputBlobs(blob_map);
+    RETURN_ON_NEQ(status, TNN_OK);
+    bool do_reshape = false;
+    for (auto iter : inputs) {
+        Blob *blob = blob_map[iter.first];
+        if (blob == nullptr) {
+            LOGE("reshape blob is empty\n");
+            return Status(TNNERR_PARAM_ERR, "instance reshape blob is empty");
+        }
+        if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
+            blob->GetBlobDesc().dims = iter.second;
+            do_reshape = true;
+        }
     }
-    status = network_->Reshape(inputs);
+
+    if(do_reshape) {
+        if (const_folder_) {
+            status = const_folder_->Reshape(inputs);
+            RETURN_ON_NEQ(status, TNN_OK);
+            
+            status = const_folder_->Forward();
+            RETURN_ON_NEQ(status, TNN_OK);
+        }
+        status = network_->Reshape(inputs);
+    }
+
     return status;
 }
 
