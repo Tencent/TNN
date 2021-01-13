@@ -14,6 +14,7 @@
 
 #include "tnn/utils/dims_vector_utils.h"
 
+#include <cmath>
 #include <climits>
 
 namespace TNN_NS {
