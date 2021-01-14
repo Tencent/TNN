@@ -55,6 +55,11 @@ ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
             layar->setName(layer_name_.c_str());
         }
 
+        auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
+        //squeeze
+        if(output_dims.size() < 4) {
+            layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
+        }
         return layar;
     } else {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
