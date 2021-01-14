@@ -12,20 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 
 #include <cmath>
 #include <algorithm>
 
 namespace TNN_NS {
-typedef struct x86_relu_operator : x86_unary_operator {
+typedef struct x86_relu_operator : x86_unary2_operator {
     virtual float operator()(const float v) {
         return std::max(v, 0.0f);
     }
+
+    using Float4 = TNNVector<float, 4>;
+    virtual Float4 operator()(const Float4 &v) {
+        return Float4::max(v, Float4(0.f));
+    }
+
+    virtual Float8 operator()(const Float8 &v) {
+        return (Float8::max(v, Float8(0.f)));
+    }
 } X86_RELU_OP;
 
-DECLARE_X86_UNARY_ACC(Relu, X86_RELU_OP);
-
+X86_REGISTER_UNARY2_KERNEL(LAYER_RELU, unary2_kernel_avx<X86_RELU_OP>);
+DECLARE_X86_UNARY2_ACC(Relu, LAYER_RELU);
 REGISTER_X86_ACC(Relu, LAYER_RELU);
 
 }   // namespace TNN_NS

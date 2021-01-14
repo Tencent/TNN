@@ -75,16 +75,299 @@ void MatMemcpy2DWithPadding(void* src, void* dst, int width, int height, int src
     memset(dst_ptr, pad_val, bottom_plane);
 }
 
-// color convert
-void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int height, int width) {}
-void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int height, int width) {}
-void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int height, int width) {}
-void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int height, int width) {}
+/*
+color convert
+*/
 
-void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width) {}
-void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width) {}
-void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width) {}
-void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width) {}
+// float
+//     r = 1.164 * (y - 16) + 1.596 * (v - 128);
+//     g = 1.164 * (y - 16) - 0.813 * (v - 128) - 0.391 * (u - 128);
+//     b = 1.164 * (y - 16) + 2.018 * (u - 128);
+// int 16
+//     r = (74 * y - 1135 + 102 * vv ) >> 6
+//     g = (74 * y - 1135 - 52 * vv - 25 * uu ) >> 6
+//     b = (74 * y - 1135 + 129 * uu ) >> 6
+template <bool is_nv12, bool has_alpha>
+void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w) {
+    const unsigned char* yptr  = yuv;
+    const unsigned char* vuptr = yuv + w * h;
+    const int channel          = has_alpha ? 4 : 3;
+
+#ifdef __SSE4_2__
+    __m128i _v1135 = _mm_set1_epi16(-1135);
+    __m128i _v74   = _mm_set1_epi16(74);
+    __m128i _v128  = _mm_set1_epi16(128);
+    __m128i _v102  = _mm_set1_epi16(102);
+    __m128i _v52   = _mm_set1_epi16(-52);
+    __m128i _v25   = _mm_set1_epi16(-25);
+    __m128i _v129  = _mm_set1_epi16(129);
+    __m128i _v240  = _mm_set1_epi8(240);
+    __m128i _aa    = _mm_set1_epi8(255);
+
+    const __m128i sh_vu = _mm_setr_epi8(0, 2, 4, 6, 1, 3, 5, 7, 8, 10, 12, 14, 9, 11, 13, 15);
+    const __m128i sh_a  = _mm_setr_epi8(0, 11, 6, 1, 12, 7, 2, 13, 8, 3, 14, 9, 4, 15, 10, 5);
+    const __m128i sh_b  = _mm_setr_epi8(5, 0, 11, 6, 1, 12, 7, 2, 13, 8, 3, 14, 9, 4, 15, 10);
+    const __m128i sh_c  = _mm_setr_epi8(10, 5, 0, 11, 6, 1, 12, 7, 2, 13, 8, 3, 14, 9, 4, 15);
+    const __m128i m0    = _mm_setr_epi8(0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0);
+    const __m128i m1    = _mm_setr_epi8(0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0);
+#endif
+
+    for (int y = 0; y < h; y += 2) {
+        const unsigned char* yptr0 = yptr;
+        const unsigned char* yptr1 = yptr + w;
+        unsigned char* rgb0        = bgr;
+        unsigned char* rgb1        = bgr + w * channel;
+
+        int remain = w;
+#ifdef __SSE4_2__
+        int nn = w >> 4;
+        remain = w - (nn << 4);
+        for (; nn > 0; nn--) {
+            __m128i _yy00_load = _mm_loadl_epi64((__m128i*)yptr0);
+            __m128i _yy01_load = _mm_loadl_epi64((__m128i*)(yptr0 + 8));
+            __m128i _yy10_load = _mm_loadl_epi64((__m128i*)yptr1);
+            __m128i _yy11_load = _mm_loadl_epi64((__m128i*)(yptr1 + 8));
+            __m128i _vu00_load = _mm_loadl_epi64((__m128i*)vuptr);
+            __m128i _vu01_load = _mm_loadl_epi64((__m128i*)(vuptr + 8));
+            _vu00_load         = _mm_min_epu8(_v240, _vu00_load);
+            _vu01_load         = _mm_min_epu8(_v240, _vu01_load);
+
+            __m128i _yy00 = _mm_add_epi16(_mm_mullo_epi16(_mm_cvtepu8_epi16(_yy00_load), _v74), _v1135);
+            __m128i _yy01 = _mm_add_epi16(_mm_mullo_epi16(_mm_cvtepu8_epi16(_yy01_load), _v74), _v1135);
+            __m128i _yy10 = _mm_add_epi16(_mm_mullo_epi16(_mm_cvtepu8_epi16(_yy10_load), _v74), _v1135);
+            __m128i _yy11 = _mm_add_epi16(_mm_mullo_epi16(_mm_cvtepu8_epi16(_yy11_load), _v74), _v1135);
+
+            __m128i _vu00 = _mm_sub_epi16(_mm_cvtepu8_epi16(_mm_shuffle_epi8(_vu00_load, sh_vu)), _v128);
+            __m128i _vu01 = _mm_sub_epi16(_mm_cvtepu8_epi16(_mm_shuffle_epi8(_vu01_load, sh_vu)), _v128);
+
+            // nv12 u,v,u,v,...
+            __m128i _uu00 = is_nv12 ? _mm_unpacklo_epi16(_vu00, _vu00) : _mm_unpackhi_epi16(_vu00, _vu00);
+            __m128i _vv00 = is_nv12 ? _mm_unpackhi_epi16(_vu00, _vu00) : _mm_unpacklo_epi16(_vu00, _vu00);
+            __m128i _uu01 = is_nv12 ? _mm_unpacklo_epi16(_vu01, _vu01) : _mm_unpackhi_epi16(_vu01, _vu01);
+            __m128i _vv01 = is_nv12 ? _mm_unpackhi_epi16(_vu01, _vu01) : _mm_unpacklo_epi16(_vu01, _vu01);
+
+            __m128i _r00 = _mm_add_epi16(_yy00, _mm_mullo_epi16(_vv00, _v102));
+            __m128i _g00 = _mm_add_epi16(_yy00, _mm_mullo_epi16(_vv00, _v52));
+            _g00         = _mm_add_epi16(_g00, _mm_mullo_epi16(_uu00, _v25));
+            __m128i _b00 = _mm_add_epi16(_yy00, _mm_mullo_epi16(_uu00, _v129));
+
+            __m128i _r01 = _mm_add_epi16(_yy01, _mm_mullo_epi16(_vv01, _v102));
+            __m128i _g01 = _mm_add_epi16(_yy01, _mm_mullo_epi16(_vv01, _v52));
+            _g01         = _mm_add_epi16(_g01, _mm_mullo_epi16(_uu01, _v25));
+            __m128i _b01 = _mm_add_epi16(_yy01, _mm_mullo_epi16(_uu01, _v129));
+
+            __m128i _r10 = _mm_add_epi16(_yy10, _mm_mullo_epi16(_vv00, _v102));
+            __m128i _g10 = _mm_add_epi16(_yy10, _mm_mullo_epi16(_vv00, _v52));
+            _g10         = _mm_add_epi16(_g10, _mm_mullo_epi16(_uu00, _v25));
+            __m128i _b10 = _mm_add_epi16(_yy10, _mm_mullo_epi16(_uu00, _v129));
+
+            __m128i _r11 = _mm_add_epi16(_yy11, _mm_mullo_epi16(_vv01, _v102));
+            __m128i _g11 = _mm_add_epi16(_yy11, _mm_mullo_epi16(_vv01, _v52));
+            _g11         = _mm_add_epi16(_g11, _mm_mullo_epi16(_uu01, _v25));
+            __m128i _b11 = _mm_add_epi16(_yy11, _mm_mullo_epi16(_uu01, _v129));
+
+            __m128i _r00_srai = _mm_srai_epi16(_r00, 6);
+            __m128i _g00_srai = _mm_srai_epi16(_g00, 6);
+            __m128i _b00_srai = _mm_srai_epi16(_b00, 6);
+            __m128i _r01_srai = _mm_srai_epi16(_r01, 6);
+            __m128i _g01_srai = _mm_srai_epi16(_g01, 6);
+            __m128i _b01_srai = _mm_srai_epi16(_b01, 6);
+            __m128i _r10_srai = _mm_srai_epi16(_r10, 6);
+            __m128i _g10_srai = _mm_srai_epi16(_g10, 6);
+            __m128i _b10_srai = _mm_srai_epi16(_b10, 6);
+            __m128i _r11_srai = _mm_srai_epi16(_r11, 6);
+            __m128i _g11_srai = _mm_srai_epi16(_g11, 6);
+            __m128i _b11_srai = _mm_srai_epi16(_b11, 6);
+
+            __m128i rr0 = _mm_packus_epi16(_r00_srai, _r01_srai);
+            __m128i gg0 = _mm_packus_epi16(_g00_srai, _g01_srai);
+            __m128i bb0 = _mm_packus_epi16(_b00_srai, _b01_srai);
+            __m128i rr1 = _mm_packus_epi16(_r10_srai, _r11_srai);
+            __m128i gg1 = _mm_packus_epi16(_g10_srai, _g11_srai);
+            __m128i bb1 = _mm_packus_epi16(_b10_srai, _b11_srai);
+
+            if (!has_alpha) {
+                // bbbb, gggg, rrrr to bgr,bgr,bgr,bgr
+                __m128i a0 = _mm_shuffle_epi8(bb0, sh_a);
+                __m128i b0 = _mm_shuffle_epi8(gg0, sh_b);
+                __m128i c0 = _mm_shuffle_epi8(rr0, sh_c);
+                __m128i a1 = _mm_shuffle_epi8(bb1, sh_a);
+                __m128i b1 = _mm_shuffle_epi8(gg1, sh_b);
+                __m128i c1 = _mm_shuffle_epi8(rr1, sh_c);
+
+                __m128i v0 = _mm_blendv_epi8(_mm_blendv_epi8(a0, b0, m1), c0, m0);
+                __m128i v1 = _mm_blendv_epi8(_mm_blendv_epi8(b0, c0, m1), a0, m0);
+                __m128i v2 = _mm_blendv_epi8(_mm_blendv_epi8(c0, a0, m1), b0, m0);
+                __m128i v3 = _mm_blendv_epi8(_mm_blendv_epi8(a1, b1, m1), c1, m0);
+                __m128i v4 = _mm_blendv_epi8(_mm_blendv_epi8(b1, c1, m1), a1, m0);
+                __m128i v5 = _mm_blendv_epi8(_mm_blendv_epi8(c1, a1, m1), b1, m0);
+
+                _mm_storeu_si128((__m128i*)rgb0, v0);
+                _mm_storeu_si128((__m128i*)(rgb0 + 16), v1);
+                _mm_storeu_si128((__m128i*)(rgb0 + 32), v2);
+                _mm_storeu_si128((__m128i*)rgb1, v3);
+                _mm_storeu_si128((__m128i*)(rgb1 + 16), v4);
+                _mm_storeu_si128((__m128i*)(rgb1 + 32), v5);
+            } else {
+                // bbbb, gggg, rrrr, aaaa to bgra,bgra,bgra,bgra
+                __m128i _bg, _ra, _res0, _res1, _res2, _res3;
+
+                _bg   = _mm_unpacklo_epi8(bb0, gg0);
+                _ra   = _mm_unpacklo_epi8(rr0, _aa);
+                _res0 = _mm_unpacklo_epi16(_bg, _ra);
+                _res1 = _mm_unpackhi_epi16(_bg, _ra);
+                _bg   = _mm_unpackhi_epi8(bb0, gg0);
+                _ra   = _mm_unpackhi_epi8(rr0, _aa);
+                _res2 = _mm_unpacklo_epi16(_bg, _ra);
+                _res3 = _mm_unpackhi_epi16(_bg, _ra);
+
+                _mm_storeu_si128((__m128i*)rgb0, _res0);
+                _mm_storeu_si128((__m128i*)(rgb0 + 16), _res1);
+                _mm_storeu_si128((__m128i*)(rgb0 + 32), _res2);
+                _mm_storeu_si128((__m128i*)(rgb0 + 48), _res3);
+
+                _bg   = _mm_unpacklo_epi8(bb1, gg1);
+                _ra   = _mm_unpacklo_epi8(rr1, _aa);
+                _res0 = _mm_unpacklo_epi16(_bg, _ra);
+                _res1 = _mm_unpackhi_epi16(_bg, _ra);
+                _bg   = _mm_unpackhi_epi8(bb1, gg1);
+                _ra   = _mm_unpackhi_epi8(rr1, _aa);
+                _res2 = _mm_unpacklo_epi16(_bg, _ra);
+                _res3 = _mm_unpackhi_epi16(_bg, _ra);
+
+                _mm_storeu_si128((__m128i*)rgb1, _res0);
+                _mm_storeu_si128((__m128i*)(rgb1 + 16), _res1);
+                _mm_storeu_si128((__m128i*)(rgb1 + 32), _res2);
+                _mm_storeu_si128((__m128i*)(rgb1 + 48), _res3);
+            }
+
+            yptr0 += 16;
+            yptr1 += 16;
+            vuptr += 16;
+            rgb0 += 16 * channel;
+            rgb1 += 16 * channel;
+        }
+#endif
+
+        NaiveYUVToBGROrBGRALoop(yptr0, yptr1, vuptr, rgb0, rgb1, remain, is_nv12, channel);
+        yptr += 2 * w;
+        vuptr += remain;
+        bgr += 2 * channel * w;
+    }
+}
+
+void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
+    return YUVToBGR<true, false>(nv12, bgr, h, w);
+}
+void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
+    return YUVToBGR<false, false>(nv21, bgr, h, w);
+}
+void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
+    return YUVToBGR<true, true>(nv12, bgra, h, w);
+}
+void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
+    return YUVToBGR<false, true>(nv21, bgra, h, w);
+}
+
+template <int channel, bool bgr_order>
+void ColorToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+    int offset = 0;
+    int plane  = h * w;
+
+#ifdef __SSE4_2__
+    const unsigned char* Sp = bgr;
+    unsigned char* Dp       = gray;
+    __m128 _coeff_b         = _mm_set1_ps(0.114);
+    __m128 _coeff_g         = _mm_set1_ps(0.587);
+    __m128 _coeff_r         = _mm_set1_ps(0.299);
+    __m128i _vzero          = _mm_set1_epi16(0);
+    __m128i _maski16_to_i8  = _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+    __m128i _maski32_to_i16 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
+    __m128i _maskld3_0      = _mm_setr_epi8(0, 3, 6, 9, 12, 15, 1, 4, 7, 10, 13, 2, 5, 8, 11, 14);
+    __m128i _maskld3_1      = _mm_setr_epi8(2, 5, 0, 3, 6, 1, 4, 7, 0, 0, 0, 0, 0, 0, 0, 0);
+    for (; offset<plane>> 3 << 3; offset += 8) {
+        __m128i b_h, g_h, r_h;
+        if (channel == 3) {
+            __m128i _bgra0_load = _mm_loadu_si128((__m128i*)Sp);              // b0g0r0 b1g1r1 b2g2r2 b3g3r3 b4g4r4 b5
+            __m128i _bgra1_load = _mm_loadl_epi64((__m128i*)(Sp + 16));       // g5r5 b6g6r6 b7g7r7
+            __m128i tmp0        = _mm_shuffle_epi8(_bgra0_load, _maskld3_0);  // b0b1b2b3b4b5 g0g1g2g3g4 r0r1r2r3r4
+            __m128i tmp1        = _mm_shuffle_epi8(_bgra1_load, _maskld3_1);  // b6b7 g5g6g7 r5r6r7
+            _bgra0_load         = _mm_srli_si128(_mm_slli_si128(tmp0, 10), 10);  // b0b1b2b3b4b5 0
+            _bgra1_load         = _mm_slli_si128(tmp1, 6);                       // 0 0 0 0 0 0  b6b7
+            __m128i b_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+            _bgra0_load         = _mm_srli_si128(_mm_slli_si128(tmp0, 5), 11);  // g0g1g2g3g4 0
+            _bgra1_load         = _mm_slli_si128(_mm_srli_si128(tmp1, 2), 5);   // 0 0 0 0 0  g5g6g7
+            __m128i g_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+            _bgra0_load         = _mm_srli_si128(tmp0, 11);                    // r0r1r2r3r4 0
+            _bgra1_load         = _mm_slli_si128(_mm_srli_si128(tmp1, 5), 5);  // 0 0 0 0 0  r5r6r7
+            __m128i r_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+
+            b_h = _mm_cvtepu8_epi16(bgr_order ? b_b : r_b);
+            g_h = _mm_cvtepu8_epi16(g_b);
+            r_h = _mm_cvtepu8_epi16(bgr_order ? r_b : b_b);
+        } else {
+            __m128i _bgra0_load = _mm_loadu_si128((__m128i*)Sp);                // a0 - a15
+            __m128i _bgra1_load = _mm_loadu_si128((__m128i*)(Sp + 16));         // b0 - b15
+            __m128i tmp0        = _mm_unpacklo_epi8(_bgra0_load, _bgra1_load);  // a0,b0, - a7,b7
+            __m128i tmp1        = _mm_unpackhi_epi8(_bgra0_load, _bgra1_load);  // a8,b8, - a15,b15
+            _bgra0_load         = _mm_unpacklo_epi8(tmp0, tmp1);                // a0,a8,b0,b8, - a3,a11,b3,b11
+            _bgra1_load         = _mm_unpackhi_epi8(tmp0, tmp1);                // a4,a12,b4,b12, - a7,a15,b7,b15
+            tmp0                = _mm_unpacklo_epi8(_bgra0_load, _bgra1_load);  // a0 - b12, a1 - b13
+            tmp1                = _mm_unpackhi_epi8(_bgra0_load, _bgra1_load);  // a2 - b14, a3 - b15
+
+            b_h = _mm_cvtepu8_epi16(bgr_order ? tmp0 : tmp1);
+            g_h = _mm_cvtepu8_epi16(_mm_unpackhi_epi64(tmp0, tmp0));
+            r_h = _mm_cvtepu8_epi16(bgr_order ? tmp1 : tmp0);
+        }
+
+        __m128 b_val, g_val, r_val, acc;
+        b_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(b_h, _vzero));
+        g_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(g_h, _vzero));
+        r_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(r_h, _vzero));
+        acc          = _mm_mul_ps(b_val, _coeff_b);
+        acc          = _mm_add_ps(acc, _mm_mul_ps(g_val, _coeff_g));
+        acc          = _mm_add_ps(acc, _mm_mul_ps(r_val, _coeff_r));
+        __m128i tmp0 = _mm_shuffle_epi8(_mm_cvtps_epi32(acc), _maski32_to_i16);
+
+        b_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(b_h, _vzero));
+        g_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(g_h, _vzero));
+        r_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(r_h, _vzero));
+        acc          = _mm_mul_ps(b_val, _coeff_b);
+        acc          = _mm_add_ps(acc, _mm_mul_ps(g_val, _coeff_g));
+        acc          = _mm_add_ps(acc, _mm_mul_ps(r_val, _coeff_r));
+        __m128i tmp1 = _mm_shuffle_epi8(_mm_cvtps_epi32(acc), _maski32_to_i16);
+
+        _mm_storel_epi64((__m128i*)Dp, _mm_shuffle_epi8(_mm_unpacklo_epi64(tmp0, tmp1), _maski16_to_i8));
+
+        Sp += 8 * channel;
+        Dp += 8;
+    }
+    if (plane % 8) {
+        offset -= 8;
+    }
+#endif
+
+    for (; offset < plane; ++offset) {
+        unsigned b       = bgr[offset * channel + (bgr_order ? 0 : 2)];
+        unsigned g       = bgr[offset * channel + 1];
+        unsigned r       = bgr[offset * channel + (bgr_order ? 2 : 0)];
+        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
+        gray[offset]     = gray_color;
+    }
+}
+
+void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width) {
+    ColorToGray<3, true>(bgr, gray, height, width);
+}
+void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width) {
+    ColorToGray<4, true>(bgra, gray, height, width);
+}
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width) {
+    ColorToGray<3, false>(rgb, gray, height, width);
+}
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width) {
+    ColorToGray<4, false>(rgba, gray, height, width);
+}
 
 // resize
 void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
