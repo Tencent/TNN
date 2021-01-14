@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_1x1.h"
+#include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/device/x86/x86_util.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
@@ -20,7 +21,6 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include <mm_malloc.h>
 
 namespace TNN_NS {
 bool X86ConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -89,14 +89,10 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
     int src_z_step     = dims_input[2] * dims_input[3];
 
     float *weights_data = buffer_weight_.force_to<float*>();
+    float *bias_data    = buffer_bias_.force_to<float*>();
 
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
     float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
-
-    float *bias_data = nullptr;
-    if (resource->bias_handle.GetDataCount() != 0) {
-        bias_data = resource->bias_handle.force_to<float*>();
-    }
 
     // X86_matrixMul in row major format
     int m = dims_output[1];
@@ -107,7 +103,7 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
         const float * B = src_origin + batch_idx * k * n;
         const float * A = weights_data;
         float * C = dst_origin + batch_idx * m * n;
-        X86_matrixMul(m, n, k, A, B, C, param->bias, bias_data, param->activation_type);
+        X86_matrixMul(m, n, k, A, B, C, 1, bias_data, param->activation_type);
     }
 
     return TNN_OK;

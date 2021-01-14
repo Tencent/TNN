@@ -12,16 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_JIT_JIT_KERNELS_H_
-#define TNN_JIT_JIT_KERNELS_H_
 
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n_6.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_8.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_16.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_4x16.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_avx_kernels.h"
-#include "tnn/device/x86/acc/compute/jit/kernels/conv_sgemm_avx_kernels.h"
+#ifndef TNN_JIT_DATA_PACKING_H_
+#define TNN_JIT_DATA_PACKING_H_
 
-#endif // TNN_JIT_JIT_KERNELS_H_
+#include "tnn/device/x86/acc/compute/jit/common/type_def.h"
+#include "tnn/device/x86/acc/compute/jit/utils/utils.h"
+#include "tnn/device/x86/acc/compute/jit/conv_gemm_config.h"
+
+namespace TNN_NS {
+
+template<typename T>
+void pack_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
+
+template<typename T>
+void pack_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
+
+} // namespace tnn
+
+#endif //TNN_JIT_DATA_PACKING_H_
