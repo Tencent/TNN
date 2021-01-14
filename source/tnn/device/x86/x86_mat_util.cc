@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "tnn/device/x86/x86_common.h"
 #include "tnn/core/macro.h"
+#include "tnn/device/x86/x86_common.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/mat_converter_utils.h"
 #include "tnn/utils/naive_compute.h"
@@ -369,12 +369,416 @@ void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int 
     ColorToGray<4, false>(rgba, gray, height, width);
 }
 
-// resize
-void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
+/*
+resize
+*/
+
+template <int c>
+static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, const uint8_t* src,
+                                  int src_stride, int w, const short* ialphap) {
+    if (sy == prev_sy) {
+        // reuse all rows
+    } else if (sy == prev_sy + 1) {
+        // hresize one row
+        short* rows0_old  = *rows0;
+        *rows0            = *rows1;
+        *rows1            = rows0_old;
+        const uint8_t* S1 = src + src_stride * (sy + 1);
+
+        short* rows1p = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
+
+            const uint8_t* S1p = S1 + sx;
+
+#ifndef __SSE4_2__
+            for (int dc = 0; dc < c; ++dc) {
+                rows1p[dc] = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+#else
+            __m128i _maski32_to_i16 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
+            if (c == 2) {
+                __m128i _a0 = _mm_set1_epi16(a0);
+                __m128i _a1 = _mm_set1_epi16(a1);
+                __m128i _S1 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S1p[0], S1p[1], 0, 0, S1p[2], S1p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _Sh = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh));
+                _res         = _mm_shuffle_epi8(_mm_srai_epi32(_res, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows1p, _res);
+            } else if (c == 3) {
+                __m128i _a0 = _mm_set1_epi16(a0);
+                __m128i _a1 = _mm_set1_epi16(a1);
+                __m128i _S1 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S1p[0], S1p[1], S1p[2], 0, S1p[3], S1p[4], S1p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _Sh = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh));
+                _res         = _mm_shuffle_epi8(_mm_srai_epi32(_res, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows1p, _res);
+            } else if (c == 4) {
+                __m128i _a0 = _mm_set1_epi16(a0);
+                __m128i _a1 = _mm_set1_epi16(a1);
+                __m128i _S1 = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i*)S1p));
+                __m128i _Sh = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh));
+                _res         = _mm_shuffle_epi8(_mm_srai_epi32(_res, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows1p, _res);
+            } else {
+                for (int dc = 0; dc < c; ++dc) {
+                    rows1p[dc] = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+                }
+            }
+#endif
+
+            ialphap += 2;
+            rows1p += c;
+        }
+    } else {
+        // hresize two rows
+        const uint8_t* S0 = src + src_stride * (sy);
+        const uint8_t* S1 = src + src_stride * (sy + 1);
+
+        short* rows0p = *rows0;
+        short* rows1p = *rows1;
+        for (int dx = 0; dx < w; dx++) {
+            int sx   = xofs[dx];
+            short a0 = ialphap[0];
+            short a1 = ialphap[1];
+
+            const uint8_t* S0p = S0 + sx;
+            const uint8_t* S1p = S1 + sx;
+
+#ifndef __SSE4_2__
+            for (int dc = 0; dc < c; ++dc) {
+                rows0p[dc] = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
+                rows1p[dc] = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+            }
+#else
+            __m128i _maski32_to_i16 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
+            if (c == 2) {
+                __m128i _a0 = _mm_set1_epi16(a0);
+                __m128i _a1 = _mm_set1_epi16(a1);
+                __m128i _S0 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S0p[0], S0p[1], 0, 0, S0p[2], S0p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _S1 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S1p[0], S1p[1], 0, 0, S1p[2], S1p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _Sh0 = _mm_unpackhi_epi64(_S0, _S0);
+                __m128i _Sh1 = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res0 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S0, _Sh0));
+                __m128i _res1 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh1));
+                _res0         = _mm_shuffle_epi8(_mm_srai_epi32(_res0, 4), _maski32_to_i16);
+                _res1         = _mm_shuffle_epi8(_mm_srai_epi32(_res1, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows0p, _res0);
+                _mm_storel_epi64((__m128i*)rows1p, _res1);
+            } else if (c == 3) {
+                __m128i _a0 = _mm_set1_epi16(a0);
+                __m128i _a1 = _mm_set1_epi16(a1);
+                __m128i _S0 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S0p[0], S0p[1], S0p[2], 0, S0p[3], S0p[4], S0p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _S1 = _mm_cvtepu8_epi16(
+                    _mm_setr_epi8(S1p[0], S1p[1], S1p[2], 0, S1p[3], S1p[4], S1p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
+                __m128i _Sh0 = _mm_unpackhi_epi64(_S0, _S0);
+                __m128i _Sh1 = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res0 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S0, _Sh0));
+                __m128i _res1 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh1));
+                _res0         = _mm_shuffle_epi8(_mm_srai_epi32(_res0, 4), _maski32_to_i16);
+                _res1         = _mm_shuffle_epi8(_mm_srai_epi32(_res1, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows0p, _res0);
+                _mm_storel_epi64((__m128i*)rows1p, _res1);
+            } else if (c == 4) {
+                __m128i _a0  = _mm_set1_epi16(a0);
+                __m128i _a1  = _mm_set1_epi16(a1);
+                __m128i _S0  = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i*)S0p));
+                __m128i _S1  = _mm_cvtepu8_epi16(_mm_loadl_epi64((__m128i*)S1p));
+                __m128i _Sh0 = _mm_unpackhi_epi64(_S0, _S0);
+                __m128i _Sh1 = _mm_unpackhi_epi64(_S1, _S1);
+
+                __m128i _res0 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S0, _Sh0));
+                __m128i _res1 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh1));
+                _res0         = _mm_shuffle_epi8(_mm_srai_epi32(_res0, 4), _maski32_to_i16);
+                _res1         = _mm_shuffle_epi8(_mm_srai_epi32(_res1, 4), _maski32_to_i16);
+                _mm_storel_epi64((__m128i*)rows0p, _res0);
+                _mm_storel_epi64((__m128i*)rows1p, _res1);
+            } else {
+                for (int dc = 0; dc < c; ++dc) {
+                    rows0p[dc] = (S0p[dc] * a0 + S0p[dc + c] * a1) >> 4;
+                    rows1p[dc] = (S1p[dc] * a0 + S1p[dc + c] * a1) >> 4;
+                }
+            }
+#endif
+
+            ialphap += 2;
+            rows0p += c;
+            rows1p += c;
+        }
+    }
+}
+
+static void ResizeCalculateOneRow(short* rows0p, short* rows1p, const short b0, const short b1, const int w,
+                                  const int c, uint8_t* Dp) {
+#ifndef __SSE4_2__
+    int remain = w * c;
+#else
+    int nn = (w * c) >> 4;
+    int remain = (w * c) - (nn << 4);
+    __m128i _b0 = _mm_set1_epi16(b0);
+    __m128i _b1 = _mm_set1_epi16(b1);
+    __m128i _v2 = _mm_set1_epi16(2);
+    for (; nn > 0; nn--) {
+        __m128i _rows0p_sr8 = _mm_loadu_si128((__m128i*)rows0p);
+        __m128i _rows1p_sr8 = _mm_loadu_si128((__m128i*)rows1p);
+        __m128i _rows0p_1_sr8 = _mm_loadu_si128((__m128i*)(rows0p + 8));
+        __m128i _rows1p_1_sr8 = _mm_loadu_si128((__m128i*)(rows1p + 8));
+
+        __m128i _rows0p_sr8_hi = _mm_mulhi_epi16(_rows0p_sr8, _b0);
+        __m128i _rows1p_sr8_hi = _mm_mulhi_epi16(_rows1p_sr8, _b1);
+        __m128i _rows0p_1_sr8_hi = _mm_mulhi_epi16(_rows0p_1_sr8, _b0);
+        __m128i _rows1p_1_sr8_hi = _mm_mulhi_epi16(_rows1p_1_sr8, _b1);
+
+        __m128i _acc = _mm_adds_epi16(_rows0p_sr8_hi, _rows1p_sr8_hi);
+        __m128i _acc_1 = _mm_adds_epi16(_rows0p_1_sr8_hi, _rows1p_1_sr8_hi);
+        _acc = _mm_srai_epi16(_mm_adds_epi16(_acc, _v2), 2);
+        _acc_1 = _mm_srai_epi16(_mm_adds_epi16(_acc_1, _v2), 2);
+
+        _mm_storeu_si128((__m128i*)Dp, _mm_packus_epi16(_acc, _acc_1));
+
+        Dp += 16;
+        rows0p += 16;
+        rows1p += 16;
+    }
+#endif
+    for (; remain; --remain) {
+        *Dp++ =
+            (uint8_t)(((short)((b0 * (short)(*rows0p++)) >> 16) + (short)((b1 * (short)(*rows1p++)) >> 16) + 2) >> 2);
+    }
+}
+
+struct ResizeBilinearKernelParm {
+    ResizeBilinearKernelParm(int* _xofs, int* _yofs, short* _ialpha, short* _ibeta, const uint8_t* _src, uint8_t* _dst,
+                             int _src_plane, int _src_stride, int _schannel) {
+        xofs       = _xofs;
+        yofs       = _yofs;
+        ialpha     = _ialpha;
+        ibeta      = _ibeta;
+        src        = _src;
+        dst        = _dst;
+        src_plane  = _src_plane;
+        src_stride = _src_stride;
+        schannel   = _schannel;
+    };
+
+    int* xofs;
+    int* yofs;
+    short* ialpha;
+    short* ibeta;
+    const uint8_t* src;
+    uint8_t* dst;
+    int src_plane;
+    int src_stride;
+    int schannel;
+};
+
+template <int channel>
+void ResizeBilinearOneRow(ResizeBilinearKernelParm& param, int thread_id, short** rows0_t, short** rows1_t,
+                          int* prev_sy, int b, int w, int h, int stride, int dy) {
+    int sy = param.yofs[dy];
+    ResizeGetAdjacentRows<channel>(sy, prev_sy[thread_id], &rows0_t[thread_id], &rows1_t[thread_id], param.xofs,
+                                   param.src + b * param.src_plane, param.src_stride, w, param.ialpha);
+    prev_sy[thread_id] = sy;
+
+    // vresize
+    short b0 = param.ibeta[dy * 2];
+    short b1 = param.ibeta[dy * 2 + 1];
+
+    uint8_t* Dp = param.dst + stride * (b * h + dy);
+
+    ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, channel, Dp);
+}
+
+#define ResizeBilinearPreparation(channel)                                                                             \
+    int schannel = channel;                                                                                            \
+    int* buf     = nullptr;                                                                                            \
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);                                                                  \
+    int* xofs     = buf;                                                                                               \
+    int* yofs     = buf + w;                                                                                           \
+    short* ialpha = (short*)(buf + w + h);                                                                             \
+    short* ibeta  = (short*)(buf + w + h + w);                                                                         \
+    int src_plane = src_h * src_stride;
+
+void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                          int h, int stride) {
+    ResizeBilinearPreparation(1);
+
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[w * max_num_threads];
+    short* rows1        = new short[w * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int prev_sy[max_num_threads];
+
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * w;
+            rows1_t[t] = rows1 + t * w;
+        }
+
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id = OMP_TID_;
+            ResizeBilinearOneRow<1>(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
+        }
+    }
+
+    delete[] rows0;
+    delete[] rows1;
+    delete[] buf;
+}
+
+void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                          int h, int stride) {
+    ResizeBilinearPreparation(2);
+
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 2 + 2) * max_num_threads];
+    short* rows1        = new short[(w * 2 + 2) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int prev_sy[max_num_threads];
+
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 2 + 2);
+            rows1_t[t] = rows1 + t * (w * 2 + 2);
+        }
+
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id = OMP_TID_;
+            ResizeBilinearOneRow<2>(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
+        }
+    }
+
+    delete[] rows0;
+    delete[] rows1;
+    delete[] buf;
+}
+
+void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                          int h, int stride) {
+    ResizeBilinearPreparation(3);
+
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 3 + 1) * max_num_threads];
+    short* rows1        = new short[(w * 3 + 1) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int prev_sy[max_num_threads];
+
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 3 + 1);
+            rows1_t[t] = rows1 + t * (w * 3 + 1);
+        }
+
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id = OMP_TID_;
+            ResizeBilinearOneRow<3>(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
+        }
+    }
+
+    delete[] rows0;
+    delete[] rows1;
+    delete[] buf;
+}
+
+void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                          int h, int stride) {
+    ResizeBilinearPreparation(4);
+
+    ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    short* rows0        = new short[(w * 4) * max_num_threads];
+    short* rows1        = new short[(w * 4) * max_num_threads];
+    short* rows0_t[max_num_threads];
+    short* rows1_t[max_num_threads];
+    int prev_sy[max_num_threads];
+
+    for (int b = 0; b < batch; ++b) {
+        for (int t = 0; t < max_num_threads; ++t) {
+            prev_sy[t] = -2;
+            rows0_t[t] = rows0 + t * (w * 4);
+            rows1_t[t] = rows1 + t * (w * 4);
+        }
+
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            int thread_id = OMP_TID_;
+            ResizeBilinearOneRow<4>(param, thread_id, rows0_t, rows1_t, prev_sy, b, w, h, stride, dy);
+        }
+    }
+
+    delete[] rows0;
+    delete[] rows1;
+    delete[] buf;
+}
+
+void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
+}
+
+void ResizeBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC2Impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+}
+
+void ResizeBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC3Impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+}
+
+void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeBilinearC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+}
+
+void ResizeBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert w % 2 == 0
+    // assert h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = w * h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY = src + b * src_plane;
+        uint8_t* dstY       = dst + b * dst_plane;
+        ResizeBilinearC1(srcY, 1, src_w, src_h, dstY, w, h);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + w * h;
+        ResizeBilinearC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+    }
+}
 
 void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
 void ResizeNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
@@ -483,8 +887,8 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
                                     int src_offset, int& x_count, int& end_x, float border_val = 0) {
     const unsigned char* src2 = src + src_w * channel;
 
-    short *xy_loc_buf = new short[dst_w * 2 + 4];
-    short *tb_loc_buf = new short[dst_w + 4];
+    short* xy_loc_buf = new short[dst_w * 2 + 4];
+    short* tb_loc_buf = new short[dst_w + 4];
     // short xy_loc_buf[dst_w * 2];
     // short tb_loc_buf[dst_w];
     // int   sc_loc_buf[dst_w];
@@ -881,7 +1285,7 @@ void WarpAffineCalculateOneRow<1>(int begin_x, int end_x, int channel, int dst_l
     int x                  = begin_x;
 
     // uint8_t buf[(end_x - begin_x + 4) * 4];
-    uint8_t *buf = new uint8_t[(end_x - begin_x + 4) * 4];
+    uint8_t* buf = new uint8_t[(end_x - begin_x + 4) * 4];
     uint8_t* ptr = buf;
 
     for (int x = begin_x; x <= end_x; x++) {

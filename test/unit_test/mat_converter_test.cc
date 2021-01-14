@@ -112,7 +112,7 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
                                      const ColorConversionType& cvt_type,
                                      const int input_size) {
     if (mat_converter_type == MatConverterType::CvtColor) {
-        if (device_type != DEVICE_ARM) {
+        if (device_type != DEVICE_ARM && device_type != DEVICE_X86) {
             return true;
         }
         if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
@@ -167,16 +167,16 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             testing::Values(N8UC4, N8UC3, NGRAY),
                             // converter test param
                             testing::Values(
-                                // // Copy
+                                // Copy
                                 MatConverterTestParam(MatConverterType::Copy),
-                                // // Resize
-                                // MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_LINEAR),
+                                // Resize
+                                MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_LINEAR),
                                 // MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_NEAREST),
-                                // // Crop
-                                // MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
-                                // MatConverterTestParam(MatConverterType::Crop, 5, 5, 10, 10),
-                                // MatConverterTestParam(MatConverterType::Crop, 3, 7, 10, 10),
-                                // MatConverterTestParam(MatConverterType::Crop, 7, 3, 10, 10),
+                                // Crop
+                                MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
+                                MatConverterTestParam(MatConverterType::Crop, 5, 5, 10, 10),
+                                MatConverterTestParam(MatConverterType::Crop, 3, 7, 10, 10),
+                                MatConverterTestParam(MatConverterType::Crop, 7, 3, 10, 10),
                                 // WarpAffine
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                       INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
@@ -200,15 +200,15 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 //                       INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
                                 // MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
                                 //                       INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
-                                // // CvtColor
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBTOGRAY),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBATOGRAY),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
-                                // MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA),
+                                // CvtColor
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBTOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBATOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA),
                                 // CopyMakeBorder
                                 MatConverterTestParam(MatConverterType::CopyMakeBorder, 0, 10, 0, 10,
                                                       BORDER_TYPE_CONSTANT, 0.0),
