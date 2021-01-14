@@ -29,6 +29,10 @@ bool X86ConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *
         return false;
     }
 
+    if (param->group != 1) {
+        return false;
+    }
+
     const int kw = param->kernels[0];
     const int kh = param->kernels[1];
     const int dw = param->dialations[0];
