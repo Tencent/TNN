@@ -613,6 +613,14 @@
 		9DF5444D258B162F006CEC97 /* npu_common_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54446258B162F006CEC97 /* npu_common_utils.cc */; };
 		9DF5444F258B162F006CEC97 /* random_data_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF54448258B162F006CEC97 /* random_data_utils.h */; };
 		9DF54450258B162F006CEC97 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54449258B162F006CEC97 /* random_data_utils.cc */; };
+		9ECFA37D25B0271900329B9B /* winograd_function_int8.h in Headers */ = {isa = PBXBuildFile; fileRef = 9ECFA37A25B0271900329B9B /* winograd_function_int8.h */; };
+		9ECFA37E25B0271900329B9B /* conv_int8_8x8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA37B25B0271900329B9B /* conv_int8_8x8.cc */; };
+		9ECFA37F25B0271900329B9B /* winograd_function_int8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA37C25B0271900329B9B /* winograd_function_int8.cc */; };
+		9ECFA38225B0272000329B9B /* CONV_INT8_8X8.S in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA38125B0272000329B9B /* CONV_INT8_8X8.S */; };
+		9ECFA38825B0273300329B9B /* arm_conv_int8_layer_indirect.h in Headers */ = {isa = PBXBuildFile; fileRef = 9ECFA38425B0273300329B9B /* arm_conv_int8_layer_indirect.h */; };
+		9ECFA38925B0273300329B9B /* arm_conv_int8_layer_winograd.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA38525B0273300329B9B /* arm_conv_int8_layer_winograd.cc */; };
+		9ECFA38A25B0273300329B9B /* arm_conv_int8_layer_winograd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9ECFA38625B0273300329B9B /* arm_conv_int8_layer_winograd.h */; };
+		9ECFA38B25B0273300329B9B /* arm_conv_int8_layer_indirect.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA38725B0273300329B9B /* arm_conv_int8_layer_indirect.cc */; };
 		9ED0EC2425A2F2CF00E24FD5 /* cpu_device.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ED0EBBB25A2F2CE00E24FD5 /* cpu_device.cc */; };
 		9ED0EC2525A2F2CF00E24FD5 /* cpu_mat_util.h in Headers */ = {isa = PBXBuildFile; fileRef = 9ED0EBBC25A2F2CE00E24FD5 /* cpu_mat_util.h */; };
 		9ED0EC2625A2F2CF00E24FD5 /* cpu_mat_converter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ED0EBBD25A2F2CE00E24FD5 /* cpu_mat_converter.cc */; };
@@ -1432,6 +1440,14 @@
 		9DF54446258B162F006CEC97 /* npu_common_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = npu_common_utils.cc; sourceTree = "<group>"; };
 		9DF54448258B162F006CEC97 /* random_data_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random_data_utils.h; sourceTree = "<group>"; };
 		9DF54449258B162F006CEC97 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
+		9ECFA37A25B0271900329B9B /* winograd_function_int8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = winograd_function_int8.h; sourceTree = "<group>"; };
+		9ECFA37B25B0271900329B9B /* conv_int8_8x8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = conv_int8_8x8.cc; sourceTree = "<group>"; };
+		9ECFA37C25B0271900329B9B /* winograd_function_int8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = winograd_function_int8.cc; sourceTree = "<group>"; };
+		9ECFA38125B0272000329B9B /* CONV_INT8_8X8.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_INT8_8X8.S; sourceTree = "<group>"; };
+		9ECFA38425B0273300329B9B /* arm_conv_int8_layer_indirect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_layer_indirect.h; sourceTree = "<group>"; };
+		9ECFA38525B0273300329B9B /* arm_conv_int8_layer_winograd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_layer_winograd.cc; sourceTree = "<group>"; };
+		9ECFA38625B0273300329B9B /* arm_conv_int8_layer_winograd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_layer_winograd.h; sourceTree = "<group>"; };
+		9ECFA38725B0273300329B9B /* arm_conv_int8_layer_indirect.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_layer_indirect.cc; sourceTree = "<group>"; };
 		9ED0EBBB25A2F2CE00E24FD5 /* cpu_device.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_device.cc; sourceTree = "<group>"; };
 		9ED0EBBC25A2F2CE00E24FD5 /* cpu_mat_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cpu_mat_util.h; sourceTree = "<group>"; };
 		9ED0EBBD25A2F2CE00E24FD5 /* cpu_mat_converter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_mat_converter.cc; sourceTree = "<group>"; };
@@ -2489,6 +2505,9 @@
 		9DF5431A258B1364006CEC97 /* compute */ = {
 			isa = PBXGroup;
 			children = (
+				9ECFA37B25B0271900329B9B /* conv_int8_8x8.cc */,
+				9ECFA37C25B0271900329B9B /* winograd_function_int8.cc */,
+				9ECFA37A25B0271900329B9B /* winograd_function_int8.h */,
 				9DF5431B258B1364006CEC97 /* compute.cc */,
 				9DF5431C258B1364006CEC97 /* winograd_function.cc */,
 				9DF5431D258B1364006CEC97 /* compute.h */,
@@ -2527,6 +2546,7 @@
 		9DF54339258B1364006CEC97 /* arm64 */ = {
 			isa = PBXGroup;
 			children = (
+				9ECFA38125B0272000329B9B /* CONV_INT8_8X8.S */,
 				9DF5433A258B1364006CEC97 /* CONV_BFP16_O4.S */,
 				9DF5433B258B1364006CEC97 /* CONV_FLOAT_SLIDEW_C3.S */,
 				9DF5433C258B1364006CEC97 /* CONV_DW_5x5_BFP16_SLIDEW.S */,
@@ -2547,6 +2567,10 @@
 		9DF54363258B1365006CEC97 /* convolution */ = {
 			isa = PBXGroup;
 			children = (
+				9ECFA38725B0273300329B9B /* arm_conv_int8_layer_indirect.cc */,
+				9ECFA38425B0273300329B9B /* arm_conv_int8_layer_indirect.h */,
+				9ECFA38525B0273300329B9B /* arm_conv_int8_layer_winograd.cc */,
+				9ECFA38625B0273300329B9B /* arm_conv_int8_layer_winograd.h */,
 				9DF54364258B1365006CEC97 /* arm_conv_int8_layer_depthwise.cc */,
 				9DF54365258B1365006CEC97 /* arm_conv_layer_depthwise_s1.h */,
 				9DF54366258B1365006CEC97 /* arm_conv_layer_common.cc */,
@@ -2803,6 +2827,7 @@
 				9ED0EC3F25A2F2CF00E24FD5 /* cpu_detection_output_layer_acc.h in Headers */,
 				9D32FCCC24557EEC002DCDAB /* reduce_layer.h in Headers */,
 				9D32FF4924557EED002DCDAB /* serializer.h in Headers */,
+				9ECFA38825B0273300329B9B /* arm_conv_int8_layer_indirect.h in Headers */,
 				9D32FF7324557EED002DCDAB /* abstract_network.h in Headers */,
 				9DD1FBB7247CE9BE00800139 /* metal_conv_layer_winograd.h in Headers */,
 				9DF543E3258B1366006CEC97 /* gemm_function.h in Headers */,
@@ -2846,6 +2871,7 @@
 				9DF543A7258B1366006CEC97 /* arm_prelu_layer_acc.h in Headers */,
 				9DF54420258B1367006CEC97 /* arm_conv_fp16_layer_common.h in Headers */,
 				9DF543BE258B1366006CEC97 /* arm_hard_swish_acc.h in Headers */,
+				9ECFA38A25B0273300329B9B /* arm_conv_int8_layer_winograd.h in Headers */,
 				9DDA70A2241F9A0300F17A1C /* utils in Headers */,
 				9DF543CD258B1366006CEC97 /* compute.h in Headers */,
 				9DD1FB53247CE9BE00800139 /* metal_common.h in Headers */,
@@ -2891,6 +2917,7 @@
 				9DF543F6258B1366006CEC97 /* arm_layer_acc.h in Headers */,
 				9ED0EC2F25A2F2CF00E24FD5 /* cpu_binary_op_layer_acc.h in Headers */,
 				9ED0EC5725A2F2CF00E24FD5 /* cpu_reduce_layer_acc.h in Headers */,
+				9ECFA37D25B0271900329B9B /* winograd_function_int8.h in Headers */,
 				9D32FC9924557EEC002DCDAB /* memory_mode_state_factory.h in Headers */,
 				9DF54406258B1367006CEC97 /* arm_inner_product_layer_acc.h in Headers */,
 				9DF54416258B1367006CEC97 /* arm_conv_layer_c3.h in Headers */,
@@ -3082,6 +3109,7 @@
 				EC0BE15225144BB8009BD69A /* squared_difference_layer.cc in Sources */,
 				9DF543DB258B1366006CEC97 /* GEMM_FLOAT_N4.S in Sources */,
 				E4D05BF1259F15C700921502 /* arm_concat_layer_acc.cc in Sources */,
+				9ECFA38225B0272000329B9B /* CONV_INT8_8X8.S in Sources */,
 				9DF5444D258B162F006CEC97 /* npu_common_utils.cc in Sources */,
 				9DD1FB50247CE9BE00800139 /* metal_sin_layer_acc.mm in Sources */,
 				9DD1FB58247CE9BE00800139 /* metal_splitv_layer_acc.metal in Sources */,
@@ -3124,6 +3152,7 @@
 				9D32FF5E24557EED002DCDAB /* interp_layer_interpreter.cc in Sources */,
 				9DD1FBD1247CE9BF00800139 /* metal_acos_layer_acc.metal in Sources */,
 				E4D05E9C25A093D000921502 /* arm_conv_fp16_layer_depthwise.cc in Sources */,
+				9ECFA37E25B0271900329B9B /* conv_int8_8x8.cc in Sources */,
 				9D32FCC824557EEC002DCDAB /* add_layer.cc in Sources */,
 				9D32FF1124557EED002DCDAB /* reorg_layer_interpreter.cc in Sources */,
 				9DD1FB74247CE9BE00800139 /* metal_deconv_layer_common.metal in Sources */,
@@ -3534,6 +3563,7 @@
 				9DF5441D258B1367006CEC97 /* arm_conv_layer_1x1.cc in Sources */,
 				9DD1FB9F247CE9BE00800139 /* metal_cos_layer_acc.metal in Sources */,
 				9D32FC8924557EEC002DCDAB /* blob_memory_size_info.cc in Sources */,
+				9ECFA37F25B0271900329B9B /* winograd_function_int8.cc in Sources */,
 				9D4C60CC246BF7A1006068D1 /* bbox_util.cc in Sources */,
 				9ED0EC5225A2F2CF00E24FD5 /* cpu_conv_layer_acc.cc in Sources */,
 				9DD1FBB4247CE9BE00800139 /* metal_conv_layer_common.mm in Sources */,
@@ -3584,6 +3614,7 @@
 				9DD1FB85247CE9BE00800139 /* metal_min_layer_acc.metal in Sources */,
 				9D32FD0D24557EEC002DCDAB /* reduce_max_layer.cc in Sources */,
 				9D32FF2824557EED002DCDAB /* blob_scale_layer_interpreter.cc in Sources */,
+				9ECFA38B25B0273300329B9B /* arm_conv_int8_layer_indirect.cc in Sources */,
 				9DD1FB8F247CE9BE00800139 /* metal_abs_layer_acc.mm in Sources */,
 				9DD1FB6B247CE9BE00800139 /* metal_abs_layer_acc.metal in Sources */,
 				9DD1FB44247CE9BE00800139 /* metal_relu_layer_acc.mm in Sources */,
@@ -3657,6 +3688,7 @@
 				9D5B716124BF0A300062DF64 /* metal_prior_box_layer_acc.mm in Sources */,
 				9DD1FBC7247CE9BE00800139 /* metal_upsample_layer_acc.metal in Sources */,
 				9DF543D0258B1366006CEC97 /* GEMM_INT8_4X8.S in Sources */,
+				9ECFA38925B0273300329B9B /* arm_conv_int8_layer_winograd.cc in Sources */,
 				9ED0EC8825A2F2CF00E24FD5 /* cpu_reduce_layer_acc.cc in Sources */,
 				E4D05EB025A093D000921502 /* GEMM_FP16_N8.S in Sources */,
 				9D32FCDD24557EEC002DCDAB /* prior_box_layer.cc in Sources */,
