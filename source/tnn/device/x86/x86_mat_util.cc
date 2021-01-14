@@ -562,6 +562,21 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
     delete[] tb_loc_buf;
 }
 
+static inline __m128i load_element_c4(const uint8_t *addr) {
+    return _mm_loadl_epi64((__m128i*)addr);
+}
+
+static inline __m128i load_element_c3(const uint8_t *addr) {
+    __m128i val;
+    val = _mm_insert_epi32(val, *(int *)addr, 0);
+    return _mm_insert_epi16(val, *(short *)(addr+4), 2);
+}
+
+static inline __m128i load_element_c2(const uint8_t *addr) {
+    __m128i val;
+    return _mm_insert_epi32(val, *(int *)addr, 0);
+}
+
 template <int schannel>
 static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int dst_loc_base, const int* buf_loc,
                                       const short* tab_loc, const uint8_t* src1, const uint8_t* src2, uint8_t* dst) {
@@ -640,22 +655,75 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         __m128i wtab70_vec = _mm_shuffle_epi8(wtab7_vec, mask_vec2);
         __m128i wtab71_vec = _mm_shuffle_epi8(wtab7_vec, mask_vec3);
 
-        __m128i point_vec00 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base0), mask_vec);
-        __m128i point_vec01 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base0), mask_vec);
-        __m128i point_vec10 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base1), mask_vec);
-        __m128i point_vec11 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base1), mask_vec);
-        __m128i point_vec20 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base2), mask_vec);
-        __m128i point_vec21 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base2), mask_vec);
-        __m128i point_vec30 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base3), mask_vec);
-        __m128i point_vec31 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base3), mask_vec);
-        __m128i point_vec40 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base4), mask_vec);
-        __m128i point_vec41 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base4), mask_vec);
-        __m128i point_vec50 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base5), mask_vec);
-        __m128i point_vec51 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base5), mask_vec);
-        __m128i point_vec60 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base6), mask_vec);
-        __m128i point_vec61 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base6), mask_vec);
-        __m128i point_vec70 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src_base7), mask_vec);
-        __m128i point_vec71 = _mm_shuffle_epi8(_mm_loadl_epi64((__m128i*)src2_base7), mask_vec);
+        __m128i point_vec00;
+        __m128i point_vec01;
+        __m128i point_vec10;
+        __m128i point_vec11;
+        __m128i point_vec20;
+        __m128i point_vec21;
+        __m128i point_vec30;
+        __m128i point_vec31;
+        __m128i point_vec40;
+        __m128i point_vec41;
+        __m128i point_vec50;
+        __m128i point_vec51;
+        __m128i point_vec60;
+        __m128i point_vec61;
+        __m128i point_vec70;
+        __m128i point_vec71;
+
+        if (schannel == 3) {
+            point_vec00 = _mm_shuffle_epi8(load_element_c3(src_base0), mask_vec);
+            point_vec01 = _mm_shuffle_epi8(load_element_c3(src2_base0), mask_vec);
+            point_vec10 = _mm_shuffle_epi8(load_element_c3(src_base1), mask_vec);
+            point_vec11 = _mm_shuffle_epi8(load_element_c3(src2_base1), mask_vec);
+            point_vec20 = _mm_shuffle_epi8(load_element_c3(src_base2), mask_vec);
+            point_vec21 = _mm_shuffle_epi8(load_element_c3(src2_base2), mask_vec);
+            point_vec30 = _mm_shuffle_epi8(load_element_c3(src_base3), mask_vec);
+            point_vec31 = _mm_shuffle_epi8(load_element_c3(src2_base3), mask_vec);
+            point_vec40 = _mm_shuffle_epi8(load_element_c3(src_base4), mask_vec);
+            point_vec41 = _mm_shuffle_epi8(load_element_c3(src2_base4), mask_vec);
+            point_vec50 = _mm_shuffle_epi8(load_element_c3(src_base5), mask_vec);
+            point_vec51 = _mm_shuffle_epi8(load_element_c3(src2_base5), mask_vec);
+            point_vec60 = _mm_shuffle_epi8(load_element_c3(src_base6), mask_vec);
+            point_vec61 = _mm_shuffle_epi8(load_element_c3(src2_base6), mask_vec);
+            point_vec70 = _mm_shuffle_epi8(load_element_c3(src_base7), mask_vec);
+            point_vec71 = _mm_shuffle_epi8(load_element_c3(src2_base7), mask_vec);
+        } else if (schannel == 4) {
+            point_vec00 = _mm_shuffle_epi8(load_element_c4(src_base0), mask_vec);
+            point_vec01 = _mm_shuffle_epi8(load_element_c4(src2_base0), mask_vec);
+            point_vec10 = _mm_shuffle_epi8(load_element_c4(src_base1), mask_vec);
+            point_vec11 = _mm_shuffle_epi8(load_element_c4(src2_base1), mask_vec);
+            point_vec20 = _mm_shuffle_epi8(load_element_c4(src_base2), mask_vec);
+            point_vec21 = _mm_shuffle_epi8(load_element_c4(src2_base2), mask_vec);
+            point_vec30 = _mm_shuffle_epi8(load_element_c4(src_base3), mask_vec);
+            point_vec31 = _mm_shuffle_epi8(load_element_c4(src2_base3), mask_vec);
+            point_vec40 = _mm_shuffle_epi8(load_element_c4(src_base4), mask_vec);
+            point_vec41 = _mm_shuffle_epi8(load_element_c4(src2_base4), mask_vec);
+            point_vec50 = _mm_shuffle_epi8(load_element_c4(src_base5), mask_vec);
+            point_vec51 = _mm_shuffle_epi8(load_element_c4(src2_base5), mask_vec);
+            point_vec60 = _mm_shuffle_epi8(load_element_c4(src_base6), mask_vec);
+            point_vec61 = _mm_shuffle_epi8(load_element_c4(src2_base6), mask_vec);
+            point_vec70 = _mm_shuffle_epi8(load_element_c4(src_base7), mask_vec);
+            point_vec71 = _mm_shuffle_epi8(load_element_c4(src2_base7), mask_vec);
+        } else if (schannel == 2) {
+            point_vec00 = _mm_shuffle_epi8(load_element_c2(src_base0), mask_vec);
+            point_vec01 = _mm_shuffle_epi8(load_element_c2(src2_base0), mask_vec);
+            point_vec10 = _mm_shuffle_epi8(load_element_c2(src_base1), mask_vec);
+            point_vec11 = _mm_shuffle_epi8(load_element_c2(src2_base1), mask_vec);
+            point_vec20 = _mm_shuffle_epi8(load_element_c2(src_base2), mask_vec);
+            point_vec21 = _mm_shuffle_epi8(load_element_c2(src2_base2), mask_vec);
+            point_vec30 = _mm_shuffle_epi8(load_element_c2(src_base3), mask_vec);
+            point_vec31 = _mm_shuffle_epi8(load_element_c2(src2_base3), mask_vec);
+            point_vec40 = _mm_shuffle_epi8(load_element_c2(src_base4), mask_vec);
+            point_vec41 = _mm_shuffle_epi8(load_element_c2(src2_base4), mask_vec);
+            point_vec50 = _mm_shuffle_epi8(load_element_c2(src_base5), mask_vec);
+            point_vec51 = _mm_shuffle_epi8(load_element_c2(src2_base5), mask_vec);
+            point_vec60 = _mm_shuffle_epi8(load_element_c2(src_base6), mask_vec);
+            point_vec61 = _mm_shuffle_epi8(load_element_c2(src2_base6), mask_vec);
+            point_vec70 = _mm_shuffle_epi8(load_element_c2(src_base7), mask_vec);
+            point_vec71 = _mm_shuffle_epi8(load_element_c2(src2_base7), mask_vec);
+        }
 
         point_vec00 = _mm_cvtepu8_epi16(point_vec00);
         point_vec01 = _mm_cvtepu8_epi16(point_vec01);
