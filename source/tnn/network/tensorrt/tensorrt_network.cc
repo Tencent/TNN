@@ -188,6 +188,15 @@ Status TensorRTNetwork_::Forward() {
 }
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
+    for (auto iter : inputs) {
+        Blob *blob = blob_manager_->GetBlob(iter.first);
+        if (blob == nullptr) {
+            LOGE("TensorRTNetwork reshape blob is empty\n");
+            return Status(TNNERR_PARAM_ERR, "TensorRTNetwork reshape blob is empty");
+        }
+        blob->GetBlobDesc().dims = iter.second;
+    }
+
     Status ret = TNN_OK;
     for (auto cur_layer : layers_) {
         ret = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->Reshape();
