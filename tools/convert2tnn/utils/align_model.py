@@ -43,8 +43,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     if ret == 0:
         print_align_message(is_tflite)
     else:
-        print_not_align_message(None, is_tflie)
-
+        print_not_align_message(None, is_tflite)
     return
 
 
@@ -250,8 +249,8 @@ def replace_tnn_input_name(input_info: dict):
     return new_input_info
 
 
-def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
-                refer_path: str = None, input_names: str = None, is_tflite: bool=False ) -> bool:
+def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
+                refer_path: str = None, input_names: str = None, is_tflite: bool = False, debug_mode: bool = False) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
@@ -301,9 +300,9 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
-    if input_file_path is None and os.path.exists(input_path):
-        data.clean_temp_data(os.path.dirname(input_path))
-    if refer_path is None and os.path.exists(reference_output_path):
-        data.clean_temp_data(reference_output_path)
-
+    if debug_mode is False:
+        if input_file_path is None and os.path.exists(input_path):
+            data.clean_temp_data(os.path.dirname(input_path))
+        if refer_path is None and os.path.exists(reference_output_path):
+            data.clean_temp_data(reference_output_path)
     return True

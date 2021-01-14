@@ -77,7 +77,7 @@ public:
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
     //
-    virtual Status SetNetInputNode(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status SetNetInputNode();
 
     virtual Status BuildNgraphNetwork(NetStructure *net_structure);
 

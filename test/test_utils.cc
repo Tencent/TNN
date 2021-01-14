@@ -50,6 +50,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_NCNN;
     } else if ("TNN" == model_type){
         return MODEL_TYPE_TNN;
+    } else if ("RKCACHE" == model_type) {
+        return MODEL_TYPE_RKCACHE;
     } else {
         return MODEL_TYPE_RAPIDNET;
     }
