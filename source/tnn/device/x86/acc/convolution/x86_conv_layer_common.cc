@@ -45,7 +45,7 @@ Status X86ConvLayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs,
 
     if (!buffer_bias_.GetBytesSize()) {
         auto dims_output = outputs[0]->GetBlobDesc().dims;
-        int total_byte_size = ROUND_UP(dims_output[1], 4) * DataTypeUtils::GetBytesSize(conv_res->bias_handle.GetDataType());
+        int total_byte_size = ROUND_UP(dims_output[1], 8) * DataTypeUtils::GetBytesSize(conv_res->bias_handle.GetDataType());
         RawBuffer temp_buffer(total_byte_size);
         if (conv_param->bias) {
             const int bias_handle_size    = conv_res->bias_handle.GetBytesSize();
@@ -111,10 +111,7 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
         auto input_data = static_cast<float*>(input_ptr);
         auto output_data = static_cast<float*>(output_ptr);
         auto weights_data = resource->filter_handle.force_to<float*>();
-        float *bias_data = nullptr;
-        if (resource->bias_handle.GetDataCount() != 0) {
-            bias_data = resource->bias_handle.force_to<float*>();
-        }
+        float *bias_data  = buffer_bias_.force_to<float*>();
         float *col_buff;
         for (size_t b = 0; b < outputs[0]->GetBlobDesc().dims[0]; b++) {
             if (do_im2col_) {
