@@ -20,7 +20,6 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include <mm_malloc.h>
 
 namespace TNN_NS {
 bool X86ConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
