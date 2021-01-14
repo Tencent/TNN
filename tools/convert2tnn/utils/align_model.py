@@ -43,8 +43,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     if ret == 0:
         print_align_message(is_tflite)
     else:
-        print_not_align_message(None, is_tflie)
-
+        print_not_align_message(None, is_tflite)
     return
 
 
@@ -228,21 +227,30 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
 
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
-    for inp in input_names.split(";"):
-        name, shape_ = inp.split(":")
-        shape = []
-        for dim in shape_.split(","):
-            shape.append(int(dim))
-
-        shape[0] = 1
-
-        input_info[name] = shape
+    for x in input_names.split(" "):
+        if ':' not in x:
+            input_info[None] = list(map(int, x.split(',')))
+        else:
+            pieces = x.split(':')
+            # for the input name like input:0
+            name, shape = ':'.join(
+                pieces[:-1]), list(map(int, pieces[-1].split(',')))
+            input_info[name] = shape
 
     return input_info
 
 
-def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str=None,
-                refer_path: str = None, input_names: str = None, is_tflite: bool=False ) -> bool:
+def replace_tnn_input_name(input_info: dict):
+    new_input_info = {}
+    for name, shape in input_info.items():
+        new_name = name.replace(":", "_")
+        new_input_info[new_name] = shape
+
+    return new_input_info
+
+
+def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
+                refer_path: str = None, input_names: str = None, is_tflite: bool = False, debug_mode: bool = False) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
@@ -256,11 +264,10 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
 
-    if input_names is not None:
-        input_info = parse_input_names(input_names)
     # check input
     if input_names is not None:
-        tnn_input_info = input_info
+        input_info = parse_input_names(input_names)
+        tnn_input_info = replace_tnn_input_name(input_info)
         onnx_input_info = input_info
     else:
         tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
@@ -293,9 +300,9 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             logging.error("Invalid refer_path")
             sys.exit(return_code.ALIGN_FAILED)
     run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
-    if input_file_path is None and os.path.exists(input_path):
-        data.clean_temp_data(os.path.dirname(input_path))
-    if refer_path is None and os.path.exists(reference_output_path):
-        data.clean_temp_data(reference_output_path)
-
+    if debug_mode is False:
+        if input_file_path is None and os.path.exists(input_path):
+            data.clean_temp_data(os.path.dirname(input_path))
+        if refer_path is None and os.path.exists(reference_output_path):
+            data.clean_temp_data(reference_output_path)
     return True

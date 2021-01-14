@@ -48,6 +48,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_COREML;
     } else if ("NCNN" == model_type) {
         return MODEL_TYPE_NCNN;
+    } else if ("RKCACHE" == model_type) {
+        return MODEL_TYPE_RKCACHE;
     } else {
         return MODEL_TYPE_TNN;
     }
@@ -64,6 +66,8 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_HUAWEI_NPU;
     } else if ("RKNPU" == network_type) {
         return NETWORK_TYPE_RK_NPU;
+    } else if ("TRT" == network_type) {
+        return NETWORK_TYPE_TENSORRT;
     } else {
         return NETWORK_TYPE_DEFAULT;
     }
@@ -127,8 +131,8 @@ int CompareData(const float* ref_data, const float* result_data, size_t n, float
             sum_dot += result_data[i] * ref_data[i];
         }
         double cos_sim = sum_dot / (sqrt(sum_res) * sqrt(sum_ref));
-        if (cos_sim < 0.9999f) {
-            printf("ERROR COSINE SIMILARITY %.6f < 0.9999\n", cos_sim);
+        if (cos_sim < 0.9998f) {
+            printf("ERROR COSINE SIMILARITY %.6f < 0.9998\n", cos_sim);
             return -1;
         }
     }

@@ -48,6 +48,30 @@ Status MetalDeconvLayerDepthwise::AllocateBufferWeight(
     return status;
 }
 
+Status MetalDeconvLayerDepthwise::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    id<MTLDevice> device        = [TNNMetalDeviceImpl sharedDevice];
+    ConvLayerParam *layer_param = dynamic_cast<ConvLayerParam *>(param_);
+
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    // buffer_param_
+    {
+        MetalConvParams metal_params;
+        SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        SetDefaultMetalConvParams(metal_params, layer_param);
+
+        auto status = MetalDeconvLayerCommon::ComputeDeconvParam(metal_params);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalConvParams)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+
+    return TNN_OK;
+}
+
 std::string MetalDeconvLayerDepthwise::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return "deconv_depthwise";
 }

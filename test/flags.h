@@ -22,7 +22,7 @@ namespace TNN_NS {
 
 static const char help_message[] = "print a usage message.";
 
-static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN.";
+static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN, RKCACHE.";
 
 static const char model_path_message[] =
     "specify model path: tnn proto path, openvino xml path, coreml "
@@ -67,11 +67,11 @@ DECLARE_bool(h);
 
 DECLARE_string(mt);
 
+DECLARE_string(nt);
+
 DECLARE_string(mp);
 
 DECLARE_string(dt);
-
-DECLARE_string(nt);
 
 DECLARE_string(lp);
 

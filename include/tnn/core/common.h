@@ -38,14 +38,16 @@ typedef enum {
 
 typedef enum {
     // decided by device
-    DATA_FORMAT_AUTO   = -1,
-    DATA_FORMAT_NCHW   = 0,
-    DATA_FORMAT_NHWC   = 1,
-    DATA_FORMAT_NHWC4  = 2,
-    DATA_FORMAT_NC4HW4 = 3,
-    DATA_FORMAT_NCDHW  = 4,
-    DATA_FORMAT_NHC4W4 = 5,
-    DATA_FORMAT_NC8HW8 = 6,
+    DATA_FORMAT_AUTO     = -1,
+    DATA_FORMAT_NCHW     = 0,
+    DATA_FORMAT_NHWC     = 1,
+    DATA_FORMAT_NHWC4    = 2,
+    DATA_FORMAT_NC2HW2   = 3,
+    DATA_FORMAT_NC4HW4   = 4,
+    DATA_FORMAT_NC8HW8   = 5,
+    DATA_FORMAT_NC16HW16 = 6,
+    DATA_FORMAT_NCDHW    = 7,
+    DATA_FORMAT_NHC4W4   = 8
 } DataFormat;
 
 typedef enum {
@@ -79,7 +81,8 @@ typedef enum {
     NETWORK_TYPE_HIAI       = 0x4000,
     NETWORK_TYPE_ATLAS      = 0x5000,
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
-    NETWORK_TYPE_RK_NPU     = 0x7000
+    NETWORK_TYPE_RK_NPU     = 0x7000,
+    NETWORK_TYPE_TENSORRT   = 0x8000,
 } NetworkType;
 
 typedef enum {
@@ -112,7 +115,8 @@ typedef enum {
     MODEL_TYPE_COREML   = 0x2000,
     MODEL_TYPE_SNPE     = 0x3000,
     MODEL_TYPE_HIAI     = 0x4000,
-    MODEL_TYPE_ATLAS    = 0x5000
+    MODEL_TYPE_ATLAS    = 0x5000,
+    MODEL_TYPE_RKCACHE  = 0x6000
 } ModelType;
 
 using DimsVector = std::vector<int>;

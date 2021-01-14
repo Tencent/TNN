@@ -150,6 +150,11 @@ struct TNNVector {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
         }
     }
+    static void mls(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const TNNVector<T, len>& v3) {
+        for (int i = 0; i < len; ++i) {
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[i];
+        }
+    }
     static TNNVector<T, len> neg(const TNNVector<T, len>& v) {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
@@ -270,6 +275,23 @@ struct TNNVector {
             dst.value[i] = std::fabs(v.value[i]);
         }
         return dst;
+    }
+    static void zip(TNNVector<T, len>& v1, TNNVector<T, len>& v2) {
+        if (len % 2 != 0) {
+            LOGE("%s\n", "vecotr zip does not support len is odd");
+        }
+        T tmp[len];
+        for (int i = 0; i < len; i++) {
+            tmp[i] = v1.value[i];
+        }
+        for (int i = 0; i < len / 2; i++) {
+            v1.value[i * 2] = tmp[i];
+            v1.value[i * 2 + 1] = v2.value[i];
+        }
+        for (int i = 0; i < len / 2; i++) {
+            v2.value[i * 2] = tmp[len / 2 + i];
+            v2.value[i * 2 + 1] = v2.value[len / 2 + i];
+        }
     }
 };
 

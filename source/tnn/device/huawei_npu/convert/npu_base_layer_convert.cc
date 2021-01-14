@@ -55,8 +55,14 @@ Status NpuBaseLayer::Init(Context *context, LayerParam *param, LayerResource *re
     resource_     = resource;
     input_ops_    = input_ops;
     outputs_name_ = outputs;
+
+    // calculate the output shape
+    Status ret = NpuBaseLayer::CalculateOutputShape(output_shapes_);
+    if (ret != TNN_OK)
+        return ret;
+
     // Convert all layers
-    Status ret = Convert();
+    ret = Convert();
     return ret;
 }
 
@@ -73,24 +79,15 @@ std::string NpuBaseLayer::GetLayerName() {
 }
 
 Status NpuBaseLayer::SetOutputOps() {
-    // calculate the output shape
     // all output index (output shape/ops) follow the outputs_name_ attribute
-    std::vector<std::vector<int>> output_shapes;
-    Status ret = NpuBaseLayer::CalculateOutputShape(output_shapes);
-    if (ret != TNN_OK)
-        return ret;
     for (int i = 0; i < outputs_name_.size(); i++) {
-        output_ops_[i]->SetShape(output_shapes[i]);
+        output_ops_[i]->SetShape(output_shapes_[i]);
     }
     return TNN_OK;
 }
 
 Status NpuBaseLayer::GetOutputShape(int i, std::vector<int> &output_shape) {
-    std::vector<std::vector<int>> output_shapes;
-    Status ret = CalculateOutputShape(output_shapes);
-    if (ret != TNN_OK)
-        return ret;
-    output_shape = output_shapes[i];
+    output_shape = output_shapes_[i];
     return TNN_OK;
 }
 
