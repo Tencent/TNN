@@ -187,14 +187,14 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
         if (left_c > 5) v5 = _mm256_loadu_ps(src5 + cur_hw);
         if (left_c > 6) v6 = _mm256_loadu_ps(src6 + cur_hw);
         _MM256_TRANSPOSE8_LEFT(v0, v1, v2, v3, v4, v5, v6, v7);
-        _mm256_store_ps(dst_hw, t0);
-        _mm256_store_ps(dst_hw + 8, t1);
-        _mm256_store_ps(dst_hw + 16, t2);
-        _mm256_store_ps(dst_hw + 24, t3);
-        _mm256_store_ps(dst_hw + 32, t4);
-        _mm256_store_ps(dst_hw + 40, t5);
-        _mm256_store_ps(dst_hw + 48, t6);
-        _mm256_store_ps(dst_hw + 56, t7);
+        _mm256_storeu_ps(dst_hw, t0);
+        _mm256_storeu_ps(dst_hw + 8, t1);
+        _mm256_storeu_ps(dst_hw + 16, t2);
+        _mm256_storeu_ps(dst_hw + 24, t3);
+        _mm256_storeu_ps(dst_hw + 32, t4);
+        _mm256_storeu_ps(dst_hw + 40, t5);
+        _mm256_storeu_ps(dst_hw + 48, t6);
+        _mm256_storeu_ps(dst_hw + 56, t7);
     }
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 8 + 0] = src0[cur_hw];
@@ -228,7 +228,7 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
         } else {
             dst[cur_hw * 8 + 6] = 0;
         }
-        dst[cur_hw * 8 + 7] = 0;
+       dst[cur_hw * 8 + 7]  = 0;
     }
 }
 int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel) {

@@ -548,7 +548,7 @@ void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const 
             Float8::save(dstY + (dx + 3) * 8, dst_v[3]);
         }
         for (; dx < width; ++dx) {
-            Float8 dst_v(0.0f);
+            Float8 dst_v = bias_v;
             const auto* src_z    = srcY + src_w_step * dx;
             const auto* weight_z = weight;
             for (fy = 0; fy < fh; ++fy) {

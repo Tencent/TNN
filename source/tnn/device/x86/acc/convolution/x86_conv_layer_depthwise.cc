@@ -50,11 +50,11 @@ Status X86ConvLayerDepthwise::allocateBufferWeight(const std::vector<Blob *> &in
         int kh = param->kernels[1];
 
         const int group  = param->group;
-        const int group4 = ROUND_UP(group, 4);
+        const int group8 = ROUND_UP(group, 8);
 
         const float *src = conv_res->filter_handle.force_to<float *>();
 
-        int weight_count   = group4 * kh * kw;
+        int weight_count   = group8 * kh * kw;
         int data_byte_size = DataTypeUtils::GetBytesSize(conv_res->filter_handle.GetDataType());
 
         if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
@@ -106,16 +106,13 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     const int batch    = dims_output[0];
     int dst_z_step     = dims_output[2] * dims_output[3];
     int src_z_step     = dims_input[2] * dims_input[3];
-    int dilate_y_step  = (dims_input[3] + param->pads[0] + param->pads[1]) * 8 * param->dialations[1];
+    int src_pad_w      = dims_input[3] + param->pads[0] + param->pads[1];
+    int dilate_y_step  = src_pad_w * 8 * param->dialations[1];
     int dilate_x_step  = 8 * param->dialations[0];
     int weight_z_step  = param->kernels[0] * param->kernels[1];
-    int src_pad_w      = dims_input[3] + param->pads[0] + param->pads[1];
 
-    size_t src_pad_size = (dims_input[3] + param->pads[0] + param->pads[1]) *
-                          (dims_input[2] + param->pads[2] + param->pads[3]) *
-                          8 * sizeof(float);
+    size_t src_pad_size = src_pad_w * (dims_input[2] + param->pads[2] + param->pads[3]) * 8 * sizeof(float);
     size_t dst_tmp_size = dst_z_step * 8 * sizeof(float);
-    // float *workspace = (float*)aligned_alloc(32, src_pad_size + dst_tmp_size);
     float *workspace = (float*)_mm_malloc(src_pad_size + dst_tmp_size, 32);
 
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
