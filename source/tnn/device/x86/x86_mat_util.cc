@@ -269,10 +269,105 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
     return YUVToBGR<false, true>(nv21, bgra, h, w);
 }
 
-void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width) {}
-void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width) {}
-void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width) {}
-void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width) {}
+template <int channel, bool bgr_order>
+void ColorToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+    int offset = 0;
+    int plane  = h * w;
+
+#ifdef __SSE4_2__
+    const unsigned char* Sp = bgr;
+    unsigned char* Dp       = gray;
+    __m128 _coeff_b         = _mm_set1_ps(0.114);
+    __m128 _coeff_g         = _mm_set1_ps(0.587);
+    __m128 _coeff_r         = _mm_set1_ps(0.299);
+    __m128i _vzero          = _mm_set1_epi16(0);
+    __m128i _maski16_to_i8  = _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+    __m128i _maski32_to_i16 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
+    __m128i _maskld3_0      = _mm_setr_epi8(0, 3, 6, 9, 12, 15, 1, 4, 7, 10, 13, 2, 5, 8, 11, 14);
+    __m128i _maskld3_1      = _mm_setr_epi8(2, 5, 0, 3, 6, 1, 4, 7, 0, 0, 0, 0, 0, 0, 0, 0);
+    for (; offset<plane>> 3 << 3; offset += 8) {
+        __m128i b_h, g_h, r_h;
+        if (channel == 3) {
+            __m128i _bgra0_load = _mm_loadu_si128((__m128i*)Sp);              // b0g0r0 b1g1r1 b2g2r2 b3g3r3 b4g4r4 b5
+            __m128i _bgra1_load = _mm_loadl_epi64((__m128i*)(Sp + 16));       // g5r5 b6g6r6 b7g7r7
+            __m128i tmp0        = _mm_shuffle_epi8(_bgra0_load, _maskld3_0);  // b0b1b2b3b4b5 g0g1g2g3g4 r0r1r2r3r4
+            __m128i tmp1        = _mm_shuffle_epi8(_bgra1_load, _maskld3_1);  // b6b7 g5g6g7 r5r6r7
+            _bgra0_load         = _mm_srli_si128(_mm_slli_si128(tmp0, 10), 10);  // b0b1b2b3b4b5 0
+            _bgra1_load         = _mm_slli_si128(tmp1, 6);                       // 0 0 0 0 0 0  b6b7
+            __m128i b_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+            _bgra0_load         = _mm_srli_si128(_mm_slli_si128(tmp0, 5), 11);  // g0g1g2g3g4 0
+            _bgra1_load         = _mm_slli_si128(_mm_srli_si128(tmp1, 2), 5);   // 0 0 0 0 0  g5g6g7
+            __m128i g_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+            _bgra0_load         = _mm_srli_si128(tmp0, 11);                    // r0r1r2r3r4 0
+            _bgra1_load         = _mm_slli_si128(_mm_srli_si128(tmp1, 5), 5);  // 0 0 0 0 0  r5r6r7
+            __m128i r_b         = _mm_or_si128(_bgra0_load, _bgra1_load);
+
+            b_h = _mm_cvtepu8_epi16(bgr_order ? b_b : r_b);
+            g_h = _mm_cvtepu8_epi16(g_b);
+            r_h = _mm_cvtepu8_epi16(bgr_order ? r_b : b_b);
+        } else {
+            __m128i _bgra0_load = _mm_loadu_si128((__m128i*)Sp);                // a0 - a15
+            __m128i _bgra1_load = _mm_loadu_si128((__m128i*)(Sp + 16));         // b0 - b15
+            __m128i tmp0        = _mm_unpacklo_epi8(_bgra0_load, _bgra1_load);  // a0,b0, - a7,b7
+            __m128i tmp1        = _mm_unpackhi_epi8(_bgra0_load, _bgra1_load);  // a8,b8, - a15,b15
+            _bgra0_load         = _mm_unpacklo_epi8(tmp0, tmp1);                // a0,a8,b0,b8, - a3,a11,b3,b11
+            _bgra1_load         = _mm_unpackhi_epi8(tmp0, tmp1);                // a4,a12,b4,b12, - a7,a15,b7,b15
+            tmp0                = _mm_unpacklo_epi8(_bgra0_load, _bgra1_load);  // a0 - b12, a1 - b13
+            tmp1                = _mm_unpackhi_epi8(_bgra0_load, _bgra1_load);  // a2 - b14, a3 - b15
+
+            b_h = _mm_cvtepu8_epi16(bgr_order ? tmp0 : tmp1);
+            g_h = _mm_cvtepu8_epi16(_mm_unpackhi_epi64(tmp0, tmp0));
+            r_h = _mm_cvtepu8_epi16(bgr_order ? tmp1 : tmp0);
+        }
+
+        __m128 b_val, g_val, r_val, acc;
+        b_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(b_h, _vzero));
+        g_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(g_h, _vzero));
+        r_val        = _mm_cvtepi32_ps(_mm_unpacklo_epi16(r_h, _vzero));
+        acc          = _mm_mul_ps(b_val, _coeff_b);
+        acc          = _mm_add_ps(acc, _mm_mul_ps(g_val, _coeff_g));
+        acc          = _mm_add_ps(acc, _mm_mul_ps(r_val, _coeff_r));
+        __m128i tmp0 = _mm_shuffle_epi8(_mm_cvtps_epi32(acc), _maski32_to_i16);
+
+        b_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(b_h, _vzero));
+        g_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(g_h, _vzero));
+        r_val        = _mm_cvtepi32_ps(_mm_unpackhi_epi16(r_h, _vzero));
+        acc          = _mm_mul_ps(b_val, _coeff_b);
+        acc          = _mm_add_ps(acc, _mm_mul_ps(g_val, _coeff_g));
+        acc          = _mm_add_ps(acc, _mm_mul_ps(r_val, _coeff_r));
+        __m128i tmp1 = _mm_shuffle_epi8(_mm_cvtps_epi32(acc), _maski32_to_i16);
+
+        _mm_storel_epi64((__m128i*)Dp, _mm_shuffle_epi8(_mm_unpacklo_epi64(tmp0, tmp1), _maski16_to_i8));
+
+        Sp += 8 * channel;
+        Dp += 8;
+    }
+    if (plane % 8) {
+        offset -= 8;
+    }
+#endif
+
+    for (; offset < plane; ++offset) {
+        unsigned b       = bgr[offset * channel + (bgr_order ? 0 : 2)];
+        unsigned g       = bgr[offset * channel + 1];
+        unsigned r       = bgr[offset * channel + (bgr_order ? 2 : 0)];
+        float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
+        gray[offset]     = gray_color;
+    }
+}
+
+void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width) {
+    ColorToGray<3, true>(bgr, gray, height, width);
+}
+void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width) {
+    ColorToGray<4, true>(bgra, gray, height, width);
+}
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width) {
+    ColorToGray<3, false>(rgb, gray, height, width);
+}
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width) {
+    ColorToGray<4, false>(rgba, gray, height, width);
+}
 
 // resize
 void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
