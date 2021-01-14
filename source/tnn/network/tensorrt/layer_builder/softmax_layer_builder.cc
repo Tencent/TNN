@@ -48,6 +48,11 @@ ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     }
 }
 
+DimsExprs SoftmaxTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+}
+
 const char* SoftmaxPluginCreator::getPluginName() const {
     return "Softmax";
 }

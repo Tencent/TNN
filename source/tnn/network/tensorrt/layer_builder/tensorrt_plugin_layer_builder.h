@@ -42,7 +42,7 @@ public:
 
     virtual int getNbOutputs() const;
 
-    virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
+    virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,
         nvinfer1::IExprBuilder& exprBuilder);
 
     virtual int initialize();
@@ -111,6 +111,8 @@ public:
         virtual ~type_string##TRTPluginLayerBuilder() {}                                                           \
         virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut,                   \
             int nbInputs, int nbOutputs);                                                                          \
+        virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,          \
+            nvinfer1::IExprBuilder& exprBuilder);                                                                  \
         virtual const char* getPluginType() const;                                                                 \
         virtual nvinfer1::IPluginV2DynamicExt* clone() const {                                                     \
             auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                          \
