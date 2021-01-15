@@ -131,11 +131,11 @@ void NaivePooling3D(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVect
                     int stride_d, int stride_y, int stride_x, int kernel_d, int kernel_y, int kernel_x,
                     int pad_d, int pad_y, int pad_x, int pool_type) {
     auto input_width = dims_input[4], input_height = dims_input[3], input_depth = dims_input[2];
-    auto output_width = dims_output[3], output_height = dims_output[2];
+    auto output_width = dims_output[4], output_height = dims_output[3];
     auto output_depth = dims_output[2], output_channel = dims_output[1];
     for (int n = 0; n < dims_output[0]; n++) {
-        T *in_current_batch = input_ptr + n * input_width * input_height * output_channel * input_depth;
-        T *ou_current_batch = output_ptr + n * output_width * output_height * output_channel * output_depth;
+        T *in_current_batch = input_ptr + n * input_width * input_height * input_depth * output_channel;
+        T *ou_current_batch = output_ptr + n * output_width * output_height * output_depth * output_channel;
         for (int c = 0; c < output_channel; c++) {
             for (int d = 0; d < output_depth; d++) {
                 for (int h = 0; h < output_height; h++) {
@@ -152,7 +152,7 @@ void NaivePooling3D(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVect
 
                         T cur_val = static_cast<T>(0);
 
-                        int dstart      = d * stride_d - pad_d;
+                        int dstart       = d * stride_d - pad_d;
                         int hstart       = h * stride_y - pad_y;
                         int wstart       = w * stride_x - pad_x;
                         int dend         = std::min(dstart + kernel_d, input_depth);
@@ -161,7 +161,7 @@ void NaivePooling3D(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVect
                         dstart           = std::max(dstart, 0);
                         hstart           = std::max(hstart, 0);
                         wstart           = std::max(wstart, 0);
-                        int kernel_count = (hend - hstart) * (wend - wstart);
+                        int kernel_count = (dend - dstart) * (hend - hstart) * (wend - wstart);
 
                         for (int ind = dstart; ind < dend; ++ind) {
                             for (int inh = hstart; inh < hend; ++inh) {
