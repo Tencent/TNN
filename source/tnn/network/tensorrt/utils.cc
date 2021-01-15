@@ -117,8 +117,9 @@ nvinfer1::Dims ConvertToTRTDimsReverse(DimsVector dims) {
     int dims_size = dims.size();
     nvinfer1::Dims trt_dims;
     trt_dims.nbDims = dims_size;
+    int offset = 0;
     for(int i = dims_size-1; i >=0; i--) {
-        trt_dims.d[i] = dims[i];
+        trt_dims.d[offset++] = dims[i];
     }
     return trt_dims;
 }
