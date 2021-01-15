@@ -19,6 +19,9 @@
 #include <vector>
 #include <cuda_runtime.h>
 
+#include <cudnn.h>
+#include <cublas_v2.h>
+
 #include "tnn/core/context.h"
 
 namespace TNN_NS {
@@ -50,7 +53,9 @@ public:
     // @brief get cuda stream
     cudaStream_t& GetStream();
 
-private:
+public:
+    cudnnHandle_t cudnn_handle_;
+    cublasHandle_t cublas_handle_;
     cudaStream_t stream_;
     int device_id_;
 };
