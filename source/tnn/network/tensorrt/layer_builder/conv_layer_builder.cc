@@ -121,7 +121,6 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION);
-REGISTER_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION_3D);
 
 }  //  namespace TNN_NS
 
