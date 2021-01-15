@@ -75,6 +75,25 @@ void MatMemcpy2DWithPadding(void* src, void* dst, int width, int height, int src
     memset(dst_ptr, pad_val, bottom_plane);
 }
 
+#ifdef __SSE4_2__
+
+static inline __m128i load_element_c4(const uint8_t* addr) {
+    return _mm_loadl_epi64((__m128i*)addr);
+}
+
+static inline __m128i load_element_c3(const uint8_t* addr) {
+    __m128i val;
+    val = _mm_insert_epi32(val, *(int*)addr, 0);
+    return _mm_insert_epi16(val, *(short*)(addr + 4), 2);
+}
+
+static inline __m128i load_element_c2(const uint8_t* addr) {
+    __m128i val;
+    return _mm_insert_epi32(val, *(int*)addr, 0);
+}
+
+#endif
+
 /*
 color convert
 */
@@ -402,9 +421,8 @@ static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** ro
             if (c == 2) {
                 __m128i _a0 = _mm_set1_epi16(a0);
                 __m128i _a1 = _mm_set1_epi16(a1);
-                __m128i _S1 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S1p[0], S1p[1], 0, 0, S1p[2], S1p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _Sh = _mm_unpackhi_epi64(_S1, _S1);
+                __m128i _S1 = _mm_cvtepu8_epi16(load_element_c2(S1p));
+                __m128i _Sh = _mm_srli_si128(_S1, 4);
 
                 __m128i _res = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh));
                 _res         = _mm_shuffle_epi8(_mm_srai_epi32(_res, 4), _maski32_to_i16);
@@ -412,9 +430,8 @@ static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** ro
             } else if (c == 3) {
                 __m128i _a0 = _mm_set1_epi16(a0);
                 __m128i _a1 = _mm_set1_epi16(a1);
-                __m128i _S1 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S1p[0], S1p[1], S1p[2], 0, S1p[3], S1p[4], S1p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _Sh = _mm_unpackhi_epi64(_S1, _S1);
+                __m128i _S1 = _mm_cvtepu8_epi16(load_element_c3(S1p));
+                __m128i _Sh = _mm_srli_si128(_S1, 6);
 
                 __m128i _res = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh));
                 _res         = _mm_shuffle_epi8(_mm_srai_epi32(_res, 4), _maski32_to_i16);
@@ -461,14 +478,12 @@ static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** ro
 #else
             __m128i _maski32_to_i16 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
             if (c == 2) {
-                __m128i _a0 = _mm_set1_epi16(a0);
-                __m128i _a1 = _mm_set1_epi16(a1);
-                __m128i _S0 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S0p[0], S0p[1], 0, 0, S0p[2], S0p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _S1 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S1p[0], S1p[1], 0, 0, S1p[2], S1p[3], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _Sh0 = _mm_unpackhi_epi64(_S0, _S0);
-                __m128i _Sh1 = _mm_unpackhi_epi64(_S1, _S1);
+                __m128i _a0  = _mm_set1_epi16(a0);
+                __m128i _a1  = _mm_set1_epi16(a1);
+                __m128i _S0  = _mm_cvtepu8_epi16(load_element_c2(S0p));
+                __m128i _S1  = _mm_cvtepu8_epi16(load_element_c2(S1p));
+                __m128i _Sh0 = _mm_srli_si128(_S0, 4);
+                __m128i _Sh1 = _mm_srli_si128(_S1, 4);
 
                 __m128i _res0 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S0, _Sh0));
                 __m128i _res1 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh1));
@@ -477,14 +492,12 @@ static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** ro
                 _mm_storel_epi64((__m128i*)rows0p, _res0);
                 _mm_storel_epi64((__m128i*)rows1p, _res1);
             } else if (c == 3) {
-                __m128i _a0 = _mm_set1_epi16(a0);
-                __m128i _a1 = _mm_set1_epi16(a1);
-                __m128i _S0 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S0p[0], S0p[1], S0p[2], 0, S0p[3], S0p[4], S0p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _S1 = _mm_cvtepu8_epi16(
-                    _mm_setr_epi8(S1p[0], S1p[1], S1p[2], 0, S1p[3], S1p[4], S1p[5], 0, 0, 0, 0, 0, 0, 0, 0, 0));
-                __m128i _Sh0 = _mm_unpackhi_epi64(_S0, _S0);
-                __m128i _Sh1 = _mm_unpackhi_epi64(_S1, _S1);
+                __m128i _a0  = _mm_set1_epi16(a0);
+                __m128i _a1  = _mm_set1_epi16(a1);
+                __m128i _S0  = _mm_cvtepu8_epi16(load_element_c3(S0p));
+                __m128i _S1  = _mm_cvtepu8_epi16(load_element_c3(S1p));
+                __m128i _Sh0 = _mm_srli_si128(_S0, 6);
+                __m128i _Sh1 = _mm_srli_si128(_S1, 6);
 
                 __m128i _res0 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S0, _Sh0));
                 __m128i _res1 = _mm_madd_epi16(_mm_unpacklo_epi16(_a0, _a1), _mm_unpacklo_epi16(_S1, _Sh1));
@@ -964,21 +977,6 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
 
     delete[] xy_loc_buf;
     delete[] tb_loc_buf;
-}
-
-static inline __m128i load_element_c4(const uint8_t *addr) {
-    return _mm_loadl_epi64((__m128i*)addr);
-}
-
-static inline __m128i load_element_c3(const uint8_t *addr) {
-    __m128i val;
-    val = _mm_insert_epi32(val, *(int *)addr, 0);
-    return _mm_insert_epi16(val, *(short *)(addr+4), 2);
-}
-
-static inline __m128i load_element_c2(const uint8_t *addr) {
-    __m128i val;
-    return _mm_insert_epi32(val, *(int *)addr, 0);
 }
 
 template <int schannel>
