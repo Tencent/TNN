@@ -63,10 +63,10 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
 
 std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size >= 0 ) {
-        support_list.push_back(DATA_FORMAT_NCHW);
-    } else if(dims_size == 5) {
+    if (dims_size == 5) {
         support_list.push_back(DATA_FORMAT_NCDHW);
+    } else if (dims_size >= 0) {
+        support_list.push_back(DATA_FORMAT_NCHW);
     }
     return support_list;
 }

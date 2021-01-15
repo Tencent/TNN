@@ -26,14 +26,14 @@ Status Conv3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     GET_INT_3(p->group, p->input_channel, p->output_channel);
 
     // kernels w, h, d
-    GET_INT_N_INTO_VEC(p->kernels, 3);
+    GET_INT_N_INTO_VEC_REVERSE(p->kernels, 3);
 
     // strides w, h, d
-    GET_INT_N_INTO_VEC(p->strides, 3);
+    GET_INT_N_INTO_VEC_REVERSE(p->strides, 3);
 
     // pads
     int pad_w = 0, pad_h = 0, pad_d = 0;
-    GET_INT_3(pad_w, pad_h, pad_d);
+    GET_INT_3(pad_d, pad_h, pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_h);
@@ -45,7 +45,7 @@ Status Conv3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     GET_INT_2(p->bias, p->pad_type);
 
     // dailations
-    GET_INT_N_INTO_VEC_DEFAULT(p->dialations, 3, 1);
+    GET_INT_N_INTO_VEC_REVERSE_DEFAULT(p->dialations, 3, 1);
 
     // activation
     GET_INT_1(p->activation_type);

@@ -29,10 +29,6 @@ Status Conv3DLayer::InferOutputShape(bool ignore_error) {
     
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
-    if (input_blob->GetBlobDesc().data_format != DATA_FORMAT_NCDHW) {
-        LOGE_IF(!ignore_error, "Error: Conv3D layer only support NCDHW data format\n");
-        return Status(TNNERR_LAYER_ERR, "Error: Conv3D layer only support NCDHW data format");
-    }
 
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
     CHECK_PARAM_NULL(conv_param);
