@@ -34,9 +34,13 @@ DataType ConvertTRTDataType(nvinfer1::DataType type);
 
 DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format);
 
+nvinfer1::Dims ConvertPaddingToTRTDims(DimsVector dims);
+
 nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
 
 nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims);
+
+nvinfer1::Dims ConvertToTRTDimsReverse(DimsVector dims);
 
 nvinfer1::DataType ConvertToTRTDataType(DataType type);
 
