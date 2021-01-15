@@ -14,6 +14,8 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
+#include "tnn/network/tensorrt/utils.h"
+
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
@@ -42,7 +44,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
-    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
+    Dims kernelSize(ConvertToTRTDimsReverse(paramlist->kernels));
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
     PoolingType type;
@@ -52,11 +54,11 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         type = PoolingType::kAVERAGE;
     }
 
-    IPoolingLayer* layer = network->addPooling(*input_tensor, type, kernelSize);
+    IPoolingLayer* layer = network->addPoolingNd(*input_tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+        layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+        layer->setPaddingNd(ConvertPaddingToTRTDims(paramlist->pads));
         if (paramlist->pad_type == -1) {
             if (paramlist->ceil_mode == 1) {
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
@@ -86,5 +88,6 @@ const char* PoolingPluginCreator::getPluginName() const {
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING_3D);
 
 }  //  namespace TNN_NS

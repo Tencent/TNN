@@ -14,6 +14,8 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
+#include "tnn/network/tensorrt/utils.h"
+
 namespace TNN_NS {
 
 DECLARE_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION);
@@ -57,29 +59,33 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         }
     }
 
-    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
+    Dims kernelSize = ConvertToTRTDimsReverse(paramlist->kernels);
     IConvolutionLayer* conv_layer;
     if (paramlist->pad_type == -1) {
-        conv_layer = network->addConvolution(*input_tensor, paramlist->output_channel, kernelSize,
+        conv_layer = network->addConvolutionNd(*input_tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
         if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if (conv_layer != nullptr) {
             conv_layer->setName(layer_name_.c_str());
-            conv_layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-            conv_layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
-            conv_layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+            conv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+            conv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
+            conv_layer->setPaddingNd(ConvertPaddingToTRTDims(paramlist->pads));
             conv_layer->setNbGroups(paramlist->group);
         }
     } else {
-        IPaddingLayer* padding_layer = network->addPadding(*input_tensor, DimsHW{0, 0}, DimsHW{1, 1});
+        DimsVector postPadding(paramlist->pads.size()/2, 1);
+        DimsVector  prePadding(paramlist->pads.size()/2, 0);
+        IPaddingLayer* padding_layer = network->addPaddingNd(*input_tensor, 
+                                                    ConvertToTRTDims(prePadding), 
+                                                    ConvertToTRTDims(postPadding));
         ITensor* pad_tensor = padding_layer->getOutput(0);
-        conv_layer = network->addConvolution(*pad_tensor, paramlist->output_channel, kernelSize,
+        conv_layer = network->addConvolutionNd(*pad_tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
         if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if(conv_layer != NULL) {
             conv_layer->setName(layer_name_.c_str());
-            conv_layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-            conv_layer->setDilation(DimsHW(paramlist->dialations[1], paramlist->dialations[0]));
+            conv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+            conv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
             conv_layer->setNbGroups(paramlist->group);
         }
     }
@@ -115,6 +121,7 @@ ILayer* ConvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION);
+REGISTER_TENSORRT_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION_3D);
 
 }  //  namespace TNN_NS
 
