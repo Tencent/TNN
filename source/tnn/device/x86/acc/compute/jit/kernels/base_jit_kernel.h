@@ -149,17 +149,21 @@ public:
     struct vreg_var : public Xbyak::Ymm {
         explicit vreg_var(base_jit_kernel * ker) : ker_(ker) {}
 
-        ~vreg_var() {this->release(); }
+        ~vreg_var() {if (in_use_) this->release(); }
 
         Xbyak::Ymm aquire() {
-            Xbyak::Ymm rf = this->ker_->get_free_vreg<Xbyak::Ymm>();
-            setIdx(rf.getIdx());
-            setKind(rf.getKind());
-            setBit(rf.getBit());
-            setOpmaskIdx(rf.getOpmaskIdx());
-            setRounding(rf.getRounding());
-            zero_ = rf.hasZero();
-            in_use_ = true;
+            if (!in_use_) {
+                Xbyak::Ymm rf = this->ker_->get_free_vreg<Xbyak::Ymm>();
+                setIdx(rf.getIdx());
+                setKind(rf.getKind());
+                setBit(rf.getBit());
+                setOpmaskIdx(rf.getOpmaskIdx());
+                setRounding(rf.getRounding());
+                zero_ = rf.hasZero();
+                in_use_ = true;
+            } else {
+                throw std::runtime_error("the vregister is already in use!");
+            }
             return *this;
         }
 
@@ -167,6 +171,8 @@ public:
             if (in_use_) {
                 in_use_ = false;
                 this->ker_->drop_vreg(*this);
+            } else {
+                throw std::runtime_error("the vregister is not in use, can't be relased."); 
             }
             return *this;
         }

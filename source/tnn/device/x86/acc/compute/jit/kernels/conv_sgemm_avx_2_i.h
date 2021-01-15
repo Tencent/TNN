@@ -115,7 +115,6 @@ public:
         jmp("L_init_end");
         L("L_init");
         for(int i=0;i<N_r;i++) {
-            c_data[i].aquire();
             movlps(c_data[i].xmm(), qword[c_addr[i]]);
         }
         L("L_init_end");
