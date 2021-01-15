@@ -103,31 +103,34 @@ docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
 ```
 The output shows below：
 ``` text
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names
-  -on output_name  the tensorflow model's output name
-  -o OUTPUT_DIR    the output tnn directory
-  -v v1.0          the version for model
-  -optimize        optimize the model
-  -half            optimize the model
-  -align           align the onnx model with tnn model
-  -fold_const      enable tf constant_folding transformation before conversion
-  -input_file      the input file path which contains the input data for the inference model
-  -ref_file        the reference file path which contains the reference data to compare the results
+  -h, --help            show this help message and exit
+  -tp TF_PATH           the path for tensorflow graphdef file
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -optimize             optimize the model
+  -half                 optimize the model
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference data to compare the results.
 ```
 Here are the explanations for each parameter:
 
 - tp parameter (required)
     Use the "-tp" parameter to specify the path of the model to be converted. Currently only supports the conversion of a single TF model, does not support the conversion of multiple TF models together.
 - in parameter (required)
-    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
+    Specify the name of the model input through the "-in" parameter, for example "-in input1_name:1,128,128,3 input2_name:1,256,256,3"
 - on parameter (required)
-    Specify the name of the model output through the "-on" parameter. If the model has multiple outputs, use ";" to split
+    Specify the name of the model output through the "-on" parameter, for example "-on output_name1 output_name2"
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
@@ -317,21 +320,26 @@ python3 converter.py onnx2tnn -h
 ```
 usage information：
 ```text
-usage: convert onnx2tnn [-h] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR]
+usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-input_file INPUT_FILE_PATH] [-ref_file REFER_FILE_PATH]
                         onnx_path
 
 positional arguments:
-  onnx_path      the path for onnx file
+  onnx_path             the path for onnx file
 
 optional arguments:
   -h, --help            show this help message and exit
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,3,8,8 input2_name:1,8
   -optimize             optimize the model
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
   -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference data to compare the results.
 ```
 Example:
 ```shell script
@@ -397,23 +405,26 @@ The current convert2tnn model only supports the graphdef model, but does not sup
 python3 converter.py tf2tnn -h
 ```
 usage information：
-```
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+```text
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names
-  -on output_name       the tensorflow model's output name
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
   -optimize             optimize the model
   -half                 optimize the model
   -align                align the onnx model with tnn model
-  -fold_const           enable tf constant_folding transformation before conversion
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference data to compare the results.
 ```
 Example：
 ```shell script
