@@ -87,6 +87,11 @@ static inline __m128i load_element_c3(const uint8_t* addr) {
     return _mm_insert_epi16(val, *(short*)(addr + 4), 2);
 }
 
+static inline __m128i load_element_c3_pack4(const uint8_t* addr) {
+    __m128i val = load_element_c3(addr);
+    return _mm_shuffle_epi8(val, _mm_setr_epi8(0, 1, 2, 6, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15));
+}
+
 static inline __m128i load_element_c2(const uint8_t* addr) {
     __m128i val;
     return _mm_insert_epi32(val, *(int*)addr, 0);
@@ -793,11 +798,294 @@ void ResizeBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h,
     }
 }
 
-void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
-void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {}
+#define ResizeNearestPreparation(channel)                                                                              \
+    int schannel = channel;                                                                                            \
+    int* buf     = nullptr;                                                                                            \
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);                                                           \
+    int* xofs       = buf;                                                                                             \
+    int* yofs       = buf + w;                                                                                         \
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);                                                                         \
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+
+#define ResizeNearestLoopPreparation()                                                                                 \
+    int sy            = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];                                                    \
+    const uint8_t* Sp = src + src_stride * (b * src_h + sy);                                                           \
+    uint8_t* Dp       = dst + stride * (b * h + dy);                                                                   \
+    int dx            = 0;
+
+void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                         int h, int stride) {
+    ResizeNearestPreparation(1);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            ResizeNearestLoopPreparation();
+#ifdef __SSE4_2__
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            __m128i _S0, _tmp0, _tmp1;
+            __m128i _mask0 = _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+            __m128i _mask1 = _mm_setr_epi8(1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14);
+            int simd_loop  = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                __m128i _mask = _mm_loadl_epi64((__m128i*)ialpha_p);  // 01234567
+
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[0]), 0);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[1]), 1);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[2]), 2);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[3]), 3);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[4]), 4);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[5]), 5);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[6]), 6);
+                _S0 = _mm_insert_epi16(_S0, *(short*)(Sp + xofs_p[7]), 7);  // 0l0r 1l1r ... 7l7r
+
+                _tmp0 = _mm_shuffle_epi8(_S0, _mask0);
+                _tmp1 = _mm_shuffle_epi8(_S0, _mask1);
+
+                _mm_storel_epi64((__m128i*)Dp_p, _mm_blendv_epi8(_tmp1, _tmp0, _mask));
+
+                xofs_p += 8;
+                ialpha_p += 8;
+                Dp_p += 8 * 1;
+                ++simd_loop;
+            }
+            dx += simd_loop * 8;
+#endif
+            for (; dx < w; dx++) {
+                int sx = xofs[dx];
+                Dp[dx] = (ialpha[dx] == 0) ? Sp[sx + 1] : Sp[sx];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                         int h, int stride) {
+    ResizeNearestPreparation(2);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            ResizeNearestLoopPreparation();
+#ifdef __SSE4_2__
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            __m128i _S0, _S1, _tmp0, _tmp1;
+            __m128i _mask0 = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
+            int simd_loop  = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                __m128i _mask = _mm_loadl_epi64((__m128i*)ialpha_p);  // 01234567
+                _mask         = _mm_unpacklo_epi8(_mask, _mask);      // 0011223344556677
+
+                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[0]), 0);
+                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[1]), 1);
+                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[2]), 2);
+                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[3]), 3);  // 0l0l0r0r 1l1l1r1r 2l2l2r2r 3l3l3r3r
+                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[4]), 0);
+                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[5]), 1);
+                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[6]), 2);
+                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[7]), 3);  // 4l4l4r4r 5l5l5r5r 6l6l6r6r 7l7l7r7r
+
+                _tmp0 = _mm_shuffle_epi8(_S0, _mask0);  // 0l0l 1l1l 2l2l 3l3l 0r0r 1r1r 2r2r 3r3r
+                _tmp1 = _mm_shuffle_epi8(_S1, _mask0);  // 4l4l 5l5l 6l6l 7l7l 4r4r 5r5r 6r6r 7r7r
+
+                _S0 = _mm_unpacklo_epi64(_tmp0, _tmp1);  // 0l0l - 7l7l
+                _S1 = _mm_unpackhi_epi64(_tmp0, _tmp1);  // 0r0r - 7r7r
+
+                _mm_storeu_si128((__m128i*)Dp_p, _mm_blendv_epi8(_S1, _S0, _mask));
+
+                xofs_p += 8;
+                ialpha_p += 8;
+                Dp_p += 8 * 2;
+                ++simd_loop;
+            }
+            dx += simd_loop * 8;
+#endif
+            for (; dx < w; dx++) {
+                int sx         = xofs[dx];
+                Dp[dx * 2]     = (ialpha[dx] == 0) ? Sp[sx + 2] : Sp[sx];
+                Dp[dx * 2 + 1] = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx + 1];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                         int h, int stride) {
+    ResizeNearestPreparation(3);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            ResizeNearestLoopPreparation();
+#ifdef __SSE4_2__
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            __m128i _S0, _S1, _S2, _S3, _tmp0, _tmp1;
+            __m128i _mask0, _mask1;
+            __m128i _mask_res = _mm_setr_epi8(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
+            int simd_loop     = 0;
+            for (int i = 0; i < (w - 2) - 7; i += 8) {
+                __m128i _mask = _mm_loadl_epi64((__m128i*)ialpha_p);  // 01234567
+                _mask         = _mm_unpacklo_epi8(_mask, _mask);      // 0011223344556677
+                _mask0        = _mm_unpacklo_epi8(_mask, _mask);      // 0000111122223333
+                _mask1        = _mm_unpackhi_epi8(_mask, _mask);      // 4444555566667777
+
+                _S0 = load_element_c3_pack4(Sp + xofs_p[0]);  // 0l0l0lxx0r0r0rxx
+                _S1 = load_element_c3_pack4(Sp + xofs_p[1]);  // 1l1l1lxx1r1r1rxx
+                _S2 = load_element_c3_pack4(Sp + xofs_p[2]);  // 2l2l2lxx2r2r2rxx
+                _S3 = load_element_c3_pack4(Sp + xofs_p[3]);  // 3l3l3lxx3r3r3rxx
+
+                _S0   = _mm_unpacklo_epi64(_S0, _S1);      // 0l 0r 1l 1r
+                _S1   = _mm_unpacklo_epi64(_S2, _S3);      // 2l 2r 3l 3r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);      // 0l 2l 0r 2r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);      // 1l 3l 1r 3r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);  // 0l 1l 2l 3l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);  // 0r 1r 2r 3r
+
+                _mm_storeu_si128((__m128i*)Dp_p, _mm_shuffle_epi8(_mm_blendv_epi8(_S1, _S0, _mask0), _mask_res));
+
+                _S0 = load_element_c3_pack4(Sp + xofs_p[4]);  // 4l 4r
+                _S1 = load_element_c3_pack4(Sp + xofs_p[5]);  // 5l 5r
+                _S2 = load_element_c3_pack4(Sp + xofs_p[6]);  // 6l 6r
+                _S3 = load_element_c3_pack4(Sp + xofs_p[7]);  // 7l 7r
+
+                _S0   = _mm_unpacklo_epi64(_S0, _S1);      // 4l 4r 5l 5r
+                _S1   = _mm_unpacklo_epi64(_S2, _S3);      // 6l 6r 7l 7r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);      // 4l 6l 4r 6r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);      // 5l 7l 5r 7r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);  // 4l 5l 6l 7l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);  // 4r 5r 6r 7r
+
+                _mm_storeu_si128((__m128i*)(Dp_p + 12), _mm_shuffle_epi8(_mm_blendv_epi8(_S1, _S0, _mask1), _mask_res));
+
+                xofs_p += 8;
+                ialpha_p += 8;
+                Dp_p += 8 * 3;
+                ++simd_loop;
+            }
+            dx += simd_loop * 8;
+#endif
+            for (; dx < w; dx++) {
+                int sx         = xofs[dx];
+                Dp[dx * 3]     = (ialpha[dx] == 0) ? Sp[sx + 3] : Sp[sx];
+                Dp[dx * 3 + 1] = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx + 1];
+                Dp[dx * 3 + 2] = (ialpha[dx] == 0) ? Sp[sx + 5] : Sp[sx + 2];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
+                         int h, int stride) {
+    ResizeNearestPreparation(4);
+
+    // loop body
+    for (int b = 0; b < batch; ++b) {
+        OMP_PARALLEL_FOR_
+        for (int dy = 0; dy < h; dy++) {
+            ResizeNearestLoopPreparation();
+#ifdef __SSE4_2__
+            int* xofs_p       = xofs;
+            uint8_t* ialpha_p = ialpha;
+            uint8_t* Dp_p     = Dp;
+            __m128i _S0, _S1, _tmp0, _tmp1;
+            __m128i _mask0, _mask1;
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                __m128i _mask = _mm_loadl_epi64((__m128i*)ialpha_p);  // 01234567
+                _mask         = _mm_unpacklo_epi8(_mask, _mask);      // 0011223344556677
+                _mask0        = _mm_unpacklo_epi8(_mask, _mask);      // 0000111122223333
+                _mask1        = _mm_unpackhi_epi8(_mask, _mask);      // 4444555566667777
+
+                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[0]));              // 0l0l0l0l0r0r0r0r
+                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[2]));              // 2l2l2l2l2r2r2r2r
+                _S0   = _mm_insert_epi64(_S0, *(long long*)(Sp + xofs_p[1]), 1);  // 0l0l0l0l0r0r0r0r 1l1l1l1l1r1r1r1r
+                _S1   = _mm_insert_epi64(_S1, *(long long*)(Sp + xofs_p[3]), 1);  // 2l2l2l2l2r2r2r2r 3l3l3l3l3r3r3r3r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                             // 0l 2l 0r 2r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                             // 1l 3l 1r 3r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);                         // 0l 1l 2l 3l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);                         // 0r 1r 2r 3r
+                _mm_storeu_si128((__m128i*)Dp_p, _mm_blendv_epi8(_S1, _S0, _mask0));
+
+                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[4]));              // 4l 4r
+                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[6]));              // 6l 6r
+                _S0   = _mm_insert_epi64(_S0, *(long long*)(Sp + xofs_p[5]), 1);  // 4l 4r 5l 5r
+                _S1   = _mm_insert_epi64(_S1, *(long long*)(Sp + xofs_p[7]), 1);  // 6l 6r 7l 7r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                             // 4l 6l 4r 6r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                             // 5l 7l 5r 7r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);                         // 4l 5l 6l 7l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);                         // 4r 5r 6r 7r
+                _mm_storeu_si128((__m128i*)(Dp_p + 16), _mm_blendv_epi8(_S1, _S0, _mask1));
+
+                xofs_p += 8;
+                ialpha_p += 8;
+                Dp_p += 8 * 4;
+                ++simd_loop;
+            }
+            dx += simd_loop * 8;
+#endif
+            for (; dx < w; dx++) {
+                int sx         = xofs[dx];
+                Dp[dx * 4]     = (ialpha[dx] == 0) ? Sp[sx + 4] : Sp[sx];
+                Dp[dx * 4 + 1] = (ialpha[dx] == 0) ? Sp[sx + 5] : Sp[sx + 1];
+                Dp[dx * 4 + 2] = (ialpha[dx] == 0) ? Sp[sx + 6] : Sp[sx + 2];
+                Dp[dx * 4 + 3] = (ialpha[dx] == 0) ? Sp[sx + 7] : Sp[sx + 3];
+            }
+        }
+    }
+
+    delete[] buf;
+}
+
+void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
+}
+
+void ResizeNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC2Impl(src, batch, src_w, src_h, src_w * 2, dst, w, h, w * 2);
+}
+
+void ResizeNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC3Impl(src, batch, src_w, src_h, src_w * 3, dst, w, h, w * 3);
+}
+
+void ResizeNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    return ResizeNearestC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
+}
+
+void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert w % 2 == 0
+    // assert h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = w * h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY = src + b * src_plane;
+        uint8_t* dstY       = dst + b * dst_plane;
+        ResizeNearestC1(srcY, 1, src_w, src_h, dstY, w, h);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + w * h;
+        ResizeNearestC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2);
+    }
+}
 
 #define INTER_REMAP_COEF_BITS 15
 #define INTER_REMAP_COEF_SCALE (1 << INTER_REMAP_COEF_BITS)

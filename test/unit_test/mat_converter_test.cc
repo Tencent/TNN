@@ -171,7 +171,7 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::Copy),
                                 // Resize
                                 MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_LINEAR),
-                                // MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_NEAREST),
+                                MatConverterTestParam(MatConverterType::Resize, 0.5, 0.5, INTERP_TYPE_NEAREST),
                                 // Crop
                                 MatConverterTestParam(MatConverterType::Crop, 0, 0, 10, 10),
                                 MatConverterTestParam(MatConverterType::Crop, 5, 5, 10, 10),
