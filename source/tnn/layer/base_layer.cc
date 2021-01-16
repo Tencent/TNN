@@ -94,7 +94,7 @@ Status BaseLayer::InferOutputShape(bool ignore_error) {
     auto const_resource = const_resource_;
     for (auto iter : input_blobs_) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource != nullptr && const_resource->find(name) == const_resource->end()) {
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
             continue;
         }
         
@@ -118,7 +118,7 @@ Status BaseLayer::InferOutputDataType() {
     //find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
-        if (const_resource != nullptr && const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
+        if (const_resource == nullptr || const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
             input_blob_not_const = input_blob;
             break;
         }

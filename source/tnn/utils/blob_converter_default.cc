@@ -84,6 +84,18 @@ static void NCHWConvert(const float *src, float *dst, float *scale, float *bias,
 }
 
 /*
+ * Convert a nchw float mat to/from nchw int blob
+ */
+static void NCHWConvert(const int *src, float *dst, float *scale, float *bias, int channel, int hw) {
+    for (int c = 0; c < channel; ++c) {
+        for (int i = 0; i < hw; ++i) {
+            int data_pos = c * hw + i;
+            dst[data_pos] = scale[c] * (float)src[data_pos] + bias[c];
+        }
+    }
+}
+
+/*
  * Convert a nchw float blob to BGRA
  * input blob must have 3 or 4 channels
  */
@@ -193,6 +205,11 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         if (image.GetMatType() == NC_INT32) {
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t));
             return TNN_OK;
+        } else if (image.GetMatType() == NCHW_FLOAT) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWConvert((int*)blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
+                        param.scale.data(), param.bias.data(), dims[1], hw);
+            }
         }
     }
 

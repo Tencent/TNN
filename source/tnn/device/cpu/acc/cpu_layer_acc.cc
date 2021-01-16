@@ -40,7 +40,7 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     auto const_blob_map = const_blob_map_;
     for (auto iter : inputs) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource != nullptr && const_resource->find(name) == const_resource->end()) {
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
             continue;
         }
         
