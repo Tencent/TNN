@@ -51,6 +51,13 @@ torch.onnx.export(model, input, filename, verbose=False,
 解决方法：导出onnx模型前，切换pytorch到推理模式，代码如下：
 ```torch_model.eval()``` or ```torch_model.train(False)```
 
+#### AvgPool
+
+问题描述：pytorch模型中的AvgPool算子有count_include_pad属性，取值可以为```True```或```False```，当前TNN仅支持count_include_pad=```Fasle```的情况。
+
+解决方法：导出onnx模型前，修改AvgPool算子的count_include_pad为```False```
+
+
 ### 3.tflite
 
 #### ResizeBilinear
