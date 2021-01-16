@@ -63,6 +63,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         GTEST_SKIP();
     }
 
+    // blobconverter cannot handle 1-dimensional blob, skip it for now
+    if (axis.size() >= 3) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
     param->name = "ReduceOp";
