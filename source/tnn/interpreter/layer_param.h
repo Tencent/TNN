@@ -19,12 +19,26 @@
 
 #include <cfloat>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "tnn/core/common.h"
 
 namespace TNN_NS {
+
+#define PARAM_COPY(param_type)                                                                                         \
+public:                                                                                                                \
+    virtual std::shared_ptr<LayerParam> Copy() {                                                                       \
+        std::shared_ptr<LayerParam> param(new param_type());                                                           \
+        param_type* param_ptr = dynamic_cast<param_type*>(param.get());                                                \
+        if (nullptr == param_ptr) {                                                                                    \
+            LOGE("dynamic cast to %s falied\n", #param_type);                                                          \
+            return nullptr;                                                                                            \
+        }                                                                                                              \
+        *param_ptr = *this;                                                                                            \
+        return param;                                                                                                  \
+    }
 
 struct LayerParam {
     virtual ~LayerParam() {}
@@ -35,12 +49,14 @@ struct LayerParam {
     bool quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
+
+    PARAM_COPY(LayerParam)
 };
 
 enum ActivationType {
-    ActivationType_None  = 0x0000,
-    ActivationType_ReLU  = 0x0001,
-    ActivationType_ReLU6 = 0x0002,
+    ActivationType_None        = 0x0000,
+    ActivationType_ReLU        = 0x0001,
+    ActivationType_ReLU6       = 0x0002,
     ActivationType_SIGMOID_MUL = 0x0100,
 };
 
@@ -53,10 +69,14 @@ enum FusionType {
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 0.f;
+
+    PARAM_COPY(BatchNormLayerParam)
 };
 struct InstanceNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 0.01f;
+
+    PARAM_COPY(InstanceNormLayerParam)
 };
 
 struct ConvLayerParam : public LayerParam {
@@ -77,14 +97,18 @@ struct ConvLayerParam : public LayerParam {
     int bias            = 0;
     int activation_type = ActivationType_None;
     int fusion_type     = FusionType_None;
+
+    PARAM_COPY(ConvLayerParam)
 };
 
 struct PadLayerParam : public LayerParam {
     //[w_begin, w_end, h_begin, h_end, c_begin, c_end]
     std::vector<int> pads;
     // 0:const 1:reflect 2:edge
-    int type = 0;
+    int type    = 0;
     float value = 0.0f;
+
+    PARAM_COPY(PadLayerParam)
 };
 
 struct PoolingLayerParam : public LayerParam {
@@ -103,6 +127,8 @@ struct PoolingLayerParam : public LayerParam {
 
     // order [w h d] for adaptive pool
     std::vector<int> kernel_indexs;
+
+    PARAM_COPY(PoolingLayerParam)
 };
 
 struct RoiPoolingLayerParam : public LayerParam {
@@ -114,10 +140,12 @@ struct RoiPoolingLayerParam : public LayerParam {
 
     // output spatial dimensions, [WHD]
     std::vector<int> pooled_dims;
+
+    PARAM_COPY(RoiPoolingLayerParam)
 };
 
 struct UpsampleLayerParam : public LayerParam {
-    //1: nereast 2: bilinear/linear 3: cubic
+    // 1: nereast 2: bilinear/linear 3: cubic
     int mode          = 0;
     int align_corners = 0;
 
@@ -125,16 +153,22 @@ struct UpsampleLayerParam : public LayerParam {
     std::vector<float> scales;
     // order [w h d]
     std::vector<int> dims;
+
+    PARAM_COPY(UpsampleLayerParam)
 };
 
 struct SoftmaxLayerParam : public LayerParam {
     int axis = 1;
+
+    PARAM_COPY(SoftmaxLayerParam)
 };
 
 struct PowLayerParam : public LayerParam {
     float exponent = 1.0f;
     float scale    = 1.0f;
     float shift    = 0.0f;
+
+    PARAM_COPY(PowLayerParam)
 };
 
 struct NormalizeLayerParam : public LayerParam {
@@ -144,6 +178,8 @@ struct NormalizeLayerParam : public LayerParam {
 
     int across_spatial = 0;
     int channel_shared = 1;
+
+    PARAM_COPY(NormalizeLayerParam)
 };
 
 struct ReshapeLayerParam : public LayerParam {
@@ -154,26 +190,36 @@ struct ReshapeLayerParam : public LayerParam {
     int axis         = 0;
     int num_axes     = 0;
     std::vector<int> shape;
+
+    PARAM_COPY(ReshapeLayerParam)
 };
 
 struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
+
+    PARAM_COPY(PermuteLayerParam)
 };
 
 struct CastLayerParam : public LayerParam {
     int to = 0;
+
+    PARAM_COPY(CastLayerParam)
 };
 
 struct ScaleLayerParam : public LayerParam {
     int axis      = 1;
     int num_axes  = 1;
     int bias_term = 0;
+
+    PARAM_COPY(ScaleLayerParam)
 };
 
 struct SplitVLayerParam : public LayerParam {
     int axis = 1;
     // size of each slice
     std::vector<int> slices;
+
+    PARAM_COPY(SplitVLayerParam)
 };
 
 struct ReduceLayerParam : public LayerParam {
@@ -181,43 +227,63 @@ struct ReduceLayerParam : public LayerParam {
     std::vector<int> axis;
     // ignore axis, reduce all to one
     int all_reduce = 0;
+
+    PARAM_COPY(ReduceLayerParam)
 };
 
-struct ReduceSumLayerParam : public ReduceLayerParam {};
+struct ReduceSumLayerParam : public ReduceLayerParam {
+    PARAM_COPY(ReduceSumLayerParam)
+};
 
-struct ReduceMeanLayerParam : public ReduceLayerParam {};
+struct ReduceMeanLayerParam : public ReduceLayerParam {
+    PARAM_COPY(ReduceMeanLayerParam)
+};
 
-struct ReduceMaxLayerParam : public ReduceLayerParam {};
+struct ReduceMaxLayerParam : public ReduceLayerParam {
+    PARAM_COPY(ReduceMaxLayerParam)
+};
 
 struct InnerProductLayerParam : public LayerParam {
     int num_output = 0;
     int has_bias   = 0;
     int transpose  = 0;
     int axis       = 0;
+
+    PARAM_COPY(InnerProductLayerParam)
 };
 
 struct ConcatLayerParam : public LayerParam {
-    int axis = 1;
+    int axis                    = 1;
     std::vector<int> extra_data = {};
+
+    PARAM_COPY(ConcatLayerParam)
 };
 
 struct PReluLayerParam : public LayerParam {
     int channel_shared = 0;
     int has_filler;
+
+    PARAM_COPY(PReluLayerParam)
 };
 
 struct EluLayerParam : public LayerParam {
     float alpha = 1.0;
+
+    PARAM_COPY(EluLayerParam)
 };
 
 struct ClipLayerParam : public LayerParam {
     float min = -FLT_MAX;
     float max = FLT_MAX;
+
+    PARAM_COPY(ClipLayerParam)
 };
 
 struct SeluLayerParam : public LayerParam {
     float alpha;
     float gamma;
+
+    PARAM_COPY(SeluLayerParam)
 };
 
 //前闭后开区间
@@ -228,6 +294,8 @@ struct StrideSliceLayerParam : public LayerParam {
     std::vector<int> ends;
     // order [w h d c n]
     std::vector<int> strides;
+
+    PARAM_COPY(StrideSliceLayerParam)
 };
 
 struct StrideSliceV2LayerParam : public LayerParam {
@@ -235,15 +303,21 @@ struct StrideSliceV2LayerParam : public LayerParam {
     std::vector<int> ends;
     std::vector<int> axes;
     std::vector<int> strides;
+
+    PARAM_COPY(StrideSliceV2LayerParam)
 };
 
 struct SliceLayerParam : public LayerParam {
     // size of each slice
     std::vector<int> slices;
     int axis;
+
+    PARAM_COPY(SliceLayerParam)
 };
 
-struct ElementWiseLayerParam : public LayerParam {};
+struct ElementWiseLayerParam : public LayerParam {
+    PARAM_COPY(ElementWiseLayerParam)
+};
 
 typedef enum {
     // unknown or decided by runtime
@@ -272,16 +346,22 @@ struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
     int input0_broadcast_type = BroadcastTypeUnknown;
     int input1_broadcast_type = BroadcastTypeUnknown;
     int weight_input_index    = 1;
+
+    PARAM_COPY(MultidirBroadcastLayerParam)
 };
 
 struct HardSwishLayerParam : public MultidirBroadcastLayerParam {
     float alpha = 1.0f;
     float beta  = 0.0f;
+
+    PARAM_COPY(HardSwishLayerParam)
 };
 
 struct HardSigmoidLayerParam : public LayerParam {
     float alpha = 1.0f;
     float beta  = 0.0f;
+
+    PARAM_COPY(HardSigmoidLayerParam)
 };
 
 typedef enum {
@@ -303,10 +383,14 @@ struct ReformatLayerParam : public LayerParam {
     DataFormat src_format;
     DataFormat dst_format;
     ReformatType type;
+
+    PARAM_COPY(ReformatLayerParam)
 };
 
 struct ShuffleLayerParam : public LayerParam {
     int group;
+
+    PARAM_COPY(ShuffleLayerParam)
 };
 
 struct PriorBoxLayerParam : public LayerParam {
@@ -325,6 +409,8 @@ struct PriorBoxLayerParam : public LayerParam {
     float step_h;
 
     float offset = 0.5;
+
+    PARAM_COPY(PriorBoxLayerParam)
 };
 
 struct DetectionOutputLayerParam : public LayerParam {
@@ -341,6 +427,8 @@ struct DetectionOutputLayerParam : public LayerParam {
         int top_k;
     } nms_param;
     float eta;
+
+    PARAM_COPY(DetectionOutputLayerParam)
 };
 
 struct DetectionPostProcessLayerParam : public LayerParam {
@@ -356,6 +444,8 @@ struct DetectionPostProcessLayerParam : public LayerParam {
     bool has_anchors;
     int num_anchors;
     int anchors_coord_num;
+
+    PARAM_COPY(DetectionPostProcessLayerParam)
 };
 
 struct LRNLayerParam : public LayerParam {
@@ -363,63 +453,87 @@ struct LRNLayerParam : public LayerParam {
     float beta;
     float bias;
     int size;
+
+    PARAM_COPY(LRNLayerParam)
 };
 
 struct ReorgLayerParam : public LayerParam {
     int stride;
     bool forward;
-    int mode; // DCR: 0  CRD: 1
+    int mode;  // DCR: 0  CRD: 1
+
+    PARAM_COPY(ReorgLayerParam)
 };
 
 struct ConstLayerParam : public LayerParam {
     std::vector<int> dims;
+
+    PARAM_COPY(ConstLayerParam)
 };
 
 struct SignedMulLayerParam : public LayerParam {
     float alpha = 1.0f;
     float beta  = 1.0f;
     float gamma = 2.0f;
+
+    PARAM_COPY(SignedMulLayerParam)
 };
 
 struct SqueezeLayerParam : public LayerParam {
     std::vector<int> axes;
     bool data_in_resource = false;
+
+    PARAM_COPY(SqueezeLayerParam)
 };
 
-struct UnsqueezeLayerParam: public SqueezeLayerParam {};
+struct UnsqueezeLayerParam : public SqueezeLayerParam {
+    PARAM_COPY(UnsqueezeLayerParam)
+};
 
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
     int axis;
     int keep_dims;
     int select_last_index;
+
+    PARAM_COPY(ArgMaxOrMinLayerParam)
 };
 
 struct PixelShuffleLayerParam : public LayerParam {
     int upscale_factor;
     int axis;
+
+    PARAM_COPY(PixelShuffleLayerParam)
 };
 
 struct GatherLayerParam : public LayerParam {
-    int axis                              = 0;
-    bool data_in_resource      = false;
-    bool indices_in_resource  = true;
+    int axis                 = 0;
+    bool data_in_resource    = false;
+    bool indices_in_resource = true;
+
+    PARAM_COPY(GatherLayerParam)
 };
 
 struct LSTMONNXLayerParam : public LayerParam {
-    float clip_threshold            = 0;
-    int hidden_size                  = 0;
+    float clip_threshold = 0;
+    int hidden_size      = 0;
+
+    PARAM_COPY(LSTMONNXLayerParam)
 };
 
 struct ExpandLayerParam : public LayerParam {
     std::vector<int> shape;
+
+    PARAM_COPY(ExpandLayerParam)
 };
 
 struct MatMulLayerParam : public LayerParam {
     int weight_position = -1;
     DimsVector matrix_a_dims;
     DimsVector matrix_b_dims;
-    int axis            = 0;
+    int axis = 0;
+
+    PARAM_COPY(MatMulLayerParam)
 };
 
 }  // namespace TNN_NS
