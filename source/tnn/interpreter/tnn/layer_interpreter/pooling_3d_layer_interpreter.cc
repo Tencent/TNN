@@ -25,16 +25,16 @@ Status Pooling3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int inde
 
     GET_INT_1(p->pool_type);
 
-    // kernels w, h, d
-    GET_INT_N_INTO_VEC(p->kernels, 3);
+    // kernels d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE(p->kernels, 3);
     p->kernels_params = p->kernels;
 
-    // strides w, h, d
-    GET_INT_N_INTO_VEC(p->strides, 3);
+    // strides d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE(p->strides, 3);
 
-    // pad w, h, d
+    // pad d, h, w -> w, h, d
     int pad_w = 0, pad_h = 0, pad_d = 0;
-    GET_INT_3(pad_w, pad_h, pad_d);
+    GET_INT_3(pad_d, pad_h, pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_h);
@@ -42,8 +42,8 @@ Status Pooling3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int inde
     p->pads.push_back(pad_d);
     p->pads.push_back(pad_d);
 
-    // kernel index w, h, d
-    GET_INT_N_INTO_VEC_DEFAULT(p->kernel_indexs, 3, -1);
+    // kernel index d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE_DEFAULT(p->kernel_indexs, 3, -1);
     if (p->kernel_indexs[0] == -1) {
         p->kernel_indexs[0] = p->kernel_indexs[2];
     }
@@ -66,24 +66,24 @@ Status Pooling3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerP
     output_stream << layer_param->pool_type << " ";
 
     ASSERT(layer_param->kernels_params.size() == 3);
-    output_stream << layer_param->kernels_params[0] << " ";
-    output_stream << layer_param->kernels_params[1] << " ";
     output_stream << layer_param->kernels_params[2] << " ";
+    output_stream << layer_param->kernels_params[1] << " ";
+    output_stream << layer_param->kernels_params[0] << " ";
 
     ASSERT(layer_param->strides.size() == 3);
-    output_stream << layer_param->strides[0] << " ";
-    output_stream << layer_param->strides[1] << " ";
     output_stream << layer_param->strides[2] << " ";
+    output_stream << layer_param->strides[1] << " ";
+    output_stream << layer_param->strides[0] << " ";
 
     ASSERT(layer_param->pads.size() == 6);
-    output_stream << layer_param->pads[0] << " ";
-    output_stream << layer_param->pads[2] << " ";
     output_stream << layer_param->pads[4] << " ";
+    output_stream << layer_param->pads[2] << " ";
+    output_stream << layer_param->pads[0] << " ";
 
     ASSERT(layer_param->kernel_indexs.size() == 3);
-    output_stream << layer_param->kernel_indexs[0] << " ";
-    output_stream << layer_param->kernel_indexs[1] << " ";
     output_stream << layer_param->kernel_indexs[2] << " ";
+    output_stream << layer_param->kernel_indexs[1] << " ";
+    output_stream << layer_param->kernel_indexs[0] << " ";
 
     output_stream << layer_param->pad_type << " ";
     output_stream << layer_param->ceil_mode << " ";

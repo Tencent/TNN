@@ -21,6 +21,7 @@
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/md5.h"
 
 namespace TNN_NS {
@@ -188,16 +189,24 @@ Status TensorRTNetwork_::Forward() {
 }
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
+    Status ret = TNN_OK;
+    bool do_reshape = false;
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            LOGE("TensorRTNetwork reshape blob is empty\n");
-            return Status(TNNERR_PARAM_ERR, "TensorRTNetwork reshape blob is empty");
+            LOGE("DefaultNetwork reshape blob is empty\n");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
         }
-        blob->GetBlobDesc().dims = iter.second;
+        if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
+            blob->GetBlobDesc().dims = iter.second;
+            do_reshape = true;
+        }
     }
 
-    Status ret = TNN_OK;
+    if(!do_reshape) {
+        return ret; 
+    }
+
     for (auto cur_layer : layers_) {
         ret = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->Reshape();
         if (ret != TNN_OK) {
@@ -323,7 +332,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
-    size_t context_memory_size = m_trt_engine->getDeviceMemorySize();
+    size_t context_memory_size = std::max(m_trt_engine->getDeviceMemorySize(), size_t(1024));
     Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
     if (ret != TNN_OK) {
         LOGE("Error Create TensorRT execute context\n");

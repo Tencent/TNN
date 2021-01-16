@@ -113,6 +113,17 @@ nvinfer1::Dims ConvertToTRTDims(DimsVector dims) {
     return trt_dims;
 }
 
+nvinfer1::Dims ConvertToTRTDimsReverse(DimsVector dims) {
+    int dims_size = dims.size();
+    nvinfer1::Dims trt_dims;
+    trt_dims.nbDims = dims_size;
+    int offset = 0;
+    for(int i = dims_size-1; i >=0; i--) {
+        trt_dims.d[offset++] = dims[i];
+    }
+    return trt_dims;
+}
+
 nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims) {
     int dims_size = dims.size();
     nvinfer1::Dims trt_dims;
@@ -145,5 +156,21 @@ nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvi
     }
     return shuffle_layer;
 }
+
+nvinfer1::Dims ConvertPaddingToTRTDims(DimsVector dims) {
+    nvinfer1::Dims trt_dims;
+    if (dims.size() == 6) {
+        trt_dims.nbDims = 3;
+        trt_dims.d[0] = dims[4];
+        trt_dims.d[1] = dims[2];
+        trt_dims.d[2] = dims[0];
+    } else if (dims.size() == 4) {
+        trt_dims.nbDims = 2;
+        trt_dims.d[0] = dims[2];
+        trt_dims.d[1] = dims[0];
+    }
+    return trt_dims;
+}
+
 
 }  //  namespace TNN_NS

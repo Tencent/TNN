@@ -52,9 +52,9 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     //add scale
     if (resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType())) {
-        layer = network->addScale(*tensor, ScaleMode::kUNIFORM, shift, scale, power);
+        layer = network->addScaleNd(*tensor, ScaleMode::kUNIFORM, shift, scale, power, 1);
     } else {
-        layer = network->addScale(*tensor, ScaleMode::kCHANNEL, shift, scale, power);
+        layer = network->addScaleNd(*tensor, ScaleMode::kCHANNEL, shift, scale, power, 1);
     }
     if (layer != NULL) {
         layer->setName(layer_name_.c_str());

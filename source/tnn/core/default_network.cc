@@ -115,8 +115,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     net_structure_ = net_structure;
     net_resource_ = net_resource;
     
-    InputShapesMap input_shape_map;
-    return Reshape(input_shape_map);
+    return ReshapeLayers();
 }
 
 /*
@@ -372,28 +371,32 @@ Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
  */
 Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
     Status ret = TNN_OK;
-    ret = context_->OnInstanceReshapeBegin();
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    bool do_reshape = false;
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
             LOGE("DefaultNetwork reshape blob is empty\n");
             return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
         }
-        blob->GetBlobDesc().dims = iter.second;
-    }
-
-    for (auto cur_layer : layers_) {
-        ret = cur_layer->Reshape();
-        if (ret != TNN_OK) {
-            return ret;
+        if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
+            blob->GetBlobDesc().dims = iter.second;
+            do_reshape = true;
         }
     }
 
-    ret = context_->OnInstanceReshapeEnd();
+    if(do_reshape) {
+        ret = context_->OnInstanceReshapeBegin();
+        if (ret != TNN_OK) {
+            return ret;
+        }
 
+        ret = ReshapeLayers();
+        if (ret != TNN_OK) {
+            return ret;
+        }
+ 
+        ret = context_->OnInstanceReshapeEnd();
+    }
     return ret;
 }
 
@@ -600,5 +603,14 @@ std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
     + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
 }
 
+Status DefaultNetwork::ReshapeLayers() {
+    for (auto cur_layer : layers_) {
+        Status ret = cur_layer->Reshape();
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+    return TNN_OK;
+}
 
 }  // namespace TNN_NS

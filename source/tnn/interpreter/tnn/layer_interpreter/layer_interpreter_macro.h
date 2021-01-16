@@ -73,7 +73,19 @@
         }                                                                                                              \
     } while (0)
 
+#define GET_INT_N_INTO_VEC_REVERSE_DEFAULT(vec, n, default_value)                                                      \
+    do {                                                                                                               \
+        vec.resize(n);                                                                                                 \
+        for (int _ii = n-1; _ii >= 0; _ii--) {                                                                         \
+            int var = default_value;                                                                                   \
+            GET_INT_1(var);                                                                                            \
+            vec[_ii] = var;                                                                                            \
+        }                                                                                                              \
+    } while (0)
+
 #define GET_INT_N_INTO_VEC(vec, n) GET_INT_N_INTO_VEC_DEFAULT(vec, n, 0)
+
+#define GET_INT_N_INTO_VEC_REVERSE(vec, n) GET_INT_N_INTO_VEC_REVERSE_DEFAULT(vec, n, 0)
 
 #define GET_INT_2_INTO_VEC_DEFAULT(vec, default_value) GET_INT_N_INTO_VEC_DEFAULT(vec, 2, default_value)
 

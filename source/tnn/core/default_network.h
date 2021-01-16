@@ -124,6 +124,11 @@ protected:
     NetworkConfig config_;
 
     static std::mutex optimize_mtx_;
+
+private:
+
+   Status ReshapeLayers();
+
 };
 
 }  // namespace TNN_NS

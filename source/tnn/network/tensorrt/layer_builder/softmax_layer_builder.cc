@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -37,10 +38,27 @@ ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
     if (paramlist->axis == 1) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-        auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        ISoftMaxLayer* layar = network->addSoftMax(*tensor);
+        auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+        ILayer* layer;
+        //unsqueeze 
+        if (input_tensor->getDimensions().nbDims < 4) {
+            DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+            while(unsqueeze_dims.size() < 4) {
+                unsqueeze_dims.push_back(1);
+            }
+            layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());        
+            input_tensor = layer->getOutput(0);
+        }
+
+        ISoftMaxLayer* layar = network->addSoftMax(*input_tensor);
         if (layar != nullptr) {
             layar->setName(layer_name_.c_str());
+        }
+
+        auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
+        //squeeze
+        if(output_dims.size() < 4) {
+            layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
         }
         return layar;
     } else {
