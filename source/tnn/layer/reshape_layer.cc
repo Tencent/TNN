@@ -45,8 +45,8 @@ Status ReshapeLayer::InferOutputShape(bool ignore_error) {
     //根据const resource更新维度信息
     if (runtime_model_ == RUNTIME_MODE_NORMAL && input_blobs_.size() >=2) {
         auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_.find(shape_blob_name) != const_resource_.end()) {
-            auto shape_buffer =  const_resource_[shape_blob_name];
+        if (const_resource_ != nullptr && const_resource_->find(shape_blob_name) != const_resource_->end()) {
+            auto shape_buffer = (*const_resource_)[shape_blob_name];
             auto dim_count = shape_buffer->GetDataCount();
             auto dim_data = (int *)shape_buffer->force_to<int *>();
             DimsVector dims;

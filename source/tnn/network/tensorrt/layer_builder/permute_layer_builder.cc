@@ -37,6 +37,17 @@ ILayer* PermuteTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs PermuteTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    auto param = dynamic_cast<PermuteLayerParam*>(param_);
+    for (int i = 0; i < param->orders.size(); ++i) {
+        int order = param->orders[i];
+        output.d[i] = inputs[0].d[order];
+    }
+    return output;
+}
+
 const char* PermutePluginCreator::getPluginName() const {
     return "Permute";
 }

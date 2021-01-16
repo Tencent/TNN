@@ -34,18 +34,18 @@ Status UpsampleLayer::FillLayerParamWithConstantResource() {
         std::shared_ptr<RawBuffer> sizes_buffer = nullptr;
         if (input_blobs_.size() == 2) {
             const auto scales_name = input_blobs_[1]->GetBlobDesc().name;
-            if (const_resource_.find(scales_name) != const_resource_.end()) {
-                scales_buffer = const_resource_[scales_name];
+            if (const_resource_ != nullptr && const_resource_->find(scales_name) != const_resource_->end()) {
+                scales_buffer = (*const_resource_)[scales_name];
             }
         } else if (input_blobs_.size() == 3) {
             const auto scales_name = input_blobs_[2]->GetBlobDesc().name;
-            if (const_resource_.find(scales_name) != const_resource_.end()) {
-                scales_buffer = const_resource_[scales_name];
+            if (const_resource_ != nullptr && const_resource_->find(scales_name) != const_resource_->end()) {
+                scales_buffer = (*const_resource_)[scales_name];
             }
         } else if (input_blobs_.size() == 4) {
             const auto sizes_name = input_blobs_[3]->GetBlobDesc().name;
-            if (const_resource_.find(sizes_name) != const_resource_.end()) {
-                sizes_buffer = const_resource_[sizes_name];
+            if (const_resource_ != nullptr && const_resource_->find(sizes_name) != const_resource_->end()) {
+                sizes_buffer = (*const_resource_)[sizes_name];
             }
         }
         

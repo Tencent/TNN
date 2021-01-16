@@ -37,6 +37,14 @@ ILayer* ArgMaxOrMinTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs ArgMaxOrMinTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    auto param = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
+    DimsExprs output(inputs[0]);
+    output.d[param->axis] = exprBuilder.constant(1);
+    return output;
+}
+
 const char* ArgMaxOrMinPluginCreator::getPluginName() const {
     return "ArgMaxOrMin";
 }

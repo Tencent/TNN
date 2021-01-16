@@ -25,7 +25,7 @@ Status SqueezeLayer::InferOutputDataType() {
     }
     const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
     const auto& const_res  = const_resource_;
-    if (const_res.find(input_name) != const_res.end()) {
+    if (const_res != nullptr && const_res->find(input_name) != const_res->end()) {
         output_blobs_[0]->flag = output_blobs_[0]->flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
     }
     return status;

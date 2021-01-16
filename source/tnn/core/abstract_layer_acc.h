@@ -89,7 +89,7 @@ public:
     void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
     
     // @brief set constant resource
-    void SetConstantResource(ConstantResource consts);
+    void SetConstantResource(ConstantResource* consts);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
@@ -110,7 +110,7 @@ private:
     
 protected:
     BlobMemoryPool *runtime_blob_pool_ = nullptr;
-    ConstantResource const_resource_ = {};
+    ConstantResource* const_resource_ = nullptr;
     std::map<std::string, std::shared_ptr<Blob> > const_blob_map_ = {};
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 };

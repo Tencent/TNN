@@ -21,6 +21,10 @@ DECLARE_CUDA_ACC(Reshape, LAYER_RESHAPE);
 
 Status CudaReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+    if (ret != TNN_OK) {
+        return ret;
+    }
     return TNN_OK;
 }
 
@@ -29,6 +33,13 @@ Status CudaReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 Status CudaReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto dims = input_blob->GetBlobDesc().dims;
+    int count = DimsVectorUtils::Count(dims);
+    void* input_data = input_blob->GetHandle().base;
+    void* output_data = output_blob->GetHandle().base;
+    cudaMemcpyAsync(output_data, input_data, count * sizeof(float), cudaMemcpyDeviceToDevice, context_->GetStream());
     return TNN_OK;
 }
 

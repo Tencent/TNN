@@ -38,8 +38,8 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         if (input_blobs_.size() >= 2) {
             auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
-            if (const_resource_.find(begins_blob_name) != const_resource_.end()) {
-                auto begins_buffer =  const_resource_[begins_blob_name];
+            if (const_resource_ != nullptr && const_resource_->find(begins_blob_name) != const_resource_->end()) {
+                auto begins_buffer =  (*const_resource_)[begins_blob_name];
                 auto dim_count = begins_buffer->GetDataCount();
                 auto dim_data = (int *)begins_buffer->force_to<int *>();
                 DimsVector dims;
@@ -52,8 +52,8 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
         
         if (input_blobs_.size() >= 3) {
             auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
-            if (const_resource_.find(ends_blob_name) != const_resource_.end()) {
-                auto ends_buffer =  const_resource_[ends_blob_name];
+            if (const_resource_ != nullptr && const_resource_->find(ends_blob_name) != const_resource_->end()) {
+                auto ends_buffer =  (*const_resource_)[ends_blob_name];
                 auto dim_count = ends_buffer->GetDataCount();
                 auto dim_data = (int *)ends_buffer->force_to<int *>();
                 DimsVector dims;

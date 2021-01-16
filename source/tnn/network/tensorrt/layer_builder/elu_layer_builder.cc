@@ -37,6 +37,17 @@ ILayer* EluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs EluTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    for (int i = 1; i < nbInputs; i++) {
+        for (int j = 0; j < output.nbDims; j++) {
+            output.d[j] = exprBuilder.operation(DimensionOperation::kMAX, *output.d[j], *inputs[i].d[j]);
+        }
+    }
+    return output;
+}
+
 const char* EluPluginCreator::getPluginName() const {
     return "Elu";
 }

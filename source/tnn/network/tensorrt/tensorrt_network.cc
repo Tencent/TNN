@@ -360,9 +360,12 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         nvinfer1::ITensor* in_tensor = m_trt_network->addInput(desc.name.c_str(),
             ConvertToTRTDataType(desc.data_type), nv_dims);
 
-        auto min_dims = ConvertToTRTDims(desc.dims);
-        auto max_dims = min_dims;
-        auto opt_dims = min_dims;
+        auto max_dims = ConvertToTRTDims(desc.dims);
+        auto min_dims = max_dims;
+        for (int i = 0; i < min_dims.nbDims; i++) {
+            if (i != 1) min_dims.d[i] = 1;
+        }
+        auto opt_dims = max_dims;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);

@@ -72,7 +72,7 @@ public:
     bool IsOutputConstant();
     
     // @brief set constant resource
-    void SetConstantResource(ConstantResource consts);
+    void SetConstantResource(ConstantResource* consts);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
@@ -86,7 +86,7 @@ protected:
 
     LayerParam* param_;
     LayerResource* resource_;
-    ConstantResource const_resource_;
+    ConstantResource* const_resource_ = nullptr;
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 
     //@brief calculate the output tensor dims

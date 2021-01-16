@@ -247,7 +247,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         
         cur_layer->SetRuntimeMode(runtime_model_);
-        cur_layer->SetConstantResource(net_resource->constant_map);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
@@ -477,7 +477,7 @@ Status DefaultNetwork::Forward() {
     for (auto layer : layers_) {
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
-        
+
         {
             
 #if DUMP_INPUT_BLOB
