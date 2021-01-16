@@ -48,6 +48,11 @@ ILayer* PowTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 }
 
+DimsExprs PowTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+}
+
 const char* PowPluginCreator::getPluginName() const {
     return "Pow";
 }

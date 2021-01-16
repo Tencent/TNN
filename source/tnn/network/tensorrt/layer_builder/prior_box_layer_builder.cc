@@ -37,6 +37,26 @@ ILayer* PriorBoxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs PriorBoxTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    PriorBoxLayerParam* param = dynamic_cast<PriorBoxLayerParam *>(param_);
+    int num_priors = static_cast<int>(param->aspect_ratios.size() * param->min_sizes.size());
+    if (!param->max_sizes.empty()) {
+        for (int i = 0; i < param->max_sizes.size(); ++i) {
+            ASSERT(param->max_sizes[i] > param->min_sizes[i]);
+            num_priors++;
+        }
+    }
+    DimsExprs output(inputs[0]);
+    output.d[0] = exprBuilder.constant(1);
+    output.d[1] = exprBuilder.constant(2);
+    auto four = exprBuilder.constant(4 * num_priors);
+    output.d[2] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[2], *inputs[0].d[3]);
+    output.d[2] = exprBuilder.operation(DimensionOperation::kPROD, *output.d[2], *four);
+    output.d[3] = exprBuilder.constant(1);
+    return output;
+}
+
 const char* PriorBoxPluginCreator::getPluginName() const {
     return "PriorBox";
 }

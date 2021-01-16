@@ -37,6 +37,14 @@ ILayer* SplitVTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs SplitVTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    auto param = dynamic_cast<SplitVLayerParam*>(param_);
+    DimsExprs output(inputs[0]);
+    output.d[param->axis] = exprBuilder.constant(param->slices[index]);
+    return output;
+}
+
 const char* SplitVPluginCreator::getPluginName() const {
     return "SplitV";
 }

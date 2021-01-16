@@ -39,6 +39,16 @@ ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    auto param = dynamic_cast<PadLayerParam*>(param_);
+    output.d[3] = exprBuilder.constant(param->pads[0] + param->pads[1]);
+    output.d[2] = exprBuilder.constant(param->pads[2] + param->pads[3]);
+    output.d[1] = exprBuilder.constant(param->pads[4] + param->pads[5]);
+    return output;
+}
+
 const char* PadPluginCreator::getPluginName() const {
     return "Pad";
 }
