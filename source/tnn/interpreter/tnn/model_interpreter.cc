@@ -38,6 +38,34 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
     return std::make_shared<Deserializer>(is);
 }
 
+ModelInterpreter::ModelInterpreter() {}
+
+ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
+    this->version_magic_number = interp.version_magic_number;
+    if (nullptr == this->net_structure_) {
+        this->net_structure_ = new NetStructure();
+    }
+    if (nullptr == this->net_resource_) {
+        this->net_resource_ = new NetResource();
+    }
+    *this->net_structure_ = *interp.net_structure_;
+    *this->net_resource_  = *interp.net_resource_;
+}
+
+ModelInterpreter& ModelInterpreter::operator=(ModelInterpreter interp) {
+    if (this == &interp) {
+        return *this;
+    }
+    this->version_magic_number = interp.version_magic_number;
+    if (nullptr == this->net_structure_)
+        this->net_structure_ = new NetStructure();
+    if (nullptr == this->net_resource_)
+        this->net_resource_ = new NetResource();
+    *this->net_structure_ = *interp.net_structure_;
+    *this->net_resource_  = *interp.net_resource_;
+    return *this;
+}
+
 // Interpret the proto and model.
 Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     std::string empty_content = "";
@@ -51,6 +79,12 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     auto &model_content = params.size() > 1 ? params[1] : empty_content;
     status              = InterpretModel(model_content);
     return status;
+}
+
+// Copy Interpreter
+std::shared_ptr<AbstractModelInterpreter> ModelInterpreter::Copy() {
+    std::shared_ptr<AbstractModelInterpreter> interp(new ModelInterpreter(*this));
+    return interp;
 }
 
 Status ModelInterpreter::InterpretProto(std::string &content) {

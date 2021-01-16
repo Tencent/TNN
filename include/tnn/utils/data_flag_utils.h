@@ -34,7 +34,7 @@ public:
     
     // @brief get the minimal change flag, ignore allocate flag
     // @param flag data flag
-    static int MinChangeStatus(int flag0, int  clag1);
+    static int MinChangeStatus(int flag0, int  flag1);
 };
 
 }  // namespace TNN_NS
