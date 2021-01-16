@@ -14,6 +14,8 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
+#include "tnn/network/tensorrt/dimension_expr.h"
+
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Convolution3D, LAYER_CONVOLUTION_3D);
@@ -30,26 +32,6 @@ const char* Convolution3DTRTPluginLayerBuilder::getPluginType() const {
 nvinfer1::DataType Convolution3DTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
     return inputTypes[0];
-}
-
-const IDimensionExpr * add(const IDimensionExpr * a, const IDimensionExpr * b, nvinfer1::IExprBuilder& exprBuilder) {
-    return exprBuilder.operation(DimensionOperation::kSUM, *a, *b);
-}
-
-const IDimensionExpr * sub(const IDimensionExpr * a, const IDimensionExpr * b, nvinfer1::IExprBuilder& exprBuilder) {
-    return exprBuilder.operation(DimensionOperation::kSUB, *a, *b);
-}
-
-const IDimensionExpr * mul(const IDimensionExpr * a, const IDimensionExpr * b, nvinfer1::IExprBuilder& exprBuilder) {
-    return exprBuilder.operation(DimensionOperation::kPROD, *a, *b);
-}
-
-const IDimensionExpr * floor_div(const IDimensionExpr * a, const IDimensionExpr * b, nvinfer1::IExprBuilder& exprBuilder) {
-    return exprBuilder.operation(DimensionOperation::kFLOOR_DIV, *a, *b);
-}
-
-const IDimensionExpr * ceil_div(const IDimensionExpr * a, const IDimensionExpr * b, nvinfer1::IExprBuilder& exprBuilder) {
-    return exprBuilder.operation(DimensionOperation::kCEIL_DIV, *a, *b);
 }
 
 DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
@@ -75,83 +57,52 @@ DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, con
 
     nvinfer1::IExprBuilder& e = exprBuilder;
 
-    const IDimensionExpr * pad_w = e.constant(conv_param->pads[0]);
-    const IDimensionExpr * pad_h = e.constant(conv_param->pads[2]);
-    const IDimensionExpr * pad_d = e.constant(conv_param->pads[4]);
 
-    const IDimensionExpr * kernel_w = e.constant(conv_param->kernels[0]);
-    const IDimensionExpr * kernel_h = e.constant(conv_param->kernels[1]);
-    const IDimensionExpr * kernel_d = e.constant(conv_param->kernels[2]);
+    const int pad_w_begin = conv_param->pads[0];
+    const int pad_h_begin = conv_param->pads[2];
+    const int pad_d_begin = conv_param->pads[4];
 
-    const IDimensionExpr * stride_w = e.constant(conv_param->strides[0]);
-    const IDimensionExpr * stride_h = e.constant(conv_param->strides[1]);
-    const IDimensionExpr * stride_d = e.constant(conv_param->strides[2]);
+    const int kernel_w = conv_param->kernels[0];
+    const int kernel_h = conv_param->kernels[1];
+    const int kernel_d = conv_param->kernels[2];
 
-    const IDimensionExpr * dilation_w = e.constant(conv_param->dialations[0]);
-    const IDimensionExpr * dilation_h = e.constant(conv_param->dialations[1]);
-    const IDimensionExpr * dilation_d = e.constant(conv_param->dialations[2]);
+    const int stride_w = conv_param->strides[0];
+    const int stride_h = conv_param->strides[1];
+    const int stride_d = conv_param->strides[2];
 
-    const IDimensionExpr * one = e.constant(1);
-    const IDimensionExpr * two = e.constant(2);
+    const int dilation_w = conv_param->dialations[0];
+    const int dilation_h = conv_param->dialations[1];
+    const int dilation_d = conv_param->dialations[2];
 
+    DimensionExpr height_out(nullptr, e);
+    DimensionExpr width_out(nullptr, e);
+    DimensionExpr depth_out(nullptr, e);
 
-    const IDimensionExpr * depth  = inputs[0].d[2];
-    const IDimensionExpr * height = inputs[0].d[3];
-    const IDimensionExpr * width  = inputs[0].d[4];
-
-    const IDimensionExpr * height_out;
-    const IDimensionExpr * width_out;
-    const IDimensionExpr * depth_out;
+    DimensionExpr depth(inputs[0].d[2], e);
+    DimensionExpr height(inputs[0].d[3], e);
+    DimensionExpr width(inputs[0].d[4], e);
 
     const int pad_type = conv_param->pad_type;
     if (pad_type == -1)  // default padding following the proto setting
     {
-        // kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
-        // kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
-        // kernel_extent_d = dilation_d * (kernel_d - 1) + 1;
-        const IDimensionExpr * kernel_extent_w = add(mul(dilation_w, sub(kernel_w, one, e), e), one, e);
-        const IDimensionExpr * kernel_extent_h = add(mul(dilation_h, sub(kernel_h, one, e), e), one, e);
-        const IDimensionExpr * kernel_extent_d = add(mul(dilation_d, sub(kernel_d, one, e), e), one, e);
+        int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+        int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+        int kernel_extent_d = dilation_d * (kernel_d - 1) + 1;
 
-        // height_out = (height + 2 * pad_h_begin - kernel_extent_h) / stride_h + 1;
-        // width_out  = (width + 2 * pad_w_begin - kernel_extent_w) / stride_w + 1;
-        // depth_out  = (depth + 2 * pad_d_begin - kernel_extent_d) / stride_d + 1;
-        auto default_padding_expr = [&](const IDimensionExpr * whd,    const IDimensionExpr * pad, 
-                                        const IDimensionExpr * kernelext, const IDimensionExpr * stride)
-                {
-                    auto expand_dim = sub(add(whd, mul(pad, two, e), e), kernelext, e);
-                    return add(floor_div(expand_dim, stride, e), one, e);
-                };
-
-        height_out = default_padding_expr(height, pad_h, kernel_extent_h, stride_h);
-        width_out  = default_padding_expr(width , pad_w, kernel_extent_w, stride_w);
-        depth_out  = default_padding_expr(depth , pad_d, kernel_extent_d, stride_d);
+        height_out = (height + 2 * pad_h_begin - kernel_extent_h) / stride_h + 1;
+        width_out  = (width + 2 * pad_w_begin - kernel_extent_w) / stride_w + 1;
+        depth_out  = (depth + 2 * pad_d_begin - kernel_extent_d) / stride_d + 1;
 
     } else if (pad_type == 0) {// SAME type
-        // height_out = static_cast<int>(std::ceil(float(height) / float(stride_h)));
-        // width_out  = static_cast<int>(std::ceil(float(width) / float(stride_w)));
-        // depth_out  = static_cast<int>(std::ceil(float(depth) / float(stride_d)));
-        auto same_padding_expr = [&](const IDimensionExpr * whd, const IDimensionExpr *stride) 
-                {
-                    return ceil_div(whd, stride, e);
-                };
-        height_out = same_padding_expr(height, stride_h);
-        width_out  = same_padding_expr(width , stride_w);
-        depth_out  = same_padding_expr(depth , stride_d);
+        height_out = ceil_div(height, stride_h);
+        width_out  = ceil_div(width , stride_w);
+        depth_out  = ceil_div(depth , stride_d);
 
     } else if (pad_type == 1)  {// VALID type
-        // height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
-        // width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
-        // depth_out  = static_cast<int>(std::ceil(float(depth - kernel_d + 1) / float(stride_d)));
-        auto valid_padding_expr = [&](const IDimensionExpr * whd, const IDimensionExpr *stride, 
-                                      const IDimensionExpr * kernel) 
-                {
-                    return ceil_div(add(sub(whd, kernel, e), one, e), stride, e);
-                };
+        height_out = ceil_div(height - kernel_h + 1, stride_h);
+        width_out  = ceil_div(width  - kernel_w + 1, stride_w);
+        depth_out  = ceil_div(depth  - kernel_d + 1, stride_d);
 
-        height_out = valid_padding_expr(height, stride_h, kernel_h);
-        width_out  = valid_padding_expr(width , stride_w, kernel_w);
-        depth_out  = valid_padding_expr(depth , stride_d, kernel_d);
     } else {
         LOGE("Convolution3DTRTPluginLayerBuilder only support default padding m\n");
         return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
@@ -160,9 +111,9 @@ DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, con
     DimsExprs output(inputs[0]);
 
     output.d[1] = e.constant(conv_param->output_channel);
-    output.d[2] = depth_out;
-    output.d[3] = height_out;
-    output.d[4] = width_out;
+    output.d[2] = depth_out.expr();
+    output.d[3] = height_out.expr();
+    output.d[4] = width_out.expr();
 
     return output;
 }

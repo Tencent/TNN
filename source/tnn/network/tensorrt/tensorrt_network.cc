@@ -443,7 +443,9 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
             tensorrt_tensor->SetTensor(output_tensor);
             int nbDims = output_tensor->getDimensions().nbDims;
-            LOGD("build trt layer for \"%s\", tensor shape size: %d \n", cur_layer->GetLayerName().c_str(), nbDims);
+            std::stringstream ss;
+            for( int d=0;d<nbDims;d++) ss << output_tensor->getDimensions().d[d] << ","; 
+            LOGD("build trt layer for \"%s\", tensor shape %s\n", cur_layer->GetLayerName().c_str(), ss.str().c_str());
             if (nbDims <= 0) {
                 LOGE("build trt layer for \"%s\" failed, tensor shape error.\n", cur_layer->GetLayerName().c_str());
                 return TNNERR_LAYER_ERR;
