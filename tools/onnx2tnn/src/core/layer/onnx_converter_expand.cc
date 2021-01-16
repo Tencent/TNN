@@ -22,13 +22,13 @@ string OnnxOpConverterExpand::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) 
 }
 
 string OnnxOpConverterExpand::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
-    const std::string &input_name = node.input(0);
-    // skip weight reshape
-    if (net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
-        DLog("reshape of weights is not supported, input0:%s out_node:%s\n", node.input(0).c_str(),
-             node.output(0).c_str());
-        assert(0);
-    }
+//    const std::string &input_name = node.input(0);
+//    // skip weight reshape
+//    if (net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+//        DLog("expand of weights is not supported, input0:%s out_node:%s\n", node.input(0).c_str(),
+//             node.output(0).c_str());
+//        assert(0);
+//    }
 
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
