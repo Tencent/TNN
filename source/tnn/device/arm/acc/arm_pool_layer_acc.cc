@@ -27,7 +27,7 @@ Status ArmPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     PoolingLayerParam *param = dynamic_cast<PoolingLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    int corner_l_ = 0, corner_t_ = 0, corner_r_ = k_param_->ow, corner_b_ = k_param_->oh;
+    corner_l_ = 0, corner_t_ = 0, corner_r_ = k_param_->ow, corner_b_ = k_param_->oh;
     for (; corner_l_ * param->strides[0] - param->pads[0] < 0; corner_l_++)
         ;
     for (; corner_t_ * param->strides[1] - param->pads[2] < 0; corner_t_++)
