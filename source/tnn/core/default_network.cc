@@ -80,6 +80,12 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
+#ifdef DEBUG
+    {
+        static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+        LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
+    }
+#endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     if(!net_config.cache_path.empty()) {
@@ -291,7 +297,6 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         return TNN_OK;
     }
     static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
