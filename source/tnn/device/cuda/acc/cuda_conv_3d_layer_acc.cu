@@ -14,10 +14,27 @@
 
 #include "tnn/device/cuda/acc/cuda_conv_3d_layer_acc.h"
 
+#include <memory>
+
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
+
+using perf_t = cudnnConvolutionFwdAlgoPerf_t;
+
+std::vector<perf_t> getValidAlgorithms(perf_t *perfResults, int n_algo) {
+
+    std::vector<perf_t> valid_results;
+    valid_results.reserve(n_algo);
+    for (int i = 0; i < n_algo; i++) {
+        if (perfResults[i].status == CUDNN_STATUS_SUCCESS) {
+            valid_results.push_back(perfResults[i]);
+        }
+    }
+    return valid_results;
+}
+
 
 Status CudaConv3DLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -155,9 +172,20 @@ Status CudaConv3DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     }
 
     // algorithm
-    CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm(
+    static constexpr int num_algos = CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
+    int perf_count;
+    std::unique_ptr<perf_t[]> perf_results(new perf_t[num_algos]);
+
+    CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm_v7(
         context_->cudnn_handle_, bottom_desc_, filter_desc_, conv_desc_,
-        top_desc_, CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &conv_algo_));
+        top_desc_, num_algos, &perf_count, perf_results.get()));
+
+    auto valid_algos = getValidAlgorithms(perf_results.get(), perf_count);
+    if (valid_algos.size() == 0) {
+        LOGE("CUDNN get conv algo failed.\n");
+        return TNNERR_LAYER_ERR;
+    }
+    conv_algo_ = valid_algos[0].algo;
 
     // LOGD("Convolution algorithm: %d\n", conv_algo_);
 
