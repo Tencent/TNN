@@ -32,6 +32,29 @@ nvinfer1::DataType InnerProductTRTPluginLayerBuilder::getOutputDataType(int inde
     return inputTypes[0];
 }
 
+DimsExprs InnerProductTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+
+    InnerProductLayerParam* ip_param = dynamic_cast<InnerProductLayerParam*>(param_);
+    if (!ip_param) {
+        LOGE("InnerProductTRTPluginLayerBuilder got null param\n");
+        return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+    }
+
+    DimsExprs output(inputs[0]);
+
+    int N    = ip_param->num_output;
+    int axis = ip_param->axis;
+
+    output.d[axis] = exprBuilder.constant(N);
+
+    for (int i = axis + 1; i < inputs[0].nbDims; i++) {
+        output.d[i] = exprBuilder.constant(1);
+    }
+
+    return output;
+}
+
 ILayer* InnerProductTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
