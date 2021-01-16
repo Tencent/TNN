@@ -178,6 +178,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
 
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
