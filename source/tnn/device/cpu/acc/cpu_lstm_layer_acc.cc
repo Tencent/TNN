@@ -84,17 +84,17 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *b_r_C = b_r_F + b_page_size;
     
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
-    float *h_0 = (float *)((char*)(blob_h0->GetHandle().base) + blob_h0->GetHandle().bytes_offset);
-    auto h_t = std::shared_ptr<float>((float*)calloc(batch * output_size, sizeof(float)), [](float* p) { free(p); });
+    auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
+    auto h_0 = (float *)((char*)(blob_h0->GetHandle().base) + blob_h0->GetHandle().bytes_offset);
     if (h_0) {
-        memcpy((void *)h_t.get(), h_0, batch * output_size * sizeof(float));
+        memcpy((void *)h_t, h_0, batch * output_size * sizeof(float));
     }
     
     //initial_c, initial value of the cell, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
-    auto c_t = std::shared_ptr<float>((float*)calloc(batch * output_size, sizeof(float)), [](float* p) { free(p); });
-    float *c_0 = (float *)((char*)(blob_c0->GetHandle().base) + blob_c0->GetHandle().bytes_offset);
+    auto c_t = (float *)((char*)(outputs[2]->GetHandle().base) + outputs[2]->GetHandle().bytes_offset);
+    auto c_0 = (float *)((char*)(blob_c0->GetHandle().base) + blob_c0->GetHandle().bytes_offset);
     if (c_0) {
-        memcpy((void *)c_t.get(), c_0, batch * output_size * sizeof(float));
+        memcpy((void *)c_t, c_0, batch * output_size * sizeof(float));
     }
     
     //temp gates, shape [hidden_size, 4]
@@ -108,8 +108,8 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         
         for (int b = 0; b < batch; b++) {
             const float* x_t_b = x_t + b * input_size;
-            float* h_t_b = h_t.get() + b * output_size;
-            float* c_t_b = c_t.get() + b * output_size;
+            float* h_t_b = h_t + b * output_size;
+            float* c_t_b = c_t + b * output_size;
             //float*gates_b = (float *)gates.get() + b * output_size * 4;
             
             for (int q = 0; q < output_size; q++) {
