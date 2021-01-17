@@ -45,8 +45,13 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
         auto layer_res = new ConvLayerResource();
 
         auto dims              = inputs[0]->GetBlobDesc().dims;
+        // check if 3d convolution
+        bool is_conv3d = (dims.size() == 5 && layer_param->kernels.size() == 3);
         int filter_handle_size = dims[1] * layer_param->output_channel * layer_param->kernels[0] *
                                  layer_param->kernels[1] / layer_param->group;
+        if (is_conv3d) {
+            filter_handle_size *= layer_param->kernels[2]; 
+        }
         if (layer_param->quantized) {
             layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(int8_t));
             layer_res->bias_handle   = RawBuffer(layer_param->output_channel * sizeof(int32_t));
@@ -78,6 +83,11 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
  * Generate deconv resource
  */
 class DeconvolutionLayerResourceGenerator : public ConvolutionLayerResourceGenerator {};
+
+/*
+ * Generate conv3d resource
+ */
+class Convolution3DLayerResourceGenerator : public ConvolutionLayerResourceGenerator {};
 
 /*
  * Generate weights for innerproduct layer
@@ -267,14 +277,15 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
     }
 };
 
-REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION)
-REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION)
-REGISTER_LAYER_RESOURCE(InnerProduct, LAYER_INNER_PRODUCT)
-REGISTER_LAYER_RESOURCE(Batchnorm, LAYER_BATCH_NORM)
-REGISTER_LAYER_RESOURCE(Scale, LAYER_SCALE)
-REGISTER_LAYER_RESOURCE(InstanceNorm, LAYER_INST_BATCH_NORM)
-REGISTER_LAYER_RESOURCE(PRelu, LAYER_PRELU)
-REGISTER_LAYER_RESOURCE(BlobScale, LAYER_BLOB_SCALE)
+REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);
+REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION);
+REGISTER_LAYER_RESOURCE(Convolution3D, LAYER_CONVOLUTION_3D);
+REGISTER_LAYER_RESOURCE(InnerProduct, LAYER_INNER_PRODUCT);
+REGISTER_LAYER_RESOURCE(Batchnorm, LAYER_BATCH_NORM);
+REGISTER_LAYER_RESOURCE(Scale, LAYER_SCALE);
+REGISTER_LAYER_RESOURCE(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_LAYER_RESOURCE(PRelu, LAYER_PRELU);
+REGISTER_LAYER_RESOURCE(BlobScale, LAYER_BLOB_SCALE);
 REGISTER_LAYER_RESOURCE(Add, LAYER_ADD);
 REGISTER_LAYER_RESOURCE(Sub, LAYER_SUB);
 REGISTER_LAYER_RESOURCE(Max, LAYER_MAXIMUM);
