@@ -32,10 +32,16 @@ Status LSTMONNXLayer::InferOutputShape(bool ignore_error) {
     auto sequence_len = input_dims[0]; // length of sequence
     auto batch = input_dims[1];  // batch_size
     auto input_size = DimsVectorUtils::Count(input_dims, 2); // input dimension
+    auto output_size = layer_param->hidden_size;
     
-    DimsVector output_dims = {sequence_len, batch, input_size};
-    output_dims[2] = layer_param->hidden_size;
+    DimsVector output_dims = {sequence_len, batch, output_size};
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
+    if (output_blobs_.size() >= 3) {
+        //[num_directions, batch_size, output_size]
+        output_dims = {1, batch, output_size};
+        output_blobs_[1]->GetBlobDesc().dims = output_dims;
+        output_blobs_[2]->GetBlobDesc().dims = output_dims;
+    }
     return TNN_OK;
 }
 
