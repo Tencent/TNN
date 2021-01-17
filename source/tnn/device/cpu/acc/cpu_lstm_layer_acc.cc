@@ -95,69 +95,78 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     for (int t = 0; t < T; t++) {
         int ti = reverse ? T - 1 - t : t;
 
-        const float* x = x_data + ti * x_page_size;
-        for (int q = 0; q < output_size; q++) {
-            auto gates_data = (float *)gates.get() + q * 4;
+        const float* x_t = x_data + ti * x_page_size;
+        float* y_t = y_data + ti *y_page_size;
+        
+        for (int b = 0; b < batch; b++) {
+            const float* x_t_b = x_t + b * input_size;
+            float* h_t_b = h_t + b * output_size;
+            float* c_t_b = c_t + b * output_size;
+            //float*gates_b = (float *)gates.get() + b * output_size * 4;
             
-            //W weights
-            auto w_x_I_o = w_x_I + q * input_size;
-            auto w_x_O_o = w_x_O + q * input_size;
-            auto w_x_F_o = w_x_F + q * input_size;
-            auto w_x_C_o = w_x_C + q * input_size;
+            for (int q = 0; q < output_size; q++) {
+                auto gates_data = (float *)gates.get() + q * 4;
+                
+                //W weights
+                auto w_x_I_o = w_x_I + q * input_size;
+                auto w_x_O_o = w_x_O + q * input_size;
+                auto w_x_F_o = w_x_F + q * input_size;
+                auto w_x_C_o = w_x_C + q * input_size;
 
-            auto r_x_I_o = r_x_I + q * output_size;
-            auto r_x_O_o = r_x_O + q * output_size;
-            auto r_x_F_o = r_x_F + q * output_size;
-            auto r_x_C_o = r_x_C + q * output_size;
+                auto r_x_I_o = r_x_I + q * output_size;
+                auto r_x_O_o = r_x_O + q * output_size;
+                auto r_x_F_o = r_x_F + q * output_size;
+                auto r_x_C_o = r_x_C + q * output_size;
+                
+                //bias
+                float I = b_w_I[q] + b_r_I[q];
+                float O = b_w_O[q] + b_r_O[q];
+                float F = b_w_F[q] + b_r_F[q];
+                float C = b_w_C[q] + b_r_C[q];
+
+                for (int i = 0; i < input_size; i++) {
+                    I += w_x_I_o[i] * x_t_b[i];
+                    O += w_x_O_o[i] * x_t_b[i];
+                    F += w_x_F_o[i] * x_t_b[i];
+                    C += w_x_C_o[i] * x_t_b[i];
+                }
+
+                for (int i = 0; i < output_size; i++) {
+                    I += r_x_I_o[i] * h_t_b[i];
+                    O += r_x_O_o[i] * h_t_b[i];
+                    F += r_x_F_o[i] * h_t_b[i];
+                    C += r_x_C_o[i] * h_t_b[i];
+                }
+
+                gates_data[0] = I;
+                gates_data[1] = O;
+                gates_data[2] = F;
+                gates_data[3] = C;
+            }
             
-            //bias
-            float I = b_w_I[q] + b_r_I[q];
-            float O = b_w_O[q] + b_r_O[q];
-            float F = b_w_F[q] + b_r_F[q];
-            float C = b_w_C[q] + b_r_C[q];
+            float* output_data = y_t + b *output_size;
+            for (int q = 0; q < output_size; q++) {
+                const auto gates_data = (float *)gates.get() + q * 4;
 
-            for (int i = 0; i < input_size; i++) {
-                float xi = x[i];
+                float I = gates_data[0];
+                float O = gates_data[1];
+                float F = gates_data[2];
+                float C = gates_data[3];
 
-                I += w_x_I_o[i] * xi;
-                O += w_x_O_o[i] * xi;
-                F += w_x_F_o[i] * xi;
-                C += w_x_C_o[i] * xi;
+                I = 1.f / (1.f + exp(-I));
+                F = 1.f / (1.f + exp(-F));
+                O = 1.f / (1.f + exp(-O));
+                C = tanh(C);
+
+                float cell2 = F * c_t_b[q] + I * C;
+                float H = O * tanh(cell2);
+                c_t_b[q] = cell2;
+                h_t_b[q] = H;
+                output_data[q] = H;
             }
-
-            for (int i = 0; i < output_size; i++) {
-                I += r_x_I_o[i] * h_t[i];
-                O += r_x_O_o[i] * h_t[i];
-                F += r_x_F_o[i] * h_t[i];
-                C += r_x_C_o[i] * h_t[i];
-            }
-
-            gates_data[0] = I;
-            gates_data[1] = O;
-            gates_data[2] = F;
-            gates_data[3] = C;
         }
         
-        float* output_data = y_data + ti *y_page_size;
-        for (int q = 0; q < output_size; q++) {
-            const auto gates_data = (float *)gates.get() + q * 4;
 
-            float I = gates_data[0];
-            float O = gates_data[1];
-            float F = gates_data[2];
-            float C = gates_data[3];
-
-            I = 1.f / (1.f + exp(-I));
-            F = 1.f / (1.f + exp(-F));
-            O = 1.f / (1.f + exp(-O));
-            C = tanh(C);
-
-            float cell2 = F * c_t[q] + I * C;
-            float H = O * tanh(cell2);
-            c_t[q] = cell2;
-            h_t[q] = H;
-            output_data[q] = H;
-        }
     }
   
     return TNN_OK;

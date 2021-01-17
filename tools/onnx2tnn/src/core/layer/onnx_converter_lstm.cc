@@ -20,11 +20,24 @@
 
 #include "half_utils.h"
 
-DECLARE_OP_CONVERTER(LSTM);
+DECLARE_OP_CONVERTER_WITH_FUNC(LSTM,
+                               std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterLSTM::TNNOpType(NodeProto& node,
                                                 OnnxNetInfo &net_info) {
     return "LSTMONNX";
+}
+
+std::vector<std::string> OnnxOpConverterLSTM::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    std::vector<std::string> input_names;
+    for (int j = 0; j < (int)node.input_size(); j++) {
+        const auto input_name = node.input(j);
+        if (input_name.length() <= 0) {
+            continue;
+        }
+        input_names.push_back(input_name);
+    }
+    return input_names;
 }
 
 string OnnxOpConverterLSTM::TNNLayerParam(NodeProto& node,
@@ -35,6 +48,13 @@ string OnnxOpConverterLSTM::TNNLayerParam(NodeProto& node,
     }
     
     int hidden_size = (int)get_node_attr_i(node, "hidden_size", 0);
+    auto direction_s = get_node_attr_s(node, "direction", "forward");
+    int direction = 0;
+    if (direction_s == "reverse") {
+        direction = 1;
+    } else if (direction_s == "bidirectional") {
+        direction = 2;
+    }
 
     ostringstream layer_param;
     layer_param <<0<<" "<<hidden_size<<" ";
@@ -50,36 +70,8 @@ int OnnxOpConverterLSTM::WriteTNNModel(serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     //write weights in constant resource from now on
-//    if (net_info.weights_map.find(node.input(5)) != net_info.weights_map.end() ||
-//        net_info.weights_map.find(node.input(6)) != net_info.weights_map.end()) {
-//        DLog("Note: Weights of initial_h or initial_c  is only supported by TNN, old Rapidnet dont support\n");
-//        assert(0);
-//    }
-//
-//    const auto onnx_op = node.op_type();
-//    auto name = !node.name().empty() ? node.name() : node.output(0);
-//    const auto tnn_layer_type = TNNOpType(node, net_info);
-//
-//    //写头信息
-//    net_writer->put_int(0);  //触发type from string
-//    net_writer->put_string(tnn_layer_type);
-//    net_writer->put_string(name);
-//
-//    //写数据
-//    net_writer->put_string(name);
-//
-//    //write gate weight
-//    auto W = get_node_attr_tensor(node, "W", net_info, 1);
-//    WriteTensorData(W, net_writer, net_info.data_type);
-//
-//    //write hidden weight
-//    auto R = get_node_attr_tensor(node, "R", net_info, 2);
-//    WriteTensorData(R, net_writer, net_info.data_type);
-//
-//    //write bias
-//    auto B = get_node_attr_tensor(node, "B", net_info, 3);
-//    WriteTensorData(B, net_writer, net_info.data_type);
-    
+    //write weights in constant resource from now on
+    //write weights in constant resource from now on
     return 0;
 }
 
