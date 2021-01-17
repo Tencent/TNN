@@ -52,6 +52,11 @@ TensorRTNetwork_::~TensorRTNetwork_() {
     if (m_trt_context) {
         m_trt_context->destroy();
     }
+
+    for (auto iter : const_input_map) {
+        if (iter.second) cudaFree(iter.second);
+    }
+
     if (m_trt_engine) m_trt_engine->destroy();
 }
 
@@ -175,7 +180,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     for (auto iter : net_resource->constant_map) {
             void* tmp_buffer;
             cudaMalloc(&tmp_buffer, iter.second->GetBytesSize());
-            tmp_map[iter.first] = tmp_buffer;
+            const_input_map[iter.first] = tmp_buffer;
             cudaMemcpy(tmp_buffer, iter.second->force_to<void*>(), iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
             int index = m_trt_engine->getBindingIndex(iter.first.c_str());
             if (index < 0) continue;
@@ -186,11 +191,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             for (int i = 0; i < dim_count; i++) {
                 dims.push_back(dim_data[i]);
             }
-printf("set %s: ", iter.first.c_str());
-for (int i= 0; i < dim_count; i++) {
-    printf("%d ", dims[i]);
-}
-printf("\n");
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
             m_trt_context->setBindingDimensions(index, inputDims);
     }
@@ -246,7 +246,7 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     }
 
     for (auto iter : net_resource_->constant_map) {
-            cudaMemcpy(tmp_map[iter.first], iter.second->force_to<void*>(), iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
+            cudaMemcpy(const_input_map[iter.first], iter.second->force_to<void*>(), iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
             int index = m_trt_engine->getBindingIndex(iter.first.c_str());
             if (index < 0) continue;
             auto dim_count = iter.second->GetDataCount();
@@ -255,11 +255,6 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
             for (int i = 0; i < dim_count; i++) {
                 dims.push_back(dim_data[i]);
             }
-printf("reshape set %s: ", iter.first.c_str());
-for (int i= 0; i < dim_count; i++) {
-    printf("%d ", dims[i]);
-}
-printf("\n");
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
             m_trt_context->setBindingDimensions(index, inputDims);
     }
@@ -501,7 +496,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 dims.push_back(dim_data[i]);
             }
             for (int i = 0; i < nv_dims.nbDims; i++) nv_dims.d[i] = -1;
-printf("add input %s\n", iter.first.c_str());
             auto const_tensor = m_trt_network->addInput(blob->GetBlobDesc().name.c_str(),
                 ConvertToTRTDataType(iter.second->GetDataType()), nv_dims);
             auto max_dims = ConvertToTRTDims(dims);

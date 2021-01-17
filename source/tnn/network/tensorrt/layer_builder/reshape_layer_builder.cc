@@ -63,9 +63,6 @@ DimsExprs ReshapeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvi
             for (int i=0; i<dim_count; i++) {
                 dims.push_back(dim_data[i]);
             }
-printf("reshape: %s %d\n", shape_blob_name.c_str(), shape_buffer->GetBufferDims().size());
-for (int i = 0; i < dims.size(); i++) printf("%d ", dims[i]);
-printf("\n");
             param->shape = dims;
             param->num_axes = dim_count;
         }
