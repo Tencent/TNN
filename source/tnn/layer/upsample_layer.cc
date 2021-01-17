@@ -103,7 +103,7 @@ Status UpsampleLayer::InferOutputShape(bool ignore_error) {
     auto status = BaseLayer::InferOutputShape(ignore_error);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+    auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     
     auto scales = layer_param->scales;

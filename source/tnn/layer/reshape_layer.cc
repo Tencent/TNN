@@ -18,7 +18,8 @@
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
-DECLARE_LAYER(Reshape, LAYER_RESHAPE);
+DECLARE_LAYER_WITH_FUNC(Reshape, LAYER_RESHAPE,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 Status ReshapeLayer::InferOutputDataType() {
     BaseLayer::InferOutputDataType();
@@ -37,27 +38,12 @@ Status ReshapeLayer::InferOutputDataType() {
 }
 
 Status ReshapeLayer::InferOutputShape(bool ignore_error) {
-    BaseLayer::InferOutputShape(ignore_error);
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
     
     auto layer_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     
-    //根据const resource更新维度信息
-    if (runtime_model_ == RUNTIME_MODE_NORMAL && input_blobs_.size() >=2) {
-        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_ != nullptr && const_resource_->find(shape_blob_name) != const_resource_->end()) {
-            auto shape_buffer = (*const_resource_)[shape_blob_name];
-            auto dim_count = shape_buffer->GetDataCount();
-            auto dim_data = (int *)shape_buffer->force_to<int *>();
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            layer_param->shape = dims;
-            layer_param->num_axes = dim_count;
-        }
-    }
-
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     if (!layer_param->shape.empty()) {
@@ -75,6 +61,29 @@ Status ReshapeLayer::InferOutputShape(bool ignore_error) {
         LOGE_IF(!ignore_error, "Reshape has no shape param. layer name: %s\n", layer_param->name.c_str());
         return Status(TNNERR_PARAM_ERR, "Reshape has no shape param");
     }
+}
+
+Status ReshapeLayer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    //根据const resource更新维度信息
+    if (input_blobs_.size() >= 2) {
+        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(shape_blob_name) != const_resource_->end()) {
+            auto shape_buffer = (*const_resource_)[shape_blob_name];
+            auto dim_count = shape_buffer->GetDataCount();
+            auto dim_data = (int *)shape_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->shape = dims;
+            layer_param->num_axes = dim_count;
+        }
+    }
+    return status;
 }
 
 REGISTER_LAYER(Reshape, LAYER_RESHAPE);
