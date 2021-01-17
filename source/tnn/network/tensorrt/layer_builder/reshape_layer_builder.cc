@@ -20,8 +20,8 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
 
 bool ReshapeTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+    return (((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        && inOut[pos].type == inOut[0].type) || inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
 const char* ReshapeTRTPluginLayerBuilder::getPluginType() const {
@@ -34,14 +34,48 @@ nvinfer1::DataType ReshapeTRTPluginLayerBuilder::getOutputDataType(int index, co
 }
 
 ILayer* ReshapeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    if (input_blobs_.size() == 1) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    } else {
+        auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+        auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        auto input_tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
+        auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
+        IShuffleLayer* layer = network->addShuffle(*input_tensor1);
+        if (layer != nullptr) {
+            layer->setInput(1, *(network->addShape(*input_tensor2)->getOutput(0)));
+            layer->setName(layer_name_.c_str());
+        }
+        return layer;
+    }
 }
 
 DimsExprs ReshapeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
     auto param = dynamic_cast<ReshapeLayerParam*>(param_);
+    if (input_blobs_.size() >=2) {
+        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ == nullptr || const_resource_->find(shape_blob_name) != const_resource_->end()) {
+            auto shape_buffer = (*const_resource_)[shape_blob_name];
+            auto dim_count = shape_buffer->GetDataCount();
+            auto dim_data = (int *)shape_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+printf("reshape: %s %d\n", shape_blob_name.c_str(), shape_buffer->GetBufferDims().size());
+for (int i = 0; i < dims.size(); i++) printf("%d ", dims[i]);
+printf("\n");
+            param->shape = dims;
+            param->num_axes = dim_count;
+        }
+    }
+
     DimsExprs output;
     output.nbDims = param->shape.size() + param->axis;
+    for (int i = 0; i < output.nbDims; i++) {
+        output.d[i] = exprBuilder.constant(1);
+    }
     for (int i = 0; i < param->axis; i++) {
         output.d[i] = inputs[0].d[i];
     }

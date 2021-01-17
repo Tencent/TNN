@@ -167,7 +167,6 @@ DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, con
     return output;
 }
 
-
 ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }

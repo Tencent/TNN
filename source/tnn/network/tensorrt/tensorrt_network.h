@@ -84,7 +84,8 @@ public:
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
-    Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name);
+    Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name,
+        NetResource *net_resource);
 
     Status CreateExecuteContext();
 
@@ -95,10 +96,12 @@ private:
     nvinfer1::IExecutionContext* m_trt_context;
     TRTLogger m_trt_logger;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
+    std::unordered_map<std::string, void*> tmp_map;
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
     void* m_context_memory;
+    NetResource *net_resource_;
 };
 
 }  //  namespace TNN_NS

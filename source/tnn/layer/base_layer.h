@@ -72,10 +72,11 @@ public:
     bool IsOutputConstant();
     
     // @brief set constant resource
-    void SetConstantResource(ConstantResource* consts);
+    virtual void SetConstantResource(ConstantResource* consts);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
+
 protected:
     LayerType type_;
 
