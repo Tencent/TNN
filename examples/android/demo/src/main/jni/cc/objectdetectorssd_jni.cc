@@ -59,8 +59,6 @@ TNN_OBJECT_DETECTORSSD(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint 
         //add for huawei_npu store the om file
         LOGI("the device type  %d device huawei_npu", gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-        // skip low precision for tmp on npu, need to fix
-        option->precision = TNN_NS::PRECISION_HIGH;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         status = gDetector->Init(option);
