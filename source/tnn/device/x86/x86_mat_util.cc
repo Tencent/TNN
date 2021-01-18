@@ -640,9 +640,9 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[w * max_num_threads];
     short* rows1        = new short[w * max_num_threads];
-    short* rows0_t[max_num_threads];
-    short* rows1_t[max_num_threads];
-    int prev_sy[max_num_threads];
+    short** rows0_t     = new short*[max_num_threads];
+    short** rows1_t     = new short*[max_num_threads];
+    int* prev_sy        = new int[max_num_threads];
 
     for (int b = 0; b < batch; ++b) {
         for (int t = 0; t < max_num_threads; ++t) {
@@ -661,6 +661,9 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     delete[] rows0;
     delete[] rows1;
     delete[] buf;
+    delete[] rows0_t;
+    delete[] rows1_t;
+    delete[] prev_sy;
 }
 
 void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
@@ -673,9 +676,9 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 2 + 2) * max_num_threads];
     short* rows1        = new short[(w * 2 + 2) * max_num_threads];
-    short* rows0_t[max_num_threads];
-    short* rows1_t[max_num_threads];
-    int prev_sy[max_num_threads];
+    short** rows0_t     = new short*[max_num_threads];
+    short** rows1_t     = new short*[max_num_threads];
+    int* prev_sy        = new int[max_num_threads];
 
     for (int b = 0; b < batch; ++b) {
         for (int t = 0; t < max_num_threads; ++t) {
@@ -694,6 +697,9 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     delete[] rows0;
     delete[] rows1;
     delete[] buf;
+    delete[] rows0_t;
+    delete[] rows1_t;
+    delete[] prev_sy;
 }
 
 void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
@@ -706,9 +712,9 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 3 + 1) * max_num_threads];
     short* rows1        = new short[(w * 3 + 1) * max_num_threads];
-    short* rows0_t[max_num_threads];
-    short* rows1_t[max_num_threads];
-    int prev_sy[max_num_threads];
+    short** rows0_t     = new short*[max_num_threads];
+    short** rows1_t     = new short*[max_num_threads];
+    int* prev_sy        = new int[max_num_threads];
 
     for (int b = 0; b < batch; ++b) {
         for (int t = 0; t < max_num_threads; ++t) {
@@ -727,6 +733,9 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     delete[] rows0;
     delete[] rows1;
     delete[] buf;
+    delete[] rows0_t;
+    delete[] rows1_t;
+    delete[] prev_sy;
 }
 
 void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride, uint8_t* dst, int w,
@@ -739,9 +748,9 @@ void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     short* rows0        = new short[(w * 4) * max_num_threads];
     short* rows1        = new short[(w * 4) * max_num_threads];
-    short* rows0_t[max_num_threads];
-    short* rows1_t[max_num_threads];
-    int prev_sy[max_num_threads];
+    short** rows0_t     = new short*[max_num_threads];
+    short** rows1_t     = new short*[max_num_threads];
+    int* prev_sy        = new int[max_num_threads];
 
     for (int b = 0; b < batch; ++b) {
         for (int t = 0; t < max_num_threads; ++t) {
@@ -760,6 +769,9 @@ void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, i
     delete[] rows0;
     delete[] rows1;
     delete[] buf;
+    delete[] rows0_t;
+    delete[] rows1_t;
+    delete[] prev_sy;
 }
 
 void ResizeBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
