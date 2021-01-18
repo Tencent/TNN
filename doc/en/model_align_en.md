@@ -8,13 +8,13 @@ When using TNN to perform inference with transformed tnn model, you may encounte
 
 ### 1. Using '-align' option when converting models
 
-The TNN model converter is equipped with the alignment function and able to check if the converted tnn model is aligned with the original model. We strongly advise to enable the alignment function when you perform model conversion. The details of model converter could be found here:[Model Conversion Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/convert.md).
+The TNN model converter is equipped with the alignment function and able to check if the converted tnn model is aligned with the original model. We strongly advise to enable the alignment function when you perform model conversion. The details of model converter could be found here:[Model Converter Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/convert_en.md).
 
 ### 2. Using 'model_check' tool
 
 For converted tnn models, TNN provides the **model_check** tool to help the alignment. The **model_check** tool is mainly designed for comparing the results of executions on different devices(e.g., ARM, OpenCL, Metal) and chekcing if they are same. When douting the tnn model results are wrong on a specific device, you can use this tool to verify your assumption.
 
-The **model_check** tool can run the given TNN model on specified device with given or random input data, and compare the device result with the reference CPU result in a operator-to-operator manner. Thus, the oprtators that have the same input while giving different outputs between the test device and CPU are responsible for the disalignment. The usage of **model_check** can be found here:[model_check document](https://github.com/Tencent/TNN/blob/master/doc/en/development/model_check.md). 
+The **model_check** tool can run the given TNN model on specified device with given or random input data, and compare the device result with the reference CPU result in a operator-to-operator manner. Thus, the oprtators that have the same input while giving different outputs between the test device and CPU are responsible for the disalignment. The usage of **model_check** can be found here:[model_check document](https://github.com/Tencent/TNN/blob/master/doc/en/development/model_check_en.md). 
 
 ## II. Known Problems related to Model Alignment
 
@@ -96,8 +96,8 @@ with
 ret = instance->Forward();
 ```
 
-As the changes are made in source code, you should re-compile TNN to make them work. The steps to compile TNN can be found here:[TNN Compiling Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/compile.md).
-When the compilation finishes, you can use the **TNNTest** tool to execute the model and save the input and output of each operator. You can refer [TNNTest Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/test.md) for usage of the **TNNTest**.
+As the changes are made in source code, you should re-compile TNN to make them work. The steps to compile TNN can be found here:[TNN Compiling Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/compile_en.md).
+When the compilation finishes, you can use the **TNNTest** tool to execute the model and save the input and output of each operator. You can refer [TNNTest Document](https://github.com/Tencent/TNN/blob/master/doc/en/user/test_en.md) for usage of the **TNNTest**.
 
 ### 3. Getting the Results of Operators in the Original Model
 
