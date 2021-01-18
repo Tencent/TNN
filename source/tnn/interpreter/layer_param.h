@@ -158,6 +158,13 @@ struct UpsampleLayerParam : public LayerParam {
     PARAM_COPY(UpsampleLayerParam)
 };
 
+struct RangeLayerParam : public LayerParam {
+    DataType type = DATA_TYPE_FLOAT;
+    RangeData start = {0};
+    RangeData limit = {0};
+    RangeData delta = { .i = 1};
+};
+
 struct SoftmaxLayerParam : public LayerParam {
     int axis = 1;
 

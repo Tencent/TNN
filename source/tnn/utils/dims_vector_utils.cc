@@ -147,6 +147,24 @@ DimsVector DimsVectorUtils::Upsample(const DimsVector input_dims,
     return {num, channels, height_out, width_out};
 }
 
+DimsVector DimsVectorUtils::Range(const RangeData start, const RangeData limit,
+                        const RangeData delta, DataType type, Status *status) {
+    int count = 0;
+    if (type == DATA_TYPE_FLOAT) {
+        count = ceil((limit.f - start.f) / delta.f);
+    } else if (type == DATA_TYPE_INT32) {
+        count = ceil((limit.i - start.i) / delta.i);
+    } else {
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "RangeLayer has invalid type");
+        }
+    }
+    
+    count = count >= 0 ? count : 0;
+    
+    return {count};
+}
+
 DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape,
                                     const int axis, const int num_axes, Status *status) {
 
