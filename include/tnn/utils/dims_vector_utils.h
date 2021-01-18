@@ -70,6 +70,10 @@ public:
     // @brief upsample/resize op to resize input dims
     static DimsVector Upsample(const DimsVector input_dims,
                                   std::vector<float> scales, std::vector<int> sizes, int mode, Status *status);
+    
+    // @brief range op to infer output dims
+    static DimsVector Range(const RangeData start, const RangeData limit,
+                            const RangeData delta, DataType type, Status *status);
 
     // @brief NCHW dims vector to NHWC dims vector
     static DimsVector NCHW2NHWC(DimsVector dims);
