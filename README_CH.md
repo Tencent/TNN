@@ -34,7 +34,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
     <tr>
         <th nowrap="nowrap">头发分割(腾讯光影)</th>
         <th nowrap="nowrap">姿势估计(腾讯光流)</th>
-        <th nowrap="nowrap">姿势估计(blazepose))</th>
+        <th nowrap="nowrap">姿势估计(blazepose)</th>
     </tr>
     <tr>
         <td>
