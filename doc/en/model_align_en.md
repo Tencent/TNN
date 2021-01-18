@@ -1,4 +1,6 @@
-# Common Questions about Model Alignment 
+# Common Questions about Model Alignment
+
+[中文版本](../cn/model_align.md)
 
 When using TNN to perform inference with transformed tnn model, you may encounter disalignment of the inference result between the tnn model and the original model. This document summarizes the common reasons behind disalignment, operators related to disalignment, and solutions to resolve common alignment problems. The overal process of handling model alignment problems is shown below.
 
