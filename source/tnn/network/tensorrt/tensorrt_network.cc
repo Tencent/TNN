@@ -230,11 +230,11 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     for (auto iter : outputs) {
         int index = m_trt_engine->getBindingIndex(iter.second->GetBlobDesc().name.c_str());
         auto trt_dims = m_trt_context->getBindingDimensions(index).d;
-        auto &dims = iter.second->GetBlobDesc().dims;
-        dims[0] = trt_dims[0];
-        dims[1] = trt_dims[1];
-        dims[2] = trt_dims[2];
-        dims[3] = trt_dims[3];
+        DimsVector dims;
+        for(int i=0;i<m_trt_context->getBindingDimensions(index).nbDims;i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        iter.second->GetBlobDesc().dims = dims;
     }
 
     return TNN_OK;
