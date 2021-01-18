@@ -100,7 +100,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * The optimization process may change the network structure accoundingly.
      * eg. fuse conv+bn, conv+relu.
      */
-    {
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
