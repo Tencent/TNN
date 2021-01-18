@@ -884,14 +884,14 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 __m128i _mask = _mm_loadl_epi64((__m128i*)ialpha_p);  // 01234567
                 _mask         = _mm_unpacklo_epi8(_mask, _mask);      // 0011223344556677
 
-                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[0]), 0);
-                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[1]), 1);
-                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[2]), 2);
-                _S0 = _mm_insert_epi16(_S0, *(int*)(Sp + xofs_p[3]), 3);  // 0l0l0r0r 1l1l1r1r 2l2l2r2r 3l3l3r3r
-                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[4]), 0);
-                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[5]), 1);
-                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[6]), 2);
-                _S1 = _mm_insert_epi16(_S1, *(int*)(Sp + xofs_p[7]), 3);  // 4l4l4r4r 5l5l5r5r 6l6l6r6r 7l7l7r7r
+                _S0 = _mm_insert_epi32(_S0, *(int*)(Sp + xofs_p[0]), 0);
+                _S0 = _mm_insert_epi32(_S0, *(int*)(Sp + xofs_p[1]), 1);
+                _S0 = _mm_insert_epi32(_S0, *(int*)(Sp + xofs_p[2]), 2);
+                _S0 = _mm_insert_epi32(_S0, *(int*)(Sp + xofs_p[3]), 3);  // 0l0l0r0r 1l1l1r1r 2l2l2r2r 3l3l3r3r
+                _S1 = _mm_insert_epi32(_S1, *(int*)(Sp + xofs_p[4]), 0);
+                _S1 = _mm_insert_epi32(_S1, *(int*)(Sp + xofs_p[5]), 1);
+                _S1 = _mm_insert_epi32(_S1, *(int*)(Sp + xofs_p[6]), 2);
+                _S1 = _mm_insert_epi32(_S1, *(int*)(Sp + xofs_p[7]), 3);  // 4l4l4r4r 5l5l5r5r 6l6l6r6r 7l7l7r7r
 
                 _tmp0 = _mm_shuffle_epi8(_S0, _mask0);  // 0l0l 1l1l 2l2l 3l3l 0r0r 1r1r 2r2r 3r3r
                 _tmp1 = _mm_shuffle_epi8(_S1, _mask0);  // 4l4l 5l5l 6l6l 7l7l 4r4r 5r5r 6r6r 7r7r
@@ -1292,7 +1292,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
     __m128i mask_vec3 = _mm_setr_epi8(4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7);
 
     uint8_t* dst_loc_p = dst + dst_loc_base + x * channel;
-    for (; x + 8 <= end_x; x += 8) {
+    for (; x + 8 <= end_x - 2 * shift_r; x += 8) {
         short* wtab0 = BilinearTab_i[tab_loc[x]][0];
         short* wtab1 = BilinearTab_i[tab_loc[x + 1]][0];
         short* wtab2 = BilinearTab_i[tab_loc[x + 2]][0];
