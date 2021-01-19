@@ -26,8 +26,9 @@ namespace TNN_NS {
 
 static void weight_transform(const float *src, float *dst, int kernel_size, int unit, int in_channel, int out_channel,
                              const float (*G)[3]) {
-    float M[unit][3];
-    float K_trans[unit * unit];
+#define UNIT_MAX 8
+    float M[UNIT_MAX][3];
+    float K_trans[UNIT_MAX * UNIT_MAX];
 
     int ic_8        = UP_DIV(in_channel, 8);
     int oc_8        = UP_DIV(out_channel, 8);
@@ -72,6 +73,7 @@ static void weight_transform(const float *src, float *dst, int kernel_size, int 
             }
         }
     }
+#undef UNIT_MAX
 }
 
 static void pack_input_c8(const float *din, float *dout, int cs, int hs, int he, int ws, int we, int channel, int width,
@@ -220,16 +222,16 @@ static void unpack_output_c8(const float *din, float *dout, int cs, int ce, int 
     acc  = _mm256_fmadd_ps(data, wgt, acc);
 
 // A=6x8, B=8x8, C=6x8
-void gemm_kernel(float *dst, float *src, const float *weight, const float *bias, int ic_8, int oc_8, int width) {
-    const size_t M = 6;
-    const size_t K = 8;
-    const size_t N = 8;
+static void gemm_kernel(float *dst, float *src, const float *weight, const float *bias, int ic_8, int oc_8, int width) {
+    const int M = 6;
+    const int K = 8;
+    const int N = 8;
 
     auto w_unit         = width / M;
     auto w_unit_end     = M * w_unit;
     auto src_depth_step = width * K;
 
-    const size_t weight_unit_step = K * N;
+    const int weight_unit_step = K * N;
 
     for (int co = 0; co < oc_8; co++) {
         auto dst_z     = dst + co * N * width;
@@ -239,14 +241,14 @@ void gemm_kernel(float *dst, float *src, const float *weight, const float *bias,
             auto dst_x = dst_z + dx * N * M;
             auto src_x = src + dx * K * M;
 
-            register __m256 acc0 asm("ymm0") = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
-            register __m256 acc1 asm("ymm1") = acc0;
-            register __m256 acc2 asm("ymm2") = acc0;
-            register __m256 acc3 asm("ymm3") = acc0;
-            register __m256 acc4 asm("ymm4") = acc0;
-            register __m256 acc5 asm("ymm5") = acc0;
-            register __m256 data asm("ymm6");
-            register __m256 wgt asm("ymm7");
+            register __m256 acc0 = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
+            register __m256 acc1 = acc0;
+            register __m256 acc2 = acc0;
+            register __m256 acc3 = acc0;
+            register __m256 acc4 = acc0;
+            register __m256 acc5 = acc0;
+            register __m256 data;
+            register __m256 wgt;
 
             for (int ci = 0; ci < ic_8; ci++) {
                 auto src_z    = src_x + ci * src_depth_step;
@@ -274,9 +276,9 @@ void gemm_kernel(float *dst, float *src, const float *weight, const float *bias,
             auto dst_x = dst_z + dx * N;
             auto src_x = src + dx * K;
 
-            register __m256 acc asm("ymm0") = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
-            register __m256 data asm("ymm6");
-            register __m256 wgt asm("ymm7");
+            register __m256 acc = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
+            register __m256 data;
+            register __m256 wgt;
 
             for (int ci = 0; ci < ic_8; ci++) {
                 auto src_z    = src_x + ci * src_depth_step;
@@ -301,8 +303,8 @@ void gemm_kernel(float *dst, float *src, const float *weight, const float *bias,
 //    0, 1,  1, 0,
 //    0, -1, 1, 0,
 //    0, 1,  0, -1]
-void input_trans_c8_4x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                        int dest_h_stride) {
+static void input_trans_c8_4x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                               int dest_h_stride) {
     __m256 src00 = _mm256_loadu_ps(src);
     __m256 src01 = _mm256_loadu_ps(src + src_stride);
     __m256 src02 = _mm256_loadu_ps(src + src_stride + src_stride);
@@ -386,8 +388,8 @@ void input_trans_c8_4x4(const float *src, int src_stride, int src_h_stride, floa
 
 // AT=[1, 1,  1,  0,
 //    0, 1, -1, -1
-void output_trans_c8_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                              int dest_h_stride, float *bias_value, bool has_relu) {
+static void output_trans_c8_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                                     int dest_h_stride, float *bias_value, bool has_relu) {
     __m256 src00 = _mm256_loadu_ps(src);
     __m256 src01 = _mm256_loadu_ps(src + src_stride);
     __m256 src02 = _mm256_loadu_ps(src + src_stride + src_stride);
@@ -539,33 +541,33 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     const int pad_top    = param->pads[2];
     const int pad_bottom = param->pads[3];
 
-    size_t in_n_stride  = channel_in * width_in * height_in;
-    size_t out_n_stride = channel_out * width_out * height_out;
-    size_t ic_stride    = width_in * height_in;
-    size_t oc_stride    = width_out * height_out;
+    int in_n_stride  = channel_in * width_in * height_in;
+    int out_n_stride = channel_out * width_out * height_out;
+    int ic_stride    = width_in * height_in;
+    int oc_stride    = width_out * height_out;
 
-    size_t ic_8 = UP_DIV(channel_in, CH_PACK);
-    size_t oc_8 = UP_DIV(channel_out, CH_PACK);
+    int ic_8 = UP_DIV(channel_in, CH_PACK);
+    int oc_8 = UP_DIV(channel_out, CH_PACK);
 
-    const size_t src_unit = 4;
-    const size_t dst_unit = 2;
-    size_t w_unit         = UP_DIV(width_out, dst_unit);
-    size_t h_unit         = UP_DIV(height_out, dst_unit);
-    size_t total_cnt      = UP_DIV(w_unit * h_unit, TILE_NUM);
+    const int src_unit = 4;
+    const int dst_unit = 2;
+    int w_unit         = UP_DIV(width_out, dst_unit);
+    int h_unit         = UP_DIV(height_out, dst_unit);
+    int total_cnt      = UP_DIV(w_unit * h_unit, TILE_NUM);
 
-    size_t w_pad = width_in + pad_left + pad_right;
-    size_t h_pad = height_in + pad_top + pad_bottom;
+    int w_pad = width_in + pad_left + pad_right;
+    int h_pad = height_in + pad_top + pad_bottom;
 
-    const size_t zero_len = w_pad;
-    float zero_ptr[zero_len];
+    const int zero_len = w_pad;
+    float *zero_ptr    = (float *)_mm_malloc(zero_len * sizeof(float), 32);
     memset(zero_ptr, 0, sizeof(float) * zero_len);
     float *pack_input = (float *)_mm_malloc(w_pad * h_pad * ROUND_UP(channel_in, CH_PACK) * sizeof(float), 32);
     float *input_c8   = pack_input;
 
-    size_t new_h_stride = w_pad * CH_PACK;
-    size_t new_c_stride = new_h_stride * h_pad;
-    size_t ic_8_stride  = w_pad * h_pad * CH_PACK;
-    size_t oc_8_stride  = width_out * height_out * CH_PACK;
+    int new_h_stride = w_pad * CH_PACK;
+    int new_c_stride = new_h_stride * h_pad;
+    int ic_8_stride  = w_pad * h_pad * CH_PACK;
+    int oc_8_stride  = width_out * height_out * CH_PACK;
 
     float *tmp_data = (float *)_mm_malloc((ic_8 + oc_8) * src_unit * src_unit * CH_PACK * TILE_NUM * sizeof(float), 32);
     float *src_trans_tmp_data = (float *)_mm_malloc(src_unit * src_unit * CH_PACK * sizeof(float), 32);
@@ -706,6 +708,7 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
         }
     }
 
+    _mm_free(zero_ptr);
     _mm_free(pack_input);
     _mm_free(tmp_data);
     _mm_free(src_trans_tmp_data);
