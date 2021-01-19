@@ -65,7 +65,16 @@ public:
         quantized = true;
     }
 
+    void SetRelatedBlobName(std::string name) {
+        related_blob_name = name;
+    }
+
+    std::string GetRelatedBlobName() {
+        return related_blob_name;
+    }
+
 private:
+    std::string related_blob_name;
     bool int8_mode = false;
     bool quantized = false;
     IntScaleResource *resource_ = nullptr;
