@@ -178,6 +178,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     for (auto iter : net_resource->constant_map) {
+        Blob *blob = blob_manager_->GetBlob(iter.first);
+        if (IsBlobUsed(blob)) {
             void* tmp_buffer;
             cudaMalloc(&tmp_buffer, iter.second->GetBytesSize());
             const_input_map[iter.first] = tmp_buffer;
@@ -196,7 +198,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
                 dims.push_back(dim_data[i]);
             }
             if (rewrite_index >= 0) {
-                Blob *blob = blob_manager_->GetBlob(iter.first);
                 auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
                 auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
                 auto related_blob = blob_manager_->GetBlob(name);
@@ -204,6 +205,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             }
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
             m_trt_context->setBindingDimensions(index, inputDims);
+        }
     }
 
     for (auto iter : outputs) {
@@ -257,17 +259,29 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
     }
 
     for (auto iter : net_resource_->constant_map) {
+        Blob *blob = blob_manager_->GetBlob(iter.first);
+        if (IsBlobUsed(blob)) {
             cudaMemcpy(const_input_map[iter.first], iter.second->force_to<void*>(), iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
             int index = m_trt_engine->getBindingIndex(iter.first.c_str());
             if (index < 0) continue;
             auto dim_count = iter.second->GetDataCount();
             auto dim_data = (int *)iter.second->force_to<int *>();
             DimsVector dims;
+            int dims_prod = 1;
+            int rewrite_index = -1;
             for (int i = 0; i < dim_count; i++) {
+                if (dim_data[i] == -1) rewrite_index = i;
+                else dims_prod *= dim_data[i];
                 dims.push_back(dim_data[i]);
             }
+            if (rewrite_index >= 0) {
+                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
+                auto related_blob = blob_manager_->GetBlob(name);
+                dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
+            }
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-            m_trt_context->setBindingDimensions(index, inputDims);
+        }
     }
 
     BlobMap outputs;
@@ -498,7 +512,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
 
     for (auto iter : net_resource->constant_map) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
-        if (blob) {
+        if (IsBlobUsed(blob)) {
             auto dim_count = iter.second->GetDataCount();
             auto dim_data = (int *)iter.second->force_to<int *>();
             DimsVector dims;
@@ -614,6 +628,16 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     }
 
     return TNN_OK;
+}
+
+bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
+    for (int i = 0; i < layers_.size(); i++) {
+        auto inputs = layers_[i]->GetInputBlobs();
+        if (std::find(inputs.begin(), inputs.end(), blob) != inputs.end()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,

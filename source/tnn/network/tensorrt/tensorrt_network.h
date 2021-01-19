@@ -84,6 +84,8 @@ public:
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
+    bool IsBlobUsed(Blob* blob);
+
     Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name,
         NetResource *net_resource);
 
