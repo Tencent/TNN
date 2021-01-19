@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <sstream>
+#include <mutex>
 
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
@@ -33,6 +34,8 @@ NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
 
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
+
+std::mutex TensorRTNetwork_::network_mutex;
 
 TensorRTNetwork_::TensorRTNetwork_() {
     int8_mode = false;
@@ -62,6 +65,7 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
         AbstractModelInterpreter* interpreter, InputShapesMap inputs_shape) {
+    std::unique_lock<std::mutex> lck(network_mutex);
     cudaSetDevice(net_config.device_id);
     config_ = net_config;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -253,7 +257,10 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         auto dims = iter.second;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        m_trt_context->setBindingDimensions(index, inputDims);
+        auto ret = m_trt_context->setBindingDimensions(index, inputDims);
+        if (!ret) {
+            return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
+        }
     }
 
     for (auto iter : net_resource_->constant_map) {
@@ -267,7 +274,10 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
                 dims.push_back(dim_data[i]);
             }
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-            m_trt_context->setBindingDimensions(index, inputDims);
+            auto ret = m_trt_context->setBindingDimensions(index, inputDims);
+            if (!ret) {
+                return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
+            }
     }
 
     BlobMap outputs;
