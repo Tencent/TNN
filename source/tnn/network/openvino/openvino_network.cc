@@ -32,7 +32,7 @@ OpenVINONetwork_::~OpenVINONetwork_() {
 
 Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
                             AbstractModelInterpreter* interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
 
     Status ret  = TNN_OK;
 
@@ -73,7 +73,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     blob_manager_ = new BlobManager(device_);
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
 
     //set inputnode
     RETURN_ON_NEQ(SetNetInputNode(), TNN_OK);
@@ -94,7 +94,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
     ie_.AddExtension(extensionPtr, "CPU");
 
-    return Reshape(inputs_shape);
+    return Reshape(max_inputs_shape);
 }
 
 Status OpenVINONetwork_::SetNetInputNode() {

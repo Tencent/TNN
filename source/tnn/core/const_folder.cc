@@ -43,14 +43,14 @@ ConstFolder::~ConstFolder() {
  * Those object is initialized in this function.
  */
 Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
     runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(GetDevice(DEVICE_NAIVE));
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
     
-    return DefaultNetwork::Init(config_, model_config, interpreter, inputs_shape);
+    return DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
 }
 
 Status ConstFolder::AllocateBlobMemory() {

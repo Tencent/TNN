@@ -47,6 +47,13 @@ std::shared_ptr<Instance> TNNImplRknpu::CreateInst(NetworkConfig& net_config, St
     return instance;
 }
 
+std::shared_ptr<Instance> TNNImplRknpu::CreateInst(NetworkConfig& net_config, Status& status,
+                                                   InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+    return instance;
+}
+
 TNNImplFactoryRegister<TNNImplFactory<TNNImplRknpu>> g_tnn_impl_atlas_factory_register(MODEL_TYPE_RKCACHE);
 
 }  // namespace TNN_NS

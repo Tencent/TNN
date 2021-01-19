@@ -60,7 +60,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  * Those object is initialized in this function.
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -109,7 +109,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     blob_manager_ = new BlobManager(device_);
 
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
     RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = InitLayers(net_structure, net_resource);

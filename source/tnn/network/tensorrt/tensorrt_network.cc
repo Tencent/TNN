@@ -64,7 +64,7 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
-        AbstractModelInterpreter* interpreter, InputShapesMap inputs_shape) {
+        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     std::unique_lock<std::mutex> lck(network_mutex);
     cudaSetDevice(net_config.device_id);
     config_ = net_config;
@@ -98,7 +98,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     blob_manager_ = new TensorRTBlobManager(device_);
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
     if (ret != TNN_OK) {
         return ret;
     }
@@ -144,7 +144,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (test_mode || false == file_lock->Ready()) {
-        ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource);
+        ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -436,7 +436,7 @@ Status TensorRTNetwork_::CreateExecuteContext() {
 }
 
 Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name,
-        NetResource *net_resource) {
+        NetResource *net_resource, const InputShapesMap &min_inputs_shape) {
     auto m_trt_builder = nvinfer1::createInferBuilder(m_trt_logger);
     NetworkDefinitionCreationFlags networkFlags = 1U << static_cast<uint32_t>(
         NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);

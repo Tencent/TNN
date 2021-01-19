@@ -44,5 +44,19 @@ std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
     }
     return instance;
 }
+
+
+std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
+                                               Status& status,
+                                               InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(nullptr, min_inputs_shape, max_inputs_shape);
+
+    if (status != TNN_OK) {
+        return nullptr;
+    }
+    return instance;
+}
+
     
 }  // namespace TNN_NS

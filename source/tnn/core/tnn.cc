@@ -63,4 +63,13 @@ std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status,
     return impl_->CreateInst(config, status, inputs_shape);
 }
 
+std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    if (!impl_) {
+        status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+        return nullptr;
+    }
+
+    return impl_->CreateInst(config, status, min_inputs_shape, max_inputs_shape);
+}
+
 }  // namespace TNN_NS

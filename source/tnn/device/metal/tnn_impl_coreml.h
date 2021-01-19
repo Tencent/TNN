@@ -56,6 +56,18 @@ public:
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap inputs_shape = InputShapesMap());
+
+
+    // @brief create an instance
+    // @param instance: The instance to be created.
+    // @param min_inputs_shape: support min shape
+    // @param max_inputs_shape: support max shape
+    // @param status code: If successful, returns zero. Otherwise, returns
+    // error code.
+    virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
+                                                 InputShapesMap min_inputs_shape, max_inputs_shape) = 0;
+
+
 };
 
 }  // namespace TNN_NS

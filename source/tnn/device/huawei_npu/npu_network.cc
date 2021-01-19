@@ -45,7 +45,7 @@ NpuNetwork::~NpuNetwork() {
 }
 
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape) {
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     // config check
     if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
@@ -73,7 +73,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // modify the inputShapeMap. if reshape, add a suffix to the model name to create a new model
     InputShapesMap input_shapes_map_temp = net_structure_->inputs_shape_map;
-    std::string model_suffix             = NpuCommonUtils::modifyModelInputSize(inputs_shape, input_shapes_map_temp);
+    std::string model_suffix             = NpuCommonUtils::modifyModelInputSize(max_inputs_shape, input_shapes_map_temp);
 
     // init the path to store/read om
     model_name_            = NpuCommonUtils::GetFileHash(model_config);
