@@ -37,22 +37,30 @@ std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNet
         }
     }
     
+    bool all_inputs_const = (!has_another_variable_input) &&
+    net_info.weights_map.find(node.input(0)) != net_info.weights_map.end();
+    
     for (int j = 0; j < (int)node.input_size(); j++) {
         const auto input_name = node.input(j);
         if (input_name.length() <= 0) {
             continue;
         } else {
-            if (HasLayerResource(node, net_info)) {
-                if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
-                net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-                    continue;
-                }
+            //if all inputs are const, it is a const layer which is only excuted on NAIVE
+            if (all_inputs_const) {
+                
             } else {
-                if (j == 0 && node.input_size() == 1) {
-                    
-                } else {
-                    if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                if (HasLayerResource(node, net_info)) {
+                    if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+                    net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
                         continue;
+                    }
+                } else {
+                    if (j == 0 && node.input_size() == 1) {
+                        
+                    } else {
+                        if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                            continue;
+                        }
                     }
                 }
             }
