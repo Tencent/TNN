@@ -34,6 +34,17 @@ public:
 #ifndef DEBUG
         if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
 #endif
+        const char * skips[] = {
+            "INVALID_ARGUMENT: Cannot find binding of given name",
+            "Unused Input:",
+        };
+
+        std::string msg_str = std::string(msg);
+        for(auto skip : skips) {
+            if (msg_str.rfind(skip, 0) == 0) {
+                return;
+            }
+        }
         switch (severity) {
             case Severity::kINTERNAL_ERROR: std::cerr << "INTERNAL_ERROR: "; break;
             case Severity::kERROR: std::cerr << "ERROR: "; break;
@@ -100,6 +111,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
     std::unordered_map<std::string, void*> const_input_map;
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
+    static std::mutex network_mutex;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
     void* m_context_memory;
