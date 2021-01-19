@@ -42,13 +42,18 @@ Instance::~Instance() {
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
-    interpreter_ = interpreter;
+    interpreter_ = interpreter->Copy();
+    if (nullptr == interpreter_) {
+        // The ModelInterpreter not implement Copy API, just use interpreter
+        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+        interpreter_ = interpreter;
+    }
     
-    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter.get());
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
     if (default_interpreter && default_interpreter->GetNetStructure() &&
         NeedDoConstantFolding(default_interpreter->GetNetStructure())) {
         auto const_folder = std::make_shared<ConstFolder>();
-        auto status = const_folder->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+        auto status = const_folder->Init(net_config_, model_config_, interpreter_.get(), inputs_shape);
         RETURN_ON_NEQ(status, TNN_OK);
         
         status = const_folder->Forward();
@@ -67,7 +72,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
-    auto ret = network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), inputs_shape);
     RETURN_ON_NEQ(ret, TNN_OK);
 
     // release string, this will not be used
