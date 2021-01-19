@@ -26,7 +26,7 @@ TNN模型转换工具支持对齐功能，可以在模型转换时检查生成�
 
 |源模型|问题算子列表|
 |-|-|
-|Pytorch    |upsample, batchnorm|
+|Pytorch    |upsample, batchnorm, AvgPool|
 |TensorFlow |TODO|
 |tflite     |ResizeBilinear|
 |onnx       |TODO|
