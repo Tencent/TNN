@@ -193,6 +193,3 @@ TNN referenced the following projects：
 
 * Scan the QR code to join the TNN discussion group：
 <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
-
-## FAQ
-* [Frequently asked questions](/doc/en/faq_en.md)
