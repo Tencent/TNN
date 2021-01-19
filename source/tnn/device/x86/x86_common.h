@@ -15,6 +15,8 @@
 #ifndef TNN_X86_COMMON_H_
 #define TNN_X86_COMMON_H_
 
+#include "tnn/core/macro.h"
+
 #if defined(_MSC_VER)
 #include <intrin.h>
 #else
