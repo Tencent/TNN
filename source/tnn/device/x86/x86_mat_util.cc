@@ -1014,7 +1014,7 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            __m128i _S0, _S1, _tmp0, _tmp1;
+            __m128i _S0, _S1, _S2, _S3, _tmp0, _tmp1;
             __m128i _mask0, _mask1;
             int simd_loop = 0;
             for (int i = 0; i < w - 7; i += 8) {
@@ -1023,24 +1023,28 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 _mask0        = _mm_unpacklo_epi8(_mask, _mask);      // 0000111122223333
                 _mask1        = _mm_unpackhi_epi8(_mask, _mask);      // 4444555566667777
 
-                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[0]));              // 0l0l0l0l0r0r0r0r
-                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[2]));              // 2l2l2l2l2r2r2r2r
-                _S0   = _mm_insert_epi64(_S0, *(long long*)(Sp + xofs_p[1]), 1);  // 0l0l0l0l0r0r0r0r 1l1l1l1l1r1r1r1r
-                _S1   = _mm_insert_epi64(_S1, *(long long*)(Sp + xofs_p[3]), 1);  // 2l2l2l2l2r2r2r2r 3l3l3l3l3r3r3r3r
-                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                             // 0l 2l 0r 2r
-                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                             // 1l 3l 1r 3r
-                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);                         // 0l 1l 2l 3l
-                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);                         // 0r 1r 2r 3r
+                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[0]));  // 0l0l0l0l0r0r0r0r
+                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[1]));  // 1l1l1l1l1r1r1r1r
+                _S2   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[2]));  // 2l2l2l2l2r2r2r2r
+                _S3   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[3]));  // 3l3l3l3l3r3r3r3r
+                _S0   = _mm_unpacklo_epi64(_S0, _S1);                 // 0l0l0l0l0r0r0r0r 1l1l1l1l1r1r1r1r
+                _S1   = _mm_unpacklo_epi64(_S2, _S3);                 // 2l2l2l2l2r2r2r2r 3l3l3l3l3r3r3r3r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                 // 0l 2l 0r 2r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                 // 1l 3l 1r 3r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);             // 0l 1l 2l 3l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);             // 0r 1r 2r 3r
                 _mm_storeu_si128((__m128i*)Dp_p, _mm_blendv_epi8(_S1, _S0, _mask0));
 
-                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[4]));              // 4l 4r
-                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[6]));              // 6l 6r
-                _S0   = _mm_insert_epi64(_S0, *(long long*)(Sp + xofs_p[5]), 1);  // 4l 4r 5l 5r
-                _S1   = _mm_insert_epi64(_S1, *(long long*)(Sp + xofs_p[7]), 1);  // 6l 6r 7l 7r
-                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                             // 4l 6l 4r 6r
-                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                             // 5l 7l 5r 7r
-                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);                         // 4l 5l 6l 7l
-                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);                         // 4r 5r 6r 7r
+                _S0   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[4]));  // 4l 4r
+                _S1   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[5]));  // 5l 5r
+                _S2   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[6]));  // 6l 6r
+                _S3   = _mm_loadl_epi64((__m128i*)(Sp + xofs_p[7]));  // 7l 7r
+                _S0   = _mm_unpacklo_epi64(_S0, _S1);                 // 4l 4r 5l 5r
+                _S1   = _mm_unpacklo_epi64(_S2, _S3);                 // 6l 6r 7l 7r
+                _tmp0 = _mm_unpacklo_epi32(_S0, _S1);                 // 4l 6l 4r 6r
+                _tmp1 = _mm_unpackhi_epi32(_S0, _S1);                 // 5l 7l 5r 7r
+                _S0   = _mm_unpacklo_epi32(_tmp0, _tmp1);             // 4l 5l 6l 7l
+                _S1   = _mm_unpackhi_epi32(_tmp0, _tmp1);             // 4r 5r 6r 7r
                 _mm_storeu_si128((__m128i*)(Dp_p + 16), _mm_blendv_epi8(_S1, _S0, _mask1));
 
                 xofs_p += 8;
@@ -1747,12 +1751,11 @@ void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int sr
     }
 }
 
-
 template <int schannel>
 static void WarpAffineNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                               const float (*transform)[3], const float border_val) {
     uint8_t border_ival = (uint8_t)border_val;
-    int* buffer = nullptr;
+    int* buffer         = nullptr;
     WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
     int* adelta = buffer;
     int* bdelta = buffer + dst_w * 2;
@@ -1773,21 +1776,21 @@ static void WarpAffineNearest(const uint8_t* src, int batch, int src_w, int src_
             int new_x_loc = new_x >> 10;
             int new_y_loc = new_y >> 10;
 
-            bool is_left  = ((new_x >> 5) & 31) < 16;
-            bool is_top   = ((new_y >> 5) & 31) < 16;
+            bool is_left = ((new_x >> 5) & 31) < 16;
+            bool is_top  = ((new_y >> 5) & 31) < 16;
 
-            int src_loc   = (new_x_loc + new_y_loc * src_w) * schannel;
-            auto src_y1   = src_b + src_loc;
-            auto src_y2   = src_y1 + src_stride;
-            auto dst_x    = dst_y + x * schannel;
+            int src_loc = (new_x_loc + new_y_loc * src_w) * schannel;
+            auto src_y1 = src_b + src_loc;
+            auto src_y2 = src_y1 + src_stride;
+            auto dst_x  = dst_y + x * schannel;
 
             if (CheckDataIsInBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
                 int c = 0;
 #ifdef __SSE4_2__
                 if (schannel == 4) {
                     __m128i _vsrc    = is_top ? _mm_loadl_epi64((__m128i*)src_y1) : _mm_loadl_epi64((__m128i*)src_y2);
-                    *(int32_t*)dst_x = is_left ? _mm_extract_epi32(_vsrc, 0) :  _mm_extract_epi32(_vsrc, 1);
-                    c = 4;
+                    *(int32_t*)dst_x = is_left ? _mm_extract_epi32(_vsrc, 0) : _mm_extract_epi32(_vsrc, 1);
+                    c                = 4;
                 }
 #endif
                 for (; c < schannel; c++) {
@@ -1856,8 +1859,8 @@ void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src
     int dst_plane = dst_w * dst_h * 3 / 2;
 
     for (int b = 0; b < batch; ++b) {
-        const uint8_t* srcY  = src + b * src_plane;
-        uint8_t* dstY        = dst + b * dst_plane;
+        const uint8_t* srcY = src + b * src_plane;
+        uint8_t* dstY       = dst + b * dst_plane;
         WarpAffineNearestC1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
 
         const uint8_t* srcUV = srcY + src_w * src_h;
