@@ -180,6 +180,7 @@ TNN参考和借鉴了下列项目：
 
 ## FAQ
 * [FAQ 常见问题](doc/cn/faq.md)
+* [FAQ 模型对齐问题排查](doc/cn/model_align.md)
 
 ## 加入我们
 
