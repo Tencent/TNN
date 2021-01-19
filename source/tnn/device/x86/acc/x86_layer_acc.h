@@ -59,7 +59,7 @@ private:
     public:                                                                                                     \
         virtual ~X86##type_string##LayerAcc(){};                                                                \
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
-        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);        \
     }
 
 #define REGISTER_X86_ACC(type_string, layer_type)                                                               \
