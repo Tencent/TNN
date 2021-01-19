@@ -137,9 +137,15 @@ Status BaseLayer::InferOutputDataType() {
     }
     
     for (auto iter : output_blobs_) {
-        if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
-            flag = flag & 0x0000FFFF;
+        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
+                flag = flag & 0x0000FFFF;
+            }
+        } else {
+            //allocate output blob of const layer in const folding
+            if (DataFlagUtils::ChangeStatus(flag) != DATA_FLAG_CHANGE_ALWAYS) {
+                flag = flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+            }
         }
         iter->flag = flag;
     }

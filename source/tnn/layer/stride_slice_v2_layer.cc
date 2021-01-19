@@ -19,51 +19,19 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+DECLARE_LAYER_WITH_FUNC(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 Status StrideSliceV2Layer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
 Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
-    BaseLayer::InferOutputShape(ignore_error);
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
     
-    StrideSliceV2LayerParam* layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
-    if (!layer_param) {
-        LOGE_IF(!ignore_error, "StrideSliceV2Layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is nil");
-    }
-    
-    //根据const resource更新维度信息
-    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-        if (input_blobs_.size() >= 2) {
-            auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
-            if (const_resource_ != nullptr && const_resource_->find(begins_blob_name) != const_resource_->end()) {
-                auto begins_buffer =  (*const_resource_)[begins_blob_name];
-                auto dim_count = begins_buffer->GetDataCount();
-                auto dim_data = (int *)begins_buffer->force_to<int *>();
-                DimsVector dims;
-                for (int i=0; i<dim_count; i++) {
-                    dims.push_back(dim_data[i]);
-                }
-                layer_param->begins = dims;
-            }
-        }
-        
-        if (input_blobs_.size() >= 3) {
-            auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
-            if (const_resource_ != nullptr && const_resource_->find(ends_blob_name) != const_resource_->end()) {
-                auto ends_buffer =  (*const_resource_)[ends_blob_name];
-                auto dim_count = ends_buffer->GetDataCount();
-                auto dim_data = (int *)ends_buffer->force_to<int *>();
-                DimsVector dims;
-                for (int i=0; i<dim_count; i++) {
-                    dims.push_back(dim_data[i]);
-                }
-                layer_param->ends = dims;
-            }
-        }
-    }
+    auto layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
@@ -76,7 +44,6 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     auto strides = layer_param->strides;
 
     //前闭后开区间
-    Status status = TNN_OK;
     auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
   
@@ -86,6 +53,42 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
+}
+
+Status StrideSliceV2Layer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto *layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (input_blobs_.size() >= 2) {
+        auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(begins_blob_name) != const_resource_->end()) {
+            auto begins_buffer =  (*const_resource_)[begins_blob_name];
+            auto dim_count = begins_buffer->GetDataCount();
+            auto dim_data = (int *)begins_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->begins = dims;
+        }
+    }
+    
+    if (input_blobs_.size() >= 3) {
+        auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(ends_blob_name) != const_resource_->end()) {
+            auto ends_buffer =  (*const_resource_)[ends_blob_name];
+            auto dim_count = ends_buffer->GetDataCount();
+            auto dim_data = (int *)ends_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->ends = dims;
+        }
+    }
+    
+    return status;
 }
 
 REGISTER_LAYER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);

@@ -80,6 +80,12 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
+#ifdef DEBUG
+    {
+        static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+        LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
+    }
+#endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     if(!net_config.cache_path.empty()) {
@@ -94,7 +100,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * The optimization process may change the network structure accoundingly.
      * eg. fuse conv+bn, conv+relu.
      */
-    {
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
@@ -172,6 +178,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
 
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
@@ -291,7 +298,6 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         return TNN_OK;
     }
     static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -498,8 +504,8 @@ Status DefaultNetwork::Forward() {
 #endif  // DUMP_INPUT_BLOB
             
             status = layer->Forward();
-            
             LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
+            LOGD("Output Shape: [%s]\n", layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
             if (status != TNN_OK) {
                 LOGE("Forward error %s, exit\n", status.description().c_str());
                 return status;
