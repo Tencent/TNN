@@ -25,7 +25,7 @@ std::string ModelPacker::Transfer(std::string content) {
 }
 
 uint32_t ModelPacker::GetMagicNumber() {
-    return g_version_magic_number;
+    return g_version_magic_number_v2;
 }
 
 std::shared_ptr<Serializer> ModelPacker::GetSerializer(std::ostream &os) {
@@ -88,7 +88,7 @@ Status ModelPacker::PackProto(std::string file_path) {
                      << ",\"" << std::endl;
     }
 
-    // 2nd line: "<input_name1> <d0> <d1> ... : <input_name2> ... ,"
+    // 2nd line: "input_name size n c h w date_type : input_name size n c h w data_type ... ,"
     write_stream << "\"";
     int input_count = net_struc->inputs_shape_map.size();
     int idx         = 0;
@@ -217,12 +217,12 @@ Status ModelPacker::PackModel(std::string file_path) {
         return ret;
     }
     
-    //写入 const_map
+    // save const_map
     auto const_map = net_resource->constant_map;
     if (const_map.size() > 0) {
-        //写入版本号
+        // write magic num
         serializer->PutInt(magic_number);
-        //写入个数
+        // write const map size
         serializer->PutInt((int)const_map.size());
         for (const auto& iter : const_map) {
             serializer->PutString(iter.first);
