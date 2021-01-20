@@ -455,12 +455,11 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             ConvertToTRTDataType(desc.data_type), nv_dims);
 
         auto max_dims = ConvertToTRTDims(desc.dims);
-        auto min_dims = ConvertToTRTDims(desc.dims);
-        for (int i = 0; i < min_dims.nbDims; i++) {
-        // TODO config min
-        //    if (i != 1)
-        //        min_dims.d[i] = 1;
+        if (min_inputs_shape.count(desc.name) == 0) {
+            LOGE("min shape of %s is not defined\n", desc.name.c_str());
+            return TNNERR_COMMON_ERROR;
         }
+        auto min_dims = ConvertToTRTDims(min_inputs_shape.at(desc.name));
         auto opt_dims = max_dims;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
@@ -541,17 +540,15 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
             }
             auto nv_dims = ConvertToTRTDynamicDims(dims);
-            for(int i=2;i<nv_dims.nbDims;i++) {
+            for(int i=0;i<nv_dims.nbDims;i++) {
                 nv_dims.d[i] = -1;
             }
             auto const_tensor = m_trt_network->addInput(blob->GetBlobDesc().name.c_str(),
                 ConvertToTRTDataType(iter.second->GetDataType()), nv_dims);
             auto max_dims = ConvertToTRTDims(dims);
             auto min_dims = ConvertToTRTDims(dims);
-            // TODO config min
             for (int i = 0; i < min_dims.nbDims; i++) {
-                if (i != 1)
-                    min_dims.d[i] = 1;
+                min_dims.d[i] = 1;
             }
             auto opt_dims = max_dims;
             profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMIN, min_dims);
