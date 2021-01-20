@@ -3,29 +3,26 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'CMakeLists.txt'
-      - 'cmake/**'
-      - 'include/tnn/**'
-      - 'scripts/build_linux.sh'
-      - 'source/tnn/**'
-      - '!source/tnn/device/**'
-      - 'source/tnn/device/cpu/**'
-      - 'source/tnn/device/x86/**'
   pull_request:
     branches:
       - master
-    paths:
-      - 'CMakeLists.txt'
-      - 'cmake/**'
-      - 'include/tnn/**'
-      - 'scripts/build_linux.sh'
-      - 'source/tnn/**'
-      - '!source/tnn/device/**'
-      - 'source/tnn/device/cpu/**'
-      - 'source/tnn/device/x86/**'
+
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      SKIP: ${{ steps.preflight.outputs.SKIP }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Preflight
+      id: preflight
+      run: |
+        echo '::set-output name=SKIP::FALSE'
+        ./scripts/.ci/preflight_x86.sh || echo '::set-output name=SKIP::TRUE'
+
   macos-clang:
+    needs: [setup]
+    if: ${{ needs.setup.outputs.SKIP != 'TRUE' }}
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2

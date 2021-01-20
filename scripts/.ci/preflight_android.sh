@@ -8,15 +8,17 @@ echo -e "\n>> Changed Files:"
 for CHANGED_FILE in $CHANGED_FILES; do
   echo ${CHANGED_FILE}
 done
-ARM_RELEVANT=False
+RELEVANT=False
 
 PATTERNS=("CMakeLists.txt"
           "cmake/"
           "include/tnn/"
+          "platforms/android/"
           "scripts/build_android.sh"
           "source/tnn/core/"
           "source/tnn/device/arm/"
           "source/tnn/device/cpu/"
+          "source/tnn/device/opencl/"
           "source/tnn/interpreter/"
           "source/tnn/layer/"
           "source/tnn/memory_manager/"
@@ -35,15 +37,15 @@ for CHANGED_FILE in $CHANGED_FILES; do
   for PATTERN in ${PATTERNS[@]}; do
     if [[ $CHANGED_FILE =~ $PATTERN ]]; then
       echo $CHANGED_FILE " -> MATCHES <- " $PATTERN
-      ARM_RELEVANT=True
+      RELEVANT=True
       break
     fi
   done
 done
 
-if [[ $ARM_RELEVANT == True ]]; then
-  echo "Code changes relevant to arm, continuing with build."
+if [[ $RELEVANT == True ]]; then
+  echo "Code changes relevant, continuing with build."
 else
-  echo "Code changes not relevant to arm, exiting."
+  echo "Code changes not relevant, exiting."
   exit 1
 fi

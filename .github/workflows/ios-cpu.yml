@@ -3,29 +3,26 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'include/tnn/**'
-      - 'platforms/ios/**'
-      - 'scripts/build_ios.sh'
-      - 'source/tnn/**'
-      - '!source/tnn/device/**'
-      - 'source/tnn/device/arm/**'
-      - 'source/tnn/device/metal/**'
-      - '!source/tnn/extern_wrapper/**'
   pull_request:
     branches:
       - master
-    paths:
-      - 'include/tnn/**'
-      - 'platforms/ios/**'
-      - 'scripts/build_ios.sh'
-      - 'source/tnn/**'
-      - '!source/tnn/device/**'
-      - 'source/tnn/device/arm/**'
-      - 'source/tnn/device/metal/**'
-      - '!source/tnn/extern_wrapper/**'
+
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      SKIP: ${{ steps.preflight.outputs.SKIP }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Preflight
+      id: preflight
+      run: |
+        echo '::set-output name=SKIP::FALSE'
+        ./scripts/.ci/preflight_ios.sh || echo '::set-output name=SKIP::TRUE'
+
   ios-iphone-os:
+    needs: [setup]
+    if: ${{ needs.setup.outputs.SKIP != 'TRUE' }}
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
