@@ -34,6 +34,7 @@
 #include "tnn/device/x86/acc/compute/jit/utils/utils.h"
 #include "tnn/device/x86/acc/compute/jit/common/abi_info.h"
 #include "tnn/device/x86/acc/compute/jit/common/asm_common.h"
+#include "tnn/device/x86/acc/compute/jit/utils/cpu_isa.h"
 
 namespace TNN_NS {
 namespace jit {
@@ -368,6 +369,17 @@ public:
 
     virtual ~base_jit_kernel() {
 
+    }
+
+    inline void vfmadd231ps_sse(Xbyak::Xmm v1, Xbyak::Xmm v2, Xbyak::Xmm v3) {
+        if (cpu_with_isa(avx2)) {
+            vfmadd231ps(v1, v2, v3);
+        } else if (cpu_with_isa(sse42)) {
+            // v2 * v3 -> v3
+            // v1 + v3 -> v1
+            vmulps(v3, v2, v3);
+            vaddps(v1, v1, v3);
+        }
     }
 
 protected:

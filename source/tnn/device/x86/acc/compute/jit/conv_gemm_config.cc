@@ -23,6 +23,7 @@
 
 #include "tnn/device/x86/acc/compute/jit/kernels/base_jit_kernel.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/jit_kernels.h"
+#include "tnn/device/x86/acc/compute/jit/utils/cpu_isa.h"
 
 namespace TNN_NS {
 
@@ -35,7 +36,7 @@ conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(const char * trans_a, const ch
                 a_(a), b_(b), c_(c), m_(m), n_(n), k_(k), lda_(lda), ldb_(ldb), ldc_(ldc), 
                 bias_(bias), first_(first), act_type_(act_type), m_block_(m_block), n_block_(n_block)
 {
-    std::vector<int> supported_m_block = {8, 16};
+    std::vector<int> supported_m_block = {4, 8, 16};
     std::vector<int> supported_n_block = {6};
     if (std::find(supported_m_block.begin(), supported_m_block.end(), m_block_) == supported_m_block.end()) {
        throw std::runtime_error("value of m_block is not supported.");
@@ -47,13 +48,18 @@ conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(const char * trans_a, const ch
     M_c_ = 64;
     K_c_ = 256;
 
+    if (cpu_with_isa(avx2)) {
 #ifdef XBYAK64
-    kernel_m_r_ = 16; 
+        kernel_m_r_ = 16; 
 #else 
-    m_block_ = 8;
-    kernel_m_r_ = 8; 
+        m_block_ = 8;
+        kernel_m_r_ = 8; 
 #endif
-    kernel_n_r_ = 6; 
+    } else if (cpu_with_isa(sse42)) {
+        m_block_ = 4;
+        kernel_m_r_ = 4;
+    }
+    kernel_n_r_ = 6;
     this->init_jit_kernel();
 }
 
@@ -69,6 +75,7 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
     static std::shared_ptr<jit::base_jit_kernel> g_pack_t_ker[nb_kernels_m + 1];
     static std::shared_ptr<jit::base_jit_kernel> g_pack_t_4x16_ker;
     static std::shared_ptr<jit::base_jit_kernel> g_pack_n_ker[nb_kernels_n + 1];
+    static std::shared_ptr<jit::base_jit_kernel> g_kernel_4 [nb_kernels_m + 1][nb_kernels_n + 1];
     static std::shared_ptr<jit::base_jit_kernel> g_kernel_8 [nb_kernels_m + 1][nb_kernels_n + 1];
     static std::shared_ptr<jit::base_jit_kernel> g_kernel_16[nb_kernels_m + 1][nb_kernels_n + 1];
 
@@ -94,7 +101,11 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
                     g_pack_n_ker[i] = std::make_shared<jit::sgemm_fetch_n_5_ker_t>();
                     break;
                 case 6:
-                    g_pack_n_ker[i] = std::make_shared<jit::sgemm_fetch_n_6_ker_t>();
+                    if (cpu_with_isa(avx2)) {
+                        g_pack_n_ker[i] = std::make_shared<jit::sgemm_fetch_n_6_ker_t>();
+                    } else if (cpu_with_isa(sse42)) {
+                        g_pack_n_ker[i] = std::make_shared<jit::sgemm_fetch_n_6i_ker_t>();
+                    }
                     break;
                 default:
                     throw std::runtime_error("uninitialized kernel."); 
@@ -142,6 +153,8 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
         g_pack_t_4x16_ker = std::make_shared<jit::sgemm_fetch_t_4x16_ker_t>();
 
 #define REGISTER_KERNEL(M, N)                                                                   \
+            if (M <= 4)  g_kernel_4[M][N] =                                                     \
+            std::make_shared<jit::conv_sgemm_avx_kernel<M, N, 4, 6>>();                         \
             if (M <= 8)  g_kernel_8[M][N] =                                                     \
             std::make_shared<jit::conv_sgemm_avx_kernel<M, N, 8, 6>>();                         \
             if (M <= 16) g_kernel_16[M][N] =                                                    \
@@ -177,6 +190,9 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
 
         for(int m=1;m<=nb_kernels_m;m++) {
             for(int n=1;n<=nb_kernels_n;n++) {
+                if (g_kernel_4[m][n]) {
+                    g_kernel_4[m][n]->dump_to_file();
+                }
                 if (g_kernel_8[m][n]) {
                     g_kernel_8[m][n]->dump_to_file();
                 }
@@ -213,7 +229,9 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
 
     using kernel_array_ptr = decltype(&g_kernel_16);
     kernel_array_ptr kernel_array;
-    if (m_block_ == 8) {
+    if (m_block_ == 4) {
+        kernel_array = &g_kernel_4;
+    } else if (m_block_ == 8) {
         kernel_array = &g_kernel_8;
     } else if (m_block_ == 16)  {
         kernel_array = &g_kernel_16;

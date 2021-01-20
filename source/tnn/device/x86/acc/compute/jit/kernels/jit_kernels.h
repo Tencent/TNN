@@ -18,6 +18,7 @@
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_n_6.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t.h"
+#include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_4.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_8.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_16.h"
 #include "tnn/device/x86/acc/compute/jit/kernels/sgemm_fetch_t_4x16.h"

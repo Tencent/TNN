@@ -187,7 +187,7 @@ private:
 class sgemm_fetch_t_1_ker_t: public sgemm_fetch_t_i_ker_t<1> {};
 class sgemm_fetch_t_2_ker_t: public sgemm_fetch_t_i_ker_t<2> {};
 class sgemm_fetch_t_3_ker_t: public sgemm_fetch_t_i_ker_t<3> {};
-class sgemm_fetch_t_4_ker_t: public sgemm_fetch_t_i_ker_t<4> {};
+// class sgemm_fetch_t_4_ker_t: public sgemm_fetch_t_i_ker_t<4> {};
 class sgemm_fetch_t_5_ker_t: public sgemm_fetch_t_i_ker_t<5> {};
 class sgemm_fetch_t_6_ker_t: public sgemm_fetch_t_i_ker_t<6> {};
 class sgemm_fetch_t_7_ker_t: public sgemm_fetch_t_i_ker_t<7> {};

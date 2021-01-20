@@ -130,7 +130,7 @@ public:
             for(int i=0;i<N_r;i++) {
                 b_data.aquire();
                 vbroadcastss(b_data.xmm(), xword[src_b + i * 4]);
-                vfmadd231ps(c_data[i].xmm(), a_data.xmm(), b_data.xmm());
+                vfmadd231ps_sse(c_data[i].xmm(), a_data.xmm(), b_data.xmm());
                 b_data.release();
             }
             a_data.release();
