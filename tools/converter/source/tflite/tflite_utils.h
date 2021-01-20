@@ -33,7 +33,7 @@ bool ConvertPermFormatTFLite(std::vector<int32_t>& perm);
 // template <typename T>
 bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vector<int32_t> shape);
 
-int ConvertAxisFormatTFLite(int axis);
+int ConvertAxisFormatTFLite(int axis, int input_shape_size = 4);
 
 int Count(std::vector<int> shape);
 
