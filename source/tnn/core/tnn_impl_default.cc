@@ -85,4 +85,20 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
     return instance;
 }
 
+std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
+                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    if (!interpreter_) {
+        status = Status(TNNERR_NET_ERR, "interpreter is nil");
+        return nullptr;
+    }
+
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+
+    if (status != TNN_OK) {
+        return nullptr;
+    }
+    return instance;
+}
+
 }  // namespace TNN_NS

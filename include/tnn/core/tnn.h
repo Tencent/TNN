@@ -56,6 +56,10 @@ public:
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
 
+    std::shared_ptr<Instance> CreateInst(
+        NetworkConfig& config, Status& status,
+        InputShapesMap max_inputs_shape, InputShapesMap min_inputs_shape);
+
 private:
     std::shared_ptr<TNNImpl> impl_ = nullptr;
 };

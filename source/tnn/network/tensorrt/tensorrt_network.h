@@ -75,7 +75,7 @@ public:
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
                         AbstractModelInterpreter* interpreter,
-                        InputShapesMap inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     // @brief network forward
     virtual Status Forward();
@@ -98,7 +98,7 @@ private:
     bool IsBlobUsed(Blob* blob);
 
     Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name,
-        NetResource *net_resource);
+        NetResource *net_resource, const InputShapesMap &min_inputs_shape);
 
     Status CreateExecuteContext();
 
