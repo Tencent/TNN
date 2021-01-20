@@ -76,5 +76,5 @@ if [[ $RELEVANT == True ]]; then
   echo "Code changes relevant to" ${ci_type} ", continuing with build."
 else
   echo "Code changes not relevant to" ${ci_type} ", exiting."
-  exit 1
+  exit 11
 fi
