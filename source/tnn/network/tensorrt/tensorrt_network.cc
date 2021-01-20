@@ -455,11 +455,10 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             ConvertToTRTDataType(desc.data_type), nv_dims);
 
         auto max_dims = ConvertToTRTDims(desc.dims);
-        if (min_inputs_shape.count(desc.name) == 0) {
-            LOGE("min shape of %s is not defined\n", desc.name.c_str());
-            return TNNERR_COMMON_ERROR;
+        auto min_dims = max_dims;
+        if (min_inputs_shape.count(desc.name) != 0) {
+            min_dims = ConvertToTRTDims(min_inputs_shape.at(desc.name));
         }
-        auto min_dims = ConvertToTRTDims(min_inputs_shape.at(desc.name));
         auto opt_dims = max_dims;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
