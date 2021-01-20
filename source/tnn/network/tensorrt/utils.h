@@ -40,6 +40,8 @@ nvinfer1::Dims ConvertToTRTDims(DimsVector dims);
 
 nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims);
 
+nvinfer1::Dims ConvertToTRTDynamicDims(nvinfer1::Dims max_dims, nvinfer1::Dims min_dims);
+
 nvinfer1::Dims ConvertToTRTDimsReverse(DimsVector dims);
 
 nvinfer1::DataType ConvertToTRTDataType(DataType type);
