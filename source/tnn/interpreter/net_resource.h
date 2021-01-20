@@ -24,6 +24,7 @@ namespace TNN_NS {
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
     ConstantResource constant_map;
+    ConstantResource min_constant_map;
     //constant layer names
     std::set<std::string> constant_layers;
 };
