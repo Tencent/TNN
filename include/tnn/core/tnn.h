@@ -56,9 +56,11 @@ public:
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
 
+    // create tnn network instance with network config and min max inputs shape,
+    // instance reshape can support range from min inputs shape to max inputs shape.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
-        InputShapesMap max_inputs_shape, InputShapesMap min_inputs_shape);
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
 private:
     std::shared_ptr<TNNImpl> impl_ = nullptr;
