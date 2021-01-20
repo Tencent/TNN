@@ -25,7 +25,7 @@ using namespace Xbyak::util;
 
 static Xbyak::util::Cpu cpu;
 
-bool cpu_with_isa(x86_isa_t arch){
+bool cpu_with_isa(x86_isa_t arch) {
     switch (arch) {
         case sse42:
             return cpu.has(Cpu::tSSE42);

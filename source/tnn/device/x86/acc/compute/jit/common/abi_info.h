@@ -23,6 +23,7 @@
 #include <xmmintrin.h>
 
 #include <xbyak/xbyak.h>
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 namespace jit {

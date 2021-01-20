@@ -20,6 +20,7 @@
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/device/x86/x86_util.h"
+#include "tnn/device/x86/acc/compute/jit/utils/cpu_isa.h"
 
 namespace TNN_NS {
 
@@ -46,6 +47,7 @@ protected:
     LayerParam* param_          = nullptr;
     LayerResource* resource_    = nullptr;
     Context *context_           = nullptr;
+    x86_isa_t arch_;
 
 private:
     // @brief return device layer acc support data format

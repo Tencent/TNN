@@ -23,6 +23,7 @@
 #endif
 
 #include <stddef.h>
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 

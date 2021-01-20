@@ -20,6 +20,8 @@
 
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/x86_pool_layer_acc.h"
+#include "tnn/device/x86/acc/Float8.h"
+#include "tnn/device/x86/acc/Float4.h"
 
 namespace TNN_NS {
 
@@ -67,10 +69,23 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     auto input_ptr  = static_cast<float *>(input->GetHandle().base);
     auto output_ptr = static_cast<float *>(output->GetHandle().base);
 
+    auto X86MaxPoolingAcc = X86MaxPooling<Float4, 4>;
+    auto X86AvgPoolingAcc = X86AvgPooling<Float4, 4>;
+    auto PackAcc          = PackC4;
+    auto UnpackAcc        = UnpackC4;
+    int c_pack = 4;
+    if (arch_ == avx2) {
+        X86MaxPoolingAcc = X86MaxPooling<Float8, 8>;
+        X86AvgPoolingAcc = X86AvgPooling<Float8, 8>;
+        PackAcc          = PackC8;
+        UnpackAcc        = UnpackC8;
+        c_pack = 8;
+    }
+
     size_t src_hw        = dims_input[3] * dims_input[2];
     size_t dst_hw        = dims_output[3] * dims_output[2];
-    size_t src_pack_size = src_hw * 8 * sizeof(float);
-    size_t dst_pack_size = dst_hw * 8 * sizeof(float);
+    size_t src_pack_size = src_hw * c_pack * sizeof(float);
+    size_t dst_pack_size = dst_hw * c_pack * sizeof(float);
     float *workspace = (float*)_mm_malloc(src_pack_size + dst_pack_size, 32);
     auto src_pack_ptr = workspace;
     auto dst_pack_ptr = workspace + src_pack_size / sizeof(float);
@@ -80,20 +95,20 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         for (int b = 0; b < batch; b++) {
             auto input_b  = reinterpret_cast<float *>(input_ptr) + b * dims_input[1] * src_hw;
             auto output_b = reinterpret_cast<float *>(output_ptr) + b * dims_output[1] * dst_hw;
-            for (int c = 0; c < dims_output[1]; c += 8) {
-                int left_c = MIN(dims_output[1] - c, 8);
-                PackC8(src_pack_ptr, input_b + c * src_hw, src_hw, src_hw, src_hw, left_c);
+            for (int c = 0; c < dims_output[1]; c += c_pack) {
+                int left_c = MIN(dims_output[1] - c, c_pack);
+                PackAcc(src_pack_ptr, input_b + c * src_hw, src_hw, src_hw, src_hw, left_c);
                 if (param->pool_type == 0) {
-                    MaxPoolingAVX(src_pack_ptr, dims_input[3], dims_input[2], dst_pack_ptr,
+                    X86MaxPoolingAcc(src_pack_ptr, dims_input[3], dims_input[2], dst_pack_ptr,
                             dims_output[3], dims_output[2], param->kernels[0], param->kernels[1], param->strides[0],
                             param->strides[1], param->pads[0], param->pads[2], corner_l_, corner_r_, corner_t_,
                             corner_b_);
                 } else {
-                    AvgPoolingAVX(src_pack_ptr, dims_input[3], dims_input[2], dst_pack_ptr,
+                    X86AvgPoolingAcc(src_pack_ptr, dims_input[3], dims_input[2], dst_pack_ptr,
                             dims_output[3], dims_output[2], param->kernels[0], param->kernels[1], param->strides[0],
                             param->strides[1], param->pads[0], param->pads[2]);
                 }
-                UnpackC8(output_b + c * dst_hw, dst_pack_ptr, dst_hw, dst_hw, dst_hw, left_c);
+                UnpackAcc(output_b + c * dst_hw, dst_pack_ptr, dst_hw, dst_hw, dst_hw, left_c);
             }
         }
     } else {

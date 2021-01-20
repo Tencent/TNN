@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
-#define TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
+#ifndef TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_CPU_ISA_HPP_
+#define TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_CPU_ISA_HPP_
 
 
 #include <stdio.h>
@@ -44,4 +44,4 @@ bool cpu_with_isa(x86_isa_t arch);
 
 } // namespace tnn
 
-#endif // TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_HPP_
+#endif // TNN_DEVICE_X86_ACC_COMPUTE_JIT_UTILS_CPU_ISA_HPP_

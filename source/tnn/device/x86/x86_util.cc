@@ -13,10 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/x86_util.h"
+#include "tnn/device/x86/x86_common.h"
 
 #include <type_traits>
-#include <xmmintrin.h>
-#include <immintrin.h>
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/naive_compute.h"
@@ -36,10 +35,10 @@ namespace TNN_NS {
   t3 = _mm_movehl_ps(tmp3, tmp1);
 
 template <int left_c>
-inline void PackC4_Left(float *dst, const float *src, size_t hw) {
+inline void PackC4_Left(float *dst, const float *src, size_t hw, size_t src_hw_stride) {
     auto src0 = src;
-    auto src1 = src + hw;
-    auto src2 = src + hw * 2;
+    auto src1 = src + src_hw_stride;
+    auto src2 = src + src_hw_stride * 2;
 
     int cur_hw = 0;
     __m128 v1 = _mm_setzero_ps();
@@ -72,14 +71,14 @@ inline void PackC4_Left(float *dst, const float *src, size_t hw) {
     }
 }
 
-int PackC4(float *dst, const float *src, size_t hw, size_t channel) {
+int PackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel) {
     int c = 0;
     for (; c + 3 < channel; c += 4) {
-        auto src0 = src + c * hw;
-        auto src1 = src + c * hw + hw;
-        auto src2 = src + c * hw + hw * 2;
-        auto src3 = src + c * hw + hw * 3;
-        auto dst_c = dst + c * hw;
+        auto src0 = src + c * src_hw_stride;
+        auto src1 = src0 + src_hw_stride;
+        auto src2 = src0 + src_hw_stride * 2;
+        auto src3 = src0 + src_hw_stride * 3;
+        auto dst_c = dst + c * dst_hw_stride;
         int cur_hw = 0;
         for (; cur_hw + 3 < hw; cur_hw += 4) {
             auto dst_hw = dst_c + cur_hw * 4;
@@ -102,11 +101,11 @@ int PackC4(float *dst, const float *src, size_t hw, size_t channel) {
     }
     int left_c = channel - c;
     if (left_c == 3) {
-        PackC4_Left<3>(dst + c * hw, src + c * hw, hw);
+        PackC4_Left<3>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 2) {
-        PackC4_Left<2>(dst + c * hw, src + c * hw, hw);
+        PackC4_Left<2>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     } else if (left_c == 1) {
-        PackC4_Left<1>(dst + c * hw, src + c * hw, hw);
+        PackC4_Left<1>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, src_hw_stride);
     }
     return 0;
 }
@@ -295,10 +294,10 @@ int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t
 }
 
 template <int left_c>
-inline void UnpackC4_Left(float *dst, const float *src, size_t hw) {
+inline void UnpackC4_Left(float *dst, const float *src, size_t hw, size_t dst_hw_stride) {
     auto dst0 = dst;
-    auto dst1 = dst + hw;
-    auto dst2 = dst + hw * 2;
+    auto dst1 = dst + dst_hw_stride;
+    auto dst2 = dst + dst_hw_stride * 2;
     int cur_hw = 0;
     for (; cur_hw + 3 < hw; cur_hw += 4) {
         auto src_hw = src + cur_hw * 4;
@@ -318,14 +317,14 @@ inline void UnpackC4_Left(float *dst, const float *src, size_t hw) {
     }
 }
 
-int UnpackC4(float *dst, const float *src, size_t hw, size_t channel) {
+int UnpackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel) {
     int c = 0;
     for (; c + 3 < channel; c += 4) {
-        auto src_c = src + c * hw;
-        auto dst0 = dst + c * hw;
-        auto dst1 = dst + c * hw + hw;
-        auto dst2 = dst + c * hw + hw * 2;
-        auto dst3 = dst + c * hw + hw * 3;
+        auto src_c = src + c * src_hw_stride;
+        auto dst0 = dst + c * dst_hw_stride;
+        auto dst1 = dst0 + dst_hw_stride;
+        auto dst2 = dst0 + dst_hw_stride * 2;
+        auto dst3 = dst0 + dst_hw_stride * 3;
         int cur_hw = 0;
         for (; cur_hw + 3 < hw; cur_hw += 4) {
             auto src_hw = src_c + cur_hw * 4;
@@ -348,11 +347,11 @@ int UnpackC4(float *dst, const float *src, size_t hw, size_t channel) {
     }
     int left_c = channel - c;
     if (left_c == 3) {
-        UnpackC4_Left<3>(dst + c * hw, src + c * hw, hw);
+        UnpackC4_Left<3>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 2) {
-        UnpackC4_Left<2>(dst + c * hw, src + c * hw, hw);
+        UnpackC4_Left<2>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     } else if (left_c == 1) {
-        UnpackC4_Left<1>(dst + c * hw, src + c * hw, hw);
+        UnpackC4_Left<1>(dst + c * dst_hw_stride, src + c * src_hw_stride, hw, dst_hw_stride);
     }
     return 0;
 }

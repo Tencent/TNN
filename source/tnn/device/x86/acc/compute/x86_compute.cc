@@ -14,6 +14,7 @@
 
 #include "x86_compute.h"
 #include "tnn/device/x86/acc/Float8.h"
+#include "tnn/device/x86/acc/Float4.h"
 
 #include <algorithm>
 #include <cstring>
@@ -255,11 +256,12 @@ Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, Di
 /*
 max pooling corner func, left/right/top/bottom
 */
-void MaxPoolingCornerAVX(const float* src, long iw, long ih, float* dst, long ow, long kw, long kh, long stride_w, long stride_h,
+template <class T, int pack_c>
+void X86MaxPoolingCorner(const float* src, long iw, long ih, float* dst, long ow, long kw, long kh, long stride_w, long stride_h,
                       long pad_w, long pad_h, long l, long r, long t, long b) {
     for (long oy = t; oy < b; ++oy) {
         for (long ox = l; ox < r; ++ox) {
-            Float8 vmax(-FLT_MAX);
+            T vmax(-FLT_MAX);
 
             const long srcOriginX = ox * stride_w - pad_w;
             const long srcOriginY = oy * stride_h - pad_h;
@@ -267,17 +269,17 @@ void MaxPoolingCornerAVX(const float* src, long iw, long ih, float* dst, long ow
             const long kxe        = MIN(kw, iw - srcOriginX);
             const long kys        = MAX(0, -srcOriginY);
             const long kye        = MIN(kh, ih - srcOriginY);
-            const auto src_ptr    = src + (srcOriginY * iw + srcOriginX) * 8;
-            auto dst_ptr          = dst + (oy * ow + ox) * 8;
+            const auto src_ptr    = src + (srcOriginY * iw + srcOriginX) * pack_c;
+            auto dst_ptr          = dst + (oy * ow + ox) * pack_c;
 
             for (long ky = kys; ky < kye; ++ky) {
-                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                const auto src_ptr_h = src_ptr + (ky * iw) * pack_c;
                 for (long kx = kxs; kx < kxe; kx++) {
-                    vmax = Float8::max(vmax, Float8::load(src_ptr_h + kx * 8));
+                    vmax = T::max(vmax, T::load(src_ptr_h + kx * pack_c));
                 }
             }
 
-            Float8::save(dst_ptr, vmax);
+            T::save(dst_ptr, vmax);
         }
     }
 }
@@ -285,24 +287,25 @@ void MaxPoolingCornerAVX(const float* src, long iw, long ih, float* dst, long ow
 /*
 max pooling 3x3s2 kernel
 */
-void MaxPoolingCenter3x3s2AVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long pad_w, long pad_h, long l,
+template <class T, int pack_c>
+void X86MaxPoolingCenter3x3s2(const float* src, long iw, long ih, float* dst, long ow, long oh, long pad_w, long pad_h, long l,
                            long r, long t, long b) {
     for (long oy = t; oy < b; ++oy) {
         for (long ox = l; ox < r; ++ox) {
-            Float8 vmax(-FLT_MAX);
+            T vmax(-FLT_MAX);
 
             const long src_offset_x = ox * 2 - pad_w;
             const long src_offset_y = oy * 2 - pad_h;
-            const auto src_ptr      = src + (src_offset_y * iw + src_offset_x) * 8;
-            auto dst_ptr            = dst + (oy * ow + ox) * 8;
+            const auto src_ptr      = src + (src_offset_y * iw + src_offset_x) * pack_c;
+            auto dst_ptr            = dst + (oy * ow + ox) * pack_c;
 
             for (long ky = 0; ky < 3; ++ky) {
-                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
-                vmax                 = Float8::max(vmax, Float8::load(src_ptr_h + 0 * 8));
-                vmax                 = Float8::max(vmax, Float8::load(src_ptr_h + 1 * 8));
-                vmax                 = Float8::max(vmax, Float8::load(src_ptr_h + 2 * 8));
+                const auto src_ptr_h = src_ptr + (ky * iw) * pack_c;
+                vmax                 = T::max(vmax, T::load(src_ptr_h + 0 * pack_c));
+                vmax                 = T::max(vmax, T::load(src_ptr_h + 1 * pack_c));
+                vmax                 = T::max(vmax, T::load(src_ptr_h + 2 * pack_c));
             }
-            Float8::save(dst_ptr, vmax);
+            T::save(dst_ptr, vmax);
         }
     }
 }
@@ -310,25 +313,26 @@ void MaxPoolingCenter3x3s2AVX(const float* src, long iw, long ih, float* dst, lo
 /*
 general max pooling center kernel
 */
-void MaxPoolingCenterAVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+template <class T, int pack_c>
+void X86MaxPoolingCenter(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
                       long stride_h, long pad_w, long pad_h, long l, long r, long t, long b) {
     for (long oy = t; oy < b; ++oy) {
         for (long ox = l; ox < r; ++ox) {
-            Float8 vmax(-FLT_MAX);
+            T vmax(-FLT_MAX);
 
             const long src_offset_x = ox * stride_w - pad_w;
             const long src_offset_y = oy * stride_h - pad_h;
-            const auto src_ptr      = src + (src_offset_y * iw + src_offset_x) * 8;
-            auto dst_ptr            = dst + (oy * ow + ox) * 8;
+            const auto src_ptr      = src + (src_offset_y * iw + src_offset_x) * pack_c;
+            auto dst_ptr            = dst + (oy * ow + ox) * pack_c;
 
             for (long ky = 0; ky < kh; ++ky) {
-                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                const auto src_ptr_h = src_ptr + (ky * iw) * pack_c;
                 for (long kx = 0; kx < kw; kx++) {
-                    vmax = Float8::max(vmax, Float8::load(src_ptr_h + kx * 8));
+                    vmax = T::max(vmax, T::load(src_ptr_h + kx * pack_c));
                 }
             }
 
-            Float8::save(dst_ptr, vmax);
+            T::save(dst_ptr, vmax);
         }
     }
 }
@@ -336,32 +340,39 @@ void MaxPoolingCenterAVX(const float* src, long iw, long ih, float* dst, long ow
 /*
 max pooling func, process four corners and center
 */
-void MaxPoolingAVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+template <class T, int pack_c>
+void X86MaxPooling(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
                 long stride_h, long pad_w, long pad_h, long l, long r, long t, long b) {
     // top corner
-    MaxPoolingCornerAVX(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, ow, 0, t);
+    X86MaxPoolingCorner<T, pack_c>(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, ow, 0, t);
     if (kw == 3 && kh == 3 && stride_h == 2 && stride_w == 2) {
-        MaxPoolingCenter3x3s2AVX(src, iw, ih, dst, ow, oh, pad_w, pad_h, l, r, t, b);
+        X86MaxPoolingCenter3x3s2<T, pack_c>(src, iw, ih, dst, ow, oh, pad_w, pad_h, l, r, t, b);
     } else {
-        MaxPoolingCenterAVX(src, iw, ih, dst, ow, oh, kw, kh, stride_w, stride_h, pad_w, pad_h, l, r, t, b);
+        X86MaxPoolingCenter<T, pack_c>(src, iw, ih, dst, ow, oh, kw, kh, stride_w, stride_h, pad_w, pad_h, l, r, t, b);
     }
 
     // bottom corner
-    MaxPoolingCornerAVX(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, ow, b, oh);
+    X86MaxPoolingCorner<T, pack_c>(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, ow, b, oh);
     // left corner
-    MaxPoolingCornerAVX(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, l, t, b);
+    X86MaxPoolingCorner<T, pack_c>(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, 0, l, t, b);
     // right corner
-    MaxPoolingCornerAVX(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, r, ow, t, b);
+    X86MaxPoolingCorner<T, pack_c>(src, iw, ih, dst, ow, kw, kh, stride_w, stride_h, pad_w, pad_h, r, ow, t, b);
 }
+
+template void X86MaxPooling<Float8, 8>(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h, long l, long r, long t, long b);
+template void X86MaxPooling<Float4, 4>(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h, long l, long r, long t, long b);
 
 /*
 general avg pooling func
 */
-void AvgPoolingAVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+template <class T, int pack_c>
+void X86AvgPooling(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
                 long stride_h, long pad_w, long pad_h) {
     for (long oy = 0; oy < oh; ++oy) {
         for (long ox = 0; ox < ow; ++ox) {
-            Float8 vavg(0.f);
+            T vavg(0.f);
 
             const long srcOriginX    = ox * stride_w - pad_w;
             const long srcOriginY    = oy * stride_h - pad_h;
@@ -370,21 +381,26 @@ void AvgPoolingAVX(const float* src, long iw, long ih, float* dst, long ow, long
             const long kys           = MAX(0, -srcOriginY);
             const long kye           = MIN(kh, ih - srcOriginY);
             const float kernel_count = 1.0 / ((kxe - kxs) * (kye - kys));
-            const auto src_ptr       = src + (srcOriginY * iw + srcOriginX) * 8;
-            auto dst_ptr             = dst + (oy * ow + ox) * 8;
+            const auto src_ptr       = src + (srcOriginY * iw + srcOriginX) * pack_c;
+            auto dst_ptr             = dst + (oy * ow + ox) * pack_c;
 
             for (long ky = kys; ky < kye; ++ky) {
-                const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                const auto src_ptr_h = src_ptr + (ky * iw) * pack_c;
                 for (long kx = kxs; kx < kxe; kx++) {
-                    vavg = vavg + Float8::load(src_ptr_h + kx * 8);
+                    vavg = vavg + T::load(src_ptr_h + kx * pack_c);
                 }
             }
 
-            vavg = vavg * Float8(kernel_count);
-            Float8::save(dst_ptr, vavg);
+            vavg = vavg * T(kernel_count);
+            T::save(dst_ptr, vavg);
         }
     }
 }
+
+template void X86AvgPooling<Float8, 8>(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h);
+template void X86AvgPooling<Float4, 4>(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h);
 
 Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *bias_data,
                bool shared_channel, bool has_bias, DimsVector output_dim) {

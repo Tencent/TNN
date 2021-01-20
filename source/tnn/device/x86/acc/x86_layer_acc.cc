@@ -25,6 +25,13 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 
     param_    = param;
     resource_ = resource;
+
+    if (cpu_with_isa(avx2)) {
+        arch_ = avx2;
+    } else if (cpu_with_isa(sse42)) {
+        arch_ = sse42;
+    }
+
     return Reshape(inputs, outputs);
 }
 

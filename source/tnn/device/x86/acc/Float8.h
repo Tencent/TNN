@@ -14,14 +14,9 @@
 
 #ifndef Float8_hpp
 #define Float8_hpp
-#include <algorithm>  // supply std::max and std::min
-#include <cmath>
 #include "tnn/core/macro.h"
-#include "tnn/device/arm/acc/TNNVector.h"
-#include <immintrin.h>
+#include "tnn/device/x86/x86_common.h"
 namespace TNN_NS {
-
-#if 1
 
 struct Float8 {
     __m256 value;
@@ -118,27 +113,6 @@ struct Float8 {
     }
 };
 
-#else
-
-struct Float8 : TNNVector<float, 8> {
-    using TNNVector<float, 8>::TNNVector;
-    Float8() {}
-    Float8(const Float8& lr) {
-        for (int i = 0; i < 8; ++i) {
-            value[i] = lr.value[i];
-        }
-    }
-    Float8(const TNNVector<float, 8>& lr) {
-        for (int i = 0; i < 8; ++i) {
-            value[i] = lr.value[i];
-        }
-    }
-
-    using TNNVector<float, 8>::load;
-    using TNNVector<float, 8>::save;
-};
-
-#endif
 }  // namespace TNN_NS
 
 #endif /* Float8_hpp */

@@ -43,11 +43,11 @@ private:
 };
 #endif
 
-int PackC4(float *dst, const float *src, size_t hw, size_t channel);
+int PackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
 
 int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
 
-int UnpackC4(float *dst, const float *src, size_t hw, size_t channel);
+int UnpackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
 
 int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
 
