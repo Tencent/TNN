@@ -18,7 +18,7 @@ jobs:
       id: preflight
       run: |
         echo '::set-output name=SKIP::FALSE'
-        ./scripts/.ci/preflight_x86.sh || echo '::set-output name=SKIP::TRUE'
+        ./scripts/.ci/preflight.sh x86 || echo '::set-output name=SKIP::TRUE'
 
   macos-clang:
     needs: [setup]

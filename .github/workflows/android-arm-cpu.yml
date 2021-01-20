@@ -18,7 +18,7 @@ jobs:
       id: preflight
       run: |
         echo '::set-output name=SKIP::FALSE'
-        ./scripts/.ci/preflight_android.sh || echo '::set-output name=SKIP::TRUE'
+        ./scripts/.ci/preflight.sh android || echo '::set-output name=SKIP::TRUE'
 
   android:
     needs: [setup]

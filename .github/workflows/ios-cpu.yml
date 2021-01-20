@@ -18,7 +18,7 @@ jobs:
       id: preflight
       run: |
         echo '::set-output name=SKIP::FALSE'
-        ./scripts/.ci/preflight_ios.sh || echo '::set-output name=SKIP::TRUE'
+        ./scripts/.ci/preflight.sh ios || echo '::set-output name=SKIP::TRUE'
 
   ios-iphone-os:
     needs: [setup]
