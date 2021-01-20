@@ -49,6 +49,12 @@ Status X86_FMA(float *input, float *output, float *scale, float *bias,
 Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
                             DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type);
 
+void MaxPoolingAVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h, long l, long r, long t, long b);
+
+void AvgPoolingAVX(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
+                long stride_h, long pad_w, long pad_h);
+
 template <int activation_type>
 void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
