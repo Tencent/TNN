@@ -61,21 +61,21 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         RETURN_ON_NEQ(status, TNN_OK);
 
         if(min_inputs_shape.size() != 0) {
-             status = const_foler->Reshape(min_inputs_shape);
+             status = const_folder->Reshape(min_inputs_shape);
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();
              RETURN_ON_NEQ(status, TNN_OK);
-             auto min_const_resource = default_interpreter->GetNetResource().const_resource;
-             default_interpreter->GetNetResource().min_const_resource = min_const_resource;
-             status = const_foler->Reshape(max_inputs_shape);
+             auto min_constant_map = default_interpreter->GetNetResource()->constant_map;
+             default_interpreter->GetNetResource()->min_constant_map = min_constant_map;
+             status = const_folder->Reshape(max_inputs_shape);
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();
              RETURN_ON_NEQ(status, TNN_OK);
         } else {
             status = const_folder->Forward();
             RETURN_ON_NEQ(status, TNN_OK);
-            auto max_const_resource = default_interpreter->GetNetResource().const_resource;
-            default_interpreter->GetNetResource().min_const_resource = max_const_resource;
+            auto max_constant_map = default_interpreter->GetNetResource()->constant_map;
+            default_interpreter->GetNetResource()->min_constant_map = max_constant_map;
         }       
  
         const_folder_ = const_folder;
