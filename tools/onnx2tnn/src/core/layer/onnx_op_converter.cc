@@ -22,7 +22,18 @@ inline int saturate_cast(int64_t data) {
     return (int)((uint64_t)(data - INT_MIN) <= (uint64_t)UINT_MAX ? data : data > 0 ? INT_MAX : INT_MIN);
 }
 
-std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverter::GetAllInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    std::vector<std::string> inputs;
+    for (int j = 0; j < (int)node.input_size(); j++) {
+        const std::string &input_name = node.input(j);
+        if (input_name.length() > 0) {
+            inputs.push_back(input_name);
+        }
+    }
+    return inputs;
+}
+
+std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> inputs;
     
     int input_size  = node.input_size();
@@ -72,7 +83,7 @@ std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNet
     return inputs;
 }
 
-std::vector<std::string> OnnxOpConverter::GetOutputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverter::GetValidOutputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> outputs;
     int output_size = node.output_size();
     
@@ -97,8 +108,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     proto_layer << name << " ";
     ProcessConstantNode(node, net_info);
     
-    auto inputs = GetInputNames(node, net_info);
-    auto outputs = GetOutputNames(node, net_info);
+    auto inputs = GetValidInputNames(node, net_info);
+    auto outputs = GetValidOutputNames(node, net_info);
     
     proto_layer << inputs.size() << " " << outputs.size() << " ";
 

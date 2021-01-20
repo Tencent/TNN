@@ -16,14 +16,14 @@
 #include "onnx_utility.h"
 
 DECLARE_OP_CONVERTER_WITH_FUNC(Unsqueeze,
-                               virtual std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info););
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterUnsqueeze::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     return "Unsqueeze";
 }
 
-std::vector<std::string> OnnxOpConverterUnsqueeze::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverterUnsqueeze::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     return {node.input(0)};
 }
 

@@ -15,11 +15,16 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Concat);
+DECLARE_OP_CONVERTER_WITH_FUNC(Concat,
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterConcat::TNNOpType(NodeProto &node,
                                              OnnxNetInfo &net_info) {
     return "Concat";
+}
+
+std::vector<std::string> OnnxOpConverterConcat::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    return GetAllInputNames(node, net_info);
 }
 
 string OnnxOpConverterConcat::TNNLayerParam(NodeProto &node,
