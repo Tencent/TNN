@@ -216,8 +216,8 @@ __global__ void bgra_to_gray_kernel(const uint8_t* src, uint8_t* dst, int height
 
     if (w < width && h < height) {
         uint8_t b = src[(h * width + w) * channel + 0];
-        uint8_t g = src[(h * width + w) * channel + 0];
-        uint8_t r = src[(h * width + w) * channel + 0];
+        uint8_t g = src[(h * width + w) * channel + 1];
+        uint8_t r = src[(h * width + w) * channel + 2];
         float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
         dst[h * width + w] = gray_color;
     }
