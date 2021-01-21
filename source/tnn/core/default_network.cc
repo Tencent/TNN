@@ -611,10 +611,9 @@ std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
 
 Status DefaultNetwork::ReshapeLayers() {
     for (auto cur_layer : layers_) {
-        Status ret = cur_layer->Reshape();
-        if (ret != TNN_OK) {
-            return ret;
-        }
+        auto status = cur_layer->Reshape();
+        RETURN_ON_NEQ(status, TNN_OK);
+        LOGD("ReshapeLayers Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
     }
     return TNN_OK;
 }
