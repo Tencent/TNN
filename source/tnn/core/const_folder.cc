@@ -72,12 +72,15 @@ Status ConstFolder::Forward() {
     std::set<std::string> constant_layers;
     //将计算好的常量放入NetResource中，保留模型原有的常量
     ConstantResource constant_map = net_resource_->constant_map;
+    BlobShapesMap shapes_map;
+    
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {
             constant_layers.insert(layer->GetLayerName());
             continue;
         }
         
+        //save const input blob
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
             if (!blob->IsConstant()) {
@@ -93,9 +96,23 @@ Status ConstFolder::Forward() {
             
             constant_map[blob->GetBlobDesc().name] = buffer;
         }
+        
+        //save all input and output blob shapes
+        {
+            auto inputs = layer->GetInputBlobs();
+            for (auto blob : inputs) {
+                shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+            }
+            auto outputs = layer->GetOutputBlobs();
+            for (auto blob : outputs) {
+                shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+            }
+        }
+
     }
     net_resource_->constant_layers = constant_layers;
     net_resource_->constant_map = constant_map;
+    net_resource_->blob_shapes_map = shapes_map;
     
     return TNN_OK;
 }

@@ -613,6 +613,7 @@ Status DefaultNetwork::ReshapeLayers() {
     for (auto cur_layer : layers_) {
         auto status = cur_layer->Reshape();
         RETURN_ON_NEQ(status, TNN_OK);
+        //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
         LOGD("ReshapeLayers Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
     }
     return TNN_OK;

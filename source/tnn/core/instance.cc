@@ -65,17 +65,20 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();
              RETURN_ON_NEQ(status, TNN_OK);
-             auto min_constant_map = default_interpreter->GetNetResource()->constant_map;
-             default_interpreter->GetNetResource()->min_constant_map = min_constant_map;
+             auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            
+            //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
              status = const_folder->Reshape(max_inputs_shape);
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();
              RETURN_ON_NEQ(status, TNN_OK);
+            
+            default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
         } else {
             status = const_folder->Forward();
             RETURN_ON_NEQ(status, TNN_OK);
-            auto max_constant_map = default_interpreter->GetNetResource()->constant_map;
-            default_interpreter->GetNetResource()->min_constant_map = max_constant_map;
+            auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
         }       
  
         const_folder_ = const_folder;

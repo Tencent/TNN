@@ -24,9 +24,14 @@ namespace TNN_NS {
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
     ConstantResource constant_map;
-    ConstantResource min_constant_map;
     //constant layer names
     std::set<std::string> constant_layers;
+    
+    //default shape map, also it is max shape map corresponding to max_inputs_shape in Instance.Init
+    BlobShapesMap blob_shapes_map;
+    //min shape map, corresponding to min_inputs_shape in Instance.Init
+    BlobShapesMap min_blob_shapes_map;
+    
 };
 
 DataType GetNetResourceDataType(NetResource *resource);
