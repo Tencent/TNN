@@ -109,7 +109,7 @@ public:
         bias.restore();
         for(int i=0;i<N_r;i++) {
             c_data[i].aquire();
-            vbroadcastss(c_data[i].xmm(), dword[bias + i * 4]);
+            vbroadcastss_sse(c_data[i].xmm(), dword[bias + i * 4]);
         }
         bias.release();
         jmp("L_init_end");
@@ -129,7 +129,7 @@ public:
             vmovups(a_data.xmm(), xword[src_a]);
             for(int i=0;i<N_r;i++) {
                 b_data.aquire();
-                vbroadcastss(b_data.xmm(), xword[src_b + i * 4]);
+                vbroadcastss_sse(b_data.xmm(), xword[src_b + i * 4]);
                 vfmadd231ps_sse(c_data[i].xmm(), a_data.xmm(), b_data.xmm());
                 b_data.release();
             }

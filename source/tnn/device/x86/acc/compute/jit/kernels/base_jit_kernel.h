@@ -382,6 +382,15 @@ public:
         }
     }
 
+    inline void vbroadcastss_sse(Xbyak::Xmm v, Xbyak::Address addr) {
+        if (cpu_with_isa(avx2)) {
+            vbroadcastss(v, addr);
+        } else if (cpu_with_isa(sse42)) {
+            movss(v, addr);
+            shufps(v, v, 0);
+        }
+    }
+
 protected:
     size_t abi_nb_argment = 0;
     size_t abi_bp_offset_ = 0;
