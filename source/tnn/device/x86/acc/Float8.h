@@ -16,6 +16,7 @@
 #define Float8_hpp
 #include "tnn/core/macro.h"
 #include "tnn/device/x86/x86_common.h"
+#include "tnn/device/x86/acc/avx_mathfun.h"
 namespace TNN_NS {
 
 struct Float8 {
@@ -78,6 +79,28 @@ struct Float8 {
     static Float8 min(const Float8& v1, const Float8& v2) {
         Float8 dst;
         dst.value = _mm256_min_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float8 neg(const Float8 &v) {
+        Float8 dst;
+        _PS256_CONST_TYPE(mask, uint32_t, 0x80000000);
+        dst.value = _mm256_xor_ps (v.value, *(__m256*) _ps256_mask);
+        return dst;
+    }
+    static Float8 abs(const Float8 &v) {
+        Float8 dst;
+        dst.value = _mm256_max_ps(_mm256_sub_ps(_mm256_setzero_ps(), v.value), v.value);
+        return dst;
+    }
+    static Float8 sqrt(const Float8 &v) {
+        Float8 dst;
+        dst.value = _mm256_sqrt_ps(v.value);
+        return dst;
+    }
+    static Float8 sigmoid(const Float8 &v) {
+        Float8 dst;
+        const __m256 one = _mm256_set1_ps(1.0f);
+        dst.value = _mm256_div_ps(one, _mm256_add_ps(one, exp256_ps(_mm256_sub_ps(_mm256_setzero_ps(), v.value))));
         return dst;
     }
     Float8 operator+(const Float8& lr) {

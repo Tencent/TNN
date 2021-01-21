@@ -16,6 +16,7 @@
 #define Float4_hpp
 #include "tnn/core/macro.h"
 #include "tnn/device/x86/x86_common.h"
+#include "tnn/device/x86/acc/sse_mathfun.h"
 namespace TNN_NS {
 
 struct Float4 {
@@ -78,6 +79,28 @@ struct Float4 {
     static Float4 min(const Float4& v1, const Float4& v2) {
         Float4 dst;
         dst.value = _mm_min_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float4 neg(const Float4 &v) {
+        Float4 dst;
+        _PS_CONST_TYPE(mask, uint32_t, 0x80000000);
+        dst.value = _mm_xor_ps (v.value, *(__m128*) _ps_mask);
+        return dst;
+    }
+    static Float4 abs(const Float4 &v) {
+        Float4 dst;
+        dst.value = _mm_max_ps(_mm_sub_ps(_mm_setzero_ps(), v.value), v.value);
+        return dst;
+    }
+    static Float4 sqrt(const Float4 &v) {
+        Float4 dst;
+        dst.value = _mm_sqrt_ps(v.value);
+        return dst;
+    }
+    static Float4 sigmoid(const Float4 &v) {
+        Float4 dst;
+        const __m128 one = _mm_set1_ps(1.0f);
+        dst.value = _mm_div_ps(one, _mm_add_ps(one, exp_ps(_mm_sub_ps(_mm_setzero_ps(), v.value))));
         return dst;
     }
     Float4 operator+(const Float4& lr) {
